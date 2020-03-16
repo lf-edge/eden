@@ -10,6 +10,14 @@ Install requirements from [eve](https://github.com/itmo-eve/eve#install-dependen
 
 Also, you need to install ```openssl``` package and ```uuidgen```
 
+# Running
+
+Recommended to run from superuser
+
+To run harness use: ```make run```
+
+To stop harness use: ```make stop```
+
 # Help
 
 You can see help by running ```make help```
