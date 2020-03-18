@@ -1,3 +1,6 @@
+CONFIG=Config.in
+include $(CONFIG)
+
 HOSTARCH:=$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
 
 ZARCH ?= $(HOSTARCH)
@@ -21,22 +24,41 @@ ADAM_DIST=$(DIST)/adam
 $(ADAM_DIST):
 	test -d $@ || mkdir -p $@
 
-BIOS_IMG=$(EVE_DIST)/dist/$(ZARCH)/OVMF.fd
-LIVE_IMG=$(EVE_DIST)/dist/$(ZARCH)/live
-EVE_URL="https://github.com/lf-edge/eve.git"
+BIOS_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/OVMF.fd
+LIVE_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/live.img 
+EVE_URL ?= "https://github.com/lf-edge/eve.git"
 EVE_REF ?= "master"
-ADAM_URL="https://github.com/lf-edge/adam.git"
+ADAM_URL ?= "https://github.com/lf-edge/adam.git"
 ADAM_REF ?= "master"
 
 # any non-empty value will trigger eve rebuild
 REBUILD=
 
-ACCEL=
-SSH_PORT=2222
+ACCEL ?=
+SSH_PORT ?= 2222
 
 run: adam_run eve_run
 
-eve_run: eve_stop eve_live
+$(CONFIG): save
+
+save:
+	echo \# Configuration settings > $(CONFIG)
+	echo ZARCH=$(ZARCH) >> $(CONFIG)
+	echo BIOS_IMG=$(BIOS_IMG) >> $(CONFIG)
+	echo LIVE_IMG=$(LIVE_IMG) >> $(CONFIG)
+	echo EVE_URL=$(EVE_URL) >> $(CONFIG)
+	echo EVE_REF=$(EVE_REF) >> $(CONFIG)
+	echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
+	echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
+	echo ACCEL=$(ACCEL) >> $(CONFIG)
+	echo SSH_PORT=$(SSH_PORT) >> $(CONFIG)
+	echo CERTS_DIST=$(CERTS_DIST) >> $(CONFIG)
+	echo DOMAIN=$(DOMAIN) >> $(CONFIG)
+	echo IP=$(IP) >> $(CONFIG)
+	echo UUID=$(UUID) >> $(CONFIG)
+	echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
+
+eve_run: save eve_stop eve_live
 	@echo EVE run
 	nohup make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ SSH_PORT=$(SSH_PORT) ACCEL=$(ACCEL) run >$(DIST)/eve.log 2>&1 & echo "$$!" >$(DIST)/eve.pid
 	@echo You can see logs of EVE:
@@ -44,7 +66,7 @@ eve_run: eve_stop eve_live
 	@echo You can ssh into EVE:
 	@echo ssh -i $(CERTS_DIST)/id_rsa -p $(SSH_PORT) root@127.0.0.1
 
-IMGS := $(LIVE_IMG).img $(BIOS_IMG)
+IMGS := $(LIVE_IMG) $(BIOS_IMG)
 IMGS_MISSING := $(shell $(foreach f,$(IMGS),test -e "$f" || echo "$f";))
 
 eve_live: eve_ref
@@ -65,17 +87,17 @@ eve: $(DIST)
 	test -d $(EVE_DIST) || git clone $(EVE_URL) $(EVE_DIST)
 
 
-CERTS_DIST=$(DIST)/certs
-DOMAIN=mydomain.adam
+CERTS_DIST ?= $(DIST)/certs
+DOMAIN ?= mydomain.adam
 IP?=$(shell hostname -I | cut -d' ' -f1)
-UUID=$(shell uuidgen)
-ADAM_PORT=3333
+UUID?=$(shell uuidgen)
+ADAM_PORT?=3333
 
 adam_docker_stop:
 	docker ps|grep eden_adam&&docker stop eden_adam||echo ""
 	docker ps --all|grep eden_adam&&docker rm eden_adam||echo ""
 
-adam_run: adam_docker_stop adam_ref certs_and_config
+adam_run: save adam_docker_stop adam_ref certs_and_config
 	@echo Adam Run
 	cd $(ADAM_DIST); docker run --name eden_adam -d -v $(ADAM_DIST)/run:/adam/run -p $(ADAM_PORT):8080 lfedge/adam server --conf-dir ./run/adam_cfg
 	@echo ADAM is ready for access: https://$(IP):$(ADAM_PORT)
@@ -129,3 +151,4 @@ help:
 	@echo
 	@echo "You need access to docker socket and installed qemu packages"
 	@echo "You must set the IP variable (any IP on your host interface except docker0) if your default gateway on the subnets 192.168.1.0/24 or 192.168.2.0/24"
+
