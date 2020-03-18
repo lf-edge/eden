@@ -16,6 +16,8 @@ Recommended to run from superuser
 
 To run harness use: ```make run```
 
+To run tests use: ```make test```
+
 To stop harness use: ```make stop```
 
 # Help

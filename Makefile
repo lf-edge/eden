@@ -111,6 +111,9 @@ stop: adam_docker_stop eve_stop
 eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
+test:
+	IP=$(IP) go test ./models -v
+
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo
@@ -120,6 +123,7 @@ help:
 	@echo
 	@echo "Commonly used maintenance and development targets:"
 	@echo "   run           run ADAM and EVE"
+	@echo "   test          run tests"
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         cleanup directories"
 	@echo
