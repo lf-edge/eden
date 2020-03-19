@@ -1,4 +1,5 @@
-CONFIG=Config.in
+DIST=$(CURDIR)/dist
+CONFIG=$(DIST)/Config.in
 include $(CONFIG)
 
 HOSTARCH:=$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
@@ -7,9 +8,7 @@ ZARCH ?= $(HOSTARCH)
 export ZARCH
 
 clean: stop
-	rm -rf $(DIST)/*
-
-DIST=$(CURDIR)/dist
+	rm -rf $(DIST)/* || sudo rm -rf $(DIST)/*
 
 $(DIST):
 	test -d $@ || mkdir -p $@
@@ -19,7 +18,7 @@ EVE_DIST=$(DIST)/eve
 $(EVE_DIST):
 	test -d $@ || mkdir -p $@
 
-ADAM_DIST=$(DIST)/adam
+ADAM_DIST ?= $(DIST)/adam
 
 $(ADAM_DIST):
 	test -d $@ || mkdir -p $@
@@ -32,7 +31,10 @@ ADAM_URL ?= "https://github.com/lf-edge/adam.git"
 ADAM_REF ?= "master"
 
 # any non-empty value will trigger eve rebuild
-REBUILD=
+REBUILD ?=
+
+# any non-empty value will trigger fix eve ip
+FIX_IP ?=
 
 ACCEL ?=
 SSH_PORT ?= 2222
@@ -41,15 +43,16 @@ run: adam_run eve_run
 
 $(CONFIG): save
 
-save:
-	echo \# Configuration settings > $(CONFIG)
+save: $(DIST)
+	echo "# Configuration settings" > $(CONFIG)
+	echo ADAM_DIST=$(ADAM_DIST) >> $(CONFIG)
 	echo ZARCH=$(ZARCH) >> $(CONFIG)
 	echo BIOS_IMG=$(BIOS_IMG) >> $(CONFIG)
 	echo LIVE_IMG=$(LIVE_IMG) >> $(CONFIG)
 	echo EVE_URL=$(EVE_URL) >> $(CONFIG)
 	echo EVE_REF=$(EVE_REF) >> $(CONFIG)
 	echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
-	echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
+	echo ADAM_REF=$(ADAM_REF) >> $(CONFIG)
 	echo ACCEL=$(ACCEL) >> $(CONFIG)
 	echo SSH_PORT=$(SSH_PORT) >> $(CONFIG)
 	echo CERTS_DIST=$(CERTS_DIST) >> $(CONFIG)
@@ -70,6 +73,10 @@ IMGS := $(LIVE_IMG) $(BIOS_IMG)
 IMGS_MISSING := $(shell $(foreach f,$(IMGS),test -e "$f" || echo "$f";))
 
 eve_live: eve_ref
+ifneq ($(FIX_IP),)
+	chmod a+x $(CURDIR)/scripts/fixIPs.sh
+	$(CURDIR)/scripts/fixIPs.sh $(EVE_DIST)/Makefile
+endif
 ifneq ($(REBUILD),)
 	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ live
 else
@@ -81,7 +88,7 @@ endif
 endif
 
 eve_ref: eve
-	cd $(EVE_DIST); test -n $(EVE_REF) && git checkout $(EVE_REF)
+	cd $(EVE_DIST); test -n $(EVE_REF) && git checkout -f $(EVE_REF)
 
 eve: $(DIST)
 	test -d $(EVE_DIST) || git clone $(EVE_URL) $(EVE_DIST)
@@ -99,11 +106,11 @@ adam_docker_stop:
 
 adam_run: save adam_docker_stop adam_ref certs_and_config
 	@echo Adam Run
-	cd $(ADAM_DIST); docker run --name eden_adam -d -v $(ADAM_DIST)/run:/adam/run -p $(ADAM_PORT):8080 lfedge/adam server --conf-dir ./run/adam_cfg
+	cd $(ADAM_DIST); docker run --name eden_adam -d -v $(ADAM_DIST)/run:/adam/run -p $(ADAM_PORT):8080 lfedge/adam server --conf-dir /tmp
 	@echo ADAM is ready for access: https://$(IP):$(ADAM_PORT)
 
 adam_ref: adam
-	cd $(ADAM_DIST); test -n $(ADAM_REF) && git checkout $(ADAM_REF)
+	cd $(ADAM_DIST); test -n $(ADAM_REF) && git checkout -f $(ADAM_REF)
 
 adam:
 	test -d $(ADAM_DIST) || git clone $(ADAM_URL) $(ADAM_DIST)
@@ -122,7 +129,7 @@ ifeq ($(shell test -f $(ADAM_DIST)/run/adam/server.pem),)
 	cp $(CERTS_DIST)/onboard.key.pem $(ADAM_DIST)/run/config/
 	cp $(CERTS_DIST)/server.pem $(ADAM_DIST)/run/adam/
 	cp $(CERTS_DIST)/server-key.pem $(ADAM_DIST)/run/adam/
-	echo $(IP) $(DOMAIN) >$(ADAM_DIST)/run/config//hosts
+	echo $(IP) $(DOMAIN) >$(ADAM_DIST)/run/config/hosts
 	echo $(DOMAIN):$(ADAM_PORT) >$(ADAM_DIST)/run/config/server
 	test -f $(CERTS_DIST)/id_rsa.pub || ssh-keygen -t rsa -f $(CERTS_DIST)/id_rsa -q -N ""
 	yes | cp -f $(CERTS_DIST)/id_rsa.pub $(ADAM_DIST)/run/config/authorized_keys
@@ -134,7 +141,7 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) go test ./models -v
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) go test ./models -v
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
@@ -150,5 +157,5 @@ help:
 	@echo "   clean         cleanup directories"
 	@echo
 	@echo "You need access to docker socket and installed qemu packages"
-	@echo "You must set the IP variable (any IP on your host interface except docker0) if your default gateway on the subnets 192.168.1.0/24 or 192.168.2.0/24"
+	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"
 

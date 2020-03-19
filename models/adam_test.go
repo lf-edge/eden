@@ -22,16 +22,23 @@ func TestAdamCtx_OnBoard(t *testing.T) {
 			t.Errorf(err.Error())
 		}
 	}
-	adamDir := path.Join(filepath.Dir(currentPath), "dist", "adam")
-	if stat, err := os.Stat(adamDir); err != nil || !stat.IsDir() {
-		t.Errorf("Failed to get adam dir")
+	adamDir := os.Getenv("ADAM_DIST")
+	if len(adamDir) == 0 {
+		adamDir = path.Join(filepath.Dir(currentPath), "dist", "adam")
+		if stat, err := os.Stat(adamDir); err != nil || !stat.IsDir() {
+			t.Errorf("Failed to get adam dir")
+		}
+	}
+	serial := os.Getenv("EVE_SERIAL")
+	if len(adamDir) == 0 {
+		serial = "31415926"
 	}
 	ctx := AdamCtx{
 		Dir: adamDir,
 		Url: fmt.Sprintf("https://%s:3333", ip),
 	}
 	t.Logf("Try to add onboarding")
-	err = ctx.OnBoardAdd("31415926")
+	err = ctx.OnBoardAdd(serial)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
