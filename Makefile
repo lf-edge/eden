@@ -141,7 +141,7 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) go test ./models -v
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) go test ./tests/integration/adam_test.go -v
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"

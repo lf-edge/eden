@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"strings"
 )
 
 //RunCommandBackground command run in goroutine
@@ -48,6 +49,18 @@ func RunCommandAndWait(name string, args ...string) (stdout string, stderr strin
 	var stdoutBuffer bytes.Buffer
 	var stderrBuffer bytes.Buffer
 	cmd := exec.Command(name, args...)
+	cmd.Stdout = &stdoutBuffer
+	cmd.Stderr = &stderrBuffer
+	err = cmd.Run()
+	return stdoutBuffer.String(), stderrBuffer.String(), err
+}
+
+//RunCommandWithSTDINAndWait run process in foreground with stdin passed as arg
+func RunCommandWithSTDINAndWait(name string, stdin string, args ...string) (stdout string, stderr string, err error) {
+	var stdoutBuffer bytes.Buffer
+	var stderrBuffer bytes.Buffer
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = strings.NewReader(stdin)
 	cmd.Stdout = &stdoutBuffer
 	cmd.Stderr = &stderrBuffer
 	err = cmd.Run()
