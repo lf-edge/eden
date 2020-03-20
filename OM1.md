@@ -1,4 +1,4 @@
-#Object model \#1
+# Object model \#1
 
 ## Structures:
 * EdgeDevConfig (eve/api/go/config/devconfig.pb.go)
