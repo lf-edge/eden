@@ -1,3 +1,5 @@
+*~
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -16,3 +18,6 @@
 
 dist
 Config.in
+cmd/main/main
+cmd/elog/elog
+cmd/elogwatch/elogwatch

@@ -1,4 +1,5 @@
 DIST=$(CURDIR)/dist
+BIN=$(DIST)/bin
 CONFIG=$(DIST)/Config.in
 include $(CONFIG)
 
@@ -143,6 +144,17 @@ eve_stop:
 test:
 	IP=$(IP) ADAM_DIST=$(ADAM_DIST) go test ./tests/integration/adam_test.go -v
 
+$(BIN):
+	mkdir -p $(BIN)
+
+bin: elog elogwatch
+
+elog: $(BIN)
+	cd cmd/elog/; go build; cp elog $(BIN)
+
+elogwatch: $(BIN)
+	cd cmd/elogwatch/; go build; cp elogwatch $(BIN)
+
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo
@@ -155,6 +167,7 @@ help:
 	@echo "   test          run tests"
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         cleanup directories"
+	@echo "   bin		build utilities"
 	@echo
 	@echo "You need access to docker socket and installed qemu packages"
 	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"
