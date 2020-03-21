@@ -1,11 +1,13 @@
 package integration
 
 import (
+	"errors"
 	"fmt"
-	"github.com/itmo-eve/eden/internal/utils"
 	"github.com/itmo-eve/eden/pkg/adam"
 	"github.com/itmo-eve/eden/pkg/cloud"
 	"github.com/itmo-eve/eden/pkg/device"
+	"github.com/itmo-eve/eden/pkg/elog"
+	"github.com/itmo-eve/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	"log"
 	"os"
@@ -75,23 +77,23 @@ func TestAdamOnBoard(t *testing.T) {
 	t.Fatal("Onboarding timeout")
 }
 
-func TestAdamSetConfig(t *testing.T) {
+func adamPrepare() (adamCtx *adam.AdamCtx, id *uuid.UUID, err error) {
 	currentPath, err := os.Getwd()
 	if err != nil {
-		t.Fatal(err)
+		return nil, nil, err
 	}
 	ip := os.Getenv("IP")
 	if len(ip) == 0 {
 		ip, err = utils.GetIPForDockerAccess()
 		if err != nil {
-			t.Fatal(err)
+			return nil, nil, err
 		}
 	}
 	adamDir := os.Getenv("ADAM_DIST")
 	if len(adamDir) == 0 {
 		adamDir = path.Join(filepath.Dir(filepath.Dir(currentPath)), "dist", "adam")
 		if stat, err := os.Stat(adamDir); err != nil || !stat.IsDir() {
-			t.Fatal("Failed to get adam dir")
+			return nil, nil, err
 		}
 	}
 	ctx := adam.AdamCtx{
@@ -100,28 +102,46 @@ func TestAdamSetConfig(t *testing.T) {
 	}
 	cmdOut, err := ctx.DeviceList()
 	if err != nil {
-		t.Fatal(err)
+		return nil, nil, err
 	}
 	if len(cmdOut) > 0 {
-		t.Logf("Device uuid: %s", cmdOut)
 		devUUID, err := uuid.FromString(cmdOut[0])
 		if err != nil {
-			t.Fatal(err)
+			return nil, nil, err
 		}
-		cloudCxt := &cloud.CloudCtx{}
-		deviceCtx := device.CreateWithBaseConfig(devUUID, cloudCxt)
-		b, err := deviceCtx.GenerateJsonBytes()
-		if err != nil {
-			log.Fatal(err)
-		}
-		configToSet := fmt.Sprintf("%s", string(b))
-		log.Print(configToSet)
-		res, err := ctx.ConfigSet(devUUID.String(), configToSet)
-		if err != nil {
-			t.Log(res)
-			t.Fatal(err)
-		}
+		return &ctx, &devUUID, nil
 	} else {
-		t.Fatal("No device found")
+		return nil, nil, errors.New("no device found")
+	}
+}
+
+func TestAdamSetConfig(t *testing.T) {
+	ctx, devUUID, err := adamPrepare()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cloudCxt := &cloud.CloudCtx{}
+	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
+	b, err := deviceCtx.GenerateJsonBytes()
+	if err != nil {
+		log.Fatal(err)
+	}
+	configToSet := fmt.Sprintf("%s", string(b))
+	log.Print(configToSet)
+	res, err := ctx.ConfigSet(devUUID.String(), configToSet)
+	if err != nil {
+		t.Log(res)
+		t.Fatal(err)
+	}
+}
+
+func TestAdamLogs(t *testing.T) {
+	ctx, devUUID, err := adamPrepare()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = elog.LogWatchWithTimeout(path.Join(ctx.Dir, "run", "adam", "device", devUUID.String(), "logs"), map[string]string{}, elog.HandleFirst, 180)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

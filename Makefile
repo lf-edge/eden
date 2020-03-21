@@ -120,7 +120,7 @@ $(CERTS_DIST):
 	test -d $@ || mkdir -p $@
 
 certs_and_config: $(CERTS_DIST)
-ifeq ($(shell test -f $(ADAM_DIST)/run/adam/server.pem),)
+ifeq ($(shell ls $(ADAM_DIST)/run/adam/server.pem),)
 	test -d $(ADAM_DIST)/run/adam || mkdir -p $(ADAM_DIST)/run/adam
 	test -d $(ADAM_DIST)/run/config || mkdir -p $(ADAM_DIST)/run/config
 	chmod a+x $(CURDIR)/scripts/genCerts.sh
@@ -142,18 +142,21 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) go test ./tests/integration/adam_test.go -v
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) go test ./tests/integration/adam_test.go -v -count=1
 
 $(BIN):
 	mkdir -p $(BIN)
 
-bin: elog elogwatch
+bin: elog elogwatch econfig
 
 elog: $(BIN)
-	cd cmd/elog/; go build; cp elog $(BIN)
+	cd cmd/elog/; go build; mv elog $(BIN)
 
 elogwatch: $(BIN)
-	cd cmd/elogwatch/; go build; cp elogwatch $(BIN)
+	cd cmd/elogwatch/; go build; mv elogwatch $(BIN)
+
+econfig: $(BIN)
+	cd cmd/econfig/; go build; mv econfig $(BIN)
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"

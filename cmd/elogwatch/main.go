@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/itmo-eve/eden/pkg/elog"
 	"os"
 	"strings"
-	"github.com/itmo-eve/eden/pkg/elog"
 )
 
 func main() {
-	if (len(os.Args) < 2) {
+	if len(os.Args) < 2 {
 		fmt.Printf("Usage: %s dir [field:pattern ...]\n", os.Args[0])
 		os.Exit(-1)
 	}
@@ -20,5 +20,5 @@ func main() {
 		q[s[0]] = s[1]
 	}
 
-	elog.Log_watch(os.Args[1], q, elog.Log_prn)
+	elog.LogWatch(os.Args[1], q, elog.HandleAll)
 }

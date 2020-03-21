@@ -2,7 +2,7 @@ package adam
 
 import (
 	"fmt"
-	"github.com/itmo-eve/eden/internal/utils"
+	"github.com/itmo-eve/eden/pkg/utils"
 	"log"
 	"strings"
 )

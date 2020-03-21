@@ -2,46 +2,21 @@ package elog
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
-	timestamp "github.com/golang/protobuf/ptypes/timestamp"
-	"regexp"
-	"reflect"
-	"strings"
-	"io/ioutil"
 	"github.com/fsnotify/fsnotify"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/lf-edge/eve/api/go/logs"
+	"io/ioutil"
+	"log"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
 )
 
-// from eve/api/go/logs/log.pb.go
-type LogBundle struct {
-        DevID                string               `protobuf:"bytes,1,opt,name=devID,proto3" json:"devID,omitempty"`
-        Image                string               `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
-        Log                  []*LogEntry          `protobuf:"bytes,3,rep,name=log,proto3" json:"log,omitempty"`
-        Timestamp            *timestamp.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-        EveVersion           string               `protobuf:"bytes,5,opt,name=eveVersion,proto3" json:"eveVersion,omitempty"`
-        XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-        XXX_unrecognized     []byte               `json:"-"`
-        XXX_sizecache        int32                `json:"-"`
-}
-
-// from eve/api/go/logs/log.pb.go
-type LogEntry struct {
-        Severity             string               `protobuf:"bytes,1,opt,name=severity,proto3" json:"severity,omitempty"`
-        Source               string               `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
-        Iid                  string               `protobuf:"bytes,3,opt,name=iid,proto3" json:"iid,omitempty"`
-        Content              string               `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
-        Msgid                uint64               `protobuf:"varint,5,opt,name=msgid,proto3" json:"msgid,omitempty"`
-        Tags                 map[string]string    `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-        Timestamp            *timestamp.Timestamp `protobuf:"bytes,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-        Filename             string               `protobuf:"bytes,8,opt,name=filename,proto3" json:"filename,omitempty"`
-        Function             string               `protobuf:"bytes,9,opt,name=function,proto3" json:"function,omitempty"`
-        XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-        XXX_unrecognized     []byte               `json:"-"`
-        XXX_sizecache        int32                `json:"-"`
-}
-
 type LogItem struct {
-        Source    string
+	Source    string
 	Level     string
 	Msg       string
 	File      string
@@ -51,107 +26,146 @@ type LogItem struct {
 	Partition string
 }
 
-
-func Parse_LogBundle(data []byte) LogBundle {
-	var lb LogBundle
-	json.Unmarshal([]byte(string(data)), &lb)
-	return lb
+func ParseLogBundle(data []byte) (logBundle logs.LogBundle, err error) {
+	var lb logs.LogBundle
+	err = jsonpb.UnmarshalString(string(data), &lb)
+	return lb, err
 }
 
-func Parse_LogItem(data string) LogItem {
-	re := regexp.MustCompile(`(?P<time>[^{]*): (?P<json>\{.*\})`)
+func ParseLogItem(data string) (logItem LogItem, err error) {
+	re := regexp.MustCompile(`(?P<time>[^{]*): (?P<json>{.*})`)
 	parts := re.SubexpNames()
-	result := re.FindAllStringSubmatch(string(data), -1)
-        m := map[string]string{}
-        for i, n := range result[0] {
-            m[parts[i]] = n
-        }
+	result := re.FindAllStringSubmatch(data, -1)
+	m := map[string]string{}
+	for i, n := range result[0] {
+		m[parts[i]] = n
+	}
 	//fmt.Println("time: ", m["time"])
 	//fmt.Println("json: ", m["json"])
 
 	var le LogItem
-	json.Unmarshal([]byte(string(m["json"])), &le)
+	err = json.Unmarshal([]byte(m["json"]), &le)
 
-	return le
+	return le, err
 }
 
-func Find_LogItem(le LogItem, query map[string] string) int {
+func FindLogItem(le LogItem, query map[string]string) int {
 	matched := 1
-        for k, v := range query {
+	for k, v := range query {
 		// Uppercase of filed's name first letter
 		n := strings.Title(k)
 		// Find field in structure by Titlized() name 'n'
 		r := reflect.ValueOf(le)
 		f := reflect.Indirect(r).FieldByName(n).String()
 		matched, err := regexp.Match(v, []byte(f))
-		if (err != nil) {
-			return(-1)
+		if err != nil {
+			return -1
 		}
-		if (matched == false) {
-			return(0)
+		if matched == false {
+			return 0
 		}
 	}
-	return(matched)
+	return matched
 }
 
-func Log_prn(le *LogItem) {
-	fmt.Println("source:",le.Source)
-	fmt.Println("level:",le.Level)
-	fmt.Println("msg:",le.Msg)
-	fmt.Println("file:",le.File)
-	fmt.Println("func:",le.Func)
-	fmt.Println("time:",le.Time)
-	fmt.Println("pid:",le.Pid)
-	fmt.Println("partition:",le.Partition)
+func HandleFirst(le *LogItem) bool {
+	LogPrn(le)
+	return true
+}
+
+func HandleAll(le *LogItem) bool {
+	LogPrn(le)
+	return false
+}
+
+func LogPrn(le *LogItem) {
+	fmt.Println("source:", le.Source)
+	fmt.Println("level:", le.Level)
+	fmt.Println("msg:", le.Msg)
+	fmt.Println("file:", le.File)
+	fmt.Println("func:", le.Func)
+	fmt.Println("time:", le.Time)
+	fmt.Println("pid:", le.Pid)
+	fmt.Println("partition:", le.Partition)
 	fmt.Println()
 }
 
-type Handler_func func(*LogItem)
+//HandlerFunc must process LogItem and return true to exit
+//or false to continue
+type HandlerFunc func(*LogItem) bool
 
-func Log_watch(filepath string, query map[string] string, handler Handler_func) {
+func LogWatchWithTimeout(filepath string, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
+	done := make(chan error)
+	go func() {
+		err := LogWatch(filepath, query, handler)
+		if err != nil {
+			done <- err
+			return
+		}
+		done <- nil
+	}()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(timeoutSeconds * time.Second):
+		return errors.New("timeout")
+	}
+}
+
+func LogWatch(filepath string, query map[string]string, handler HandlerFunc) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer watcher.Close()
 
 	done := make(chan bool)
 	go func() {
-	MONITOR:
+		defer func() { done <- true }()
 		for {
 			select {
 			case event := <-watcher.Events:
 				switch event.Op {
 				case fsnotify.Write:
+					time.Sleep(500 * time.Millisecond) // wait for write ends
 					data, err := ioutil.ReadFile(event.Name)
 					if err != nil {
 						log.Fatal("Can't open", event.Name)
-						break MONITOR
 					}
 
-					lb := Parse_LogBundle(data)
+					lb, err := ParseLogBundle(data)
+					if err != nil {
+						log.Print("Can't parse bundle of ", event.Name)
+						log.Fatal(err)
+					}
 
 					for _, n := range lb.Log {
 						//fmt.Println(n.Content)
-						s := string(n.Content)
-						le := Parse_LogItem(s)
-						if (Find_LogItem(le, query) == 1) {
-							handler(&le)
+						s := n.Content
+						le, err := ParseLogItem(s)
+						if err != nil {
+							log.Print("Can't parse item of ", event.Name)
+							log.Fatal(err)
+						}
+						if FindLogItem(le, query) == 1 {
+							if handler(&le) {
+								return
+							}
 						}
 					}
 					continue
 				}
 			case err := <-watcher.Errors:
-				fmt.Println("Error:", err)
+				log.Printf("Error: %s", err)
 			}
 		}
 	}()
 
 	err = watcher.Add(filepath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	<-done
+	return nil
 }
-
