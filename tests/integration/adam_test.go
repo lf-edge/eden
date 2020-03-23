@@ -8,8 +8,8 @@ import (
 	"github.com/itmo-eve/eden/pkg/device"
 	"github.com/itmo-eve/eden/pkg/elog"
 	"github.com/itmo-eve/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -118,16 +118,16 @@ func adamPrepare() (adamCtx *adam.AdamCtx, id *uuid.UUID, err error) {
 func TestAdamSetConfig(t *testing.T) {
 	ctx, devUUID, err := adamPrepare()
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	cloudCxt := &cloud.CloudCtx{}
 	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
 	b, err := deviceCtx.GenerateJsonBytes()
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	configToSet := fmt.Sprintf("%s", string(b))
-	log.Print(configToSet)
+	t.Log(configToSet)
 	res, err := ctx.ConfigSet(devUUID.String(), configToSet)
 	if err != nil {
 		t.Log(res)
@@ -138,10 +138,115 @@ func TestAdamSetConfig(t *testing.T) {
 func TestAdamLogs(t *testing.T) {
 	ctx, devUUID, err := adamPrepare()
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	err = elog.LogWatchWithTimeout(path.Join(ctx.Dir, "run", "adam", "device", devUUID.String(), "logs"), map[string]string{}, elog.HandleFirst, 180)
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBaseImage(t *testing.T) {
+	ctx, devUUID, err := adamPrepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseOSVersion := os.Getenv("EVE_BASE_VERSION")
+	if len(baseOSVersion) == 0 {
+		eveBaseRef := os.Getenv("EVE_BASE_REF")
+		if len(eveBaseRef) == 0 {
+			eveBaseRef = "4.10.0"
+		}
+		zArch := os.Getenv("ZARCH")
+		if len(eveBaseRef) == 0 {
+			zArch = "amd64"
+		}
+		baseOSVersion = fmt.Sprintf("%s-%s", eveBaseRef, zArch)
+	}
+
+	dsId := "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
+
+	imageID := "1ab8761b-5f89-4e0b-b757-4b87a9fa93ec"
+
+	baseID := "22b8761b-5f89-4e0b-b757-4b87a9fa93ec"
+
+	imageName := path.Join(filepath.Dir(ctx.Dir), "images", "baseos.qcow2")
+
+	fi, err := os.Stat(imageName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	size := fi.Size()
+
+	sha256sum, err := utils.SHA256SUM(imageName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cloudCxt := &cloud.CloudCtx{}
+	err = cloudCxt.AddDatastore(&config.DatastoreConfig{
+		Id:       dsId,
+		DType:    config.DsType_DsHttp,
+		Fqdn:     "http://mydomain.adam:8888",
+		ApiKey:   "",
+		Password: "",
+		Dpath:    "",
+		Region:   "",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	img := &config.Image{
+		Uuidandversion: &config.UUIDandVersion{
+			Uuid:    imageID,
+			Version: "4",
+		},
+		Name:      filepath.Base(imageName),
+		Sha256:    sha256sum,
+		Iformat:   config.Format_QCOW2,
+		DsId:      dsId,
+		SizeBytes: size,
+		Siginfo: &config.SignatureInfo{
+			Intercertsurl: "",
+			Signercerturl: "",
+			Signature:     nil,
+		},
+	}
+	err = cloudCxt.AddImage(img)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cloudCxt.AddBaseOsConfig(&config.BaseOSConfig{
+		Uuidandversion: &config.UUIDandVersion{
+			Uuid:    baseID,
+			Version: "4",
+		},
+		Drives: []*config.Drive{{
+			Image:        img,
+			Readonly:     false,
+			Preserve:     false,
+			Drvtype:      config.DriveType_Unclassified,
+			Target:       config.Target_TgtUnknown,
+			Maxsizebytes: size,
+		}},
+		Activate:      true,
+		BaseOSVersion: baseOSVersion,
+		BaseOSDetails: nil,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
+	deviceCtx.SetBaseOSConfig([]string{baseID})
+	b, err := deviceCtx.GenerateJsonBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	configToSet := fmt.Sprintf("%s", string(b))
+	t.Log(configToSet)
+	res, err := ctx.ConfigSet(devUUID.String(), configToSet)
+	if err != nil {
+		t.Log(res)
 		t.Fatal(err)
 	}
 }

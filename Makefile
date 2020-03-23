@@ -16,20 +16,40 @@ $(DIST):
 
 EVE_DIST=$(DIST)/eve
 
-$(EVE_DIST):
-	test -d $@ || mkdir -p $@
-
-ADAM_DIST ?= $(DIST)/adam
-
-$(ADAM_DIST):
-	test -d $@ || mkdir -p $@
-
 BIOS_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/OVMF.fd
-LIVE_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/live.img 
+LIVE_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/live.img
 EVE_URL ?= "https://github.com/lf-edge/eve.git"
 EVE_REF ?= "master"
 ADAM_URL ?= "https://github.com/lf-edge/adam.git"
 ADAM_REF ?= "master"
+
+EVE_REF_OLD=$(EVE_REF)
+EVE_DIST_OLD=$(EVE_REF)
+
+EVE_BASE_REF?=4.10.0
+EVE_BASE_VERSION?=$(EVE_BASE_REF)-$(ZARCH)
+EVE_BASE_DIST=$(DIST)/evebaseos
+
+$(EVE_DIST):
+ifneq ($(EVE_REF),)
+	git clone --branch $(EVE_REF) --single-branch $(EVE_URL) $(EVE_DIST)
+else
+	git clone $(EVE_URL) $(EVE_DIST)
+endif
+
+ADAM_DIST ?= $(DIST)/adam
+
+$(ADAM_DIST):
+ifneq ($(ADAM_REF),)
+	git clone --branch $(ADAM_REF) --single-branch $(ADAM_URL) $(ADAM_DIST)
+else
+	git clone $(ADAM_URL) $(ADAM_DIST)
+endif
+
+IMAGE_DIST ?= $(DIST)/images
+
+$(IMAGE_DIST):
+	test -d $@ || mkdir -p $@
 
 # any non-empty value will trigger eve rebuild
 REBUILD ?=
@@ -40,7 +60,7 @@ FIX_IP ?=
 ACCEL ?=
 SSH_PORT ?= 2222
 
-run: adam_run eve_run
+run: adam_run eve_run eserver_run
 
 $(CONFIG): save
 
@@ -61,6 +81,8 @@ save: $(DIST)
 	echo IP=$(IP) >> $(CONFIG)
 	echo UUID=$(UUID) >> $(CONFIG)
 	echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
+	echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
+	echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
 
 eve_run: save eve_stop eve_live
 	@echo EVE run
@@ -73,7 +95,10 @@ eve_run: save eve_stop eve_live
 IMGS := $(LIVE_IMG) $(BIOS_IMG)
 IMGS_MISSING := $(shell $(foreach f,$(IMGS),test -e "$f" || echo "$f";))
 
-eve_live: eve_ref
+eve_rootfs: $(EVE_DIST)
+	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ rootfs
+
+eve_live: $(EVE_DIST)
 ifneq ($(FIX_IP),)
 	chmod a+x $(CURDIR)/scripts/fixIPs.sh
 	$(CURDIR)/scripts/fixIPs.sh $(EVE_DIST)/Makefile
@@ -88,12 +113,6 @@ else
 endif
 endif
 
-eve_ref: eve
-	cd $(EVE_DIST); test -n $(EVE_REF) && git checkout -f $(EVE_REF)
-
-eve: $(DIST)
-	test -d $(EVE_DIST) || git clone $(EVE_URL) $(EVE_DIST)
-
 
 CERTS_DIST ?= $(DIST)/certs
 DOMAIN ?= mydomain.adam
@@ -105,16 +124,10 @@ adam_docker_stop:
 	docker ps|grep eden_adam&&docker stop eden_adam||echo ""
 	docker ps --all|grep eden_adam&&docker rm eden_adam||echo ""
 
-adam_run: save adam_docker_stop adam_ref certs_and_config
+adam_run: save adam_docker_stop $(ADAM_DIST) certs_and_config
 	@echo Adam Run
 	cd $(ADAM_DIST); docker run --name eden_adam -d -v $(ADAM_DIST)/run:/adam/run -p $(ADAM_PORT):8080 lfedge/adam server --conf-dir /tmp
 	@echo ADAM is ready for access: https://$(IP):$(ADAM_PORT)
-
-adam_ref: adam
-	cd $(ADAM_DIST); test -n $(ADAM_REF) && git checkout -f $(ADAM_REF)
-
-adam:
-	test -d $(ADAM_DIST) || git clone $(ADAM_URL) $(ADAM_DIST)
 
 $(CERTS_DIST):
 	test -d $@ || mkdir -p $@
@@ -136,18 +149,18 @@ ifeq ($(shell ls $(ADAM_DIST)/run/adam/server.pem),)
 	yes | cp -f $(CERTS_DIST)/id_rsa.pub $(ADAM_DIST)/run/config/authorized_keys
 endif
 
-stop: adam_docker_stop eve_stop
+stop: adam_docker_stop eve_stop eserver_stop
 
 eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) go test ./tests/integration/adam_test.go -v -count=1
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) go test ./tests/integration/adam_test.go -v -count=1
 
 $(BIN):
 	mkdir -p $(BIN)
 
-bin: elog elogwatch econfig
+bin: elog elogwatch econfig eserver
 
 elog: $(BIN)
 	cd cmd/elog/; go build; mv elog $(BIN)
@@ -157,6 +170,41 @@ elogwatch: $(BIN)
 
 econfig: $(BIN)
 	cd cmd/econfig/; go build; mv econfig $(BIN)
+
+eserver: $(BIN)
+	cd cmd/eserver/; go build; mv eserver $(BIN)
+
+SHA256_CMD = sha256sum
+ifeq ($(PLATFORM), OS_MACOSX)
+        SHA256_CMD = openssl sha256 -r
+endif
+ifeq ($(PLATFORM), OS_SOLARIS)
+        SHA256_CMD = digest -a sha256
+endif
+
+$(IMAGE_DIST)/baseos.qcow2: save $(IMAGE_DIST) certs_and_config
+	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST)
+	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.img $(IMAGE_DIST)/baseos.qcow2
+	cd $(IMAGE_DIST); $(SHA256_CMD) baseos.qcow2>baseos.sha256
+	echo EVE_VERSION>$(IMAGE_DIST)/version.yml.in
+	$(MAKE) -C $(EVE_BASE_DIST) $(IMAGE_DIST)/version.yml
+	$(MAKE) save_ref_dist_base EVE_REF=$(EVE_REF_OLD) EVE_DIST=$(EVE_DIST_OLD)
+	rm -rf $(IMAGE_DIST)/version.yml.in
+	rm -rf $(IMAGE_DIST)/version.yml
+
+save_ref_dist_base:
+	$(eval EVE_BASE_VERSION := $(shell cat $(IMAGE_DIST)/version.yml))
+	$(MAKE) save EVE_REF=$(EVE_REF_OLD) EVE_DIST=$(EVE_DIST_OLD) EVE_BASE_VERSION=$(EVE_BASE_VERSION)
+
+ESERVER_PORT=8888
+
+eserver_run: eserver $(IMAGE_DIST)/baseos.qcow2 eserver_stop
+	@echo eserver run
+	nohup $(BIN)/eserver -p $(ESERVER_PORT) -d $(IMAGE_DIST) 2>&1 >/dev/null & echo "$$!" >$(DIST)/eserver.pid
+	@echo eserver run on port $(ESERVER_PORT)
+
+eserver_stop:
+	test -f $(DIST)/eserver.pid && kill $(shell cat $(DIST)/eserver.pid) && rm $(DIST)/eserver.pid || echo ""
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
@@ -174,4 +222,3 @@ help:
 	@echo
 	@echo "You need access to docker socket and installed qemu packages"
 	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"
-
