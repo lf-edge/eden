@@ -155,12 +155,12 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) go test ./tests/integration/adam_test.go -v -count=1
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/adam_test.go -v -count=1
 
 $(BIN):
 	mkdir -p $(BIN)
 
-bin: elog elogwatch econfig eserver
+bin: elog elogwatch econfig eserver einfowatch einfo
 
 elog: $(BIN)
 	cd cmd/elog/; go build; mv elog $(BIN)
@@ -173,6 +173,12 @@ econfig: $(BIN)
 
 eserver: $(BIN)
 	cd cmd/eserver/; go build; mv eserver $(BIN)
+
+einfowatch: $(BIN)
+	cd cmd/einfowatch/; go build; mv einfowatch $(BIN)
+
+einfo: $(BIN)
+	cd cmd/einfo/; go build; mv einfo $(BIN)
 
 SHA256_CMD = sha256sum
 ifeq ($(PLATFORM), OS_MACOSX)

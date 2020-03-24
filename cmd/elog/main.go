@@ -41,7 +41,7 @@ func main() {
 			fmt.Println("ParseLogItem error", err)
 			return
 		}
-		if elog.FindLogItem(le, q) == 1 {
+		if elog.LogItemFind(le, q) == 1 {
 			elog.LogPrn(&le)
 		}
 	}

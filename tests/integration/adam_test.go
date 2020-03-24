@@ -6,6 +6,7 @@ import (
 	"github.com/itmo-eve/eden/pkg/adam"
 	"github.com/itmo-eve/eden/pkg/cloud"
 	"github.com/itmo-eve/eden/pkg/device"
+	"github.com/itmo-eve/eden/pkg/einfo"
 	"github.com/itmo-eve/eden/pkg/elog"
 	"github.com/itmo-eve/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
@@ -16,6 +17,8 @@ import (
 	"testing"
 	"time"
 )
+
+const eveCert = "/adam/run/config/onboard.cert.pem"
 
 func TestAdamOnBoard(t *testing.T) {
 	currentPath, err := os.Getwd()
@@ -28,6 +31,10 @@ func TestAdamOnBoard(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+	port := os.Getenv("ADAM_PORT")
+	if len(port) == 0 {
+		port = "3333"
 	}
 	adamDir := os.Getenv("ADAM_DIST")
 	if len(adamDir) == 0 {
@@ -42,10 +49,10 @@ func TestAdamOnBoard(t *testing.T) {
 	}
 	ctx := adam.AdamCtx{
 		Dir: adamDir,
-		Url: fmt.Sprintf("https://%s:3333", ip),
+		Url: fmt.Sprintf("https://%s:%s", ip, port),
 	}
 	t.Logf("Try to add onboarding")
-	err = ctx.OnBoardAdd(serial)
+	err = ctx.Register(eveCert, serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,6 +96,10 @@ func adamPrepare() (adamCtx *adam.AdamCtx, id *uuid.UUID, err error) {
 			return nil, nil, err
 		}
 	}
+	port := os.Getenv("ADAM_PORT")
+	if len(port) == 0 {
+		port = "3333"
+	}
 	adamDir := os.Getenv("ADAM_DIST")
 	if len(adamDir) == 0 {
 		adamDir = path.Join(filepath.Dir(filepath.Dir(currentPath)), "dist", "adam")
@@ -98,7 +109,7 @@ func adamPrepare() (adamCtx *adam.AdamCtx, id *uuid.UUID, err error) {
 	}
 	ctx := adam.AdamCtx{
 		Dir: adamDir,
-		Url: fmt.Sprintf("https://%s:3333", ip),
+		Url: fmt.Sprintf("https://%s:%s", ip, port),
 	}
 	cmdOut, err := ctx.DeviceList()
 	if err != nil {
@@ -135,12 +146,23 @@ func TestAdamSetConfig(t *testing.T) {
 	}
 }
 
+func TestAdamInfo(t *testing.T) {
+	ctx, devUUID, err := adamPrepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = einfo.InfoWatchWithTimeout(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String()}, einfo.ZInfoDevSWFind, einfo.HandleFirst, 360)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAdamLogs(t *testing.T) {
 	ctx, devUUID, err := adamPrepare()
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = elog.LogWatchWithTimeout(path.Join(ctx.Dir, "run", "adam", "device", devUUID.String(), "logs"), map[string]string{}, elog.HandleFirst, 180)
+	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String()}, elog.HandleFirst, 180)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,6 +269,11 @@ func TestBaseImage(t *testing.T) {
 	res, err := ctx.ConfigSet(devUUID.String(), configToSet)
 	if err != nil {
 		t.Log(res)
+		t.Fatal(err)
+	}
+
+	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, elog.HandleFirst, 180)
+	if err != nil {
 		t.Fatal(err)
 	}
 }

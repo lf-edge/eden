@@ -1,3 +1,5 @@
+//The einfo package provides primitives for searching and processing data
+//in Log files.
 package elog
 
 import (
@@ -49,7 +51,8 @@ func ParseLogItem(data string) (logItem LogItem, err error) {
 	return le, err
 }
 
-func FindLogItem(le LogItem, query map[string]string) int {
+//Find LogItem records by reqexps in 'query' corresponded to LogItem structure.
+func LogItemFind(le LogItem, query map[string]string) int {
 	matched := 1
 	for k, v := range query {
 		// Uppercase of filed's name first letter
@@ -68,16 +71,19 @@ func FindLogItem(le LogItem, query map[string]string) int {
 	return matched
 }
 
+//Function that runs once and interrupts the workflow of LogWatch
 func HandleFirst(le *LogItem) bool {
 	LogPrn(le)
 	return true
 }
 
+//Function that runs for all Logs selected by LogWatch
 func HandleAll(le *LogItem) bool {
 	LogPrn(le)
 	return false
 }
 
+//Print Log data
 func LogPrn(le *LogItem) {
 	fmt.Println("source:", le.Source)
 	fmt.Println("level:", le.Level)
@@ -94,6 +100,9 @@ func LogPrn(le *LogItem) {
 //or false to continue
 type HandlerFunc func(*LogItem) bool
 
+//Function monitors the change of Log files in the 'filepath' directory
+//with 'timeoutSeconds' according to the 'query' reqexps and
+//processing using the 'handler' function.
 func LogWatchWithTimeout(filepath string, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
 	done := make(chan error)
 	go func() {
@@ -112,13 +121,22 @@ func LogWatchWithTimeout(filepath string, query map[string]string, handler Handl
 	}
 }
 
+//Function monitors the change of Log files in the 'filepath' directory
+//according to the 'query' reqexps and processing using the 'handler' function.
 func LogWatch(filepath string, query map[string]string, handler HandlerFunc) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
 	defer watcher.Close()
-
+	devId, ok := query["devId"]
+	if ok {
+		delete(query, "devId")
+	}
+	eveVersion, ok := query["eveVersion"]
+	if ok {
+		delete(query, "eveVersion")
+	}
 	done := make(chan bool)
 	go func() {
 		defer func() { done <- true }()
@@ -138,7 +156,12 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 						log.Print("Can't parse bundle of ", event.Name)
 						log.Fatal(err)
 					}
-
+					if devId != "" && devId != lb.DevID {
+						continue
+					}
+					if eveVersion != "" && eveVersion != lb.EveVersion {
+						continue
+					}
 					for _, n := range lb.Log {
 						//fmt.Println(n.Content)
 						s := n.Content
@@ -147,7 +170,7 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 							log.Print("Can't parse item of ", event.Name)
 							log.Fatal(err)
 						}
-						if FindLogItem(le, query) == 1 {
+						if LogItemFind(le, query) == 1 {
 							if handler(&le) {
 								return
 							}

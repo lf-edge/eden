@@ -4,13 +4,14 @@ import (
 	"os"
 	"io/ioutil"
 	"fmt"
+	"strings"
 	"github.com/itmo-eve/eden/pkg/einfo"
 )
 
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %s file\n", os.Args[0])
+		fmt.Printf("Usage: %s file [field:regexp ...]\n", os.Args[0])
 		os.Exit(-1)
 	}
 
@@ -20,12 +21,20 @@ func main() {
 		return
 	}
 
+	q := make(map[string]string)
+	for _, a := range os.Args[2:] {
+		s := strings.Split(a, ":")
+		q[s[0]] = s[1]
+	}
+
 	im, err := einfo.ParseZInfoMsg(data)
 	if err != nil {
-		fmt.Println("ParseLogBundle error", err)
+		fmt.Println("ParseZInfoMsg error", err)
 		return
 	}
 
-	fmt.Printf("%q", im)
-	einfo.InfoPrn(&im)
+	ds := einfo.ZInfoDevSWFind(&im, q)
+	if (ds != nil) {
+		einfo.ZInfoDevSWPrn(&im, ds)
+	}
 }

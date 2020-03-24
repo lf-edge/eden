@@ -3,18 +3,26 @@ package adam
 import (
 	"fmt"
 	"github.com/itmo-eve/eden/pkg/utils"
+	uuid "github.com/satori/go.uuid"
 	"log"
+	"path"
 	"strings"
 )
-
-const eveCert = "/adam/run/config/onboard.cert.pem"
 
 type AdamCtx struct {
 	Url string
 	Dir string
 }
 
-func (adam *AdamCtx) OnBoardAdd(eveSerial string) error {
+func (adam *AdamCtx) GetLogsDir(devUUID *uuid.UUID) (dir string) {
+	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "logs")
+}
+
+func (adam *AdamCtx) GetInfoDir(devUUID *uuid.UUID) (dir string) {
+	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "info")
+}
+
+func (adam *AdamCtx) Register(eveCert string, eveSerial string) error {
 	adamOnboardCmd, adamOnboardArgs := adamOnboardAddPattern(adam.Dir, adam.Url, eveCert, eveSerial)
 	cmdOut, cmdErr, err := utils.RunCommandAndWait(adamOnboardCmd, adamOnboardArgs...)
 	if err != nil {
