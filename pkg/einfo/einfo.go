@@ -5,34 +5,34 @@ package einfo
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"time"
-	"reflect"
-	"regexp"
-	"strings"
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eve/api/go/info"
+	"io/ioutil"
+	"log"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
 )
 
 func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
-	var zi  info.ZInfoMsg
+	var zi info.ZInfoMsg
 	err = jsonpb.UnmarshalString(string(data), &zi)
 	return zi, err
 }
-	
+
 //Print data from ZInfoMsg structure
 func InfoPrn(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) {
 	fmt.Println("ztype:", im.GetZtype())
 	fmt.Println("devId:", im.GetDevId())
-	if (im.GetDinfo() != nil) {
+	if im.GetDinfo() != nil {
 		fmt.Println("dinfo:", im.GetDinfo())
 	}
-	if (im.GetAinfo() != nil) {
+	if im.GetAinfo() != nil {
 		fmt.Println("ainfo:", im.GetAinfo())
 	}
-	if (im.GetNiinfo() != nil) {
+	if im.GetNiinfo() != nil {
 		fmt.Println("niinfo:", im.GetNiinfo())
 	}
 	fmt.Println("atTimeStamp:", im.GetAtTimeStamp())
@@ -42,7 +42,7 @@ func InfoPrn(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) {
 //Print data from ZInfoMsg structure
 func ZInfoDevSWPrn(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) {
 	dinfo := im.GetDinfo()
-	if (dinfo == nil) {
+	if dinfo == nil {
 		return
 	}
 	fmt.Println("ztype:", im.GetZtype())
@@ -72,6 +72,7 @@ func HandleAll(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool {
 //HandlerFunc must process info.ZInfoMsg and return true to exit
 //or false to continue
 type HandlerFunc func(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool
+
 //QHandlerFunc must process info.ZInfoMsg with query parameters
 //and return true to exit or false to continue
 type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) []*info.ZInfoDevSW
@@ -81,23 +82,23 @@ type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) []*info.ZInfo
 func ZInfoDevSWFind(im *info.ZInfoMsg, query map[string]string) []*info.ZInfoDevSW {
 	var dsws []*info.ZInfoDevSW
 
-	devid, ok := query["devid"]
+	devid, ok := query["devId"]
 	if ok {
-		if (devid != im.DevId) {
+		if devid != im.DevId {
 			return nil
 		}
 	}
 
-	delete(query,"devid")
+	delete(query, "devId")
 
-	info := im.GetDinfo()
-	if (info == nil) {
+	dInfo := im.GetDinfo()
+	if dInfo == nil {
 		return nil
 	}
 
 NEXT:
-	for _, d := range info.SwList {
-		var matched bool
+	for _, d := range dInfo.SwList {
+		matched := true
 		var err error
 		for k, v := range query {
 			// Uppercase of filed's name first letter
@@ -167,7 +168,7 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 						log.Fatal(err)
 					}
 					ds := qhandler(&im, query)
-					if (ds != nil) {
+					if ds != nil {
 						if handler(&im, ds) {
 							return
 						}
@@ -189,7 +190,6 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 	<-done
 	return nil
 }
-
 
 //Find ZInfoMsg records by reqexps in 'query' corresponded to devId and
 //ZInfoDevSW structure.

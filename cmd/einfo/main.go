@@ -1,13 +1,12 @@
 package main
 
 import (
-	"os"
-	"io/ioutil"
 	"fmt"
-	"strings"
 	"github.com/itmo-eve/eden/pkg/einfo"
+	"io/ioutil"
+	"os"
+	"strings"
 )
-
 
 func main() {
 	if len(os.Args) < 2 {
@@ -34,7 +33,7 @@ func main() {
 	}
 
 	ds := einfo.ZInfoDevSWFind(&im, q)
-	if (ds != nil) {
+	if ds != nil {
 		einfo.ZInfoDevSWPrn(&im, ds)
 	}
 }

@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/itmo-eve/eden/pkg/einfo"
 	"os"
 	"strings"
-	"github.com/itmo-eve/eden/pkg/einfo"
 )
 
 func main() {

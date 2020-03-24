@@ -146,17 +146,6 @@ func TestAdamSetConfig(t *testing.T) {
 	}
 }
 
-func TestAdamInfo(t *testing.T) {
-	ctx, devUUID, err := adamPrepare()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = einfo.InfoWatchWithTimeout(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String()}, einfo.ZInfoDevSWFind, einfo.HandleFirst, 360)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestAdamLogs(t *testing.T) {
 	ctx, devUUID, err := adamPrepare()
 	if err != nil {
@@ -272,7 +261,18 @@ func TestBaseImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, elog.HandleFirst, 180)
+	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, elog.HandleFirst, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAdamInfo(t *testing.T) {
+	ctx, devUUID, err := adamPrepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = einfo.InfoWatchWithTimeout(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String()}, einfo.ZInfoDevSWFind, einfo.HandleFirst, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
