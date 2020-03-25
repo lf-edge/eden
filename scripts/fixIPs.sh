@@ -13,7 +13,7 @@ Makefile=$1
 subnet1_prefix=""
 subnet2_prefix=""
 for ((i = 0; i <= 254; i++)); do
-  ip a | grep -F -q "192.168.$i."
+  ifconfig | grep -F -q "192.168.$i."
   if [[ $? -ne 0 ]]; then
     if [ -z $subnet1_prefix ]; then
       subnet1_prefix="192\.168\.$i"

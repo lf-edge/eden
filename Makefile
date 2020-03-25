@@ -116,7 +116,12 @@ endif
 
 CERTS_DIST ?= $(DIST)/certs
 DOMAIN ?= mydomain.adam
+
+ifeq ($(shell uname -s), Darwin)
+IP?=$(shell ifconfig|grep "inet "|grep -Fv 127.0.0.1|awk '{print $$2}'|tail -1)
+else
 IP?=$(shell hostname -I | cut -d' ' -f1)
+endif
 UUID?=$(shell uuidgen)
 ADAM_PORT?=3333
 
@@ -155,7 +160,7 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/adam_test.go -v -count=1 -timeout 1000s
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/adam_test.go -v -count=1 -timeout 3000s
 
 $(BIN):
 	mkdir -p $(BIN)
@@ -181,14 +186,12 @@ einfo: $(BIN)
 	cd cmd/einfo/; go build; mv einfo $(BIN)
 
 SHA256_CMD = sha256sum
-ifeq ($(PLATFORM), OS_MACOSX)
+ifeq ($(shell uname -s), Darwin)
         SHA256_CMD = openssl sha256 -r
-endif
-ifeq ($(PLATFORM), OS_SOLARIS)
-        SHA256_CMD = digest -a sha256
 endif
 
 $(IMAGE_DIST)/baseos.qcow2: save $(IMAGE_DIST) certs_and_config
+ifeq ($(shell ls $(IMAGE_DIST)/baseos.qcow2),)
 	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST)
 	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.img $(IMAGE_DIST)/baseos.qcow2
 	cd $(IMAGE_DIST); $(SHA256_CMD) baseos.qcow2>baseos.sha256
@@ -197,6 +200,7 @@ $(IMAGE_DIST)/baseos.qcow2: save $(IMAGE_DIST) certs_and_config
 	$(MAKE) save_ref_dist_base EVE_REF=$(EVE_REF_OLD) EVE_DIST=$(EVE_DIST_OLD)
 	rm -rf $(IMAGE_DIST)/version.yml.in
 	rm -rf $(IMAGE_DIST)/version.yml
+endif
 
 save_ref_dist_base:
 	$(eval EVE_BASE_VERSION := $(shell cat $(IMAGE_DIST)/version.yml))

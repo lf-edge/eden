@@ -151,7 +151,7 @@ func TestAdamLogs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String()}, elog.HandleFirst, 180)
+	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String()}, elog.HandleFirst, 600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +261,7 @@ func TestBaseImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, elog.HandleFirst, 200)
+	err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, elog.HandleFirst, 600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestAdamInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = einfo.InfoWatchWithTimeout(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String()}, einfo.ZInfoDevSWFind, einfo.HandleFirst, 200)
+	err = einfo.InfoWatchWithTimeout(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String()}, einfo.ZInfoDevSWFind, einfo.HandleFirst, 600)
 	if err != nil {
 		t.Fatal(err)
 	}
