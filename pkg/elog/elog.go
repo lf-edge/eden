@@ -254,3 +254,21 @@ func LogLast(filepath string, query map[string]string, handler HandlerFunc) erro
 	}
 	return nil
 }
+
+func LogChecker(dir string, q map[string]string, timeout time.Duration) (err error) {
+	done := make(chan error)
+	go func() {
+		done <- LogWatchWithTimeout(dir, q, HandleFirst, timeout)
+	}()
+	go func() {
+		handler := func(item *LogItem) bool {
+			done <- nil
+			return HandleFirst(item)
+		}
+		err := LogLast(dir, q, handler)
+		if err != nil {
+			done <- err
+		}
+	}()
+	return <-done
+}

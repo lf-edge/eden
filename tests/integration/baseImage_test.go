@@ -8,7 +8,6 @@ import (
 	"github.com/itmo-eve/eden/pkg/elog"
 	"github.com/itmo-eve/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/info"
 	"os"
 	"path"
 	"path/filepath"
@@ -119,69 +118,19 @@ func TestBaseImage(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Run("Started", func(t *testing.T) {
-		done := make(chan error)
-
-		go func() {
-			err = einfo.InfoWatchWithTimeout(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSWFind, einfo.HandleFirst, 300)
-			done <- err
-		}()
-		go func() {
-			handler := func(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool {
-				einfo.ZInfoDevSWPrn(im, ds)
-				done <- nil
-				return true
-			}
-			err = einfo.InfoLast(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSWFind, handler)
-			if err != nil {
-				done <- err
-			}
-		}()
-		err = <-done
+		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, 300)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Downloaded", func(t *testing.T) {
-		done := make(chan error)
-
-		go func() {
-			err = einfo.InfoWatchWithTimeout(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSWFind, einfo.HandleFirst, 1500)
-			done <- err
-		}()
-		go func() {
-			handler := func(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool {
-				einfo.ZInfoDevSWPrn(im, ds)
-				done <- nil
-				return true
-			}
-			err = einfo.InfoLast(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSWFind, handler)
-			if err != nil {
-				done <- err
-			}
-		}()
-		err = <-done
+		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, 1500)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Active", func(t *testing.T) {
-		done := make(chan error)
-
-		go func() {
-			err = elog.LogWatchWithTimeout(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, elog.HandleFirst, 1000)
-			done <- err
-		}()
-		go func() {
-			handler := func(item *elog.LogItem) bool {
-				done <- nil
-				return elog.HandleFirst(item)
-			}
-			err = elog.LogLast(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, handler)
-			if err != nil {
-				done <- err
-			}
-		}()
-		err = <-done
+		err = elog.LogChecker(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
 		if err != nil {
 			t.Fatal(err)
 		}

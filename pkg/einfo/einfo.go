@@ -251,3 +251,24 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 	}
 	return matched
 }
+
+func InfoChecker(dir string, q map[string]string, timeout time.Duration) (err error) {
+	done := make(chan error)
+
+	go func() {
+		err = InfoWatchWithTimeout(dir, q, ZInfoDevSWFind, HandleFirst, timeout)
+		done <- err
+	}()
+	go func() {
+		handler := func(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool {
+			ZInfoDevSWPrn(im, ds)
+			done <- nil
+			return true
+		}
+		err = InfoLast(dir, q, ZInfoDevSWFind, handler)
+		if err != nil {
+			done <- err
+		}
+	}()
+	return <-done
+}
