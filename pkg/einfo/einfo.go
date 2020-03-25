@@ -10,8 +10,10 @@ import (
 	"github.com/lf-edge/eve/api/go/info"
 	"io/ioutil"
 	"log"
+	"path"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -105,7 +107,7 @@ NEXT:
 			n := strings.Title(k)
 			// Find field in structure by Titlized() name 'n'
 			r := reflect.ValueOf(d)
-			f := reflect.Indirect(r).FieldByName(n).String()
+			f := fmt.Sprint(reflect.Indirect(r).FieldByName(n))
 			matched, err = regexp.Match(v, []byte(f))
 			if err != nil {
 				return nil
@@ -156,16 +158,17 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 			case event := <-watcher.Events:
 				switch event.Op {
 				case fsnotify.Write:
-					time.Sleep(500 * time.Millisecond) // wait for write ends
+					time.Sleep(1 * time.Second) // wait for write ends
 					data, err := ioutil.ReadFile(event.Name)
 					if err != nil {
-						log.Fatal("Can't open", event.Name)
+						log.Print("Can't open", event.Name)
+						continue
 					}
 
 					im, err := ParseZInfoMsg(data)
 					if err != nil {
 						log.Print("Can't parse ZInfoMsg", event.Name)
-						log.Fatal(err)
+						continue
 					}
 					ds := qhandler(&im, query)
 					if ds != nil {
@@ -191,6 +194,43 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 	return nil
 }
 
+//Function search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
+func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc) error {
+	files, err := ioutil.ReadDir(filepath)
+	if err != nil {
+		return err
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].ModTime().Unix() > files[j].ModTime().Unix()
+	})
+	time.Sleep(1 * time.Second) // wait for write ends
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		fileFullPath := path.Join(filepath, file.Name())
+		data, err := ioutil.ReadFile(fileFullPath)
+		if err != nil {
+			log.Print("Can't open ", fileFullPath)
+			continue
+		}
+
+		im, err := ParseZInfoMsg(data)
+		if err != nil {
+			log.Print("Can't parse ZInfoMsg ", fileFullPath)
+			continue
+		}
+		ds := qhandler(&im, query)
+		if ds != nil {
+			if handler(&im, ds) {
+				return nil
+			}
+		}
+		continue
+	}
+	return nil
+}
+
 //Find ZInfoMsg records by reqexps in 'query' corresponded to devId and
 //ZInfoDevSW structure.
 func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
@@ -200,7 +240,7 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 		n := strings.Title(k)
 		// Find field in structure by Titlized() name 'n'
 		r := reflect.ValueOf(im)
-		f := reflect.Indirect(r).FieldByName(n).String()
+		f := fmt.Sprint(reflect.Indirect(r).FieldByName(n))
 		matched, err := regexp.Match(v, []byte(f))
 		if err != nil {
 			return -1

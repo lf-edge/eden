@@ -160,7 +160,8 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/adam_test.go -v -count=1 -timeout 3000s
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/adam_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
 
 $(BIN):
 	mkdir -p $(BIN)

@@ -11,8 +11,10 @@ import (
 	"github.com/lf-edge/eve/api/go/logs"
 	"io/ioutil"
 	"log"
+	"path"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -59,7 +61,7 @@ func LogItemFind(le LogItem, query map[string]string) int {
 		n := strings.Title(k)
 		// Find field in structure by Titlized() name 'n'
 		r := reflect.ValueOf(le)
-		f := reflect.Indirect(r).FieldByName(n).String()
+		f := fmt.Sprint(reflect.Indirect(r).FieldByName(n))
 		matched, err := regexp.Match(v, []byte(f))
 		if err != nil {
 			return -1
@@ -145,16 +147,17 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 			case event := <-watcher.Events:
 				switch event.Op {
 				case fsnotify.Write:
-					time.Sleep(500 * time.Millisecond) // wait for write ends
+					time.Sleep(1 * time.Second) // wait for write ends
 					data, err := ioutil.ReadFile(event.Name)
 					if err != nil {
-						log.Fatal("Can't open", event.Name)
+						log.Print("Can't open ", event.Name)
+						continue
 					}
 
 					lb, err := ParseLogBundle(data)
 					if err != nil {
 						log.Print("Can't parse bundle of ", event.Name)
-						log.Fatal(err)
+						continue
 					}
 					if devId != "" && devId != lb.DevID {
 						continue
@@ -167,8 +170,8 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 						s := n.Content
 						le, err := ParseLogItem(s)
 						if err != nil {
-							log.Print("Can't parse item of ", event.Name)
-							log.Fatal(err)
+							log.Print("Can't parse item in ", event.Name)
+							continue
 						}
 						if LogItemFind(le, query) == 1 {
 							if handler(&le) {
@@ -190,5 +193,64 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 	}
 
 	<-done
+	return nil
+}
+
+//Function process Log files in the 'filepath' directory
+//according to the 'query' reqexps and return last founded item
+func LogLast(filepath string, query map[string]string, handler HandlerFunc) error {
+	devId, ok := query["devId"]
+	if ok {
+		delete(query, "devId")
+	}
+	eveVersion, ok := query["eveVersion"]
+	if ok {
+		delete(query, "eveVersion")
+	}
+	files, err := ioutil.ReadDir(filepath)
+	if err != nil {
+		return err
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].ModTime().Unix() > files[j].ModTime().Unix()
+	})
+	time.Sleep(1 * time.Second) // wait for write ends
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		fileFullPath := path.Join(filepath, file.Name())
+		data, err := ioutil.ReadFile(fileFullPath)
+		if err != nil {
+			log.Print("Can't open ", fileFullPath)
+			continue
+		}
+
+		lb, err := ParseLogBundle(data)
+		if err != nil {
+			log.Print("Can't parse bundle of ", fileFullPath)
+			continue
+		}
+		if devId != "" && devId != lb.DevID {
+			continue
+		}
+		if eveVersion != "" && eveVersion != lb.EveVersion {
+			continue
+		}
+		for _, n := range lb.Log {
+			s := n.Content
+			le, err := ParseLogItem(s)
+			if err != nil {
+				log.Print("Can't parse items in ", file.Name())
+				continue
+			}
+			if LogItemFind(le, query) == 1 {
+				if handler(&le) {
+					return nil
+				}
+			}
+		}
+		continue
+	}
 	return nil
 }
