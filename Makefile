@@ -161,13 +161,13 @@ eve_stop:
 
 test:
 	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/adam_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s -run TestNetworkInstanceLocal
 
 $(BIN):
 	mkdir -p $(BIN)
 
-bin: elog elogwatch econfig eserver einfowatch einfo
+bin: elog elogwatch econfig eserver einfowatch einfo einfolast eloglast
 
 elog: $(BIN)
 	cd cmd/elog/; go build; mv elog $(BIN)
@@ -186,6 +186,12 @@ einfowatch: $(BIN)
 
 einfo: $(BIN)
 	cd cmd/einfo/; go build; mv einfo $(BIN)
+
+einfolast: $(BIN)
+	cd cmd/einfolast/; go build; mv einfolast $(BIN)
+
+eloglast: $(BIN)
+	cd cmd/eloglast/; go build; mv eloglast $(BIN)
 
 SHA256_CMD = sha256sum
 ifeq ($(shell uname -s), Darwin)

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/itmo-eve/eden/pkg/einfo"
+	"github.com/itmo-eve/eden/pkg/elog"
 	"os"
 	"strings"
 )
@@ -20,5 +20,5 @@ func main() {
 		q[s[0]] = s[1]
 	}
 
-	einfo.InfoWatch(os.Args[1], q, einfo.ZInfoFind, einfo.HandleAll, einfo.ZInfoDevSW)
+	elog.LogLast(os.Args[1], q, elog.HandleAll)
 }

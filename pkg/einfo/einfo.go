@@ -18,6 +18,29 @@ import (
 	"time"
 )
 
+//HandlerFunc must process info.ZInfoMsg and return true to exit
+//or false to continue
+type HandlerFunc func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool
+
+//QHandlerFunc must process info.ZInfoMsg with query parameters
+//and return true to exit or false to continue
+type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) []*ZInfoMsgInterface
+
+type ZInfoMsgInterface interface{}
+
+type zInfoPacket struct {
+	upperType string
+	lowerType string
+}
+
+type ZInfoType *zInfoPacket
+
+var (
+	ZInfoDevSW           ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "SwList"}
+	ZInfoNetwork         ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "Network"}
+	ZInfoNetworkInstance ZInfoType = &zInfoPacket{upperType: "GetNiinfo"}
+)
+
 func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
 	var zi info.ZInfoMsg
 	err = jsonpb.UnmarshalString(string(data), &zi)
@@ -25,7 +48,7 @@ func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
 }
 
 //Print data from ZInfoMsg structure
-func InfoPrn(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) {
+func InfoPrn(im *info.ZInfoMsg) {
 	fmt.Println("ztype:", im.GetZtype())
 	fmt.Println("devId:", im.GetDevId())
 	if im.GetDinfo() != nil {
@@ -42,47 +65,55 @@ func InfoPrn(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) {
 }
 
 //Print data from ZInfoMsg structure
-func ZInfoDevSWPrn(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) {
-	dinfo := im.GetDinfo()
-	if dinfo == nil {
-		return
-	}
+func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) {
 	fmt.Println("ztype:", im.GetZtype())
 	fmt.Println("devId:", im.GetDevId())
-	fmt.Println("dinfo.SwList:")
+	fmt.Printf("%s.%s:\n", infoType.upperType, infoType.lowerType)
 	for i, d := range ds {
-		fmt.Printf("[%d]: %s\n", i, d)
+		fmt.Printf("[%d]: %s\n", i, *d)
 	}
 	fmt.Println("atTimeStamp:", im.GetAtTimeStamp())
 	fmt.Println()
 }
 
 //Function that runs once and interrupts the workflow of InfoWatch
-func HandleFirst(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool {
+func HandleFirst(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
 	//InfoPrn(im, ds)
-	ZInfoDevSWPrn(im, ds)
+	ZInfoPrn(im, ds, infoType)
 	return true
 }
 
 //Function that runs for all Info's selected by InfoWatch
-func HandleAll(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool {
+func HandleAll(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
 	//InfoPrn(im, ds)
-	ZInfoDevSWPrn(im, ds)
+	ZInfoPrn(im, ds, infoType)
 	return false
 }
 
-//HandlerFunc must process info.ZInfoMsg and return true to exit
-//or false to continue
-type HandlerFunc func(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool
+func processElem(value reflect.Value, query map[string]string) bool {
 
-//QHandlerFunc must process info.ZInfoMsg with query parameters
-//and return true to exit or false to continue
-type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) []*info.ZInfoDevSW
+	matched := true
+	var err error
+	for k, v := range query {
+		// Uppercase of filed's name first letter
+		n := strings.Title(k)
+		f := fmt.Sprint(reflect.Indirect(value).FieldByName(n))
+		matched, err = regexp.Match(v, []byte(f))
+		if err != nil {
+			log.Print(err)
+			return false
+		}
+		if matched == false {
+			break
+		}
+	}
+	return matched
+}
 
 //Find ZInfoMsg records with 'devid' and ZInfoDevSWF structure fields
 //by reqexps in 'query'
-func ZInfoDevSWFind(im *info.ZInfoMsg, query map[string]string) []*info.ZInfoDevSW {
-	var dsws []*info.ZInfoDevSW
+func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) []*ZInfoMsgInterface {
+	var dsws []*ZInfoMsgInterface
 
 	devid, ok := query["devId"]
 	if ok {
@@ -93,41 +124,37 @@ func ZInfoDevSWFind(im *info.ZInfoMsg, query map[string]string) []*info.ZInfoDev
 
 	delete(query, "devId")
 
-	dInfo := im.GetDinfo()
-	if dInfo == nil {
+	dInfo := reflect.ValueOf(im).MethodByName(infoType.upperType).Call([]reflect.Value{})
+	if len(dInfo) != 1 || dInfo[0].Interface() == nil {
 		return nil
 	}
-
-NEXT:
-	for _, d := range dInfo.SwList {
-		matched := true
-		var err error
-		for k, v := range query {
-			// Uppercase of filed's name first letter
-			n := strings.Title(k)
-			// Find field in structure by Titlized() name 'n'
-			r := reflect.ValueOf(d)
-			f := fmt.Sprint(reflect.Indirect(r).FieldByName(n))
-			matched, err = regexp.Match(v, []byte(f))
-			if err != nil {
-				return nil
-			}
-			if matched == false {
-				continue NEXT
+	if reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).Kind() == reflect.Invalid {
+		return nil
+	}
+	if infoType.lowerType != "" {
+		dInfoField := reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).FieldByName(infoType.lowerType)
+		for i := 0; i < dInfoField.Len(); i++ {
+			d := dInfoField.Index(i)
+			if processElem(d, query) {
+				var strValT ZInfoMsgInterface = d.Interface()
+				dsws = append(dsws, &strValT)
 			}
 		}
-		if matched != false {
-			dsws = append(dsws, d)
+	} else {
+		d := dInfo[0]
+		if processElem(d, query) {
+			var strValT ZInfoMsgInterface = d.Interface()
+			dsws = append(dsws, &strValT)
 		}
 	}
 	return dsws
 }
 
 //Function monitors the change of Info files in the 'filepath' directory with 'timeoutSeconds' according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
-func InfoWatchWithTimeout(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, timeoutSeconds time.Duration) error {
+func InfoWatchWithTimeout(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error {
 	done := make(chan error)
 	go func() {
-		err := InfoWatch(filepath, query, qhandler, handler)
+		err := InfoWatch(filepath, query, qhandler, handler, infoType)
 		if err != nil {
 			done <- err
 			return
@@ -143,7 +170,7 @@ func InfoWatchWithTimeout(filepath string, query map[string]string, qhandler QHa
 }
 
 //Function monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
-func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc) error {
+func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -170,9 +197,9 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 						log.Print("Can't parse ZInfoMsg", event.Name)
 						continue
 					}
-					ds := qhandler(&im, query)
+					ds := qhandler(&im, query, infoType)
 					if ds != nil {
-						if handler(&im, ds) {
+						if handler(&im, ds, infoType) {
 							return
 						}
 					}
@@ -195,7 +222,7 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 }
 
 //Function search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
-func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc) error {
+func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
 	files, err := ioutil.ReadDir(filepath)
 	if err != nil {
 		return err
@@ -220,9 +247,9 @@ func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, h
 			log.Print("Can't parse ZInfoMsg ", fileFullPath)
 			continue
 		}
-		ds := qhandler(&im, query)
+		ds := qhandler(&im, query, infoType)
 		if ds != nil {
-			if handler(&im, ds) {
+			if handler(&im, ds, infoType) {
 				return nil
 			}
 		}
@@ -252,20 +279,20 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 	return matched
 }
 
-func InfoChecker(dir string, q map[string]string, timeout time.Duration) (err error) {
+func InfoChecker(dir string, q map[string]string, infoType ZInfoType, timeout time.Duration) (err error) {
 	done := make(chan error)
 
 	go func() {
-		err = InfoWatchWithTimeout(dir, q, ZInfoDevSWFind, HandleFirst, timeout)
+		err = InfoWatchWithTimeout(dir, q, ZInfoFind, HandleFirst, infoType, timeout)
 		done <- err
 	}()
 	go func() {
-		handler := func(im *info.ZInfoMsg, ds []*info.ZInfoDevSW) bool {
-			ZInfoDevSWPrn(im, ds)
+		handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
+			ZInfoPrn(im, ds, infoType)
 			done <- nil
 			return true
 		}
-		err = InfoLast(dir, q, ZInfoDevSWFind, handler)
+		err = InfoLast(dir, q, ZInfoFind, handler, infoType)
 		if err != nil {
 			done <- err
 		}

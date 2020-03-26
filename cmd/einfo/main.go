@@ -32,8 +32,8 @@ func main() {
 		return
 	}
 
-	ds := einfo.ZInfoDevSWFind(&im, q)
+	ds := einfo.ZInfoFind(&im, q, einfo.ZInfoDevSW)
 	if ds != nil {
-		einfo.ZInfoDevSWPrn(&im, ds)
+		einfo.ZInfoPrn(&im, ds, einfo.ZInfoDevSW)
 	}
 }

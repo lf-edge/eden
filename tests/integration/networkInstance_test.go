@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/itmo-eve/eden/pkg/cloud"
 	"github.com/itmo-eve/eden/pkg/device"
+	"github.com/itmo-eve/eden/pkg/einfo"
 	"github.com/lf-edge/eve/api/go/config"
 	"testing"
 )
@@ -26,7 +27,7 @@ func TestNetworkInstanceSwitch(t *testing.T) {
 		InstType:    config.ZNetworkInstType_ZnetInstSwitch,
 		Activate:    true,
 		Port: &config.Adapter{
-			Type: 0,
+			Type: config.PhyIoType_PhyIoNoop,
 			Name: "uplink",
 		},
 		Cfg:    &config.NetworkInstanceOpaqueConfig{},
@@ -62,6 +63,18 @@ func TestNetworkInstanceSwitch(t *testing.T) {
 		t.Log(res)
 		t.Fatal(err)
 	}
+	t.Run("Process", func(t *testing.T) {
+		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("Active", func(t *testing.T) {
+		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestNetworkInstanceLocal(t *testing.T) {
@@ -82,7 +95,7 @@ func TestNetworkInstanceLocal(t *testing.T) {
 		InstType:    config.ZNetworkInstType_ZnetInstLocal,
 		Activate:    true,
 		Port: &config.Adapter{
-			Type: 0,
+			Type: config.PhyIoType_PhyIoNoop,
 			Name: "uplink",
 		},
 		Cfg:    &config.NetworkInstanceOpaqueConfig{},
@@ -118,6 +131,18 @@ func TestNetworkInstanceLocal(t *testing.T) {
 		t.Log(res)
 		t.Fatal(err)
 	}
+	t.Run("Process", func(t *testing.T) {
+		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("Active", func(t *testing.T) {
+		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestNetworkInstanceCloud(t *testing.T) {
@@ -138,7 +163,7 @@ func TestNetworkInstanceCloud(t *testing.T) {
 		InstType:    config.ZNetworkInstType_ZnetInstCloud,
 		Activate:    true,
 		Port: &config.Adapter{
-			Type: 0,
+			Type: config.PhyIoType_PhyIoNoop,
 			Name: "uplink",
 		},
 		Cfg:    &config.NetworkInstanceOpaqueConfig{},
@@ -174,4 +199,16 @@ func TestNetworkInstanceCloud(t *testing.T) {
 		t.Log(res)
 		t.Fatal(err)
 	}
+	t.Run("Process", func(t *testing.T) {
+		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("Active", func(t *testing.T) {
+		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }

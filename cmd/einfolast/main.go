@@ -20,5 +20,6 @@ func main() {
 		q[s[0]] = s[1]
 	}
 
-	einfo.InfoWatch(os.Args[1], q, einfo.ZInfoFind, einfo.HandleAll, einfo.ZInfoDevSW)
+	einfo.InfoLast(os.Args[1], q, einfo.ZInfoFind, einfo.HandleFirst, einfo.ZInfoDevSW)
+	einfo.InfoLast(os.Args[1], q, einfo.ZInfoFind, einfo.HandleAll, einfo.ZInfoNetworkInstance)
 }

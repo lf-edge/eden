@@ -117,7 +117,7 @@ func TestAdamInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String()}, 300)
+	err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String()}, einfo.ZInfoDevSW, 300)
 	if err != nil {
 		t.Fatal(err)
 	}

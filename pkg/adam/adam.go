@@ -9,19 +9,23 @@ import (
 	"strings"
 )
 
+//AdamCtx is struct for use with adam
 type AdamCtx struct {
 	Url string
 	Dir string
 }
 
+//GetLogsDir return logs directory for devUUID
 func (adam *AdamCtx) GetLogsDir(devUUID *uuid.UUID) (dir string) {
 	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "logs")
 }
 
+//GetInfoDir return info directory for devUUID
 func (adam *AdamCtx) GetInfoDir(devUUID *uuid.UUID) (dir string) {
 	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "info")
 }
 
+//Register device in adam
 func (adam *AdamCtx) Register(eveCert string, eveSerial string) error {
 	adamOnboardCmd, adamOnboardArgs := adamOnboardAddPattern(adam.Dir, adam.Url, eveCert, eveSerial)
 	cmdOut, cmdErr, err := utils.RunCommandAndWait(adamOnboardCmd, adamOnboardArgs...)
@@ -34,6 +38,7 @@ func (adam *AdamCtx) Register(eveCert string, eveSerial string) error {
 	}
 }
 
+//OnBoardList return onboard list
 func (adam *AdamCtx) OnBoardList() (out []string, err error) {
 	adamOnboardCmd, adamOnboardArgs := adamOnboardListPattern(adam.Dir, adam.Url)
 	cmdOut, cmdErr, err := utils.RunCommandAndWait(adamOnboardCmd, adamOnboardArgs...)
@@ -46,6 +51,7 @@ func (adam *AdamCtx) OnBoardList() (out []string, err error) {
 	}
 }
 
+//DeviceList return device list
 func (adam *AdamCtx) DeviceList() (out []string, err error) {
 	adamOnboardCmd, adamOnboardArgs := adamDevicesListPattern(adam.Dir, adam.Url)
 	cmdOut, cmdErr, err := utils.RunCommandAndWait(adamOnboardCmd, adamOnboardArgs...)
@@ -58,6 +64,7 @@ func (adam *AdamCtx) DeviceList() (out []string, err error) {
 	}
 }
 
+//ConfigSet set config for devID
 func (adam *AdamCtx) ConfigSet(devID string, config string) (out string, err error) {
 	adamConfigSetCmd, adamConfigSetArgs := adamConfigSetPattern(adam.Dir, adam.Url, devID)
 	cmdOut, cmdErr, err := utils.RunCommandWithSTDINAndWait(adamConfigSetCmd, config, adamConfigSetArgs...)

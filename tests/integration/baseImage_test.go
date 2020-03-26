@@ -118,19 +118,25 @@ func TestBaseImage(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Run("Started", func(t *testing.T) {
-		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, 300)
+		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, 300)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Downloaded", func(t *testing.T) {
-		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, 1500)
+		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, 1500)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("Logs", func(t *testing.T) {
+		err = elog.LogChecker(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Active", func(t *testing.T) {
-		err = elog.LogChecker(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
+		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED"}, einfo.ZInfoDevSW, 1200)
 		if err != nil {
 			t.Fatal(err)
 		}
