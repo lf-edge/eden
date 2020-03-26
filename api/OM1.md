@@ -1,9 +1,9 @@
 # Object model \#1
+Test harness provides an Object model \#1 for the rest of the tests to interact with Adam/EVE, request certain actions and except certain results. This object model stay close to the concepts represented in EVE config and reflect back the objects represented in EVE info and log messages.
 
 ## Swagger model
 * [YAML spec.](api/swagger/eden.yaml)
-* [Converter YAML spec. to PNG] api/swagger/swagger_to_png.sh
-
+* [Converter YAML spec. to PNG](api/swagger/swagger_to_png.sh)
 
 ## Structures:
 * EdgeDevConfig (eve/api/go/config/devconfig.pb.go)
