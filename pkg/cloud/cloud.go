@@ -6,8 +6,9 @@ import (
 )
 
 type CloudCtx struct {
-	datastores []*config.DatastoreConfig
-	images     []*config.Image
-	drives     map[uuid.UUID]*config.Drive
-	baseOS     []*config.BaseOSConfig
+	datastores       []*config.DatastoreConfig
+	images           []*config.Image
+	drives           map[uuid.UUID]*config.Drive
+	baseOS           []*config.BaseOSConfig
+	networkInstances []*config.NetworkInstanceConfig
 }

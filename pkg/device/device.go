@@ -9,9 +9,10 @@ import (
 import "github.com/satori/go.uuid"
 
 type DevCtx struct {
-	id            uuid.UUID
-	baseOSConfigs []string
-	cloud         *cloud.CloudCtx
+	id               uuid.UUID
+	baseOSConfigs    []string
+	networkInstances []string
+	cloud            *cloud.CloudCtx
 }
 
 func CreateWithBaseConfig(id uuid.UUID, cloudCtx *cloud.CloudCtx) *DevCtx {
@@ -19,11 +20,6 @@ func CreateWithBaseConfig(id uuid.UUID, cloudCtx *cloud.CloudCtx) *DevCtx {
 		id:    id,
 		cloud: cloudCtx,
 	}
-}
-
-func (cfg *DevCtx) SetBaseOSConfig(configIDs []string) *DevCtx {
-	cfg.baseOSConfigs = configIDs
-	return cfg
 }
 
 func checkIfDatastoresContains(id string, ds []*config.DatastoreConfig) bool {
@@ -57,6 +53,14 @@ func (cfg *DevCtx) GenerateJsonBytes() ([]byte, error) {
 		}
 		BaseOS = append(BaseOS, baseOSConfig)
 	}
+	var NetworkInstanceConfigs []*config.NetworkInstanceConfig
+	for _, networkInstanceConfigID := range cfg.networkInstances {
+		networkInstanceConfig, err := cfg.cloud.GetNetworkInstanceConfig(networkInstanceConfigID)
+		if err != nil {
+			return nil, err
+		}
+		NetworkInstanceConfigs = append(NetworkInstanceConfigs, networkInstanceConfig)
+	}
 	devConfig := &config.EdgeDevConfig{
 		Id: &config.UUIDandVersion{
 			Uuid:    cfg.id.String(),
@@ -74,7 +78,7 @@ func (cfg *DevCtx) GenerateJsonBytes() ([]byte, error) {
 		DeviceIoList:      nil,
 		Manufacturer:      "",
 		ProductName:       "",
-		NetworkInstances:  nil,
+		NetworkInstances:  NetworkInstanceConfigs,
 		Enterprise:        "",
 		Name:              "",
 	}
