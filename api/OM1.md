@@ -1,5 +1,10 @@
 # Object model \#1
 
+## Swagger model
+* [YAML spec.](api/swagger/eden.yaml)
+* [Converter YAML spec. to PNG] api/swagger/swagger_to_png.sh
+
+
 ## Structures:
 * EdgeDevConfig (eve/api/go/config/devconfig.pb.go)
 * AppInstanceConfig (eve/api/go/config/appconfig.pb.go)
