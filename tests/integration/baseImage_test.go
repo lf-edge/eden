@@ -51,7 +51,7 @@ func TestBaseImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cloudCxt := &cloud.CloudCtx{}
+	cloudCxt := &cloud.Ctx{}
 	err = cloudCxt.AddDatastore(&config.DatastoreConfig{
 		Id:       dsId,
 		DType:    config.DsType_DsHttp,
@@ -106,7 +106,7 @@ func TestBaseImage(t *testing.T) {
 	}
 	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
 	deviceCtx.SetBaseOSConfig([]string{baseID})
-	b, err := deviceCtx.GenerateJsonBytes()
+	b, err := deviceCtx.GenerateJSONBytes()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-func adamPrepare() (adamCtx *adam.AdamCtx, id *uuid.UUID, err error) {
+func adamPrepare() (adamCtx *adam.Ctx, id *uuid.UUID, err error) {
 	currentPath, err := os.Getwd()
 	if err != nil {
 		return nil, nil, err
@@ -34,9 +34,9 @@ func adamPrepare() (adamCtx *adam.AdamCtx, id *uuid.UUID, err error) {
 			return nil, nil, err
 		}
 	}
-	ctx := adam.AdamCtx{
+	ctx := adam.Ctx{
 		Dir: adamDir,
-		Url: fmt.Sprintf("https://%s:%s", ip, port),
+		URL: fmt.Sprintf("https://%s:%s", ip, port),
 	}
 	cmdOut, err := ctx.DeviceList()
 	if err != nil {

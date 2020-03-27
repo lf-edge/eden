@@ -9,72 +9,68 @@ import (
 	"strings"
 )
 
-//AdamCtx is struct for use with adam
-type AdamCtx struct {
-	Url string
+//Ctx is struct for use with adam
+type Ctx struct {
+	URL string
 	Dir string
 }
 
 //GetLogsDir return logs directory for devUUID
-func (adam *AdamCtx) GetLogsDir(devUUID *uuid.UUID) (dir string) {
+func (adam *Ctx) GetLogsDir(devUUID *uuid.UUID) (dir string) {
 	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "logs")
 }
 
 //GetInfoDir return info directory for devUUID
-func (adam *AdamCtx) GetInfoDir(devUUID *uuid.UUID) (dir string) {
+func (adam *Ctx) GetInfoDir(devUUID *uuid.UUID) (dir string) {
 	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "info")
 }
 
 //Register device in adam
-func (adam *AdamCtx) Register(eveCert string, eveSerial string) error {
-	adamOnboardCmd, adamOnboardArgs := adamOnboardAddPattern(adam.Dir, adam.Url, eveCert, eveSerial)
+func (adam *Ctx) Register(eveCert string, eveSerial string) error {
+	adamOnboardCmd, adamOnboardArgs := adamOnboardAddPattern(adam.Dir, adam.URL, eveCert, eveSerial)
 	cmdOut, cmdErr, err := utils.RunCommandAndWait(adamOnboardCmd, adamOnboardArgs...)
 	if err != nil {
 		log.Print(cmdOut)
 		log.Print(cmdErr)
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 //OnBoardList return onboard list
-func (adam *AdamCtx) OnBoardList() (out []string, err error) {
-	adamOnboardCmd, adamOnboardArgs := adamOnboardListPattern(adam.Dir, adam.Url)
+func (adam *Ctx) OnBoardList() (out []string, err error) {
+	adamOnboardCmd, adamOnboardArgs := adamOnboardListPattern(adam.Dir, adam.URL)
 	cmdOut, cmdErr, err := utils.RunCommandAndWait(adamOnboardCmd, adamOnboardArgs...)
 	if err != nil {
 		log.Print(cmdOut)
 		log.Print(cmdErr)
 		return strings.Fields(cmdOut), err
-	} else {
-		return strings.Fields(cmdOut), nil
 	}
+	return strings.Fields(cmdOut), nil
 }
 
 //DeviceList return device list
-func (adam *AdamCtx) DeviceList() (out []string, err error) {
-	adamOnboardCmd, adamOnboardArgs := adamDevicesListPattern(adam.Dir, adam.Url)
+func (adam *Ctx) DeviceList() (out []string, err error) {
+	adamOnboardCmd, adamOnboardArgs := adamDevicesListPattern(adam.Dir, adam.URL)
 	cmdOut, cmdErr, err := utils.RunCommandAndWait(adamOnboardCmd, adamOnboardArgs...)
 	if err != nil {
 		log.Print(cmdOut)
 		log.Print(cmdErr)
 		return strings.Fields(cmdOut), err
-	} else {
-		return strings.Fields(cmdOut), nil
 	}
+	return strings.Fields(cmdOut), nil
 }
 
 //ConfigSet set config for devID
-func (adam *AdamCtx) ConfigSet(devID string, config string) (out string, err error) {
-	adamConfigSetCmd, adamConfigSetArgs := adamConfigSetPattern(adam.Dir, adam.Url, devID)
+func (adam *Ctx) ConfigSet(devID string, config string) (out string, err error) {
+	adamConfigSetCmd, adamConfigSetArgs := adamConfigSetPattern(adam.Dir, adam.URL, devID)
 	cmdOut, cmdErr, err := utils.RunCommandWithSTDINAndWait(adamConfigSetCmd, config, adamConfigSetArgs...)
 	if err != nil {
 		log.Print(cmdOut)
 		log.Print(cmdErr)
 		return strings.TrimSpace(cmdOut), err
-	} else {
-		return strings.TrimSpace(cmdOut), nil
 	}
+	return strings.TrimSpace(cmdOut), nil
 }
 
 func adamOnboardAddPattern(dir string, url string, cert string, serial string) (cmd string, args []string) {

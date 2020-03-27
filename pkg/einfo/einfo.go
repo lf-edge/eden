@@ -1,4 +1,4 @@
-//The einfo package provides primitives for searching and processing data
+//Package einfo provides primitives for searching and processing data
 //in Info files.
 package einfo
 
@@ -26,6 +26,7 @@ type HandlerFunc func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfo
 //and return true to exit or false to continue
 type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) []*ZInfoMsgInterface
 
+//ZInfoMsgInterface is an interface to pass between handlers
 type ZInfoMsgInterface interface{}
 
 type zInfoPacket struct {
@@ -33,21 +34,26 @@ type zInfoPacket struct {
 	lowerType string
 }
 
+//ZInfoType is an parameter for obtain particular info from files
 type ZInfoType *zInfoPacket
 
 var (
-	ZInfoDevSW           ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "SwList"}
-	ZInfoNetwork         ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "Network"}
+	//ZInfoDevSW can be used for filter GetDinfo SwList
+	ZInfoDevSW ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "SwList"}
+	//ZInfoNetwork can be used for filter GetDinfo Network
+	ZInfoNetwork ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "Network"}
+	//ZInfoNetworkInstance can be used for filter GetNiinfo
 	ZInfoNetworkInstance ZInfoType = &zInfoPacket{upperType: "GetNiinfo"}
 )
 
+//ParseZInfoMsg unmarshal ZInfoMsg
 func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
 	var zi info.ZInfoMsg
 	err = jsonpb.UnmarshalString(string(data), &zi)
 	return zi, err
 }
 
-//Print data from ZInfoMsg structure
+//InfoPrn print data from ZInfoMsg structure
 func InfoPrn(im *info.ZInfoMsg) {
 	fmt.Println("ztype:", im.GetZtype())
 	fmt.Println("devId:", im.GetDevId())
@@ -64,7 +70,7 @@ func InfoPrn(im *info.ZInfoMsg) {
 	fmt.Println()
 }
 
-//Print data from ZInfoMsg structure
+//ZInfoPrn print data from ZInfoMsg structure
 func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) {
 	fmt.Println("ztype:", im.GetZtype())
 	fmt.Println("devId:", im.GetDevId())
@@ -76,14 +82,14 @@ func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) {
 	fmt.Println()
 }
 
-//Function that runs once and interrupts the workflow of InfoWatch
+//HandleFirst runs once and interrupts the workflow of InfoWatch
 func HandleFirst(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
 	//InfoPrn(im, ds)
 	ZInfoPrn(im, ds, infoType)
 	return true
 }
 
-//Function that runs for all Info's selected by InfoWatch
+//HandleAll runs for all Info's selected by InfoWatch
 func HandleAll(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
 	//InfoPrn(im, ds)
 	ZInfoPrn(im, ds, infoType)
@@ -110,7 +116,7 @@ func processElem(value reflect.Value, query map[string]string) bool {
 	return matched
 }
 
-//Find ZInfoMsg records with 'devid' and ZInfoDevSWF structure fields
+//ZInfoFind finds ZInfoMsg records with 'devid' and ZInfoDevSWF structure fields
 //by reqexps in 'query'
 func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) []*ZInfoMsgInterface {
 	var dsws []*ZInfoMsgInterface
@@ -150,7 +156,7 @@ func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) [
 	return dsws
 }
 
-//Function monitors the change of Info files in the 'filepath' directory with 'timeoutSeconds' according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
+//InfoWatchWithTimeout monitors the change of Info files in the 'filepath' directory with 'timeoutSeconds' according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
 func InfoWatchWithTimeout(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error {
 	done := make(chan error)
 	go func() {
@@ -169,7 +175,7 @@ func InfoWatchWithTimeout(filepath string, query map[string]string, qhandler QHa
 	}
 }
 
-//Function monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
+//InfoWatch monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
 func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -221,7 +227,7 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 	return nil
 }
 
-//Function search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
+//InfoLast search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
 func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
 	files, err := ioutil.ReadDir(filepath)
 	if err != nil {
@@ -258,7 +264,7 @@ func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, h
 	return nil
 }
 
-//Find ZInfoMsg records by reqexps in 'query' corresponded to devId and
+//InfoFind find ZInfoMsg records by reqexps in 'query' corresponded to devId and
 //ZInfoDevSW structure.
 func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 	matched := 1
@@ -279,6 +285,7 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 	return matched
 }
 
+//InfoChecker check info by pattern from existence files with InfoLast and use InfoWatchWithTimeout with timeout for observe new files
 func InfoChecker(dir string, q map[string]string, infoType ZInfoType, timeout time.Duration) (err error) {
 	done := make(chan error)
 

@@ -17,7 +17,7 @@ func TestNetworkInstanceSwitch(t *testing.T) {
 
 	niID := "eab8761b-5f89-4e0b-b757-4b87a9fa93e1"
 
-	cloudCxt := &cloud.CloudCtx{}
+	cloudCxt := &cloud.Ctx{}
 	err = cloudCxt.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    niID,
@@ -52,7 +52,7 @@ func TestNetworkInstanceSwitch(t *testing.T) {
 
 	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
 	deviceCtx.SetNetworkInstanceConfig([]string{niID})
-	b, err := deviceCtx.GenerateJsonBytes()
+	b, err := deviceCtx.GenerateJSONBytes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestNetworkInstanceLocal(t *testing.T) {
 
 	niID := "eab8761b-5f89-4e0b-b757-4b87a9fa93e2"
 
-	cloudCxt := &cloud.CloudCtx{}
+	cloudCxt := &cloud.Ctx{}
 	err = cloudCxt.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    niID,
@@ -120,7 +120,7 @@ func TestNetworkInstanceLocal(t *testing.T) {
 
 	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
 	deviceCtx.SetNetworkInstanceConfig([]string{niID})
-	b, err := deviceCtx.GenerateJsonBytes()
+	b, err := deviceCtx.GenerateJSONBytes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestNetworkInstanceCloud(t *testing.T) {
 
 	niID := "eab8761b-5f89-4e0b-b757-4b87a9fa93e3"
 
-	cloudCxt := &cloud.CloudCtx{}
+	cloudCxt := &cloud.Ctx{}
 	err = cloudCxt.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    niID,
@@ -188,7 +188,7 @@ func TestNetworkInstanceCloud(t *testing.T) {
 
 	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
 	deviceCtx.SetNetworkInstanceConfig([]string{niID})
-	b, err := deviceCtx.GenerateJsonBytes()
+	b, err := deviceCtx.GenerateJSONBytes()
 	if err != nil {
 		t.Fatal(err)
 	}

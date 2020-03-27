@@ -11,6 +11,8 @@ func dockerSubnetPattern() (cmd string, args []string) {
 	return "docker", strings.Split("network inspect bridge", " ")
 }
 
+//GetIPForDockerAccess is service function to obtain IP for adam access
+//The function is filter out docker bridge
 func GetIPForDockerAccess() (ip string, err error) {
 	dockerSubnetCmd, dockerSubnetArgs := dockerSubnetPattern()
 	cmdOut, cmdErr, err := RunCommandAndWait(dockerSubnetCmd, dockerSubnetArgs...)

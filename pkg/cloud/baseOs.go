@@ -1,24 +1,25 @@
 package cloud
 
 import (
-	"errors"
 	"fmt"
 	"github.com/lf-edge/eve/api/go/config"
 )
 
-func (cfg *CloudCtx) GetBaseOSConfig(Id string) (baseOSConfig *config.BaseOSConfig, err error) {
+//GetBaseOSConfig return baseOS config from cloud by ID
+func (cfg *Ctx) GetBaseOSConfig(ID string) (baseOSConfig *config.BaseOSConfig, err error) {
 	for _, baseOS := range cfg.baseOS {
-		if baseOS.Uuidandversion.Uuid == Id {
+		if baseOS.Uuidandversion.Uuid == ID {
 			return baseOS, nil
 		}
 	}
-	return nil, errors.New(fmt.Sprintf("not found with ID: %s", Id))
+	return nil, fmt.Errorf("not found with ID: %s", ID)
 }
 
-func (cfg *CloudCtx) AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error {
+//AddBaseOsConfig add baseOS config to cloud
+func (cfg *Ctx) AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error {
 	for _, baseConfig := range cfg.baseOS {
 		if baseConfig.Uuidandversion.Uuid == baseOSConfig.Uuidandversion.GetUuid() {
-			return errors.New(fmt.Sprintf("already exists with ID: %s", baseOSConfig.Uuidandversion.GetUuid()))
+			return fmt.Errorf("already exists with ID: %s", baseOSConfig.Uuidandversion.GetUuid())
 		}
 	}
 	cfg.baseOS = append(cfg.baseOS, baseOSConfig)

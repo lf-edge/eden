@@ -8,9 +8,9 @@ import (
 )
 
 func main() {
-	cloudCxt := &cloud.CloudCtx{}
+	cloudCxt := &cloud.Ctx{}
 	deviceCtx := device.CreateWithBaseConfig(uuid.NewV4(), cloudCxt)
-	b, err := deviceCtx.GenerateJsonBytes()
+	b, err := deviceCtx.GenerateJSONBytes()
 	if err != nil {
 		log.Fatal(err)
 	}

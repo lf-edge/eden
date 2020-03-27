@@ -44,9 +44,9 @@ func TestAdamOnBoard(t *testing.T) {
 	if len(serial) == 0 {
 		serial = "31415926"
 	}
-	ctx := adam.AdamCtx{
+	ctx := adam.Ctx{
 		Dir: adamDir,
-		Url: fmt.Sprintf("https://%s:%s", ip, port),
+		URL: fmt.Sprintf("https://%s:%s", ip, port),
 	}
 	t.Logf("Try to add onboarding")
 	err = ctx.Register(eveCert, serial)
@@ -86,9 +86,9 @@ func TestAdamSetConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cloudCxt := &cloud.CloudCtx{}
+	cloudCxt := &cloud.Ctx{}
 	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
-	b, err := deviceCtx.GenerateJsonBytes()
+	b, err := deviceCtx.GenerateJSONBytes()
 	if err != nil {
 		t.Fatal(err)
 	}

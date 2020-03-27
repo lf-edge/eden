@@ -5,7 +5,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type CloudCtx struct {
+//Ctx is base struct for cloud
+type Ctx struct {
 	datastores       []*config.DatastoreConfig
 	images           []*config.Image
 	drives           map[uuid.UUID]*config.Drive

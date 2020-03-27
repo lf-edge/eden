@@ -8,15 +8,17 @@ import (
 )
 import "github.com/satori/go.uuid"
 
-type DevCtx struct {
+//Ctx is base struct for device
+type Ctx struct {
 	id               uuid.UUID
 	baseOSConfigs    []string
 	networkInstances []string
-	cloud            *cloud.CloudCtx
+	cloud            *cloud.Ctx
 }
 
-func CreateWithBaseConfig(id uuid.UUID, cloudCtx *cloud.CloudCtx) *DevCtx {
-	return &DevCtx{
+//CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
+func CreateWithBaseConfig(id uuid.UUID, cloudCtx *cloud.Ctx) *Ctx {
+	return &Ctx{
 		id:    id,
 		cloud: cloudCtx,
 	}
@@ -31,7 +33,8 @@ func checkIfDatastoresContains(id string, ds []*config.DatastoreConfig) bool {
 	return false
 }
 
-func (cfg *DevCtx) GenerateJsonBytes() ([]byte, error) {
+//GenerateJSONBytes generate json representation of device config
+func (cfg *Ctx) GenerateJSONBytes() ([]byte, error) {
 	var BaseOS []*config.BaseOSConfig
 	var DataStores []*config.DatastoreConfig
 	for _, baseOSConfigID := range cfg.baseOSConfigs {

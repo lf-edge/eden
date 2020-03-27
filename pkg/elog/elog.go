@@ -1,4 +1,4 @@
-//The einfo package provides primitives for searching and processing data
+//Package elog provides primitives for searching and processing data
 //in Log files.
 package elog
 
@@ -19,6 +19,7 @@ import (
 	"time"
 )
 
+//LogItem is the structure for saving log fields
 type LogItem struct {
 	Source    string
 	Level     string
@@ -30,12 +31,14 @@ type LogItem struct {
 	Partition string
 }
 
+//ParseLogBundle unmarshal LogBundle
 func ParseLogBundle(data []byte) (logBundle logs.LogBundle, err error) {
 	var lb logs.LogBundle
 	err = jsonpb.UnmarshalString(string(data), &lb)
 	return lb, err
 }
 
+//ParseLogItem apply regexp on logItem
 func ParseLogItem(data string) (logItem LogItem, err error) {
 	re := regexp.MustCompile(`(?P<time>[^{]*): (?P<json>{.*})`)
 	parts := re.SubexpNames()
@@ -44,16 +47,13 @@ func ParseLogItem(data string) (logItem LogItem, err error) {
 	for i, n := range result[0] {
 		m[parts[i]] = n
 	}
-	//fmt.Println("time: ", m["time"])
-	//fmt.Println("json: ", m["json"])
-
 	var le LogItem
 	err = json.Unmarshal([]byte(m["json"]), &le)
 
 	return le, err
 }
 
-//Find LogItem records by reqexps in 'query' corresponded to LogItem structure.
+//LogItemFind find LogItem records by reqexps in 'query' corresponded to LogItem structure.
 func LogItemFind(le LogItem, query map[string]string) int {
 	matched := 1
 	for k, v := range query {
@@ -73,19 +73,19 @@ func LogItemFind(le LogItem, query map[string]string) int {
 	return matched
 }
 
-//Function that runs once and interrupts the workflow of LogWatch
+//HandleFirst runs once and interrupts the workflow of LogWatch
 func HandleFirst(le *LogItem) bool {
 	LogPrn(le)
 	return true
 }
 
-//Function that runs for all Logs selected by LogWatch
+//HandleAll runs for all Logs selected by LogWatch
 func HandleAll(le *LogItem) bool {
 	LogPrn(le)
 	return false
 }
 
-//Print Log data
+//LogPrn print Log data
 func LogPrn(le *LogItem) {
 	fmt.Println("source:", le.Source)
 	fmt.Println("level:", le.Level)
@@ -102,7 +102,7 @@ func LogPrn(le *LogItem) {
 //or false to continue
 type HandlerFunc func(*LogItem) bool
 
-//Function monitors the change of Log files in the 'filepath' directory
+//LogWatchWithTimeout monitors the change of Log files in the 'filepath' directory
 //with 'timeoutSeconds' according to the 'query' reqexps and
 //processing using the 'handler' function.
 func LogWatchWithTimeout(filepath string, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
@@ -123,7 +123,7 @@ func LogWatchWithTimeout(filepath string, query map[string]string, handler Handl
 	}
 }
 
-//Function monitors the change of Log files in the 'filepath' directory
+//LogWatch monitors the change of Log files in the 'filepath' directory
 //according to the 'query' reqexps and processing using the 'handler' function.
 func LogWatch(filepath string, query map[string]string, handler HandlerFunc) error {
 	watcher, err := fsnotify.NewWatcher()
@@ -131,7 +131,7 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 		return err
 	}
 	defer watcher.Close()
-	devId, ok := query["devId"]
+	devID, ok := query["devId"]
 	if ok {
 		delete(query, "devId")
 	}
@@ -159,7 +159,7 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 						log.Print("Can't parse bundle of ", event.Name)
 						continue
 					}
-					if devId != "" && devId != lb.DevID {
+					if devID != "" && devID != lb.DevID {
 						continue
 					}
 					if eveVersion != "" && eveVersion != lb.EveVersion {
@@ -196,10 +196,10 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 	return nil
 }
 
-//Function process Log files in the 'filepath' directory
+//LogLast function process Log files in the 'filepath' directory
 //according to the 'query' reqexps and return last founded item
 func LogLast(filepath string, query map[string]string, handler HandlerFunc) error {
-	devId, ok := query["devId"]
+	devID, ok := query["devId"]
 	if ok {
 		delete(query, "devId")
 	}
@@ -231,7 +231,7 @@ func LogLast(filepath string, query map[string]string, handler HandlerFunc) erro
 			log.Print("Can't parse bundle of ", fileFullPath)
 			continue
 		}
-		if devId != "" && devId != lb.DevID {
+		if devID != "" && devID != lb.DevID {
 			continue
 		}
 		if eveVersion != "" && eveVersion != lb.EveVersion {
@@ -255,6 +255,7 @@ func LogLast(filepath string, query map[string]string, handler HandlerFunc) erro
 	return nil
 }
 
+//LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func LogChecker(dir string, q map[string]string, timeout time.Duration) (err error) {
 	done := make(chan error)
 	go func() {
