@@ -239,4 +239,5 @@ help:
 	@echo "   bin		build utilities"
 	@echo
 	@echo "You need access to docker socket and installed qemu packages"
+	@echo "Use of ACCEL=true is recommended"
 	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"
