@@ -2,7 +2,7 @@ package cloud
 
 import (
 	"errors"
-	"github.com/itmo-eve/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 )
 

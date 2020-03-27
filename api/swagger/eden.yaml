@@ -828,5 +828,5 @@ definitions:
 
 # Added by API Auto Mocking Plugin
 host: virtserver.swaggerhub.com
-basePath: /itmo-eve/eden/0.0.1
+basePath: /lf-edge/eden/0.0.1
 # Added by API Auto Mocking Plugin

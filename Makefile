@@ -83,6 +83,8 @@ save: $(DIST)
 	echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
 	echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
 	echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
+	echo ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem >> $(CONFIG)
+	echo EVE_CERT=$(ADAM_DIST)/run/config/onboard.cert.pem >> $(CONFIG)
 
 eve_run: save eve_stop eve_live
 	@echo EVE run
@@ -160,9 +162,9 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/adam_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s -run TestNetworkInstanceLocal
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/adam_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
+	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s -run TestNetworkInstanceLocal
 
 $(BIN):
 	mkdir -p $(BIN)

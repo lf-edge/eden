@@ -3,15 +3,15 @@ package integration
 import (
 	"errors"
 	"fmt"
-	"github.com/itmo-eve/eden/pkg/adam"
-	"github.com/itmo-eve/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	"os"
 	"path"
 	"path/filepath"
 )
 
-func adamPrepare() (adamCtx *adam.Ctx, id *uuid.UUID, err error) {
+func adamPrepare() (controllerCtx *controller.Ctx, id *uuid.UUID, err error) {
 	currentPath, err := os.Getwd()
 	if err != nil {
 		return nil, nil, err
@@ -34,9 +34,16 @@ func adamPrepare() (adamCtx *adam.Ctx, id *uuid.UUID, err error) {
 			return nil, nil, err
 		}
 	}
-	ctx := adam.Ctx{
-		Dir: adamDir,
-		URL: fmt.Sprintf("https://%s:%s", ip, port),
+	ctx := controller.Ctx{
+		Dir:         adamDir,
+		URL:         fmt.Sprintf("https://%s:%s", ip, port),
+		InsecureTLS: true,
+	}
+
+	adamCA := os.Getenv("ADAM_CA")
+	if len(adamCA) != 0 {
+		ctx.ServerCA = adamCA
+		ctx.InsecureTLS = false
 	}
 	cmdOut, err := ctx.DeviceList()
 	if err != nil {

@@ -2,20 +2,18 @@ package integration
 
 import (
 	"fmt"
-	"github.com/itmo-eve/eden/pkg/adam"
-	"github.com/itmo-eve/eden/pkg/cloud"
-	"github.com/itmo-eve/eden/pkg/device"
-	"github.com/itmo-eve/eden/pkg/einfo"
-	"github.com/itmo-eve/eden/pkg/elog"
-	"github.com/itmo-eve/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/cloud"
+	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/einfo"
+	"github.com/lf-edge/eden/pkg/elog"
+	"github.com/lf-edge/eden/pkg/utils"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 	"time"
 )
-
-const eveCert = "/adam/run/config/onboard.cert.pem"
 
 func TestAdamOnBoard(t *testing.T) {
 	currentPath, err := os.Getwd()
@@ -40,14 +38,26 @@ func TestAdamOnBoard(t *testing.T) {
 			t.Fatal("Failed to get adam dir")
 		}
 	}
+	eveCert := os.Getenv("EVE_CERT")
+	if len(eveCert) == 0 {
+		eveCert = path.Join(adamDir, "run", "config", "onboard.cert.pem")
+	}
 	serial := os.Getenv("EVE_SERIAL")
 	if len(serial) == 0 {
 		serial = "31415926"
 	}
-	ctx := adam.Ctx{
-		Dir: adamDir,
-		URL: fmt.Sprintf("https://%s:%s", ip, port),
+	ctx := controller.Ctx{
+		Dir:         adamDir,
+		URL:         fmt.Sprintf("https://%s:%s", ip, port),
+		InsecureTLS: true,
 	}
+
+	adamCA := os.Getenv("ADAM_CA")
+	if len(adamCA) != 0 {
+		ctx.ServerCA = adamCA
+		ctx.InsecureTLS = false
+	}
+
 	t.Logf("Try to add onboarding")
 	err = ctx.Register(eveCert, serial)
 	if err != nil {
@@ -94,11 +104,22 @@ func TestAdamSetConfig(t *testing.T) {
 	}
 	configToSet := fmt.Sprintf("%s", string(b))
 	t.Log(configToSet)
-	res, err := ctx.ConfigSet(devUUID.String(), configToSet)
+	err = ctx.ConfigSet(devUUID.String(), configToSet)
 	if err != nil {
-		t.Log(res)
 		t.Fatal(err)
 	}
+}
+
+func TestAdamGetConfig(t *testing.T) {
+	ctx, devUUID, err := adamPrepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := ctx.ConfigGet(devUUID.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(config)
 }
 
 func TestAdamLogs(t *testing.T) {

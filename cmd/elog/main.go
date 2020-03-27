@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/itmo-eve/eden/pkg/elog"
+	"github.com/lf-edge/eden/pkg/elog"
 	"io/ioutil"
 	"os"
 	"strings"

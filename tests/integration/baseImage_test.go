@@ -2,11 +2,11 @@ package integration
 
 import (
 	"fmt"
-	"github.com/itmo-eve/eden/pkg/cloud"
-	"github.com/itmo-eve/eden/pkg/device"
-	"github.com/itmo-eve/eden/pkg/einfo"
-	"github.com/itmo-eve/eden/pkg/elog"
-	"github.com/itmo-eve/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/cloud"
+	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/einfo"
+	"github.com/lf-edge/eden/pkg/elog"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"os"
 	"path"
@@ -112,9 +112,8 @@ func TestBaseImage(t *testing.T) {
 	}
 	configToSet := fmt.Sprintf("%s", string(b))
 	t.Log(configToSet)
-	res, err := ctx.ConfigSet(devUUID.String(), configToSet)
+	err = ctx.ConfigSet(devUUID.String(), configToSet)
 	if err != nil {
-		t.Log(res)
 		t.Fatal(err)
 	}
 	t.Run("Started", func(t *testing.T) {

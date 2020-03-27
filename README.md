@@ -6,7 +6,7 @@ Eden consists of a test harness and a series of integration tests implemented in
 
 ## Install Dependencies
 
-Install requirements from [eve](https://github.com/itmo-eve/eve#install-dependencies)
+Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies)
 
 Also, you need to install ```openssl``` package and ```uuidgen```
 

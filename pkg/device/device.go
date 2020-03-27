@@ -3,7 +3,7 @@ package device
 import (
 	"encoding/json"
 	"errors"
-	"github.com/itmo-eve/eden/pkg/cloud"
+	"github.com/lf-edge/eden/pkg/cloud"
 	"github.com/lf-edge/eve/api/go/config"
 )
 import "github.com/satori/go.uuid"

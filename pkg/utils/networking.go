@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"net/url"
 	"strings"
 )
 
@@ -41,4 +42,17 @@ func GetIPForDockerAccess() (ip string, err error) {
 		return "", errors.New("no IP found")
 	}
 	return ip, nil
+}
+
+//ResolveURL concatenate parts of url
+func ResolveURL(b, p string) (string, error) {
+	u, err := url.Parse(p)
+	if err != nil {
+		return "", err
+	}
+	base, err := url.Parse(b)
+	if err != nil {
+		return "", err
+	}
+	return base.ResolveReference(u).String(), nil
 }
