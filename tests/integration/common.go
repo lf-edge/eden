@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	"os"
@@ -42,33 +43,37 @@ func envRead() error {
 	return nil
 }
 
-func controllerPrepare() (ctx *controller.Ctx, err error) {
+func controllerPrepare() (ctx controller.Cloud, err error) {
 	err = envRead()
 	if err != nil {
 		return ctx, err
 	}
-	ctx = &controller.Ctx{
+	var ctrl controller.Cloud = &controller.CloudCtx{Controller: &adam.Ctx{
 		Dir:         adamDir,
 		URL:         fmt.Sprintf("https://%s:%s", adamIP, adamPort),
 		InsecureTLS: true,
-	}
+	}}
 	if len(adamCA) != 0 {
-		ctx.ServerCA = adamCA
-		ctx.InsecureTLS = false
+		ctrl = &controller.CloudCtx{Controller: &adam.Ctx{
+			Dir:         adamDir,
+			URL:         fmt.Sprintf("https://%s:%s", adamIP, adamPort),
+			InsecureTLS: false,
+			ServerCA:    adamCA,
+		}}
 	}
-	devices, err := ctx.DeviceList()
+	devices, err := ctrl.DeviceList()
 	if err != nil {
-		return ctx, err
+		return ctrl, err
 	}
 	for _, dev := range devices {
 		devUUID, err := uuid.FromString(dev)
 		if err != nil {
-			return ctx, err
+			return ctrl, err
 		}
-		err = ctx.AddDevice(&devUUID)
+		err = ctrl.AddDevice(&devUUID)
 		if err != nil {
-			return ctx, err
+			return ctrl, err
 		}
 	}
-	return ctx, nil
+	return ctrl, nil
 }

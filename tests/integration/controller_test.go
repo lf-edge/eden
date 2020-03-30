@@ -17,7 +17,7 @@ func TestAdamOnBoard(t *testing.T) {
 	if devUUID == nil {
 		eveCert := os.Getenv("EVE_CERT")
 		if len(eveCert) == 0 {
-			eveCert = path.Join(ctx.Dir, "run", "config", "onboard.cert.pem")
+			eveCert = path.Join(ctx.GetDir(), "run", "config", "onboard.cert.pem")
 		}
 		serial := os.Getenv("EVE_SERIAL")
 		if len(serial) == 0 {

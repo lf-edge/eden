@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	cloudCxt := &controller.Ctx{}
+	cloudCxt := &controller.CloudCtx{}
 	devID, _ := uuid.NewV4()
 	err := cloudCxt.AddDevice(&devID)
 	if err != nil {

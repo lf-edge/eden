@@ -6,8 +6,8 @@ import (
 )
 
 //GetImage return Image config from cloud by ID
-func (cfg *Ctx) GetImage(ID string) (image *config.Image, err error) {
-	for _, image := range cfg.images {
+func (cloud *CloudCtx) GetImage(ID string) (image *config.Image, err error) {
+	for _, image := range cloud.images {
 		if image.Uuidandversion.Uuid == ID {
 			return image, nil
 		}
@@ -16,16 +16,16 @@ func (cfg *Ctx) GetImage(ID string) (image *config.Image, err error) {
 }
 
 //AddImage add Image config to cloud
-func (cfg *Ctx) AddImage(imageConfig *config.Image) error {
-	for _, image := range cfg.images {
+func (cloud *CloudCtx) AddImage(imageConfig *config.Image) error {
+	for _, image := range cloud.images {
 		if image.Uuidandversion.Uuid == imageConfig.Uuidandversion.GetUuid() {
 			return fmt.Errorf("already exists with ID: %s", imageConfig.Uuidandversion.GetUuid())
 		}
 	}
-	_, err := cfg.GetDataStore(imageConfig.DsId)
+	_, err := cloud.GetDataStore(imageConfig.DsId)
 	if err != nil {
 		return err
 	}
-	cfg.images = append(cfg.images, imageConfig)
+	cloud.images = append(cloud.images, imageConfig)
 	return nil
 }

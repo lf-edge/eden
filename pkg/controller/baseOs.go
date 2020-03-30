@@ -6,8 +6,8 @@ import (
 )
 
 //GetBaseOSConfig return baseOS config from cloud by ID
-func (cfg *Ctx) GetBaseOSConfig(ID string) (baseOSConfig *config.BaseOSConfig, err error) {
-	for _, baseOS := range cfg.baseOS {
+func (cloud *CloudCtx) GetBaseOSConfig(ID string) (baseOSConfig *config.BaseOSConfig, err error) {
+	for _, baseOS := range cloud.baseOS {
 		if baseOS.Uuidandversion.Uuid == ID {
 			return baseOS, nil
 		}
@@ -16,12 +16,12 @@ func (cfg *Ctx) GetBaseOSConfig(ID string) (baseOSConfig *config.BaseOSConfig, e
 }
 
 //AddBaseOsConfig add baseOS config to cloud
-func (cfg *Ctx) AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error {
-	for _, baseConfig := range cfg.baseOS {
+func (cloud *CloudCtx) AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error {
+	for _, baseConfig := range cloud.baseOS {
 		if baseConfig.Uuidandversion.Uuid == baseOSConfig.Uuidandversion.GetUuid() {
 			return fmt.Errorf("already exists with ID: %s", baseOSConfig.Uuidandversion.GetUuid())
 		}
 	}
-	cfg.baseOS = append(cfg.baseOS, baseOSConfig)
+	cloud.baseOS = append(cloud.baseOS, baseOSConfig)
 	return nil
 }

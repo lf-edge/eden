@@ -6,8 +6,8 @@ import (
 )
 
 //GetDataStore return DataStore config from cloud by ID
-func (cfg *Ctx) GetDataStore(ID string) (ds *config.DatastoreConfig, err error) {
-	for _, dataStore := range cfg.datastores {
+func (cloud *CloudCtx) GetDataStore(ID string) (ds *config.DatastoreConfig, err error) {
+	for _, dataStore := range cloud.datastores {
 		if dataStore.Id == ID {
 			return dataStore, nil
 		}
@@ -16,12 +16,12 @@ func (cfg *Ctx) GetDataStore(ID string) (ds *config.DatastoreConfig, err error) 
 }
 
 //AddDatastore add DataStore config to cloud
-func (cfg *Ctx) AddDatastore(datastoreConfig *config.DatastoreConfig) error {
-	for _, dataStore := range cfg.datastores {
+func (cloud *CloudCtx) AddDatastore(datastoreConfig *config.DatastoreConfig) error {
+	for _, dataStore := range cloud.datastores {
 		if dataStore.Id == datastoreConfig.Id {
 			return fmt.Errorf("already exists with ID: %s", datastoreConfig.Id)
 		}
 	}
-	cfg.datastores = append(cfg.datastores, datastoreConfig)
+	cloud.datastores = append(cloud.datastores, datastoreConfig)
 	return nil
 }
