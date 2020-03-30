@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"errors"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -11,51 +10,65 @@ import (
 	"path/filepath"
 )
 
-func adamPrepare() (controllerCtx *controller.Ctx, id *uuid.UUID, err error) {
+var (
+	adamIP   string
+	adamPort string
+	adamDir  string
+	adamCA   string
+)
+
+func envRead() error {
 	currentPath, err := os.Getwd()
-	if err != nil {
-		return nil, nil, err
-	}
-	ip := os.Getenv("IP")
-	if len(ip) == 0 {
-		ip, err = utils.GetIPForDockerAccess()
+	adamIP = os.Getenv("ADAM_IP")
+	if len(adamIP) == 0 {
+		adamIP, err = utils.GetIPForDockerAccess()
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 	}
-	port := os.Getenv("ADAM_PORT")
-	if len(port) == 0 {
-		port = "3333"
+	adamPort = os.Getenv("ADAM_PORT")
+	if len(adamPort) == 0 {
+		adamPort = "3333"
 	}
-	adamDir := os.Getenv("ADAM_DIST")
+	adamDir = os.Getenv("ADAM_DIST")
 	if len(adamDir) == 0 {
 		adamDir = path.Join(filepath.Dir(filepath.Dir(currentPath)), "dist", "adam")
 		if stat, err := os.Stat(adamDir); err != nil || !stat.IsDir() {
-			return nil, nil, err
+			return err
 		}
 	}
-	ctx := controller.Ctx{
+
+	adamCA = os.Getenv("ADAM_CA")
+	return nil
+}
+
+func controllerPrepare() (ctx *controller.Ctx, err error) {
+	err = envRead()
+	if err != nil {
+		return ctx, err
+	}
+	ctx = &controller.Ctx{
 		Dir:         adamDir,
-		URL:         fmt.Sprintf("https://%s:%s", ip, port),
+		URL:         fmt.Sprintf("https://%s:%s", adamIP, adamPort),
 		InsecureTLS: true,
 	}
-
-	adamCA := os.Getenv("ADAM_CA")
 	if len(adamCA) != 0 {
 		ctx.ServerCA = adamCA
 		ctx.InsecureTLS = false
 	}
-	cmdOut, err := ctx.DeviceList()
+	devices, err := ctx.DeviceList()
 	if err != nil {
-		return nil, nil, err
+		return ctx, err
 	}
-	if len(cmdOut) > 0 {
-		devUUID, err := uuid.FromString(cmdOut[0])
+	for _, dev := range devices {
+		devUUID, err := uuid.FromString(dev)
 		if err != nil {
-			return nil, nil, err
+			return ctx, err
 		}
-		return &ctx, &devUUID, nil
-	} else {
-		return nil, nil, errors.New("no device found")
+		err = ctx.AddDevice(&devUUID)
+		if err != nil {
+			return ctx, err
+		}
 	}
+	return ctx, nil
 }

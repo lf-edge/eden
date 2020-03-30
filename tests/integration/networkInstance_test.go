@@ -1,24 +1,24 @@
 package integration
 
 import (
-	"fmt"
-	"github.com/lf-edge/eden/pkg/cloud"
-	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/einfo"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eve/api/go/config"
 	"testing"
 )
 
 func TestNetworkInstanceSwitch(t *testing.T) {
-	ctx, devUUID, err := adamPrepare()
+	ctx, err := controllerPrepare()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	deviceCtx, err := ctx.GetDeviceFirst()
+	if err != nil {
+		t.Fatal(err)
+	}
 	niID := "eab8761b-5f89-4e0b-b757-4b87a9fa93e1"
 
-	cloudCxt := &cloud.Ctx{}
-	err = cloudCxt.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
+	err = ctx.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    niID,
 			Version: "4",
@@ -50,26 +50,20 @@ func TestNetworkInstanceSwitch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
+	devUUID := deviceCtx.GetID()
 	deviceCtx.SetNetworkInstanceConfig([]string{niID})
-	b, err := deviceCtx.GenerateJSONBytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	configToSet := fmt.Sprintf("%s", string(b))
-	t.Log(configToSet)
-	err = ctx.ConfigSet(devUUID.String(), configToSet)
+	err = ctx.ConfigSync(devUUID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Run("Process", func(t *testing.T) {
-		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
+		err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Active", func(t *testing.T) {
-		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
+		err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -77,15 +71,19 @@ func TestNetworkInstanceSwitch(t *testing.T) {
 }
 
 func TestNetworkInstanceLocal(t *testing.T) {
-	ctx, devUUID, err := adamPrepare()
+	ctx, err := controllerPrepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	deviceCtx, err := ctx.GetDeviceFirst()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	niID := "eab8761b-5f89-4e0b-b757-4b87a9fa93e2"
 
-	cloudCxt := &cloud.Ctx{}
-	err = cloudCxt.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
+	err = ctx.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    niID,
 			Version: "4",
@@ -117,26 +115,20 @@ func TestNetworkInstanceLocal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
+	devUUID := deviceCtx.GetID()
 	deviceCtx.SetNetworkInstanceConfig([]string{niID})
-	b, err := deviceCtx.GenerateJSONBytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	configToSet := fmt.Sprintf("%s", string(b))
-	t.Log(configToSet)
-	err = ctx.ConfigSet(devUUID.String(), configToSet)
+	err = ctx.ConfigSync(devUUID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Run("Process", func(t *testing.T) {
-		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
+		err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Active", func(t *testing.T) {
-		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
+		err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -144,15 +136,19 @@ func TestNetworkInstanceLocal(t *testing.T) {
 }
 
 func TestNetworkInstanceCloud(t *testing.T) {
-	ctx, devUUID, err := adamPrepare()
+	ctx, err := controllerPrepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	deviceCtx, err := ctx.GetDeviceFirst()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	niID := "eab8761b-5f89-4e0b-b757-4b87a9fa93e3"
 
-	cloudCxt := &cloud.Ctx{}
-	err = cloudCxt.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
+	err = ctx.AddNetworkInstanceConfig(&config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    niID,
 			Version: "4",
@@ -184,26 +180,20 @@ func TestNetworkInstanceCloud(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
+	devUUID := deviceCtx.GetID()
 	deviceCtx.SetNetworkInstanceConfig([]string{niID})
-	b, err := deviceCtx.GenerateJSONBytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	configToSet := fmt.Sprintf("%s", string(b))
-	t.Log(configToSet)
-	err = ctx.ConfigSet(devUUID.String(), configToSet)
+	err = ctx.ConfigSync(devUUID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Run("Process", func(t *testing.T) {
-		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
+		err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": niID}, einfo.ZInfoNetworkInstance, 1000)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Active", func(t *testing.T) {
-		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
+		err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": niID, "activated": "true"}, einfo.ZInfoNetworkInstance, 1000)
 		if err != nil {
 			t.Fatal(err)
 		}

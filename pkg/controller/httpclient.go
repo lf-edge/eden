@@ -13,7 +13,7 @@ import (
 )
 
 // http client with correct config
-func (adam *Ctx) getClient() *http.Client {
+func (adam *Ctx) getHTTPClient() *http.Client {
 	tlsConfig := &tls.Config{}
 	if adam.ServerCA != "" {
 		caCert, err := ioutil.ReadFile(adam.ServerCA)
@@ -42,7 +42,7 @@ func (adam *Ctx) getObj(path string) (out string, err error) {
 		log.Printf("error constructing URL: %v", err)
 		return "", err
 	}
-	client := adam.getClient()
+	client := adam.getHTTPClient()
 	response, err := client.Get(u)
 	if err != nil {
 		log.Printf("error reading URL %s: %v", u, err)
@@ -62,7 +62,7 @@ func (adam *Ctx) getList(path string) (out []string, err error) {
 		log.Printf("error constructing URL: %v", err)
 		return nil, err
 	}
-	client := adam.getClient()
+	client := adam.getHTTPClient()
 	response, err := client.Get(u)
 	if err != nil {
 		log.Printf("error reading URL %s: %v", u, err)
@@ -82,7 +82,7 @@ func (adam *Ctx) postObj(path string, obj []byte) (err error) {
 		log.Printf("error constructing URL: %v", err)
 		return err
 	}
-	client := adam.getClient()
+	client := adam.getHTTPClient()
 	_, err = client.Post(u, "application/json", bytes.NewBuffer(obj))
 	if err != nil {
 		log.Printf("unable to post data to URL %s: %v", u, err)
@@ -97,7 +97,7 @@ func (adam *Ctx) putObj(path string, obj []byte) (err error) {
 		log.Printf("error constructing URL: %v", err)
 		return err
 	}
-	client := adam.getClient()
+	client := adam.getHTTPClient()
 	req, err := http.NewRequest("PUT", u, bytes.NewBuffer(obj))
 	if err != nil {
 		log.Printf("unable to create new http request: %v", err)

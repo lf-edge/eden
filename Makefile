@@ -162,9 +162,9 @@ eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
 test:
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/adam_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
-	IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s -run TestNetworkInstanceLocal
+	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/controller_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
+	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
+	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_VERSION=$(EVE_BASE_VERSION) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s -run TestNetworkInstanceLocal
 
 $(BIN):
 	mkdir -p $(BIN)

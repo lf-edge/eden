@@ -2,10 +2,7 @@ package integration
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/cloud"
-	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/einfo"
-	"github.com/lf-edge/eden/pkg/elog"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"os"
@@ -15,7 +12,11 @@ import (
 )
 
 func TestBaseImage(t *testing.T) {
-	ctx, devUUID, err := adamPrepare()
+	ctx, err := controllerPrepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+	devCtx, err := ctx.GetDeviceFirst()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +33,7 @@ func TestBaseImage(t *testing.T) {
 		baseOSVersion = fmt.Sprintf("%s-%s", eveBaseRef, zArch)
 	}
 
-	dsId := "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
+	dsID := "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
 
 	imageID := "1ab8761b-5f89-4e0b-b757-4b87a9fa93ec"
 
@@ -50,10 +51,8 @@ func TestBaseImage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	cloudCxt := &cloud.Ctx{}
-	err = cloudCxt.AddDatastore(&config.DatastoreConfig{
-		Id:       dsId,
+	err = ctx.AddDatastore(&config.DatastoreConfig{
+		Id:       dsID,
 		DType:    config.DsType_DsHttp,
 		Fqdn:     "http://mydomain.adam:8888",
 		ApiKey:   "",
@@ -72,7 +71,7 @@ func TestBaseImage(t *testing.T) {
 		Name:      filepath.Base(imageName),
 		Sha256:    sha256sum,
 		Iformat:   config.Format_QCOW2,
-		DsId:      dsId,
+		DsId:      dsID,
 		SizeBytes: size,
 		Siginfo: &config.SignatureInfo{
 			Intercertsurl: "",
@@ -80,11 +79,11 @@ func TestBaseImage(t *testing.T) {
 			Signature:     nil,
 		},
 	}
-	err = cloudCxt.AddImage(img)
+	err = ctx.AddImage(img)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = cloudCxt.AddBaseOsConfig(&config.BaseOSConfig{
+	err = ctx.AddBaseOsConfig(&config.BaseOSConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    baseID,
 			Version: "4",
@@ -104,38 +103,32 @@ func TestBaseImage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	deviceCtx := device.CreateWithBaseConfig(*devUUID, cloudCxt)
-	deviceCtx.SetBaseOSConfig([]string{baseID})
-	b, err := deviceCtx.GenerateJSONBytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	configToSet := fmt.Sprintf("%s", string(b))
-	t.Log(configToSet)
-	err = ctx.ConfigSet(devUUID.String(), configToSet)
+	devCtx.SetBaseOSConfig([]string{baseID})
+	devUUID := devCtx.GetID()
+	err = ctx.ConfigSync(devUUID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Run("Started", func(t *testing.T) {
-		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, 300)
+		err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, 300)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Downloaded", func(t *testing.T) {
-		err := einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, 1500)
+		err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, 1500)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Logs", func(t *testing.T) {
-		err = elog.LogChecker(ctx.GetLogsDir(devUUID), map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
+		err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 	t.Run("Active", func(t *testing.T) {
-		err = einfo.InfoChecker(ctx.GetInfoDir(devUUID), map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED"}, einfo.ZInfoDevSW, 1200)
+		err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED"}, einfo.ZInfoDevSW, 1200)
 		if err != nil {
 			t.Fatal(err)
 		}

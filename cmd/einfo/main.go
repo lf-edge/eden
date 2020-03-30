@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/einfo"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"io/ioutil"
 	"os"
 	"strings"

@@ -1,17 +1,19 @@
 package main
 
 import (
-	"github.com/lf-edge/eden/pkg/cloud"
-	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/controller"
 	uuid "github.com/satori/go.uuid"
 	"log"
 )
 
 func main() {
-	cloudCxt := &cloud.Ctx{}
+	cloudCxt := &controller.Ctx{}
 	devID, _ := uuid.NewV4()
-	deviceCtx := device.CreateWithBaseConfig(devID, cloudCxt)
-	b, err := deviceCtx.GenerateJSONBytes()
+	err := cloudCxt.AddDevice(&devID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	b, err := cloudCxt.GetConfigBytes(&devID)
 	if err != nil {
 		log.Fatal(err)
 	}

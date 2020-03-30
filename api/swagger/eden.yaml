@@ -4,78 +4,78 @@ info:
   title: 'EDEN API'
   description: ''
 schemes:
- - https
- - http
+  - https
+  - http
 consumes:
-- "application/json"
+  - "application/json"
 produces:
-- "application/json"
+  - "application/json"
 paths:
   /api/v1/devices:
     get:
       tags:
-      - "DeviceOps"
+        - "DeviceOps"
       operationId: "List"
       parameters:
-      - name: "summary"
-        in: "query"
-        required: false
-        type: "boolean"
-        format: "boolean"
-        x-exportParamName: "Summary"
-        x-optionalDataType: "Bool"
-      - name: "project"
-        in: "query"
-        required: false
-        type: "string"
-        x-exportParamName: "Project"
-        x-optionalDataType: "String"
-      - name: "next.pageToken"
-        in: "query"
-        required: false
-        type: "string"
-        x-exportParamName: "NextPageToken"
-        x-optionalDataType: "String"
-      - name: "next.maxRecords"
-        in: "query"
-        required: false
-        type: "string"
-        format: "uint64"
-        x-exportParamName: "NextMaxRecords"
-        x-optionalDataType: "String"
-      - name: "next.orderBy"
-        in: "query"
-        required: false
-        type: "string"
-        x-exportParamName: "NextOrderBy"
-        x-optionalDataType: "String"
-      - name: "next.pageNum"
-        in: "query"
-        required: false
-        type: "integer"
-        format: "int64"
-        x-exportParamName: "NextPageNum"
-        x-optionalDataType: "Int64"
-      - name: "next.pageSize"
-        in: "query"
-        required: false
-        type: "integer"
-        format: "int64"
-        x-exportParamName: "NextPageSize"
-        x-optionalDataType: "Int64"
-      - name: "next.totalPages"
-        in: "query"
-        required: false
-        type: "integer"
-        format: "int64"
-        x-exportParamName: "NextTotalPages"
-        x-optionalDataType: "Int64"
-      - name: "enterpriseId"
-        in: "query"
-        required: false
-        type: "string"
-        x-exportParamName: "EnterpriseId"
-        x-optionalDataType: "String"
+        - name: "summary"
+          in: "query"
+          required: false
+          type: "boolean"
+          format: "boolean"
+          x-exportParamName: "Summary"
+          x-optionalDataType: "Bool"
+        - name: "project"
+          in: "query"
+          required: false
+          type: "string"
+          x-exportParamName: "Project"
+          x-optionalDataType: "String"
+        - name: "next.pageToken"
+          in: "query"
+          required: false
+          type: "string"
+          x-exportParamName: "NextPageToken"
+          x-optionalDataType: "String"
+        - name: "next.maxRecords"
+          in: "query"
+          required: false
+          type: "string"
+          format: "uint64"
+          x-exportParamName: "NextMaxRecords"
+          x-optionalDataType: "String"
+        - name: "next.orderBy"
+          in: "query"
+          required: false
+          type: "string"
+          x-exportParamName: "NextOrderBy"
+          x-optionalDataType: "String"
+        - name: "next.pageNum"
+          in: "query"
+          required: false
+          type: "integer"
+          format: "int64"
+          x-exportParamName: "NextPageNum"
+          x-optionalDataType: "Int64"
+        - name: "next.pageSize"
+          in: "query"
+          required: false
+          type: "integer"
+          format: "int64"
+          x-exportParamName: "NextPageSize"
+          x-optionalDataType: "Int64"
+        - name: "next.totalPages"
+          in: "query"
+          required: false
+          type: "integer"
+          format: "int64"
+          x-exportParamName: "NextTotalPages"
+          x-optionalDataType: "Int64"
+        - name: "enterpriseId"
+          in: "query"
+          required: false
+          type: "string"
+          x-exportParamName: "EnterpriseId"
+          x-optionalDataType: "String"
       responses:
         "200":
           description: "A successful response."
@@ -88,11 +88,11 @@ definitions:
       \ Dom0 uses this adapter, and application can share it\n - AdpDisabled: for\
       \ future use where, we block a certain things by design"
     enum:
-    - "AdpUnused"
-    - "AdpManagement"
-    - "AdpAppDedicated"
-    - "AdpAppShared"
-    - "AdpDisabled"
+      - "AdpUnused"
+      - "AdpManagement"
+      - "AdpAppDedicated"
+      - "AdpAppShared"
+      - "AdpDisabled"
     default: "AdpUnused"
   BaseOSImage:
     type: "object"
@@ -223,14 +223,14 @@ definitions:
       deprecated: "deprecated"
       utype: {}
       baseImage:
-      - imageName: "imageName"
-        activate: true
-        uuid: "uuid"
-        version: "version"
-      - imageName: "imageName"
-        activate: true
-        uuid: "uuid"
-        version: "version"
+        - imageName: "imageName"
+          activate: true
+          uuid: "uuid"
+          version: "version"
+        - imageName: "imageName"
+          activate: true
+          uuid: "uuid"
+          version: "version"
       description: "description"
       project: "project"
       opState: {}
@@ -239,24 +239,24 @@ definitions:
       dlisp:
         mode: "mode"
         lispMapServers:
-        - credential: "credential"
-          nameOrIp: "nameOrIp"
-        - credential: "credential"
-          nameOrIp: "nameOrIp"
+          - credential: "credential"
+            nameOrIp: "nameOrIp"
+          - credential: "credential"
+            nameOrIp: "nameOrIp"
         lispInstance: 7
         EID: "EID"
         clientAddr: "clientAddr"
         eidAllocationPrefixLen: 3
         eidAllocationPrefix: "eidAllocationPrefix"
         zedServers:
-        - hostName: "hostName"
-          EID:
-          - "EID"
-          - "EID"
-        - hostName: "hostName"
-          EID:
-          - "EID"
-          - "EID"
+          - hostName: "hostName"
+            EID:
+              - "EID"
+              - "EID"
+          - hostName: "hostName"
+            EID:
+              - "EID"
+              - "EID"
         EIDHashLen: 9
       serialno: "serialno"
       identity: "identity"
@@ -269,32 +269,32 @@ definitions:
       resetTime: "resetTime"
       brand: "brand"
       interfaces:
-      - netname: "netname"
-        io:
-          name: "name"
-          type: {}
-        deprecate_uplink: true
-        deprecate_freeuplink: true
-        intfname: "intfname"
-        ipaddr: "ipaddr"
-        intfUsage: {}
-        macaddr: "macaddr"
-      - netname: "netname"
-        io:
-          name: "name"
-          type: {}
-        deprecate_uplink: true
-        deprecate_freeuplink: true
-        intfname: "intfname"
-        ipaddr: "ipaddr"
-        intfUsage: {}
-        macaddr: "macaddr"
+        - netname: "netname"
+          io:
+            name: "name"
+            type: {}
+          deprecate_uplink: true
+          deprecate_freeuplink: true
+          intfname: "intfname"
+          ipaddr: "ipaddr"
+          intfUsage: {}
+          macaddr: "macaddr"
+        - netname: "netname"
+          io:
+            name: "name"
+            type: {}
+          deprecate_uplink: true
+          deprecate_freeuplink: true
+          intfname: "intfname"
+          ipaddr: "ipaddr"
+          intfUsage: {}
+          macaddr: "macaddr"
       obkey: "obkey"
       cpu: 1
       thread: 5
       sitePictures:
-      - "sitePictures"
-      - "sitePictures"
+        - "sitePictures"
+        - "sitePictures"
       devLocation:
         country: "country"
         loc: "loc"
@@ -318,20 +318,20 @@ definitions:
       location: "location"
       enterpriseId: "enterpriseId"
       configItem:
-      - uint64Value: "uint64Value"
-        stringValue: "stringValue"
-        uint32Value: 4
-        valueType: "valueType"
-        floatValue: 7.386282
-        boolValue: true
-        key: "key"
-      - uint64Value: "uint64Value"
-        stringValue: "stringValue"
-        uint32Value: 4
-        valueType: "valueType"
-        floatValue: 7.386282
-        boolValue: true
-        key: "key"
+        - uint64Value: "uint64Value"
+          stringValue: "stringValue"
+          uint32Value: 4
+          valueType: "valueType"
+          floatValue: 7.386282
+          boolValue: true
+          key: "key"
+        - uint64Value: "uint64Value"
+          stringValue: "stringValue"
+          uint32Value: 4
+          valueType: "valueType"
+          floatValue: 7.386282
+          boolValue: true
+          key: "key"
   DeviceConfigList:
     type: "object"
     properties:
@@ -348,235 +348,235 @@ definitions:
           key: 6
         description: "description"
       list:
-      - resetCounter: 2
-        memory: 5
-        deprecated: "deprecated"
-        utype: {}
-        baseImage:
-        - imageName: "imageName"
-          activate: true
-          uuid: "uuid"
-          version: "version"
-        - imageName: "imageName"
-          activate: true
-          uuid: "uuid"
-          version: "version"
-        description: "description"
-        project: "project"
-        opState: {}
-        storage: 2
-        title: "title"
-        dlisp:
-          mode: "mode"
-          lispMapServers:
-          - credential: "credential"
-            nameOrIp: "nameOrIp"
-          - credential: "credential"
-            nameOrIp: "nameOrIp"
-          lispInstance: 7
-          EID: "EID"
-          clientAddr: "clientAddr"
-          eidAllocationPrefixLen: 3
-          eidAllocationPrefix: "eidAllocationPrefix"
-          zedServers:
-          - hostName: "hostName"
-            EID:
-            - "EID"
-            - "EID"
-          - hostName: "hostName"
-            EID:
-            - "EID"
-            - "EID"
-          EIDHashLen: 9
-        serialno: "serialno"
-        identity: "identity"
-        adminState: {}
-        onboarding:
-          pemKey: "pemKey"
-          pemCert: "pemCert"
-        model: "model"
-        id: "id"
-        resetTime: "resetTime"
-        brand: "brand"
-        interfaces:
-        - netname: "netname"
-          io:
-            name: "name"
-            type: {}
-          deprecate_uplink: true
-          deprecate_freeuplink: true
-          intfname: "intfname"
-          ipaddr: "ipaddr"
-          intfUsage: {}
-          macaddr: "macaddr"
-        - netname: "netname"
-          io:
-            name: "name"
-            type: {}
-          deprecate_uplink: true
-          deprecate_freeuplink: true
-          intfname: "intfname"
-          ipaddr: "ipaddr"
-          intfUsage: {}
-          macaddr: "macaddr"
-        obkey: "obkey"
-        cpu: 1
-        thread: 5
-        clientIp: "clientIp"
-        name: "name"
-        location: "location"
-        enterpriseId: "enterpriseId"
-        configItem:
-        - uint64Value: "uint64Value"
-          stringValue: "stringValue"
-          uint32Value: 4
-          valueType: "valueType"
-          floatValue: 7.386282
-          boolValue: true
-          key: "key"
-        - uint64Value: "uint64Value"
-          stringValue: "stringValue"
-          uint32Value: 4
-          valueType: "valueType"
-          floatValue: 7.386282
-          boolValue: true
-          key: "key"
-      - resetCounter: 2
-        memory: 5
-        deprecated: "deprecated"
-        utype: {}
-        baseImage:
-        - imageName: "imageName"
-          activate: true
-          uuid: "uuid"
-          version: "version"
-        - imageName: "imageName"
-          activate: true
-          uuid: "uuid"
-          version: "version"
-        description: "description"
-        project: "project"
-        opState: {}
-        storage: 2
-        title: "title"
-        dlisp:
-          mode: "mode"
-          lispMapServers:
-          - credential: "credential"
-            nameOrIp: "nameOrIp"
-          - credential: "credential"
-            nameOrIp: "nameOrIp"
-          lispInstance: 7
-          EID: "EID"
-          clientAddr: "clientAddr"
-          eidAllocationPrefixLen: 3
-          eidAllocationPrefix: "eidAllocationPrefix"
-          zedServers:
-          - hostName: "hostName"
-            EID:
-            - "EID"
-            - "EID"
-          - hostName: "hostName"
-            EID:
-            - "EID"
-            - "EID"
-          EIDHashLen: 9
-        serialno: "serialno"
-        identity: "identity"
-        adminState: {}
-        onboarding:
-          pemKey: "pemKey"
-          pemCert: "pemCert"
-        model: "model"
-        id: "id"
-        resetTime: "resetTime"
-        brand: "brand"
-        interfaces:
-        - netname: "netname"
-          io:
-            name: "name"
-            type: {}
-          deprecate_uplink: true
-          deprecate_freeuplink: true
-          intfname: "intfname"
-          ipaddr: "ipaddr"
-          intfUsage: {}
-          macaddr: "macaddr"
-        - netname: "netname"
-          io:
-            name: "name"
-            type: {}
-          deprecate_uplink: true
-          deprecate_freeuplink: true
-          intfname: "intfname"
-          ipaddr: "ipaddr"
-          intfUsage: {}
-          macaddr: "macaddr"
-        obkey: "obkey"
-        cpu: 1
-        thread: 5
-        sitePictures:
-        - "sitePictures"
-        - "sitePictures"
-        devLocation:
-          country: "country"
-          loc: "loc"
-          hostname: "hostname"
-          city: "city"
-          org: "org"
-          freeloc: "freeloc"
-          latlong: "latlong"
-          underlayIP: "underlayIP"
-          postal: "postal"
-          region: "region"
-        revision:
-          createdAt: "2000-01-23T04:56:07.000+00:00"
-          updatedBy: "updatedBy"
-          createdBy: "createdBy"
-          prev: "prev"
-          curr: "curr"
-          updatedAt: "2000-01-23T04:56:07.000+00:00"
-        clientIp: "clientIp"
-        name: "name"
-        location: "location"
-        enterpriseId: "enterpriseId"
-        configItem:
-        - uint64Value: "uint64Value"
-          stringValue: "stringValue"
-          uint32Value: 4
-          valueType: "valueType"
-          floatValue: 7.386282
-          boolValue: true
-          key: "key"
-        - uint64Value: "uint64Value"
-          stringValue: "stringValue"
-          uint32Value: 4
-          valueType: "valueType"
-          floatValue: 7.386282
-          boolValue: true
-          key: "key"
+        - resetCounter: 2
+          memory: 5
+          deprecated: "deprecated"
+          utype: {}
+          baseImage:
+            - imageName: "imageName"
+              activate: true
+              uuid: "uuid"
+              version: "version"
+            - imageName: "imageName"
+              activate: true
+              uuid: "uuid"
+              version: "version"
+          description: "description"
+          project: "project"
+          opState: {}
+          storage: 2
+          title: "title"
+          dlisp:
+            mode: "mode"
+            lispMapServers:
+              - credential: "credential"
+                nameOrIp: "nameOrIp"
+              - credential: "credential"
+                nameOrIp: "nameOrIp"
+            lispInstance: 7
+            EID: "EID"
+            clientAddr: "clientAddr"
+            eidAllocationPrefixLen: 3
+            eidAllocationPrefix: "eidAllocationPrefix"
+            zedServers:
+              - hostName: "hostName"
+                EID:
+                  - "EID"
+                  - "EID"
+              - hostName: "hostName"
+                EID:
+                  - "EID"
+                  - "EID"
+            EIDHashLen: 9
+          serialno: "serialno"
+          identity: "identity"
+          adminState: {}
+          onboarding:
+            pemKey: "pemKey"
+            pemCert: "pemCert"
+          model: "model"
+          id: "id"
+          resetTime: "resetTime"
+          brand: "brand"
+          interfaces:
+            - netname: "netname"
+              io:
+                name: "name"
+                type: {}
+              deprecate_uplink: true
+              deprecate_freeuplink: true
+              intfname: "intfname"
+              ipaddr: "ipaddr"
+              intfUsage: {}
+              macaddr: "macaddr"
+            - netname: "netname"
+              io:
+                name: "name"
+                type: {}
+              deprecate_uplink: true
+              deprecate_freeuplink: true
+              intfname: "intfname"
+              ipaddr: "ipaddr"
+              intfUsage: {}
+              macaddr: "macaddr"
+          obkey: "obkey"
+          cpu: 1
+          thread: 5
+          clientIp: "clientIp"
+          name: "name"
+          location: "location"
+          enterpriseId: "enterpriseId"
+          configItem:
+            - uint64Value: "uint64Value"
+              stringValue: "stringValue"
+              uint32Value: 4
+              valueType: "valueType"
+              floatValue: 7.386282
+              boolValue: true
+              key: "key"
+            - uint64Value: "uint64Value"
+              stringValue: "stringValue"
+              uint32Value: 4
+              valueType: "valueType"
+              floatValue: 7.386282
+              boolValue: true
+              key: "key"
+        - resetCounter: 2
+          memory: 5
+          deprecated: "deprecated"
+          utype: {}
+          baseImage:
+            - imageName: "imageName"
+              activate: true
+              uuid: "uuid"
+              version: "version"
+            - imageName: "imageName"
+              activate: true
+              uuid: "uuid"
+              version: "version"
+          description: "description"
+          project: "project"
+          opState: {}
+          storage: 2
+          title: "title"
+          dlisp:
+            mode: "mode"
+            lispMapServers:
+              - credential: "credential"
+                nameOrIp: "nameOrIp"
+              - credential: "credential"
+                nameOrIp: "nameOrIp"
+            lispInstance: 7
+            EID: "EID"
+            clientAddr: "clientAddr"
+            eidAllocationPrefixLen: 3
+            eidAllocationPrefix: "eidAllocationPrefix"
+            zedServers:
+              - hostName: "hostName"
+                EID:
+                  - "EID"
+                  - "EID"
+              - hostName: "hostName"
+                EID:
+                  - "EID"
+                  - "EID"
+            EIDHashLen: 9
+          serialno: "serialno"
+          identity: "identity"
+          adminState: {}
+          onboarding:
+            pemKey: "pemKey"
+            pemCert: "pemCert"
+          model: "model"
+          id: "id"
+          resetTime: "resetTime"
+          brand: "brand"
+          interfaces:
+            - netname: "netname"
+              io:
+                name: "name"
+                type: {}
+              deprecate_uplink: true
+              deprecate_freeuplink: true
+              intfname: "intfname"
+              ipaddr: "ipaddr"
+              intfUsage: {}
+              macaddr: "macaddr"
+            - netname: "netname"
+              io:
+                name: "name"
+                type: {}
+              deprecate_uplink: true
+              deprecate_freeuplink: true
+              intfname: "intfname"
+              ipaddr: "ipaddr"
+              intfUsage: {}
+              macaddr: "macaddr"
+          obkey: "obkey"
+          cpu: 1
+          thread: 5
+          sitePictures:
+            - "sitePictures"
+            - "sitePictures"
+          devLocation:
+            country: "country"
+            loc: "loc"
+            hostname: "hostname"
+            city: "city"
+            org: "org"
+            freeloc: "freeloc"
+            latlong: "latlong"
+            underlayIP: "underlayIP"
+            postal: "postal"
+            region: "region"
+          revision:
+            createdAt: "2000-01-23T04:56:07.000+00:00"
+            updatedBy: "updatedBy"
+            createdBy: "createdBy"
+            prev: "prev"
+            curr: "curr"
+            updatedAt: "2000-01-23T04:56:07.000+00:00"
+          clientIp: "clientIp"
+          name: "name"
+          location: "location"
+          enterpriseId: "enterpriseId"
+          configItem:
+            - uint64Value: "uint64Value"
+              stringValue: "stringValue"
+              uint32Value: 4
+              valueType: "valueType"
+              floatValue: 7.386282
+              boolValue: true
+              key: "key"
+            - uint64Value: "uint64Value"
+              stringValue: "stringValue"
+              uint32Value: 4
+              valueType: "valueType"
+              floatValue: 7.386282
+              boolValue: true
+              key: "key"
   IoType:
     type: "string"
     enum:
-    - "IoNoop"
-    - "IoEth"
-    - "IoUSB"
-    - "IoCOM"
-    - "IoAudio"
-    - "IoWLAN"
-    - "IoWWAN"
-    - "IoHDMI"
-    - "IoOther"
+      - "IoNoop"
+      - "IoEth"
+      - "IoUSB"
+      - "IoCOM"
+      - "IoAudio"
+      - "IoWLAN"
+      - "IoWWAN"
+      - "IoHDMI"
+      - "IoOther"
     default: "IoNoop"
   ModelArchType:
     type: "string"
     title: "- UNDEFINED: don't know what kind of device it is right now\n - AMD64:\
       \ does support hyperVisor"
     enum:
-    - "NOOP"
-    - "UNDEFINED"
-    - "AMD64"
-    - "ARM64"
+      - "NOOP"
+      - "UNDEFINED"
+      - "AMD64"
+      - "ARM64"
     default: "NOOP"
   ObjectRevision:
     type: "object"
@@ -605,38 +605,38 @@ definitions:
   OpState:
     type: "string"
     enum:
-    - "StateNone"
-    - "Online"
-    - "Halted"
-    - "Init"
-    - "Rebooting"
-    - "Offline"
-    - "Unknown"
-    - "Unprovisioned"
-    - "Provisioned"
-    - "Suspect"
-    - "Downloading"
-    - "Restarting"
-    - "Purging"
-    - "Halting"
-    - "Error"
+      - "StateNone"
+      - "Online"
+      - "Halted"
+      - "Init"
+      - "Rebooting"
+      - "Offline"
+      - "Unknown"
+      - "Unprovisioned"
+      - "Provisioned"
+      - "Suspect"
+      - "Downloading"
+      - "Restarting"
+      - "Purging"
+      - "Halting"
+      - "Error"
     default: "StateNone"
   State:
     type: "string"
     enum:
-    - "sNone"
-    - "sCreated"
-    - "sDeleted"
-    - "sActive"
-    - "sInactive"
-    - "sRegistered"
-    - "sLoginSucceeded"
-    - "sLoginFailed"
-    - "sLogoutSucceeded"
-    - "sLogoutFailed"
-    - "sUpdated"
-    - "sRemoteConsoleStart"
-    - "sRemoteConsoleEnd"
+      - "sNone"
+      - "sCreated"
+      - "sDeleted"
+      - "sActive"
+      - "sInactive"
+      - "sRegistered"
+      - "sLoginSucceeded"
+      - "sLoginFailed"
+      - "sLogoutSucceeded"
+      - "sLogoutFailed"
+      - "sUpdated"
+      - "sRemoteConsoleStart"
+      - "sRemoteConsoleEnd"
     default: "sNone"
   Summary:
     type: "object"
@@ -741,24 +741,24 @@ definitions:
     example:
       mode: "mode"
       lispMapServers:
-      - credential: "credential"
-        nameOrIp: "nameOrIp"
-      - credential: "credential"
-        nameOrIp: "nameOrIp"
+        - credential: "credential"
+          nameOrIp: "nameOrIp"
+        - credential: "credential"
+          nameOrIp: "nameOrIp"
       lispInstance: 7
       EID: "EID"
       clientAddr: "clientAddr"
       eidAllocationPrefixLen: 3
       eidAllocationPrefix: "eidAllocationPrefix"
       zedServers:
-      - hostName: "hostName"
-        EID:
-        - "EID"
-        - "EID"
-      - hostName: "hostName"
-        EID:
-        - "EID"
-        - "EID"
+        - hostName: "hostName"
+          EID:
+            - "EID"
+            - "EID"
+        - hostName: "hostName"
+          EID:
+            - "EID"
+            - "EID"
       EIDHashLen: 9
   ConfigItem:
     type: "object"
@@ -811,19 +811,19 @@ definitions:
     example:
       hostName: "hostName"
       EID:
-      - "EID"
-      - "EID"
+        - "EID"
+        - "EID"
   Object:
     type: "string"
     enum:
-    - "nNONE"
-    - "nEdgeNode"
-    - "nEdgeApp"
-    - "nImage"
-    - "nEdgeAppInstance"
-    - "nNetwork"
-    - "nDatastore"
-    - "nNetInst"
+      - "nNONE"
+      - "nEdgeNode"
+      - "nEdgeApp"
+      - "nImage"
+      - "nEdgeAppInstance"
+      - "nNetwork"
+      - "nDatastore"
+      - "nNetInst"
     default: "nNONE"
 
 # Added by API Auto Mocking Plugin
