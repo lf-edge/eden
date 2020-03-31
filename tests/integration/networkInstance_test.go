@@ -94,6 +94,7 @@ func prepareNetworkInstance(ctx controller.Cloud, networkInstanceID string, netw
 	return ctx.AddNetworkInstanceConfig(&networkInstance)
 }
 
+//TestNetworkInstance test network instances creation in EVE
 func TestNetworkInstance(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {

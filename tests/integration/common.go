@@ -18,6 +18,11 @@ var (
 	adamCA   string
 )
 
+//envRead use environment variables for init controller
+//environment variable ADAM_IP - IP of adam
+//environment variable ADAM_PORT - PORT of adam
+//environment variable ADAM_DIST - directory of adam (absolute path)
+//environment variable ADAM_CA - CA of adam for https
 func envRead() error {
 	currentPath, err := os.Getwd()
 	adamIP = os.Getenv("ADAM_IP")
@@ -43,6 +48,7 @@ func envRead() error {
 	return nil
 }
 
+//controllerPrepare is for init controller connection and obtain device list
 func controllerPrepare() (ctx controller.Cloud, err error) {
 	err = envRead()
 	if err != nil {

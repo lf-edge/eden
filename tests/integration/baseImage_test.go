@@ -78,6 +78,9 @@ func prepareBaseImageLocal(ctx controller.Cloud, dataStoreID string, imageID str
 	return nil
 }
 
+//TestBaseImage test base image loading into eve
+//environment variable EVE_BASE_REF - version of eve image
+//environment variable ZARCH - architecture of eve image
 func TestBaseImage(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {

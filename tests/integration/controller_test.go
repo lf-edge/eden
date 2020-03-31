@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+//TestAdamOnBoard test onboarding into controller
+//environment variable EVE_CERT - path to eve onboarding cert
+//environment variable EVE_SERIAL - serial number of eve
 func TestAdamOnBoard(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if ctx == nil {
@@ -57,6 +60,7 @@ func TestAdamOnBoard(t *testing.T) {
 	}
 }
 
+//TestAdamOnBoard test config set via controller
 func TestControllerSetConfig(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
@@ -72,6 +76,7 @@ func TestControllerSetConfig(t *testing.T) {
 	}
 }
 
+//TestAdamOnBoard test config get via controller
 func TestControllerGetConfig(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
@@ -88,6 +93,7 @@ func TestControllerGetConfig(t *testing.T) {
 	t.Log(config)
 }
 
+//TestAdamOnBoard test logs flow
 func TestControllerLogs(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
@@ -103,6 +109,7 @@ func TestControllerLogs(t *testing.T) {
 	}
 }
 
+//TestAdamOnBoard test info flow
 func TestControllerInfo(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
