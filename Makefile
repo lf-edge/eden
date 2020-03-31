@@ -139,12 +139,12 @@ adam_run: save adam_docker_stop $(ADAM_DIST) certs_and_config
 $(CERTS_DIST):
 	test -d $@ || mkdir -p $@
 
-certs_and_config: $(CERTS_DIST)
+certs_and_config: $(CERTS_DIST) ecerts
 ifeq ($(shell ls $(ADAM_DIST)/run/adam/server.pem),)
 	test -d $(ADAM_DIST)/run/adam || mkdir -p $(ADAM_DIST)/run/adam
 	test -d $(ADAM_DIST)/run/config || mkdir -p $(ADAM_DIST)/run/config
-	chmod a+x $(CURDIR)/scripts/genCerts.sh
-	$(CURDIR)/scripts/genCerts.sh -o $(CERTS_DIST) -i $(IP) -d $(DOMAIN) -u $(UUID)
+	chmod a+x $(BIN)/ecerts
+	$(BIN)/ecerts -o $(CERTS_DIST) -i $(IP) -d $(DOMAIN) -u $(UUID)
 	cp $(CERTS_DIST)/root-certificate.pem $(ADAM_DIST)/run/config/
 	cp $(CERTS_DIST)/onboard.cert.pem $(ADAM_DIST)/run/config/
 	cp $(CERTS_DIST)/onboard.key.pem $(ADAM_DIST)/run/config/
@@ -175,7 +175,7 @@ test: test_base_image test_network_instance
 $(BIN):
 	mkdir -p $(BIN)
 
-bin: elog elogwatch econfig eserver einfowatch einfo einfolast eloglast
+bin: elog elogwatch econfig eserver einfowatch einfo einfolast eloglast ecerts
 
 elog: $(BIN)
 	cd cmd/elog/; go build; mv elog $(BIN)
@@ -200,6 +200,9 @@ einfolast: $(BIN)
 
 eloglast: $(BIN)
 	cd cmd/eloglast/; go build; mv eloglast $(BIN)
+
+ecerts: $(BIN)
+	cd cmd/ecerts/; go build; mv ecerts $(BIN)
 
 SHA256_CMD = sha256sum
 ifeq ($(shell uname -s), Darwin)
