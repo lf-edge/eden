@@ -161,10 +161,16 @@ stop: adam_docker_stop eve_stop eserver_stop
 eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
-test:
+test_controller:
 	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/controller_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
+
+test_base_image: test_controller
 	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
-	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s -run TestNetworkInstanceLocal
+
+test_network_instance: test_controller
+	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
+
+test: test_base_image test_network_instance
 
 $(BIN):
 	mkdir -p $(BIN)

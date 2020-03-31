@@ -81,7 +81,7 @@ func prepareBaseImageLocal(ctx controller.Cloud, dataStoreID string, imageID str
 func TestBaseImage(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in controller prepare: ", err)
 	}
 	eveBaseRef := os.Getenv("EVE_BASE_REF")
 	if len(eveBaseRef) == 0 {
@@ -117,40 +117,40 @@ func TestBaseImage(t *testing.T) {
 			err = prepareBaseImageLocal(ctx, tt.dataStoreID, tt.imageID, tt.baseID, tt.imagePath, baseOSVersion)
 
 			if err != nil {
-				t.Fatal(err)
+				t.Fatal("Fail in prepare base image from local file: ", err)
 			}
 			devCtx, err := ctx.GetDeviceFirst()
 			if err != nil {
-				t.Fatal(err)
+				t.Fatal("Fail in get first device: ", err)
 			}
 			devCtx.SetBaseOSConfig([]string{tt.baseID})
 			devUUID := devCtx.GetID()
 			err = ctx.ConfigSync(devUUID)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatal("Fail in sync config with controller: ", err)
 			}
 			t.Run("Started", func(t *testing.T) {
 				err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, 300)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatal("Fail in waiting for base image update init: ", err)
 				}
 			})
 			t.Run("Downloaded", func(t *testing.T) {
 				err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, 1500)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatal("Fail in waiting for base image download progress: ", err)
 				}
 			})
 			t.Run("Logs", func(t *testing.T) {
 				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatal("Fail in waiting for base image logs: ", err)
 				}
 			})
 			t.Run("Active", func(t *testing.T) {
 				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED"}, einfo.ZInfoDevSW, 1200)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatal("Fail in waiting for base image installed status: ", err)
 				}
 			})
 		})

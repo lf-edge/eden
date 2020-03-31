@@ -11,7 +11,7 @@ import (
 func TestAdamOnBoard(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if ctx == nil {
-		t.Fatal(err)
+		t.Fatal("Fail in controller prepare: ", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if devUUID == nil {
@@ -60,30 +60,30 @@ func TestAdamOnBoard(t *testing.T) {
 func TestControllerSetConfig(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in controller prepare: ", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in get first device: ", err)
 	}
 	err = ctx.ConfigSync(devUUID.GetID())
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in config sync with device: ", err)
 	}
 }
 
 func TestControllerGetConfig(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in controller prepare: ", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in get first device: ", err)
 	}
 	config, err := ctx.ConfigGet(devUUID.GetID())
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in set config: ", err)
 	}
 	t.Log(config)
 }
@@ -91,29 +91,29 @@ func TestControllerGetConfig(t *testing.T) {
 func TestControllerLogs(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in controller prepare: ", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in get first device: ", err)
 	}
 	err = ctx.LogChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String()}, 600)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in waiting for logs: ", err)
 	}
 }
 
 func TestControllerInfo(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in controller prepare: ", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in get first device: ", err)
 	}
 	err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String()}, einfo.ZInfoDevSW, 300)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Fail in waiting for info: ", err)
 	}
 }
