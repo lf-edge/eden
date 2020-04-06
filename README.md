@@ -8,7 +8,7 @@ Eden consists of a test harness and a series of integration tests implemented in
 
 Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies)
 
-Also, you need to install ``uuidgen```
+Also, you need to install ```uuidgen```
 
 ## Running
 
@@ -24,5 +24,12 @@ To stop harness use: ```make stop```
 
 You can see help by running ```make help```
 
-## Object model
-[Object model \#1](api/OM1.md)
+## Utilites
+   
+   Utilites compile ```make bin```:
+   * [ecerts](cmd/ecerts) -- SSL certificate generator;
+   * [einfo](cmd/einfo) -- scans Info file accordingly by regular expression of requests to json fields;
+   * [einfowatch](cmd/einfowatch) -- Info-files monitoring tool with regular expression quering to json fields;
+   * [elog](cmd/elog) -- scans Log file accordingly by regular expression of requests to json fields;
+   * [elogwatch](cmd/elogwatch) -- Log-files monitoring tool with regular expression quering to json fields; 
+   * [eserver](cmd/eserver) -- micro HTTP-server for providing of baseOS and Apps images.
