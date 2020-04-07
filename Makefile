@@ -26,6 +26,8 @@ include $(CONFIG)
 ZARCH ?= $(HOSTARCH)
 export ZARCH
 
+.DEFAULT_GOAL := help
+
 clean: stop
 	rm -rf $(DIST)/* || sudo rm -rf $(DIST)/*
 
@@ -241,7 +243,7 @@ help:
 	@echo "   test          run tests"
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         cleanup directories"
-	@echo "   bin		build utilities"
+	@echo "   bin           build utilities"
 	@echo
 	@echo "You need access to docker socket and installed qemu packages"
 	@echo "Use of ACCEL=true is recommended"
