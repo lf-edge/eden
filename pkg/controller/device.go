@@ -9,16 +9,16 @@ import (
 )
 
 //ConfigSync set config for devID
-func (cloud *CloudCtx) ConfigSync(devUUID *uuid.UUID) (err error) {
-	devConfig, err := cloud.GetConfigBytes(devUUID)
+func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
+	devConfig, err := cloud.GetConfigBytes(dev)
 	if err != nil {
 		return err
 	}
-	return cloud.ConfigSet(devUUID, devConfig)
+	return cloud.ConfigSet(dev.GetID(), devConfig)
 }
 
 //GetDeviceUUID return device object by devUUID
-func (cloud *CloudCtx) GetDeviceUUID(devUUID *uuid.UUID) (dID *device.Ctx, err error) {
+func (cloud *CloudCtx) GetDeviceUUID(devUUID uuid.UUID) (dev *device.Ctx, err error) {
 	for _, el := range cloud.devices {
 		if devUUID.String() == el.GetID().String() {
 			return el, nil
@@ -28,7 +28,7 @@ func (cloud *CloudCtx) GetDeviceUUID(devUUID *uuid.UUID) (dID *device.Ctx, err e
 }
 
 //GetDeviceFirst return first device object
-func (cloud *CloudCtx) GetDeviceFirst() (devUUID *device.Ctx, err error) {
+func (cloud *CloudCtx) GetDeviceFirst() (dev *device.Ctx, err error) {
 	if len(cloud.devices) == 0 {
 		return nil, errors.New("no device found")
 	}
@@ -36,59 +36,151 @@ func (cloud *CloudCtx) GetDeviceFirst() (devUUID *device.Ctx, err error) {
 }
 
 //AddDevice add device with specified devUUID
-func (cloud *CloudCtx) AddDevice(devUUID *uuid.UUID) error {
+func (cloud *CloudCtx) AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error) {
 	for _, el := range cloud.devices {
 		if el.GetID().String() == devUUID.String() {
-			return errors.New("already exists")
+			return nil, errors.New("already exists")
 		}
 	}
-	cloud.devices = append(cloud.devices, device.CreateWithBaseConfig(devUUID))
+	dev = device.CreateWithBaseConfig(devUUID)
+	cloud.devices = append(cloud.devices, dev)
+	return
+}
+
+//ApplyDevModel apply networks, adapters and physicalIOs from DevModel to device
+func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel *DevModel) error {
+	var err error
+	dev.SetAdaptersForSwitch(devModel.adapterForSwitches)
+	var adapters []string
+	for _, el := range devModel.adapters {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+		err = cloud.AddSystemAdapter(id.String(), el)
+		if err != nil {
+			return err
+		}
+		adapters = append(adapters, id.String())
+	}
+	dev.SetSystemAdaptersConfig(adapters)
+	var networks []string
+	for _, el := range devModel.networks {
+		err = cloud.AddNetworkConfig(el)
+		if err != nil {
+			return err
+		}
+		networks = append(networks, el.Id)
+	}
+	dev.SetNetworkConfig(networks)
+	var physicalIOs []string
+	for _, el := range devModel.physicalIOs {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+		err = cloud.AddPhysicalIO(id.String(), el)
+		if err != nil {
+			return err
+		}
+		physicalIOs = append(physicalIOs, id.String())
+	}
+	dev.SetPhysicalIOConfig(physicalIOs)
+	dev.SetDevModel(string(devModel.devModelType))
 	return nil
 }
 
-func checkIfDatastoresContains(devUUID string, ds []*config.DatastoreConfig) bool {
+func checkIfDatastoresContains(dsID string, ds []*config.DatastoreConfig) bool {
 	for _, el := range ds {
-		if el.Id == devUUID {
+		if el.Id == dsID {
 			return true
 		}
 	}
 	return false
 }
 
-//GetConfigBytes generate json representation of device config
-func (cloud *CloudCtx) GetConfigBytes(devUUID *uuid.UUID) ([]byte, error) {
-	dev, err := cloud.GetDeviceUUID(devUUID)
+func (cloud *CloudCtx) checkDrive(drive *config.Drive, dataStores []*config.DatastoreConfig) (result []*config.DatastoreConfig, err error) {
+	if drive.Image == nil {
+		return nil, errors.New("empty Image in Drive")
+	}
+	dataStore, err := cloud.GetDataStore(drive.Image.DsId)
 	if err != nil {
 		return nil, err
 	}
-	var BaseOS []*config.BaseOSConfig
-	var DataStores []*config.DatastoreConfig
+	if !checkIfDatastoresContains(dataStore.Id, dataStores) {
+		return append(dataStores, dataStore), nil
+	}
+	return dataStores, nil
+}
+
+//GetConfigBytes generate json representation of device config
+func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
+	var baseOS []*config.BaseOSConfig
+	var dataStores []*config.DatastoreConfig
 	for _, baseOSConfigID := range dev.GetBaseOSConfigs() {
 		baseOSConfig, err := cloud.GetBaseOSConfig(baseOSConfigID)
 		if err != nil {
 			return nil, err
 		}
+		//check drives from baseOSConfigs
 		for _, drive := range baseOSConfig.Drives {
-			if drive.Image == nil {
-				return nil, errors.New("empty Image in Drive")
-			}
-			dataStore, err := cloud.GetDataStore(drive.Image.DsId)
+			dataStores, err = cloud.checkDrive(drive, dataStores)
 			if err != nil {
 				return nil, err
 			}
-			if !checkIfDatastoresContains(dataStore.Id, DataStores) {
-				DataStores = append(DataStores, dataStore)
-			}
 		}
-		BaseOS = append(BaseOS, baseOSConfig)
+		baseOS = append(baseOS, baseOSConfig)
 	}
-	var NetworkInstanceConfigs []*config.NetworkInstanceConfig
+	var networkInstanceConfigs []*config.NetworkInstanceConfig
 	for _, networkInstanceConfigID := range dev.GetNetworkInstances() {
 		networkInstanceConfig, err := cloud.GetNetworkInstanceConfig(networkInstanceConfigID)
 		if err != nil {
 			return nil, err
 		}
-		NetworkInstanceConfigs = append(NetworkInstanceConfigs, networkInstanceConfig)
+		networkInstanceConfigs = append(networkInstanceConfigs, networkInstanceConfig)
+	}
+	var physicalIOs []*config.PhysicalIO
+	for _, physicalIOID := range dev.GetPhysicalIOs() {
+		physicalIOConfig, err := cloud.GetPhysicalIO(physicalIOID)
+		if err != nil {
+			return nil, err
+		}
+		physicalIOs = append(physicalIOs, physicalIOConfig)
+	}
+	var networkConfigs []*config.NetworkConfig
+	for _, networkConfigID := range dev.GetNetworks() {
+		networkConfig, err := cloud.GetNetworkConfig(networkConfigID)
+		if err != nil {
+			return nil, err
+		}
+		networkConfigs = append(networkConfigs, networkConfig)
+	}
+	var systemAdapterConfigs []*config.SystemAdapter
+	for _, systemAdapterConfigID := range dev.GetSystemAdapters() {
+		systemAdapterConfig, err := cloud.GetSystemAdapter(systemAdapterConfigID)
+		if err != nil {
+			return nil, err
+		}
+		systemAdapterConfigs = append(systemAdapterConfigs, systemAdapterConfig)
+	}
+	var configItems []*config.ConfigItem
+	for _, sshKey := range dev.GetSSHKeys() {
+		configItems = append(configItems, &config.ConfigItem{
+			Key:   "debug.enable.ssh",
+			Value: sshKey,
+		})
+	}
+	if dev.GetVncAccess() {
+		configItems = append(configItems, &config.ConfigItem{
+			Key:   "app.allow.vnc",
+			Value: "true",
+		})
+	}
+	if dev.GetControllerLogLevel() != "" {
+		configItems = append(configItems, &config.ConfigItem{
+			Key:   "debug.default.remote.loglevel",
+			Value: dev.GetControllerLogLevel(),
+		})
 	}
 	devConfig := &config.EdgeDevConfig{
 		Id: &config.UUIDandVersion{
@@ -96,18 +188,18 @@ func (cloud *CloudCtx) GetConfigBytes(devUUID *uuid.UUID) ([]byte, error) {
 			Version: "4",
 		},
 		Apps:              nil,
-		Networks:          nil,
-		Datastores:        DataStores,
+		Networks:          networkConfigs,
+		Datastores:        dataStores,
 		LispInfo:          nil,
-		Base:              BaseOS,
+		Base:              baseOS,
 		Reboot:            nil,
 		Backup:            nil,
-		ConfigItems:       nil,
-		SystemAdapterList: nil,
-		DeviceIoList:      nil,
+		ConfigItems:       configItems,
+		SystemAdapterList: systemAdapterConfigs,
+		DeviceIoList:      physicalIOs,
 		Manufacturer:      "",
 		ProductName:       "",
-		NetworkInstances:  NetworkInstanceConfigs,
+		NetworkInstances:  networkInstanceConfigs,
 		Enterprise:        "",
 		Name:              "",
 	}

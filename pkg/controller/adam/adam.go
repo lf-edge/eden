@@ -26,12 +26,12 @@ func (adam *Ctx) GetDir() (dir string) {
 }
 
 //getLogsDir return logs directory for devUUID
-func (adam *Ctx) getLogsDir(devUUID *uuid.UUID) (dir string) {
+func (adam *Ctx) getLogsDir(devUUID uuid.UUID) (dir string) {
 	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "logs")
 }
 
 //getInfoDir return info directory for devUUID
-func (adam *Ctx) getInfoDir(devUUID *uuid.UUID) (dir string) {
+func (adam *Ctx) getInfoDir(devUUID uuid.UUID) (dir string) {
 	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "info")
 }
 
@@ -69,22 +69,32 @@ func (adam *Ctx) DeviceList() (out []string, err error) {
 	return adam.getList("/admin/device")
 }
 
-//ConfigSet get config for devID
-func (adam *Ctx) ConfigSet(devUUID *uuid.UUID, devConfig []byte) (err error) {
+//ConfigSet set config for devID
+func (adam *Ctx) ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error) {
 	return adam.putObj(path.Join("/admin/device", devUUID.String(), "config"), devConfig)
 }
 
 //ConfigGet get config for devID
-func (adam *Ctx) ConfigGet(devUUID *uuid.UUID) (out string, err error) {
+func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 	return adam.getObj(path.Join("/admin/device", devUUID.String(), "config"))
 }
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
-func (adam *Ctx) LogChecker(devUUID *uuid.UUID, q map[string]string, timeout time.Duration) (err error) {
+func (adam *Ctx) LogChecker(devUUID uuid.UUID, q map[string]string, timeout time.Duration) (err error) {
 	return elog.LogChecker(adam.getLogsDir(devUUID), q, timeout)
 }
 
+//LogLastCallback check logs by pattern from existence files with callback
+func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc) (err error) {
+	return elog.LogLast(adam.getInfoDir(devUUID), q, handler)
+}
+
 //InfoChecker check info by pattern from existence files with InfoLast and use InfoWatchWithTimeout with timeout for observe new files
-func (adam *Ctx) InfoChecker(devUUID *uuid.UUID, q map[string]string, infoType einfo.ZInfoType, timeout time.Duration) (err error) {
+func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, timeout time.Duration) (err error) {
 	return einfo.InfoChecker(adam.getInfoDir(devUUID), q, infoType, timeout)
+}
+
+//InfoLastCallback check info by pattern from existence files with callback
+func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc) (err error) {
+	return einfo.InfoLast(adam.getInfoDir(devUUID), q, einfo.ZInfoFind, handler, infoType)
 }

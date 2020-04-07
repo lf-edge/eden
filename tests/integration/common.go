@@ -1,11 +1,14 @@
 package integration
 
 import (
+	"errors"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,13 +19,54 @@ var (
 	adamPort string
 	adamDir  string
 	adamCA   string
+	sshKey   string
 )
+
+type netInst struct {
+	networkInstanceID   string
+	networkInstanceName string
+	networkInstanceType config.ZNetworkInstType
+	ipSpec              *config.Ipspec
+}
+
+var eServerDataStoreID = "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
+
+var eServerURL = "http://mydomain.adam:8888"
+
+var (
+	networkInstanceLocal = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e1",
+		"test-local", config.ZNetworkInstType_ZnetInstLocal, &config.Ipspec{
+			Subnet:  "10.1.0.0/24",
+			Gateway: "10.1.0.1",
+			Dns:     []string{"10.1.0.1"},
+			DhcpRange: &config.IpRange{
+				Start: "10.1.0.2",
+				End:   "10.1.0.254",
+			},
+		}}
+	networkInstanceSwitch = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e3",
+		"test-switch", config.ZNetworkInstType_ZnetInstSwitch, nil}
+	networkInstanceCloud = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e4",
+		"test-cloud", config.ZNetworkInstType_ZnetInstCloud, &config.Ipspec{
+			Dhcp:    config.DHCPType_DHCPNone,
+			Subnet:  "30.1.0.0/24",
+			Gateway: "30.1.0.1",
+			Dns:     []string{"30.1.0.1"},
+			DhcpRange: &config.IpRange{
+				Start: "30.1.0.2",
+				End:   "30.1.0.254",
+			},
+		}}
+)
+
+var checkLogs = false
 
 //envRead use environment variables for init controller
 //environment variable ADAM_IP - IP of adam
 //environment variable ADAM_PORT - PORT of adam
 //environment variable ADAM_DIST - directory of adam (absolute path)
-//environment variable ADAM_CA - CA of adam for https
+//environment variable ADAM_CA - CA file of adam for https
+//environment variable SSH_KEY - ssh public key for integrate into eve
 func envRead() error {
 	currentPath, err := os.Getwd()
 	adamIP = os.Getenv("ADAM_IP")
@@ -45,6 +89,8 @@ func envRead() error {
 	}
 
 	adamCA = os.Getenv("ADAM_CA")
+	sshKey = os.Getenv("SSH_KEY")
+	checkLogs = os.Getenv("LOGS") != ""
 	return nil
 }
 
@@ -71,15 +117,190 @@ func controllerPrepare() (ctx controller.Cloud, err error) {
 	if err != nil {
 		return ctrl, err
 	}
-	for _, dev := range devices {
-		devUUID, err := uuid.FromString(dev)
+	for _, devID := range devices {
+		devUUID, err := uuid.FromString(devID)
 		if err != nil {
 			return ctrl, err
 		}
-		err = ctrl.AddDevice(&devUUID)
+		dev, err := ctrl.AddDevice(devUUID)
 		if err != nil {
 			return ctrl, err
+		}
+		if sshKey != "" {
+			b, err := ioutil.ReadFile(sshKey)
+			switch {
+			case err != nil && os.IsNotExist(err):
+				return nil, fmt.Errorf("sshKey file %s does not exist", sshKey)
+			case err != nil:
+				return nil, fmt.Errorf("error reading sshKey file %s: %v", sshKey, err)
+			}
+			dev.SetSSHKeys([]string{string(b)})
+		}
+		dev.SetVncAccess(true)
+		dev.SetControllerLogLevel("info")
+		deviceModel, err := ctrl.GetDevModel(controller.DevModelTypeQemu)
+		if err != nil {
+			return ctrl, fmt.Errorf("fail in get deviceModel: %s", err)
+		}
+		err = ctrl.ApplyDevModel(dev, deviceModel)
+		if err != nil {
+			return ctrl, fmt.Errorf("fail in ApplyDevModel: %s", err)
 		}
 	}
 	return ctrl, nil
+}
+
+func prepareImageLocal(ctx controller.Cloud, dataStoreID string, imageID string, imageFormat config.Format, imageFileName string, isBaseOS bool) (*config.Image, error) {
+	dataStore, err := ctx.GetDataStore(dataStoreID)
+	if dataStore == nil {
+		dataStore = &config.DatastoreConfig{
+			Id:       dataStoreID,
+			DType:    config.DsType_DsHttp,
+			Fqdn:     eServerURL,
+			ApiKey:   "",
+			Password: "",
+			Dpath:    "",
+			Region:   "",
+		}
+	}
+
+	imageFullPath := path.Join(filepath.Dir(ctx.GetDir()), "images", "vm", imageFileName)
+	imageDSPath := fmt.Sprintf("vm/%s", imageFileName)
+
+	if imageFormat == config.Format_CONTAINER {
+		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), "images", "docker", imageFileName)
+		imageDSPath = fmt.Sprintf("docker/%s", imageFileName)
+	}
+
+	if isBaseOS {
+		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), "images", "baseos", imageFileName)
+		imageDSPath = fmt.Sprintf("baseos/%s", imageFileName)
+	}
+	fi, err := os.Stat(imageFullPath)
+	if err != nil {
+		return nil, err
+	}
+	size := fi.Size()
+
+	sha256sum := ""
+	if imageFormat != config.Format_CONTAINER {
+		sha256sum, err = utils.SHA256SUM(imageFullPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	img := &config.Image{
+		Uuidandversion: &config.UUIDandVersion{
+			Uuid:    imageID,
+			Version: "4",
+		},
+		Name:      imageDSPath,
+		Sha256:    sha256sum,
+		Iformat:   imageFormat,
+		DsId:      dataStoreID,
+		SizeBytes: size,
+		Siginfo: &config.SignatureInfo{
+			Intercertsurl: "",
+			Signercerturl: "",
+			Signature:     nil,
+		},
+	}
+	if ds, _ := ctx.GetDataStore(dataStoreID); ds == nil {
+		err = ctx.AddDataStore(dataStore)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = ctx.AddImage(img)
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
+}
+
+func prepareBaseImageLocal(ctx controller.Cloud, dataStoreID string, imageID string, baseID string, imageFileName string, imageFormat config.Format, baseOSVersion string) error {
+	img, err := prepareImageLocal(ctx, dataStoreID, imageID, imageFormat, imageFileName, true)
+	if err != nil {
+		return err
+	}
+	err = ctx.AddBaseOsConfig(&config.BaseOSConfig{
+		Uuidandversion: &config.UUIDandVersion{
+			Uuid:    baseID,
+			Version: "4",
+		},
+		Drives: []*config.Drive{{
+			Image:        img,
+			Readonly:     false,
+			Preserve:     false,
+			Drvtype:      config.DriveType_Unclassified,
+			Target:       config.Target_TgtUnknown,
+			Maxsizebytes: img.SizeBytes,
+		}},
+		Activate:      true,
+		BaseOSVersion: baseOSVersion,
+		BaseOSDetails: nil,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func cloudOConfig(subnet string) string {
+	return `{ "VpnRole": "onPremClient",
+  "VpnGatewayIpAddr": "192.168.254.51",
+  "VpnSubnetBlock": "20.1.0.0/24",
+  "ClientConfigList": [{"IpAddr": "%any", "PreSharedKey": "0sjVzONCF02ncsgiSlmIXeqhGN", "SubnetBlock": "` + subnet + `"}]
+}`
+}
+func prepareNetworkInstance(ctx controller.Cloud, networkInstanceInput *netInst, model *controller.DevModel) error {
+	uid := config.UUIDandVersion{
+		Uuid:    networkInstanceInput.networkInstanceID,
+		Version: "4",
+	}
+	networkInstance := config.NetworkInstanceConfig{
+		Uuidandversion: &uid,
+		Displayname:    networkInstanceInput.networkInstanceName,
+		InstType:       networkInstanceInput.networkInstanceType,
+		Activate:       true,
+		Port:           nil,
+		Cfg:            nil,
+		IpType:         config.AddressType_First,
+		Ip:             nil,
+	}
+	switch networkInstanceInput.networkInstanceType {
+	case config.ZNetworkInstType_ZnetInstSwitch:
+		networkInstance.Port = &config.Adapter{
+			Name: model.GetFirstAdapterForSwitches(),
+		}
+		networkInstance.Cfg = &config.NetworkInstanceOpaqueConfig{}
+	case config.ZNetworkInstType_ZnetInstLocal:
+		if networkInstanceInput.ipSpec == nil {
+			return errors.New("cannot use with nil ipSpec")
+		}
+		networkInstance.IpType = config.AddressType_IPV4
+		networkInstance.Port = &config.Adapter{
+			Name: "uplink",
+		}
+		networkInstance.Ip = networkInstanceInput.ipSpec
+		networkInstance.Cfg = &config.NetworkInstanceOpaqueConfig{}
+	case config.ZNetworkInstType_ZnetInstCloud:
+		if networkInstanceInput.ipSpec == nil {
+			return errors.New("cannot use with nil ipSpec")
+		}
+		networkInstance.IpType = config.AddressType_IPV4
+		networkInstance.Port = &config.Adapter{
+			Type: config.PhyIoType_PhyIoNoop,
+			Name: "uplink",
+		}
+		networkInstance.Ip = networkInstanceInput.ipSpec
+		networkInstance.Cfg = &config.NetworkInstanceOpaqueConfig{
+			Oconfig:    cloudOConfig(networkInstanceInput.ipSpec.Subnet),
+			LispConfig: nil,
+			Type:       config.ZNetworkOpaqueConfigType_ZNetOConfigVPN,
+		}
+	default:
+		return errors.New("not implemented type")
+	}
+	return ctx.AddNetworkInstanceConfig(&networkInstance)
 }
