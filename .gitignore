@@ -18,8 +18,4 @@
 
 dist
 Config.in
-cmd/econfig/main
-cmd/elog/elog
-cmd/elogwatch/elogwatch
-cmd/einfo/einfo
-cmd/einfowatch/einfowatch
+eden

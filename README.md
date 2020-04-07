@@ -25,11 +25,32 @@ To stop harness use: ```make stop```
 You can see help by running ```make help```
 
 ## Utilites
-   
-   Utilites compile ```make bin```:
-   * [ecerts](cmd/ecerts) -- SSL certificate generator;
-   * [einfo](cmd/einfo) -- scans Info file accordingly by regular expression of requests to json fields;
-   * [einfowatch](cmd/einfowatch) -- Info-files monitoring tool with regular expression quering to json fields;
-   * [elog](cmd/elog) -- scans Log file accordingly by regular expression of requests to json fields;
-   * [elogwatch](cmd/elogwatch) -- Log-files monitoring tool with regular expression quering to json fields; 
-   * [eserver](cmd/eserver) -- micro HTTP-server for providing of baseOS and Apps images.
+
+Eden is controlled by a single command named (in a secret code) `eden`. It has multple sub-commands and options.
+Run `eden help` to see sub-commands.
+
+To build `eden`:
+
+```
+make build
+```
+
+You can build it for different computer architectures and operating systems by passing `OS` and `ARCH` options.
+The default, however, is for the architecture and OS on which you are building it.
+
+```
+make build OS=linux
+make build ARCH=arm64
+```
+
+The generated command is place in `./dist/bin/eden-<arch>-<os>`, for example `eden-darwin-amd64` or `eden-linux-arm64`.
+To ease your life, a symlink is placed in the local directory named `eden` for your current architecture and OS.
+
+The current sub-commands are:
+
+   * `certs` -- SSL certificate generator;
+   * `info` -- scans Info file accordingly by regular expression of requests to json fields;
+   * `infowatch` -- Info-files monitoring tool with regular expression quering to json fields;
+   * `log` -- scans Log file accordingly by regular expression of requests to json fields;
+   * `logwatch` -- Log-files monitoring tool with regular expression quering to json fields;
+   * `server` -- micro HTTP-server for providing of baseOS and Apps images.
