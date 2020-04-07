@@ -8,6 +8,8 @@ HOSTARCH:=$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
 ZARCH ?= $(HOSTARCH)
 export ZARCH
 
+.DEFAULT_GOAL := help
+
 clean: stop
 	rm -rf $(DIST)/* || sudo rm -rf $(DIST)/*
 
@@ -65,26 +67,26 @@ run: eserver_run adam_run eve_run
 $(CONFIG): save
 
 save: $(DIST)
-	echo "# Configuration settings" > $(CONFIG)
-	echo ADAM_DIST=$(ADAM_DIST) >> $(CONFIG)
-	echo ZARCH=$(ZARCH) >> $(CONFIG)
-	echo BIOS_IMG=$(BIOS_IMG) >> $(CONFIG)
-	echo LIVE_IMG=$(LIVE_IMG) >> $(CONFIG)
-	echo EVE_URL=$(EVE_URL) >> $(CONFIG)
-	echo EVE_REF=$(EVE_REF) >> $(CONFIG)
-	echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
-	echo ADAM_REF=$(ADAM_REF) >> $(CONFIG)
-	echo ACCEL=$(ACCEL) >> $(CONFIG)
-	echo SSH_PORT=$(SSH_PORT) >> $(CONFIG)
-	echo CERTS_DIST=$(CERTS_DIST) >> $(CONFIG)
-	echo DOMAIN=$(DOMAIN) >> $(CONFIG)
-	echo IP=$(IP) >> $(CONFIG)
-	echo UUID=$(UUID) >> $(CONFIG)
-	echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
-	echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
-	echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
-	echo ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem >> $(CONFIG)
-	echo EVE_CERT=$(ADAM_DIST)/run/config/onboard.cert.pem >> $(CONFIG)
+	@echo "# Configuration settings" > $(CONFIG)
+	@echo ADAM_DIST=$(ADAM_DIST) >> $(CONFIG)
+	@echo ZARCH=$(ZARCH) >> $(CONFIG)
+	@echo BIOS_IMG=$(BIOS_IMG) >> $(CONFIG)
+	@echo LIVE_IMG=$(LIVE_IMG) >> $(CONFIG)
+	@echo EVE_URL=$(EVE_URL) >> $(CONFIG)
+	@echo EVE_REF=$(EVE_REF) >> $(CONFIG)
+	@echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
+	@echo ADAM_REF=$(ADAM_REF) >> $(CONFIG)
+	@echo ACCEL=$(ACCEL) >> $(CONFIG)
+	@echo SSH_PORT=$(SSH_PORT) >> $(CONFIG)
+	@echo CERTS_DIST=$(CERTS_DIST) >> $(CONFIG)
+	@echo DOMAIN=$(DOMAIN) >> $(CONFIG)
+	@echo IP=$(IP) >> $(CONFIG)
+	@echo UUID=$(UUID) >> $(CONFIG)
+	@echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
+	@echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
+	@echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
+	@echo ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem >> $(CONFIG)
+	@echo EVE_CERT=$(ADAM_DIST)/run/config/onboard.cert.pem >> $(CONFIG)
 
 eve_run: save eve_stop eve_live
 	@echo EVE run
@@ -140,7 +142,7 @@ $(CERTS_DIST):
 	test -d $@ || mkdir -p $@
 
 certs_and_config: $(CERTS_DIST) ecerts
-ifeq ($(shell ls $(ADAM_DIST)/run/adam/server.pem),)
+ifeq ($(shell ls $(ADAM_DIST)/run/adam/server.pem 2>/dev/null),)
 	test -d $(ADAM_DIST)/run/adam || mkdir -p $(ADAM_DIST)/run/adam
 	test -d $(ADAM_DIST)/run/config || mkdir -p $(ADAM_DIST)/run/config
 	chmod a+x $(BIN)/ecerts
@@ -175,7 +177,7 @@ test: test_base_image test_network_instance
 $(BIN):
 	mkdir -p $(BIN)
 
-bin: elog elogwatch econfig eserver einfowatch einfo einfolast eloglast ecerts
+bin: elog elogwatch eserver einfowatch einfo ecerts
 
 elog: $(BIN)
 	cd cmd/elog/; go build; mv elog $(BIN)
@@ -210,7 +212,7 @@ ifeq ($(shell uname -s), Darwin)
 endif
 
 $(IMAGE_DIST)/baseos.qcow2: save $(IMAGE_DIST) certs_and_config
-ifeq ($(shell ls $(IMAGE_DIST)/baseos.qcow2),)
+ifeq ($(shell ls $(IMAGE_DIST)/baseos.qcow2 2>/dev/null),)
 	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST)
 	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.img $(IMAGE_DIST)/baseos.qcow2
 	cd $(IMAGE_DIST); $(SHA256_CMD) baseos.qcow2>baseos.sha256
@@ -247,7 +249,7 @@ help:
 	@echo "   test          run tests"
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         cleanup directories"
-	@echo "   bin		build utilities"
+	@echo "   bin           build utilities"
 	@echo
 	@echo "You need access to docker socket and installed qemu packages"
 	@echo "Use of ACCEL=true is recommended"
