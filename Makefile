@@ -1,9 +1,27 @@
+# HOSTARCH is the host architecture
+# ARCH is the target architecture
+# we need to keep track of them separately
+HOSTARCH ?= $(shell uname -m)
+HOSTOS ?= $(shell uname -s | tr A-Z a-z)
+
+# canonicalized names for host architecture
+override HOSTARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(HOSTARCH)))
+
+# unless otherwise set, I am building for my own architecture, i.e. not cross-compiling
+# and for my OS
+ARCH ?= $(HOSTARCH)
+OS ?= $(HOSTOS)
+
+# canonicalized names for target architecture
+override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
+
 DIST=$(CURDIR)/dist
-BIN=$(DIST)/bin
+BINDIR := $(DIST)/bin
+BIN := eden
+LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 CONFIG=$(DIST)/Config.in
 include $(CONFIG)
 
-HOSTARCH:=$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
 
 ZARCH ?= $(HOSTARCH)
 export ZARCH
@@ -12,7 +30,9 @@ clean: stop
 	rm -rf $(DIST)/* || sudo rm -rf $(DIST)/*
 
 $(DIST):
-	test -d $@ || mkdir -p $@
+	mkdir -p $@
+$(BINDIR):
+	mkdir -p $@
 
 EVE_DIST=$(DIST)/eve
 
@@ -49,7 +69,7 @@ endif
 IMAGE_DIST ?= $(DIST)/images
 
 $(IMAGE_DIST):
-	test -d $@ || mkdir -p $@
+	mkdir -p $@
 
 # any non-empty value will trigger eve rebuild
 REBUILD ?=
@@ -65,26 +85,26 @@ run: eserver_run adam_run eve_run
 $(CONFIG): save
 
 save: $(DIST)
-	echo "# Configuration settings" > $(CONFIG)
-	echo ADAM_DIST=$(ADAM_DIST) >> $(CONFIG)
-	echo ZARCH=$(ZARCH) >> $(CONFIG)
-	echo BIOS_IMG=$(BIOS_IMG) >> $(CONFIG)
-	echo LIVE_IMG=$(LIVE_IMG) >> $(CONFIG)
-	echo EVE_URL=$(EVE_URL) >> $(CONFIG)
-	echo EVE_REF=$(EVE_REF) >> $(CONFIG)
-	echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
-	echo ADAM_REF=$(ADAM_REF) >> $(CONFIG)
-	echo ACCEL=$(ACCEL) >> $(CONFIG)
-	echo SSH_PORT=$(SSH_PORT) >> $(CONFIG)
-	echo CERTS_DIST=$(CERTS_DIST) >> $(CONFIG)
-	echo DOMAIN=$(DOMAIN) >> $(CONFIG)
-	echo IP=$(IP) >> $(CONFIG)
-	echo UUID=$(UUID) >> $(CONFIG)
-	echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
-	echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
-	echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
-	echo ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem >> $(CONFIG)
-	echo EVE_CERT=$(ADAM_DIST)/run/config/onboard.cert.pem >> $(CONFIG)
+	@echo "# Configuration settings" > $(CONFIG)
+	@echo ADAM_DIST=$(ADAM_DIST) >> $(CONFIG)
+	@echo ZARCH=$(ZARCH) >> $(CONFIG)
+	@echo BIOS_IMG=$(BIOS_IMG) >> $(CONFIG)
+	@echo LIVE_IMG=$(LIVE_IMG) >> $(CONFIG)
+	@echo EVE_URL=$(EVE_URL) >> $(CONFIG)
+	@echo EVE_REF=$(EVE_REF) >> $(CONFIG)
+	@echo ADAM_URL=$(ADAM_URL) >> $(CONFIG)
+	@echo ADAM_REF=$(ADAM_REF) >> $(CONFIG)
+	@echo ACCEL=$(ACCEL) >> $(CONFIG)
+	@echo SSH_PORT=$(SSH_PORT) >> $(CONFIG)
+	@echo CERTS_DIST=$(CERTS_DIST) >> $(CONFIG)
+	@echo DOMAIN=$(DOMAIN) >> $(CONFIG)
+	@echo IP=$(IP) >> $(CONFIG)
+	@echo UUID=$(UUID) >> $(CONFIG)
+	@echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
+	@echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
+	@echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
+	@echo ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem >> $(CONFIG)
+	@echo EVE_CERT=$(ADAM_DIST)/run/config/onboard.cert.pem >> $(CONFIG)
 
 eve_run: save eve_stop eve_live
 	@echo EVE run
@@ -139,12 +159,11 @@ adam_run: save adam_docker_stop $(ADAM_DIST) certs_and_config
 $(CERTS_DIST):
 	test -d $@ || mkdir -p $@
 
-certs_and_config: $(CERTS_DIST) ecerts
-ifeq ($(shell ls $(ADAM_DIST)/run/adam/server.pem),)
+certs_and_config: $(CERTS_DIST) bin
+ifeq ("$(wildcard $(ADAM_DIST)/run/adam/server.pem)","")
 	test -d $(ADAM_DIST)/run/adam || mkdir -p $(ADAM_DIST)/run/adam
 	test -d $(ADAM_DIST)/run/config || mkdir -p $(ADAM_DIST)/run/config
-	chmod a+x $(BIN)/ecerts
-	$(BIN)/ecerts -o $(CERTS_DIST) -i $(IP) -d $(DOMAIN) -u $(UUID)
+	$(LOCALBIN) certs -o $(CERTS_DIST) -i $(IP) -d $(DOMAIN) -u $(UUID)
 	cp $(CERTS_DIST)/root-certificate.pem $(ADAM_DIST)/run/config/
 	cp $(CERTS_DIST)/onboard.cert.pem $(ADAM_DIST)/run/config/
 	cp $(CERTS_DIST)/onboard.key.pem $(ADAM_DIST)/run/config/
@@ -172,37 +191,12 @@ test_network_instance: test_controller
 
 test: test_base_image test_network_instance
 
+bin: $(LOCALBIN)
+build: $(LOCALBIN) $(BIN)
+$(LOCALBIN): $(BINDIR)
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
 $(BIN):
-	mkdir -p $(BIN)
-
-bin: elog elogwatch econfig eserver einfowatch einfo einfolast eloglast ecerts
-
-elog: $(BIN)
-	cd cmd/elog/; go build; mv elog $(BIN)
-
-elogwatch: $(BIN)
-	cd cmd/elogwatch/; go build; mv elogwatch $(BIN)
-
-econfig: $(BIN)
-	cd cmd/econfig/; go build; mv econfig $(BIN)
-
-eserver: $(BIN)
-	cd cmd/eserver/; go build; mv eserver $(BIN)
-
-einfowatch: $(BIN)
-	cd cmd/einfowatch/; go build; mv einfowatch $(BIN)
-
-einfo: $(BIN)
-	cd cmd/einfo/; go build; mv einfo $(BIN)
-
-einfolast: $(BIN)
-	cd cmd/einfolast/; go build; mv einfolast $(BIN)
-
-eloglast: $(BIN)
-	cd cmd/eloglast/; go build; mv eloglast $(BIN)
-
-ecerts: $(BIN)
-	cd cmd/ecerts/; go build; mv ecerts $(BIN)
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -s $(LOCALBIN) $@; fi
 
 SHA256_CMD = sha256sum
 ifeq ($(shell uname -s), Darwin)
@@ -210,7 +204,7 @@ ifeq ($(shell uname -s), Darwin)
 endif
 
 $(IMAGE_DIST)/baseos.qcow2: save $(IMAGE_DIST) certs_and_config
-ifeq ($(shell ls $(IMAGE_DIST)/baseos.qcow2),)
+ifeq ("$(wildcard $(IMAGE_DIST)/baseos.qcow2)","")
 	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST)
 	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.img $(IMAGE_DIST)/baseos.qcow2
 	cd $(IMAGE_DIST); $(SHA256_CMD) baseos.qcow2>baseos.sha256
@@ -227,10 +221,10 @@ save_ref_dist_base:
 
 ESERVER_PORT=8888
 
-eserver_run: eserver $(IMAGE_DIST)/baseos.qcow2 eserver_stop
-	@echo eserver run
-	nohup $(BIN)/eserver -p $(ESERVER_PORT) -d $(IMAGE_DIST) 2>&1 >/dev/null & echo "$$!" >$(DIST)/eserver.pid
-	@echo eserver run on port $(ESERVER_PORT)
+eserver_run: build $(IMAGE_DIST)/baseos.qcow2 eserver_stop
+	@echo eden server run
+	nohup $(LOCALBIN) server -p $(ESERVER_PORT) -d $(IMAGE_DIST) 2>&1 >/dev/null & echo "$$!" >$(DIST)/eserver.pid
+	@echo eden server run on port $(ESERVER_PORT)
 
 eserver_stop:
 	test -f $(DIST)/eserver.pid && kill $(shell cat $(DIST)/eserver.pid) && rm $(DIST)/eserver.pid || echo ""
