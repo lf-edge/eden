@@ -31,7 +31,7 @@ export ZARCH
 
 clean: stop
 	test -f $(BIN) && rm $(BIN) || echo ""
-	rm -rf $(DIST)/* || sudo rm -rf $(DIST)/*
+	rm -rf $(DIST) || sudo rm -rf $(DIST)
 
 $(DIST):
 	mkdir -p $@
@@ -71,6 +71,16 @@ $(IMAGE_DIST):
 BASE_OS_DIST = $(IMAGE_DIST)/baseos
 
 $(BASE_OS_DIST):
+	mkdir -p $@
+
+IMAGE_VM_DIST = $(IMAGE_DIST)/vm
+
+$(IMAGE_VM_DIST):
+	mkdir -p $@
+
+IMAGE_DOCKER_DIST = $(IMAGE_DIST)/docker
+
+$(IMAGE_DOCKER_DIST):
 	mkdir -p $@
 
 # any non-empty value will trigger eve rebuild
@@ -234,13 +244,42 @@ $(BASEOSFILE):
 	rm -rf $(IMAGE_DIST)/version.yml.in
 	rm -rf $(IMAGE_DIST)/version.yml
 
+image-efi-%: baseos bin $(IMAGE_VM_DIST) $(IMAGE_VM_DIST)/%-efi.qcow2
+	echo image-efi-$*
+
+.PRECIOUS: $(IMAGE_VM_DIST)/%-efi.qcow2
+$(IMAGE_VM_DIST)/%-efi.qcow2:
+	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && PATH=$(EVE_BASE_DIST)/build-tools/bin:$(PATH) linuxkit build -format qcow2-efi -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && $(SHA256_CMD) $*-efi.qcow2>$*-efi.sha256
+
+image-bios-%: baseos bin $(IMAGE_VM_DIST) $(IMAGE_VM_DIST)/%.qcow2
+	echo image-bios-$*
+
+.PRECIOUS: $(IMAGE_VM_DIST)/%.qcow2
+$(IMAGE_VM_DIST)/%.qcow2:
+	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && PATH=$(EVE_BASE_DIST)/build-tools/bin:$(PATH) linuxkit build -format qcow2-bios -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && rm -rf $(IMAGE_DIST)/vm/linuxkit && $(SHA256_CMD) $*.qcow2>$*.sha256
+	@rm $(CURDIR)/images/vm/$*/$*.yml
+
+image-docker-%: baseos bin $(IMAGE_DOCKER_DIST) $(IMAGE_DOCKER_DIST)/%.tar
+	echo image-docker-$*
+
+.PRECIOUS: $(IMAGE_DOCKER_DIST)/%.tar
+$(IMAGE_DOCKER_DIST)/%.tar:
+	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/docker/$*/$*.yml
+	docker build $(CURDIR)/images/docker/$* -f $(CURDIR)/images/docker/$*/$*.yml -t local-$*
+	$(LOCALBIN) ociimage -i local-$* -o $(IMAGE_DOCKER_DIST)/$*.tar -l
+	@rm $(CURDIR)/images/docker/$*/$*.yml
+
 save_ref_dist_base:
 	$(eval EVE_BASE_VERSION := $(shell cat $(IMAGE_DIST)/version.yml))
 	$(MAKE) save EVE_REF=$(EVE_REF_OLD) EVE_DIST=$(EVE_DIST_OLD) EVE_BASE_VERSION=$(EVE_BASE_VERSION)
 
 ESERVER_PORT=8888
 
-eserver_run: build baseos eserver_stop
+eserver_run: build baseos eserver_stop image-bios-alpine image-docker-alpine
 	@echo eden server run
 	nohup $(LOCALBIN) server -p $(ESERVER_PORT) -d $(IMAGE_DIST) 2>&1 >/dev/null & echo "$$!" >$(DIST)/eserver.pid
 	@echo eden server run on port $(ESERVER_PORT)
