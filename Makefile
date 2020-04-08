@@ -259,14 +259,42 @@ help:
 	@echo "This Makefile automates commons tasks of building and running"
 	@echo "  * EVE"
 	@echo "  * ADAM"
+	@echo "You can set Git repository by EVE_URL/ADAM_URL and tag/branch by EVE_REF/ADAM_REF/EVE_BASE_REF variables."
 	@echo
 	@echo "Commonly used maintenance and development targets:"
 	@echo "   run           run ADAM and EVE"
 	@echo "   test          run tests"
 	@echo "   stop          stop ADAM and EVE"
-	@echo "   clean         cleanup directories"
-	@echo "   bin           build utilities"
+	@echo "   clean         full cleanup of test harness"
+	@echo "   eve_clean     cleanup of EVE instance related things"
+	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo
-	@echo "You need access to docker socket and installed qemu packages"
-	@echo "Use of ACCEL=true is recommended"
+	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
+	@echo "Also, you need to install 'uuidgen' utility."
+	@echo "You need access to docker socket and installed qemu packages."
+	@echo "Use of ACCEL=true is recommended to speed up qemu to run the EVE instance."
+	@echo "The SSH port for accessing the EVE instance can be set by the SSH_PORT variable."
 	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"
+	@echo
+	@echo "Current configuration settings:"
+	@echo ADAM_DIST=$(ADAM_DIST)
+	@echo ZARCH=$(ZARCH)
+	@echo BIOS_IMG=$(BIOS_IMG)
+	@echo LIVE_IMG=$(LIVE_IMG)
+	@echo EVE_URL=$(EVE_URL)
+	@echo EVE_REF=$(EVE_REF)
+	@echo ADAM_URL=$(ADAM_URL)
+	@echo ADAM_REF=$(ADAM_REF)
+	@echo ACCEL=$(ACCEL)
+	@echo SSH_PORT=$(SSH_PORT)
+	@echo CERTS_DIST=$(CERTS_DIST)
+	@echo DOMAIN=$(DOMAIN)
+	@echo IP=$(IP)
+	@echo UUID=$(UUID)
+	@echo ADAM_PORT=$(ADAM_PORT)
+	@echo EVE_BASE_REF=$(EVE_BASE_REF)
+	@echo EVE_BASE_VERSION=$(EVE_BASE_VERSION)
+	@echo ADAM_CA=$(ADAM_CA)
+	@echo EVE_CERT=$(EVE_CERT)
+	@echo LOGS=$(LOGS)
+

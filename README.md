@@ -8,21 +8,21 @@ Eden consists of a test harness and a series of integration tests implemented in
 
 Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies)
 
-Also, you need to install ```uuidgen```
+Also, you need to install `uuidgen`.
 
 ## Running
 
-Recommended to run from superuser
+Recommended to run from superuser.
 
-To run harness use: ```make run```
+To run harness use: `make run`.
 
-To run tests use: ```make test```
+To run tests use: `make test`.
 
-To stop harness use: ```make stop```
+To stop harness use: `make stop`.
 
 ## Help
 
-You can see help by running ```make help```
+You can get more information about `make` actions by running `make help`.
 
 ## Utilites
 
