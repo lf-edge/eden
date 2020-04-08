@@ -5,14 +5,16 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 )
 
 //RunCommandBackground command run in goroutine
-func RunCommandBackground(name string, logOutput bool, args ...string) (pid int, err error) {
+func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid int, err error) {
 	cmd := exec.Command(name, args...)
-	if logOutput {
+	if logOutput != nil {
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
 			return 0, err
@@ -25,7 +27,10 @@ func RunCommandBackground(name string, logOutput bool, args ...string) (pid int,
 			merged := io.MultiReader(stderr, stdout)
 			in := bufio.NewScanner(merged)
 			for in.Scan() {
-				log.Printf(in.Text())
+				_, err = logOutput.Write(in.Bytes())
+				if err != nil {
+					return
+				}
 			}
 			if err := in.Err(); err != nil {
 				log.Printf("error: %s", err)
@@ -42,6 +47,23 @@ func RunCommandBackground(name string, logOutput bool, args ...string) (pid int,
 		log.Printf("Command finished with error: %v", err)
 	}()
 	return pid, nil
+}
+
+//RunCommandForeground command run in foreground
+func RunCommandForeground(name string, args ...string) (err error) {
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Pdeathsig: syscall.SIGTERM,
+	}
+	err = cmd.Run()
+	if err != nil {
+		return
+	}
+	defer cmd.Process.Kill()
+	return cmd.Wait()
 }
 
 //RunCommandAndWait run process in foreground
