@@ -53,4 +53,5 @@ The current sub-commands are:
    * `infowatch` -- Info-files monitoring tool with regular expression quering to json fields;
    * `log` -- scans Log file accordingly by regular expression of requests to json fields;
    * `logwatch` -- Log-files monitoring tool with regular expression quering to json fields;
-   * `server` -- micro HTTP-server for providing of baseOS and Apps images.
+   * `server` -- micro HTTP-server for providing of baseOS and Apps images;
+   * `ociimage` -- save oci image from local or remote registry to tar file for consumption by EVE.

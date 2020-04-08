@@ -22,6 +22,8 @@ func init() {
 	logwatchInit()
 	rootCmd.AddCommand(infowatchCmd)
 	infowatchInit()
+	rootCmd.AddCommand(ociImageCmd)
+	ociImageInit()
 }
 
 // Execute primary function for cobra
