@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/url"
@@ -10,6 +11,69 @@ import (
 
 func dockerSubnetPattern() (cmd string, args []string) {
 	return "docker", strings.Split("network inspect bridge", " ")
+}
+
+//IFInfo stores information about net address and subnet
+type IFInfo struct {
+	Subnet       *net.IPNet
+	FirstAddress net.IP
+}
+
+func getSubnetByInd(ind int) (*net.IPNet, error) {
+	if ind < 0 || ind > 255 {
+		return nil, fmt.Errorf("error in index %d", ind)
+	}
+	_, curNet, err := net.ParseCIDR(fmt.Sprintf("192.168.%d.1/24", ind))
+	return curNet, err
+}
+
+func getIPByInd(ind int) (net.IP, error) {
+	if ind < 0 || ind > 255 {
+		return nil, fmt.Errorf("error in index %d", ind)
+	}
+	IP := net.ParseIP(fmt.Sprintf("192.168.%d.10", ind))
+	if IP == nil {
+		return nil, fmt.Errorf("error in ParseIP for index %d", ind)
+	}
+	return IP, nil
+}
+
+//GetSubnetsNotUsed prepare map with subnets and ip not used by any interface of host
+func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
+	var result []IFInfo
+	curSubnetInd := 0
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+	for ; len(result) < count; curSubnetInd++ {
+		curNet, err := getSubnetByInd(curSubnetInd)
+		if err != nil {
+			return nil, fmt.Errorf("error in GetSubnetsNotUsed: %s", err)
+		}
+		contains := false
+		for _, a := range addrs {
+			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ipnet.IP.To4() != nil {
+					if curNet.Contains(ipnet.IP) {
+						contains = true
+						break
+					}
+				}
+			}
+		}
+		if !contains {
+			ip, err := getIPByInd(curSubnetInd)
+			if err != nil {
+				return nil, fmt.Errorf("error in getIPByInd: %s", err)
+			}
+			result = append(result, IFInfo{
+				Subnet:       curNet,
+				FirstAddress: ip,
+			})
+		}
+	}
+	return result, nil
 }
 
 //GetIPForDockerAccess is service function to obtain IP for adam access

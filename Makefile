@@ -48,6 +48,7 @@ EVE_REF ?= "master"
 ADAM_URL ?= "https://github.com/lf-edge/adam.git"
 ADAM_REF ?= "master"
 
+EVE_SERIAL ?= "31415926"
 EVE_REF_OLD=$(EVE_REF)
 EVE_DIST_OLD=$(EVE_REF)
 
@@ -86,9 +87,6 @@ $(IMAGE_DOCKER_DIST):
 # any non-empty value will trigger eve rebuild
 REBUILD ?=
 
-# any non-empty value will trigger fix eve ip
-FIX_IP ?=
-
 # any non-empty value will enable logs checking
 LOGS ?=
 
@@ -121,15 +119,21 @@ save: $(DIST)
 	@echo IP=$(IP) >> $(CONFIG)
 	@echo UUID=$(UUID) >> $(CONFIG)
 	@echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
+	@echo EVE_SERIAL=$(EVE_SERIAL) >> $(CONFIG)
 	@echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
 	@echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
 	@echo ADAM_CA=$(ADAM_CA) >> $(CONFIG)
 	@echo EVE_CERT=$(EVE_CERT) >> $(CONFIG)
 	@echo LOGS=$(LOGS) >> $(CONFIG)
 
-eve_run: save eve_stop eve_live
+QEMU_DTB_PART_amd64=
+QEMU_DTB_PART_arm64=--dtb-part=$(EVE_DIST)/dtb
+QEMU_DTB_PART=$(QEMU_CONF_OPTS_$(ZARCH))
+
+eve_run: save bin eve_stop eve_live
 	@echo EVE run
-	nohup make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ SSH_PORT=$(SSH_PORT) ACCEL=$(ACCEL) run >$(DIST)/eve.log 2>&1 & echo "$$!" >$(DIST)/eve.pid
+	$(LOCALBIN) qemuconf --output=$(DIST)/qemu.conf --image-part=$(LIVE_IMG) --firmware=$(BIOS_IMG) --config-part=$(ADAM_DIST)/run/config --hostfwd="2222=22,5912=5901,5911=5900,8027=8027,8028=8028" --dtb-part=$(QEMU_DTB_PART)
+	nohup $(LOCALBIN) qemurun --config=$(DIST)/qemu.conf --serial=$(EVE_SERIAL) >$(DIST)/eve.log 2>&1 & echo "$$!" >$(DIST)/eve.pid
 	@echo You can see logs of EVE:
 	@echo $(DIST)/eve.log
 	@echo You can ssh into EVE:
@@ -142,17 +146,23 @@ eve_rootfs: $(EVE_DIST)
 	make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ rootfs
 
 eve_live: $(EVE_DIST)
-ifneq ($(FIX_IP),)
-	chmod a+x $(CURDIR)/scripts/fixIPs.sh
-	$(CURDIR)/scripts/fixIPs.sh $(EVE_DIST)/Makefile
-endif
 ifneq ($(REBUILD),)
 	make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) $(BIOS_IMG)
+ifneq ($(DEVICETREE_DTB),)
+	make -C $(EVE_DIST) $(DEVICETREE_DTB)
+endif
 else
 ifneq ($(IMGS_MISSING),)
-		make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) $(BIOS_IMG)
+ifneq ($(DEVICETREE_DTB),)
+	make -C $(EVE_DIST) $(DEVICETREE_DTB)
+endif
 else
-		true
+	true
 endif
 endif
 
@@ -206,7 +216,7 @@ eve_clean: eve_stop adam_docker_stop
 	rm -rf $(ADAM_DIST)/run/adam/device/*|| sudo rm -rf $(ADAM_DIST)/run/adam/device/*
 
 test_controller:
-	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/controller_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
+	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub EVE_SERIAL=$(EVE_SERIAL) go test ./tests/integration/controller_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
 
 test_base_image: test_controller
 	LOGS=$(LOGS) HV=$(HV) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
@@ -307,7 +317,7 @@ help:
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         full cleanup of test harness"
 	@echo "   eve-clean     cleanup of EVE instance related things"
-	@echo "   show-config   displays current configuration settings" 
+	@echo "   show-config   displays current configuration settings"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
@@ -315,4 +325,3 @@ help:
 	@echo "You need access to docker socket and installed qemu packages."
 	@echo "If you have troubles running EVE, try setting ACCEL=''"
 	@echo "The SSH port for accessing the EVE instance can be set by the SSH_PORT variable."
-	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"

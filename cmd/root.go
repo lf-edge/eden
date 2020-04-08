@@ -24,6 +24,10 @@ func init() {
 	infowatchInit()
 	rootCmd.AddCommand(ociImageCmd)
 	ociImageInit()
+	rootCmd.AddCommand(qemuConfCmd)
+	qemuConfInit()
+	rootCmd.AddCommand(qemuRunCmd)
+	qemuRunInit()
 }
 
 // Execute primary function for cobra
