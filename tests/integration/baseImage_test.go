@@ -25,6 +25,10 @@ func TestBaseImage(t *testing.T) {
 	if len(eveBaseRef) == 0 {
 		zArch = "amd64"
 	}
+	HV := os.Getenv("HV")
+	if HV == "xen" {
+		HV = ""
+	}
 	var baseImageTests = []struct {
 		dataStoreID       string
 		imageID           string
@@ -33,6 +37,7 @@ func TestBaseImage(t *testing.T) {
 		imageFormat       config.Format
 		eveBaseRef        string
 		zArch             string
+		HV                string
 	}{
 		{eServerDataStoreID,
 
@@ -44,10 +49,14 @@ func TestBaseImage(t *testing.T) {
 			config.Format_QCOW2,
 			eveBaseRef,
 			zArch,
+			HV,
 		},
 	}
 	for _, tt := range baseImageTests {
 		baseOSVersion := fmt.Sprintf("%s-%s", tt.eveBaseRef, tt.zArch)
+		if tt.HV != "" {
+			baseOSVersion = fmt.Sprintf("%s-%s-%s", tt.eveBaseRef, tt.zArch, tt.HV)
+		}
 		t.Run(baseOSVersion, func(t *testing.T) {
 
 			err = prepareBaseImageLocal(ctx, tt.dataStoreID, tt.imageID, tt.baseID, tt.imageRelativePath, tt.imageFormat, baseOSVersion)
