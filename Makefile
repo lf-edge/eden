@@ -40,6 +40,7 @@ $(BINDIR):
 
 EVE_DIST=$(DIST)/eve
 
+HV ?= "kvm"
 BIOS_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/OVMF.fd
 LIVE_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/live.img
 EVE_URL ?= "https://github.com/lf-edge/eve.git"
@@ -50,25 +51,17 @@ ADAM_REF ?= "master"
 EVE_REF_OLD=$(EVE_REF)
 EVE_DIST_OLD=$(EVE_REF)
 
-EVE_BASE_REF?=4.10.0
+EVE_BASE_REF?=5.1.10
 EVE_BASE_VERSION?=$(EVE_BASE_REF)-$(ZARCH)
 EVE_BASE_DIST=$(DIST)/evebaseos
 
 $(EVE_DIST):
-ifneq ($(EVE_REF),)
-	git clone --branch $(EVE_REF) --single-branch $(EVE_URL) $(EVE_DIST)
-else
-	git clone $(EVE_URL) $(EVE_DIST)
-endif
+	git clone $(if $(EVE_REF),--branch $(EVE_REF) --single-branch,) $(EVE_URL) $(EVE_DIST)
 
 ADAM_DIST ?= $(DIST)/adam
 
 $(ADAM_DIST):
-ifneq ($(ADAM_REF),)
-	git clone --branch $(ADAM_REF) --single-branch $(ADAM_URL) $(ADAM_DIST)
-else
-	git clone $(ADAM_URL) $(ADAM_DIST)
-endif
+	git clone $(if $(ADAM_REF),--branch $(ADAM_REF) --single-branch,) $(ADAM_URL) $(ADAM_DIST)
 
 IMAGE_DIST ?= $(DIST)/images
 
@@ -89,7 +82,8 @@ FIX_IP ?=
 # any non-empty value will enable logs checking
 LOGS ?=
 
-ACCEL ?=
+ACCEL ?= true
+
 SSH_PORT ?= 2222
 
 run: eserver_run adam_run eve_run
@@ -103,6 +97,7 @@ save: $(DIST)
 	@echo "# Configuration settings" > $(CONFIG)
 	@echo ADAM_DIST=$(ADAM_DIST) >> $(CONFIG)
 	@echo ZARCH=$(ZARCH) >> $(CONFIG)
+	@echo HV=$(HV) >> $(CONFIG)
 	@echo BIOS_IMG=$(BIOS_IMG) >> $(CONFIG)
 	@echo LIVE_IMG=$(LIVE_IMG) >> $(CONFIG)
 	@echo EVE_URL=$(EVE_URL) >> $(CONFIG)
@@ -134,7 +129,7 @@ IMGS := $(LIVE_IMG) $(BIOS_IMG)
 IMGS_MISSING := $(shell $(foreach f,$(IMGS),test -e "$f" || echo "$f";))
 
 eve_rootfs: $(EVE_DIST)
-	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ rootfs
+	make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ rootfs
 
 eve_live: $(EVE_DIST)
 ifneq ($(FIX_IP),)
@@ -142,10 +137,10 @@ ifneq ($(FIX_IP),)
 	$(CURDIR)/scripts/fixIPs.sh $(EVE_DIST)/Makefile
 endif
 ifneq ($(REBUILD),)
-	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ live
 else
 ifneq ($(IMGS_MISSING),)
-		make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ live
+		make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ live
 else
 		true
 endif
@@ -253,6 +248,9 @@ eserver_run: build baseos eserver_stop
 eserver_stop:
 	test -f $(DIST)/eserver.pid && kill $(shell cat $(DIST)/eserver.pid) && rm $(DIST)/eserver.pid || echo ""
 
+show-config:
+	cat $(CONFIG)
+
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo
@@ -266,35 +264,13 @@ help:
 	@echo "   test          run tests"
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         full cleanup of test harness"
-	@echo "   eve_clean     cleanup of EVE instance related things"
+	@echo "   eve-clean     cleanup of EVE instance related things"
+	@echo "   show-config   displays current configuration settings" 
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
 	@echo "Also, you need to install 'uuidgen' utility."
 	@echo "You need access to docker socket and installed qemu packages."
-	@echo "Use of ACCEL=true is recommended to speed up qemu to run the EVE instance."
+	@echo "If you have troubles running EVE, try setting ACCEL=''"
 	@echo "The SSH port for accessing the EVE instance can be set by the SSH_PORT variable."
 	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"
-	@echo
-	@echo "Current configuration settings:"
-	@echo ADAM_DIST=$(ADAM_DIST)
-	@echo ZARCH=$(ZARCH)
-	@echo BIOS_IMG=$(BIOS_IMG)
-	@echo LIVE_IMG=$(LIVE_IMG)
-	@echo EVE_URL=$(EVE_URL)
-	@echo EVE_REF=$(EVE_REF)
-	@echo ADAM_URL=$(ADAM_URL)
-	@echo ADAM_REF=$(ADAM_REF)
-	@echo ACCEL=$(ACCEL)
-	@echo SSH_PORT=$(SSH_PORT)
-	@echo CERTS_DIST=$(CERTS_DIST)
-	@echo DOMAIN=$(DOMAIN)
-	@echo IP=$(IP)
-	@echo UUID=$(UUID)
-	@echo ADAM_PORT=$(ADAM_PORT)
-	@echo EVE_BASE_REF=$(EVE_BASE_REF)
-	@echo EVE_BASE_VERSION=$(EVE_BASE_VERSION)
-	@echo ADAM_CA=$(ADAM_CA)
-	@echo EVE_CERT=$(EVE_CERT)
-	@echo LOGS=$(LOGS)
-
