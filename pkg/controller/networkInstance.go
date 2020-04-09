@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"errors"
+	"fmt"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 )
@@ -12,7 +12,7 @@ func (cloud *CloudCtx) getNetworkInstanceInd(id string) (networkInstanceConfigIn
 			return ind, nil
 		}
 	}
-	return -1, errors.New("not found")
+	return -1, fmt.Errorf("not found networkInstanceConfig with ID: %s", id)
 }
 
 //GetNetworkInstanceConfig return NetworkInstance config from cloud by ID

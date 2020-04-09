@@ -2,81 +2,12 @@ package integration
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
-	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"os"
-	"path"
-	"path/filepath"
 	"testing"
+	"time"
 )
-
-func prepareBaseImageLocal(ctx controller.Cloud, dataStoreID string, imageID string, baseID string, imagePath string, baseOSVersion string) error {
-	fi, err := os.Stat(imagePath)
-	if err != nil {
-		return err
-	}
-	size := fi.Size()
-
-	sha256sum, err := utils.SHA256SUM(imagePath)
-	if err != nil {
-		return err
-	}
-	err = ctx.AddDatastore(&config.DatastoreConfig{
-		Id:       dataStoreID,
-		DType:    config.DsType_DsHttp,
-		Fqdn:     "http://mydomain.adam:8888",
-		ApiKey:   "",
-		Password: "",
-		Dpath:    "",
-		Region:   "",
-	})
-	if err != nil {
-		return err
-	}
-	img := &config.Image{
-		Uuidandversion: &config.UUIDandVersion{
-			Uuid:    imageID,
-			Version: "4",
-		},
-		Name:      filepath.Base(imagePath),
-		Sha256:    sha256sum,
-		Iformat:   config.Format_QCOW2,
-		DsId:      dataStoreID,
-		SizeBytes: size,
-		Siginfo: &config.SignatureInfo{
-			Intercertsurl: "",
-			Signercerturl: "",
-			Signature:     nil,
-		},
-	}
-	err = ctx.AddImage(img)
-	if err != nil {
-		return err
-	}
-	err = ctx.AddBaseOsConfig(&config.BaseOSConfig{
-		Uuidandversion: &config.UUIDandVersion{
-			Uuid:    baseID,
-			Version: "4",
-		},
-		Drives: []*config.Drive{{
-			Image:        img,
-			Readonly:     false,
-			Preserve:     false,
-			Drvtype:      config.DriveType_Unclassified,
-			Target:       config.Target_TgtUnknown,
-			Maxsizebytes: size,
-		}},
-		Activate:      true,
-		BaseOSVersion: baseOSVersion,
-		BaseOSDetails: nil,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 //TestBaseImage test base image loading into eve
 //environment variable EVE_BASE_REF - version of eve image
@@ -95,20 +26,22 @@ func TestBaseImage(t *testing.T) {
 		zArch = "amd64"
 	}
 	var baseImageTests = []struct {
-		dataStoreID string
-		imageID     string
-		baseID      string
-		imagePath   string
-		eveBaseRef  string
-		zArch       string
+		dataStoreID       string
+		imageID           string
+		baseID            string
+		imageRelativePath string
+		imageFormat       config.Format
+		eveBaseRef        string
+		zArch             string
 	}{
-		{"eab8761b-5f89-4e0b-b757-4b87a9fa93ec",
+		{eServerDataStoreID,
 
 			"1ab8761b-5f89-4e0b-b757-4b87a9fa93ec",
 
 			"22b8761b-5f89-4e0b-b757-4b87a9fa93ec",
 
-			path.Join(filepath.Dir(ctx.GetDir()), "images", "baseos.qcow2"),
+			"baseos.qcow2",
+			config.Format_QCOW2,
 			eveBaseRef,
 			zArch,
 		},
@@ -117,18 +50,18 @@ func TestBaseImage(t *testing.T) {
 		baseOSVersion := fmt.Sprintf("%s-%s", tt.eveBaseRef, tt.zArch)
 		t.Run(baseOSVersion, func(t *testing.T) {
 
-			err = prepareBaseImageLocal(ctx, tt.dataStoreID, tt.imageID, tt.baseID, tt.imagePath, baseOSVersion)
+			err = prepareBaseImageLocal(ctx, tt.dataStoreID, tt.imageID, tt.baseID, tt.imageRelativePath, tt.imageFormat, baseOSVersion)
 
 			if err != nil {
 				t.Fatal("Fail in prepare base image from local file: ", err)
 			}
-			devCtx, err := ctx.GetDeviceFirst()
+			deviceCtx, err := ctx.GetDeviceFirst()
 			if err != nil {
 				t.Fatal("Fail in get first device: ", err)
 			}
-			devCtx.SetBaseOSConfig([]string{tt.baseID})
-			devUUID := devCtx.GetID()
-			err = ctx.ConfigSync(devUUID)
+			deviceCtx.SetBaseOSConfig([]string{tt.baseID})
+			devUUID := deviceCtx.GetID()
+			err = ctx.ConfigSync(deviceCtx)
 			if err != nil {
 				t.Fatal("Fail in sync config with controller: ", err)
 			}
@@ -145,13 +78,21 @@ func TestBaseImage(t *testing.T) {
 				}
 			})
 			t.Run("Logs", func(t *testing.T) {
+				if !checkLogs {
+					t.Skip("no LOGS flag set - skipped")
+				}
 				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
 				if err != nil {
 					t.Fatal("Fail in waiting for base image logs: ", err)
 				}
 			})
+			timeout := time.Duration(1200)
+
+			if !checkLogs {
+				timeout = 2400
+			}
 			t.Run("Active", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED"}, einfo.ZInfoDevSW, 1200)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED", "partitionState": "(inprogress|active)"}, einfo.ZInfoDevSW, timeout)
 				if err != nil {
 					t.Fatal("Fail in waiting for base image installed status: ", err)
 				}

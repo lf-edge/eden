@@ -22,6 +22,7 @@ LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 CONFIG=$(DIST)/Config.in
 include $(CONFIG)
 
+MEDIA_SIZE=1024M
 
 ZARCH ?= $(HOSTARCH)
 export ZARCH
@@ -29,6 +30,7 @@ export ZARCH
 .DEFAULT_GOAL := help
 
 clean: stop
+	test -f $(BIN) && rm $(BIN) || echo ""
 	rm -rf $(DIST)/* || sudo rm -rf $(DIST)/*
 
 $(DIST):
@@ -73,11 +75,19 @@ IMAGE_DIST ?= $(DIST)/images
 $(IMAGE_DIST):
 	mkdir -p $@
 
+BASE_OS_DIST = $(IMAGE_DIST)/baseos
+
+$(BASE_OS_DIST):
+	mkdir -p $@
+
 # any non-empty value will trigger eve rebuild
 REBUILD ?=
 
 # any non-empty value will trigger fix eve ip
 FIX_IP ?=
+
+# any non-empty value will enable logs checking
+LOGS ?=
 
 ACCEL ?=
 SSH_PORT ?= 2222
@@ -85,6 +95,9 @@ SSH_PORT ?= 2222
 run: eserver_run adam_run eve_run
 
 $(CONFIG): save
+
+ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem
+EVE_CERT=$(ADAM_DIST)/run/config/onboard.cert.pem
 
 save: $(DIST)
 	@echo "# Configuration settings" > $(CONFIG)
@@ -105,8 +118,9 @@ save: $(DIST)
 	@echo ADAM_PORT=$(ADAM_PORT) >> $(CONFIG)
 	@echo EVE_BASE_REF=$(EVE_BASE_REF) >> $(CONFIG)
 	@echo EVE_BASE_VERSION=$(EVE_BASE_VERSION) >> $(CONFIG)
-	@echo ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem >> $(CONFIG)
-	@echo EVE_CERT=$(ADAM_DIST)/run/config/onboard.cert.pem >> $(CONFIG)
+	@echo ADAM_CA=$(ADAM_CA) >> $(CONFIG)
+	@echo EVE_CERT=$(EVE_CERT) >> $(CONFIG)
+	@echo LOGS=$(LOGS) >> $(CONFIG)
 
 eve_run: save eve_stop eve_live
 	@echo EVE run
@@ -162,7 +176,7 @@ $(CERTS_DIST):
 	test -d $@ || mkdir -p $@
 
 certs_and_config: $(CERTS_DIST) bin
-ifeq ("$(wildcard $(ADAM_DIST)/run/adam/server.pem)","")
+ifeq ("$(wildcard $(ADAM_CA))","")
 	test -d $(ADAM_DIST)/run/adam || mkdir -p $(ADAM_DIST)/run/adam
 	test -d $(ADAM_DIST)/run/config || mkdir -p $(ADAM_DIST)/run/config
 	$(LOCALBIN) certs -o $(CERTS_DIST) -i $(IP) -d $(DOMAIN) -u $(UUID)
@@ -182,14 +196,18 @@ stop: adam_docker_stop eve_stop eserver_stop
 eve_stop:
 	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
 
+eve_clean: eve_stop adam_docker_stop
+	rm -rf $(LIVE_IMG)
+	rm -rf $(ADAM_DIST)/run/adam/device/*|| sudo rm -rf $(ADAM_DIST)/run/adam/device/*
+
 test_controller:
-	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/controller_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
+	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/controller_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
 
 test_base_image: test_controller
-	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
+	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
 
 test_network_instance: test_controller
-	ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
+	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
 
 test: test_base_image test_network_instance
 
@@ -205,17 +223,21 @@ ifeq ($(shell uname -s), Darwin)
         SHA256_CMD = openssl sha256 -r
 endif
 
-$(IMAGE_DIST)/baseos.qcow2: save $(IMAGE_DIST) certs_and_config
-ifeq ("$(wildcard $(IMAGE_DIST)/baseos.qcow2)","")
+BASEOSFILE=$(IMAGE_DIST)/baseos/baseos.qcow2
+
+baseos: save $(BASE_OS_DIST) certs_and_config $(BASEOSFILE)
+
+.PRECIOUS: $(BASEOSFILE)
+
+$(BASEOSFILE):
 	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST)
-	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.img $(IMAGE_DIST)/baseos.qcow2
-	cd $(IMAGE_DIST); $(SHA256_CMD) baseos.qcow2>baseos.sha256
+	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.img $(BASEOSFILE)
+	cd $(IMAGE_DIST)/baseos; $(SHA256_CMD) baseos.qcow2>baseos.sha256
 	echo EVE_VERSION>$(IMAGE_DIST)/version.yml.in
 	$(MAKE) -C $(EVE_BASE_DIST) $(IMAGE_DIST)/version.yml
 	$(MAKE) save_ref_dist_base EVE_REF=$(EVE_REF_OLD) EVE_DIST=$(EVE_DIST_OLD)
 	rm -rf $(IMAGE_DIST)/version.yml.in
 	rm -rf $(IMAGE_DIST)/version.yml
-endif
 
 save_ref_dist_base:
 	$(eval EVE_BASE_VERSION := $(shell cat $(IMAGE_DIST)/version.yml))
@@ -223,7 +245,7 @@ save_ref_dist_base:
 
 ESERVER_PORT=8888
 
-eserver_run: build $(IMAGE_DIST)/baseos.qcow2 eserver_stop
+eserver_run: build baseos eserver_stop
 	@echo eden server run
 	nohup $(LOCALBIN) server -p $(ESERVER_PORT) -d $(IMAGE_DIST) 2>&1 >/dev/null & echo "$$!" >$(DIST)/eserver.pid
 	@echo eden server run on port $(ESERVER_PORT)
@@ -237,14 +259,42 @@ help:
 	@echo "This Makefile automates commons tasks of building and running"
 	@echo "  * EVE"
 	@echo "  * ADAM"
+	@echo "You can set Git repository by EVE_URL/ADAM_URL and tag/branch by EVE_REF/ADAM_REF/EVE_BASE_REF variables."
 	@echo
 	@echo "Commonly used maintenance and development targets:"
 	@echo "   run           run ADAM and EVE"
 	@echo "   test          run tests"
 	@echo "   stop          stop ADAM and EVE"
-	@echo "   clean         cleanup directories"
-	@echo "   bin           build utilities"
+	@echo "   clean         full cleanup of test harness"
+	@echo "   eve_clean     cleanup of EVE instance related things"
+	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo
-	@echo "You need access to docker socket and installed qemu packages"
-	@echo "Use of ACCEL=true is recommended"
+	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
+	@echo "Also, you need to install 'uuidgen' utility."
+	@echo "You need access to docker socket and installed qemu packages."
+	@echo "Use of ACCEL=true is recommended to speed up qemu to run the EVE instance."
+	@echo "The SSH port for accessing the EVE instance can be set by the SSH_PORT variable."
 	@echo "You must set the FIX_IP=true variable if you use subnets 192.168.1.0/24 or 192.168.2.0/24 for any interface on host"
+	@echo
+	@echo "Current configuration settings:"
+	@echo ADAM_DIST=$(ADAM_DIST)
+	@echo ZARCH=$(ZARCH)
+	@echo BIOS_IMG=$(BIOS_IMG)
+	@echo LIVE_IMG=$(LIVE_IMG)
+	@echo EVE_URL=$(EVE_URL)
+	@echo EVE_REF=$(EVE_REF)
+	@echo ADAM_URL=$(ADAM_URL)
+	@echo ADAM_REF=$(ADAM_REF)
+	@echo ACCEL=$(ACCEL)
+	@echo SSH_PORT=$(SSH_PORT)
+	@echo CERTS_DIST=$(CERTS_DIST)
+	@echo DOMAIN=$(DOMAIN)
+	@echo IP=$(IP)
+	@echo UUID=$(UUID)
+	@echo ADAM_PORT=$(ADAM_PORT)
+	@echo EVE_BASE_REF=$(EVE_BASE_REF)
+	@echo EVE_BASE_VERSION=$(EVE_BASE_VERSION)
+	@echo ADAM_CA=$(ADAM_CA)
+	@echo EVE_CERT=$(EVE_CERT)
+	@echo LOGS=$(LOGS)
+

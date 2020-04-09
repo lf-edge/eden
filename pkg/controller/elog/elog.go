@@ -144,7 +144,10 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 		defer func() { done <- true }()
 		for {
 			select {
-			case event := <-watcher.Events:
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
 				switch event.Op {
 				case fsnotify.Write:
 					time.Sleep(1 * time.Second) // wait for write ends
@@ -181,8 +184,11 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 					}
 					continue
 				}
-			case err := <-watcher.Errors:
-				log.Printf("Error: %s", err)
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Printf("error: %s", err)
 			}
 		}
 	}()

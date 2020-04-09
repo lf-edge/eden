@@ -44,6 +44,8 @@ var (
 	ZInfoNetwork ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "Network"}
 	//ZInfoNetworkInstance can be used for filter GetNiinfo
 	ZInfoNetworkInstance ZInfoType = &zInfoPacket{upperType: "GetNiinfo"}
+	//ZInfoAppInstance can be used for filter GetAinfo
+	ZInfoAppInstance ZInfoType = &zInfoPacket{upperType: "GetAinfo"}
 )
 
 //ParseZInfoMsg unmarshal ZInfoMsg
@@ -188,7 +190,10 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 		defer func() { done <- true }()
 		for {
 			select {
-			case event := <-watcher.Events:
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
 				switch event.Op {
 				case fsnotify.Write:
 					time.Sleep(1 * time.Second) // wait for write ends
@@ -212,8 +217,11 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 
 					continue
 				}
-			case err := <-watcher.Errors:
-				log.Printf("Error: %s", err)
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Printf("error: %s", err)
 			}
 		}
 	}()

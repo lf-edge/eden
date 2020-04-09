@@ -66,11 +66,11 @@ func TestControllerSetConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal("Fail in controller prepare: ", err)
 	}
-	devUUID, err := ctx.GetDeviceFirst()
+	deviceCtx, err := ctx.GetDeviceFirst()
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
-	err = ctx.ConfigSync(devUUID.GetID())
+	err = ctx.ConfigSync(deviceCtx)
 	if err != nil {
 		t.Fatal("Fail in config sync with device: ", err)
 	}
