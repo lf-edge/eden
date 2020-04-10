@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 )
@@ -131,6 +132,31 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 		}
 		baseOS = append(baseOS, baseOSConfig)
 	}
+	var applicationInstances []*config.AppInstanceConfig
+	for _, applicationInstanceConfigID := range dev.GetApplicationInstances() {
+		applicationInstance, err := cloud.GetApplicationInstanceConfig(applicationInstanceConfigID)
+		if err != nil {
+			return nil, err
+		}
+		//check drives from apps
+		for _, drive := range applicationInstance.Drives {
+			dataStores, err = cloud.checkDrive(drive, dataStores)
+			if err != nil {
+				return nil, err
+			}
+		}
+		//check network instances from apps
+		for _, networkInstanceConfig := range applicationInstance.Interfaces {
+			if networkInstanceConfig != nil && networkInstanceConfig.NetworkId != "" {
+				networkInstanceConfigArray := dev.GetNetworkInstances()
+				if _, ok := utils.FindEleInSlice(networkInstanceConfigArray, networkInstanceConfig.NetworkId); !ok {
+					networkInstanceConfigArray = append(networkInstanceConfigArray, networkInstanceConfig.NetworkId)
+					dev.SetNetworkInstanceConfig(networkInstanceConfigArray)
+				}
+			}
+		}
+		applicationInstances = append(applicationInstances, applicationInstance)
+	}
 	var networkInstanceConfigs []*config.NetworkInstanceConfig
 	for _, networkInstanceConfigID := range dev.GetNetworkInstances() {
 		networkInstanceConfig, err := cloud.GetNetworkInstanceConfig(networkInstanceConfigID)
@@ -187,7 +213,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 			Uuid:    dev.GetID().String(),
 			Version: "4",
 		},
-		Apps:              nil,
+		Apps:              applicationInstances,
 		Networks:          networkConfigs,
 		Datastores:        dataStores,
 		LispInfo:          nil,
