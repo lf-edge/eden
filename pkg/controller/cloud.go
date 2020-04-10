@@ -9,15 +9,16 @@ import (
 //CloudCtx is struct for use with controller
 type CloudCtx struct {
 	Controller
-	devices          []*device.Ctx
-	datastores       []*config.DatastoreConfig
-	images           []*config.Image
-	baseOS           []*config.BaseOSConfig
-	networkInstances []*config.NetworkInstanceConfig
-	networks         []*config.NetworkConfig
-	physicalIOs      map[string]*config.PhysicalIO
-	systemAdapters   map[string]*config.SystemAdapter
-	devModels        map[DevModelType]*DevModel
+	devices              []*device.Ctx
+	datastores           []*config.DatastoreConfig
+	images               []*config.Image
+	baseOS               []*config.BaseOSConfig
+	networkInstances     []*config.NetworkInstanceConfig
+	networks             []*config.NetworkConfig
+	physicalIOs          map[string]*config.PhysicalIO
+	systemAdapters       map[string]*config.SystemAdapter
+	applicationInstances []*config.AppInstanceConfig
+	devModels            map[DevModelType]*DevModel
 }
 
 //Cloud is an interface of cloud
@@ -50,4 +51,7 @@ type Cloud interface {
 	GetDevModelByName(devModelType string) (*DevModel, error)
 	CreateDevModel(PhysicalIOs []*config.PhysicalIO, Networks []*config.NetworkConfig, Adapters []*config.SystemAdapter, AdapterForSwitches []string, modelType DevModelType) *DevModel
 	ApplyDevModel(dev *device.Ctx, devModel *DevModel) error
+	GetApplicationInstanceConfig(id string) (applicationInstanceConfig *config.AppInstanceConfig, err error)
+	AddApplicationInstanceConfig(applicationInstanceConfig *config.AppInstanceConfig) error
+	RemoveApplicationInstanceConfig(id string) error
 }

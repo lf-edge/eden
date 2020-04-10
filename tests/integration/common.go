@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
@@ -29,6 +30,20 @@ type netInst struct {
 	ipSpec              *config.Ipspec
 }
 
+type appInstLocal struct {
+	dataStoreID        string
+	imageID            string
+	imageFormat        config.Format
+	appID              string
+	appName            string
+	imageFileName      string
+	memory             uint32
+	vcpu               uint32
+	eveIP              string
+	accessPortExternal string
+	accessPortInternal string
+}
+
 var eServerDataStoreID = "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
 
 var eServerURL = "http://mydomain.adam:8888"
@@ -44,6 +59,16 @@ var (
 				End:   "10.1.0.254",
 			},
 		}}
+	networkInstanceLocalSecond = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e2",
+		"test-local-second", config.ZNetworkInstType_ZnetInstLocal, &config.Ipspec{
+			Subnet:  "10.2.0.0/24",
+			Gateway: "10.2.0.1",
+			Dns:     []string{"10.2.0.1"},
+			DhcpRange: &config.IpRange{
+				Start: "10.2.0.2",
+				End:   "10.2.0.254",
+			},
+		}}
 	networkInstanceSwitch = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e3",
 		"test-switch", config.ZNetworkInstType_ZnetInstSwitch, nil}
 	networkInstanceCloud = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e4",
@@ -57,6 +82,39 @@ var (
 				End:   "30.1.0.254",
 			},
 		}}
+)
+
+var (
+	appInstanceLocalVM = &appInstLocal{eServerDataStoreID,
+
+		"1ab8761b-5f89-4e0b-b757-4b87a9fa93e1",
+		config.Format_QCOW2,
+
+		"22b8761b-5f89-4e0b-b757-4b87a9fa93e1",
+		"test-alpine-vm",
+
+		"alpine.qcow2",
+		1024 * 1024,
+		1,
+		"127.0.0.1",
+		"8027",
+		"80",
+	}
+	appInstanceLocalContainer = &appInstLocal{eServerDataStoreID,
+
+		"1ab8761b-5f89-4e0b-b757-4b87a9fa93e2",
+		config.Format_CONTAINER,
+
+		"22b8761b-5f89-4e0b-b757-4b87a9fa93e2",
+		"test-alpine-container",
+
+		"alpine.tar",
+		1024 * 1024,
+		1,
+		"127.0.0.1",
+		"8028",
+		"80",
+	}
 )
 
 var checkLogs = false
@@ -216,6 +274,59 @@ func prepareImageLocal(ctx controller.Cloud, dataStoreID string, imageID string,
 		return nil, err
 	}
 	return img, nil
+}
+
+func prepareApplicationLocal(ctx controller.Cloud, appDefinition *appInstLocal, userData string, vncDisplay uint32, networkAdapters []*config.NetworkAdapter) error {
+	img, err := prepareImageLocal(ctx, appDefinition.dataStoreID, appDefinition.imageID, appDefinition.imageFormat, appDefinition.imageFileName, false)
+	if err != nil {
+		return err
+	}
+	var drive = &config.Drive{
+		Image:    img,
+		Readonly: false,
+		Preserve: false,
+		Drvtype:  config.DriveType_HDD,
+		Target:   config.Target_Disk,
+	}
+	err = ctx.AddApplicationInstanceConfig(&config.AppInstanceConfig{
+		Uuidandversion: &config.UUIDandVersion{
+			Uuid:    appDefinition.appID,
+			Version: "4",
+		},
+		Displayname: appDefinition.appName,
+		Fixedresources: &config.VmConfig{
+			Kernel:             "",
+			Ramdisk:            "",
+			Memory:             appDefinition.memory,
+			Maxmem:             appDefinition.memory,
+			Vcpus:              appDefinition.vcpu,
+			Maxcpus:            0,
+			Rootdev:            "/dev/xvda1",
+			Extraargs:          "",
+			Bootloader:         "/usr/bin/pygrub",
+			Cpus:               "",
+			Devicetree:         "",
+			Dtdev:              nil,
+			Irqs:               nil,
+			Iomem:              nil,
+			VirtualizationMode: config.VmMode_HVM,
+			EnableVnc:          true,
+			VncDisplay:         vncDisplay,
+			VncPasswd:          "",
+		},
+		Drives:        []*config.Drive{drive},
+		Activate:      true,
+		Interfaces:    networkAdapters,
+		Adapters:      nil,
+		Restart:       nil,
+		Purge:         nil,
+		UserData:      base64.StdEncoding.EncodeToString([]byte(userData)),
+		RemoteConsole: false,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func prepareBaseImageLocal(ctx controller.Cloud, dataStoreID string, imageID string, baseID string, imageFileName string, imageFormat config.Format, baseOSVersion string) error {

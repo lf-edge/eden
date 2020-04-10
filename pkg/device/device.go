@@ -6,17 +6,18 @@ import (
 
 //Ctx is base struct for device
 type Ctx struct {
-	id                 uuid.UUID
-	baseOSConfigs      []string
-	networkInstances   []string
-	adaptersForSwitch  []string
-	networks           []string
-	physicalIO         []string
-	systemAdapters     []string
-	sshKeys            []string
-	devModel           string
-	vncAccess          bool
-	controllerLogLevel string
+	id                         uuid.UUID
+	baseOSConfigs              []string
+	networkInstances           []string
+	adaptersForSwitch          []string
+	networks                   []string
+	physicalIO                 []string
+	systemAdapters             []string
+	applicationInstanceConfigs []string
+	sshKeys                    []string
+	devModel                   string
+	vncAccess                  bool
+	controllerLogLevel         string
 }
 
 //CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
@@ -49,6 +50,9 @@ func (cfg *Ctx) GetSSHKeys() []string { return cfg.sshKeys }
 
 //GetDevModel return devModel of device
 func (cfg *Ctx) GetDevModel() string { return cfg.devModel }
+
+//GetApplicationInstances return applicationInstanceConfigs of device
+func (cfg *Ctx) GetApplicationInstances() []string { return cfg.applicationInstanceConfigs }
 
 //GetVncAccess return vncAccess of device
 func (cfg *Ctx) GetVncAccess() bool { return cfg.vncAccess }
@@ -115,4 +119,10 @@ func (cfg *Ctx) SetControllerLogLevel(controllerLogLevel string) {
 //SetVncAccess set vncAccess
 func (cfg *Ctx) SetVncAccess(enabled bool) {
 	cfg.vncAccess = enabled
+}
+
+//SetApplicationInstanceConfig set applicationInstanceConfigs by configIDs from cloud
+func (cfg *Ctx) SetApplicationInstanceConfig(configIDs []string) *Ctx {
+	cfg.applicationInstanceConfigs = configIDs
+	return cfg
 }
