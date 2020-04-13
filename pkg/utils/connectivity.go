@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -42,7 +43,7 @@ func RequestHTTPRepeatWithTimeout(url string, returnEmpty bool, timeoutSeconds t
 				body, err := RequestHTTPWithTimeout(url, 5)
 				if err == nil {
 					if returnEmpty || body != "" {
-						done <- body
+						done <- strings.TrimSpace(body)
 						return
 					}
 				}
