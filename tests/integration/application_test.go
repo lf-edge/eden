@@ -234,6 +234,13 @@ func TestApplication(t *testing.T) {
 				}
 				err = ctx.InfoLastCallback(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID, "state": "RUNNING", "network": ".*"}, einfo.ZInfoAppInstance, handler)
 			})
+			t.Run("RemoteConsole", func(t *testing.T) {
+				desktopName, err := utils.GetDesktopName(fmt.Sprintf("127.0.0.1:591%d", tt.vncDisplay+1), "")
+				if err != nil {
+					t.Fatal("Fail in connect to VNC ", err)
+				}
+				t.Logf("VNC DesktopName: %s", desktopName)
+			})
 		})
 	}
 
