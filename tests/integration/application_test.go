@@ -44,16 +44,17 @@ func TestApplication(t *testing.T) {
 
 	//metadataBuilder is metadata generator
 	//if lastIP already set (we already have another app), metadata will set url to http://lastIP/user-data.html
-	var metadataBuilder = func(format config.Format) string {
+	//metaDataToTest - is metadata vision from test suite
+	var metadataBuilder = func(format config.Format) (metaDataToEVE string, metaDataToTest string) {
 		url := "127.0.0.1"
 		if lastIP != "" {
 			url = lastIP
 		}
 		toRet := fmt.Sprintf("http://%s/user-data.html", url)
 		if format == config.Format_CONTAINER {
-			return fmt.Sprintf("url=%s", toRet)
+			return fmt.Sprintf("url=%s", toRet), toRet
 		}
-		return toRet
+		return toRet, toRet
 	}
 
 	var applicationTests = []struct {
@@ -139,7 +140,8 @@ func TestApplication(t *testing.T) {
 	}
 	for _, tt := range applicationTests {
 		t.Run(tt.appDefinition.appName, func(t *testing.T) {
-			err = prepareApplicationLocal(ctx, tt.appDefinition, metadataBuilder(tt.appDefinition.imageFormat), tt.vncDisplay, tt.networkAdapters)
+			metadata, metaDataToTest := metadataBuilder(tt.appDefinition.imageFormat)
+			err = prepareApplicationLocal(ctx, tt.appDefinition, metadata, tt.vncDisplay, tt.networkAdapters)
 
 			if err != nil {
 				t.Fatal("Fail in prepare app from local file: ", err)
@@ -193,6 +195,16 @@ func TestApplication(t *testing.T) {
 				if err != nil {
 					t.Fatal("Fail in waiting for app running status: ", err)
 				}
+			})
+			t.Run("Cloud-init", func(t *testing.T) {
+				//we point urlToTest to external app port of app
+				//where nginx serve on url http://eveIP:accessPortExternal/user-data.html data, obtained from cloud-init metadata
+				urlToTest := fmt.Sprintf("http://%s:%s/user-data.html", tt.appDefinition.eveIP, tt.appDefinition.accessPortExternal)
+				result, err := utils.RequestHTTPRepeatWithTimeout(urlToTest, false, 300)
+				if err != nil {
+					t.Fatalf("Fail in waiting for app http response to %s: %s", urlToTest, err)
+				}
+				assert.Equal(t, metaDataToTest, result)
 			})
 			t.Run("Connectivity", func(t *testing.T) {
 				if lastIP != "" {
