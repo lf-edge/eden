@@ -42,8 +42,9 @@ func RequestHTTPRepeatWithTimeout(url string, returnEmpty bool, timeoutSeconds t
 			default:
 				body, err := RequestHTTPWithTimeout(url, 5)
 				if err == nil {
-					if returnEmpty || body != "" {
-						done <- strings.TrimSpace(body)
+					result := strings.TrimSpace(body)
+					if returnEmpty || result != "" {
+						done <- result
 						return
 					}
 				}

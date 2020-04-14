@@ -46,7 +46,7 @@ HV ?= "kvm"
 BIOS_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/OVMF.fd
 LIVE_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/live.$(IMG_FORMAT)
 EVE_URL ?= "https://github.com/lf-edge/eve.git"
-EVE_REF ?= "master"
+EVE_REF ?= 5.1.11
 ADAM_URL ?= "https://github.com/lf-edge/adam.git"
 ADAM_REF ?= "master"
 
@@ -96,8 +96,6 @@ ACCEL ?= true
 
 SSH_PORT ?= 2222
 
-run: eserver_run adam_run eve_run
-
 $(CONFIG): save
 
 ADAM_CA=$(ADAM_DIST)/run/config/root-certificate.pem
@@ -132,14 +130,9 @@ QEMU_DTB_PART_amd64=
 QEMU_DTB_PART_arm64=--dtb-part=$(EVE_DIST)/dtb
 QEMU_DTB_PART=$(QEMU_CONF_OPTS_$(ZARCH))
 
-eve_run: save bin eve_stop eve_live
+eve_config: save bin eve_live
 	@echo EVE run
 	$(LOCALBIN) qemuconf --output=$(DIST)/qemu.conf --image-part=$(LIVE_IMG) --firmware=$(BIOS_IMG) --config-part=$(ADAM_DIST)/run/config --hostfwd="2222=22,5912=5901,5911=5900,8027=8027,8028=8028" --dtb-part=$(QEMU_DTB_PART)
-	nohup $(LOCALBIN) qemurun --config=$(DIST)/qemu.conf --serial=$(EVE_SERIAL) >$(DIST)/eve.log 2>&1 & echo "$$!" >$(DIST)/eve.pid
-	@echo You can see logs of EVE:
-	@echo $(DIST)/eve.log
-	@echo You can ssh into EVE:
-	@echo ssh -i $(CERTS_DIST)/id_rsa -p $(SSH_PORT) root@127.0.0.1
 
 IMGS := $(LIVE_IMG) $(BIOS_IMG)
 IMGS_MISSING := $(shell $(foreach f,$(IMGS),test -e "$f" || echo "$f";))
@@ -177,15 +170,22 @@ IP?=$(shell hostname -I | cut -d' ' -f1)
 endif
 UUID?=$(shell uuidgen)
 ADAM_PORT?=3333
+ESERVER_PORT?=8888
 
-adam_docker_stop:
-	docker ps|grep eden_adam&&docker stop eden_adam||echo ""
-	docker ps --all|grep eden_adam&&docker rm eden_adam||echo ""
+stop: bin
+	$(LOCALBIN) stop --adam-rm=true --eserver-pid=$(DIST)/eserver.pid --eve-pid=$(DIST)/eve.pid||echo ""
 
-adam_run: save adam_docker_stop $(ADAM_DIST) certs_and_config
+run: save stop $(ADAM_DIST) certs_and_config build baseos image-bios-alpine image-docker-alpine eve_config
 	@echo Adam Run
-	cd $(ADAM_DIST); docker run --name eden_adam -d -v $(ADAM_DIST)/run:/adam/run -p $(ADAM_PORT):8080 lfedge/adam server --conf-dir /tmp
+	$(LOCALBIN) start --adam-dist=$(ADAM_DIST) --adam-port=$(ADAM_PORT) --eserver-port=$(ESERVER_PORT) \
+	--eserver-pid=$(DIST)/eserver.pid --eserver-log=$(DIST)/eserver.log --image-dist=$(IMAGE_DIST) \
+	--eve-config=$(DIST)/qemu.conf --eve-serial=$(EVE_SERIAL) --eve-accel=$(ACCEL) --eve-pid=$(DIST)/eve.pid \
+	--eve-log=$(DIST)/eve.log
 	@echo ADAM is ready for access: https://$(IP):$(ADAM_PORT)
+	@echo You can see logs of EVE:
+	@echo $(DIST)/eve.log
+	@echo You can ssh into EVE:
+	@echo ssh -i $(CERTS_DIST)/id_rsa -p $(SSH_PORT) root@127.0.0.1
 
 $(CERTS_DIST):
 	test -d $@ || mkdir -p $@
@@ -206,12 +206,7 @@ ifeq ("$(wildcard $(ADAM_CA))","")
 	yes | cp -f $(CERTS_DIST)/id_rsa.pub $(ADAM_DIST)/run/config/authorized_keys
 endif
 
-stop: adam_docker_stop eve_stop eserver_stop
-
-eve_stop:
-	test -f $(DIST)/eve.pid && kill $(shell cat $(DIST)/eve.pid) && rm $(DIST)/eve.pid || echo ""
-
-eve_clean: eve_stop adam_docker_stop
+eve_clean: stop
 	rm -rf $(LIVE_IMG)
 	rm -rf $(ADAM_DIST)/run/adam/device/*|| sudo rm -rf $(ADAM_DIST)/run/adam/device/*
 
@@ -224,16 +219,16 @@ test_base_image: test_controller
 test_network_instance: test_controller
 	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
 
-test_application_instance: test_controller
+test_application_instance: test_controller test_network_instance
 	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/application_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
 
 test: test_base_image test_network_instance test_application_instance
 
-bin: $(LOCALBIN)
-build: $(LOCALBIN) $(BIN)
-$(LOCALBIN): $(BINDIR)
+bin: $(BIN)
+build: $(BIN)
+$(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
-$(BIN):
+$(BIN): $(LOCALBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -s $(LOCALBIN) $@; fi
 
 SHA256_CMD = sha256sum
@@ -289,16 +284,6 @@ $(IMAGE_DOCKER_DIST)/%.tar:
 save_ref_dist_base:
 	$(eval EVE_BASE_VERSION := $(shell cat $(IMAGE_DIST)/version.yml))
 	$(MAKE) save EVE_REF=$(EVE_REF_OLD) EVE_DIST=$(EVE_DIST_OLD) EVE_BASE_VERSION=$(EVE_BASE_VERSION)
-
-ESERVER_PORT=8888
-
-eserver_run: build baseos eserver_stop image-bios-alpine image-docker-alpine
-	@echo eden server run
-	nohup $(LOCALBIN) server -p $(ESERVER_PORT) -d $(IMAGE_DIST) 2>&1 >/dev/null & echo "$$!" >$(DIST)/eserver.pid
-	@echo eden server run on port $(ESERVER_PORT)
-
-eserver_stop:
-	test -f $(DIST)/eserver.pid && kill $(shell cat $(DIST)/eserver.pid) && rm $(DIST)/eserver.pid || echo ""
 
 show-config:
 	cat $(CONFIG)

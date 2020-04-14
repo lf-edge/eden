@@ -28,6 +28,12 @@ func init() {
 	qemuConfInit()
 	rootCmd.AddCommand(qemuRunCmd)
 	qemuRunInit()
+	rootCmd.AddCommand(startCmd)
+	startInit()
+	rootCmd.AddCommand(stopCmd)
+	stopInit()
+	rootCmd.AddCommand(statusCmd)
+	statusInit()
 }
 
 // Execute primary function for cobra

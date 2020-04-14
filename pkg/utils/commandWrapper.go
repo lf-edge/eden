@@ -3,11 +3,14 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 )
@@ -48,6 +51,83 @@ func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid
 		log.Printf("Command finished with error: %v", err)
 	}()
 	return pid, nil
+}
+
+//RunCommandNohup run process in background
+func RunCommandNohup(name string, logFile string, pidFile string, args ...string) (err error) {
+	cmd := exec.Command(name, args...)
+	if logFile != "" {
+		file, err := os.Create(logFile)
+		if err != nil {
+			return err
+		}
+		cmd.Stdout = file
+		cmd.Stderr = file
+	}
+	if pidFile != "" {
+		_, err := os.Stat(pidFile)
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("pid file already exists")
+		}
+	}
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+	if pidFile != "" {
+		file, err := os.Create(pidFile)
+		if err != nil {
+			return err
+		}
+		_, err = file.Write([]byte(strconv.Itoa(cmd.Process.Pid)))
+		if err != nil {
+			return err
+		}
+		err = file.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//StopCommandWithPid sends kill to pid from pidFile
+func StopCommandWithPid(pidFile string) (err error) {
+	content, err := ioutil.ReadFile(pidFile)
+	if err != nil {
+		return fmt.Errorf("cannot open pid file %s: %s", pidFile, err)
+	}
+	err = os.Remove(pidFile)
+	if err != nil {
+		return fmt.Errorf("cannot delete pid file %s: %s", pidFile, err)
+	}
+	pid, err := strconv.Atoi(string(content))
+	if err != nil {
+		return fmt.Errorf("cannot parse pid from file %s: %s", pidFile, err)
+	}
+	err = syscall.Kill(pid, syscall.SIGKILL)
+	if err != nil {
+		return fmt.Errorf("cannot kill process with pid: %d", pid)
+	}
+
+	return nil
+}
+
+//StatusCommandWithPid check if process with pid from pidFile running
+func StatusCommandWithPid(pidFile string) (status string, err error) {
+	content, err := ioutil.ReadFile(pidFile)
+	if err != nil {
+		return "no pid file", nil
+	}
+	pid, err := strconv.Atoi(string(content))
+	if err != nil {
+		return "", fmt.Errorf("cannot parse pid from file %s: %s", pidFile, err)
+	}
+	_, err = os.FindProcess(pid)
+	if err != nil {
+		return "not found", nil
+	}
+	return "running", nil
 }
 
 //RunCommandForeground command run in foreground
