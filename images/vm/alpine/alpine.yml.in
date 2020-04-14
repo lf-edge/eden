@@ -41,6 +41,7 @@ services:
     image: linuxkit/rngd:02c555b50cd1887aa628836662d2eec54c0d7e81
   - name: dhcpcd
     image: linuxkit/dhcpcd:v0.7
+    command: ["/sbin/dhcpcd", "--nobackground", "--master", "--rebind", "-f", "/dhcpcd.conf"]
   - name: curl
     image: byrnedo/alpine-curl
     capabilities:

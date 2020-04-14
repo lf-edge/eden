@@ -15,6 +15,9 @@ var (
 	qemuAccel        bool
 	qemuSMBIOSSerial string
 	qemuConfigFile   string
+	qemuForeground   bool
+	qemuLogFile      string
+	qemuPidFile      string
 )
 
 var qemuRunCmd = &cobra.Command{
@@ -61,9 +64,16 @@ var qemuRunCmd = &cobra.Command{
 		if qemuConfigFile != "" {
 			qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 		}
-		err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...)
-		if err != nil {
-			log.Fatal(err)
+		if qemuForeground {
+			err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			err := utils.RunCommandNohup(qemuCommand, qemuLogFile, qemuPidFile, strings.Fields(qemuOptions)...)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	},
 }
@@ -74,4 +84,7 @@ func qemuRunInit() {
 	qemuRunCmd.Flags().BoolVarP(&qemuAccel, "accel", "", true, "use acceleration")
 	qemuRunCmd.Flags().StringVarP(&qemuSMBIOSSerial, "serial", "", "", "SMBIOS serial")
 	qemuRunCmd.Flags().StringVarP(&qemuConfigFile, "config", "", "", "config file to use")
+	qemuRunCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
+	qemuRunCmd.Flags().StringVarP(&qemuLogFile, "qemu-log", "", "", "file to save logs (for background variant)")
+	qemuRunCmd.Flags().StringVarP(&qemuPidFile, "qemu-pid", "", "", "file to save pid of qemu (for background variant)")
 }
