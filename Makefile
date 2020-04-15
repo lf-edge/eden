@@ -40,9 +40,11 @@ $(BINDIR):
 
 EVE_DIST=$(DIST)/eve
 
+IMG_FORMAT ?= qcow2
+BASE_IMG_FORMAT ?= img
 HV ?= "kvm"
 BIOS_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/OVMF.fd
-LIVE_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/live.img
+LIVE_IMG ?= $(EVE_DIST)/dist/$(ZARCH)/live.$(IMG_FORMAT)
 EVE_URL ?= "https://github.com/lf-edge/eve.git"
 EVE_REF ?= "master"
 ADAM_URL ?= "https://github.com/lf-edge/adam.git"
@@ -147,19 +149,17 @@ eve_rootfs: $(EVE_DIST)
 
 eve_live: $(EVE_DIST)
 ifneq ($(REBUILD),)
-	make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ live
-	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ live
-	make -C $(EVE_DIST) $(BIOS_IMG)
+	make -C $(EVE_DIST) HV=$(HV) IMG_FORMAT=$(IMG_FORMAT) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) HV=$(HV) $(BIOS_IMG)
 ifneq ($(DEVICETREE_DTB),)
-	make -C $(EVE_DIST) $(DEVICETREE_DTB)
+	make -C $(EVE_DIST) HV=$(HV) $(DEVICETREE_DTB)
 endif
 else
 ifneq ($(IMGS_MISSING),)
-	make -C $(EVE_DIST) HV=$(HV) CONF_DIR=$(ADAM_DIST)/run/config/ live
-	make -C $(EVE_DIST) CONF_DIR=$(ADAM_DIST)/run/config/ live
-	make -C $(EVE_DIST) $(BIOS_IMG)
+	make -C $(EVE_DIST) HV=$(HV) IMG_FORMAT=$(IMG_FORMAT) CONF_DIR=$(ADAM_DIST)/run/config/ live
+	make -C $(EVE_DIST) HV=$(HV) $(BIOS_IMG)
 ifneq ($(DEVICETREE_DTB),)
-	make -C $(EVE_DIST) $(DEVICETREE_DTB)
+	make -C $(EVE_DIST) HV=$(HV) $(DEVICETREE_DTB)
 endif
 else
 	true
@@ -248,8 +248,8 @@ baseos: save $(BASE_OS_DIST) certs_and_config $(BASEOSFILE)
 .PRECIOUS: $(BASEOSFILE)
 
 $(BASEOSFILE):
-	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST)
-	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.img $(BASEOSFILE)
+	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST) IMG_FORMAT=$(BASE_IMG_FORMAT)
+	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.$(BASE_IMG_FORMAT) $(BASEOSFILE)
 	cd $(IMAGE_DIST)/baseos; $(SHA256_CMD) baseos.qcow2>baseos.sha256
 	echo EVE_VERSION>$(IMAGE_DIST)/version.yml.in
 	$(MAKE) -C $(EVE_BASE_DIST) $(IMAGE_DIST)/version.yml
