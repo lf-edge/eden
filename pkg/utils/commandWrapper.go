@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 	"syscall"
 )
@@ -51,19 +52,25 @@ func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid
 
 //RunCommandForeground command run in foreground
 func RunCommandForeground(name string, args ...string) (err error) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Pdeathsig: syscall.SIGTERM,
-	}
+	go func() {
+		<-sigChan
+		err = cmd.Process.Kill()
+	}()
 	err = cmd.Run()
 	if err != nil {
 		return
 	}
-	defer cmd.Process.Kill()
-	return cmd.Wait()
+	return nil
 }
 
 //RunCommandAndWait run process in foreground
