@@ -17,9 +17,7 @@ func StartAdam(adamPort string, adamPath string, adamForce bool) (err error) {
 	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
 	adamServerCommand := strings.Fields("server --conf-dir /tmp")
 	if adamForce {
-		if err := StopContainer(adamContainerName, true); err != nil {
-			return fmt.Errorf("error in rm adam container: %s", err)
-		}
+		_ = StopContainer(adamContainerName, true)
 		if err := CreateAndRunContainer(adamContainerName, adamContainerRef, portMap, volumeMap, adamServerCommand); err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}

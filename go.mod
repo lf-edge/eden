@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/amitbet/vncproxy v0.0.0-20200118084310-ea8f9b510913
+	github.com/diskfs/go-diskfs v1.0.0
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v1.4.2-0.20190924003213-a8608b5b67c7
 	github.com/docker/go-connections v0.4.0
@@ -18,6 +19,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47
+	golang.org/x/tools v0.0.0-20200210192313-1ace956b0e17
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gotest.tools v2.2.0+incompatible
 )
