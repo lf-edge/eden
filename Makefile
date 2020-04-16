@@ -263,7 +263,7 @@ image-efi-%: baseos bin $(IMAGE_VM_DIST) $(IMAGE_VM_DIST)/%-efi.qcow2
 .PRECIOUS: $(IMAGE_VM_DIST)/%-efi.qcow2
 $(IMAGE_VM_DIST)/%-efi.qcow2:
 	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/vm/$*/$*.yml
-	cd $(IMAGE_VM_DIST) && PATH=$(EVE_BASE_DIST)/build-tools/bin:$(PATH) linuxkit build -format qcow2-efi -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && PATH="$(EVE_BASE_DIST)/build-tools/bin:$(PATH)" linuxkit build -format qcow2-efi -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
 	cd $(IMAGE_VM_DIST) && $(SHA256_CMD) $*-efi.qcow2>$*-efi.sha256
 
 image-bios-%: baseos bin $(IMAGE_VM_DIST) $(IMAGE_VM_DIST)/%.qcow2
@@ -272,7 +272,7 @@ image-bios-%: baseos bin $(IMAGE_VM_DIST) $(IMAGE_VM_DIST)/%.qcow2
 .PRECIOUS: $(IMAGE_VM_DIST)/%.qcow2
 $(IMAGE_VM_DIST)/%.qcow2:
 	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/vm/$*/$*.yml
-	cd $(IMAGE_VM_DIST) && PATH=$(EVE_BASE_DIST)/build-tools/bin:$(PATH) linuxkit build -format qcow2-bios -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && PATH="$(EVE_BASE_DIST)/build-tools/bin:$(PATH)" linuxkit build -format qcow2-bios -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
 	cd $(IMAGE_VM_DIST) && rm -rf $(IMAGE_DIST)/vm/linuxkit && $(SHA256_CMD) $*.qcow2>$*.sha256
 	@rm $(CURDIR)/images/vm/$*/$*.yml
 
