@@ -68,6 +68,9 @@ run: setup
 stop: bin
 	$(LOCALBIN) stop -v debug
 
+download: bin
+	$(LOCALBIN) download --output=$(EVE_DIST)/dist/$(ZARCH) --arch=$(ZARCH) --tag=$(EVE_REF)
+
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo
@@ -83,6 +86,7 @@ help:
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
+	@echo "   download      download eve from docker"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
 	@echo "Also, you need to install 'uuidgen' utility."
