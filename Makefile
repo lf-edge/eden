@@ -63,8 +63,11 @@ $(EVE_DIST):
 
 ADAM_DIST ?= $(DIST)/adam
 
-$(ADAM_DIST):
+adam-clone:
 	git clone $(if $(ADAM_REF),--branch $(ADAM_REF) --single-branch,) $(ADAM_URL) $(ADAM_DIST)
+
+$(ADAM_DIST):
+	mkdir -p $@
 
 IMAGE_DIST ?= $(DIST)/images
 
@@ -224,6 +227,19 @@ test_application_instance: test_controller test_network_instance
 
 test: test_base_image test_network_instance test_application_instance
 
+LINUXKIT_RELEASE=v0.7
+LINUXKIT=$(BINDIR)/linuxkit
+LINUXKIT_OS_ARCH=$(LINUXKIT)-$(OS)-$(ARCH)
+
+.PRECIOUS: $(LINUXKIT_OS_ARCH)
+
+$(LINUXKIT_OS_ARCH): $(BINDIR)
+	curl -L https://github.com/linuxkit/linuxkit/releases/download/$(LINUXKIT_RELEASE)/linuxkit-$(OS)-$(ARCH) -o $(LINUXKIT_OS_ARCH)
+	chmod a+x $(LINUXKIT_OS_ARCH)
+
+$(LINUXKIT): $(LINUXKIT_OS_ARCH)
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -s $(LINUXKIT_OS_ARCH) $@; fi
+
 bin: $(BIN)
 build: $(BIN)
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
@@ -242,44 +258,43 @@ baseos: save $(BASE_OS_DIST) certs_and_config $(BASEOSFILE)
 
 .PRECIOUS: $(BASEOSFILE)
 
-$(BASEOSFILE):
+.PRECIOUS: $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs-$(HV).$(BASE_IMG_FORMAT)
+
+$(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs-$(HV).$(BASE_IMG_FORMAT):
 	$(MAKE) eve_rootfs EVE_REF=$(EVE_BASE_REF) EVE_DIST=$(EVE_BASE_DIST) IMG_FORMAT=$(BASE_IMG_FORMAT)
-	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs.$(BASE_IMG_FORMAT) $(BASEOSFILE)
+
+$(BASEOSFILE): $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs-$(HV).$(BASE_IMG_FORMAT)
+	cp $(EVE_BASE_DIST)/dist/$(ZARCH)/installer/rootfs-$(HV).$(BASE_IMG_FORMAT) $(BASEOSFILE)
 	cd $(IMAGE_DIST)/baseos; $(SHA256_CMD) baseos.qcow2>baseos.sha256
-	echo EVE_VERSION>$(IMAGE_DIST)/version.yml.in
-	$(MAKE) -C $(EVE_BASE_DIST) $(IMAGE_DIST)/version.yml
+	echo $(EVE_BASE_REF)-$(ARCH)-$(HV)>$(IMAGE_DIST)/version.yml
 	$(MAKE) save_ref_dist_base EVE_REF=$(EVE_REF_OLD) EVE_DIST=$(EVE_DIST_OLD)
-	rm -rf $(IMAGE_DIST)/version.yml.in
 	rm -rf $(IMAGE_DIST)/version.yml
 
-image-efi-%: baseos bin $(IMAGE_VM_DIST) $(IMAGE_VM_DIST)/%-efi.qcow2
+image-efi-%: baseos bin $(IMAGE_VM_DIST) $(LINUXKIT) $(IMAGE_VM_DIST)/%-efi.qcow2
 	echo image-efi-$*
 
 .PRECIOUS: $(IMAGE_VM_DIST)/%-efi.qcow2
 $(IMAGE_VM_DIST)/%-efi.qcow2:
-	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/vm/$*/$*.yml
-	cd $(IMAGE_VM_DIST) && PATH="$(EVE_BASE_DIST)/build-tools/bin:$(PATH)" linuxkit build -format qcow2-efi -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && PATH="$(BINDIR):$(PATH)" $(LINUXKIT) build -format qcow2-efi -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
 	cd $(IMAGE_VM_DIST) && $(SHA256_CMD) $*-efi.qcow2>$*-efi.sha256
 
-image-bios-%: baseos bin $(IMAGE_VM_DIST) $(IMAGE_VM_DIST)/%.qcow2
+image-bios-%: baseos bin $(IMAGE_VM_DIST) $(LINUXKIT) $(IMAGE_VM_DIST)/%.qcow2
 	echo image-bios-$*
 
 .PRECIOUS: $(IMAGE_VM_DIST)/%.qcow2
 $(IMAGE_VM_DIST)/%.qcow2:
-	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/vm/$*/$*.yml
-	cd $(IMAGE_VM_DIST) && PATH="$(EVE_BASE_DIST)/build-tools/bin:$(PATH)" linuxkit build -format qcow2-bios -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
-	cd $(IMAGE_VM_DIST) && rm -rf $(IMAGE_DIST)/vm/linuxkit && $(SHA256_CMD) $*.qcow2>$*.sha256
-	@rm $(CURDIR)/images/vm/$*/$*.yml
+	cd $(IMAGE_VM_DIST) && PATH="$(BINDIR):$(PATH)" $(LINUXKIT) build -format raw-bios -dir $(IMAGE_VM_DIST) -size $(MEDIA_SIZE) $(CURDIR)/images/vm/$*/$*.yml
+	qemu-img convert -c -f raw -O qcow2 $(IMAGE_VM_DIST)/$*-bios.img $(IMAGE_VM_DIST)/$*.qcow2
+	qemu-img resize $@ ${MEDIA_SIZE}
+	cd $(IMAGE_VM_DIST) && rm -rf $(IMAGE_DIST)/vm/linuxkit && rm -rf $(IMAGE_VM_DIST)/$*-bios.img && $(SHA256_CMD) $*.qcow2>$*.sha256
 
 image-docker-%: baseos bin $(IMAGE_DOCKER_DIST) $(IMAGE_DOCKER_DIST)/%.tar
 	echo image-docker-$*
 
 .PRECIOUS: $(IMAGE_DOCKER_DIST)/%.tar
 $(IMAGE_DOCKER_DIST)/%.tar:
-	$(MAKE) -C $(EVE_BASE_DIST) $(CURDIR)/images/docker/$*/$*.yml
 	docker build $(CURDIR)/images/docker/$* -f $(CURDIR)/images/docker/$*/$*.yml -t local-$*
 	$(LOCALBIN) ociimage -i local-$* -o $(IMAGE_DOCKER_DIST)/$*.tar -l
-	@rm $(CURDIR)/images/docker/$*/$*.yml
 
 save_ref_dist_base:
 	$(eval EVE_BASE_VERSION := $(shell cat $(IMAGE_DIST)/version.yml))
@@ -287,6 +302,17 @@ save_ref_dist_base:
 
 show-config:
 	cat $(CONFIG)
+
+download-eve: bin certs_and_config
+	$(LOCALBIN) download --output=$(EVE_DIST)/dist/$(ZARCH) --arch=$(ZARCH) --tag=$(EVE_REF)
+	$(LOCALBIN) confchanger --image-file=$(EVE_DIST)/dist/$(ZARCH)/live.qcow2 --config-part=$(ADAM_DIST)/run/config
+
+download-baseeve: bin certs_and_config
+	$(LOCALBIN) download --output=$(EVE_BASE_DIST)/dist/$(ZARCH) --arch=$(ZARCH) --tag=$(EVE_BASE_REF)
+	$(LOCALBIN) confchanger --image-file=$(EVE_BASE_DIST)/dist/$(ZARCH)/live.qcow2 --config-part=$(ADAM_DIST)/run/config
+
+download: download-eve download-baseeve
+	@echo "done"
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
@@ -304,6 +330,7 @@ help:
 	@echo "   eve-clean     cleanup of EVE instance related things"
 	@echo "   show-config   displays current configuration settings"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
+	@echo "   download      download eve from docker"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
 	@echo "Also, you need to install 'uuidgen' utility."

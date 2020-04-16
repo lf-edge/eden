@@ -70,12 +70,16 @@ func init() {
 	qemuConfInit()
 	rootCmd.AddCommand(qemuRunCmd)
 	qemuRunInit()
+	rootCmd.AddCommand(confChangerCmd)
+	confChangerInit()
 	rootCmd.AddCommand(startCmd)
 	startInit()
 	rootCmd.AddCommand(stopCmd)
 	stopInit()
 	rootCmd.AddCommand(statusCmd)
 	statusInit()
+	rootCmd.AddCommand(downloaderCmd)
+	downloaderInit()
 }
 
 // Execute primary function for cobra
