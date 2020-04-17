@@ -13,9 +13,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io"
-	"log"
 	"os"
 	"strings"
 )

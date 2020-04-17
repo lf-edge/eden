@@ -1,15 +1,13 @@
 package cmd
 
 import (
-	"log"
+	"github.com/lf-edge/eden/pkg/utils"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"math/big"
 	"net"
 	"os"
 	"path"
-
-	"github.com/lf-edge/eden/pkg/utils"
-
-	"github.com/spf13/cobra"
 )
 
 const (

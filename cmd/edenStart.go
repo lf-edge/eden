@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/lf-edge/eden/pkg/utils"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
+	"github.com/spf13/viper"
 	"os"
 	"path"
 	"path/filepath"
@@ -26,6 +28,29 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start harness",
 	Long:  `Start harness.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		viperLoaded, err := loadViperConfig()
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		if viperLoaded {
+			adamPort = viper.GetString("adam-port")
+			adamDist = viper.GetString("adam-dist")
+			adamForce = viper.GetBool("adam-force")
+			eserverImageDist = viper.GetString("image-dist")
+			eserverPort = viper.GetString("eserver-port")
+			eserverPidFile = viper.GetString("eserver-pid")
+			eserverLogFile = viper.GetString("eserver-log")
+			qemuARCH = viper.GetString("eve-arch")
+			qemuOS = viper.GetString("eve-os")
+			qemuAccel = viper.GetBool("eve-accel")
+			qemuSMBIOSSerial = viper.GetString("eve-serial")
+			qemuConfigFile = viper.GetString("eve-config")
+			evePidFile = viper.GetString("eve-pid")
+			eveLogFile = viper.GetString("eve-log")
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		adamPath, err := filepath.Abs(adamDist)
 		if err != nil {
@@ -35,22 +60,25 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		log.Printf("Executable path: %s", command)
+		log.Infof("Executable path: %s", command)
 		err = utils.StartAdam(adamPort, adamPath, adamForce)
 		if err != nil {
-			log.Fatalf("cannot start adam: %s", err)
+			log.Errorf("cannot start adam: %s", err)
+		} else {
+			log.Infof("Adam is running and accesible on port %s", adamPort)
 		}
-		log.Printf("Adam is running and accesible on port %s", adamPort)
 		err = utils.StartEServer(command, eserverPort, eserverImageDist, eserverLogFile, eserverPidFile)
 		if err != nil {
-			log.Fatalf("cannot start eserver: %s", err)
+			log.Errorf("cannot start eserver: %s", err)
+		} else {
+			log.Infof("Eserver is running and accesible on port %s", eserverPort)
 		}
-		log.Printf("Eserver is running and accesible on port %s", eserverPort)
 		err = utils.StartEVEQemu(command, qemuARCH, qemuOS, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile)
 		if err != nil {
-			log.Fatalf("cannot start eve: %s", err)
+			log.Errorf("cannot start eve: %s", err)
+		} else {
+			log.Infof("EVE is running")
 		}
-		log.Printf("EVE is running")
 	},
 }
 
@@ -73,4 +101,9 @@ func startInit() {
 	startCmd.Flags().StringVarP(&qemuConfigFile, "eve-config", "", path.Join(currentPath, "dist", "qemu.conf"), "config file to use")
 	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", path.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", path.Join(currentPath, "dist", "eve.log"), "file for save EVE log")
+	err = viper.BindPFlags(startCmd.Flags())
+	if err != nil {
+		log.Fatal(err)
+	}
+	startCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }
