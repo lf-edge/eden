@@ -57,7 +57,13 @@ func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid
 func RunCommandNohup(name string, logFile string, pidFile string, args ...string) (err error) {
 	cmd := exec.Command(name, args...)
 	if logFile != "" {
-		file, err := os.Create(logFile)
+		var file io.Writer
+		_, err := os.Stat(logFile)
+		if !os.IsNotExist(err) {
+			file, err = os.OpenFile(logFile, os.O_RDWR|os.O_APPEND, 0666)
+		} else {
+			file, err = os.Create(logFile)
+		}
 		if err != nil {
 			return err
 		}
@@ -125,6 +131,10 @@ func StatusCommandWithPid(pidFile string) (status string, err error) {
 	}
 	_, err = os.FindProcess(pid)
 	if err != nil {
+		return "not found", nil
+	}
+	killErr := syscall.Kill(pid, syscall.Signal(0))
+	if killErr != nil {
 		return "not found", nil
 	}
 	return "running", nil

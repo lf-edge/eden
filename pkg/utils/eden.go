@@ -14,27 +14,28 @@ const (
 //if adamForce is set, it recreates container
 func StartAdam(adamPort string, adamPath string, adamForce bool) (err error) {
 	if adamForce {
-		_, _, err = RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("rm -f %s", adamContainerName))...)
+		err = StopContainer(adamContainerName, true)
 		if err != nil {
 			return fmt.Errorf("error in rm adam container: %s", err)
 		}
-		stringArgs := fmt.Sprintf("run --name %s -d -v %s/run:/adam/run -p %s:8080 %s server --conf-dir /tmp", adamContainerName, adamPath, adamPort, adamContainerRef)
-		_, _, err = RunCommandAndWait("docker", strings.Fields(stringArgs)...)
+		err = CreateAndRunContainer(adamContainerName, adamContainerRef, map[string]string{"8080": adamPort}, map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}, strings.Fields("server --conf-dir /tmp"))
 		if err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}
 	} else {
-		_, stderr, err := RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("top %s", adamContainerName))...)
-		if strings.Contains(stderr, "is not running") {
-			_, _, err = RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("start %s", adamContainerName))...)
-			if err != nil {
-				return fmt.Errorf("error in restart adam container: %s", err)
-			}
-		} else if strings.Contains(stderr, "No such container") {
-			stringArgs := fmt.Sprintf("run --name %s -d -v %s/run:/adam/run -p %s:8080 %s server --conf-dir /tmp", adamContainerName, adamPath, adamPort, adamContainerRef)
-			_, _, err = RunCommandAndWait("docker", strings.Fields(stringArgs)...)
+		state, err := StateContainer(adamContainerName)
+		if err != nil {
+			return fmt.Errorf("error in get state of adam container: %s", err)
+		}
+		if state == "" {
+			err = CreateAndRunContainer(adamContainerName, adamContainerRef, map[string]string{"8080": adamPort}, map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}, strings.Fields("server --conf-dir /tmp"))
 			if err != nil {
 				return fmt.Errorf("error in create adam container: %s", err)
+			}
+		} else if state != "running" {
+			err = StartContainer(adamContainerName)
+			if err != nil {
+				return fmt.Errorf("error in restart adam container: %s", err)
 			}
 		}
 	}
@@ -43,24 +44,27 @@ func StartAdam(adamPort string, adamPath string, adamForce bool) (err error) {
 
 //StopAdam function stop adam container
 func StopAdam(adamRm bool) (err error) {
-	_, stderr, err := RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("top %s", adamContainerName))...)
-	if strings.Contains(stderr, "is not running") {
+	state, err := StateContainer(adamContainerName)
+	if err != nil {
+		return fmt.Errorf("error in get state of adam container: %s", err)
+	}
+	if state != "running" {
 		if adamRm {
-			_, _, err = RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("rm %s", adamContainerName))...)
+			err = StopContainer(adamContainerName, true)
 			if err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		}
-	} else if strings.Contains(stderr, "No such container") {
+	} else if state == "" {
 		return nil
 	} else {
 		if adamRm {
-			_, _, err = RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("stop %s", adamContainerName))...)
+			err = StopContainer(adamContainerName, false)
 			if err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		} else {
-			_, _, err = RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("rm -f %s", adamContainerName))...)
+			err = StopContainer(adamContainerName, true)
 			if err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
@@ -71,17 +75,14 @@ func StopAdam(adamRm bool) (err error) {
 
 //StatusAdam function return status of adam
 func StatusAdam() (status string, err error) {
-	_, stderr, err := RunCommandAndWait("docker", strings.Fields(fmt.Sprintf("top %s", adamContainerName))...)
-	if strings.Contains(stderr, "is not running") {
-		return "adam container not running", nil
-	} else if strings.Contains(stderr, "No such container") {
+	state, err := StateContainer(adamContainerName)
+	if err != nil {
+		return "", fmt.Errorf("error in get state of adam container: %s", err)
+	}
+	if state == "" {
 		return "adam container not exists", nil
 	}
-	if err == nil {
-		return "adam container is running", nil
-	} else {
-		return "", fmt.Errorf("error in top adam container: %s", err)
-	}
+	return state, nil
 }
 
 //StartEServer function run eserver to serve images

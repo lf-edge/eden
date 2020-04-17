@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/lf-edge/eden/pkg/utils"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"path/filepath"
 )

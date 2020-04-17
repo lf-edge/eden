@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -24,7 +24,7 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		http.Handle("/", http.FileServer(http.Dir(serverDir)))
 
-		log.Printf("Serving %s on HTTP port: %s\n", serverDir, serverPort)
+		log.Infof("Serving %s on HTTP port: %s\n", serverDir, serverPort)
 		log.Fatal(http.ListenAndServe(":"+serverPort, nil))
 	},
 }
