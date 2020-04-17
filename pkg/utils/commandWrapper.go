@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -41,14 +41,12 @@ func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid
 			}
 		}()
 	}
-	err = cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		return 0, err
 	}
 	pid = cmd.Process.Pid
 	go func() {
-		err = cmd.Wait()
-		log.Printf("Command finished with error: %v", err)
+		log.Printf("Command finished with error: %v", cmd.Wait())
 	}()
 	return pid, nil
 }
@@ -71,13 +69,11 @@ func RunCommandNohup(name string, logFile string, pidFile string, args ...string
 		cmd.Stderr = file
 	}
 	if pidFile != "" {
-		_, err := os.Stat(pidFile)
-		if !os.IsNotExist(err) {
+		if _, err := os.Stat(pidFile); !os.IsNotExist(err) {
 			return fmt.Errorf("pid file already exists")
 		}
 	}
-	err = cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		return err
 	}
 	if pidFile != "" {
@@ -85,12 +81,10 @@ func RunCommandNohup(name string, logFile string, pidFile string, args ...string
 		if err != nil {
 			return err
 		}
-		_, err = file.Write([]byte(strconv.Itoa(cmd.Process.Pid)))
-		if err != nil {
+		if _, err = file.Write([]byte(strconv.Itoa(cmd.Process.Pid))); err != nil {
 			return err
 		}
-		err = file.Close()
-		if err != nil {
+		if err = file.Close(); err != nil {
 			return err
 		}
 	}
@@ -103,16 +97,14 @@ func StopCommandWithPid(pidFile string) (err error) {
 	if err != nil {
 		return fmt.Errorf("cannot open pid file %s: %s", pidFile, err)
 	}
-	err = os.Remove(pidFile)
-	if err != nil {
+	if err = os.Remove(pidFile); err != nil {
 		return fmt.Errorf("cannot delete pid file %s: %s", pidFile, err)
 	}
 	pid, err := strconv.Atoi(string(content))
 	if err != nil {
 		return fmt.Errorf("cannot parse pid from file %s: %s", pidFile, err)
 	}
-	err = syscall.Kill(pid, syscall.SIGKILL)
-	if err != nil {
+	if err = syscall.Kill(pid, syscall.SIGKILL); err != nil {
 		return fmt.Errorf("cannot kill process with pid: %d", pid)
 	}
 
@@ -129,12 +121,10 @@ func StatusCommandWithPid(pidFile string) (status string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot parse pid from file %s: %s", pidFile, err)
 	}
-	_, err = os.FindProcess(pid)
-	if err != nil {
+	if _, err = os.FindProcess(pid); err != nil {
 		return "not found", nil
 	}
-	killErr := syscall.Kill(pid, syscall.Signal(0))
-	if killErr != nil {
+	if err = syscall.Kill(pid, syscall.Signal(0)); err != nil {
 		return "not found", nil
 	}
 	return "running", nil
@@ -154,13 +144,9 @@ func RunCommandForeground(name string, args ...string) (err error) {
 	cmd.Stderr = os.Stderr
 	go func() {
 		<-sigChan
-		err = cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 	}()
-	err = cmd.Run()
-	if err != nil {
-		return
-	}
-	return nil
+	return cmd.Run()
 }
 
 //RunCommandAndWait run process in foreground
@@ -170,8 +156,7 @@ func RunCommandAndWait(name string, args ...string) (stdout string, stderr strin
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = &stdoutBuffer
 	cmd.Stderr = &stderrBuffer
-	err = cmd.Run()
-	return stdoutBuffer.String(), stderrBuffer.String(), err
+	return stdoutBuffer.String(), stderrBuffer.String(), cmd.Run()
 }
 
 //RunCommandWithSTDINAndWait run process in foreground with stdin passed as arg
@@ -182,6 +167,5 @@ func RunCommandWithSTDINAndWait(name string, stdin string, args ...string) (stdo
 	cmd.Stdin = strings.NewReader(stdin)
 	cmd.Stdout = &stdoutBuffer
 	cmd.Stderr = &stderrBuffer
-	err = cmd.Run()
-	return stdoutBuffer.String(), stderrBuffer.String(), err
+	return stdoutBuffer.String(), stderrBuffer.String(), cmd.Run()
 }

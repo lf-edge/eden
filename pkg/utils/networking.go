@@ -3,7 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/url"
 	"strings"

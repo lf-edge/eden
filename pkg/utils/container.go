@@ -22,8 +22,7 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 		return err
 	}
 
-	_, err = cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
-	if err != nil {
+	if _, err = cli.ImagePull(ctx, imageName, types.ImagePullOptions{}); err != nil {
 		return err
 	}
 	portBinding := nat.PortMap{}
@@ -94,22 +93,19 @@ func StopContainer(containerName string, remove bool) error {
 		if isFound {
 			if cont.State != "running" {
 				if remove {
-					err = cli.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{})
-					if err != nil {
+					if err = cli.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{}); err != nil {
 						return err
 					}
 				}
 				return nil
 			}
 			if remove {
-				err := cli.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{Force: true})
-				if err != nil {
+				if err = cli.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{Force: true}); err != nil {
 					return err
 				}
 			} else {
 				timeout := time.Duration(10) * time.Second
-				err = cli.ContainerStop(ctx, cont.ID, &timeout)
-				if err != nil {
+				if err = cli.ContainerStop(ctx, cont.ID, &timeout); err != nil {
 					return err
 				}
 			}
@@ -166,8 +162,7 @@ func StartContainer(containerName string) error {
 			}
 		}
 		if isFound {
-			err = cli.ContainerStart(ctx, cont.ID, types.ContainerStartOptions{})
-			if err != nil {
+			if err = cli.ContainerStart(ctx, cont.ID, types.ContainerStartOptions{}); err != nil {
 				return err
 			}
 			break

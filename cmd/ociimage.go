@@ -72,18 +72,15 @@ var ociImageCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = tarball.WriteToFile(fileToSave, ref, img)
-		if err != nil {
+		if err := tarball.WriteToFile(fileToSave, ref, img); err != nil {
 			log.Fatal(err)
 		}
 
 		// add the imageManifest to the tar file
-		err = appendImageManifest(fileToSave, imageManifest)
-		if err != nil {
+		if err := appendImageManifest(fileToSave, imageManifest); err != nil {
 			log.Fatalf("unable to append image manifest to tar at %s: %v", fileToSave, err)
 		}
-		err = appendImageRepositories(fileToSave, registry, image, imageManifest)
-		if err != nil {
+		if err := appendImageRepositories(fileToSave, registry, image, imageManifest); err != nil {
 			log.Fatalf("unable to append image manifest to tar at %s: %v", fileToSave, err)
 		}
 	},

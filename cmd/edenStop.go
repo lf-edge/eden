@@ -31,16 +31,13 @@ var stopCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := utils.StopAdam(adamRm)
-		if err != nil {
+		if err := utils.StopAdam(adamRm); err != nil {
 			log.Errorf("cannot stop adam: %s", err)
 		}
-		err = utils.StopEServer(eserverPidFile)
-		if err != nil {
+		if err := utils.StopEServer(eserverPidFile); err != nil {
 			log.Errorf("cannot stop eserver: %s", err)
 		}
-		err = utils.StopEVEQemu(evePidFile)
-		if err != nil {
+		if err := utils.StopEVEQemu(evePidFile); err != nil {
 			log.Errorf("cannot stop EVE: %s", err)
 		}
 	},
@@ -54,8 +51,7 @@ func stopInit() {
 	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
 	stopCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", path.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", path.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
-	err = viper.BindPFlags(stopCmd.Flags())
-	if err != nil {
+	if err := viper.BindPFlags(stopCmd.Flags()); err != nil {
 		log.Fatal(err)
 	}
 	stopCmd.Flags().StringVar(&config, "config", "", "path to config file")

@@ -188,7 +188,7 @@ func WriteToFiles(crt *x509.Certificate, key interface{}, certFile string, keyFi
 			return err
 		}
 	default:
-		err = errors.New("unknown key format")
+		return errors.New("unknown key format")
 	}
 	if err := keyOut.Close(); err != nil {
 		return err

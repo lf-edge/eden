@@ -54,8 +54,7 @@ func statusInit() {
 	}
 	statusCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", path.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", path.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
-	err = viper.BindPFlags(statusCmd.Flags())
-	if err != nil {
+	if err := viper.BindPFlags(statusCmd.Flags()); err != nil {
 		log.Fatal(err)
 	}
 	statusCmd.Flags().StringVar(&config, "config", "", "path to config file")
