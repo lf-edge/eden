@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/amitbet/vncproxy/client"
 	"github.com/amitbet/vncproxy/logger"
+	log "github.com/sirupsen/logrus"
 	"net"
 )
 
@@ -13,7 +14,7 @@ func GetDesktopName(address string, password string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("fail in connect to VNC: %s", err)
 	}
-	logger.SetLogLevel("fatal")
+	logger.SetLogLevel(log.GetLevel().String())
 	var noAuth client.ClientAuthNone
 	var authArr []client.ClientAuth
 	if password == "" {
@@ -29,8 +30,7 @@ func GetDesktopName(address string, password string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("fail in NewClientConn: %s", err)
 	}
-	err = connVNC.Connect()
-	if err != nil {
+	if err = connVNC.Connect(); err != nil {
 		return "", fmt.Errorf("fail in connect with NewClientConn: %s", err)
 	}
 	defer connVNC.Close()

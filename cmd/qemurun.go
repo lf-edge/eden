@@ -65,13 +65,11 @@ var qemuRunCmd = &cobra.Command{
 			qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 		}
 		if qemuForeground {
-			err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...)
-			if err != nil {
+			if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {
 				log.Fatal(err)
 			}
 		} else {
-			err := utils.RunCommandNohup(qemuCommand, qemuLogFile, qemuPidFile, strings.Fields(qemuOptions)...)
-			if err != nil {
+			if err := utils.RunCommandNohup(qemuCommand, qemuLogFile, qemuPidFile, strings.Fields(qemuOptions)...); err != nil {
 				log.Fatal(err)
 			}
 		}

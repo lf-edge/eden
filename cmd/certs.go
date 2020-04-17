@@ -28,20 +28,16 @@ var certsCmd = &cobra.Command{
 	Short: "manage certs",
 	Long:  `Managed certificates for Adam and EVE.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
 		rootCert, rootKey := utils.GenCARoot()
 		ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), []net.IP{net.ParseIP(certsIP)}, []string{certsDomain}, certsDomain)
 		ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, certsUUID)
-		err = utils.WriteToFiles(rootCert, rootKey, path.Join(certsDir, "root-certificate.pem"), path.Join(certsDir, "root-certificate.key"))
-		if err != nil {
+		if err := utils.WriteToFiles(rootCert, rootKey, path.Join(certsDir, "root-certificate.pem"), path.Join(certsDir, "root-certificate.key")); err != nil {
 			log.Fatal(err)
 		}
-		err = utils.WriteToFiles(ServerCert, ServerKey, path.Join(certsDir, "server.pem"), path.Join(certsDir, "server-key.pem"))
-		if err != nil {
+		if err := utils.WriteToFiles(ServerCert, ServerKey, path.Join(certsDir, "server.pem"), path.Join(certsDir, "server-key.pem")); err != nil {
 			log.Fatal(err)
 		}
-		err = utils.WriteToFiles(ClientCert, ClientKey, path.Join(certsDir, "onboard.cert.pem"), path.Join(certsDir, "onboard.key.pem"))
-		if err != nil {
+		if err := utils.WriteToFiles(ClientCert, ClientKey, path.Join(certsDir, "onboard.cert.pem"), path.Join(certsDir, "onboard.key.pem")); err != nil {
 			log.Fatal(err)
 		}
 	},

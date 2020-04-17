@@ -86,8 +86,7 @@ var qemuConfCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = f.Close()
-		if err != nil {
+		if err := f.Close(); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -103,8 +102,7 @@ func qemuConfInit() {
 	qemuConfCmd.Flags().StringToStringVarP(&qemuHostFwd, "hostfwd", "", qemuHostFwd, "port forward map")
 	qemuConfCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
 	qemuConfCmd.Flags().StringVarP(&qemuImagePath, "image-part", "", "", "path for image drive (required)")
-	err := cobra.MarkFlagRequired(qemuConfCmd.Flags(), "image-part")
-	if err != nil {
+	if err := cobra.MarkFlagRequired(qemuConfCmd.Flags(), "image-part"); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -40,8 +40,7 @@ func RequestHTTPRepeatWithTimeout(url string, returnEmpty bool, timeoutSeconds t
 			case <-quit:
 				return
 			default:
-				body, err := RequestHTTPWithTimeout(url, 5)
-				if err == nil {
+				if body, err := RequestHTTPWithTimeout(url, 5); err == nil {
 					result := strings.TrimSpace(body)
 					if returnEmpty || result != "" {
 						done <- result

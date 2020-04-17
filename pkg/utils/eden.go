@@ -13,13 +13,14 @@ const (
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
 func StartAdam(adamPort string, adamPath string, adamForce bool) (err error) {
+	portMap := map[string]string{"8080": adamPort}
+	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
+	adamServerCommand := strings.Fields("server --conf-dir /tmp")
 	if adamForce {
-		err = StopContainer(adamContainerName, true)
-		if err != nil {
+		if err := StopContainer(adamContainerName, true); err != nil {
 			return fmt.Errorf("error in rm adam container: %s", err)
 		}
-		err = CreateAndRunContainer(adamContainerName, adamContainerRef, map[string]string{"8080": adamPort}, map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}, strings.Fields("server --conf-dir /tmp"))
-		if err != nil {
+		if err := CreateAndRunContainer(adamContainerName, adamContainerRef, portMap, volumeMap, adamServerCommand); err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}
 	} else {
@@ -28,13 +29,11 @@ func StartAdam(adamPort string, adamPath string, adamForce bool) (err error) {
 			return fmt.Errorf("error in get state of adam container: %s", err)
 		}
 		if state == "" {
-			err = CreateAndRunContainer(adamContainerName, adamContainerRef, map[string]string{"8080": adamPort}, map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}, strings.Fields("server --conf-dir /tmp"))
-			if err != nil {
+			if err := CreateAndRunContainer(adamContainerName, adamContainerRef, portMap, volumeMap, adamServerCommand); err != nil {
 				return fmt.Errorf("error in create adam container: %s", err)
 			}
 		} else if state != "running" {
-			err = StartContainer(adamContainerName)
-			if err != nil {
+			if err := StartContainer(adamContainerName); err != nil {
 				return fmt.Errorf("error in restart adam container: %s", err)
 			}
 		}
@@ -50,8 +49,7 @@ func StopAdam(adamRm bool) (err error) {
 	}
 	if state != "running" {
 		if adamRm {
-			err = StopContainer(adamContainerName, true)
-			if err != nil {
+			if err := StopContainer(adamContainerName, true); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		}
@@ -59,13 +57,11 @@ func StopAdam(adamRm bool) (err error) {
 		return nil
 	} else {
 		if adamRm {
-			err = StopContainer(adamContainerName, false)
-			if err != nil {
+			if err := StopContainer(adamContainerName, false); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		} else {
-			err = StopContainer(adamContainerName, true)
-			if err != nil {
+			if err := StopContainer(adamContainerName, true); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		}

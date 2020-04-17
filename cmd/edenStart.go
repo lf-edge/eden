@@ -61,20 +61,17 @@ var startCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
-		err = utils.StartAdam(adamPort, adamPath, adamForce)
-		if err != nil {
+		if err := utils.StartAdam(adamPort, adamPath, adamForce); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accesible on port %s", adamPort)
 		}
-		err = utils.StartEServer(command, eserverPort, eserverImageDist, eserverLogFile, eserverPidFile)
-		if err != nil {
+		if err := utils.StartEServer(command, eserverPort, eserverImageDist, eserverLogFile, eserverPidFile); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
 			log.Infof("Eserver is running and accesible on port %s", eserverPort)
 		}
-		err = utils.StartEVEQemu(command, qemuARCH, qemuOS, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile)
-		if err != nil {
+		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
 			log.Infof("EVE is running")
@@ -101,8 +98,7 @@ func startInit() {
 	startCmd.Flags().StringVarP(&qemuConfigFile, "eve-config", "", path.Join(currentPath, "dist", "qemu.conf"), "config file to use")
 	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", path.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", path.Join(currentPath, "dist", "eve.log"), "file for save EVE log")
-	err = viper.BindPFlags(startCmd.Flags())
-	if err != nil {
+	if err := viper.BindPFlags(startCmd.Flags()); err != nil {
 		log.Fatal(err)
 	}
 	startCmd.Flags().StringVar(&config, "config", "", "path to config file")

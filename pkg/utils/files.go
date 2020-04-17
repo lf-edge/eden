@@ -16,8 +16,7 @@ func SHA256SUM(filePath string) (result string, err error) {
 	defer file.Close()
 
 	hash := sha256.New()
-	_, err = io.Copy(hash, file)
-	if err != nil {
+	if _, err = io.Copy(hash, file); err != nil {
 		return
 	}
 
