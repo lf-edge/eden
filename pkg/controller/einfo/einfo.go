@@ -38,6 +38,8 @@ type zInfoPacket struct {
 type ZInfoType *zInfoPacket
 
 var (
+	//ZInfoDinfo can be used for filter GetNiinfo
+	ZInfoDinfo ZInfoType = &zInfoPacket{upperType: "GetDinfo"}
 	//ZInfoDevSW can be used for filter GetDinfo SwList
 	ZInfoDevSW ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "SwList"}
 	//ZInfoNetwork can be used for filter GetDinfo Network
@@ -331,24 +333,37 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 	return matched
 }
 
-//InfoChecker check info by pattern from existence files with InfoLast and use InfoWatchWithTimeout with timeout for observe new files
-func InfoChecker(dir string, q map[string]string, infoType ZInfoType, timeout time.Duration) (err error) {
+// InfoChecker modes InfoExist, InfoNew and InfoAny.
+const (
+	InfoExist = iota // just look to existing files
+	InfoNew          // wait for new files
+	InfoAny          // use both mechanisms
+)
+
+//InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout.
+func InfoChecker(dir string, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode int, timeout time.Duration) (err error) {
 	done := make(chan error)
 
-	go func() {
-		err = InfoWatchWithTimeout(dir, q, ZInfoFind, HandleFirst, infoType, timeout)
-		done <- err
-	}()
-	go func() {
-		handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
-			ZInfoPrn(im, ds, infoType)
-			done <- nil
-			return true
-		}
-		err = InfoLast(dir, q, ZInfoFind, handler, infoType)
-		if err != nil {
+	// observe new files
+	if mode == InfoNew || mode == InfoAny {
+		go func() {
+			err = InfoWatchWithTimeout(dir, query, ZInfoFind, handler, infoType, timeout)
 			done <- err
-		}
-	}()
+		}()
+	}
+	// check info by pattern in existing files
+	if mode == InfoExist || mode == InfoAny {	
+		go func() {
+			handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
+				handler(im, ds, infoType)
+				done <- nil
+				return true
+			}
+			err = InfoLast(dir, query, ZInfoFind, handler, infoType)
+			if err != nil {
+				done <- err
+			}
+		}()
+	}
 	return <-done
 }
