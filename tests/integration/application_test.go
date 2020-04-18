@@ -162,7 +162,7 @@ func TestApplication(t *testing.T) {
 				t.Fatal("Fail in sync config with controller: ", err)
 			}
 			t.Run("Started", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID}, einfo.ZInfoAppInstance, 1200)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID}, einfo.ZInfoAppInstance, einfo.HandleFirst, einfo.InfoAny, 1200)
 				if err != nil {
 					t.Fatal("Fail in waiting for app started status: ", err)
 				}
@@ -191,7 +191,7 @@ func TestApplication(t *testing.T) {
 				timeout = 2400
 			}
 			t.Run("Running", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID, "state": "RUNNING"}, einfo.ZInfoAppInstance, timeout)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID, "state": "RUNNING"}, einfo.ZInfoAppInstance, einfo.HandleFirst, einfo.InfoAny, timeout)
 				if err != nil {
 					t.Fatal("Fail in waiting for app running status: ", err)
 				}

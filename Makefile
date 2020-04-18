@@ -47,6 +47,9 @@ test_network_instance: test_controller
 test_application_instance: test_controller test_network_instance
 	go test ./tests/integration/application_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
 
+test_reboot:
+	LOGS=$(LOGS) ADAM_IP=$(IP) ADAM_DIST=$(ADAM_DIST) EVE_BASE_REF=$(EVE_BASE_REF) ZARCH=$(ZARCH) ADAM_PORT=$(ADAM_PORT) ADAM_CA=$(ADAM_CA) EVE_CERT=$(EVE_CERT) SSH_KEY=$(CERTS_DIST)/id_rsa.pub go test ./tests/integration/reboot_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
+
 test: test_base_image test_network_instance test_application_instance
 
 bin: $(BIN)

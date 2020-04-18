@@ -107,7 +107,7 @@ func TestControllerInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
-	err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String()}, einfo.ZInfoDevSW, 300)
+	err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String()}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 300)
 	if err != nil {
 		t.Fatal("Fail in waiting for info: ", err)
 	}
