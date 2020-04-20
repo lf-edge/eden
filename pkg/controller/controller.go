@@ -13,7 +13,7 @@ type Controller interface {
 	ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error)
 	LogChecker(devUUID uuid.UUID, q map[string]string, timeout time.Duration) (err error)
 	LogLastCallback(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc) (err error)
-	InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode int, timeout time.Duration) (err error)
+	InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error)
 	InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc) (err error)
 	OnBoardList() (out []string, err error)
 	DeviceList() (out []string, err error)
