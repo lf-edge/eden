@@ -3,9 +3,11 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -57,4 +59,20 @@ func RequestHTTPRepeatWithTimeout(url string, returnEmpty bool, timeoutSeconds t
 		close(quit)
 		return "", errors.New("timeout")
 	}
+}
+
+//DownloadFile download a url to a local file.
+func DownloadFile(filepath string, url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, resp.Body)
+	return err
 }

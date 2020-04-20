@@ -4,30 +4,15 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eve/api/go/config"
-	"os"
 	"testing"
 	"time"
 )
 
 //TestBaseImage test base image loading into eve
-//environment variable EVE_BASE_REF - version of eve image
-//environment variable ZARCH - architecture of eve image
 func TestBaseImage(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
 		t.Fatal("Fail in controller prepare: ", err)
-	}
-	eveBaseRef := os.Getenv("EVE_BASE_REF")
-	if len(eveBaseRef) == 0 {
-		eveBaseRef = "4.10.0"
-	}
-	zArch := os.Getenv("ZARCH")
-	if len(eveBaseRef) == 0 {
-		zArch = "amd64"
-	}
-	HV := os.Getenv("HV")
-	if HV == "xen" {
-		HV = ""
 	}
 	var baseImageTests = []struct {
 		dataStoreID       string
@@ -47,9 +32,9 @@ func TestBaseImage(t *testing.T) {
 
 			"baseos.qcow2",
 			config.Format_QCOW2,
-			eveBaseRef,
+			eveBaseTag,
 			zArch,
-			HV,
+			eveHV,
 		},
 	}
 	for _, tt := range baseImageTests {

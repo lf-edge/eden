@@ -55,5 +55,4 @@ The current sub-commands are:
    * `logwatch` -- Log-files monitoring tool with regular expression quering to json fields;
    * `server` -- micro HTTP-server for providing of baseOS and Apps images;
    * `ociimage` -- save oci image from local or remote registry to tar file for consumption by EVE;
-   * `qemuconf` -- generates qemu configuration file;
-   * `qemurun` -- runs qemu-system with EVE.
+   * `eve` -- sub-commands for interact with EVE.

@@ -2,15 +2,11 @@ package integration
 
 import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
-	"os"
-	"path"
 	"testing"
 	"time"
 )
 
 //TestAdamOnBoard test onboarding into controller
-//environment variable EVE_CERT - path to eve onboarding cert
-//environment variable EVE_SERIAL - serial number of eve
 func TestAdamOnBoard(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if ctx == nil {
@@ -18,16 +14,8 @@ func TestAdamOnBoard(t *testing.T) {
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if devUUID == nil {
-		eveCert := os.Getenv("EVE_CERT")
-		if len(eveCert) == 0 {
-			eveCert = path.Join(ctx.GetDir(), "run", "config", "onboard.cert.pem")
-		}
-		serial := os.Getenv("EVE_SERIAL")
-		if len(serial) == 0 {
-			serial = "31415926"
-		}
 		t.Logf("Try to add onboarding")
-		err = ctx.Register(eveCert, serial)
+		err = ctx.Register(eveCert, eveSerial)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -60,7 +48,7 @@ func TestAdamOnBoard(t *testing.T) {
 	}
 }
 
-//TestAdamOnBoard test config set via controller
+//TestControllerSetConfig test config set via controller
 func TestControllerSetConfig(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
@@ -76,7 +64,7 @@ func TestControllerSetConfig(t *testing.T) {
 	}
 }
 
-//TestAdamOnBoard test config get via controller
+//TestControllerGetConfig test config get via controller
 func TestControllerGetConfig(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {
@@ -109,7 +97,7 @@ func TestControllerLogs(t *testing.T) {
 	}
 }
 
-//TestAdamOnBoard test info flow
+//TestControllerInfo test info flow
 func TestControllerInfo(t *testing.T) {
 	ctx, err := controllerPrepare()
 	if err != nil {

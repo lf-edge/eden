@@ -9,6 +9,7 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"path"
@@ -16,11 +17,16 @@ import (
 )
 
 var (
-	adamIP   string
-	adamPort string
-	adamDir  string
-	adamCA   string
-	sshKey   string
+	adamIP     string
+	adamPort   string
+	adamDir    string
+	adamCA     string
+	sshKey     string
+	eveCert    string
+	eveSerial  string
+	eveBaseTag string
+	eveHV      string
+	zArch      string
 )
 
 type netInst struct {
@@ -125,30 +131,77 @@ var checkLogs = false
 //environment variable ADAM_DIST - directory of adam (absolute path)
 //environment variable ADAM_CA - CA file of adam for https
 //environment variable SSH_KEY - ssh public key for integrate into eve
+//environment variable EVE_CERT - path to eve onboarding cert
+//environment variable EVE_SERIAL - serial number of eve
+//environment variable EVE_BASE_REF - version of eve image
+//environment variable ZARCH - architecture of eve image
+//environment variable HV - hypervisor of eve image
 func envRead() error {
-	currentPath, err := os.Getwd()
-	adamIP = os.Getenv("ADAM_IP")
-	if len(adamIP) == 0 {
-		adamIP, err = utils.GetIPForDockerAccess()
-		if err != nil {
-			return err
+	configPath, err := utils.DefaultConfigPath()
+	if err != nil {
+		return err
+	}
+	loaded, err := utils.LoadViperConfig(configPath)
+	if err != nil {
+		return err
+	}
+	if !loaded {
+		currentPath, err := os.Getwd()
+		adamIP = os.Getenv("ADAM_IP")
+		if len(adamIP) == 0 {
+			adamIP, err = utils.GetIPForDockerAccess()
+			if err != nil {
+				return err
+			}
 		}
-	}
-	adamPort = os.Getenv("ADAM_PORT")
-	if len(adamPort) == 0 {
-		adamPort = "3333"
-	}
-	adamDir = os.Getenv("ADAM_DIST")
-	if len(adamDir) == 0 {
-		adamDir = path.Join(filepath.Dir(filepath.Dir(currentPath)), "dist", "adam")
-		if stat, err := os.Stat(adamDir); err != nil || !stat.IsDir() {
-			return err
+		adamPort = os.Getenv("ADAM_PORT")
+		if len(adamPort) == 0 {
+			adamPort = "3333"
 		}
-	}
+		adamDir = os.Getenv("ADAM_DIST")
+		if len(adamDir) == 0 {
+			adamDir = path.Join(filepath.Dir(filepath.Dir(currentPath)), "dist", "adam")
+			if stat, err := os.Stat(adamDir); err != nil || !stat.IsDir() {
+				return err
+			}
+		}
 
-	adamCA = os.Getenv("ADAM_CA")
-	sshKey = os.Getenv("SSH_KEY")
-	checkLogs = os.Getenv("LOGS") != ""
+		adamCA = os.Getenv("ADAM_CA")
+		sshKey = os.Getenv("SSH_KEY")
+		checkLogs = os.Getenv("LOGS") != ""
+		eveCert = os.Getenv("EVE_CERT")
+		if len(eveCert) == 0 {
+			eveCert = path.Join(adamDir, "run", "config", "onboard.cert.pem")
+		}
+		eveSerial = os.Getenv("EVE_SERIAL")
+		if len(eveSerial) == 0 {
+			eveSerial = "31415926"
+		}
+		eveBaseTag = os.Getenv("EVE_BASE_REF")
+		if len(eveBaseTag) == 0 {
+			eveBaseTag = "4.10.0"
+		}
+		zArch = os.Getenv("ZARCH")
+		if len(eveBaseTag) == 0 {
+			zArch = "amd64"
+		}
+		eveHV = os.Getenv("HV")
+		if eveHV == "xen" {
+			eveHV = ""
+		}
+	} else {
+		adamIP = viper.GetString("ip")
+		adamPort = viper.GetString("adam-port")
+		adamDir = viper.GetString("adam-dist")
+		adamCA = viper.GetString("adam-ca")
+		sshKey = viper.GetString("ssh-key")
+		checkLogs = viper.GetBool("logs")
+		eveCert = viper.GetString("eve-cert")
+		eveSerial = viper.GetString("eve-serial")
+		eveBaseTag = viper.GetString("eve-base-tag")
+		zArch = viper.GetString("eve-arch")
+		eveHV = viper.GetString("hv")
+	}
 	return nil
 }
 
