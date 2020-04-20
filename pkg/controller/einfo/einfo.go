@@ -8,8 +8,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eve/api/go/info"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"path"
 	"reflect"
 	"regexp"
@@ -198,40 +198,24 @@ func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) [
 	return dsws
 }
 
-//InfoWatchWithTimeout monitors the change of Info files in the 'filepath' directory with 'timeoutSeconds' according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
-func InfoWatchWithTimeout(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error {
-	done := make(chan error)
-	go func() {
-		err := InfoWatch(filepath, query, qhandler, handler, infoType)
-		if err != nil {
-			done <- err
-			return
-		}
-		done <- nil
-	}()
-	select {
-	case err := <-done:
-		return err
-	case <-time.After(timeoutSeconds * time.Second):
-		return errors.New("timeout")
-	}
-}
-
-//InfoWatch monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function.
-func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
+//InfoWatch monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function with 'timeoutSeconds'.
+func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
-	defer watcher.Close()
 
-	done := make(chan bool)
+	if timeoutSeconds == 0 {
+		timeoutSeconds = -1
+	}
+
+	done := make(chan error)
 	go func() {
-		defer func() { done <- true }()
 		for {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
+					done <- errors.New("watcher closed")
 					return
 				}
 				switch event.Op {
@@ -251,6 +235,7 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 					ds := qhandler(&im, query, infoType)
 					if ds != nil {
 						if handler(&im, ds, infoType) {
+							done <- nil
 							return
 						}
 					}
@@ -259,9 +244,13 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
+					done <- err
 					return
 				}
 				log.Printf("error: %s", err)
+			case <-time.After(timeoutSeconds * time.Second):
+				done <- errors.New("timeout")
+				return
 			}
 		}
 	}()
@@ -271,8 +260,9 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 		return err
 	}
 
-	<-done
-	return nil
+	err = <-done
+	_ = watcher.Close()
+	return err
 }
 
 //InfoLast search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
@@ -333,26 +323,29 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 	return matched
 }
 
+//InfoCheckerMode is InfoExist, InfoNew and InfoAny
+type InfoCheckerMode int
+
 // InfoChecker modes InfoExist, InfoNew and InfoAny.
 const (
-	InfoExist = iota // just look to existing files
-	InfoNew          // wait for new files
-	InfoAny          // use both mechanisms
+	InfoExist InfoCheckerMode = iota // just look to existing files
+	InfoNew                          // wait for new files
+	InfoAny                          // use both mechanisms
 )
 
-//InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout.
-func InfoChecker(dir string, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode int, timeout time.Duration) (err error) {
+//InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout (0 for infinite).
+func InfoChecker(dir string, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
 	done := make(chan error)
 
 	// observe new files
 	if mode == InfoNew || mode == InfoAny {
 		go func() {
-			err = InfoWatchWithTimeout(dir, query, ZInfoFind, handler, infoType, timeout)
+			err = InfoWatch(dir, query, ZInfoFind, handler, infoType, timeout)
 			done <- err
 		}()
 	}
 	// check info by pattern in existing files
-	if mode == InfoExist || mode == InfoAny {	
+	if mode == InfoExist || mode == InfoAny {
 		go func() {
 			handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
 				handler(im, ds, infoType)

@@ -90,7 +90,7 @@ func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler
 }
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.
-func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode int, timeout time.Duration) (err error) {
+func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error) {
 	return einfo.InfoChecker(adam.getInfoDir(devUUID), q, infoType, handler, mode, timeout)
 }
 

@@ -2,11 +2,11 @@ package integration
 
 import (
 	"fmt"
-	"testing"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eve/api/go/info"
+	"testing"
 )
 
 var lastRebootTime *timestamp.Timestamp
@@ -22,8 +22,8 @@ func checkRebootTime(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType 
 		lastRebootReason = lrbr
 		rebooted = true
 	} else {
-		fmt.Printf("lastRebootTime: %s\n",lastRebootTime)
-		fmt.Printf("lrbt: %s\n",lrbt)
+		fmt.Printf("lastRebootTime: %s\n", lastRebootTime)
+		fmt.Printf("lrbt: %s\n", lrbt)
 		if proto.Equal(lastRebootTime, lrbt) {
 			rebooted = false
 		} else {
@@ -32,7 +32,7 @@ func checkRebootTime(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType 
 			rebooted = true
 		}
 	}
-	fmt.Printf("rebooted: %v\n",rebooted)
+	fmt.Printf("rebooted: %v\n", rebooted)
 	return rebooted
 }
 
@@ -46,13 +46,13 @@ func TestRebootInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
-	err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String(), "lastRebootTime":".*"}, einfo.ZInfoDinfo, checkRebootTime, einfo.InfoAny, 300)
+	err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String(), "lastRebootTime": ".*"}, einfo.ZInfoDinfo, checkRebootTime, einfo.InfoAny, 300)
 	if err != nil {
 		t.Fatal("Fail in waiting for info: ", err)
 	}
 	t.Logf("1. Rebooted at %s with reason '%s'\n", lastRebootTime, lastRebootReason)
 	for {
-		err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String(), "lastRebootTime":".*"}, einfo.ZInfoDinfo, checkRebootTime, einfo.InfoNew, 3000)
+		err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String(), "lastRebootTime": ".*"}, einfo.ZInfoDinfo, checkRebootTime, einfo.InfoNew, 3000)
 		if err != nil {
 			t.Fatal("Fail in waiting for info: ", err)
 		}

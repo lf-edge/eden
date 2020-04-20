@@ -9,8 +9,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eve/api/go/logs"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"path"
 	"reflect"
 	"regexp"
@@ -102,35 +102,13 @@ func LogPrn(le *LogItem) {
 //or false to continue
 type HandlerFunc func(*LogItem) bool
 
-//LogWatchWithTimeout monitors the change of Log files in the 'filepath' directory
-//with 'timeoutSeconds' according to the 'query' reqexps and
-//processing using the 'handler' function.
-func LogWatchWithTimeout(filepath string, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
-	done := make(chan error)
-	go func() {
-		err := LogWatch(filepath, query, handler)
-		if err != nil {
-			done <- err
-			return
-		}
-		done <- nil
-	}()
-	select {
-	case err := <-done:
-		return err
-	case <-time.After(timeoutSeconds * time.Second):
-		return errors.New("timeout")
-	}
-}
-
 //LogWatch monitors the change of Log files in the 'filepath' directory
 //according to the 'query' reqexps and processing using the 'handler' function.
-func LogWatch(filepath string, query map[string]string, handler HandlerFunc) error {
+func LogWatch(filepath string, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
-	defer watcher.Close()
 	devID, ok := query["devId"]
 	if ok {
 		delete(query, "devId")
@@ -139,13 +117,16 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 	if ok {
 		delete(query, "eveVersion")
 	}
-	done := make(chan bool)
+	if timeoutSeconds == 0 {
+		timeoutSeconds = -1
+	}
+	done := make(chan error)
 	go func() {
-		defer func() { done <- true }()
 		for {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
+					done <- errors.New("watcher closed")
 					return
 				}
 				switch event.Op {
@@ -178,6 +159,7 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 						}
 						if LogItemFind(le, query) == 1 {
 							if handler(&le) {
+								done <- nil
 								return
 							}
 						}
@@ -186,9 +168,13 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
+					done <- err
 					return
 				}
 				log.Printf("error: %s", err)
+			case <-time.After(timeoutSeconds * time.Second):
+				done <- errors.New("timeout")
+				return
 			}
 		}
 	}()
@@ -198,8 +184,9 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc) err
 		return err
 	}
 
-	<-done
-	return nil
+	err = <-done
+	_ = watcher.Close()
+	return err
 }
 
 //LogLast function process Log files in the 'filepath' directory
@@ -265,7 +252,7 @@ func LogLast(filepath string, query map[string]string, handler HandlerFunc) erro
 func LogChecker(dir string, q map[string]string, timeout time.Duration) (err error) {
 	done := make(chan error)
 	go func() {
-		done <- LogWatchWithTimeout(dir, q, HandleFirst, timeout)
+		done <- LogWatch(dir, q, HandleFirst, timeout)
 	}()
 	go func() {
 		handler := func(item *LogItem) bool {
