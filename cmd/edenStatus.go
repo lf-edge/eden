@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 var statusCmd = &cobra.Command{
@@ -15,7 +15,7 @@ var statusCmd = &cobra.Command{
 	Short: "status of harness",
 	Long:  `Status of harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := loadViperConfig()
+		viperLoaded, err := utils.LoadViperConfig(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -52,8 +52,8 @@ func statusInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	statusCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", path.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
-	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", path.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
+	statusCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
+	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
 	if err := viper.BindPFlags(statusCmd.Flags()); err != nil {
 		log.Fatal(err)
 	}

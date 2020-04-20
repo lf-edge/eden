@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"github.com/diskfs/go-diskfs"
 	"github.com/diskfs/go-diskfs/disk"
@@ -9,27 +11,30 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
 
 var eveImageFile = ""
+var eveHV = ""
 
 var confChangerCmd = &cobra.Command{
 	Use:   "confchanger",
 	Short: "change config in EVE image",
 	Long:  `Change config in EVE image.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := loadViperConfig()
+		viperLoaded, err := utils.LoadViperConfig(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
 			eveImageFile = viper.GetString("image-file")
+			qemuConfigPath = viper.GetString("config-part")
+			eveHV = viper.GetString("hv")
 		}
 		return nil
 	},
@@ -59,14 +64,37 @@ var confChangerCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		diskOpen.Table = pt
-		log.Info(pt.Type())
-		size, err := pt.GetPartitionSize(4)
+		rootFSSize, err := pt.GetPartitionSize(2)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Info(size)
-		fspec := disk.FilesystemSpec{Partition: 4, FSType: filesystem.TypeFat32, VolumeLabel: "EVE"}
-		fs, err := diskOpen.CreateFilesystem(fspec)
+		//follow symlinks
+		rootFSPath, err := os.Readlink(filepath.Join(filepath.Dir(eveImageFilePath), "installer", fmt.Sprintf("rootfs-%s.img", eveHV)))
+		if err != nil {
+			log.Fatalf("EvalSymlinks: %s", err)
+		}
+		//use rootfs with selected HV
+		file, err := os.Open(filepath.Join(filepath.Dir(eveImageFilePath), "installer", filepath.Base(rootFSPath)))
+		if err != nil {
+			log.Fatalf("diskRootFS: %s", err)
+		}
+		fileStat, err := file.Stat()
+		if err != nil {
+			log.Fatalf("diskRootFS Stat: %s", err)
+		}
+		//fill bytes with empty values
+		buf := make([]byte, rootFSSize-fileStat.Size())
+		joinedFile := io.MultiReader(file, bytes.NewReader(buf))
+		pr := bufio.NewReader(joinedFile)
+		//copy to partition
+		if _, err = diskOpen.WritePartitionContents(2, pr); err != nil {
+			log.Fatalf("WritePartitionContents: %s", err)
+		}
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+		fSpec := disk.FilesystemSpec{Partition: 4, FSType: filesystem.TypeFat32, VolumeLabel: "EVE"}
+		fs, err := diskOpen.CreateFilesystem(fSpec)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -116,8 +144,9 @@ func confChangerInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	confChangerCmd.Flags().StringVarP(&eveImageFile, "image-file", "", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH, "live.qcow2"), "image to modify (required)")
-	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", path.Join(currentPath, "dist", "adam", "run", "config"), "path for config drive")
+	confChangerCmd.Flags().StringVarP(&eveImageFile, "image-file", "", filepath.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH, "live.qcow2"), "image to modify (required)")
+	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", filepath.Join(currentPath, "dist", "adam", "run", "config"), "path for config drive")
+	confChangerCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
 	if err := viper.BindPFlags(confChangerCmd.Flags()); err != nil {
 		log.Fatal(err)
 	}

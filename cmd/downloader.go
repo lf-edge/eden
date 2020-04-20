@@ -10,6 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"path"
 	"runtime"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	defaultEveTag         = "latest"
+	defaultEveTag         = "5.1.11"
 	defaultEvePrefixInTar = "bits"
 )
 
@@ -32,6 +33,19 @@ var downloaderCmd = &cobra.Command{
 	Use:   "download",
 	Short: "download eve from docker",
 	Long:  `Download eve from docker.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		viperLoaded, err := utils.LoadViperConfig(config)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		if viperLoaded {
+			eveTag = viper.GetString("eve-tag")
+			eveArch = viper.GetString("eve-arch")
+			outputDir = viper.GetString("downloader-dist")
+			saveLocal = viper.GetBool("downloader-save")
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if eveTag == "master" {
 			eveTag = "latest"
@@ -109,8 +123,12 @@ func downloaderInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	downloaderCmd.Flags().StringVarP(&eveTag, "tag", "", defaultEveTag, "tag to download")
-	downloaderCmd.Flags().StringVarP(&eveArch, "arch", "", runtime.GOARCH, "arch of EVE")
-	downloaderCmd.Flags().StringVarP(&outputDir, "output", "o", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH), "output directory")
-	downloaderCmd.Flags().BoolVarP(&saveLocal, "save", "", true, "save image to local docker registry")
+	downloaderCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaultEveTag, "tag to download")
+	downloaderCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
+	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH), "output directory")
+	downloaderCmd.Flags().BoolVarP(&saveLocal, "downloader-save", "", true, "save image to local docker registry")
+	if err := viper.BindPFlags(downloaderCmd.Flags()); err != nil {
+		log.Fatal(err)
+	}
+	downloaderCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }

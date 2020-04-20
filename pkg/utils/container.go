@@ -1,14 +1,21 @@
 package utils
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/docker/distribution/context"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/go-connections/nat"
 	log "github.com/sirupsen/logrus"
+	"io"
+	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -52,11 +59,15 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 		PortBindings: portBinding,
 		Mounts:       mounts,
 	}
-
+	userCurrent, err := user.Current()
+	if err != nil {
+		return err
+	}
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image:        imageName,
 		Cmd:          command,
 		ExposedPorts: portExposed,
+		User:         fmt.Sprintf("%s:%s", userCurrent.Uid, userCurrent.Gid),
 	}, hostConfig, nil, containerName)
 	if err != nil {
 		return err
@@ -169,4 +180,66 @@ func StartContainer(containerName string) error {
 		}
 	}
 	return nil
+}
+
+//BuildContainer build container with tagName using dockerFile
+func BuildContainer(dockerFile, tagName string) error {
+	ctx := context.Background()
+	dockerFileTarReader, err := archive.TarWithOptions(filepath.Dir(dockerFile), &archive.TarOptions{
+		ExcludePatterns: nil,
+		ChownOpts:       &idtools.Identity{UID: 0, GID: 0},
+	})
+	if err != nil {
+		return err
+	}
+	buildArgs := make(map[string]*string)
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return err
+	}
+	resp, err := cli.ImageBuild(
+		ctx,
+		dockerFileTarReader,
+		types.ImageBuildOptions{
+			Dockerfile: filepath.Base(dockerFile),
+			Tags:       []string{tagName},
+			NoCache:    false,
+			Remove:     true,
+			BuildArgs:  buildArgs,
+		})
+	if err != nil {
+		return err
+	}
+	return writeToLog(resp.Body)
+}
+
+//writes from the build response to the log
+func writeToLog(reader io.ReadCloser) error {
+	defer reader.Close()
+	rd := bufio.NewReader(reader)
+	for {
+		n, _, err := rd.ReadLine()
+		if err != nil && err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+		log.Debugln(string(n))
+	}
+	return nil
+}
+
+//DockerImageRepack export image to tar and repack it
+func DockerImageRepack(commandPath string, distImage string, imageTag string) (err error) {
+	distImageDir := filepath.Dir(distImage)
+	if _, err := os.Stat(distImageDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(distImageDir, 0755); err != nil {
+			return err
+		}
+	}
+	commandArgsString := fmt.Sprintf("ociimage -i %s -o %s -l",
+		imageTag, distImage)
+	log.Debugf("DockerImageRepack run: %s %s", commandPath, commandArgsString)
+	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
+	return
 }
