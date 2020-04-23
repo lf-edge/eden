@@ -68,10 +68,17 @@ var confChangerCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		//follow symlinks
-		rootFSPath, err := os.Readlink(filepath.Join(filepath.Dir(eveImageFilePath), "installer", fmt.Sprintf("rootfs-%s.img", eveHV)))
+		rootFSPath := filepath.Join(filepath.Dir(eveImageFilePath), "installer", fmt.Sprintf("rootfs-%s.img", eveHV))
+		info, err := os.Lstat(rootFSPath)
 		if err != nil {
-			log.Fatalf("EvalSymlinks: %s", err)
+			log.Fatal(err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			//follow symlinks
+			rootFSPath, err = os.Readlink(rootFSPath)
+			if err != nil {
+				log.Fatalf("EvalSymlinks: %s", err)
+			}
 		}
 		//use rootfs with selected HV
 		file, err := os.Open(filepath.Join(filepath.Dir(eveImageFilePath), "installer", filepath.Base(rootFSPath)))

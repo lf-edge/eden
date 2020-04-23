@@ -2,11 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/docker/distribution/context"
-	"github.com/docker/docker/client"
-	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/google/go-containerregistry/pkg/v1/daemon"
-	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,7 +9,6 @@ import (
 	"os"
 	"path"
 	"runtime"
-	"sort"
 )
 
 const (
@@ -27,6 +21,7 @@ var (
 	eveTag    string
 	outputDir string
 	saveLocal bool
+	baseos    bool
 )
 
 var downloaderCmd = &cobra.Command{
@@ -39,7 +34,11 @@ var downloaderCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eveTag = viper.GetString("eve-tag")
+			if !baseos {
+				eveTag = viper.GetString("eve-tag")
+			} else {
+				eveTag = viper.GetString("eve-base-tag")
+			}
 			eveArch = viper.GetString("eve-arch")
 			outputDir = viper.GetString("downloader-dist")
 			saveLocal = viper.GetBool("downloader-save")
@@ -51,69 +50,11 @@ var downloaderCmd = &cobra.Command{
 			eveTag = "latest"
 		}
 		image = fmt.Sprintf("lfedge/eve:%s-%s", eveTag, eveArch)
-		ref, err := name.ParseReference(image)
-		if err != nil {
-			log.Fatalf("parsing reference %q: %v", image, err)
+		if err := utils.PullImage(image); err != nil {
+			log.Fatalf("ImagePull: %s", err)
 		}
-		ctx := context.Background()
-		cli, err := client.NewClientWithOpts(client.FromEnv)
-		if err != nil {
-			log.Fatalf("client.NewClientWithOpts: %s", err)
-		}
-		cli.NegotiateAPIVersion(ctx)
-		options := daemon.WithClient(cli)
-		img, err := daemon.Image(ref, options)
-		if err != nil {
-			desc, err := remote.Get(ref)
-			if err != nil {
-				log.Fatalf("remote.Get: %s", err)
-			}
-			img, err = desc.Image()
-			if err != nil {
-				log.Fatalf("desc.Image: %s", err)
-			}
-			if saveLocal {
-				tag, err := name.NewTag(image)
-				if err != nil {
-					log.Fatalf("name.NewTag: %s", err)
-				}
-				_, err = daemon.Write(tag, img)
-				if err != nil {
-					log.Fatalf("daemon.Write: %s", err)
-				}
-				img, err = daemon.Image(ref, options)
-				if err != nil {
-					log.Fatalf("daemon.Image on saved image: %s", err)
-				}
-			}
-		}
-		layers, err := img.Layers()
-		if err != nil {
-			log.Fatal(err)
-		}
-		if len(layers) == 0 {
-			log.Fatalf("no layers in image")
-		}
-		sort.SliceStable(layers, func(i, j int) bool {
-			layerISize, err := layers[i].Size()
-			if err != nil {
-				log.Fatal(err)
-			}
-			layerJSize, err := layers[j].Size()
-			if err != nil {
-				log.Fatal(err)
-			}
-			return layerISize > layerJSize
-		})
-		neededLayer := layers[0]
-		u, err := neededLayer.Uncompressed()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer u.Close()
-		err = utils.ExtractFilesFromDocker(u, outputDir, defaultEvePrefixInTar)
-		if err != nil {
-			log.Fatal(err)
+		if err := utils.SaveImage(image, outputDir, defaultEvePrefixInTar); err != nil {
+			log.Fatalf("SaveImage: %s", err)
 		}
 	},
 }
@@ -127,6 +68,7 @@ func downloaderInit() {
 	downloaderCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH), "output directory")
 	downloaderCmd.Flags().BoolVarP(&saveLocal, "downloader-save", "", true, "save image to local docker registry")
+	downloaderCmd.Flags().BoolVarP(&baseos, "baseos", "", false, "base OS download")
 	if err := viper.BindPFlags(downloaderCmd.Flags()); err != nil {
 		log.Fatal(err)
 	}
