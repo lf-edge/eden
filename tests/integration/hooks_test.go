@@ -26,39 +26,54 @@ var Hooks EdenHooks
 
 type EdenHooks map[string][]EdenHook
 
-var hooks EdenHooks = EdenHooks{
-	"TestHooks":[]EdenHook{
-		EdenHook{
-			name: "CheckRebootInfo",
-			hook: CheckRebootInfo,
-			args: EdenHookArgs{},
-			result: true,
-		},
-		EdenHook{
-			name: "wait",
-			hook: WaitHook,
-			args: EdenHookArgs{"secs":10000},
-			result: true,
-		},/*
-		EdenHook{
-			name: "false",
-			hook: BoolHook,
-			args: EdenHookArgs{"val":false},
-			//result: false,
-			result: true,
-		},
-		EdenHook{
-			name: "true",
-			hook: BoolHook,
-			args: EdenHookArgs{"val":true},
-			result: true,
-		},*/
-	},
-}
 
 var lastRebootTime *timestamp.Timestamp
 var lastRebootReason string
 var rebooted bool
+
+func setupTestCase(t *testing.T) func(t *testing.T) {
+	t.Log("Setup test case", t.Name())
+	// TODO -- replace to reading from config file
+	Hooks = EdenHooks{
+		"TestHooks":[]EdenHook{
+			EdenHook{
+				name: "CheckRebootInfo",
+				hook: CheckRebootInfo,
+				args: EdenHookArgs{},
+				result: true,
+			},
+			EdenHook{
+				name: "wait",
+				hook: WaitHook,
+				args: EdenHookArgs{"secs":1000},
+				result: 1000,
+			},/*
+			EdenHook{
+				name: "false",
+				hook: BoolHook,
+				args: EdenHookArgs{"val":false},
+				//result: false,
+				result: true,
+			},
+			EdenHook{
+				name: "true",
+				hook: BoolHook,
+				args: EdenHookArgs{"val":true},
+				result: true,
+			},*/
+		},
+	}
+	return func(t *testing.T) {
+		t.Log("Teardown test case", t.Name())
+	}
+}
+
+func setupSubTest(t *testing.T) func(t *testing.T) {
+	t.Log("Setup sub test", t.Name())
+	return func(t *testing.T) {
+		t.Log("Teardown sub test", t.Name())
+	}
+}
 
 func checkRebootTime(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
 	lrbt := im.GetDinfo().LastRebootTime
@@ -100,7 +115,7 @@ func CheckRebootInfo(t *testing.T, args EdenHookArgs) EdenHookReturn {
 		t.Fatal("Fail in waiting for info: ", err)
 		return false
 	}
-	t.Logf("1. Rebooted at %s with reason '%s'\n", lastRebootTime, lastRebootReason)
+	t.Logf("Previous reboot at %s with reason '%s'\n", lastRebootTime, lastRebootReason)
 	for {
 		err = ctx.InfoChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String(), "lastRebootTime":".*"}, einfo.ZInfoDinfo, checkRebootTime, einfo.InfoNew, 3000)
 		if err != nil {
@@ -108,10 +123,10 @@ func CheckRebootInfo(t *testing.T, args EdenHookArgs) EdenHookReturn {
 			return false
 		}
 		if rebooted {
-			t.Logf("2. Rebooted at %s with reason '%s'\n", lastRebootTime, lastRebootReason)
+			t.Logf("Rebooted again at %s with reason '%s'\n", lastRebootTime, lastRebootReason)
 			return true
 		} else {
-			t.Logf("Not rebooted: %s\n", lastRebootTime)
+			t.Logf("Not rebooted, lastRebootTime: %s\n", lastRebootTime)
 			return false
 		}
 	}
@@ -125,60 +140,26 @@ func BoolHook(t *testing.T, args EdenHookArgs) EdenHookReturn {
 
 func WaitHook(t *testing.T, args EdenHookArgs) EdenHookReturn {
 	secs := args["secs"].(int)
-	fmt.Println("WaitHook", secs)
+	fmt.Println("WaitHook", secs, "sec.")
 	time.Sleep(time.Duration(secs)*time.Second)
 	fmt.Println("WaitHook finished")
 	return secs
 }
 
-func ReadHook(t *testing.T, args EdenHookArgs) EdenHookReturn {
-	var inp string
-	prompt := args["prompt"].(string)
-	fmt.Println(prompt)
-	fmt.Scan(&inp)
-	fmt.Println("Printed:", inp)
-	return inp
-}
-
-func setupTestCase(t *testing.T) func(t *testing.T) {
-	t.Log("Setup test case", t.Name())
-	Hooks = hooks
-	return func(t *testing.T) {
-		t.Log("Teardown test case", t.Name())
-	}
-}
-
-func setupSubTest(t *testing.T) func(t *testing.T) {
-	t.Log("Setup sub test", t.Name())
-	return func(t *testing.T) {
-		t.Log("Teardown sub test", t.Name())
-	}
-}
-
 func runSubTest(t *testing.T, name string, hook EdenHookFunc, args EdenHookArgs, result EdenHookReturn, cntx context.Context, cancel context.CancelFunc) {
-	var res EdenHookReturn
-	fmt.Println("L1", name)
 	for {
-		fmt.Println("L3", name)
 		select {
 		case <-cntx.Done():
-			fmt.Println("L4", name)
-			res = false
-			fmt.Println("L5", name)
 			return
 		default:
-			fmt.Println("L6", name)
-			res = hook(t, args)
-			fmt.Println("L7", name)
+			res := hook(t, args)
 			if res != result {
 					t.Errorf("%s got %v; want %v", name, res, result)
 			}
 			cancel()
-			fmt.Println("L8", name)
 			return
 		}
 	}
-	fmt.Println("L7:", res)
 }
 
 func TestHooks(t *testing.T) {
