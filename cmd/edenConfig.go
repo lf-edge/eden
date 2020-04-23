@@ -130,7 +130,7 @@ var configCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Stat(eveDist); os.IsNotExist(err) {
-				if err := utils.DownloadEveFormDocker(command, eveDist, eveArch, eveTag); err != nil {
+				if err := utils.DownloadEveFormDocker(command, eveDist, eveArch, eveTag, false); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Info("download EVE done")
@@ -144,7 +144,7 @@ var configCmd = &cobra.Command{
 				log.Infof("EVE already exists in dir: %s", eveDist)
 			}
 			if _, err := os.Stat(eveBaseDist); os.IsNotExist(err) {
-				if err := utils.DownloadEveFormDocker(command, eveBaseDist, eveArch, eveTag); err != nil {
+				if err := utils.DownloadEveFormDocker(command, eveBaseDist, eveArch, eveBaseTag, true); err != nil {
 					log.Errorf("cannot download Base EVE: %s", err)
 				} else {
 					log.Info("download Base EVE done")

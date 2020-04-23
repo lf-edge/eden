@@ -190,15 +190,15 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 }
 
 //DownloadEveFormDocker function clone EVE from docker
-func DownloadEveFormDocker(commandPath string, dist string, arch string, tag string) (err error) {
+func DownloadEveFormDocker(commandPath string, dist string, arch string, tag string, baseOs bool) (err error) {
 	if _, err := os.Stat(dist); !os.IsNotExist(err) {
 		return fmt.Errorf("directory already exists: %s", dist)
 	}
 	if tag == "" {
 		tag = "latest"
 	}
-	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s",
-		tag, arch, filepath.Join(dist, "dist", arch))
+	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s --baseos=%t",
+		tag, arch, filepath.Join(dist, "dist", arch), baseOs)
 	log.Debugf("DownloadEveFormDocker run: %s %s", commandPath, commandArgsString)
 	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
 	return

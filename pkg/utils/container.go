@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"archive/tar"
 	"bufio"
 	"fmt"
 	"github.com/docker/distribution/context"
@@ -15,6 +16,7 @@ import (
 	"io"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -28,8 +30,7 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 	if err != nil {
 		return err
 	}
-
-	if _, err = cli.ImagePull(ctx, imageName, types.ImagePullOptions{}); err != nil {
+	if err = PullImage(imageName); err != nil {
 		return err
 	}
 	portBinding := nat.PortMap{}
@@ -78,6 +79,41 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 	}
 
 	log.Infof("started container: %s", resp.ID)
+	return nil
+}
+
+//PullImage from docker
+func PullImage(image string) error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
+	resp, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
+	if err != nil {
+		return fmt.Errorf("imagePull: %s", err)
+	}
+	if err = writeToLog(resp); err != nil {
+		return fmt.Errorf("imagePull LOG: %s", err)
+	}
+	return nil
+}
+
+//SaveImage from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
+func SaveImage(image, outputDir, defaultEvePrefixInTar string) error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
+	reader, err := cli.ImageSave(ctx, []string{image})
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	if err = ExtractFilesFromDocker(reader, outputDir, defaultEvePrefixInTar); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -213,7 +249,7 @@ func BuildContainer(dockerFile, tagName string) error {
 	return writeToLog(resp.Body)
 }
 
-//writes from the build response to the log
+//writeToLog from the build response to the log
 func writeToLog(reader io.ReadCloser) error {
 	defer reader.Close()
 	rd := bufio.NewReader(reader)
@@ -242,4 +278,92 @@ func DockerImageRepack(commandPath string, distImage string, imageTag string) (e
 	log.Debugf("DockerImageRepack run: %s %s", commandPath, commandArgsString)
 	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
 	return
+}
+
+//ExtractFilesFromDocker extract all files from docker layer into directory
+//if prefixDirectory is not empty, remove it from path
+func ExtractFilesFromDocker(u io.ReadCloser, directory string, prefixDirectory string) error {
+	if err := os.MkdirAll(directory, 0755); err != nil {
+		return fmt.Errorf("ExtractFilesFromDocker: MkdirAll() failed: %s", err.Error())
+	}
+	tarReader := tar.NewReader(u)
+	for true {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("ExtractFilesFromDocker: Next() failed: %s", err.Error())
+		}
+		switch header.Typeflag {
+		case tar.TypeReg:
+			if strings.TrimSpace(filepath.Ext(header.Name)) == ".tar" {
+				log.Debugf("Extract layer %s", header.Name)
+				if err = extractLayersFromDocker(tarReader, directory, prefixDirectory); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory string) error {
+	pathBuilder := func(oldPath string) string {
+		return path.Join(directory, strings.TrimPrefix(oldPath, prefixDirectory))
+	}
+	tarReader := tar.NewReader(u)
+	for true {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("ExtractFilesFromDocker: Next() failed: %s", err.Error())
+		}
+		//extract only from directory of interest
+		if strings.TrimLeft(header.Name, prefixDirectory) == header.Name {
+			continue
+		}
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(pathBuilder(header.Name), 0755); err != nil {
+				return fmt.Errorf("ExtractFilesFromDocker: Mkdir() failed: %s", err.Error())
+			}
+		case tar.TypeReg:
+			if _, err := os.Lstat(pathBuilder(header.Name)); err == nil {
+				err = os.Remove(pathBuilder(header.Name))
+				if err != nil {
+					return fmt.Errorf("ExtractFilesFromDocker: cannot remove old file: %s", err.Error())
+				}
+			}
+			outFile, err := os.Create(pathBuilder(header.Name))
+			if err != nil {
+				return fmt.Errorf("ExtractFilesFromDocker: Create() failed: %s", err.Error())
+			}
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				return fmt.Errorf("ExtractFilesFromDocker: Copy() failed: %s", err.Error())
+			}
+			if err := outFile.Close(); err != nil {
+				return fmt.Errorf("ExtractFilesFromDocker: outFile.Close() failed: %s", err.Error())
+			}
+		case tar.TypeSymlink:
+			if _, err := os.Lstat(pathBuilder(header.Name)); err == nil {
+				err = os.Remove(pathBuilder(header.Name))
+				if err != nil {
+					return fmt.Errorf("ExtractFilesFromDocker: cannot remove old symlink: %s", err.Error())
+				}
+			}
+			if err := os.Symlink(pathBuilder(header.Linkname), pathBuilder(header.Name)); err != nil {
+				return fmt.Errorf("ExtractFilesFromDocker: Symlink(%s, %s) failed: %s",
+					pathBuilder(header.Name), pathBuilder(header.Linkname), err.Error())
+			}
+		default:
+			return fmt.Errorf(
+				"ExtractFilesFromDocker: uknown type: '%s' in %s",
+				string([]byte{header.Typeflag}),
+				header.Name)
+		}
+	}
+	return nil
 }
