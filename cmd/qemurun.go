@@ -26,7 +26,7 @@ var qemuRunCmd = &cobra.Command{
 	Short: "run qemu-system with eve",
 	Long:  `Run qemu-system with eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := utils.LoadViperConfig(config)
+		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}

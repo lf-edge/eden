@@ -3,11 +3,47 @@ package controller
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
+	"github.com/spf13/viper"
 )
+
+//StateUpdate refresh state file
+func (cloud *CloudCtx) StateUpdate(dev *device.Ctx) (err error) {
+	devConfig, err := cloud.GetConfigBytes(dev)
+	if err != nil {
+		return err
+	}
+	edenDir, err := utils.DefaultEdenDir()
+	if err != nil {
+		return err
+	}
+	edenConfig, err := utils.DefaultConfigPath()
+	if err != nil {
+		return err
+	}
+	loaded, err := utils.LoadConfigFile(edenConfig)
+	if err != nil {
+		return err
+	}
+	if loaded {
+		if err = utils.GenerateStateFile(edenDir, utils.StateObject{
+			EveConfig:  string(devConfig),
+			EveDir:     viper.GetString("eve-dist"),
+			AdamDir:    cloud.GetDir(),
+			EveUUID:    viper.GetString("uuid"),
+			DeviceUUID: dev.GetID().String(),
+			QEMUConfig: viper.GetString("eve-config"),
+		}); err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("cannot load config %s", edenConfig)
+}
 
 //ConfigSync set config for devID
 func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
@@ -15,7 +51,10 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	if err != nil {
 		return err
 	}
-	return cloud.ConfigSet(dev.GetID(), devConfig)
+	if err = cloud.ConfigSet(dev.GetID(), devConfig); err != nil {
+		return err
+	}
+	return cloud.StateUpdate(dev)
 }
 
 //GetDeviceUUID return device object by devUUID
