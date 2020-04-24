@@ -54,4 +54,5 @@ type Cloud interface {
 	GetApplicationInstanceConfig(id string) (applicationInstanceConfig *config.AppInstanceConfig, err error)
 	AddApplicationInstanceConfig(applicationInstanceConfig *config.AppInstanceConfig) error
 	RemoveApplicationInstanceConfig(id string) error
+	StateUpdate(dev *device.Ctx) (err error)
 }

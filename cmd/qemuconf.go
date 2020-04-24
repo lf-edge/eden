@@ -34,7 +34,7 @@ var qemuConfCmd = &cobra.Command{
 	Short: "generate qemu config file",
 	Long:  `Generate qemu config file.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := utils.LoadViperConfig(config)
+		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}

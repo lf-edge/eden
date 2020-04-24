@@ -29,7 +29,7 @@ var downloaderCmd = &cobra.Command{
 	Short: "download eve from docker",
 	Long:  `Download eve from docker.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := utils.LoadViperConfig(config)
+		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}

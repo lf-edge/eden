@@ -141,7 +141,7 @@ func envRead() error {
 	if err != nil {
 		return err
 	}
-	loaded, err := utils.LoadViperConfig(configPath)
+	loaded, err := utils.LoadConfigFile(configPath)
 	if err != nil {
 		return err
 	}

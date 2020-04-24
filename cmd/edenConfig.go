@@ -36,7 +36,7 @@ var configCmd = &cobra.Command{
 	Short: "config harness",
 	Long:  `Config harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := utils.LoadViperConfig(config)
+		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -231,18 +231,24 @@ var configEdenCmd = &cobra.Command{
 	Short: "generate config eden",
 	Long:  `Generate config eden.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		if config == "" {
+			config, err = utils.DefaultConfigPath()
+			if err != nil {
+				log.Fatalf("fail in DefaultConfigPath: %s", err)
+			}
+		}
 		if _, err := os.Stat(config); !os.IsNotExist(err) {
 			if force {
 				if err := os.Remove(config); err != nil {
-					return err
+					log.Fatal(err)
 				}
 			} else {
-				return fmt.Errorf("config already exists: %s", config)
+				log.Fatalf("config already exists: %s", config)
 			}
 		}
-		_, err := utils.LoadViperConfig(config)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
+		if _, err := utils.LoadConfigFile(config); err != nil {
+			log.Fatalf("error reading config: %s", err)
 		}
 		return nil
 	},

@@ -61,26 +61,34 @@ docker-yml: {{ .Images }}/docker/alpine/alpine.yml
 vm-yml: {{ .Images }}/vm/alpine/alpine.yml
 `
 
+//DefaultEdenDir returns path to default directory
+func DefaultEdenDir() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(usr.HomeDir, ".eden"), nil
+}
+
 //DefaultConfigPath returns path to default config
 func DefaultConfigPath() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(usr.HomeDir, "eden.yaml"), nil
+	return filepath.Join(usr.HomeDir, ".eden", "config.yml"), nil
 }
 
-//LoadViperConfig load config from file with viper
-func LoadViperConfig(config string) (loaded bool, err error) {
+//LoadConfigFile load config from file with viper
+func LoadConfigFile(config string) (loaded bool, err error) {
 	if config == "" {
 		config, err = DefaultConfigPath()
 		if err != nil {
 			return false, fmt.Errorf("fail in DefaultConfigPath: %s", err.Error())
 		}
 	}
-	_, err = os.Stat(config)
-	if os.IsNotExist(err) {
-		if err = GenerateDefaultConfigFile(config); err != nil {
+	if _, err = os.Stat(config); os.IsNotExist(err) {
+		if err = GenerateConfigFile(config); err != nil {
 			return false, fmt.Errorf("fail in generate yaml: %s", err.Error())
 		} else {
 			log.Infof("Config file generated: %s", config)
@@ -100,10 +108,13 @@ func LoadViperConfig(config string) (loaded bool, err error) {
 	return true, nil
 }
 
-//GenerateDefaultConfigFile is a function to generate default yaml
-func GenerateDefaultConfigFile(filePath string) error {
+//GenerateConfigFile is a function to generate default yml
+func GenerateConfigFile(filePath string) error {
 	currentPath, err := os.Getwd()
 	if err != nil {
+		log.Fatal(err)
+	}
+	if err = os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 		log.Fatal(err)
 	}
 	file, err := os.Create(filePath)

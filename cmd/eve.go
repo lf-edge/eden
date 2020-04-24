@@ -20,7 +20,7 @@ var startEveCmd = &cobra.Command{
 	Short: "start eve",
 	Long:  `Start eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := utils.LoadViperConfig(config)
+		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -53,7 +53,7 @@ var stopEveCmd = &cobra.Command{
 	Short: "stop eve",
 	Long:  `Stop eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := utils.LoadViperConfig(config)
+		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -74,7 +74,7 @@ var statusEveCmd = &cobra.Command{
 	Short: "status of eve",
 	Long:  `Status of eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		viperLoaded, err := utils.LoadViperConfig(config)
+		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
