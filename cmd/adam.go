@@ -20,14 +20,15 @@ var startAdamCmd = &cobra.Command{
 	Short: "start adam",
 	Long:  `Start adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			adamPort = viper.GetString("adam-port")
-			adamDist = viper.GetString("adam-dist")
-			adamForce = viper.GetBool("adam-force")
+			adamPort = viper.GetString("adam.port")
+			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
+			adamForce = viper.GetBool("adam.force")
 		}
 		return nil
 	},
@@ -54,6 +55,7 @@ var stopAdamCmd = &cobra.Command{
 	Short: "stop adam",
 	Long:  `Stop adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -75,6 +77,7 @@ var statusAdamCmd = &cobra.Command{
 	Short: "status of adam",
 	Long:  `Status of adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -104,15 +107,6 @@ func adamInit() {
 	startAdamCmd.Flags().StringVarP(&adamDist, "adam-dist", "", path.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
 	startAdamCmd.Flags().StringVarP(&adamPort, "adam-port", "", "3333", "adam dist to start")
 	startAdamCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
-	if err := viper.BindPFlags(startAdamCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	stopAdamCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
-	if err := viper.BindPFlags(stopAdamCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
-	if err := viper.BindPFlags(statusAdamCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	adamCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")
 }

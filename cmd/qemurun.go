@@ -26,18 +26,20 @@ var qemuRunCmd = &cobra.Command{
 	Short: "run qemu-system with eve",
 	Long:  `Run qemu-system with eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			qemuARCH = viper.GetString("eve-arch")
-			qemuOS = viper.GetString("eve-os")
-			qemuAccel = viper.GetBool("eve-accel")
-			qemuSMBIOSSerial = viper.GetString("eve-serial")
-			qemuConfigFile = viper.GetString("eve-config")
-			evePidFile = viper.GetString("eve-pid")
-			eveLogFile = viper.GetString("eve-log")
+			qemuARCH = viper.GetString("eve.arch")
+			qemuOS = viper.GetString("eve.os")
+			qemuAccel = viper.GetBool("eve.accel")
+			qemuSMBIOSSerial = viper.GetString("eve.serial")
+			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 		}
 		return nil
 	},
@@ -78,6 +80,7 @@ var qemuRunCmd = &cobra.Command{
 		default:
 			log.Fatalf("Arch not supported: %s", runtime.GOARCH)
 		}
+		qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", eveImageFile)
 		if qemuConfigFile != "" {
 			qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 		}
@@ -98,11 +101,9 @@ func qemuRunInit() {
 	qemuRunCmd.Flags().StringVarP(&qemuOS, "eve-os", "", "", "os to run on")
 	qemuRunCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")
 	qemuRunCmd.Flags().StringVarP(&qemuSMBIOSSerial, "eve-serial", "", "", "SMBIOS serial")
-	qemuRunCmd.Flags().StringVarP(&qemuConfigFile, "eve-config", "", "", "config file to use")
+	qemuRunCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", "", "config file to use")
 	qemuRunCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
 	qemuRunCmd.Flags().StringVarP(&qemuLogFile, "eve-log", "", "", "file to save logs (for background variant)")
 	qemuRunCmd.Flags().StringVarP(&qemuPidFile, "eve-pid", "", "", "file to save pid of qemu (for background variant)")
-	if err := viper.BindPFlags(startEveCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
+	qemuRunCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path for image drive (required)")
 }

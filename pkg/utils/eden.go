@@ -85,7 +85,9 @@ func StatusAdam() (status string, err error) {
 
 //StartEServer function run eserver to serve images
 func StartEServer(commandPath string, serverPort string, imageDist string, logFile string, pidFile string) (err error) {
-	return RunCommandNohup(commandPath, logFile, pidFile, strings.Fields(fmt.Sprintf("server -p %s -d %s", serverPort, imageDist))...)
+	commandArgsString := fmt.Sprintf("server -p %s -d %s", serverPort, imageDist)
+	log.Debugf("StartEServer run: %s %s", commandPath, commandArgsString)
+	return RunCommandNohup(commandPath, logFile, pidFile, strings.Fields(commandArgsString)...)
 }
 
 //StopEServer function stop eserver
@@ -99,9 +101,12 @@ func StatusEServer(pidFile string) (status string, err error) {
 }
 
 //StartEVEQemu function run EVE in qemu
-func StartEVEQemu(commandPath string, qemuARCH string, qemuOS string, qemuSMBIOSSerial string, qemuAccel bool, qemuConfigFilestring, logFile string, pidFile string) (err error) {
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(fmt.Sprintf("eve qemurun --eve-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s", qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile))...)
-	return
+func StartEVEQemu(commandPath string, qemuARCH string, qemuOS string, eveImageFile string, qemuSMBIOSSerial string, qemuAccel bool, qemuConfigFilestring, logFile string, pidFile string) (err error) {
+	commandArgsString := fmt.Sprintf("eve qemurun --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s",
+		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile)
+	log.Debugf("StartEVEQemu run: %s %s", commandPath, commandArgsString)
+	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
+	return err
 }
 
 //StopEVEQemu function stop EVE
@@ -124,7 +129,7 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --uuid=%s", certsDir, domain, ip, uuid)
 	log.Debugf("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
 	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	return
+	return err
 }
 
 //CopyCertsToAdamConfig function copy certs to adam config
@@ -172,7 +177,7 @@ func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port strin
 			return err
 		}
 	}
-	return
+	return nil
 }
 
 //CloneFromGit function clone from git into dist
@@ -186,7 +191,7 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	commandArgsString := fmt.Sprintf("clone --branch %s --single-branch %s %s", tag, gitRepo, dist)
 	log.Debugf("CloneFromGit run: %s %s", "git", commandArgsString)
 	_, _, err = RunCommandAndWait("git", strings.Fields(commandArgsString)...)
-	return
+	return err
 }
 
 //DownloadEveFormDocker function clone EVE from docker
@@ -201,7 +206,7 @@ func DownloadEveFormDocker(commandPath string, dist string, arch string, tag str
 		tag, arch, filepath.Join(dist, "dist", arch), baseOs)
 	log.Debugf("DownloadEveFormDocker run: %s %s", commandPath, commandArgsString)
 	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	return
+	return err
 }
 
 //ChangeConfigPartAndRootFs replace config and rootfs part in EVE live image
@@ -218,7 +223,7 @@ func ChangeConfigPartAndRootFs(commandPath string, distEve string, distAdam stri
 		imagePath, configPath, hv)
 	log.Debugf("ChangeConfigPartAndRootFs run: %s %s", commandPath, commandArgsString)
 	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	return
+	return err
 }
 
 //MakeEveInRepo build live image of EVE
@@ -255,7 +260,7 @@ func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, root
 			_, _, err = RunCommandAndWait("make", strings.Fields(commandArgsString)...)
 		}
 	}
-	return
+	return nil
 }
 
 //BuildVM build VM image with linuxkit
@@ -281,27 +286,17 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 	if err != nil {
 		return fmt.Errorf("error in qemu-img: %s", err)
 	}
-	err = os.Remove(imageConfigTmp)
-	return
+	return os.Remove(imageConfigTmp)
 }
 
 //PrepareQEMUConfig create config file for QEMU
-func PrepareQEMUConfig(commandPath string, qemuConfigFile string, eveDist string, adamDist string, eveArch string, eveHostFWD string) (err error) {
-	imageFile := filepath.Join(eveDist, "dist", eveArch, "live.qcow2")
-	if _, err := os.Stat(imageFile); os.IsNotExist(err) {
-		return fmt.Errorf("cannot find imageFile %s: %s", imageFile, err)
-	}
-	firmwareFile := filepath.Join(eveDist, "dist", eveArch, "OVMF.fd")
-	if _, err := os.Stat(firmwareFile); os.IsNotExist(err) {
-		return fmt.Errorf("cannot find firwareFile %s: %s", firmwareFile, err)
-	}
-	configPart := filepath.Join(adamDist, "run", "config")
+func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile []string, configPart string, dtbPath string, eveHostFWD string) (err error) {
 	if _, err := os.Stat(configPart); os.IsNotExist(err) {
 		return fmt.Errorf("cannot find configPart %s: %s", configPart, err)
 	}
-	dtbPath := filepath.Join(eveDist, "dist", "dtb")
-	commandArgsString := fmt.Sprintf("eve qemuconf --eve-config=%s --image-part=%s --eve-firmware=%s --config-part=%s --eve-hostfwd=\"%s\"",
-		qemuConfigFile, imageFile, firmwareFile, configPart, eveHostFWD)
+	firmwares := strings.Join(firmwareFile, ",")
+	commandArgsString := fmt.Sprintf("eve qemuconf --qemu-config=%s --eve-firmware=%s --config-part=%s --eve-hostfwd=\"%s\"",
+		qemuConfigFile, firmwares, configPart, eveHostFWD)
 	if _, err := os.Stat(dtbPath); !os.IsNotExist(err) {
 		commandArgsString = fmt.Sprintf("%s --dtb-part=%s", commandArgsString, dtbPath)
 	}
@@ -310,7 +305,7 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, eveDist string
 	if err != nil {
 		return fmt.Errorf("error in qemuconf: %s", err)
 	}
-	return
+	return nil
 }
 
 //CleanEden teardown Eden and cleanup
@@ -357,5 +352,5 @@ func CleanEden(commandPath, eveDist, eveBaseDist, adamDist, certsDist, imagesDis
 			return fmt.Errorf("error in %s delete: %s", binDir, err)
 		}
 	}
-	return
+	return nil
 }

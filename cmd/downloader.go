@@ -11,16 +11,10 @@ import (
 	"runtime"
 )
 
-const (
-	defaultEveTag         = "5.1.11"
-	defaultEvePrefixInTar = "bits"
-)
-
 var (
 	eveArch   string
 	eveTag    string
 	outputDir string
-	saveLocal bool
 	baseos    bool
 )
 
@@ -29,19 +23,24 @@ var downloaderCmd = &cobra.Command{
 	Short: "download eve from docker",
 	Long:  `Download eve from docker.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		if outputDirFlag := cmd.Flags().Lookup("downloader-dist"); outputDirFlag != nil {
+			if err := viper.BindPFlag("eve.image-file", outputDirFlag); err != nil {
+				log.Fatal(err)
+			}
+		}
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
 			if !baseos {
-				eveTag = viper.GetString("eve-tag")
+				eveTag = viper.GetString("eve.tag")
 			} else {
-				eveTag = viper.GetString("eve-base-tag")
+				eveTag = viper.GetString("eve.base-tag")
 			}
-			eveArch = viper.GetString("eve-arch")
-			outputDir = viper.GetString("downloader-dist")
-			saveLocal = viper.GetBool("downloader-save")
+			eveArch = viper.GetString("eve.arch")
+			outputDir = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 		}
 		return nil
 	},
@@ -67,10 +66,6 @@ func downloaderInit() {
 	downloaderCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaultEveTag, "tag to download")
 	downloaderCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH), "output directory")
-	downloaderCmd.Flags().BoolVarP(&saveLocal, "downloader-save", "", true, "save image to local docker registry")
 	downloaderCmd.Flags().BoolVarP(&baseos, "baseos", "", false, "base OS download")
-	if err := viper.BindPFlags(downloaderCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	downloaderCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }
