@@ -19,15 +19,16 @@ var startEserverCmd = &cobra.Command{
 	Short: "start eserver",
 	Long:  `Start eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverImageDist = viper.GetString("image-dist")
-			eserverPort = viper.GetString("eserver-port")
-			eserverPidFile = viper.GetString("eserver-pid")
-			eserverLogFile = viper.GetString("eserver-log")
+			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
+			eserverPort = viper.GetString("eden.eserver.port")
+			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
+			eserverLogFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.log"))
 		}
 		return nil
 	},
@@ -50,12 +51,13 @@ var stopEserverCmd = &cobra.Command{
 	Short: "stop eserver",
 	Long:  `Stop eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverPidFile = viper.GetString("eserver-pid")
+			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 		}
 		return nil
 	},
@@ -71,12 +73,13 @@ var statusEserverCmd = &cobra.Command{
 	Short: "status of eserver",
 	Long:  `Status of eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverPidFile = viper.GetString("eserver-pid")
+			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 		}
 		return nil
 	},
@@ -102,16 +105,7 @@ func eserverInit() {
 	startEserverCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", "8888", "eserver port")
 	startEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
 	startEserverCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, "dist", "eserver.log"), "file for save eserver log")
-	if err := viper.BindPFlags(startEserverCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	stopEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
-	if err := viper.BindPFlags(stopEserverCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	statusEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
-	if err := viper.BindPFlags(statusEserverCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	eserverCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")
 }

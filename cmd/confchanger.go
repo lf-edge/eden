@@ -19,7 +19,6 @@ import (
 	"strings"
 )
 
-var eveImageFile = ""
 var eveHV = ""
 
 var confChangerCmd = &cobra.Command{
@@ -27,14 +26,15 @@ var confChangerCmd = &cobra.Command{
 	Short: "change config in EVE image",
 	Long:  `Change config in EVE image.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eveImageFile = viper.GetString("image-file")
-			qemuConfigPath = viper.GetString("config-part")
-			eveHV = viper.GetString("hv")
+			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+			qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
+			eveHV = viper.GetString("eve.hv")
 		}
 		return nil
 	},
@@ -154,8 +154,5 @@ func confChangerInit() {
 	confChangerCmd.Flags().StringVarP(&eveImageFile, "image-file", "", filepath.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH, "live.qcow2"), "image to modify (required)")
 	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", filepath.Join(currentPath, "dist", "adam", "run", "config"), "path for config drive")
 	confChangerCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
-	if err := viper.BindPFlags(confChangerCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	confChangerCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }

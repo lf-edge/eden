@@ -3,13 +3,10 @@ package cmd
 import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
-)
-
-const (
-	defaultPort      = "8888"
-	defaultDirectory = "."
 )
 
 var (
@@ -30,6 +27,10 @@ var serverCmd = &cobra.Command{
 }
 
 func serverInit() {
-	serverCmd.Flags().StringVarP(&serverPort, "port", "p", defaultPort, "port to serve on")
-	serverCmd.Flags().StringVarP(&serverDir, "directory", "d", defaultDirectory, "location of static root for server with files")
+	currentPath, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	serverCmd.Flags().StringVarP(&serverPort, "port", "p", defaultEserverPort, "port to serve on")
+	serverCmd.Flags().StringVarP(&serverDir, "directory", "d", filepath.Join(currentPath, "dist", "images"), "location of static root for server with files")
 }

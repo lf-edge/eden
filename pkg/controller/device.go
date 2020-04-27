@@ -32,11 +32,11 @@ func (cloud *CloudCtx) StateUpdate(dev *device.Ctx) (err error) {
 	if loaded {
 		if err = utils.GenerateStateFile(edenDir, utils.StateObject{
 			EveConfig:  string(devConfig),
-			EveDir:     viper.GetString("eve-dist"),
+			EveDir:     viper.GetString("eve.dist"),
 			AdamDir:    cloud.GetDir(),
-			EveUUID:    viper.GetString("uuid"),
+			EveUUID:    viper.GetString("eve.uuid"),
 			DeviceUUID: dev.GetID().String(),
-			QEMUConfig: viper.GetString("eve-config"),
+			QEMUConfig: viper.GetString("eve.qemu-config"),
 		}); err != nil {
 			return err
 		}

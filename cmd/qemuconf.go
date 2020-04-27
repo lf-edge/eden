@@ -10,23 +10,16 @@ import (
 	"path/filepath"
 )
 
-const (
-	defaultQemuFileToSave = "qemu.conf"
-	defaultQemuCpus       = 4
-	defaultQemuMemory     = 4096
-)
-
 var (
-	qemuFileToSave     string
-	qemuCpus           int
-	qemuMemory         int
-	qemuFirmwarePath   string
-	qemuConfigPath     string
-	qemuImagePath      string
-	qemuDTBPath        string
-	defaultQemuHostFwd = map[string]string{"2222": "22"}
-	qemuHostFwd        map[string]string
-	qemuSocketPath     string
+	qemuFileToSave string
+	qemuCpus       int
+	qemuMemory     int
+	qemuFirmware   []string
+	qemuConfigPath string
+	eveImageFile   string
+	qemuDTBPath    string
+	qemuHostFwd    map[string]string
+	qemuSocketPath string
 )
 
 var qemuConfCmd = &cobra.Command{
@@ -34,17 +27,17 @@ var qemuConfCmd = &cobra.Command{
 	Short: "generate qemu config file",
 	Long:  `Generate qemu config file.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			qemuConfigFile = viper.GetString("eve-config")
-			qemuHostFwd = viper.GetStringMapString("eve-hostfwd")
-			qemuFirmwarePath = viper.GetString("eve-firmware")
-			qemuConfigPath = viper.GetString("config-part")
-			qemuDTBPath = viper.GetString("dtb-part")
-			qemuImagePath = viper.GetString("image-part")
+			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
+			qemuFirmware = viper.GetStringSlice("eve.firmware")
+			qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
+			qemuDTBPath = utils.ResolveAbsPath(viper.GetString("eve.dtb-part"))
 		}
 		return nil
 	},
@@ -60,13 +53,6 @@ var qemuConfCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
-		qemuImagePathAbsolute := ""
-		if qemuImagePath != "" {
-			qemuImagePathAbsolute, err = filepath.Abs(qemuImagePath)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
 		qemuDTBPathAbsolute := ""
 		if qemuDTBPath != "" {
 			qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
@@ -74,12 +60,13 @@ var qemuConfCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
-		qemuFirmwarePathAbsolute := ""
-		if qemuFirmwarePath != "" {
-			qemuFirmwarePathAbsolute, err = filepath.Abs(qemuFirmwarePath)
+		var qemuFirmwareParam []string
+		for _, el := range qemuFirmware {
+			qemuFirmwarePathAbsolute := utils.ResolveAbsPath(el)
 			if err != nil {
 				log.Fatal(err)
 			}
+			qemuFirmwareParam = append(qemuFirmwareParam, qemuFirmwarePathAbsolute)
 		}
 		//generate netdevs with unused subnets
 		nets, err := utils.GetSubnetsNotUsed(2)
@@ -89,8 +76,7 @@ var qemuConfCmd = &cobra.Command{
 		settings := utils.QemuSettings{
 			ConfigDrive: qemuConfigPathAbsolute,
 			DTBDrive:    qemuDTBPathAbsolute,
-			SystemDrive: qemuImagePathAbsolute,
-			Firmware:    qemuFirmwarePathAbsolute,
+			Firmware:    qemuFirmwareParam,
 			MemoryMB:    qemuMemory,
 			CPUs:        qemuCpus,
 			HostFWD:     qemuHostFwd,
@@ -111,19 +97,12 @@ var qemuConfCmd = &cobra.Command{
 }
 
 func qemuConfInit() {
-	qemuConfCmd.Flags().StringVarP(&qemuFileToSave, "eve-config", "", defaultQemuFileToSave, "file to save config")
+	qemuConfCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaultQemuFileToSave, "file to save config")
 	qemuConfCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaultQemuCpus, "cpus")
 	qemuConfCmd.Flags().IntVarP(&qemuMemory, "memory", "", defaultQemuMemory, "memory (MB)")
-	qemuConfCmd.Flags().StringVarP(&qemuFirmwarePath, "eve-firmware", "", "", "firmware path")
+	qemuConfCmd.Flags().StringSliceVarP(&qemuFirmware, "eve-firmware", "", nil, "firmware path")
 	qemuConfCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", "", "path for config drive")
 	qemuConfCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
 	qemuConfCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaultQemuHostFwd, "port forward map")
 	qemuConfCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
-	qemuConfCmd.Flags().StringVarP(&qemuImagePath, "image-part", "", "", "path for image drive (required)")
-	if err := cobra.MarkFlagRequired(qemuConfCmd.Flags(), "image-part"); err != nil {
-		log.Fatal(err)
-	}
-	if err := viper.BindPFlags(qemuConfCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 }

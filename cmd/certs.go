@@ -12,12 +12,6 @@ import (
 	"path/filepath"
 )
 
-const (
-	defaultDomain = "mydomain.adam"
-	defaultIP     = "192.168.0.1"
-	defaultUUID   = "1"
-)
-
 var (
 	certsDir    string
 	certsDomain string
@@ -30,15 +24,16 @@ var certsCmd = &cobra.Command{
 	Short: "manage certs",
 	Long:  `Managed certificates for Adam and EVE.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			certsDir = viper.GetString("certs-dist")
-			certsDomain = viper.GetString("domain")
-			certsIP = viper.GetString("ip")
-			certsUUID = viper.GetString("uuid")
+			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
+			certsDomain = viper.GetString("adam.domain")
+			certsIP = viper.GetString("adam.ip")
+			certsUUID = viper.GetString("eve.uuid")
 		}
 		return nil
 	},
@@ -76,8 +71,5 @@ func certsInit() {
 	certsCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaultDomain, "FQDN for certificates")
 	certsCmd.Flags().StringVarP(&certsIP, "ip", "i", defaultIP, "IP address to use")
 	certsCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaultUUID, "UUID to use for device")
-	if err := viper.BindPFlags(certsCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	certsCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }

@@ -28,25 +28,27 @@ var startCmd = &cobra.Command{
 	Short: "start harness",
 	Long:  `Start harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			adamPort = viper.GetString("adam-port")
-			adamDist = viper.GetString("adam-dist")
-			adamForce = viper.GetBool("adam-force")
-			eserverImageDist = viper.GetString("image-dist")
-			eserverPort = viper.GetString("eserver-port")
-			eserverPidFile = viper.GetString("eserver-pid")
-			eserverLogFile = viper.GetString("eserver-log")
-			qemuARCH = viper.GetString("eve-arch")
-			qemuOS = viper.GetString("eve-os")
-			qemuAccel = viper.GetBool("eve-accel")
-			qemuSMBIOSSerial = viper.GetString("eve-serial")
-			qemuConfigFile = viper.GetString("eve-config")
-			evePidFile = viper.GetString("eve-pid")
-			eveLogFile = viper.GetString("eve-log")
+			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+			adamPort = viper.GetString("adam.port")
+			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
+			adamForce = viper.GetBool("adam.force")
+			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
+			eserverPort = viper.GetString("eden.eserver.port")
+			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
+			eserverLogFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.log"))
+			qemuARCH = viper.GetString("eve.arch")
+			qemuOS = viper.GetString("eve.os")
+			qemuAccel = viper.GetBool("eve.accel")
+			qemuSMBIOSSerial = viper.GetString("eve.serial")
+			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 		}
 		return nil
 	},
@@ -70,7 +72,7 @@ var startCmd = &cobra.Command{
 		} else {
 			log.Infof("Eserver is running and accesible on port %s", eserverPort)
 		}
-		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
+		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
 			log.Infof("EVE is running")
@@ -94,11 +96,8 @@ func startInit() {
 	startCmd.Flags().StringVarP(&qemuOS, "eve-os", "", runtime.GOOS, "os to run on")
 	startCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")
 	startCmd.Flags().StringVarP(&qemuSMBIOSSerial, "eve-serial", "", "", "SMBIOS serial")
-	startCmd.Flags().StringVarP(&qemuConfigFile, "eve-config", "", filepath.Join(currentPath, "dist", "qemu.conf"), "config file to use")
+	startCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", filepath.Join(currentPath, "dist", "qemu.conf"), "config file to use")
 	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, "dist", "eve.log"), "file for save EVE log")
-	if err := viper.BindPFlags(startCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	startCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }

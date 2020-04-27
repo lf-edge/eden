@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"os"
@@ -66,4 +67,15 @@ func CopyFile(src string, dst string) (err error) {
 
 func fileNameWithoutExtension(fileName string) string {
 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
+}
+
+//ResolveAbsPath use eden.root parameter to resolve path
+func ResolveAbsPath(curPath string) string {
+	if strings.TrimSpace(curPath) == "" {
+		return ""
+	}
+	if !filepath.IsAbs(curPath) {
+		return filepath.Join(viper.GetString("eden.root"), curPath)
+	}
+	return curPath
 }

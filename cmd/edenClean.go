@@ -15,20 +15,21 @@ var cleanCmd = &cobra.Command{
 	Short: "clean harness",
 	Long:  `Clean harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverPidFile = viper.GetString("eserver-pid")
-			evePidFile = viper.GetString("eve-pid")
-			eveDist = viper.GetString("eve-dist")
-			eveBaseDist = viper.GetString("eve-base-dist")
-			adamDist = viper.GetString("adam-dist")
-			certsDir = viper.GetString("certs-dist")
-			eserverImageDist = viper.GetString("image-dist")
-			qemuFileToSave = viper.GetString("eve-config")
-			binDir = viper.GetString("bin-dist")
+			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
+			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
+			eveBaseDist = utils.ResolveAbsPath(viper.GetString("eve.base-dist"))
+			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
+			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
+			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
+			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+			binDir = utils.ResolveAbsPath(viper.GetString("eden.bin-dist"))
 		}
 		return nil
 	},
@@ -54,15 +55,11 @@ func cleanInit() {
 	cleanCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
 	cleanCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, "dist", "eve"), "directory to save EVE")
 	cleanCmd.Flags().StringVarP(&eveBaseDist, "eve-base-dist", "", filepath.Join(currentPath, "dist", "evebaseos"), "directory to save Base image of EVE")
-	cleanCmd.Flags().StringVarP(&qemuFileToSave, "eve-config", "", filepath.Join(currentPath, "dist", defaultQemuFileToSave), "file to save qemu config")
-
+	cleanCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, "dist", defaultQemuFileToSave), "file to save qemu config")
 	cleanCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
 	cleanCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, "dist", "images"), "image dist for eserver")
 
 	cleanCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, "dist", "certs"), "directory with certs")
 	cleanCmd.Flags().StringVarP(&binDir, "bin-dist", "", filepath.Join(currentPath, "dist", "bin"), "directory for binaries")
-	if err := viper.BindPFlags(stopCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	cleanCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }

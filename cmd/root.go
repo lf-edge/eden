@@ -6,6 +6,7 @@ package cmd
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"io"
 	"os"
 )
@@ -27,6 +28,14 @@ func setUpLogs(out io.Writer, level string) error {
 	}
 	logrus.SetLevel(lvl)
 	return nil
+}
+
+func assingCobraToViper(cmd *cobra.Command) {
+	for k, v := range cobraToViper {
+		if flag := cmd.Flag(v); flag != nil {
+			_ = viper.BindPFlag(k, flag)
+		}
+	}
 }
 
 func init() {

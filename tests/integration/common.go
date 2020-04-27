@@ -190,17 +190,17 @@ func envRead() error {
 			eveHV = ""
 		}
 	} else {
-		adamIP = viper.GetString("ip")
-		adamPort = viper.GetString("adam-port")
-		adamDir = viper.GetString("adam-dist")
-		adamCA = viper.GetString("adam-ca")
-		sshKey = viper.GetString("ssh-key")
-		checkLogs = viper.GetBool("logs")
-		eveCert = viper.GetString("eve-cert")
-		eveSerial = viper.GetString("eve-serial")
-		eveBaseTag = viper.GetString("eve-base-tag")
-		zArch = viper.GetString("eve-arch")
-		eveHV = viper.GetString("hv")
+		adamIP = viper.GetString("adam.ip")
+		adamPort = viper.GetString("adam.port")
+		adamDir = utils.ResolveAbsPath(viper.GetString("adam.dist"))
+		adamCA = utils.ResolveAbsPath(viper.GetString("adam.ca"))
+		sshKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
+		checkLogs = viper.GetBool("eden.logs")
+		eveCert = utils.ResolveAbsPath(viper.GetString("eve.cert"))
+		eveSerial = viper.GetString("eve.serial")
+		eveBaseTag = viper.GetString("eve.base-tag")
+		zArch = viper.GetString("eve.arch")
+		eveHV = viper.GetString("eve.hv")
 	}
 	return nil
 }

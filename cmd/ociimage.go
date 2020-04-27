@@ -20,13 +20,6 @@ import (
 	"strings"
 )
 
-const (
-	defaultFileToSave = "./test.tar"
-	defaultImage      = "library/alpine"
-	defaultRegistry   = "docker.io"
-	defaultIsLocal    = false
-)
-
 var (
 	fileToSave string
 	image      string

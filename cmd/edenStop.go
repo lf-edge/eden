@@ -19,14 +19,14 @@ var stopCmd = &cobra.Command{
 	Short: "stop harness",
 	Long:  `Stop harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(config)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverPidFile = viper.GetString("eserver-pid")
-			evePidFile = viper.GetString("eve-pid")
-			adamRm = viper.GetBool("adam-rm")
+			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
+			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 		}
 		return nil
 	},
@@ -51,8 +51,5 @@ func stopInit() {
 	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
 	stopCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
-	if err := viper.BindPFlags(stopCmd.Flags()); err != nil {
-		log.Fatal(err)
-	}
 	stopCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }
