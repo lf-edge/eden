@@ -85,7 +85,7 @@ func StatusAdam() (status string, err error) {
 
 //StartEServer function run eserver to serve images
 func StartEServer(commandPath string, serverPort string, imageDist string, logFile string, pidFile string) (err error) {
-	commandArgsString := fmt.Sprintf("server -p %s -d %s", serverPort, imageDist)
+	commandArgsString := fmt.Sprintf("server -p %s -d %s -v %s", serverPort, imageDist, log.GetLevel())
 	log.Debugf("StartEServer run: %s %s", commandPath, commandArgsString)
 	return RunCommandNohup(commandPath, logFile, pidFile, strings.Fields(commandArgsString)...)
 }
@@ -102,11 +102,10 @@ func StatusEServer(pidFile string) (status string, err error) {
 
 //StartEVEQemu function run EVE in qemu
 func StartEVEQemu(commandPath string, qemuARCH string, qemuOS string, eveImageFile string, qemuSMBIOSSerial string, qemuAccel bool, qemuConfigFilestring, logFile string, pidFile string) (err error) {
-	commandArgsString := fmt.Sprintf("eve qemurun --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s",
-		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile)
+	commandArgsString := fmt.Sprintf("eve qemurun --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s -v %s",
+		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile, log.GetLevel())
 	log.Debugf("StartEVEQemu run: %s %s", commandPath, commandArgsString)
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	return err
+	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
 }
 
 //StopEVEQemu function stop EVE
@@ -126,10 +125,9 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 			return err
 		}
 	}
-	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --uuid=%s", certsDir, domain, ip, uuid)
+	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --uuid=%s -v %s", certsDir, domain, ip, uuid, log.GetLevel())
 	log.Debugf("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	return err
+	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
 }
 
 //CopyCertsToAdamConfig function copy certs to adam config
@@ -190,8 +188,7 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	}
 	commandArgsString := fmt.Sprintf("clone --branch %s --single-branch %s %s", tag, gitRepo, dist)
 	log.Debugf("CloneFromGit run: %s %s", "git", commandArgsString)
-	_, _, err = RunCommandAndWait("git", strings.Fields(commandArgsString)...)
-	return err
+	return RunCommandWithLogAndWait("git", log.DebugLevel, strings.Fields(commandArgsString)...)
 }
 
 //DownloadEveFormDocker function clone EVE from docker
@@ -202,11 +199,10 @@ func DownloadEveFormDocker(commandPath string, dist string, arch string, tag str
 	if tag == "" {
 		tag = "latest"
 	}
-	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s --baseos=%t",
-		tag, arch, filepath.Join(dist, "dist", arch), baseOs)
+	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s --baseos=%t -v %s",
+		tag, arch, filepath.Join(dist, "dist", arch), baseOs, log.GetLevel())
 	log.Debugf("DownloadEveFormDocker run: %s %s", commandPath, commandArgsString)
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	return err
+	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
 }
 
 //ChangeConfigPartAndRootFs replace config and rootfs part in EVE live image
@@ -219,11 +215,10 @@ func ChangeConfigPartAndRootFs(commandPath string, distEve string, distAdam stri
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return fmt.Errorf("directory not exists: %s", configPath)
 	}
-	commandArgsString := fmt.Sprintf("eve confchanger --image-file=%s --config-part=%s --hv=%s",
-		imagePath, configPath, hv)
+	commandArgsString := fmt.Sprintf("eve confchanger --image-file=%s --config-part=%s --hv=%s -v %s",
+		imagePath, configPath, hv, log.GetLevel())
 	log.Debugf("ChangeConfigPartAndRootFs run: %s %s", commandPath, commandArgsString)
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	return err
+	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
 }
 
 //MakeEveInRepo build live image of EVE
@@ -241,26 +236,26 @@ func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, root
 		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s rootfs",
 			distEve, hv, configPath)
 		log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		_, _, err = RunCommandAndWait("make", strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
 	} else {
 		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s IMG_FORMAT=qcow2 live",
 			distEve, hv, configPath)
 		log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		_, _, err = RunCommandAndWait("make", strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
 		biosPath := filepath.Join(distEve, "dist", arch, "OVMF.fd")
 		commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
 			distEve, hv, biosPath)
 		log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		_, _, err = RunCommandAndWait("make", strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
 		if arch == "arm64" {
 			dtbPath := filepath.Join(distEve, "dist", "eve.dtb")
 			commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
 				distEve, hv, dtbPath)
 			log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-			_, _, err = RunCommandAndWait("make", strings.Fields(commandArgsString)...)
+			err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
 		}
 	}
-	return nil
+	return
 }
 
 //BuildVM build VM image with linuxkit
@@ -275,15 +270,13 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 	commandArgsString := fmt.Sprintf("build -format raw-bios -dir %s %s",
 		distImageDir, imageConfig)
 	log.Debugf("BuildVM run: %s %s", linuxKitPath, commandArgsString)
-	_, _, err = RunCommandAndWait(linuxKitPath, strings.Fields(commandArgsString)...)
-	if err != nil {
+	if err = RunCommandWithLogAndWait(linuxKitPath, log.DebugLevel, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in linuxkit: %s", err)
 	}
 	commandArgsString = fmt.Sprintf("convert -c -f raw -O qcow2 %s %s",
 		imageConfigTmp, distImage)
 	log.Debugf("BuildVM run: %s %s", "qemu-img", commandArgsString)
-	_, _, err = RunCommandAndWait("qemu-img", strings.Fields(commandArgsString)...)
-	if err != nil {
+	if err = RunCommandWithLogAndWait("qemu-img", log.DebugLevel, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in qemu-img: %s", err)
 	}
 	return os.Remove(imageConfigTmp)
@@ -295,14 +288,13 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 		return fmt.Errorf("cannot find configPart %s: %s", configPart, err)
 	}
 	firmwares := strings.Join(firmwareFile, ",")
-	commandArgsString := fmt.Sprintf("eve qemuconf --qemu-config=%s --eve-firmware=%s --config-part=%s --eve-hostfwd=\"%s\"",
-		qemuConfigFile, firmwares, configPart, eveHostFWD)
+	commandArgsString := fmt.Sprintf("eve qemuconf --qemu-config=%s --eve-firmware=%s --config-part=%s --eve-hostfwd=\"%s\" -v %s",
+		qemuConfigFile, firmwares, configPart, eveHostFWD, log.GetLevel())
 	if _, err := os.Stat(dtbPath); !os.IsNotExist(err) {
 		commandArgsString = fmt.Sprintf("%s --dtb-part=%s", commandArgsString, dtbPath)
 	}
 	log.Debugf("PrepareQEMUConfig run: %s %s", commandPath, commandArgsString)
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	if err != nil {
+	if err = RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in qemuconf: %s", err)
 	}
 	return nil

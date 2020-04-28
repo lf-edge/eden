@@ -159,6 +159,17 @@ func RunCommandAndWait(name string, args ...string) (stdout string, stderr strin
 	return stdoutBuffer.String(), stderrBuffer.String(), cmd.Run()
 }
 
+//RunCommandWithLogAndWait run process in foreground
+func RunCommandWithLogAndWait(name string, logLevel log.Level, args ...string) (err error) {
+	cmd := exec.Command(name, args...)
+	if log.IsLevelEnabled(logLevel) {
+		logWriter := log.StandardLogger().Out
+		cmd.Stdout = logWriter
+		cmd.Stderr = logWriter
+	}
+	return cmd.Run()
+}
+
 //RunCommandWithSTDINAndWait run process in foreground with stdin passed as arg
 func RunCommandWithSTDINAndWait(name string, stdin string, args ...string) (stdout string, stderr string, err error) {
 	var stdoutBuffer bytes.Buffer
