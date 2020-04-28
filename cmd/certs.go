@@ -43,9 +43,13 @@ var certsCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
+		log.Debug("generating CA")
 		rootCert, rootKey := utils.GenCARoot()
+		log.Debug("generating Adam cert and key")
 		ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), []net.IP{net.ParseIP(certsIP)}, []string{certsDomain}, certsDomain)
+		log.Debug("generating EVE cert and key")
 		ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, certsUUID)
+		log.Debug("saving files")
 		if err := utils.WriteToFiles(rootCert, rootKey, filepath.Join(certsDir, "root-certificate.pem"), filepath.Join(certsDir, "root-certificate.key")); err != nil {
 			log.Fatal(err)
 		}
@@ -55,6 +59,7 @@ var certsCmd = &cobra.Command{
 		if err := utils.WriteToFiles(ClientCert, ClientKey, filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(certsDir, "onboard.key.pem")); err != nil {
 			log.Fatal(err)
 		}
+		log.Debug("generating ssh pair")
 		if err := utils.GenerateSSHKeyPair(filepath.Join(certsDir, "id_rsa"), filepath.Join(certsDir, "id_rsa.pub")); err != nil {
 			log.Fatal(err)
 		}
