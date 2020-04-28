@@ -75,7 +75,7 @@ func ResolveAbsPath(curPath string) string {
 		return ""
 	}
 	if !filepath.IsAbs(curPath) {
-		return filepath.Join(viper.GetString("eden.root"), curPath)
+		return filepath.Join(viper.GetString("eden.root"), strings.TrimSpace(curPath))
 	}
 	return curPath
 }
