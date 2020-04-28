@@ -79,26 +79,25 @@ func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
 //GetIPForDockerAccess is service function to obtain IP for adam access
 //The function is filter out docker bridge
 func GetIPForDockerAccess() (ip string, err error) {
-	dockerSubnetCmd, dockerSubnetArgs := dockerSubnetPattern()
-	cmdOut, cmdErr, err := RunCommandAndWait(dockerSubnetCmd, dockerSubnetArgs...)
+	networks, err := GetDockerNetworks()
 	if err != nil {
-		log.Print(cmdOut)
-		log.Print(cmdErr)
-		log.Print("Probably you have no access do docker socket or no configured network")
-		return "", err
+		return "", fmt.Errorf("GetDockerNetworks: %s", err)
 	}
-
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		log.Fatal(err)
 	}
+out:
 	for _, a := range addrs {
 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				if strings.Contains(cmdOut, ipnet.IP.String()) {
-					continue
+				for _, el := range networks {
+					if el.Contains(ipnet.IP) {
+						continue out
+					}
 				}
 				ip = ipnet.IP.String()
+				break
 			}
 		}
 	}

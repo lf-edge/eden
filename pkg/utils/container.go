@@ -14,6 +14,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"net"
 	"os"
 	"os/user"
 	"path"
@@ -80,6 +81,30 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 
 	log.Infof("started container: %s", resp.ID)
 	return nil
+}
+
+//GetDockerNetworks returns gateways IPs of networks in docker
+func GetDockerNetworks() ([]*net.IPNet, error) {
+	var results []*net.IPNet
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
+	networkTypes := types.NetworkListOptions{}
+	resp, err := cli.NetworkList(ctx, networkTypes)
+	if err != nil {
+		return nil, fmt.Errorf("GetNetworks: %s", err)
+	}
+	for _, el := range resp {
+		for _, ipam := range el.IPAM.Config {
+			_, ipnet, err := net.ParseCIDR(ipam.Subnet)
+			if err == nil {
+				results = append(results, ipnet)
+			}
+		}
+	}
+	return results, nil
 }
 
 //PullImage from docker
