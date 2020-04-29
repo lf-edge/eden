@@ -19,6 +19,9 @@ var (
 	qemuSMBIOSSerial string
 	qemuConfigFile   string
 	qemuForeground   bool
+	eveSSHKey        string
+	eveHost          string
+	eveSSHPort       int
 )
 
 var eveCmd = &cobra.Command{
@@ -149,6 +152,35 @@ var statusEveCmd = &cobra.Command{
 	},
 }
 
+var sshEveCmd = &cobra.Command{
+	Use:   "ssh",
+	Short: "ssh into eve",
+	Long:  `SSH into eve.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		viperLoaded, err := utils.LoadConfigFile(config)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		if viperLoaded {
+			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
+			extension := filepath.Ext(eveSSHKey)
+			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
+			log.Infof("Try to SHH %s:%d with key %s", eveHost, eveSSHPort, eveSSHKey)
+			if err := utils.RunCommandForeground("ssh", strings.Fields(fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s", eveSSHKey, eveSSHPort, eveHost))...); err != nil {
+				log.Fatalf("ssh error: %s", err)
+			}
+		} else {
+			log.Fatalf("SSH key problem: %s", err)
+		}
+	},
+}
+
 func eveInit() {
 	eveCmd.AddCommand(confChangerCmd)
 	confChangerInit()
@@ -157,6 +189,7 @@ func eveInit() {
 	eveCmd.AddCommand(startEveCmd)
 	eveCmd.AddCommand(stopEveCmd)
 	eveCmd.AddCommand(statusEveCmd)
+	eveCmd.AddCommand(sshEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -172,5 +205,8 @@ func eveInit() {
 	startEveCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
+	sshEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, "certs", "id_rsa"), "file to use for ssh access")
+	sshEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", "127.0.0.1", "IP of eve")
+	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", 2222, "Port for ssh access")
 	eveCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")
 }

@@ -58,5 +58,6 @@ var (
 		"eden.eserver.log":   "eserver-log",
 		"eden.certs-dist":    "certs-dist",
 		"eden.bin-dist":      "bin-dist",
+		"eden.ssh-key":       "ssh-key",
 	}
 )
