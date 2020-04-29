@@ -9,6 +9,16 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
+)
+
+var (
+	qemuARCH         string
+	qemuOS           string
+	qemuAccel        bool
+	qemuSMBIOSSerial string
+	qemuConfigFile   string
+	qemuForeground   bool
 )
 
 var eveCmd = &cobra.Command{
@@ -26,26 +36,68 @@ var startEveCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			qemuARCH = viper.GetString("eve.arch")
 			qemuOS = viper.GetString("eve.os")
 			qemuAccel = viper.GetBool("eve.accel")
 			qemuSMBIOSSerial = viper.GetString("eve.serial")
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		command, err := os.Executable()
-		if err != nil {
-			log.Fatalf("cannot obtain executable path: %s", err)
+		qemuCommand := ""
+		qemuOptions := "-display none -serial mon:stdio -nodefaults -no-user-config "
+		if qemuSMBIOSSerial != "" {
+			qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
 		}
-		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
-			log.Errorf("cannot start eve: %s", err)
+		if qemuOS == "" {
+			qemuOS = runtime.GOOS
 		} else {
-			fmt.Println("EVE is running")
+			qemuOS = strings.ToLower(qemuOS)
+		}
+		if qemuOS != "linux" && qemuOS != "darwin" {
+			log.Fatalf("OS not supported: %s", qemuOS)
+		}
+		if qemuARCH == "" {
+			qemuARCH = runtime.GOARCH
+		} else {
+			qemuARCH = strings.ToLower(qemuARCH)
+		}
+		switch qemuARCH {
+		case "amd64":
+			qemuCommand = "qemu-system-x86_64"
+			if qemuAccel {
+				if qemuOS == "darwin" {
+					qemuOptions += "-M accel=hvf --cpu host "
+				} else {
+					qemuOptions += "-enable-kvm --cpu host "
+				}
+			} else {
+				qemuOptions += "--cpu SandyBridge "
+			}
+		case "arm64":
+			qemuCommand = "qemu-system-aarch64"
+			qemuOptions += "-machine virt,gic_version=3 -machine virtualization=true -cpu cortex-a57 -machine type=virt "
+		default:
+			log.Fatalf("Arch not supported: %s", runtime.GOARCH)
+		}
+		qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", eveImageFile)
+		if qemuConfigFile != "" {
+			qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
+		}
+		log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
+		if qemuForeground {
+			if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Infof("With pid: %s ; log: %s", evePidFile, eveLogFile)
+			if err := utils.RunCommandNohup(qemuCommand, eveLogFile, evePidFile, strings.Fields(qemuOptions)...); err != nil {
+				log.Fatal(err)
+			}
 		}
 	},
 }
@@ -98,10 +150,6 @@ var statusEveCmd = &cobra.Command{
 }
 
 func eveInit() {
-	eveCmd.AddCommand(qemuConfCmd)
-	qemuConfInit()
-	eveCmd.AddCommand(qemuRunCmd)
-	qemuRunInit()
 	eveCmd.AddCommand(confChangerCmd)
 	confChangerInit()
 	eveCmd.AddCommand(downloaderCmd)
@@ -121,6 +169,7 @@ func eveInit() {
 	startEveCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", filepath.Join(currentPath, "dist", "qemu.conf"), "config file to use")
 	startEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	startEveCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, "dist", "eve.log"), "file for save EVE log")
+	startEveCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	eveCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")

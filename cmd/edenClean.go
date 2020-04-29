@@ -39,7 +39,7 @@ var cleanCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		if err := utils.CleanEden(command, eveDist, eveBaseDist, adamDist, certsDir, eserverImageDist,
-			binDir, qemuFileToSave, eserverPidFile, evePidFile); err != nil {
+			binDir, eserverPidFile, evePidFile); err != nil {
 			log.Fatalf("cannot CleanEden: %s", err)
 		}
 		log.Infof("CleanEden done")

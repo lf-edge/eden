@@ -285,7 +285,7 @@ func writeToLog(reader io.ReadCloser) error {
 		} else if err != nil {
 			return err
 		}
-		log.Debugln(string(n))
+		log.Infoln(string(n))
 	}
 	return nil
 }
@@ -300,7 +300,7 @@ func DockerImageRepack(commandPath string, distImage string, imageTag string) (e
 	}
 	commandArgsString := fmt.Sprintf("ociimage -i %s -o %s -l",
 		imageTag, distImage)
-	log.Debugf("DockerImageRepack run: %s %s", commandPath, commandArgsString)
+	log.Infof("DockerImageRepack run: %s %s", commandPath, commandArgsString)
 	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
@@ -322,7 +322,7 @@ func ExtractFilesFromDocker(u io.ReadCloser, directory string, prefixDirectory s
 		switch header.Typeflag {
 		case tar.TypeReg:
 			if strings.TrimSpace(filepath.Ext(header.Name)) == ".tar" {
-				log.Debugf("Extract layer %s", header.Name)
+				log.Infof("Extract layer %s", header.Name)
 				if err = extractLayersFromDocker(tarReader, directory, prefixDirectory); err != nil {
 					return err
 				}
