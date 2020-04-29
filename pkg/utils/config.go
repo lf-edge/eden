@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"text/template"
 )
 
@@ -24,7 +25,10 @@ adam:
     #domain of adam
     domain: mydomain.adam
 
-    #ip of adam
+    #ip of adam for EVE access
+    eve-ip: {{ .EVEIP }}
+
+    #ip of adam for EDEN access
     ip: {{ .IP }}
 
     #force adam rebuild
@@ -250,11 +254,18 @@ func GenerateConfigFile(filePath string) error {
 	if err != nil {
 		return err
 	}
+	nets, err := GetSubnetsNotUsed(1)
+	if err != nil {
+		return err
+	}
+	address := strings.Split(nets[0].FirstAddress.String(), ".")
+	eveIP := strings.Join(append(strings.Split(nets[0].FirstAddress.String(), ".")[:len(address)-1], "2"), ".")
 	err = t.Execute(buf,
 		struct {
 			ImageDir string
 			Root     string
 			IP       string
+			EVEIP    string
 			UUID     string
 			Arch     string
 			OS       string
@@ -263,6 +274,7 @@ func GenerateConfigFile(filePath string) error {
 			ImageDir: filepath.Join(currentPath, "images"),
 			Root:     filepath.Join(usr.HomeDir, "eden"),
 			IP:       ip,
+			EVEIP:    eveIP,
 			UUID:     id.String(),
 			Arch:     runtime.GOARCH,
 			OS:       runtime.GOOS,

@@ -120,13 +120,13 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 }
 
 //GenerateEveCerts function generates certs for EVE
-func GenerateEveCerts(commandPath string, certsDir string, domain string, ip string, uuid string) (err error) {
+func GenerateEveCerts(commandPath string, certsDir string, domain string, ip string, eveIP string, uuid string) (err error) {
 	if _, err := os.Stat(certsDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(certsDir, 0755); err != nil {
 			return err
 		}
 	}
-	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --uuid=%s -v %s", certsDir, domain, ip, uuid, log.GetLevel())
+	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s -v %s", certsDir, domain, ip, eveIP, uuid, log.GetLevel())
 	log.Infof("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
 	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
 }

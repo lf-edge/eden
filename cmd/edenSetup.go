@@ -46,6 +46,7 @@ var setupCmd = &cobra.Command{
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			certsDomain = viper.GetString("adam.domain")
 			certsIP = viper.GetString("adam.ip")
+			certsEVEIP = viper.GetString("adam.eve-ip")
 			//eve
 			qemuFirmware = viper.GetStringSlice("eve.firmware")
 			qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
@@ -71,7 +72,7 @@ var setupCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		if _, err := os.Stat(filepath.Join(certsDir, "server.pem")); os.IsNotExist(err) {
-			if err := utils.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsUUID); err != nil {
+			if err := utils.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")
@@ -80,16 +81,7 @@ var setupCmd = &cobra.Command{
 			log.Infof("Certs already exists in certs dir: %s", certsDir)
 		}
 		if _, err := os.Stat(filepath.Join(adamDist, "run", "config", "server.pem")); os.IsNotExist(err) {
-			if err := utils.CopyCertsToAdamConfig(certsDir, certsDomain, certsIP, adamPort, adamDist); err != nil {
-				log.Errorf("cannot CopyCertsToAdamConfig: %s", err)
-			} else {
-				log.Info("CopyCertsToAdamConfig done")
-			}
-		} else {
-			log.Infof("Certs already exists in adam dir: %s", certsDir)
-		}
-		if _, err := os.Stat(filepath.Join(adamDist, "run", "config", "server.pem")); os.IsNotExist(err) {
-			if err := utils.CopyCertsToAdamConfig(certsDir, certsDomain, certsIP, adamPort, adamDist); err != nil {
+			if err := utils.CopyCertsToAdamConfig(certsDir, certsDomain, certsEVEIP, adamPort, adamDist); err != nil {
 				log.Errorf("cannot CopyCertsToAdamConfig: %s", err)
 			} else {
 				log.Info("CopyCertsToAdamConfig done")
@@ -227,6 +219,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, "dist", "certs"), "directory with certs")
 	setupCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaultDomain, "FQDN for certificates")
 	setupCmd.Flags().StringVarP(&certsIP, "ip", "i", defaultIP, "IP address to use")
+	setupCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaultEVEIP, "IP address to use for EVE")
 	setupCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaultUUID, "UUID to use for device")
 
 	setupCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")

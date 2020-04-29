@@ -16,6 +16,7 @@ var (
 	certsDir    string
 	certsDomain string
 	certsIP     string
+	certsEVEIP  string
 	certsUUID   string
 )
 
@@ -33,6 +34,7 @@ var certsCmd = &cobra.Command{
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 			certsDomain = viper.GetString("adam.domain")
 			certsIP = viper.GetString("adam.ip")
+			certsEVEIP = viper.GetString("adam.eve-ip")
 			certsUUID = viper.GetString("eve.uuid")
 		}
 		return nil
@@ -46,7 +48,8 @@ var certsCmd = &cobra.Command{
 		log.Debug("generating CA")
 		rootCert, rootKey := utils.GenCARoot()
 		log.Debug("generating Adam cert and key")
-		ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), []net.IP{net.ParseIP(certsIP)}, []string{certsDomain}, certsDomain)
+		ips := []net.IP{net.ParseIP(certsIP), net.ParseIP(certsEVEIP), net.ParseIP("127.0.0.1")}
+		ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), ips, []string{certsDomain}, certsDomain)
 		log.Debug("generating EVE cert and key")
 		ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, certsUUID)
 		log.Debug("saving files")
@@ -75,6 +78,7 @@ func certsInit() {
 	certsCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, "dist", "certs"), "directory to save")
 	certsCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaultDomain, "FQDN for certificates")
 	certsCmd.Flags().StringVarP(&certsIP, "ip", "i", defaultIP, "IP address to use")
+	certsCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaultEVEIP, "IP address to use for EVE")
 	certsCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaultUUID, "UUID to use for device")
 	certsCmd.Flags().StringVar(&config, "config", "", "path to config file")
 }

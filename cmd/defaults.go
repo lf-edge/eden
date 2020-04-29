@@ -3,6 +3,7 @@ package cmd
 const (
 	defaultDomain          = "mydomain.adam"
 	defaultIP              = "192.168.0.1"
+	defaultEVEIP           = "192.168.1.2"
 	defaultUUID            = "1"
 	defaultEveTag          = "5.1.11"
 	defaultEvePrefixInTar  = "bits"
@@ -27,6 +28,7 @@ var (
 		"adam.port":   "adam-port",
 		"adam.domain": "domain",
 		"adam.ip":     "ip",
+		"adam.eve-ip": "eve-ip",
 		"adam.force":  "adam-force",
 
 		"eve.arch":        "eve-arch",
