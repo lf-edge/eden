@@ -12,6 +12,7 @@ import (
 const (
 	adamContainerName = "eden_adam"
 	adamContainerRef  = "lfedge/adam"
+	logLevelToPrint   = log.InfoLevel
 )
 
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
@@ -105,7 +106,7 @@ func StartEVEQemu(commandPath string, qemuARCH string, qemuOS string, eveImageFi
 	commandArgsString := fmt.Sprintf("eve qemurun --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s -v %s",
 		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile, log.GetLevel())
 	log.Debugf("StartEVEQemu run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //StopEVEQemu function stop EVE
@@ -127,7 +128,7 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 	}
 	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --uuid=%s -v %s", certsDir, domain, ip, uuid, log.GetLevel())
 	log.Debugf("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //CopyCertsToAdamConfig function copy certs to adam config
@@ -188,7 +189,7 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	}
 	commandArgsString := fmt.Sprintf("clone --branch %s --single-branch %s %s", tag, gitRepo, dist)
 	log.Debugf("CloneFromGit run: %s %s", "git", commandArgsString)
-	return RunCommandWithLogAndWait("git", log.DebugLevel, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait("git", logLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //DownloadEveFormDocker function clone EVE from docker
@@ -202,7 +203,7 @@ func DownloadEveFormDocker(commandPath string, dist string, arch string, tag str
 	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s --baseos=%t -v %s",
 		tag, arch, filepath.Join(dist, "dist", arch), baseOs, log.GetLevel())
 	log.Debugf("DownloadEveFormDocker run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //ChangeConfigPartAndRootFs replace config and rootfs part in EVE live image
@@ -218,7 +219,7 @@ func ChangeConfigPartAndRootFs(commandPath string, distEve string, distAdam stri
 	commandArgsString := fmt.Sprintf("eve confchanger --image-file=%s --config-part=%s --hv=%s -v %s",
 		imagePath, configPath, hv, log.GetLevel())
 	log.Debugf("ChangeConfigPartAndRootFs run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //MakeEveInRepo build live image of EVE
@@ -236,23 +237,23 @@ func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, root
 		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s rootfs",
 			distEve, hv, configPath)
 		log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
 	} else {
 		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s IMG_FORMAT=qcow2 live",
 			distEve, hv, configPath)
 		log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
 		biosPath := filepath.Join(distEve, "dist", arch, "OVMF.fd")
 		commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
 			distEve, hv, biosPath)
 		log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
 		if arch == "arm64" {
 			dtbPath := filepath.Join(distEve, "dist", "eve.dtb")
 			commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
 				distEve, hv, dtbPath)
 			log.Debugf("MakeEveInRepo run: %s %s", "make", commandArgsString)
-			err = RunCommandWithLogAndWait("make", log.DebugLevel, strings.Fields(commandArgsString)...)
+			err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
 		}
 	}
 	return
@@ -270,13 +271,13 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 	commandArgsString := fmt.Sprintf("build -format raw-bios -dir %s %s",
 		distImageDir, imageConfig)
 	log.Debugf("BuildVM run: %s %s", linuxKitPath, commandArgsString)
-	if err = RunCommandWithLogAndWait(linuxKitPath, log.DebugLevel, strings.Fields(commandArgsString)...); err != nil {
+	if err = RunCommandWithLogAndWait(linuxKitPath, logLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in linuxkit: %s", err)
 	}
 	commandArgsString = fmt.Sprintf("convert -c -f raw -O qcow2 %s %s",
 		imageConfigTmp, distImage)
 	log.Debugf("BuildVM run: %s %s", "qemu-img", commandArgsString)
-	if err = RunCommandWithLogAndWait("qemu-img", log.DebugLevel, strings.Fields(commandArgsString)...); err != nil {
+	if err = RunCommandWithLogAndWait("qemu-img", logLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in qemu-img: %s", err)
 	}
 	return os.Remove(imageConfigTmp)
@@ -294,7 +295,7 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 		commandArgsString = fmt.Sprintf("%s --dtb-part=%s", commandArgsString, dtbPath)
 	}
 	log.Debugf("PrepareQEMUConfig run: %s %s", commandPath, commandArgsString)
-	if err = RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...); err != nil {
+	if err = RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in qemuconf: %s", err)
 	}
 	return nil

@@ -301,7 +301,7 @@ func DockerImageRepack(commandPath string, distImage string, imageTag string) (e
 	commandArgsString := fmt.Sprintf("ociimage -i %s -o %s -l",
 		imageTag, distImage)
 	log.Debugf("DockerImageRepack run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, log.DebugLevel, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //ExtractFilesFromDocker extract all files from docker layer into directory
