@@ -11,19 +11,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var infoType string
+
 var infoCmd = &cobra.Command{
 	Use:   "info <directory> [field:regexp ...]",
 	Short: "Get information reports from a running EVE device",
-	Long:  `
+	Long: `
 Scans the ADAM Info files for correspondence with regular expressions requests to json fields.`,
-	Args:  cobra.MinimumNArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		follow, err := cmd.Flags().GetBool("follow")
 		if err != nil {
 			fmt.Printf("Error in get param 'follow'")
 			return
 		}
-
+		zInfoType, err := einfo.GetZInfoType(infoType)
+		if err != nil {
+			fmt.Printf("Error in get param 'type': %s", err)
+			return
+		}
 		q := make(map[string]string)
 		for _, a := range args[1:] {
 			s := strings.Split(a, ":")
@@ -32,15 +38,15 @@ Scans the ADAM Info files for correspondence with regular expressions requests t
 
 		if follow {
 			// Monitoring of new files
-			s, err := os.Stat(args[0]);
+			s, err := os.Stat(args[0])
 			if os.IsNotExist(err) {
 				fmt.Println("Directory reading error:", err)
 				return
 			}
 			if s.IsDir() {
-				_ = einfo.InfoWatch(args[0], q, einfo.ZInfoFind, einfo.HandleAll, einfo.ZInfoDevSW)
+				_ = einfo.InfoWatch(args[0], q, einfo.ZInfoFind, einfo.HandleAll, zInfoType)
 			} else {
-				fmt.Printf("'%s' is not a directory.\n",args[0])
+				fmt.Printf("'%s' is not a directory.\n", args[0])
 				return
 			}
 		} else {
@@ -61,16 +67,16 @@ Scans the ADAM Info files for correspondence with regular expressions requests t
 					fmt.Println("File reading error:", err)
 					return
 				}
-			
+
 				im, err := einfo.ParseZInfoMsg(data)
 				if err != nil {
 					fmt.Println("ParseZInfoMsg error", err)
 					return
 				}
 
-				ds := einfo.ZInfoFind(&im, q, einfo.ZInfoDevSW)
+				ds := einfo.ZInfoFind(&im, q, zInfoType)
 				if ds != nil {
-					einfo.ZInfoPrn(&im, ds, einfo.ZInfoDevSW)
+					einfo.ZInfoPrn(&im, ds, zInfoType)
 				}
 			}
 		}
@@ -79,4 +85,5 @@ Scans the ADAM Info files for correspondence with regular expressions requests t
 
 func infoInit() {
 	infoCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
+	infoCmd.PersistentFlags().StringVarP(&infoType, "type", "", "all", fmt.Sprintf("info type (%s)", strings.Join(einfo.ListZInfoType(), ",")))
 }

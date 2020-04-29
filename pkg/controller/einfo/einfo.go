@@ -46,7 +46,34 @@ var (
 	ZInfoNetworkInstance ZInfoType = &zInfoPacket{upperType: "GetNiinfo"}
 	//ZInfoAppInstance can be used for filter GetAinfo
 	ZInfoAppInstance ZInfoType = &zInfoPacket{upperType: "GetAinfo"}
+	//ZAll can be used for display all info items
+	ZAll ZInfoType = &zInfoPacket{}
 )
+
+//GetZInfoType return ZInfoType by name
+func GetZInfoType(name string) (ZInfoType, error) {
+	var zInfoType ZInfoType
+	switch name {
+	case "all":
+		zInfoType = ZAll
+	case "dinfo-network":
+		zInfoType = ZInfoNetwork
+	case "dinfo-swlist":
+		zInfoType = ZInfoDevSW
+	case "ainfo":
+		zInfoType = ZInfoAppInstance
+	case "niinfo":
+		zInfoType = ZInfoNetworkInstance
+	default:
+		return nil, fmt.Errorf("not implemented: %s", name)
+	}
+	return zInfoType, nil
+}
+
+//ListZInfoType return all implemented
+func ListZInfoType() []string {
+	return []string{"all", "dinfo-network", "dinfo-swlist", "ainfo", "niinfo"}
+}
 
 //ParseZInfoMsg unmarshal ZInfoMsg
 func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
@@ -76,7 +103,13 @@ func InfoPrn(im *info.ZInfoMsg) {
 func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) {
 	fmt.Println("ztype:", im.GetZtype())
 	fmt.Println("devId:", im.GetDevId())
-	fmt.Printf("%s.%s:\n", infoType.upperType, infoType.lowerType)
+	if infoType.upperType != "" {
+		if infoType.lowerType != "" {
+			fmt.Printf("%s.%s:\n", infoType.upperType, infoType.lowerType)
+		} else {
+			fmt.Printf("%s:\n", infoType.upperType)
+		}
+	}
 	for i, d := range ds {
 		fmt.Printf("[%d]: %s\n", i, *d)
 	}
@@ -132,28 +165,33 @@ func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) [
 
 	delete(query, "devId")
 
-	dInfo := reflect.ValueOf(im).MethodByName(infoType.upperType).Call([]reflect.Value{})
-	if len(dInfo) != 1 || dInfo[0].Interface() == nil {
-		return nil
-	}
-	if reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).Kind() == reflect.Invalid {
-		return nil
-	}
-	if infoType.lowerType != "" {
-		dInfoField := reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).FieldByName(infoType.lowerType)
-		for i := 0; i < dInfoField.Len(); i++ {
-			d := dInfoField.Index(i)
+	if infoType.upperType != "" {
+		dInfo := reflect.ValueOf(im).MethodByName(infoType.upperType).Call([]reflect.Value{})
+		if len(dInfo) != 1 || dInfo[0].Interface() == nil {
+			return nil
+		}
+		if reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).Kind() == reflect.Invalid {
+			return nil
+		}
+		if infoType.lowerType != "" && infoType.upperType != "" {
+			dInfoField := reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).FieldByName(infoType.lowerType)
+			for i := 0; i < dInfoField.Len(); i++ {
+				d := dInfoField.Index(i)
+				if processElem(d, query) {
+					var strValT ZInfoMsgInterface = d.Interface()
+					dsws = append(dsws, &strValT)
+				}
+			}
+		} else if infoType.upperType != "" {
+			d := dInfo[0]
 			if processElem(d, query) {
 				var strValT ZInfoMsgInterface = d.Interface()
 				dsws = append(dsws, &strValT)
 			}
 		}
 	} else {
-		d := dInfo[0]
-		if processElem(d, query) {
-			var strValT ZInfoMsgInterface = d.Interface()
-			dsws = append(dsws, &strValT)
-		}
+		var strValT ZInfoMsgInterface = im
+		dsws = append(dsws, &strValT)
 	}
 	return dsws
 }
