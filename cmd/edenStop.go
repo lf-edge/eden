@@ -32,13 +32,19 @@ var stopCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := utils.StopAdam(adamRm); err != nil {
-			log.Debugf("cannot stop adam: %s", err)
+			log.Infof("cannot stop adam: %s", err)
+		} else {
+			log.Infof("adam stopped")
 		}
 		if err := utils.StopEServer(eserverPidFile); err != nil {
-			log.Debugf("cannot stop eserver: %s", err)
+			log.Infof("cannot stop eserver: %s", err)
+		} else {
+			log.Infof("eserver stopped")
 		}
 		if err := utils.StopEVEQemu(evePidFile); err != nil {
-			log.Debugf("cannot stop EVE: %s", err)
+			log.Infof("cannot stop EVE: %s", err)
+		} else {
+			log.Infof("EVE stopped")
 		}
 	},
 }

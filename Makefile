@@ -61,10 +61,8 @@ config: bin
 
 setup: config
 	$(LOCALBIN) setup -v debug
-	$(LOCALBIN) start -v debug
 
 run: setup
-	$(LOCALBIN) setup -v debug
 	$(LOCALBIN) start -v debug
 
 stop: bin
