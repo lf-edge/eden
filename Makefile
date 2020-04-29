@@ -56,12 +56,19 @@ $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 $(BIN): $(LOCALBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -s $(LOCALBIN) $@; fi
 
-run: stop
+config: bin
 	$(LOCALBIN) config -v debug
-	$(LOCALBIN) start -v info
+
+setup: config
+	$(LOCALBIN) setup -v debug
+	$(LOCALBIN) start -v debug
+
+run: setup
+	$(LOCALBIN) setup -v debug
+	$(LOCALBIN) start -v debug
 
 stop: bin
-	$(LOCALBIN) stop -v info
+	$(LOCALBIN) stop -v debug
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
@@ -73,6 +80,8 @@ help:
 	@echo "Commonly used maintenance and development targets:"
 	@echo "   run           run ADAM and EVE"
 	@echo "   test          run tests"
+	@echo "   config        generate required config files"
+	@echo "   setup         download and/or build required files"
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"

@@ -61,7 +61,6 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		log.Infof("Executable path: %s", command)
 		if err := utils.StartAdam(adamPort, adamPath, adamForce); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
@@ -75,7 +74,7 @@ var startCmd = &cobra.Command{
 		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
-			log.Infof("EVE is running")
+			log.Infof("EVE is starting")
 		}
 	},
 }
