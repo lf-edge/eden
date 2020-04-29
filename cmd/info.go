@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/controller/einfo"
@@ -11,14 +12,10 @@ import (
 )
 
 var infoCmd = &cobra.Command{
-	Use:   "info",
+	Use:   "info <directory> [field:regexp ...]",
 	Short: "Get information reports from a running EVE device",
 	Long:  `
-Scans the ADAM Info files for correspondence with regular expressions requests to json fields. For example:
-
-eden info file [field:regexp ...]
-eden info -f directory [field:regexp ...]
-`,
+Scans the ADAM Info files for correspondence with regular expressions requests to json fields.`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		follow, err := cmd.Flags().GetBool("follow")
@@ -47,22 +44,34 @@ eden info -f directory [field:regexp ...]
 				return
 			}
 		} else {
-			// Just look to selected file
-			data, err := ioutil.ReadFile(args[0])
-			if err != nil {
-				fmt.Println("File reading error:", err)
-				return
-			}
-			
-			im, err := einfo.ParseZInfoMsg(data)
-			if err != nil {
-				fmt.Println("ParseZInfoMsg error", err)
-				return
-			}
+			// Just look to selected direcory
+			var files []string
 
-			ds := einfo.ZInfoFind(&im, q, einfo.ZInfoDevSW)
-			if ds != nil {
-				einfo.ZInfoPrn(&im, ds, einfo.ZInfoDevSW)
+			root := args[0]
+			err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+				files = append(files, path)
+				return nil
+			})
+			if err != nil {
+				panic(err)
+			}
+			for _, file := range files[1:] {
+				data, err := ioutil.ReadFile(file)
+				if err != nil {
+					fmt.Println("File reading error:", err)
+					return
+				}
+			
+				im, err := einfo.ParseZInfoMsg(data)
+				if err != nil {
+					fmt.Println("ParseZInfoMsg error", err)
+					return
+				}
+
+				ds := einfo.ZInfoFind(&im, q, einfo.ZInfoDevSW)
+				if ds != nil {
+					einfo.ZInfoPrn(&im, ds, einfo.ZInfoDevSW)
+				}
 			}
 		}
 	},
