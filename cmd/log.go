@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -11,14 +12,10 @@ import (
 )
 
 var logCmd = &cobra.Command{
-	Use:   "log",
+	Use:   "log <directory> [field:regexp ...]",
 	Short: "Get logs from a running EVE device",
 	Long:  `
-Scans the ADAM log files for correspondence with regular expressions requests to json fields. For example:
-
-eden log file [field:regexp ...]
-eden log -f directory [field:regexp ...]
-`,
+Scans the ADAM log files for correspondence with regular expressions requests to json fields.`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		follow, err := cmd.Flags().GetBool("follow")
@@ -48,29 +45,42 @@ eden log -f directory [field:regexp ...]
 				return
 			}
 		} else {
-			// Just look to selected file
-			data, err := ioutil.ReadFile(args[0])
-			if err != nil {
-				fmt.Println("File reading error", err)
-				return
-			}
+			// Just look to selected directory
+			var files []string
 
-			lb, err := elog.ParseLogBundle(data)
+			root := args[0]
+			err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+				files = append(files, path)
+				return nil
+			})
 			if err != nil {
-				fmt.Println("ParseLogBundle error", err)
-				return
+				panic(err)
 			}
-
-			for _, n := range lb.Log {
-				//fmt.Println(n.Content)
-				s := string(n.Content)
-				le, err := elog.ParseLogItem(s)
+			
+			for _, file := range files[1:] {
+				data, err := ioutil.ReadFile(file)
 				if err != nil {
-					fmt.Println("ParseLogItem error", err)
+					fmt.Println("File reading error", err)
 					return
 				}
-				if elog.LogItemFind(le, q) == 1 {
-					elog.LogPrn(&le)
+				
+				lb, err := elog.ParseLogBundle(data)
+				if err != nil {
+					fmt.Println("ParseLogBundle error", err)
+					return
+				}
+
+				for _, n := range lb.Log {
+					//fmt.Println(n.Content)
+					s := string(n.Content)
+					le, err := elog.ParseLogItem(s)
+					if err != nil {
+						fmt.Println("ParseLogItem error", err)
+						return
+					}
+					if elog.LogItemFind(le, q) == 1 {
+						elog.LogPrn(&le)
+					}
 				}
 			}
 		}
