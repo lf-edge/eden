@@ -3,6 +3,8 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"github.com/dustin/go-humanize"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net"
@@ -11,6 +13,33 @@ import (
 	"strings"
 	"time"
 )
+
+// writeCounter counts the number of bytes written to it. It implements to the io.Writer interface
+// and we can pass this into io.TeeReader() which will report progress on each write cycle.
+type writeCounter struct {
+	total       uint64
+	beforePrint uint64
+	step        uint64
+}
+
+//Write process bytes from downloader
+func (wc *writeCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	wc.total += uint64(n)
+	wc.beforePrint += uint64(n)
+	if wc.beforePrint > wc.step {
+		wc.beforePrint = 0
+		wc.printProgress()
+	}
+	return n, nil
+}
+
+func (wc writeCounter) printProgress() {
+	if log.IsLevelEnabled(log.InfoLevel) {
+		fmt.Printf("\r%s", strings.Repeat(" ", 35))
+		fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.total))
+	}
+}
 
 //RequestHTTPWithTimeout make request to url with timeout
 func RequestHTTPWithTimeout(url string, timeoutSeconds time.Duration) (string, error) {
@@ -63,16 +92,23 @@ func RequestHTTPRepeatWithTimeout(url string, returnEmpty bool, timeoutSeconds t
 
 //DownloadFile download a url to a local file.
 func DownloadFile(filepath string, url string) error {
+	out, err := os.Create(filepath + ".tmp")
+	if err != nil {
+		return err
+	}
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	out, err := os.Create(filepath)
-	if err != nil {
+	counter := &writeCounter{step: 10 * 1024 * 1024}
+	if _, err = io.Copy(out, io.TeeReader(resp.Body, counter)); err != nil {
+		out.Close()
 		return err
 	}
-	defer out.Close()
-	_, err = io.Copy(out, resp.Body)
-	return err
+	fmt.Printf("\n")
+	if err = os.Rename(filepath+".tmp", filepath); err != nil {
+		return err
+	}
+	return out.Close()
 }

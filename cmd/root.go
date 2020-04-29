@@ -69,6 +69,6 @@ func init() {
 
 // Execute primary function for cobra
 func Execute() {
-	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", logrus.WarnLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
+	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", logrus.InfoLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
 	_ = rootCmd.Execute()
 }
