@@ -30,7 +30,7 @@ var setupCmd = &cobra.Command{
 	Long:  `Setup harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -236,7 +236,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&eveRepo, "eve-repo", "", defaultEveRepo, "EVE repo")
 	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaultEveTag, "EVE tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
-	setupCmd.Flags().StringVarP(&eveBaseTag, "eve-base-tag", "", defaultBaseEveTag, "tag of base image of EVE")
+	setupCmd.Flags().StringVarP(&eveBaseTag, "eve-base-tag", "", utils.DefaultBaseOSTag, "tag of base image of EVE")
 	setupCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaultQemuHostFwd, "port forward map")
 	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, "dist", defaultQemuFileToSave), "file to save qemu config")
 	setupCmd.Flags().BoolVarP(&download, "download", "", true, "download EVE or build")
@@ -248,5 +248,5 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&vmYML, "vm-yml", "", filepath.Join(currentPath, "images", "vm", "alpine", "alpine.yml"), "directory for binaries")
 	setupCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "")
-	setupCmd.Flags().StringVar(&config, "config", configPath, "path to config file")
+	setupCmd.Flags().StringVar(&configFile, "config", configPath, "path to config file")
 }

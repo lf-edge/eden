@@ -20,7 +20,7 @@ var startEserverCmd = &cobra.Command{
 	Long:  `Start eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -52,7 +52,7 @@ var stopEserverCmd = &cobra.Command{
 	Long:  `Stop eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -74,7 +74,7 @@ var statusEserverCmd = &cobra.Command{
 	Long:  `Status of eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -107,5 +107,5 @@ func eserverInit() {
 	startEserverCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, "dist", "eserver.log"), "file for save eserver log")
 	stopEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
 	statusEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
-	eserverCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")
+	eserverCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }

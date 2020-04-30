@@ -12,7 +12,7 @@ import (
 )
 
 var verbosity string
-var config string
+var configFile string
 var rootCmd = &cobra.Command{Use: "eden", PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 	if err := setUpLogs(os.Stdout, verbosity); err != nil {
 		return err
@@ -69,6 +69,8 @@ func init() {
 	setupInit()
 	rootCmd.AddCommand(reconfCmd)
 	reconfInit()
+	rootCmd.AddCommand(eveUpdateCmd)
+	eveUpdateInit()
 }
 
 // Execute primary function for cobra

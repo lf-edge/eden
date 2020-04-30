@@ -29,7 +29,7 @@ var startCmd = &cobra.Command{
 	Long:  `Start harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -98,5 +98,5 @@ func startInit() {
 	startCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", filepath.Join(currentPath, "dist", "qemu.conf"), "config file to use")
 	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, "dist", "eve.log"), "file for save EVE log")
-	startCmd.Flags().StringVar(&config, "config", "", "path to config file")
+	startCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }

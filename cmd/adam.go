@@ -23,7 +23,7 @@ var startAdamCmd = &cobra.Command{
 	Long:  `Start adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -59,7 +59,7 @@ var stopAdamCmd = &cobra.Command{
 	Long:  `Stop adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -81,7 +81,7 @@ var statusAdamCmd = &cobra.Command{
 	Long:  `Status of adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -112,5 +112,5 @@ func adamInit() {
 	startAdamCmd.Flags().StringVarP(&adamPort, "adam-port", "", "3333", "adam dist to start")
 	startAdamCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	stopAdamCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
-	adamCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")
+	adamCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }

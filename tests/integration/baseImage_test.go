@@ -40,7 +40,7 @@ func TestBaseImage(t *testing.T) {
 	for _, tt := range baseImageTests {
 		baseOSVersion := fmt.Sprintf("%s-%s", tt.eveBaseRef, tt.zArch)
 		if tt.HV != "" {
-			baseOSVersion = fmt.Sprintf("%s-%s-%s", tt.eveBaseRef, tt.zArch, tt.HV)
+			baseOSVersion = fmt.Sprintf("%s-%s-%s", tt.eveBaseRef, tt.HV, tt.zArch)
 		}
 		t.Run(baseOSVersion, func(t *testing.T) {
 

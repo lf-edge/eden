@@ -6,10 +6,10 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
-	"log"
 )
 
 var adamCA string
@@ -17,12 +17,12 @@ var getConfig bool
 
 var reconfCmd = &cobra.Command{
 	Use:   "reconf <file>",
-	Short: "reconf harness",
-	Long:  `Reconf harness.`,
+	Short: "reconf EVE",
+	Long:  `Reconf EVE.`,
 	Args:  cobra.MinimumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -35,6 +35,7 @@ var reconfCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		controller.OnBoard()
 		var ctrl controller.Cloud = &controller.CloudCtx{Controller: &adam.Ctx{
 			Dir:         adamDist,
 			URL:         fmt.Sprintf("https://%s:%s", certsIP, adamPort),
@@ -65,15 +66,17 @@ var reconfCmd = &cobra.Command{
 				if err = ioutil.WriteFile(args[0], []byte(data), 0755); err != nil {
 					log.Fatalf("WriteFile: %s", err)
 				}
+				log.Infof("File saved: %s", args[0])
 			} else {
 				data, err := ioutil.ReadFile(args[0])
 				if err != nil {
-					fmt.Println("File reading error:", err)
+					log.Fatalf("File reading error:", err)
 					return
 				}
 				if err = ctrl.ConfigSet(devUUID, data); err != nil {
 					log.Fatalf("ConfigSet: %s", err)
 				}
+				log.Infof("File loaded: %s", args[0])
 			}
 			break
 		}
@@ -81,6 +84,6 @@ var reconfCmd = &cobra.Command{
 }
 
 func reconfInit() {
-	reconfCmd.Flags().StringVar(&config, "config", "", "path to config file")
-	reconfCmd.Flags().BoolVar(&getConfig, "get", false, "get config")
+	reconfCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
+	reconfCmd.Flags().BoolVar(&getConfig, "get", false, "get config instead of set")
 }

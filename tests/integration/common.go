@@ -199,9 +199,9 @@ func envRead() error {
 		checkLogs = viper.GetBool("eden.logs")
 		eveCert = utils.ResolveAbsPath(viper.GetString("eve.cert"))
 		eveSerial = viper.GetString("eve.serial")
-		eveBaseTag = viper.GetString("eve.base-tag")
 		zArch = viper.GetString("eve.arch")
 		eveHV = viper.GetString("eve.hv")
+		eveBaseTag = viper.GetString("eve.base-tag")
 	}
 	return nil
 }

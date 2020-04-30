@@ -29,7 +29,7 @@ var downloaderCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -67,5 +67,5 @@ func downloaderInit() {
 	downloaderCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH), "output directory")
 	downloaderCmd.Flags().BoolVarP(&baseos, "baseos", "", false, "base OS download")
-	downloaderCmd.Flags().StringVar(&config, "config", "", "path to config file")
+	downloaderCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }
