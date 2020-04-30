@@ -14,9 +14,9 @@ import (
 var logCmd = &cobra.Command{
 	Use:   "log <directory> [field:regexp ...]",
 	Short: "Get logs from a running EVE device",
-	Long:  `
+	Long: `
 Scans the ADAM log files for correspondence with regular expressions requests to json fields.`,
-	Args:  cobra.MinimumNArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		follow, err := cmd.Flags().GetBool("follow")
 		if err != nil {
@@ -33,15 +33,15 @@ Scans the ADAM log files for correspondence with regular expressions requests to
 
 		if follow {
 			// Monitoring of new files
-			s, err := os.Stat(args[0]);
+			s, err := os.Stat(args[0])
 			if os.IsNotExist(err) {
 				fmt.Println("Directory reading error:", err)
 				return
 			}
 			if s.IsDir() {
-				_ = elog.LogWatch(args[0], q, elog.HandleAll)
+				_ = elog.LogWatch(args[0], q, elog.HandleAll, 0)
 			} else {
-				fmt.Printf("'%s' is not a directory.\n",args[0])
+				fmt.Printf("'%s' is not a directory.\n", args[0])
 				return
 			}
 		} else {
@@ -56,14 +56,14 @@ Scans the ADAM log files for correspondence with regular expressions requests to
 			if err != nil {
 				panic(err)
 			}
-			
+
 			for _, file := range files[1:] {
 				data, err := ioutil.ReadFile(file)
 				if err != nil {
 					fmt.Println("File reading error", err)
 					return
 				}
-				
+
 				lb, err := elog.ParseLogBundle(data)
 				if err != nil {
 					fmt.Println("ParseLogBundle error", err)
