@@ -8,6 +8,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve/api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -454,7 +455,7 @@ func prepareNetworkInstance(ctx controller.Cloud, networkInstanceInput *netInst,
 		}
 		networkInstance.IpType = config.AddressType_IPV4
 		networkInstance.Port = &config.Adapter{
-			Type: config.PhyIoType_PhyIoNoop,
+			Type: evecommon.PhyIoType_PhyIoNoop,
 			Name: "uplink",
 		}
 		networkInstance.Ip = networkInstanceInput.ipSpec

@@ -13,10 +13,10 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gogo/protobuf v1.3.1 // indirect
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.4.0-rc.4.0.20200313231945-b860323f09d0
 	github.com/google/go-containerregistry v0.0.0-20200331213917-3d03ed9b1ca2
 	github.com/lf-edge/adam v0.0.0-20200307230620-9760762aaf7f
-	github.com/lf-edge/eve/api/go v0.0.0-20200320092003-3254bef38304
+	github.com/lf-edge/eve/api/go v0.0.0-20200429230624-54cfed88dc0f
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
@@ -25,6 +25,7 @@ require (
 	github.com/spf13/viper v1.4.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
+	google.golang.org/protobuf v1.21.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gotest.tools v2.2.0+incompatible
 )
