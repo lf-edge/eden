@@ -9,7 +9,6 @@ const (
 	defaultEveTag          = "5.1.11"
 	defaultEvePrefixInTar  = "bits"
 	defaultEveRepo         = "https://github.com/lf-edge/eve.git"
-	defaultBaseEveTag      = "5.1.10"
 	defaultLinuxKitVersion = "v0.7"
 	defaultImageTag        = "eden-alpine"
 	defaultFileToSave      = "./test.tar"
@@ -20,6 +19,10 @@ const (
 	defaultQemuCpus        = 4
 	defaultQemuMemory      = 4096
 	defaultEserverPort     = "8888"
+	defaultFilename        = "rootfs.img"
+	imageID                = "1ab8761b-5f89-4e0b-b757-4b87a9fa93ec"
+	dataStoreID            = "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
+	baseID                 = "22b8761b-5f89-4e0b-b757-4b87a9fa93ec"
 )
 
 var (
@@ -56,6 +59,7 @@ var (
 		"eden.images.docker": "docker-yml",
 		"eden.images.vm":     "vm-yml",
 		"eden.download":      "download",
+		"eden.eserver.ip":    "eserver-ip",
 		"eden.eserver.port":  "eserver-port",
 		"eden.eserver.pid":   "eserver-pid",
 		"eden.eserver.log":   "eserver-log",

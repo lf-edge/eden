@@ -35,7 +35,7 @@ var startEveCmd = &cobra.Command{
 	Long:  `Start eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -112,7 +112,7 @@ var stopEveCmd = &cobra.Command{
 	Long:  `Stop eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -134,7 +134,7 @@ var statusEveCmd = &cobra.Command{
 	Long:  `Status of eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -159,7 +159,7 @@ var consoleEveCmd = &cobra.Command{
 	Long:  `Telnet into eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(config)
+		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -179,7 +179,7 @@ var sshEveCmd = &cobra.Command{
 	Long:  `SSH into eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -233,5 +233,5 @@ func eveInit() {
 	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", 2222, "Port for ssh access")
 	consoleEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", "127.0.0.1", "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", 7777, "Port for telnet access")
-	eveCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")
+	eveCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }

@@ -27,23 +27,23 @@ var configCmd = &cobra.Command{
 	Long:  `Generate config eden.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if config == "" {
-			config, err = utils.DefaultConfigPath()
+		if configFile == "" {
+			configFile, err = utils.DefaultConfigPath()
 			if err != nil {
 				log.Fatalf("fail in DefaultConfigPath: %s", err)
 			}
 		}
-		if _, err := os.Stat(config); !os.IsNotExist(err) {
+		if _, err := os.Stat(configFile); !os.IsNotExist(err) {
 			if force {
-				if err := os.Remove(config); err != nil {
+				if err := os.Remove(configFile); err != nil {
 					log.Fatal(err)
 				}
 			} else {
-				log.Infof("config already exists: %s", config)
+				log.Infof("config already exists: %s", configFile)
 			}
 		}
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			log.Fatalf("error reading config: %s", err)
 		}
@@ -122,7 +122,7 @@ func configInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	configCmd.Flags().StringVar(&config, "config", configPath, "path to config file")
+	configCmd.Flags().StringVar(&configFile, "config", configPath, "path to config file")
 	configCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaultQemuFileToSave, "file to save config")
 	configCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaultQemuCpus, "cpus")
 	configCmd.Flags().IntVarP(&qemuMemory, "memory", "", defaultQemuMemory, "memory (MB)")

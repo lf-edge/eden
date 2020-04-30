@@ -16,7 +16,7 @@ var statusCmd = &cobra.Command{
 	Long:  `Status of harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -55,5 +55,5 @@ func statusInit() {
 	}
 	statusCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
-	statusCmd.Flags().StringVar(&config, "config", "", "path to config file")
+	statusCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }

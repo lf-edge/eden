@@ -16,7 +16,7 @@ var cleanCmd = &cobra.Command{
 	Long:  `Clean harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(config)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
@@ -61,5 +61,5 @@ func cleanInit() {
 
 	cleanCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, "dist", "certs"), "directory with certs")
 	cleanCmd.Flags().StringVarP(&binDir, "bin-dist", "", filepath.Join(currentPath, "dist", "bin"), "directory for binaries")
-	cleanCmd.Flags().StringVar(&config, "config", "", "path to config file")
+	cleanCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }
