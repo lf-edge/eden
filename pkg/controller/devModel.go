@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve/api/go/evecommon"
 )
 
 //DevModelType is type of dev model
@@ -73,17 +74,17 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 	case DevModelTypeQemu:
 		return cloud.CreateDevModel(
 				[]*config.PhysicalIO{{
-					Ptype:        config.PhyIoType_PhyIoNetEth,
+					Ptype:        evecommon.PhyIoType_PhyIoNetEth,
 					Phylabel:     "eth0",
 					Logicallabel: "eth0",
 					Assigngrp:    "eth0",
 					Phyaddrs:     map[string]string{"Ifname": "eth0"},
-					Usage:        config.PhyIoMemberUsage_PhyIoUsageMgmtAndApps,
+					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps,
 					UsagePolicy: &config.PhyIOUsagePolicy{
 						FreeUplink: true,
 					},
 				}, {
-					Ptype:        config.PhyIoType_PhyIoNetEth,
+					Ptype:        evecommon.PhyIoType_PhyIoNetEth,
 					Phylabel:     "eth1",
 					Logicallabel: "eth1",
 					Assigngrp:    "eth1",
