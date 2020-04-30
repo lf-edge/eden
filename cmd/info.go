@@ -44,7 +44,7 @@ Scans the ADAM Info files for correspondence with regular expressions requests t
 				return
 			}
 			if s.IsDir() {
-				_ = einfo.InfoWatch(args[0], q, einfo.ZInfoFind, einfo.HandleAll, zInfoType)
+				_ = einfo.InfoWatch(args[0], q, einfo.ZInfoFind, einfo.HandleAll, zInfoType, 0)
 			} else {
 				fmt.Printf("'%s' is not a directory.\n", args[0])
 				return
