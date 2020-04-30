@@ -67,6 +67,8 @@ func init() {
 	cleanInit()
 	rootCmd.AddCommand(setupCmd)
 	setupInit()
+	rootCmd.AddCommand(reconfCmd)
+	reconfInit()
 }
 
 // Execute primary function for cobra
