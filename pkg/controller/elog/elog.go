@@ -27,6 +27,16 @@ type LogItem struct {
 	Partition string
 }
 
+//LogCheckerMode is InfoExist, InfoNew and InfoAny
+type LogCheckerMode int
+
+// LogChecker modes LogExist, LogNew and LogAny.
+const (
+	LogExist LogCheckerMode = iota // just look to existing files
+	LogNew                         // wait for new files
+	LogAny                         // use both mechanisms
+)
+
 //ParseLogBundle unmarshal LogBundle
 func ParseLogBundle(data []byte) (logBundle logs.LogBundle, err error) {
 	var lb logs.LogBundle
@@ -147,23 +157,30 @@ func LogLast(loader loaders.Loader, query map[string]string, handler HandlerFunc
 }
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
-func LogChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string, timeout time.Duration) (err error) {
+func LogChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string, handler HandlerFunc, mode LogCheckerMode, timeout time.Duration) (err error) {
 	loader.SetUUID(devUUID)
 	done := make(chan error)
-	go func() {
-		done <- LogWatch(loader, q, HandleFirst, timeout)
-	}()
-	go func() {
-		handler := func(item *LogItem) (result bool) {
-			if result = HandleFirst(item); result {
-				done <- nil
+
+	// observe new files
+	if mode == LogNew || mode == LogAny {
+		go func() {
+			done <- LogWatch(loader, q, handler, timeout)
+		}()
+	}
+	// check info by pattern in existing files
+	if mode == LogExist || mode == LogAny {
+		go func() {
+			handler := func(item *LogItem) (result bool) {
+				if result = handler(item); result {
+					done <- nil
+				}
+				return
 			}
-			return
-		}
-		err := LogLast(loader, q, handler)
-		if err != nil {
-			done <- err
-		}
-	}()
+			err := LogLast(loader, q, handler)
+			if err != nil {
+				done <- err
+			}
+		}()
+	}
 	return <-done
 }

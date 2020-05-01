@@ -105,7 +105,7 @@ func (loader *remoteLoader) ProcessStream(process ProcessFunction, typeToProcess
 	if timeoutSeconds > 0 {
 		loader.client.Timeout = time.Second * timeoutSeconds
 	} else {
-		loader.client.Timeout = time.Second * 10
+		loader.client.Timeout = 0
 	}
 	return loader.process(process, typeToProcess, true)
 }

@@ -3,6 +3,7 @@ package integration
 import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eve/api/go/config"
 	"testing"
 	"time"
@@ -69,7 +70,7 @@ func TestBaseImage(t *testing.T) {
 				if !checkLogs {
 					t.Skip("no LOGS flag set - skipped")
 				}
-				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, 1200)
+				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "eveVersion": baseOSVersion}, elog.HandleFirst, elog.LogAny, 1200)
 				if err != nil {
 					t.Fatal("Fail in waiting for base image logs: ", err)
 				}
