@@ -2,9 +2,11 @@ package adam
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/lf-edge/adam/pkg/server"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"log"
@@ -18,6 +20,15 @@ type Ctx struct {
 	URL         string
 	ServerCA    string
 	InsecureTLS bool
+}
+
+//EnvRead use variables from viper for init controller
+func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
+	adam.Dir = vars.AdamDir
+	adam.URL = fmt.Sprintf("https://%s:%s", vars.AdamIP, vars.AdamPort)
+	adam.InsecureTLS = len(vars.AdamCA) == 0
+	adam.ServerCA = vars.AdamCA
+	return nil
 }
 
 //GetDir return Dir

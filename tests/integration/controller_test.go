@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"testing"
 	"time"
@@ -8,9 +9,9 @@ import (
 
 //TestAdamOnBoard test onboarding into controller
 func TestAdamOnBoard(t *testing.T) {
-	ctx, err := controllerPrepare()
-	if ctx == nil {
-		t.Fatal("Fail in controller prepare: ", err)
+	ctx, err := controller.CloudPrepare()
+	if err != nil {
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if devUUID == nil {
@@ -50,9 +51,9 @@ func TestAdamOnBoard(t *testing.T) {
 
 //TestControllerSetConfig test config set via controller
 func TestControllerSetConfig(t *testing.T) {
-	ctx, err := controllerPrepare()
+	ctx, err := controller.CloudPrepare()
 	if err != nil {
-		t.Fatal("Fail in controller prepare: ", err)
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 	deviceCtx, err := ctx.GetDeviceFirst()
 	if err != nil {
@@ -66,9 +67,9 @@ func TestControllerSetConfig(t *testing.T) {
 
 //TestControllerGetConfig test config get via controller
 func TestControllerGetConfig(t *testing.T) {
-	ctx, err := controllerPrepare()
+	ctx, err := controller.CloudPrepare()
 	if err != nil {
-		t.Fatal("Fail in controller prepare: ", err)
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if err != nil {
@@ -83,9 +84,9 @@ func TestControllerGetConfig(t *testing.T) {
 
 //TestAdamOnBoard test logs flow
 func TestControllerLogs(t *testing.T) {
-	ctx, err := controllerPrepare()
+	ctx, err := controller.CloudPrepare()
 	if err != nil {
-		t.Fatal("Fail in controller prepare: ", err)
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if err != nil {
@@ -99,9 +100,9 @@ func TestControllerLogs(t *testing.T) {
 
 //TestControllerInfo test info flow
 func TestControllerInfo(t *testing.T) {
-	ctx, err := controllerPrepare()
+	ctx, err := controller.CloudPrepare()
 	if err != nil {
-		t.Fatal("Fail in controller prepare: ", err)
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 	devUUID, err := ctx.GetDeviceFirst()
 	if err != nil {

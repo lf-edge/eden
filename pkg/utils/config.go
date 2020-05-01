@@ -14,6 +14,52 @@ import (
 	"text/template"
 )
 
+//ConfigVars struct with parameters from config file
+type ConfigVars struct {
+	AdamIP     string
+	AdamPort   string
+	AdamDir    string
+	AdamCA     string
+	EveBaseTag string
+	EveHV      string
+	SshKey     string
+	CheckLogs  bool
+	EveCert    string
+	EveSerial  string
+	ZArch      string
+	DevModel   string
+}
+
+//InitVars loads vars from viper
+func InitVars() (*ConfigVars, error) {
+	configPath, err := DefaultConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	loaded, err := LoadConfigFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if loaded {
+		var vars = &ConfigVars{
+			AdamIP:     viper.GetString("adam.ip"),
+			AdamPort:   viper.GetString("adam.port"),
+			AdamDir:    ResolveAbsPath(viper.GetString("adam.dist")),
+			AdamCA:     ResolveAbsPath(viper.GetString("adam.ca")),
+			SshKey:     ResolveAbsPath(viper.GetString("eden.ssh-key")),
+			CheckLogs:  viper.GetBool("eden.logs"),
+			EveCert:    ResolveAbsPath(viper.GetString("eve.cert")),
+			EveSerial:  viper.GetString("eve.serial"),
+			ZArch:      viper.GetString("eve.arch"),
+			EveHV:      viper.GetString("eve.hv"),
+			EveBaseTag: fmt.Sprintf("%s-%s-%s", viper.GetString("eve.base-tag"), viper.GetString("eve.hv"), viper.GetString("eve.arch")),
+			DevModel:   viper.GetString("eve.devmodel"),
+		}
+		return vars, nil
+	}
+	return nil, nil
+}
+
 //DefaultBaseOSTag for uploadable rootfs
 const DefaultBaseOSTag = "5.2.0"
 

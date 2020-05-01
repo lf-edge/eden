@@ -14,9 +14,9 @@ import (
 
 //TestApplication test base image loading into eve
 func TestApplication(t *testing.T) {
-	ctx, err := controllerPrepare()
+	ctx, err := controller.CloudPrepare()
 	if err != nil {
-		t.Fatal("Fail in controller prepare: ", err)
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 
 	deviceModel, err := ctx.GetDevModel(controller.DevModelTypeQemu)
