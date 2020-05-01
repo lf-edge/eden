@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eden/pkg/controller/elog"
 	"testing"
 	"time"
 )
@@ -57,7 +58,7 @@ func TestNetworkInstance(t *testing.T) {
 				if !checkLogs {
 					t.Skip("no LOGS flag set - skipped")
 				}
-				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*handleNetworkInstanceModify\\(%s\\) done.*", tt.networkInstance.networkInstanceID), "level": "info"}, 600)
+				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*handleNetworkInstanceModify\\(%s\\) done.*", tt.networkInstance.networkInstanceID), "level": "info"}, elog.HandleFirst, elog.LogAny, 600)
 				if err != nil {
 					t.Fatal("Fail in waiting for handleNetworkInstanceModify done from zedagent: ", err)
 				}

@@ -118,8 +118,8 @@ func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 }
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
-func (adam *Ctx) LogChecker(devUUID uuid.UUID, q map[string]string, timeout time.Duration) (err error) {
-	return elog.LogChecker(adam.loader, devUUID, q, timeout)
+func (adam *Ctx) LogChecker(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc, mode elog.LogCheckerMode, timeout time.Duration) (err error) {
+	return elog.LogChecker(adam.loader, devUUID, q, handler, mode, timeout)
 }
 
 //LogLastCallback check logs by pattern from existence files with callback
