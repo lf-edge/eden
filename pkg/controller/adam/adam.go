@@ -20,6 +20,7 @@ type Ctx struct {
 	URL         string
 	ServerCA    string
 	InsecureTLS bool
+	loader      einfo.InfoLoader
 }
 
 //EnvRead use variables from viper for init controller
@@ -28,6 +29,7 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.URL = fmt.Sprintf("https://%s:%s", vars.AdamIP, vars.AdamPort)
 	adam.InsecureTLS = len(vars.AdamCA) == 0
 	adam.ServerCA = vars.AdamCA
+	adam.loader = einfo.FileLoader(adam.getInfoDir)
 	return nil
 }
 
@@ -102,10 +104,11 @@ func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.
 func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error) {
-	return einfo.InfoChecker(adam.getInfoDir(devUUID), q, infoType, handler, mode, timeout)
+	return einfo.InfoChecker(adam.loader, devUUID, q, infoType, handler, mode, timeout)
 }
 
 //InfoLastCallback check info by pattern from existence files with callback
 func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc) (err error) {
-	return einfo.InfoLast(adam.getInfoDir(devUUID), q, einfo.ZInfoFind, handler, infoType)
+	adam.loader.SetUUID(devUUID)
+	return adam.loader.InfoLast(q, einfo.ZInfoFind, handler, infoType)
 }

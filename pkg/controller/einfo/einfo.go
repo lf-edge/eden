@@ -3,17 +3,13 @@
 package einfo
 
 import (
-	"errors"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eve/api/go/info"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"path"
 	"reflect"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 )
@@ -198,110 +194,11 @@ func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) [
 	return dsws
 }
 
-//InfoWatch monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function with 'timeoutSeconds'.
-func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-
-	if timeoutSeconds == 0 {
-		timeoutSeconds = -1
-	}
-
-	done := make(chan error)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					done <- errors.New("watcher closed")
-					return
-				}
-				switch event.Op {
-				case fsnotify.Write:
-					time.Sleep(1 * time.Second) // wait for write ends
-					data, err := ioutil.ReadFile(event.Name)
-					if err != nil {
-						log.Error("Can't open", event.Name)
-						continue
-					}
-					log.Debugf("parse info file %s", event.Name)
-
-					im, err := ParseZInfoMsg(data)
-					if err != nil {
-						log.Error("Can't parse ZInfoMsg", event.Name)
-						continue
-					}
-					ds := qhandler(&im, query, infoType)
-					if ds != nil {
-						if handler(&im, ds, infoType) {
-							done <- nil
-							return
-						}
-					}
-
-					continue
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					done <- err
-					return
-				}
-				log.Errorf("error: %s", err)
-			case <-time.After(timeoutSeconds * time.Second):
-				done <- errors.New("timeout")
-				return
-			}
-		}
-	}()
-
-	err = watcher.Add(filepath)
-	if err != nil {
-		return err
-	}
-
-	err = <-done
-	_ = watcher.Close()
-	return err
-}
-
-//InfoLast search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
-func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
-	files, err := ioutil.ReadDir(filepath)
-	if err != nil {
-		return err
-	}
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].ModTime().Unix() > files[j].ModTime().Unix()
-	})
-	time.Sleep(1 * time.Second) // wait for write ends
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		fileFullPath := path.Join(filepath, file.Name())
-		log.Debugf("parse info file %s", fileFullPath)
-		data, err := ioutil.ReadFile(fileFullPath)
-		if err != nil {
-			log.Error("Can't open ", fileFullPath)
-			continue
-		}
-
-		im, err := ParseZInfoMsg(data)
-		if err != nil {
-			log.Error("Can't parse ZInfoMsg ", fileFullPath)
-			continue
-		}
-		ds := qhandler(&im, query, infoType)
-		if ds != nil {
-			if handler(&im, ds, infoType) {
-				return nil
-			}
-		}
-		continue
-	}
-	return nil
+//InfoLoader return loader from files
+type InfoLoader interface {
+	SetUUID(devUUID uuid.UUID)
+	InfoLast(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error
+	InfoWatch(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error
 }
 
 //InfoFind find ZInfoMsg records by reqexps in 'query' corresponded to devId and
@@ -336,14 +233,14 @@ const (
 )
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout (0 for infinite).
-func InfoChecker(dir string, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
-	log.Infof("wait for info in %s", dir)
+func InfoChecker(loader InfoLoader, devUUID uuid.UUID, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
+	loader.SetUUID(devUUID)
 	done := make(chan error)
 
 	// observe new files
 	if mode == InfoNew || mode == InfoAny {
 		go func() {
-			err = InfoWatch(dir, query, ZInfoFind, handler, infoType, timeout)
+			err = loader.InfoWatch(query, ZInfoFind, handler, infoType, timeout)
 			done <- err
 		}()
 	}
@@ -355,8 +252,7 @@ func InfoChecker(dir string, query map[string]string, infoType ZInfoType, handle
 				done <- nil
 				return true
 			}
-			err = InfoLast(dir, query, ZInfoFind, handler, infoType)
-			if err != nil {
+			if err = loader.InfoLast(query, ZInfoFind, handler, infoType); err != nil {
 				done <- err
 			}
 		}()
