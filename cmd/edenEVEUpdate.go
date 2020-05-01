@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -19,6 +20,7 @@ import (
 var (
 	eserverIP     string
 	baseOSVersion string
+	wait          bool
 )
 
 var eveUpdateCmd = &cobra.Command{
@@ -147,9 +149,13 @@ var eveUpdateCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("uuidGet: %s", err)
 			}
-			deviceCtx, err := ctrl.AddDevice(devUUID)
+
+			deviceCtx, err := ctrl.GetDeviceUUID(devUUID)
 			if err != nil {
-				log.Fatal("Fail in add device: ", err)
+				deviceCtx, err = ctrl.AddDevice(devUUID)
+				{
+					log.Fatal("Fail in add device: ", err)
+				}
 			}
 			if eveSSHKey != "" {
 				b, err := ioutil.ReadFile(eveSSHKey)
@@ -164,6 +170,21 @@ var eveUpdateCmd = &cobra.Command{
 			deviceCtx.SetBaseOSConfig([]string{baseID})
 			err = ctrl.ConfigSync(deviceCtx)
 			log.Info("Request for update sended")
+			if wait {
+				log.Info("Please wait for operation ending")
+				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 300); err != nil {
+					log.Fatal("Fail in waiting for base image update init: ", err)
+				}
+				log.Info("Request for update received by EVE")
+				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 1500); err != nil {
+					log.Fatal("Fail in waiting for base image download progress: ", err)
+				}
+				log.Info("New image downloaded by EVE")
+				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED", "partitionState": "(inprogress|active)"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 1200); err != nil {
+					log.Fatal("Fail in waiting for base image installed status: ", err)
+				}
+				log.Info("Update done")
+			}
 			break
 		}
 
@@ -177,4 +198,5 @@ func eveUpdateInit() {
 	eveUpdateCmd.Flags().StringVarP(&baseOSVersion, "os-version", "", utils.DefaultBaseOSTag, "version of ROOTFS")
 	eveUpdateCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
 	eveUpdateCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
+	eveUpdateCmd.Flags().BoolVar(&wait, "wait", true, "wait for system update")
 }

@@ -223,13 +223,14 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 					time.Sleep(1 * time.Second) // wait for write ends
 					data, err := ioutil.ReadFile(event.Name)
 					if err != nil {
-						log.Print("Can't open", event.Name)
+						log.Error("Can't open", event.Name)
 						continue
 					}
+					log.Debugf("parse info file %s", event.Name)
 
 					im, err := ParseZInfoMsg(data)
 					if err != nil {
-						log.Print("Can't parse ZInfoMsg", event.Name)
+						log.Error("Can't parse ZInfoMsg", event.Name)
 						continue
 					}
 					ds := qhandler(&im, query, infoType)
@@ -247,7 +248,7 @@ func InfoWatch(filepath string, query map[string]string, qhandler QHandlerFunc, 
 					done <- err
 					return
 				}
-				log.Printf("error: %s", err)
+				log.Errorf("error: %s", err)
 			case <-time.After(timeoutSeconds * time.Second):
 				done <- errors.New("timeout")
 				return
@@ -280,15 +281,16 @@ func InfoLast(filepath string, query map[string]string, qhandler QHandlerFunc, h
 			continue
 		}
 		fileFullPath := path.Join(filepath, file.Name())
+		log.Debugf("parse info file %s", fileFullPath)
 		data, err := ioutil.ReadFile(fileFullPath)
 		if err != nil {
-			log.Print("Can't open ", fileFullPath)
+			log.Error("Can't open ", fileFullPath)
 			continue
 		}
 
 		im, err := ParseZInfoMsg(data)
 		if err != nil {
-			log.Print("Can't parse ZInfoMsg ", fileFullPath)
+			log.Error("Can't parse ZInfoMsg ", fileFullPath)
 			continue
 		}
 		ds := qhandler(&im, query, infoType)
@@ -335,6 +337,7 @@ const (
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout (0 for infinite).
 func InfoChecker(dir string, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
+	log.Infof("wait for info in %s", dir)
 	done := make(chan error)
 
 	// observe new files
