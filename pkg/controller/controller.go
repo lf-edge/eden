@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	"time"
 )
@@ -19,4 +20,5 @@ type Controller interface {
 	DeviceList() (out []string, err error)
 	Register(eveCert string, eveSerial string) error
 	GetDir() (dir string)
+	InitWithVars(vars *utils.ConfigVars) error
 }

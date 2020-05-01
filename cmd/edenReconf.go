@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -35,19 +34,12 @@ var reconfCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		controller.OnBoard()
-		var ctrl controller.Cloud = &controller.CloudCtx{Controller: &adam.Ctx{
-			Dir:         adamDist,
-			URL:         fmt.Sprintf("https://%s:%s", certsIP, adamPort),
-			InsecureTLS: true,
-		}}
-		if len(adamCA) != 0 {
-			ctrl = &controller.CloudCtx{Controller: &adam.Ctx{
-				Dir:         adamDist,
-				URL:         fmt.Sprintf("https://%s:%s", certsIP, adamPort),
-				InsecureTLS: false,
-				ServerCA:    adamCA,
-			}}
+		ctrl, err := controller.CloudPrepare()
+		if err != nil {
+			log.Fatalf("CloudPrepare: %s", err)
+		}
+		if err := ctrl.OnBoard(); err != nil {
+			log.Fatalf("OnBoard: %s", err)
 		}
 		devices, err := ctrl.DeviceList()
 		if err != nil {

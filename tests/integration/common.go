@@ -5,13 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
-	uuid "github.com/satori/go.uuid"
-	"github.com/spf13/viper"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -125,142 +121,6 @@ var (
 )
 
 var checkLogs = false
-
-//envRead use environment variables for init controller
-//environment variable ADAM_IP - IP of adam
-//environment variable ADAM_PORT - PORT of adam
-//environment variable ADAM_DIST - directory of adam (absolute path)
-//environment variable ADAM_CA - CA file of adam for https
-//environment variable SSH_KEY - ssh public key for integrate into eve
-//environment variable EVE_CERT - path to eve onboarding cert
-//environment variable EVE_SERIAL - serial number of eve
-//environment variable EVE_BASE_REF - version of eve image
-//environment variable ZARCH - architecture of eve image
-//environment variable HV - hypervisor of eve image
-func envRead() error {
-	configPath, err := utils.DefaultConfigPath()
-	if err != nil {
-		return err
-	}
-	loaded, err := utils.LoadConfigFile(configPath)
-	if err != nil {
-		return err
-	}
-	if !loaded {
-		currentPath, err := os.Getwd()
-		adamIP = os.Getenv("ADAM_IP")
-		if len(adamIP) == 0 {
-			adamIP, err = utils.GetIPForDockerAccess()
-			if err != nil {
-				return err
-			}
-		}
-		adamPort = os.Getenv("ADAM_PORT")
-		if len(adamPort) == 0 {
-			adamPort = "3333"
-		}
-		adamDir = os.Getenv("ADAM_DIST")
-		if len(adamDir) == 0 {
-			adamDir = path.Join(filepath.Dir(filepath.Dir(currentPath)), "dist", "adam")
-			if stat, err := os.Stat(adamDir); err != nil || !stat.IsDir() {
-				return err
-			}
-		}
-
-		adamCA = os.Getenv("ADAM_CA")
-		sshKey = os.Getenv("SSH_KEY")
-		checkLogs = os.Getenv("LOGS") != ""
-		eveCert = os.Getenv("EVE_CERT")
-		if len(eveCert) == 0 {
-			eveCert = path.Join(adamDir, "run", "config", "onboard.cert.pem")
-		}
-		eveSerial = os.Getenv("EVE_SERIAL")
-		if len(eveSerial) == 0 {
-			eveSerial = "31415926"
-		}
-		eveBaseTag = os.Getenv("EVE_BASE_REF")
-		if len(eveBaseTag) == 0 {
-			eveBaseTag = "4.10.0"
-		}
-		zArch = os.Getenv("ZARCH")
-		if len(eveBaseTag) == 0 {
-			zArch = "amd64"
-		}
-		eveHV = os.Getenv("HV")
-		if eveHV == "xen" {
-			eveHV = ""
-		}
-	} else {
-		adamIP = viper.GetString("adam.ip")
-		adamPort = viper.GetString("adam.port")
-		adamDir = utils.ResolveAbsPath(viper.GetString("adam.dist"))
-		adamCA = utils.ResolveAbsPath(viper.GetString("adam.ca"))
-		sshKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
-		checkLogs = viper.GetBool("eden.logs")
-		eveCert = utils.ResolveAbsPath(viper.GetString("eve.cert"))
-		eveSerial = viper.GetString("eve.serial")
-		zArch = viper.GetString("eve.arch")
-		eveHV = viper.GetString("eve.hv")
-		eveBaseTag = viper.GetString("eve.base-tag")
-	}
-	return nil
-}
-
-//controllerPrepare is for init controller connection and obtain device list
-func controllerPrepare() (ctx controller.Cloud, err error) {
-	err = envRead()
-	if err != nil {
-		return ctx, err
-	}
-	var ctrl controller.Cloud = &controller.CloudCtx{Controller: &adam.Ctx{
-		Dir:         adamDir,
-		URL:         fmt.Sprintf("https://%s:%s", adamIP, adamPort),
-		InsecureTLS: true,
-	}}
-	if len(adamCA) != 0 {
-		ctrl = &controller.CloudCtx{Controller: &adam.Ctx{
-			Dir:         adamDir,
-			URL:         fmt.Sprintf("https://%s:%s", adamIP, adamPort),
-			InsecureTLS: false,
-			ServerCA:    adamCA,
-		}}
-	}
-	devices, err := ctrl.DeviceList()
-	if err != nil {
-		return ctrl, err
-	}
-	for _, devID := range devices {
-		devUUID, err := uuid.FromString(devID)
-		if err != nil {
-			return ctrl, err
-		}
-		dev, err := ctrl.AddDevice(devUUID)
-		if err != nil {
-			return ctrl, err
-		}
-		if sshKey != "" {
-			b, err := ioutil.ReadFile(sshKey)
-			switch {
-			case err != nil && os.IsNotExist(err):
-				return nil, fmt.Errorf("sshKey file %s does not exist", sshKey)
-			case err != nil:
-				return nil, fmt.Errorf("error reading sshKey file %s: %v", sshKey, err)
-			}
-			dev.SetSSHKeys([]string{string(b)})
-		}
-		dev.SetVncAccess(true)
-		dev.SetControllerLogLevel("info")
-		deviceModel, err := ctrl.GetDevModel(controller.DevModelTypeQemu)
-		if err != nil {
-			return ctrl, fmt.Errorf("fail in get deviceModel: %s", err)
-		}
-		err = ctrl.ApplyDevModel(dev, deviceModel)
-		if err != nil {
-			return ctrl, fmt.Errorf("fail in ApplyDevModel: %s", err)
-		}
-	}
-	return ctrl, nil
-}
 
 func prepareImageLocal(ctx controller.Cloud, dataStoreID string, imageID string, imageFormat config.Format, imageFileName string, isBaseOS bool) (*config.Image, error) {
 	dataStore, err := ctx.GetDataStore(dataStoreID)

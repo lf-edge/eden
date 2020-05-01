@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eve/api/go/config"
 	"testing"
@@ -10,9 +11,9 @@ import (
 
 //TestBaseImage test base image loading into eve
 func TestBaseImage(t *testing.T) {
-	ctx, err := controllerPrepare()
+	ctx, err := controller.CloudPrepare()
 	if err != nil {
-		t.Fatal("Fail in controller prepare: ", err)
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 	var baseImageTests = []struct {
 		dataStoreID       string

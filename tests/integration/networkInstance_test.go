@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"testing"
 	"time"
@@ -9,9 +10,9 @@ import (
 
 //TestNetworkInstance test network instances creation in EVE
 func TestNetworkInstance(t *testing.T) {
-	ctx, err := controllerPrepare()
+	ctx, err := controller.CloudPrepare()
 	if err != nil {
-		t.Fatal("Fail in controller prepare: ", err)
+		t.Fatalf("CloudPrepare: %s", err)
 	}
 
 	deviceCtx, err := ctx.GetDeviceFirst()

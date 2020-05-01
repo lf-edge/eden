@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 )
@@ -19,6 +20,7 @@ type CloudCtx struct {
 	systemAdapters       map[string]*config.SystemAdapter
 	applicationInstances []*config.AppInstanceConfig
 	devModels            map[DevModelType]*DevModel
+	vars                 *utils.ConfigVars
 }
 
 //Cloud is an interface of cloud
@@ -55,4 +57,5 @@ type Cloud interface {
 	AddApplicationInstanceConfig(applicationInstanceConfig *config.AppInstanceConfig) error
 	RemoveApplicationInstanceConfig(id string) error
 	StateUpdate(dev *device.Ctx) (err error)
+	OnBoard() error
 }
