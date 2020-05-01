@@ -13,10 +13,11 @@ func TestAdamOnBoard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
+	vars := ctx.GetVars()
 	devUUID, err := ctx.GetDeviceFirst()
 	if devUUID == nil {
 		t.Logf("Try to add onboarding")
-		err = ctx.Register(eveCert, eveSerial)
+		err = ctx.Register(vars.EveCert, vars.EveSerial)
 		if err != nil {
 			t.Fatal(err)
 		}

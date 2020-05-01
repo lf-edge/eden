@@ -13,19 +13,6 @@ import (
 	"path/filepath"
 )
 
-var (
-	adamIP     string
-	adamPort   string
-	adamDir    string
-	adamCA     string
-	sshKey     string
-	eveCert    string
-	eveSerial  string
-	eveBaseTag string
-	eveHV      string
-	zArch      string
-)
-
 type netInst struct {
 	networkInstanceID   string
 	networkInstanceName string

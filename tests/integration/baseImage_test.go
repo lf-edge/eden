@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eve/api/go/config"
@@ -15,6 +14,7 @@ func TestBaseImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
+	vars := ctx.GetVars()
 	var baseImageTests = []struct {
 		dataStoreID       string
 		imageID           string
@@ -22,8 +22,6 @@ func TestBaseImage(t *testing.T) {
 		imageRelativePath string
 		imageFormat       config.Format
 		eveBaseRef        string
-		zArch             string
-		HV                string
 	}{
 		{eServerDataStoreID,
 
@@ -33,16 +31,11 @@ func TestBaseImage(t *testing.T) {
 
 			"baseos.qcow2",
 			config.Format_QCOW2,
-			eveBaseTag,
-			zArch,
-			eveHV,
+			vars.EveBaseTag,
 		},
 	}
 	for _, tt := range baseImageTests {
-		baseOSVersion := fmt.Sprintf("%s-%s", tt.eveBaseRef, tt.zArch)
-		if tt.HV != "" {
-			baseOSVersion = fmt.Sprintf("%s-%s-%s", tt.eveBaseRef, tt.HV, tt.zArch)
-		}
+		baseOSVersion := tt.eveBaseRef
 		t.Run(baseOSVersion, func(t *testing.T) {
 
 			err = prepareBaseImageLocal(ctx, tt.dataStoreID, tt.imageID, tt.baseID, tt.imageRelativePath, tt.imageFormat, baseOSVersion)

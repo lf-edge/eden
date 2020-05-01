@@ -134,13 +134,14 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc, tim
 					time.Sleep(1 * time.Second) // wait for write ends
 					data, err := ioutil.ReadFile(event.Name)
 					if err != nil {
-						log.Print("Can't open ", event.Name)
+						log.Error("Can't open ", event.Name)
 						continue
 					}
+					log.Debugf("parse log file %s", event.Name)
 
 					lb, err := ParseLogBundle(data)
 					if err != nil {
-						log.Print("Can't parse bundle of ", event.Name)
+						log.Error("Can't parse bundle of ", event.Name)
 						continue
 					}
 					if devID != "" && devID != lb.DevID {
@@ -154,7 +155,7 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc, tim
 						s := n.Content
 						le, err := ParseLogItem(s)
 						if err != nil {
-							log.Print("Can't parse item in ", event.Name)
+							log.Error("Can't parse item in ", event.Name)
 							continue
 						}
 						if LogItemFind(le, query) == 1 {
@@ -171,7 +172,7 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc, tim
 					done <- err
 					return
 				}
-				log.Printf("error: %s", err)
+				log.Errorf("error: %s", err)
 			case <-time.After(timeoutSeconds * time.Second):
 				done <- errors.New("timeout")
 				return
@@ -213,15 +214,16 @@ func LogLast(filepath string, query map[string]string, handler HandlerFunc) erro
 			continue
 		}
 		fileFullPath := path.Join(filepath, file.Name())
+		log.Debugf("parse log file %s", fileFullPath)
 		data, err := ioutil.ReadFile(fileFullPath)
 		if err != nil {
-			log.Print("Can't open ", fileFullPath)
+			log.Error("Can't open ", fileFullPath)
 			continue
 		}
 
 		lb, err := ParseLogBundle(data)
 		if err != nil {
-			log.Print("Can't parse bundle of ", fileFullPath)
+			log.Error("Can't parse bundle of ", fileFullPath)
 			continue
 		}
 		if devID != "" && devID != lb.DevID {
@@ -234,7 +236,7 @@ func LogLast(filepath string, query map[string]string, handler HandlerFunc) erro
 			s := n.Content
 			le, err := ParseLogItem(s)
 			if err != nil {
-				log.Print("Can't parse items in ", file.Name())
+				log.Error("Can't parse items in ", file.Name())
 				continue
 			}
 			if LogItemFind(le, query) == 1 {
@@ -250,6 +252,7 @@ func LogLast(filepath string, query map[string]string, handler HandlerFunc) erro
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func LogChecker(dir string, q map[string]string, timeout time.Duration) (err error) {
+	log.Infof("wait for log in %s", dir)
 	done := make(chan error)
 	go func() {
 		done <- LogWatch(dir, q, HandleFirst, timeout)
