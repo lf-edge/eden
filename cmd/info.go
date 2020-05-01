@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -44,7 +45,11 @@ Scans the ADAM Info files for correspondence with regular expressions requests t
 				return
 			}
 			if s.IsDir() {
-				_ = einfo.InfoWatch(args[0], q, einfo.ZInfoFind, einfo.HandleAll, zInfoType, 0)
+				pathBuilder := func(devUUID uuid.UUID) (dir string) {
+					return args[0]
+				}
+				loader := einfo.FileLoader(pathBuilder)
+				_ = loader.InfoWatch(q, einfo.ZInfoFind, einfo.HandleAll, zInfoType, 0)
 			} else {
 				fmt.Printf("'%s' is not a directory.\n", args[0])
 				return
