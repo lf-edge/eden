@@ -20,6 +20,7 @@ type ConfigVars struct {
 	AdamPort   string
 	AdamDir    string
 	AdamCA     string
+	AdamRemote bool
 	EveBaseTag string
 	EveHV      string
 	SshKey     string
@@ -54,6 +55,7 @@ func InitVars() (*ConfigVars, error) {
 			EveHV:      viper.GetString("eve.hv"),
 			EveBaseTag: fmt.Sprintf("%s-%s-%s", viper.GetString("eve.base-tag"), viper.GetString("eve.hv"), viper.GetString("eve.arch")),
 			DevModel:   viper.GetString("eve.devmodel"),
+			AdamRemote: viper.GetBool("adam.remote"),
 		}
 		return vars, nil
 	}
@@ -88,6 +90,9 @@ adam:
 
     #certificate for communication with adam
     ca: adam/run/config/root-certificate.pem
+
+    #use remote adam
+    remote: true
 
 eve:
     #devmodel

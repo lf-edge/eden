@@ -6,46 +6,71 @@ import (
 	"github.com/lf-edge/adam/pkg/server"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"time"
 )
 
 type Ctx struct {
-	Dir         string
-	URL         string
-	ServerCA    string
-	InsecureTLS bool
-	loader      einfo.InfoLoader
+	dir         string
+	url         string
+	serverCA    string
+	insecureTLS bool
+	loader      loaders.Loader
 }
 
 //EnvRead use variables from viper for init controller
 func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
-	adam.Dir = vars.AdamDir
-	adam.URL = fmt.Sprintf("https://%s:%s", vars.AdamIP, vars.AdamPort)
-	adam.InsecureTLS = len(vars.AdamCA) == 0
-	adam.ServerCA = vars.AdamCA
-	adam.loader = einfo.FileLoader(adam.getInfoDir)
+	adam.dir = vars.AdamDir
+	adam.url = fmt.Sprintf("https://%s:%s", vars.AdamIP, vars.AdamPort)
+	adam.insecureTLS = len(vars.AdamCA) == 0
+	adam.serverCA = vars.AdamCA
+	if vars.AdamRemote {
+		log.Info("wil use remote adam loader")
+		adam.loader = loaders.RemoteLoader(adam.getHTTPClient(), adam.getLogsUrl, adam.getInfoUrl)
+	} else {
+		log.Info("wil use local adam loader")
+		adam.loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
+	}
 	return nil
 }
 
-//GetDir return Dir
+//GetDir return dir
 func (adam *Ctx) GetDir() (dir string) {
-	return adam.Dir
+	return adam.dir
 }
 
 //getLogsDir return logs directory for devUUID
 func (adam *Ctx) getLogsDir(devUUID uuid.UUID) (dir string) {
-	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "logs")
+	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "logs")
 }
 
 //getInfoDir return info directory for devUUID
 func (adam *Ctx) getInfoDir(devUUID uuid.UUID) (dir string) {
-	return path.Join(adam.Dir, "run", "adam", "device", devUUID.String(), "info")
+	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "info")
+}
+
+//getLogsUrl return logs url for devUUID
+func (adam *Ctx) getLogsUrl(devUUID uuid.UUID) string {
+	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "logs"))
+	if err != nil {
+		log.Fatalf("ResolveURL: %s", err)
+	}
+	return resUrl
+}
+
+//getLogsUrl return info url for devUUID
+func (adam *Ctx) getInfoUrl(devUUID uuid.UUID) string {
+	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "info"))
+	if err != nil {
+		log.Fatalf("ResolveURL: %s", err)
+	}
+	return resUrl
 }
 
 //Register device in adam
@@ -94,12 +119,13 @@ func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func (adam *Ctx) LogChecker(devUUID uuid.UUID, q map[string]string, timeout time.Duration) (err error) {
-	return elog.LogChecker(adam.getLogsDir(devUUID), q, timeout)
+	return elog.LogChecker(adam.loader, devUUID, q, timeout)
 }
 
 //LogLastCallback check logs by pattern from existence files with callback
 func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc) (err error) {
-	return elog.LogLast(adam.getInfoDir(devUUID), q, handler)
+	adam.loader.SetUUID(devUUID)
+	return elog.LogLast(adam.loader, q, handler)
 }
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.
@@ -110,5 +136,5 @@ func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, infoType ei
 //InfoLastCallback check info by pattern from existence files with callback
 func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc) (err error) {
 	adam.loader.SetUUID(devUUID)
-	return adam.loader.InfoLast(q, einfo.ZInfoFind, handler, infoType)
+	return einfo.InfoLast(adam.loader, q, einfo.ZInfoFind, handler, infoType)
 }

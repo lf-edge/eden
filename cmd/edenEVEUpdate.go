@@ -172,15 +172,15 @@ var eveUpdateCmd = &cobra.Command{
 			log.Info("Request for update sended")
 			if wait {
 				log.Info("Please wait for operation ending")
-				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 300); err != nil {
+				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 500); err != nil {
 					log.Fatal("Fail in waiting for base image update init: ", err)
 				}
 				log.Info("Request for update received by EVE")
-				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 1500); err != nil {
+				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 1000); err != nil {
 					log.Fatal("Fail in waiting for base image download progress: ", err)
 				}
 				log.Info("New image downloaded by EVE")
-				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED", "partitionState": "(inprogress|active)"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 1200); err != nil {
+				if err := ctrl.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED", "partitionState": "(inprogress|active)"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 1000); err != nil {
 					log.Fatal("Fail in waiting for base image installed status: ", err)
 				}
 				log.Info("Update done")

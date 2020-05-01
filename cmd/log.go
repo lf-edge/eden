@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller/loaders"
+	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -39,7 +41,11 @@ Scans the ADAM log files for correspondence with regular expressions requests to
 				return
 			}
 			if s.IsDir() {
-				_ = elog.LogWatch(args[0], q, elog.HandleAll, 0)
+				pathBuilder := func(devUUID uuid.UUID) (dir string) {
+					return args[0]
+				}
+				loader := loaders.FileLoader(pathBuilder, nil)
+				_ = elog.LogWatch(loader, q, elog.HandleAll, 0)
 			} else {
 				fmt.Printf("'%s' is not a directory.\n", args[0])
 				return
