@@ -23,6 +23,8 @@ const (
 	imageID                = "1ab8761b-5f89-4e0b-b757-4b87a9fa93ec"
 	dataStoreID            = "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
 	baseID                 = "22b8761b-5f89-4e0b-b757-4b87a9fa93ec"
+	defaultTestProg        = "eden.integration.test"
+	defaultTestScript      = "eden.integration.test"
 )
 
 var (
@@ -66,5 +68,7 @@ var (
 		"eden.certs-dist":    "certs-dist",
 		"eden.bin-dist":      "bin-dist",
 		"eden.ssh-key":       "ssh-key",
+		"eden.test-bin":      "eden.integration.test",
+		"test-script":        "eden.integration.tests.txt",
 	}
 )

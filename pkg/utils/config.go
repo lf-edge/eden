@@ -204,6 +204,12 @@ eden:
 
     #observe logs in tests
     logs: false
+
+    #test binary
+    test-bin: eden.integration.test
+
+    #test script
+    test-script: eden.integration.tests.txt
 `
 
 //DefaultEdenDir returns path to default directory

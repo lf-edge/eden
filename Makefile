@@ -15,10 +15,12 @@ OS ?= $(HOSTOS)
 # canonicalized names for target architecture
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
-DIST=$(CURDIR)/dist
-BINDIR := $(DIST)/bin
+WORKDIR=$(HOME)/eden
+BINDIR := $(WORKDIR)/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
+TESTBIN := eden.integration.test
+LOCALTESTBIN := $(BINDIR)/$(TESTBIN)-$(OS)-$(ARCH)
 
 MEDIA_SIZE=1024M
 
@@ -29,8 +31,9 @@ export ZARCH
 
 clean: bin
 	$(LOCALBIN) clean
+	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN)
 
-$(DIST):
+$(WORKDIR):
 	mkdir -p $@
 $(BINDIR):
 	mkdir -p $@
@@ -52,14 +55,21 @@ test_hooks: test_controller
 
 test: test_base_image test_network_instance test_application_instance
 
+build: bin testbin
+
 bin: $(BIN)
-build: $(BIN)
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
 $(BIN): $(LOCALBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -s $(LOCALBIN) $@; fi
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALBIN) $(BINDIR)/$@; fi
 
-config: bin
+testbin: $(TESTBIN)
+$(LOCALTESTBIN): $(BINDIR) tests/integration/*.go
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ tests/integration/*.go
+$(TESTBIN): $(LOCALTESTBIN)
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALTESTBIN) $(BINDIR)/$@; fi
+
+config: build
 	$(LOCALBIN) config -v debug
 
 setup: config
