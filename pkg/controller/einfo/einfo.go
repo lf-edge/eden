@@ -5,6 +5,7 @@ package einfo
 import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eve/api/go/info"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -194,13 +195,6 @@ func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) [
 	return dsws
 }
 
-//InfoLoader return loader from files
-type InfoLoader interface {
-	SetUUID(devUUID uuid.UUID)
-	InfoLast(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error
-	InfoWatch(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error
-}
-
 //InfoFind find ZInfoMsg records by reqexps in 'query' corresponded to devId and
 //ZInfoDevSW structure.
 func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
@@ -232,27 +226,53 @@ const (
 	InfoAny                          // use both mechanisms
 )
 
+func infoProcess(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) loaders.ProcessFunction {
+	return func(bytes []byte) (bool, error) {
+		im, err := ParseZInfoMsg(bytes)
+		if err != nil {
+			return true, nil
+		}
+		ds := qhandler(&im, query, infoType)
+		if ds != nil {
+			if handler(&im, ds, infoType) {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+}
+
+//InfoLast search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
+func InfoLast(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
+	return loader.ProcessExisting(infoProcess(query, qhandler, handler, infoType), loaders.InfoType)
+}
+
+//InfoWatch monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function with 'timeoutSeconds'.
+func InfoWatch(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error {
+	return loader.ProcessStream(infoProcess(query, qhandler, handler, infoType), loaders.InfoType, timeoutSeconds)
+}
+
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout (0 for infinite).
-func InfoChecker(loader InfoLoader, devUUID uuid.UUID, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
+func InfoChecker(loader loaders.Loader, devUUID uuid.UUID, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
 	loader.SetUUID(devUUID)
 	done := make(chan error)
 
 	// observe new files
 	if mode == InfoNew || mode == InfoAny {
 		go func() {
-			err = loader.InfoWatch(query, ZInfoFind, handler, infoType, timeout)
-			done <- err
+			done <- InfoWatch(loader, query, ZInfoFind, handler, infoType, timeout)
 		}()
 	}
 	// check info by pattern in existing files
 	if mode == InfoExist || mode == InfoAny {
 		go func() {
-			handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
-				handler(im, ds, infoType)
-				done <- nil
-				return true
+			handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) (result bool) {
+				if result = handler(im, ds, infoType); result {
+					done <- nil
+				}
+				return
 			}
-			if err = loader.InfoLast(query, ZInfoFind, handler, infoType); err != nil {
+			if err = InfoLast(loader, query, ZInfoFind, handler, infoType); err != nil {
 				done <- err
 			}
 		}()

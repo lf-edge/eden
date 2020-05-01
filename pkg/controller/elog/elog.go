@@ -4,17 +4,13 @@ package elog
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eve/api/go/logs"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"path"
+	uuid "github.com/satori/go.uuid"
 	"reflect"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 )
@@ -102,13 +98,7 @@ func LogPrn(le *LogItem) {
 //or false to continue
 type HandlerFunc func(*LogItem) bool
 
-//LogWatch monitors the change of Log files in the 'filepath' directory
-//according to the 'query' reqexps and processing using the 'handler' function.
-func LogWatch(filepath string, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
+func logProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFunction {
 	devID, ok := query["devId"]
 	if ok {
 		delete(query, "devId")
@@ -117,152 +107,60 @@ func LogWatch(filepath string, query map[string]string, handler HandlerFunc, tim
 	if ok {
 		delete(query, "eveVersion")
 	}
-	if timeoutSeconds == 0 {
-		timeoutSeconds = -1
-	}
-	done := make(chan error)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					done <- errors.New("watcher closed")
-					return
-				}
-				switch event.Op {
-				case fsnotify.Write:
-					time.Sleep(1 * time.Second) // wait for write ends
-					data, err := ioutil.ReadFile(event.Name)
-					if err != nil {
-						log.Error("Can't open ", event.Name)
-						continue
-					}
-					log.Debugf("parse log file %s", event.Name)
-
-					lb, err := ParseLogBundle(data)
-					if err != nil {
-						log.Error("Can't parse bundle of ", event.Name)
-						continue
-					}
-					if devID != "" && devID != lb.DevID {
-						continue
-					}
-					if eveVersion != "" && eveVersion != lb.EveVersion {
-						continue
-					}
-					for _, n := range lb.Log {
-						//fmt.Println(n.Content)
-						s := n.Content
-						le, err := ParseLogItem(s)
-						if err != nil {
-							log.Error("Can't parse item in ", event.Name)
-							continue
-						}
-						if LogItemFind(le, query) == 1 {
-							if handler(&le) {
-								done <- nil
-								return
-							}
-						}
-					}
-					continue
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					done <- err
-					return
-				}
-				log.Errorf("error: %s", err)
-			case <-time.After(timeoutSeconds * time.Second):
-				done <- errors.New("timeout")
-				return
-			}
-		}
-	}()
-
-	err = watcher.Add(filepath)
-	if err != nil {
-		return err
-	}
-
-	err = <-done
-	_ = watcher.Close()
-	return err
-}
-
-//LogLast function process Log files in the 'filepath' directory
-//according to the 'query' reqexps and return last founded item
-func LogLast(filepath string, query map[string]string, handler HandlerFunc) error {
-	devID, ok := query["devId"]
-	if ok {
-		delete(query, "devId")
-	}
-	eveVersion, ok := query["eveVersion"]
-	if ok {
-		delete(query, "eveVersion")
-	}
-	files, err := ioutil.ReadDir(filepath)
-	if err != nil {
-		return err
-	}
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].ModTime().Unix() > files[j].ModTime().Unix()
-	})
-	time.Sleep(1 * time.Second) // wait for write ends
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		fileFullPath := path.Join(filepath, file.Name())
-		log.Debugf("parse log file %s", fileFullPath)
-		data, err := ioutil.ReadFile(fileFullPath)
+	return func(bytes []byte) (bool, error) {
+		lb, err := ParseLogBundle(bytes)
 		if err != nil {
-			log.Error("Can't open ", fileFullPath)
-			continue
-		}
-
-		lb, err := ParseLogBundle(data)
-		if err != nil {
-			log.Error("Can't parse bundle of ", fileFullPath)
-			continue
+			return true, nil
 		}
 		if devID != "" && devID != lb.DevID {
-			continue
+			return true, nil
 		}
 		if eveVersion != "" && eveVersion != lb.EveVersion {
-			continue
+			return true, nil
 		}
 		for _, n := range lb.Log {
 			s := n.Content
 			le, err := ParseLogItem(s)
 			if err != nil {
-				log.Error("Can't parse items in ", file.Name())
-				continue
+				return true, nil
 			}
 			if LogItemFind(le, query) == 1 {
 				if handler(&le) {
-					return nil
+					return false, nil
 				}
 			}
 		}
-		continue
+		return true, nil
 	}
-	return nil
+}
+
+//LogWatch monitors the change of Log files in the 'filepath' directory
+//according to the 'query' reqexps and processing using the 'handler' function.
+func LogWatch(loader loaders.Loader, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
+	return loader.ProcessStream(logProcess(query, handler), loaders.LogsType, timeoutSeconds)
+}
+
+//LogLast function process Log files in the 'filepath' directory
+//according to the 'query' reqexps and return last founded item
+func LogLast(loader loaders.Loader, query map[string]string, handler HandlerFunc) error {
+	return loader.ProcessExisting(logProcess(query, handler), loaders.LogsType)
 }
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
-func LogChecker(dir string, q map[string]string, timeout time.Duration) (err error) {
-	log.Infof("wait for log in %s", dir)
+func LogChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string, timeout time.Duration) (err error) {
+	loader.SetUUID(devUUID)
 	done := make(chan error)
 	go func() {
-		done <- LogWatch(dir, q, HandleFirst, timeout)
+		done <- LogWatch(loader, q, HandleFirst, timeout)
 	}()
 	go func() {
-		handler := func(item *LogItem) bool {
-			done <- nil
-			return HandleFirst(item)
+		handler := func(item *LogItem) (result bool) {
+			if result = HandleFirst(item); result {
+				done <- nil
+			}
+			return
 		}
-		err := LogLast(dir, q, handler)
+		err := LogLast(loader, q, handler)
 		if err != nil {
 			done <- err
 		}

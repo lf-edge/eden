@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller/loaders"
 	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"os"
@@ -48,8 +49,8 @@ Scans the ADAM Info files for correspondence with regular expressions requests t
 				pathBuilder := func(devUUID uuid.UUID) (dir string) {
 					return args[0]
 				}
-				loader := einfo.FileLoader(pathBuilder)
-				_ = loader.InfoWatch(q, einfo.ZInfoFind, einfo.HandleAll, zInfoType, 0)
+				loader := loaders.FileLoader(nil, pathBuilder)
+				_ = einfo.InfoWatch(loader, q, einfo.ZInfoFind, einfo.HandleAll, zInfoType, 0)
 			} else {
 				fmt.Printf("'%s' is not a directory.\n", args[0])
 				return
