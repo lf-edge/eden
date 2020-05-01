@@ -71,6 +71,8 @@ func init() {
 	reconfInit()
 	rootCmd.AddCommand(eveUpdateCmd)
 	eveUpdateInit()
+	rootCmd.AddCommand(testCmd)
+	testInit()
 }
 
 // Execute primary function for cobra
