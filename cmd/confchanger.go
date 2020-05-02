@@ -35,6 +35,7 @@ var confChangerCmd = &cobra.Command{
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
 			eveHV = viper.GetString("eve.hv")
+			apiV1 = viper.GetBool("adam.v1")
 		}
 		return nil
 	},
@@ -105,7 +106,7 @@ var confChangerCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = filepath.Walk(qemuConfigPathAbs,
+		if err = filepath.Walk(qemuConfigPathAbs,
 			func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
@@ -125,17 +126,19 @@ var confChangerCmd = &cobra.Command{
 				if err != nil {
 					log.Fatal(err)
 				}
-				_, err = rw.Write(content)
-				if err != nil {
+				if _, err = rw.Write(content); err != nil {
 					log.Fatal(err)
 				}
 				return nil
-			})
-		if err != nil {
+			}); err != nil {
 			log.Fatal(err)
 		}
-		err = os.Remove(eveImageFilePath)
-		if err != nil {
+		if apiV1 {
+			if _, err = fs.OpenFile(filepath.Join("/", "Force-API-V1"), os.O_CREATE|os.O_RDWR); err != nil {
+				log.Fatal(err)
+			}
+		}
+		if err = os.Remove(eveImageFilePath); err != nil {
 			log.Fatal(err)
 		}
 		_, stderr, err = utils.RunCommandAndWait("qemu-img", strings.Fields(fmt.Sprintf("convert -c -O qcow2 %s %s", tempFilePath, eveImageFilePath))...)
@@ -154,5 +157,6 @@ func confChangerInit() {
 	confChangerCmd.Flags().StringVarP(&eveImageFile, "image-file", "", filepath.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH, "live.qcow2"), "image to modify (required)")
 	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", filepath.Join(currentPath, "dist", "adam", "run", "config"), "path for config drive")
 	confChangerCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
+	confChangerCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
 	confChangerCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }

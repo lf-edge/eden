@@ -23,7 +23,7 @@ func StartAdam(adamPort string, adamPath string, adamForce bool, adamTag string)
 	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
 	if adamForce {
 		_ = StopContainer(adamContainerName, true)
-		if err := CreateAndRunContainer(adamContainerName, adamContainerRef + ":" + adamTag, portMap, volumeMap, adamServerCommand); err != nil {
+		if err := CreateAndRunContainer(adamContainerName, adamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}
 	} else {
@@ -132,7 +132,7 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 }
 
 //CopyCertsToAdamConfig function copy certs to adam config
-func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port string, adamDist string) (err error) {
+func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port string, adamDist string, apiV1 bool) (err error) {
 	adamConfig := filepath.Join(adamDist, "run", "config")
 	adamServer := filepath.Join(adamDist, "run", "adam")
 	if _, err = os.Stat(filepath.Join(certsDir, "server.pem")); os.IsNotExist(err) {
@@ -163,12 +163,19 @@ func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port strin
 	if err = CopyFileNotExists(filepath.Join(certsDir, "onboard.key.pem"), filepath.Join(adamConfig, "onboard.key.pem")); err != nil {
 		return err
 	}
-	if err = CopyFileNotExists(filepath.Join(certsDir, "id_rsa.pub"), filepath.Join(adamConfig, "authorized_keys")); err != nil {
+	/*if err = CopyFileNotExists(filepath.Join(certsDir, "id_rsa.pub"), filepath.Join(adamConfig, "authorized_keys")); err != nil {
 		return err
-	}
+	}*/
 	if _, err = os.Stat(filepath.Join(adamConfig, "hosts")); os.IsNotExist(err) {
 		if err = ioutil.WriteFile(filepath.Join(adamConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
 			return err
+		}
+	}
+	if apiV1 {
+		if _, err = os.Stat(filepath.Join(adamConfig, "Force-API-V1")); os.IsNotExist(err) {
+			if err := TouchFile(filepath.Join(adamConfig, "Force-API-V1")); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 	if _, err = os.Stat(filepath.Join(adamConfig, "server")); os.IsNotExist(err) {
