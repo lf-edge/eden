@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 //SHA256SUM calculates sha256 of file
@@ -63,6 +64,24 @@ func CopyFile(src string, dst string) (err error) {
 		return err
 	}
 	return ioutil.WriteFile(dst, data, info.Mode()^os.ModeSymlink)
+}
+
+//TouchFile create empty file
+func TouchFile(src string) (err error) {
+	if _, err := os.Stat(src); os.IsNotExist(err) {
+		file, err := os.Create(src)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+	} else {
+		currentTime := time.Now().Local()
+		err = os.Chtimes(src, currentTime, currentTime)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func fileNameWithoutExtension(fileName string) string {

@@ -22,6 +22,7 @@ var (
 	vmYML       string
 	force       bool
 	dryRun      bool
+	apiV1       bool
 )
 
 var setupCmd = &cobra.Command{
@@ -48,6 +49,7 @@ var setupCmd = &cobra.Command{
 			certsDomain = viper.GetString("adam.domain")
 			certsIP = viper.GetString("adam.ip")
 			certsEVEIP = viper.GetString("adam.eve-ip")
+			apiV1 = viper.GetBool("adam.v1")
 			//eve
 			qemuFirmware = viper.GetStringSlice("eve.firmware")
 			qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
@@ -82,7 +84,7 @@ var setupCmd = &cobra.Command{
 			log.Infof("Certs already exists in certs dir: %s", certsDir)
 		}
 		if _, err := os.Stat(filepath.Join(adamDist, "run", "config", "server.pem")); os.IsNotExist(err) {
-			if err := utils.CopyCertsToAdamConfig(certsDir, certsDomain, certsEVEIP, adamPort, adamDist); err != nil {
+			if err := utils.CopyCertsToAdamConfig(certsDir, certsDomain, certsEVEIP, adamPort, adamDist, apiV1); err != nil {
 				log.Errorf("cannot CopyCertsToAdamConfig: %s", err)
 			} else {
 				log.Info("CopyCertsToAdamConfig done")
@@ -237,6 +239,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaultEveTag, "EVE tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
 	setupCmd.Flags().StringVarP(&eveBaseTag, "eve-base-tag", "", utils.DefaultBaseOSTag, "tag of base image of EVE")
+	setupCmd.Flags().StringVarP(&eveBaseTag, "ovs-version", "", utils.DefaultBaseOSVersion, "version of rootfs of base image of EVE")
 	setupCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaultQemuHostFwd, "port forward map")
 	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, "dist", defaultQemuFileToSave), "file to save qemu config")
 	setupCmd.Flags().BoolVarP(&download, "download", "", true, "download EVE or build")
@@ -248,5 +251,6 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&vmYML, "vm-yml", "", filepath.Join(currentPath, "images", "vm", "alpine", "alpine.yml"), "directory for binaries")
 	setupCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "")
+	setupCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
 	setupCmd.Flags().StringVar(&configFile, "config", configPath, "path to config file")
 }

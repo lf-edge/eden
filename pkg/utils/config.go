@@ -64,6 +64,9 @@ func InitVars() (*ConfigVars, error) {
 	return nil, nil
 }
 
+//DefaultBaseOSTag for uploadable rootfs
+const DefaultBaseOSTag = "4619a12aa4c128972d91539c04938ca3cd0a8ab1"
+
 //DefaultBaseOSVersion for uploadable rootfs
 const DefaultBaseOSVersion = "0.0.0-snapshot-master-657e5c1b-2020-05-01.21.53"
 
@@ -95,6 +98,9 @@ adam:
 
     #use remote adam
     remote: true
+
+    #use v1 api
+    v1: true
 
 eve:
     #devmodel
@@ -134,8 +140,7 @@ eve:
     tag: 5.3.0
 
     #eve tag for base os
-    base-tag: 5.2.2
-    base-tag: 4619a12aa4c128972d91539c04938ca3cd0a8ab1
+    base-tag: {{ .DefaultBaseOSTag }}
 
     #eve version (without hv and os)
     base-version: {{ .DefaultBaseOSVersion }}
@@ -346,6 +351,7 @@ func GenerateConfigFile(filePath string) error {
 			OS                   string
 			EdenDir              string
 			DefaultBaseOSVersion string
+			DefaultBaseOSTag     string
 		}{
 			ImageDir:             filepath.Join(currentPath, "images"),
 			Root:                 filepath.Join(usr.HomeDir, "eden"),
@@ -356,6 +362,7 @@ func GenerateConfigFile(filePath string) error {
 			OS:                   runtime.GOOS,
 			EdenDir:              edenDir,
 			DefaultBaseOSVersion: DefaultBaseOSVersion,
+			DefaultBaseOSTag:     DefaultBaseOSTag,
 		})
 	if err != nil {
 		return err

@@ -36,6 +36,7 @@ var (
 		"adam.ip":     "ip",
 		"adam.eve-ip": "eve-ip",
 		"adam.force":  "adam-force",
+		"adam.v1":     "api-v1",
 
 		"eve.arch":         "eve-arch",
 		"eve.os":           "eve-os",
