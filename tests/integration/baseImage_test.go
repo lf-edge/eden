@@ -32,7 +32,7 @@ func TestBaseImage(t *testing.T) {
 
 			"baseos.qcow2",
 			config.Format_QCOW2,
-			vars.EveBaseTag,
+			vars.EveBaseVersion,
 		},
 	}
 	for _, tt := range baseImageTests {
