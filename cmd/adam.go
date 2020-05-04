@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 )
 
+var adamTag string
+
 var adamCmd = &cobra.Command{
 	Use: "adam",
 }
@@ -26,6 +28,7 @@ var startAdamCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			adamTag = viper.GetString("adam.tag")
 			adamPort = viper.GetString("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamForce = viper.GetBool("adam.force")
@@ -42,7 +45,7 @@ var startAdamCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
-		if err := utils.StartAdam(adamPort, adamPath, adamForce); err != nil {
+		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accesible on port %s", adamPort)
@@ -104,6 +107,7 @@ func adamInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	startAdamCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "tag on adam container to pull")
 	startAdamCmd.Flags().StringVarP(&adamDist, "adam-dist", "", path.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
 	startAdamCmd.Flags().StringVarP(&adamPort, "adam-port", "", "3333", "adam dist to start")
 	startAdamCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
