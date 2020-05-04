@@ -5,6 +5,7 @@ const (
 	defaultIP              = "192.168.0.1"
 	defaultEVEIP           = "192.168.1.2"
 	defaultUUID            = "1"
+	defaultAdamTag         = "0.0.26"
 	defaultEveTag          = "5.1.11"
 	defaultEvePrefixInTar  = "bits"
 	defaultEveRepo         = "https://github.com/lf-edge/eve.git"

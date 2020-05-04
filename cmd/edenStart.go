@@ -61,7 +61,7 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.StartAdam(adamPort, adamPath, adamForce); err != nil {
+		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accesible on port %s", adamPort)

@@ -42,6 +42,7 @@ var setupCmd = &cobra.Command{
 			//certs
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 			//adam
+			adamTag = viper.GetString("adam.tag")
 			adamPort = viper.GetString("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			certsDomain = viper.GetString("adam.domain")
@@ -222,6 +223,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaultEVEIP, "IP address to use for EVE")
 	setupCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaultUUID, "UUID to use for device")
 
+	setupCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "Adam tag")
 	setupCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
 	setupCmd.Flags().StringVarP(&adamPort, "adam-port", "", "3333", "adam dist to start")
 

@@ -17,13 +17,13 @@ const (
 
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
-func StartAdam(adamPort string, adamPath string, adamForce bool) (err error) {
+func StartAdam(adamPort string, adamPath string, adamForce bool, adamTag string) (err error) {
 	portMap := map[string]string{"8080": adamPort}
 	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
 	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
 	if adamForce {
 		_ = StopContainer(adamContainerName, true)
-		if err := CreateAndRunContainer(adamContainerName, adamContainerRef, portMap, volumeMap, adamServerCommand); err != nil {
+		if err := CreateAndRunContainer(adamContainerName, adamContainerRef + ":" + adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}
 	} else {
