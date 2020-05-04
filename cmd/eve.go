@@ -22,6 +22,7 @@ var (
 	eveSSHKey        string
 	eveHost          string
 	eveSSHPort       int
+	eveTelnetPort    int
 )
 
 var eveCmd = &cobra.Command{
@@ -52,7 +53,7 @@ var startEveCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		qemuCommand := ""
-		qemuOptions := "-display none -serial mon:stdio -nodefaults -no-user-config "
+		qemuOptions := fmt.Sprintf("-display none -serial telnet:localhost:%d,server,nowait -nodefaults -no-user-config ", eveTelnetPort)
 		if qemuSMBIOSSerial != "" {
 			qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
 		}
@@ -152,6 +153,26 @@ var statusEveCmd = &cobra.Command{
 	},
 }
 
+var consoleEveCmd = &cobra.Command{
+	Use:   "console",
+	Short: "telnet into eve",
+	Long:  `Telnet into eve.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(config)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		log.Infof("Try to telnet %s:%d", eveHost, eveTelnetPort)
+		if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", eveHost, eveTelnetPort))...); err != nil {
+			log.Fatalf("telnet error: %s", err)
+		}
+	},
+}
+
 var sshEveCmd = &cobra.Command{
 	Use:   "ssh",
 	Short: "ssh into eve",
@@ -190,6 +211,7 @@ func eveInit() {
 	eveCmd.AddCommand(stopEveCmd)
 	eveCmd.AddCommand(statusEveCmd)
 	eveCmd.AddCommand(sshEveCmd)
+	eveCmd.AddCommand(consoleEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -203,10 +225,13 @@ func eveInit() {
 	startEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	startEveCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, "dist", "eve.log"), "file for save EVE log")
 	startEveCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
+	startEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", 7777, "Port for telnet access")
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
 	sshEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, "certs", "id_rsa"), "file to use for ssh access")
 	sshEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", "127.0.0.1", "IP of eve")
 	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", 2222, "Port for ssh access")
+	consoleEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", "127.0.0.1", "IP of eve")
+	consoleEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", 7777, "Port for telnet access")
 	eveCmd.PersistentFlags().StringVar(&config, "config", "", "path to config file")
 }
