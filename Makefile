@@ -61,13 +61,14 @@ bin: $(BIN)
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
 $(BIN): $(LOCALBIN)
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALBIN) $(BINDIR)/$@; fi
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALBIN) $@; fi
 
 testbin: $(TESTBIN)
 $(LOCALTESTBIN): $(BINDIR) tests/integration/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ tests/integration/*.go
 $(TESTBIN): $(LOCALTESTBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALTESTBIN) $@; fi
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALTESTBIN) $(BINDIR)/$@; fi
 
 config: build
 	$(LOCALBIN) config -v debug
