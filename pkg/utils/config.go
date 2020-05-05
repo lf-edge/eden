@@ -30,6 +30,10 @@ type ConfigVars struct {
 	EveSerial      string
 	ZArch          string
 	DevModel       string
+	EdenBinDir     string
+ 	EdenProg       string
+	TestProg       string
+	TestScript     string
 }
 
 //InitVars loads vars from viper
@@ -58,6 +62,10 @@ func InitVars() (*ConfigVars, error) {
 			EveBaseVersion: fmt.Sprintf("%s-%s-%s", viper.GetString("eve.base-version"), viper.GetString("eve.hv"), viper.GetString("eve.arch")),
 			DevModel:       viper.GetString("eve.devmodel"),
 			AdamRemote:     viper.GetBool("adam.remote"),
+			EdenBinDir:     viper.GetString("eden.bin-dist"),
+			EdenProg:       viper.GetString("eden.eden-bin"),
+			TestProg:       viper.GetString("eden.test-bin"),
+			TestScript:     viper.GetString("eden.test-script"),
 		}
 		return vars, nil
 	}
@@ -215,6 +223,9 @@ eden:
 
     #observe logs in tests
     logs: false
+
+    #eden binary
+    eden-bin: eden
 
     #test binary
     test-bin: eden.integration.test

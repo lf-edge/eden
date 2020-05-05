@@ -8,15 +8,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	//"github.com/spf13/viper"
 	"github.com/lf-edge/eden/pkg/utils"
 )
 
 var (
-	testProg    string
 	testRun     string
 	testTimeout string
 	testList    string
+	testProg    string
 	testScript  string
 )
 
@@ -78,18 +78,32 @@ test -r <regexp> [-t <timewait>] [-v <level>]
 
 `,
         PreRunE: func(cmd *cobra.Command, args []string) error {
-                assingCobraToViper(cmd)
-                viperLoaded, err := utils.LoadConfigFile(configFile)
+                vars, err := utils.InitVars()
                 if err != nil {
                         log.Fatalf("error reading config: %s\n", err)
 			return err
                 }
-                if viperLoaded {
-                        testProg = utils.ResolveAbsPath(viper.GetString("eden.bin-dist"))
-                        testProg += "/" + viper.GetString("eden.test-bin")
-                        testScript = utils.ResolveAbsPath(viper.GetString("eden.test-script"))
-                }
-		log.Info("testScript:", testScript)
+		
+		if testProg == "" {
+			testProg = vars.TestProg
+		}
+		if testScript == "" {
+			testScript = vars.TestScript
+		}
+
+		_, err = exec.LookPath(testProg)
+		if err != nil {
+			testProg = utils.ResolveAbsPath(vars.EdenBinDir + "/" + testProg)
+		}
+
+		// is it path to file?
+		_, err = os.Stat(testScript)
+		if os.IsNotExist(err) {
+			testScript = utils.ResolveAbsPath(testScript)
+		}
+		
+		log.Debug("testProg: ", testProg)
+		log.Debug("testScript:", testScript)
                 return nil
         },
  	Run: func(cmd *cobra.Command, args []string) {
