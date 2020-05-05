@@ -13,14 +13,17 @@ import (
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
+	"regexp"
 	"runtime"
+	"strings"
 )
 
 var (
-	eserverIP     string
-	baseOSVersion string
-	wait          bool
+	eserverIP       string
+	baseOSVersion   string
+	wait            bool
+	getFromFileName bool
 )
 
 var eveUpdateCmd = &cobra.Command{
@@ -47,7 +50,6 @@ var eveUpdateCmd = &cobra.Command{
 			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
 			eserverIP = viper.GetString("eden.eserver.ip")
 			eserverPort = viper.GetString("eden.eserver.port")
-			baseOSVersion = viper.GetString("eve.base-version")
 			eveHV = viper.GetString("eve.hv")
 			eveArch = viper.GetString("eve.arch")
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
@@ -55,6 +57,10 @@ var eveUpdateCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		rootFsPath, err := utils.GetFileFollowLinks(args[0])
+		if err != nil {
+			log.Fatalf("GetFileFollowLinks: %s", err)
+		}
 		ctrl, err := controller.CloudPrepare()
 		if err != nil {
 			log.Fatalf("CloudPrepare: %s", err)
@@ -71,11 +77,24 @@ var eveUpdateCmd = &cobra.Command{
 			Dpath:    "",
 			Region:   "",
 		}
-		if _, err := os.Lstat(args[0]); os.IsNotExist(err) {
-			log.Fatalf("image file problem: %s", args[0])
+		if _, err := os.Lstat(rootFsPath); os.IsNotExist(err) {
+			log.Fatalf("image file problem (%s): %s", args[0], err)
 		}
-		imageFullPath := path.Join(eserverImageDist, "baseos", defaultFilename)
-		if _, err := fileutils.CopyFile(args[0], imageFullPath); err != nil {
+
+		if getFromFileName {
+			rootFSName := strings.TrimSuffix(filepath.Base(rootFsPath), filepath.Ext(rootFsPath))
+			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
+			re := regexp.MustCompile(rootFSVersionPattern)
+			if !re.MatchString(rootFSName) {
+				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, rootFSVersionPattern)
+			}
+			baseOSVersion = rootFSName
+		}
+
+		log.Infof("Will use rootfs version %s", baseOSVersion)
+
+		imageFullPath := filepath.Join(eserverImageDist, "baseos", defaultFilename)
+		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
 			log.Fatalf("CopyFile problem: %s", err)
 		}
 		imageDSPath := fmt.Sprintf("baseos/%s", defaultFilename)
@@ -115,11 +134,6 @@ var eveUpdateCmd = &cobra.Command{
 			log.Fatalf("AddImage: %s", err)
 		}
 
-		if eveHV != "" {
-			baseOSVersion = fmt.Sprintf("%s-%s-%s", baseOSVersion, eveHV, eveArch)
-		} else {
-			baseOSVersion = fmt.Sprintf("%s-%s", baseOSVersion, eveArch)
-		}
 		if err = ctrl.AddBaseOsConfig(&config.BaseOSConfig{
 			Uuidandversion: &config.UUIDandVersion{
 				Uuid:    baseID,
@@ -195,7 +209,8 @@ func eveUpdateInit() {
 	eveUpdateCmd.Flags().StringVar(&configFile, "configFile", "", "path to configFile file")
 	eveUpdateCmd.Flags().StringVar(&eserverIP, "eserver-ip", "", "IP of eserver for EVE access")
 	eveUpdateCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", "8888", "eserver port")
-	eveUpdateCmd.Flags().StringVarP(&baseOSVersion, "os-version", "", utils.DefaultBaseOSVersion, "version of ROOTFS")
+	eveUpdateCmd.Flags().StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", utils.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
+	eveUpdateCmd.Flags().BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	eveUpdateCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
 	eveUpdateCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
 	eveUpdateCmd.Flags().BoolVar(&wait, "wait", true, "wait for system update")

@@ -25,6 +25,7 @@ const (
 	baseID                 = "22b8761b-5f89-4e0b-b757-4b87a9fa93ec"
 	defaultTestProg        = "eden.integration.test"
 	defaultTestScript      = "eden.integration.test"
+	rootFSVersionPattern   = `^(\d+\.*){2,3}.*-(xen|kvm|acrn)-(amd64|arm64)$`
 )
 
 var (
