@@ -315,11 +315,6 @@ func GenerateConfigFile(filePath string) error {
 		log.Fatal(err)
 	}
 
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	t := template.New("t")
 	_, err = t.Parse(defaultEnvConfig)
 	if err != nil {
@@ -354,7 +349,7 @@ func GenerateConfigFile(filePath string) error {
 			DefaultBaseOSTag     string
 		}{
 			ImageDir:             filepath.Join(currentPath, "images"),
-			Root:                 filepath.Join(usr.HomeDir, "eden"),
+			Root:                 filepath.Join(currentPath, "dist"),
 			IP:                   ip,
 			EVEIP:                eveIP,
 			UUID:                 id.String(),
