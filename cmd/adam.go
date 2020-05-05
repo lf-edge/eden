@@ -40,6 +40,9 @@ var startAdamCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("adam-dist problems: %s", err)
 		}
+		if _, err = os.Lstat(fmt.Sprintf("%s/run", adamPath)); os.IsNotExist(err) {
+			log.Fatalf("%s not found. Please run ./eden setup before start to generate certs", fmt.Sprintf("%s/run", adamPath))
+		}
 		command, err := os.Executable()
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
