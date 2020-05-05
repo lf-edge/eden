@@ -98,3 +98,19 @@ func ResolveAbsPath(curPath string) string {
 	}
 	return curPath
 }
+
+//GetFileFollowLinks resolve file by walking through symlinks
+func GetFileFollowLinks(filePath string) (string, error) {
+	fileInfo, err := os.Lstat(filePath)
+	if os.IsNotExist(err) {
+		return "", err
+	}
+	if fileInfo.Mode()&os.ModeSymlink != 0 {
+		originFile, err := os.Readlink(filepath.Join(filepath.Dir(filePath), fileInfo.Name()))
+		if err != nil {
+			return "", err
+		}
+		return GetFileFollowLinks(originFile)
+	}
+	return filepath.Join(filepath.Dir(filePath), fileInfo.Name()), nil
+}
