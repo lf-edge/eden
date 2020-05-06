@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 )
 
@@ -24,4 +25,15 @@ func (cloud *CloudCtx) AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error 
 	}
 	cloud.baseOS = append(cloud.baseOS, baseOSConfig)
 	return nil
+}
+
+//RemoveBaseOsConfig remove BaseOsConfig from cloud
+func (cloud *CloudCtx) RemoveBaseOsConfig(id string) error {
+	for ind, baseOS := range cloud.baseOS {
+		if baseOS.Uuidandversion.Uuid == id {
+			utils.DelEleInSlice(&cloud.baseOS, ind)
+			return nil
+		}
+	}
+	return fmt.Errorf("not found baseOS with ID: %s", id)
 }

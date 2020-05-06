@@ -15,6 +15,8 @@ type Ctx struct {
 	systemAdapters             []string
 	applicationInstanceConfigs []string
 	sshKeys                    []string
+	rebootCounter              uint32
+	rebootState                bool
 	devModel                   string
 	vncAccess                  bool
 	controllerLogLevel         string
@@ -23,7 +25,9 @@ type Ctx struct {
 //CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
 func CreateWithBaseConfig(id uuid.UUID) *Ctx {
 	return &Ctx{
-		id: id,
+		id:            id,
+		rebootCounter: 1000,
+		rebootState:   false,
 	}
 }
 
@@ -125,4 +129,15 @@ func (cfg *Ctx) SetVncAccess(enabled bool) {
 func (cfg *Ctx) SetApplicationInstanceConfig(configIDs []string) *Ctx {
 	cfg.applicationInstanceConfigs = configIDs
 	return cfg
+}
+
+//SetRebootCounter setter
+func (cfg *Ctx) SetRebootCounter(counter uint32, state bool) {
+	cfg.rebootCounter = counter
+	cfg.rebootState = state
+}
+
+//SetRebootCounter getter
+func (cfg *Ctx) GetRebootCounter() (counter uint32, state bool) {
+	return cfg.rebootCounter, cfg.rebootState
 }

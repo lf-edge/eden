@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 )
 
@@ -28,4 +29,15 @@ func (cloud *CloudCtx) AddImage(imageConfig *config.Image) error {
 	}
 	cloud.images = append(cloud.images, imageConfig)
 	return nil
+}
+
+//RemoveImage remove Image config from cloud
+func (cloud *CloudCtx) RemoveImage(id string) error {
+	for ind, image := range cloud.images {
+		if image.Uuidandversion.Uuid == id {
+			utils.DelEleInSlice(&cloud.images, ind)
+			return nil
+		}
+	}
+	return fmt.Errorf("not found Image with ID: %s", id)
 }
