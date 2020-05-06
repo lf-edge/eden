@@ -33,12 +33,12 @@ func CloudPrepare() (Cloud, error) {
 	return ctx, nil
 }
 
-func (ctx *CloudCtx) GetVars() *utils.ConfigVars {
-	return ctx.vars
+func (cloud *CloudCtx) GetVars() *utils.ConfigVars {
+	return cloud.vars
 }
 
-func (ctx *CloudCtx) devInit(devID string) error {
-	deviceModel, err := ctx.GetDevModelByName(ctx.vars.DevModel)
+func (cloud *CloudCtx) devInit(devID string) error {
+	deviceModel, err := cloud.GetDevModelByName(cloud.vars.DevModel)
 	if err != nil {
 		return fmt.Errorf("cloud.GetDevModelByName: %s", err)
 	}
@@ -46,41 +46,41 @@ func (ctx *CloudCtx) devInit(devID string) error {
 	if err != nil {
 		return fmt.Errorf("uuid.FromString(%s): %s", devID, err)
 	}
-	dev, err := ctx.GetDeviceUUID(devUUID)
+	dev, err := cloud.GetDeviceUUID(devUUID)
 	if err != nil {
-		dev, err = ctx.AddDevice(devUUID)
+		dev, err = cloud.AddDevice(devUUID)
 		if err != nil {
 			return fmt.Errorf("cloud.AddDevice(%s): %s", devUUID, err)
 		}
 	}
-	if ctx.vars.SshKey != "" {
-		b, err := ioutil.ReadFile(ctx.vars.SshKey)
+	if cloud.vars.SshKey != "" {
+		b, err := ioutil.ReadFile(cloud.vars.SshKey)
 		switch {
 		case err != nil && os.IsNotExist(err):
-			return fmt.Errorf("sshKey file %s does not exist", ctx.vars.SshKey)
+			return fmt.Errorf("sshKey file %s does not exist", cloud.vars.SshKey)
 		case err != nil:
-			return fmt.Errorf("error reading sshKey file %s: %v", ctx.vars.SshKey, err)
+			return fmt.Errorf("error reading sshKey file %s: %v", cloud.vars.SshKey, err)
 		}
 		dev.SetSSHKeys([]string{string(b)})
 	}
 	dev.SetVncAccess(true)
 	dev.SetControllerLogLevel("info")
-	if err = ctx.ApplyDevModel(dev, deviceModel); err != nil {
+	if err = cloud.ApplyDevModel(dev, deviceModel); err != nil {
 		return fmt.Errorf("fail in ApplyDevModel: %s", err)
 	}
 	return nil
 }
 
 //OnBoard in controller
-func (ctx *CloudCtx) OnBoard() error {
-	devUUID, err := ctx.GetDeviceFirst()
+func (cloud *CloudCtx) OnBoard() error {
+	devUUID, err := cloud.GetDeviceFirst()
 	if devUUID == nil {
 		log.Info("Try to add onboarding")
-		err = ctx.Register(ctx.vars.EveCert, ctx.vars.EveSerial)
+		err = cloud.Register(cloud.vars.EveCert, cloud.vars.EveSerial)
 		if err != nil {
 			return fmt.Errorf("ctx.register: %s", err)
 		}
-		res, err := ctx.OnBoardList()
+		res, err := cloud.OnBoardList()
 		if err != nil {
 			return fmt.Errorf("ctx.OnBoardList: %s", err)
 		}
@@ -93,14 +93,14 @@ func (ctx *CloudCtx) OnBoard() error {
 		delayTime := 20 * time.Second
 
 		for i := 0; i < maxRepeat; i++ {
-			cmdOut, err := ctx.DeviceList()
+			cmdOut, err := cloud.DeviceList()
 			if err != nil {
 				return fmt.Errorf("ctx.DeviceList: %s", err)
 			}
 			if len(cmdOut) > 0 {
 				log.Info("Done onboarding in adam!")
 				log.Infof("Device uuid: %s", cmdOut[0])
-				return ctx.devInit(cmdOut[0])
+				return cloud.devInit(cmdOut[0])
 			}
 			log.Infof("Attempt to list devices (%d) of (%d)", i, maxRepeat)
 			time.Sleep(delayTime)

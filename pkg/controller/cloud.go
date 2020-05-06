@@ -30,16 +30,20 @@ type Cloud interface {
 	GetDeviceUUID(devUUID uuid.UUID) (dev *device.Ctx, err error)
 	GetBaseOSConfig(id string) (baseOSConfig *config.BaseOSConfig, err error)
 	AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error
+	RemoveBaseOsConfig(id string) error
 	AddDataStore(dataStoreConfig *config.DatastoreConfig) error
 	GetDataStore(id string) (ds *config.DatastoreConfig, err error)
+	RemoveDataStore(id string) error
 	GetNetworkInstanceConfig(id string) (networkInstanceConfig *config.NetworkInstanceConfig, err error)
 	AddNetworkInstanceConfig(networkInstanceConfig *config.NetworkInstanceConfig) error
 	RemoveNetworkInstanceConfig(id string) error
 	GetImage(id string) (image *config.Image, err error)
 	AddImage(imageConfig *config.Image) error
+	RemoveImage(id string) error
 	GetConfigBytes(dev *device.Ctx) ([]byte, error)
 	GetDeviceFirst() (dev *device.Ctx, err error)
 	ConfigSync(dev *device.Ctx) (err error)
+	ConfigParse(config *config.EdgeDevConfig) (dev *device.Ctx, err error)
 	GetNetworkConfig(id string) (networkConfig *config.NetworkConfig, err error)
 	AddNetworkConfig(networkInstanceConfig *config.NetworkConfig) error
 	RemoveNetworkConfig(id string) error

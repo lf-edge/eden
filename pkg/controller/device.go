@@ -45,6 +45,143 @@ func (cloud *CloudCtx) StateUpdate(dev *device.Ctx) (err error) {
 	return fmt.Errorf("cannot load config %s", edenConfig)
 }
 
+type idCheckable interface {
+	GetId() *config.UUIDandVersion
+}
+type uuidCheckable interface {
+	GetUuidandversion() *config.UUIDandVersion
+}
+
+func getID(uuidAndVersion idCheckable) (uuid.UUID, error) {
+	if uuidAndVersion == nil {
+		return uuid.Nil, fmt.Errorf("nil object")
+	}
+	if uuidAndVersion.GetId() == nil {
+		return uuid.Nil, fmt.Errorf("nil UUIDandVersion")
+	}
+	if uuidAndVersion.GetId().GetUuid() == "" {
+		return uuid.Nil, fmt.Errorf("nil UUIDandVersion")
+	}
+	return uuid.FromString(uuidAndVersion.GetId().GetUuid())
+}
+
+func getUUID(uuidAndVersion uuidCheckable) (uuid.UUID, error) {
+	if uuidAndVersion == nil {
+		return uuid.Nil, fmt.Errorf("nil object")
+	}
+	if uuidAndVersion.GetUuidandversion() == nil {
+		return uuid.Nil, fmt.Errorf("nil UUIDandVersion")
+	}
+	if uuidAndVersion.GetUuidandversion().GetUuid() == "" {
+		return uuid.Nil, fmt.Errorf("nil UUIDandVersion")
+	}
+	return uuid.FromString(uuidAndVersion.GetUuidandversion().GetUuid())
+}
+
+//ConfigParse load config into cloud
+func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device.Ctx, err error) {
+	devId, err := getID(config)
+	if err != nil {
+		return nil, fmt.Errorf("problem with uuid field")
+	}
+	dev, err := cloud.GetDeviceUUID(devId)
+	if err != nil { //not found
+		dev, err = cloud.AddDevice(devId)
+		if err != nil {
+			return nil, fmt.Errorf("cloud.AddDevice: %s", err)
+		}
+	}
+	var sshKeys []string
+	for _, el := range config.ConfigItems {
+		switch el.GetKey() {
+		case "debug.enable.ssh":
+			sshKeys = append(sshKeys, el.GetValue())
+		case "app.allow.vnc":
+			dev.SetVncAccess(true)
+		case "debug.default.remote.loglevel":
+			dev.SetControllerLogLevel(el.GetValue())
+		}
+	}
+	dev.SetSSHKeys(sshKeys)
+	for _, el := range config.Datastores {
+		_ = cloud.AddDataStore(el)
+	}
+
+	var baseOSs []string
+	for _, el := range config.Base {
+		_ = cloud.AddBaseOsConfig(el)
+		for _, img := range el.Drives {
+			_ = cloud.AddImage(img.Image)
+		}
+		id, err := getUUID(el)
+		if err != nil {
+			return nil, err
+		}
+		baseOSs = append(baseOSs, id.String())
+	}
+	dev.SetBaseOSConfig(baseOSs)
+
+	var physIOIDs []string
+	for _, el := range config.DeviceIoList {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return nil, err
+		}
+		_ = cloud.AddPhysicalIO(id.String(), el)
+		physIOIDs = append(physIOIDs, id.String())
+	}
+	dev.SetPhysicalIOConfig(physIOIDs)
+
+	var networkInstances []string
+	for _, el := range config.NetworkInstances {
+		_ = cloud.AddNetworkInstanceConfig(el)
+		id, err := getUUID(el)
+		if err != nil {
+			return nil, err
+		}
+		networkInstances = append(networkInstances, id.String())
+	}
+	dev.SetNetworkInstanceConfig(networkInstances)
+
+	var networks []string
+	for _, el := range config.Networks {
+		_ = cloud.AddNetworkConfig(el)
+		networks = append(networks, el.Id)
+	}
+	dev.SetNetworkConfig(networks)
+
+	var systemAdapters []string
+	for _, el := range config.SystemAdapterList {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return nil, err
+		}
+		_ = cloud.AddSystemAdapter(id.String(), el)
+		systemAdapters = append(systemAdapters, id.String())
+	}
+	dev.SetSystemAdaptersConfig(systemAdapters)
+
+	var appInstances []string
+	for _, el := range config.Apps {
+		_ = cloud.AddApplicationInstanceConfig(el)
+		for _, img := range el.Drives {
+			_ = cloud.AddImage(img.Image)
+		}
+		id, err := getUUID(el)
+		if err != nil {
+			return nil, err
+		}
+		appInstances = append(appInstances, id.String())
+	}
+	dev.SetApplicationInstanceConfig(appInstances)
+
+	if config.Reboot != nil {
+		dev.SetRebootCounter(config.Reboot.Counter, config.Reboot.DesiredState)
+	}
+
+	return dev, nil
+}
+
 //ConfigSync set config for devID
 func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	devConfig, err := cloud.GetConfigBytes(dev)
@@ -247,6 +384,8 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 			Value: dev.GetControllerLogLevel(),
 		})
 	}
+	rebootCounter, rebootState := dev.GetRebootCounter()
+	rebootCmd := &config.DeviceOpsCmd{Counter: rebootCounter, DesiredState: rebootState}
 	devConfig := &config.EdgeDevConfig{
 		Id: &config.UUIDandVersion{
 			Uuid:    dev.GetID().String(),
@@ -257,7 +396,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 		Datastores:        dataStores,
 		LispInfo:          nil,
 		Base:              baseOS,
-		Reboot:            nil,
+		Reboot:            rebootCmd,
 		Backup:            nil,
 		ConfigItems:       configItems,
 		SystemAdapterList: systemAdapterConfigs,

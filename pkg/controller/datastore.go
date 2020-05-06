@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 )
 
@@ -24,4 +25,15 @@ func (cloud *CloudCtx) AddDataStore(dataStoreConfig *config.DatastoreConfig) err
 	}
 	cloud.datastores = append(cloud.datastores, dataStoreConfig)
 	return nil
+}
+
+//RemoveDataStore remove DataStore config from cloud
+func (cloud *CloudCtx) RemoveDataStore(id string) error {
+	for ind, datastore := range cloud.datastores {
+		if datastore.Id == id {
+			utils.DelEleInSlice(&cloud.datastores, ind)
+			return nil
+		}
+	}
+	return fmt.Errorf("not found DataStore with ID: %s", id)
 }
