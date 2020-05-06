@@ -29,8 +29,8 @@ func setupTestCase(t *testing.T) func(t *testing.T) {
 			Name: "FalseHook",
 			Test: BoolHook,
 			Args: EdenTestArgs{"val":"false"},
-			//Result: "false",
-			Result: "true",
+			Result: "false",
+			//Result: "true",
 		},/*
 		EdenTest{
 			Name: "TrueHook",
