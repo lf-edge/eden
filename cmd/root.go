@@ -73,6 +73,8 @@ func init() {
 	eveUpdateInit()
 	rootCmd.AddCommand(testCmd)
 	testInit()
+	rootCmd.AddCommand(controllerCmd)
+	controllerInit()
 }
 
 // Execute primary function for cobra

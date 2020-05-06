@@ -26,6 +26,7 @@ const (
 	defaultTestProg        = "eden.integration.test"
 	defaultTestScript      = "eden.integration.test"
 	rootFSVersionPattern   = `^(\d+\.*){2,3}.*-(xen|kvm|acrn)-(amd64|arm64)$`
+	controllerModePattern  = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.+)$`
 )
 
 var (
