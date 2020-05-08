@@ -21,7 +21,16 @@ type Ctx struct {
 	url         string
 	serverCA    string
 	insecureTLS bool
-	loader      loaders.Loader
+	AdamRemote  bool
+}
+
+func (adam *Ctx) getLoader() loaders.Loader {
+	if adam.AdamRemote {
+		log.Info("will use remote adam loader")
+		return loaders.RemoteLoader(adam.getHTTPClient, adam.getLogsUrl, adam.getInfoUrl)
+	}
+	log.Info("will use local adam loader")
+	return loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
 }
 
 //EnvRead use variables from viper for init controller
@@ -30,13 +39,7 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.url = fmt.Sprintf("https://%s:%s", vars.AdamIP, vars.AdamPort)
 	adam.insecureTLS = len(vars.AdamCA) == 0
 	adam.serverCA = vars.AdamCA
-	if vars.AdamRemote {
-		log.Info("wil use remote adam loader")
-		adam.loader = loaders.RemoteLoader(adam.getHTTPClient(), adam.getLogsUrl, adam.getInfoUrl)
-	} else {
-		log.Info("wil use local adam loader")
-		adam.loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
-	}
+	adam.AdamRemote = vars.AdamRemote
 	return nil
 }
 
@@ -119,22 +122,24 @@ func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func (adam *Ctx) LogChecker(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc, mode elog.LogCheckerMode, timeout time.Duration) (err error) {
-	return elog.LogChecker(adam.loader, devUUID, q, handler, mode, timeout)
+	return elog.LogChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
 }
 
 //LogLastCallback check logs by pattern from existence files with callback
 func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc) (err error) {
-	adam.loader.SetUUID(devUUID)
-	return elog.LogLast(adam.loader, q, handler)
+	var loader = adam.getLoader()
+	loader.SetUUID(devUUID)
+	return elog.LogLast(loader, q, handler)
 }
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.
 func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error) {
-	return einfo.InfoChecker(adam.loader, devUUID, q, infoType, handler, mode, timeout)
+	return einfo.InfoChecker(adam.getLoader(), devUUID, q, infoType, handler, mode, timeout)
 }
 
 //InfoLastCallback check info by pattern from existence files with callback
 func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc) (err error) {
-	adam.loader.SetUUID(devUUID)
-	return einfo.InfoLast(adam.loader, q, einfo.ZInfoFind, handler, infoType)
+	var loader = adam.getLoader()
+	loader.SetUUID(devUUID)
+	return einfo.InfoLast(loader, q, einfo.ZInfoFind, handler, infoType)
 }

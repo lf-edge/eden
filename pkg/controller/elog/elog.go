@@ -164,7 +164,7 @@ func LogChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string, h
 	// observe new files
 	if mode == LogNew || mode == LogAny {
 		go func() {
-			done <- LogWatch(loader, q, handler, timeout)
+			done <- LogWatch(loader.Clone(), q, handler, timeout)
 		}()
 	}
 	// check info by pattern in existing files
@@ -176,7 +176,7 @@ func LogChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string, h
 				}
 				return
 			}
-			err := LogLast(loader, q, handler)
+			err := LogLast(loader.Clone(), q, handler)
 			if err != nil {
 				done <- err
 			}
