@@ -9,6 +9,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"reflect"
 	"regexp"
 	"strings"
@@ -46,10 +47,14 @@ func ParseLogBundle(data []byte) (logBundle logs.LogBundle, err error) {
 
 //ParseLogItem apply regexp on logItem
 func ParseLogItem(data string) (logItem LogItem, err error) {
-	re := regexp.MustCompile(`(?P<time>[^{]*): (?P<json>{.*})`)
+	pattern := `(?P<time>[^{]*):\s*(?P<json>{.*})`
+	re := regexp.MustCompile(pattern)
 	parts := re.SubexpNames()
 	result := re.FindAllStringSubmatch(data, -1)
 	m := map[string]string{}
+	if len(result) == 0 {
+		return LogItem{}, fmt.Errorf("error in FindAllStringSubmatch for %s and string %s", pattern, data)
+	}
 	for i, n := range result[0] {
 		m[parts[i]] = n
 	}
@@ -132,7 +137,8 @@ func logProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFun
 			s := n.Content
 			le, err := ParseLogItem(s)
 			if err != nil {
-				return true, nil
+				log.Debugf("logProcess: %s", err)
+				continue
 			}
 			if LogItemFind(le, query) == 1 {
 				if handler(&le) {
