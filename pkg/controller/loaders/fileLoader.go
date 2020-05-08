@@ -24,6 +24,11 @@ func FileLoader(logsGetter getDir, infoGetter getDir) *fileLoader {
 	return &fileLoader{logsGetter: logsGetter, infoGetter: infoGetter}
 }
 
+//Clone create copy
+func (loader *fileLoader) Clone() Loader {
+	return &fileLoader{logsGetter: loader.logsGetter, infoGetter: loader.infoGetter, devUUID: loader.devUUID}
+}
+
 func (loader *fileLoader) getFilePath(typeToProcess infoOrLogs) string {
 	switch typeToProcess {
 	case LogsType:

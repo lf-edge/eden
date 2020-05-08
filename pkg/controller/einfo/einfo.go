@@ -260,7 +260,7 @@ func InfoChecker(loader loaders.Loader, devUUID uuid.UUID, query map[string]stri
 	// observe new files
 	if mode == InfoNew || mode == InfoAny {
 		go func() {
-			done <- InfoWatch(loader, query, ZInfoFind, handler, infoType, timeout)
+			done <- InfoWatch(loader.Clone(), query, ZInfoFind, handler, infoType, timeout)
 		}()
 	}
 	// check info by pattern in existing files
@@ -272,7 +272,7 @@ func InfoChecker(loader loaders.Loader, devUUID uuid.UUID, query map[string]stri
 				}
 				return
 			}
-			if err = InfoLast(loader, query, ZInfoFind, handler, infoType); err != nil {
+			if err = InfoLast(loader.Clone(), query, ZInfoFind, handler, infoType); err != nil {
 				done <- err
 			}
 		}()

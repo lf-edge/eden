@@ -10,6 +10,7 @@ type Loader interface {
 	SetUUID(devUUID uuid.UUID)
 	ProcessStream(process ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) error
 	ProcessExisting(process ProcessFunction, typeToProcess infoOrLogs) error
+	Clone() Loader
 }
 
 type infoOrLogs int
