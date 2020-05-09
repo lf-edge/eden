@@ -47,7 +47,7 @@ test_base_image: test_controller
 test_network_instance: test_controller
 	go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
 
-test_application_instance: test_controller test_network_instance
+test_application_instance: test_controller
 	go test ./tests/integration/application_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
 
 test_hooks: test_controller
