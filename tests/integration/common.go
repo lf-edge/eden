@@ -147,6 +147,11 @@ func prepareImageLocal(ctx controller.Cloud, dataStoreID string, imageID string,
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		sha256sum, err = utils.ComputeShaOCITar(imageFullPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 	img := &config.Image{
 		Uuidandversion: &config.UUIDandVersion{
