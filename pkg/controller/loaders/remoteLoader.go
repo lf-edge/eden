@@ -62,7 +62,7 @@ func (loader *remoteLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess infoOrLogs) (processed, tocontinue bool, err error) {
+func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess infoOrLogs, stream bool) (processed, tocontinue bool, err error) {
 	var buf bytes.Buffer
 	switch typeToProcess {
 	case LogsType:
@@ -107,6 +107,9 @@ func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFu
 		return false, true, nil
 	}
 	tocontinue, err = process(buf.Bytes())
+	if stream {
+		time.Sleep(1 * time.Second) //wait for load all data from buffer
+	}
 	loader.curCount++
 	loader.lastCount = loader.curCount
 	return true, tocontinue, err
@@ -125,7 +128,7 @@ func (loader *remoteLoader) process(process ProcessFunction, typeToProcess infoO
 	}
 	dec := json.NewDecoder(response.Body)
 	for {
-		processed, doContinue, err := loader.processNext(dec, process, typeToProcess)
+		processed, doContinue, err := loader.processNext(dec, process, typeToProcess, stream)
 		if err != nil {
 			return false, false, fmt.Errorf("process: %s", err)
 		}
