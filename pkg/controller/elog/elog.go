@@ -24,7 +24,7 @@ type LogItem struct {
 	File      string
 	Func      string
 	Time      string
-	Pid       string
+	Pid       interface{}
 	Partition string
 }
 
@@ -53,7 +53,10 @@ func ParseLogItem(data string) (logItem LogItem, err error) {
 	result := re.FindAllStringSubmatch(data, -1)
 	m := map[string]string{}
 	if len(result) == 0 {
-		return LogItem{}, fmt.Errorf("error in FindAllStringSubmatch for %s and string %s", pattern, data)
+		log.Debugf("error in FindAllStringSubmatch for %s and string %s. Will use new api", pattern, data)
+		var le LogItem
+		err = json.Unmarshal([]byte(data), &le)
+		return le, err
 	}
 	for i, n := range result[0] {
 		m[parts[i]] = n
