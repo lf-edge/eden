@@ -89,6 +89,7 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 					Logicallabel: "eth1",
 					Assigngrp:    "eth1",
 					Phyaddrs:     map[string]string{"Ifname": "eth1"},
+					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageShared,
 					UsagePolicy: &config.PhyIOUsagePolicy{
 						FreeUplink: true,
 					},

@@ -3,6 +3,7 @@ package utils
 import (
 	"archive/tar"
 	"bufio"
+	"crypto/sha256"
 	"fmt"
 	"github.com/docker/distribution/context"
 	"github.com/docker/docker/api/types"
@@ -19,6 +20,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -390,4 +392,84 @@ func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory stri
 		}
 	}
 	return nil
+}
+
+// getFileReaderInTar scan a tar stream to get a header and reader for the
+// file data that matches the provided regexp
+func getFileReaderInTar(f io.ReadSeeker, re *regexp.Regexp) (*tar.Header, io.Reader, error) {
+	var (
+		err error
+		hdr *tar.Header
+	)
+	if _, err = f.Seek(0, 0); err != nil {
+		return nil, nil, fmt.Errorf("unable to reset tar file reader %s: %v", re, err)
+	}
+
+	// get a new reader
+	tr := tar.NewReader(f)
+
+	// go through each file in the archive, looking for the file we want
+	for {
+		if hdr, err = tr.Next(); err != nil {
+			if err == io.EOF {
+				return nil, nil, fmt.Errorf("could not find file matching %s in tar stream: %v", re, err)
+			}
+			return nil, nil, fmt.Errorf("error reading information from tar stream: %v", err)
+		}
+		// if the name matches the format of the requested file, use it
+		if re.MatchString(hdr.Name) {
+			return hdr, tr, nil
+		}
+	}
+}
+
+// readFromTar given an io.ReadSeeker and a filename, get the contents of the
+// file from the ReadSeeker
+func readFromTar(f io.ReadSeeker, re *regexp.Regexp) ([]byte, error) {
+	hdr, reader, err := getFileReaderInTar(f, re)
+	if err != nil {
+		return nil, err
+	}
+	// read the data
+	b := make([]byte, hdr.Size)
+	read, err := reader.Read(b)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("error reading %s from tarfile: %v", re, err)
+	}
+	if read != len(b) {
+		return nil, fmt.Errorf("file %s had mismatched size to tar header, expected %d, actual %d", re, len(b), read)
+	}
+	return b, nil
+}
+
+//ComputeShaOCITar compute the sha for an OCI tar file with the manifest inside
+func ComputeShaOCITar(filename string) (string, error) {
+	// extract the image manifest itself, and calculate its hash
+	// then check the hash of each layer and the config against the information in the manifest
+	// if all adds up, return the hash of the manifest, nil error
+
+	var (
+		f               *os.File
+		err             error
+		re              *regexp.Regexp
+		manifestB, hash []byte
+	)
+
+	if re, err = regexp.Compile(`imagemanifest-([a-f0-9]+).json`); err != nil {
+		return "", fmt.Errorf("unable to compile regexp to find imagemanifest: %v", err)
+	}
+
+	// open our tar file
+	if f, err = os.Open(filename); err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	manifestB, err = readFromTar(f, re)
+	if err != nil {
+		return "", fmt.Errorf("error reading image manifest %s from tar %s: %v", re, filename, err)
+	}
+	hashArray := sha256.Sum256(manifestB)
+	hash = hashArray[:]
+	return fmt.Sprintf("%x", hash), nil
 }
