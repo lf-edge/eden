@@ -60,7 +60,7 @@ var (
 			},
 		}}
 	networkInstanceSwitch = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e3",
-		"test-switch", config.ZNetworkInstType_ZnetInstSwitch, nil}
+		"test-switch", config.ZNetworkInstType_ZnetInstSwitch, &config.Ipspec{Dhcp: config.DHCPType_DHCPNone}}
 	networkInstanceCloud = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e4",
 		"test-cloud", config.ZNetworkInstType_ZnetInstCloud, &config.Ipspec{
 			Dhcp:    config.DHCPType_DHCPNone,
