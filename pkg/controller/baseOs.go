@@ -16,6 +16,11 @@ func (cloud *CloudCtx) GetBaseOSConfig(id string) (baseOSConfig *config.BaseOSCo
 	return nil, fmt.Errorf("not found BaseOSConfig with ID: %s", id)
 }
 
+//ListBaseOSConfig return baseOS configs from cloud
+func (cloud *CloudCtx) ListBaseOSConfig() []*config.BaseOSConfig {
+	return cloud.baseOS
+}
+
 //AddBaseOsConfig add baseOS config to cloud
 func (cloud *CloudCtx) AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error {
 	for _, baseConfig := range cloud.baseOS {
