@@ -9,6 +9,7 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
+	"strconv"
 )
 
 //StateUpdate refresh state file
@@ -384,6 +385,14 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 			Value: dev.GetControllerLogLevel(),
 		})
 	}
+
+	if dev.GetTimerConfigInterval() != 0 {
+		configItems = append(configItems, &config.ConfigItem{
+			Key:   "timer.config.interval",
+			Value: strconv.Itoa(dev.GetTimerConfigInterval()),
+		})
+	}
+
 	rebootCounter, rebootState := dev.GetRebootCounter()
 	rebootCmd := &config.DeviceOpsCmd{Counter: rebootCounter, DesiredState: rebootState}
 	devConfig := &config.EdgeDevConfig{

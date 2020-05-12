@@ -20,14 +20,16 @@ type Ctx struct {
 	devModel                   string
 	vncAccess                  bool
 	controllerLogLevel         string
+	timerConfigInterval        int
 }
 
 //CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
 func CreateWithBaseConfig(id uuid.UUID) *Ctx {
 	return &Ctx{
-		id:            id,
-		rebootCounter: 1000,
-		rebootState:   false,
+		id:                  id,
+		rebootCounter:       1000,
+		rebootState:         false,
+		timerConfigInterval: 5,
 	}
 }
 
@@ -63,6 +65,9 @@ func (cfg *Ctx) GetVncAccess() bool { return cfg.vncAccess }
 
 //GetControllerLogLevel return controllerLogLevel of device
 func (cfg *Ctx) GetControllerLogLevel() string { return cfg.controllerLogLevel }
+
+//GetTimerConfigInterval return timer.config.interval
+func (cfg *Ctx) GetTimerConfigInterval() int { return cfg.timerConfigInterval }
 
 //GetAdaptersForSwitch return adaptersForSwitch of device
 func (cfg *Ctx) GetAdaptersForSwitch() []string {
@@ -123,6 +128,11 @@ func (cfg *Ctx) SetControllerLogLevel(controllerLogLevel string) {
 //SetVncAccess set vncAccess
 func (cfg *Ctx) SetVncAccess(enabled bool) {
 	cfg.vncAccess = enabled
+}
+
+//SetTimerConfigInterval set timer.config.interval
+func (cfg *Ctx) SetTimerConfigInterval(interval int) {
+	cfg.timerConfigInterval = interval
 }
 
 //SetApplicationInstanceConfig set applicationInstanceConfigs by configIDs from cloud
