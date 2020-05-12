@@ -11,12 +11,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 var controllerMode string
 var baseOSImage string
 var baseOSImageActivate bool
+var configItems map[string]string
 
 func getParams(line, regEx string) (paramsMap map[string]string) {
 
@@ -269,11 +271,6 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 	Long:  `Remove EVE image.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		if baseOSVersionFlag := cmd.Flags().Lookup("os-version"); baseOSVersionFlag != nil {
-			if err := viper.BindPFlag("eve.base-tag", baseOSVersionFlag); err != nil {
-				log.Fatal(err)
-			}
-		}
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading configFile: %s", err.Error())
@@ -360,6 +357,78 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 	},
 }
 
+var edgeNodeUpdate = &cobra.Command{
+	Use:   "update",
+	Short: "update EVE config",
+	Long:  `Update EVE config.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		if viperLoaded {
+			eserverIP = viper.GetString("eden.eserver.ip")
+			eserverPort = viper.GetString("eden.eserver.port")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		modeType, modeURL, err := getControllerMode()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("Mode type: %s", modeType)
+		log.Infof("Mode url: %s", modeURL)
+		var changer configChanger
+		switch modeType {
+		case "file":
+			changer = &fileChanger{fileConfig: modeURL}
+		case "adam":
+			changer = &adamChanger{adamUrl: modeURL}
+
+		default:
+			log.Fatalf("Not implemented type: %s", modeType)
+		}
+
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev error: %s", err)
+		}
+		var sshKeys []string
+		for key, val := range configItems {
+			switch key {
+			case "debug.enable.ssh":
+				sshKeys = append(sshKeys, val)
+			case "debug.default.remote.loglevel":
+				dev.SetControllerLogLevel(val)
+			case "app.allow.vnc":
+				if b, err := strconv.ParseBool(val); err != nil {
+					log.Errorf("Cannot parse app.allow.vnc: %s", err)
+				} else {
+					dev.SetVncAccess(b)
+				}
+			case "timer.config.interval":
+				if n, err := strconv.Atoi(val); err != nil {
+					log.Errorf("Cannot parse timer.config.interval: %s", err)
+				} else {
+					dev.SetTimerConfigInterval(n)
+				}
+			default:
+				log.Warningf("config key %s not supported", key)
+			}
+		}
+		if len(sshKeys) > 0 { //not remove if no flag
+			dev.SetSSHKeys(sshKeys)
+		}
+
+		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+			log.Fatalf("setControllerAndDev error: %s", err)
+		}
+		log.Info("EVE update request has been sent")
+	},
+}
+
 func controllerInit() {
 	configPath, err := utils.DefaultConfigPath()
 	if err != nil {
@@ -369,6 +438,7 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeReboot)
 	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
 	edgeNode.AddCommand(edgeNodeEVEImageRemove)
+	edgeNode.AddCommand(edgeNodeUpdate)
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL>")
 	pf.StringVar(&configFile, "config", configPath, "path to config file")
@@ -388,4 +458,6 @@ func controllerInit() {
 	if err = cobra.MarkFlagRequired(edgeNodeEVEImageRemoveFlags, "image"); err != nil {
 		log.Fatal(err)
 	}
+	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
+	edgeNodeUpdateFlags.StringToStringVar(&configItems, "config", make(map[string]string), "config <key:value> items")
 }
