@@ -263,6 +263,103 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 	},
 }
 
+var edgeNodeEVEImageRemove = &cobra.Command{
+	Use:   "eveimage-remove",
+	Short: "remove EVE image",
+	Long:  `Remove EVE image.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		if baseOSVersionFlag := cmd.Flags().Lookup("os-version"); baseOSVersionFlag != nil {
+			if err := viper.BindPFlag("eve.base-tag", baseOSVersionFlag); err != nil {
+				log.Fatal(err)
+			}
+		}
+		viperLoaded, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		if viperLoaded {
+			eserverIP = viper.GetString("eden.eserver.ip")
+			eserverPort = viper.GetString("eden.eserver.port")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		rootFsPath, err := utils.GetFileFollowLinks(baseOSImage)
+		if err != nil {
+			log.Fatalf("GetFileFollowLinks: %s", err)
+		}
+		modeType, modeURL, err := getControllerMode()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("Mode type: %s", modeType)
+		log.Infof("Mode url: %s", modeURL)
+		var changer configChanger
+		switch modeType {
+		case "file":
+			changer = &fileChanger{fileConfig: modeURL}
+		case "adam":
+			changer = &adamChanger{adamUrl: modeURL}
+
+		default:
+			log.Fatalf("Not implemented type: %s", modeType)
+		}
+
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev error: %s", err)
+		}
+
+		if _, err := os.Lstat(rootFsPath); os.IsNotExist(err) {
+			log.Fatalf("image file problem (%s): %s", args[0], err)
+		}
+
+		if getFromFileName {
+			rootFSName := strings.TrimSuffix(filepath.Base(rootFsPath), filepath.Ext(rootFsPath))
+			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
+			re := regexp.MustCompile(rootFSVersionPattern)
+			if !re.MatchString(rootFSName) {
+				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, rootFSVersionPattern)
+			}
+			baseOSVersion = rootFSName
+		}
+
+		log.Infof("Will use rootfs version %s", baseOSVersion)
+
+		imageFullPath := filepath.Join(eserverImageDist, "baseos", defaultFilename)
+		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
+			log.Fatalf("CopyFile problem: %s", err)
+		}
+
+		sha256sum := ""
+		sha256sum, err = utils.SHA256SUM(imageFullPath)
+		if err != nil {
+			log.Fatalf("SHA256SUM (%s): %s", imageFullPath, err)
+		}
+
+		for _, baseOSConfig := range ctrl.ListBaseOSConfig() {
+			if len(baseOSConfig.Drives) == 1 {
+				if baseOSConfig.Drives[0].Image.Sha256 == sha256sum {
+					if err = ctrl.RemoveBaseOsConfig(baseOSConfig.Uuidandversion.GetUuid()); err != nil {
+						log.Fatalf("RemoveBaseOsConfig (%s): %s", baseOSConfig.Uuidandversion.GetUuid(), err)
+					}
+					if ind, found := utils.FindEleInSlice(dev.GetBaseOSConfigs(), baseOSConfig.Uuidandversion.GetUuid()); found {
+						configs := dev.GetBaseOSConfigs()
+						utils.DelEleInSlice(&configs, ind)
+						dev.SetBaseOSConfig(configs)
+						log.Infof("EVE image removed with id %s", baseOSConfig.Uuidandversion.GetUuid())
+					}
+				}
+			}
+		}
+		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+			log.Fatalf("setControllerAndDev error: %s", err)
+		}
+		log.Info("EVE update request has been sent")
+	},
+}
+
 func controllerInit() {
 	configPath, err := utils.DefaultConfigPath()
 	if err != nil {
@@ -271,6 +368,7 @@ func controllerInit() {
 	controllerCmd.AddCommand(edgeNode)
 	edgeNode.AddCommand(edgeNodeReboot)
 	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
+	edgeNode.AddCommand(edgeNodeEVEImageRemove)
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL>")
 	pf.StringVar(&configFile, "config", configPath, "path to config file")
@@ -283,6 +381,11 @@ func controllerInit() {
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
 	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSImage, "image", "", "", "image file")
 	if err = cobra.MarkFlagRequired(edgeNodeEVEImageUpdateFlags, "image"); err != nil {
+		log.Fatal(err)
+	}
+	edgeNodeEVEImageRemoveFlags := edgeNodeEVEImageRemove.Flags()
+	edgeNodeEVEImageRemoveFlags.StringVarP(&baseOSImage, "image", "", "", "image file for compare hash")
+	if err = cobra.MarkFlagRequired(edgeNodeEVEImageRemoveFlags, "image"); err != nil {
 		log.Fatal(err)
 	}
 }

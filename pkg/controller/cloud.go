@@ -29,6 +29,7 @@ type Cloud interface {
 	AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error)
 	GetDeviceUUID(devUUID uuid.UUID) (dev *device.Ctx, err error)
 	GetBaseOSConfig(id string) (baseOSConfig *config.BaseOSConfig, err error)
+	ListBaseOSConfig() []*config.BaseOSConfig
 	AddBaseOsConfig(baseOSConfig *config.BaseOSConfig) error
 	RemoveBaseOsConfig(id string) error
 	AddDataStore(dataStoreConfig *config.DatastoreConfig) error
