@@ -21,6 +21,7 @@ type fileLoader struct {
 
 //FileLoader return loader from files
 func FileLoader(logsGetter getDir, infoGetter getDir) *fileLoader {
+	log.Debugf("FileLoader init")
 	return &fileLoader{logsGetter: logsGetter, infoGetter: infoGetter}
 }
 
@@ -46,7 +47,7 @@ func (loader *fileLoader) SetUUID(devUUID uuid.UUID) {
 }
 
 //ProcessExisting for observe existing files
-func (loader *fileLoader) ProcessExisting(processInfo ProcessFunction, typeToProcess infoOrLogs) error {
+func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess infoOrLogs) error {
 	files, err := ioutil.ReadDir(loader.getFilePath(typeToProcess))
 	if err != nil {
 		return err
@@ -66,7 +67,7 @@ func (loader *fileLoader) ProcessExisting(processInfo ProcessFunction, typeToPro
 			log.Error("Can't open ", fileFullPath)
 			continue
 		}
-		doContinue, err := processInfo(data)
+		doContinue, err := process(data)
 		if err != nil {
 			return err
 		}
@@ -78,17 +79,21 @@ func (loader *fileLoader) ProcessExisting(processInfo ProcessFunction, typeToPro
 }
 
 //ProcessExisting for observe new files
-func (loader *fileLoader) ProcessStream(processInfo ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) error {
+func (loader *fileLoader) ProcessStream(process ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
 
+	done := make(chan error)
+
 	if timeoutSeconds == 0 {
 		timeoutSeconds = -1
+	} else {
+		time.AfterFunc(timeoutSeconds*time.Second, func() {
+			done <- fmt.Errorf("timeout")
+		})
 	}
-
-	done := make(chan error)
 	go func() {
 		for {
 			select {
@@ -106,7 +111,7 @@ func (loader *fileLoader) ProcessStream(processInfo ProcessFunction, typeToProce
 						continue
 					}
 					log.Debugf("local controller parse %s", event.Name)
-					doContinue, err := processInfo(data)
+					doContinue, err := process(data)
 					if err != nil {
 						done <- err
 					}
@@ -122,9 +127,6 @@ func (loader *fileLoader) ProcessStream(processInfo ProcessFunction, typeToProce
 					return
 				}
 				log.Errorf("error: %s", err)
-			case <-time.After(timeoutSeconds * time.Second):
-				done <- fmt.Errorf("timeout")
-				return
 			}
 		}
 	}()

@@ -227,7 +227,7 @@ func setupInit() {
 
 	setupCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "Adam tag")
 	setupCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
-	setupCmd.Flags().StringVarP(&adamPort, "adam-port", "", "3333", "adam dist to start")
+	setupCmd.Flags().StringVarP(&adamPort, "adam-port", "", defaultAdamPort, "adam dist to start")
 
 	setupCmd.Flags().StringSliceVarP(&qemuFirmware, "eve-firmware", "", nil, "firmware path")
 	setupCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", "", "path for config drive")

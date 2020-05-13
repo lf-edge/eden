@@ -28,6 +28,7 @@ import (
 //CreateAndRunContainer run container with defined name from image with port and volume mapping and defined command
 func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string, volumeMap map[string]string, command []string) error {
 
+	log.Debugf("Try to start container from image %s with command %s", imageName, command)
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -62,12 +63,16 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 	hostConfig := &container.HostConfig{
 		PortBindings: portBinding,
 		Mounts:       mounts,
+		DNS:          []string{},
+		DNSOptions:   []string{},
+		DNSSearch:    []string{},
 	}
 	userCurrent, err := user.Current()
 	if err != nil {
 		return err
 	}
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Hostname:     containerName,
 		Image:        imageName,
 		Cmd:          command,
 		ExposedPorts: portExposed,

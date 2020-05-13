@@ -5,8 +5,11 @@ const (
 	defaultIP              = "192.168.0.1"
 	defaultEVEIP           = "192.168.1.2"
 	defaultUUID            = "1"
-	defaultAdamTag         = "0.0.26"
+	defaultAdamTag         = "0.0.42"
+	defaultAdamPort        = "3333"
 	defaultEveTag          = "5.1.11"
+	defaultRedisTag        = "6"
+	defaultRedisPort       = "6379"
 	defaultEvePrefixInTar  = "bits"
 	defaultEveRepo         = "https://github.com/lf-edge/eve.git"
 	defaultLinuxKitVersion = "v0.7"
@@ -19,6 +22,9 @@ const (
 	defaultQemuCpus        = 4
 	defaultQemuMemory      = 4096
 	defaultEserverPort     = "8888"
+	defaultTelnetPort      = 7777
+	defaultSSHPort         = 2222
+	defaultEVEHost         = "127.0.0.1"
 	defaultFilename        = "rootfs.img"
 	imageID                = "1ab8761b-5f89-4e0b-b757-4b87a9fa93ec"
 	dataStoreID            = "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
@@ -32,14 +38,21 @@ const (
 var (
 	defaultQemuHostFwd = map[string]string{"2222": "22"}
 	cobraToViper       = map[string]string{
-		"adam.dist":   "adam-dist",
-		"adam.tag":    "adam-tag",
-		"adam.port":   "adam-port",
-		"adam.domain": "domain",
-		"adam.ip":     "ip",
-		"adam.eve-ip": "eve-ip",
-		"adam.force":  "adam-force",
-		"adam.v1":     "api-v1",
+		"redis.dist":  "redis-dist",
+		"redis.tag":   "redis-tag",
+		"redis.port":  "redis-port",
+		"redis.force": "redis-force",
+
+		"adam.dist":         "adam-dist",
+		"adam.tag":          "adam-tag",
+		"adam.port":         "adam-port",
+		"adam.domain":       "domain",
+		"adam.ip":           "ip",
+		"adam.eve-ip":       "eve-ip",
+		"adam.force":        "adam-force",
+		"adam.v1":           "api-v1",
+		"adam.redis.adam":   "adam-redis-url",
+		"adam.remote.redis": "adam-redis",
 
 		"eve.arch":         "eve-arch",
 		"eve.os":           "eve-os",

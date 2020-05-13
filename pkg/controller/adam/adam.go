@@ -11,26 +11,65 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"time"
 )
 
 type Ctx struct {
-	dir         string
-	url         string
-	serverCA    string
-	insecureTLS bool
-	AdamRemote  bool
+	dir              string
+	url              string
+	serverCA         string
+	insecureTLS      bool
+	AdamRemote       bool
+	AdamRemoteRedis  bool   //use redis for obtain logs and info
+	AdamRedisUrlEden string //string with redis url for obtain logs and info
 }
 
-func (adam *Ctx) getLoader() loaders.Loader {
+//parseRedisUrl try to use string from config to obtain redis url
+func parseRedisUrl(s string) (addr, password string, databaseID int, err error) {
+	URL, err := url.Parse(s)
+	if err != nil || URL.Scheme != "redis" {
+		return "", "", 0, err
+	}
+
+	if URL.Host != "" {
+		addr = URL.Host
+	} else {
+		addr = "localhost:6379"
+	}
+	if URL.Path != "" {
+		if databaseID, err = strconv.Atoi(strings.Trim(URL.Path, "/")); err != nil {
+			return "", "", 0, err
+		}
+	} else {
+		databaseID = 0
+	}
+	password = URL.User.Username()
+	return
+}
+
+//getLoader return loader object from Adam`s config
+func (adam *Ctx) getLoader() (loader loaders.Loader) {
 	if adam.AdamRemote {
 		log.Info("will use remote adam loader")
-		return loaders.RemoteLoader(adam.getHTTPClient, adam.getLogsUrl, adam.getInfoUrl)
+		if adam.AdamRemoteRedis {
+			addr, password, databaseID, err := parseRedisUrl(adam.AdamRedisUrlEden)
+			if err != nil {
+				log.Fatalf("Cannot parse adam redis url: %s", err)
+			}
+			loader = loaders.RedisLoader(addr, password, databaseID, adam.getLogsRedisStream, adam.getInfoRedisStream)
+		} else {
+			loader = loaders.RemoteLoader(adam.getHTTPClient, adam.getLogsUrl, adam.getInfoUrl)
+		}
+	} else {
+		log.Info("will use local adam loader")
+		loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
 	}
-	log.Info("will use local adam loader")
-	return loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
+	return
 }
 
 //EnvRead use variables from viper for init controller
@@ -40,12 +79,24 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.insecureTLS = len(vars.AdamCA) == 0
 	adam.serverCA = vars.AdamCA
 	adam.AdamRemote = vars.AdamRemote
+	adam.AdamRemoteRedis = vars.AdamRemoteRedis
+	adam.AdamRedisUrlEden = vars.AdamRedisUrlEden
 	return nil
 }
 
 //GetDir return dir
 func (adam *Ctx) GetDir() (dir string) {
 	return adam.dir
+}
+
+//getLogsRedisStream return info stream for devUUID for load from redis
+func (adam *Ctx) getLogsRedisStream(devUUID uuid.UUID) (dir string) {
+	return fmt.Sprintf("LOGS_EVE_%s", devUUID.String())
+}
+
+//getInfoRedisStream return info stream for devUUID for load from redis
+func (adam *Ctx) getInfoRedisStream(devUUID uuid.UUID) (dir string) {
+	return fmt.Sprintf("INFO_EVE_%s", devUUID.String())
 }
 
 //getLogsDir return logs directory for devUUID

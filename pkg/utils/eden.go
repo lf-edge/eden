@@ -10,17 +10,91 @@ import (
 )
 
 const (
-	adamContainerName = "eden_adam"
-	adamContainerRef  = "lfedge/adam"
-	logLevelToPrint   = log.InfoLevel
+	redisContainerName = "eden_redis"
+	redisContainerRef  = "redis"
+	adamContainerName  = "eden_adam"
+	adamContainerRef   = "lfedge/adam"
+	logLevelToPrint    = log.InfoLevel
 )
+
+//StartRedis function run redis in docker with mounted redisPath:/data
+//if redisForce is set, it recreates container
+func StartRedis(redisPort string, redisPath string, redisForce bool, redisTag string) (err error) {
+	portMap := map[string]string{"6379": redisPort}
+	volumeMap := map[string]string{"/data": fmt.Sprintf("%s", redisPath)}
+	redisServerCommand := strings.Fields("redis-server")
+	if redisForce {
+		_ = StopContainer(redisContainerName, true)
+		if err := CreateAndRunContainer(redisContainerName, redisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+			return fmt.Errorf("error in create redis container: %s", err)
+		}
+	} else {
+		state, err := StateContainer(redisContainerName)
+		if err != nil {
+			return fmt.Errorf("error in get state of redis container: %s", err)
+		}
+		if state == "" {
+			if err := CreateAndRunContainer(redisContainerName, redisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+				return fmt.Errorf("error in create redis container: %s", err)
+			}
+		} else if state != "running" {
+			if err := StartContainer(redisContainerName); err != nil {
+				return fmt.Errorf("error in restart redis container: %s", err)
+			}
+		}
+	}
+	return nil
+}
+
+//StopRedis function stop redis container
+func StopRedis(redisRm bool) (err error) {
+	state, err := StateContainer(redisContainerName)
+	if err != nil {
+		return fmt.Errorf("error in get state of redis container: %s", err)
+	}
+	if state != "running" {
+		if redisRm {
+			if err := StopContainer(redisContainerName, true); err != nil {
+				return fmt.Errorf("error in rm redis container: %s", err)
+			}
+		}
+	} else if state == "" {
+		return nil
+	} else {
+		if redisRm {
+			if err := StopContainer(redisContainerName, false); err != nil {
+				return fmt.Errorf("error in rm redis container: %s", err)
+			}
+		} else {
+			if err := StopContainer(redisContainerName, true); err != nil {
+				return fmt.Errorf("error in rm redis container: %s", err)
+			}
+		}
+	}
+	return nil
+}
+
+//StatusRedis function return status of redis
+func StatusRedis() (status string, err error) {
+	state, err := StateContainer(redisContainerName)
+	if err != nil {
+		return "", fmt.Errorf("error in get state of redis container: %s", err)
+	}
+	if state == "" {
+		return "redis container not exists", nil
+	}
+	return state, nil
+}
 
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
-func StartAdam(adamPort string, adamPath string, adamForce bool, adamTag string) (err error) {
+func StartAdam(adamPort string, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string) (err error) {
 	portMap := map[string]string{"8080": adamPort}
 	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
 	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
+	if adamRemoteRedisURL != "" {
+		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--db-url %s", adamRemoteRedisURL))...)
+	}
 	if adamForce {
 		_ = StopContainer(adamContainerName, true)
 		if err := CreateAndRunContainer(adamContainerName, adamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
@@ -32,7 +106,7 @@ func StartAdam(adamPort string, adamPath string, adamForce bool, adamTag string)
 			return fmt.Errorf("error in get state of adam container: %s", err)
 		}
 		if state == "" {
-			if err := CreateAndRunContainer(adamContainerName, adamContainerRef, portMap, volumeMap, adamServerCommand); err != nil {
+			if err := CreateAndRunContainer(adamContainerName, adamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 				return fmt.Errorf("error in create adam container: %s", err)
 			}
 		} else if state != "running" {
@@ -303,7 +377,7 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(commandPath, eveDist, eveBaseDist, adamDist, certsDist, imagesDist, binDir, eserverPID, evePID string) (err error) {
+func CleanEden(commandPath, eveDist, eveBaseDist, adamDist, certsDist, imagesDist, redisDist, binDir, eserverPID, evePID string) (err error) {
 	commandArgsString := fmt.Sprintf("stop --eserver-pid=%s --eve-pid=%s --adam-rm=true",
 		eserverPID, evePID)
 	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
@@ -334,6 +408,11 @@ func CleanEden(commandPath, eveDist, eveBaseDist, adamDist, certsDist, imagesDis
 	if _, err = os.Stat(adamDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(adamDist); err != nil {
 			return fmt.Errorf("error in %s delete: %s", adamDist, err)
+		}
+	}
+	if _, err = os.Stat(redisDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(redisDist); err != nil {
+			return fmt.Errorf("error in %s delete: %s", redisDist, err)
 		}
 	}
 	if _, err = os.Stat(binDir); !os.IsNotExist(err) {
