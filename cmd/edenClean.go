@@ -30,6 +30,7 @@ var cleanCmd = &cobra.Command{
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			binDir = utils.ResolveAbsPath(viper.GetString("eden.bin-dist"))
+			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 		}
 		return nil
 	},
@@ -38,7 +39,7 @@ var cleanCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.CleanEden(command, eveDist, eveBaseDist, adamDist, certsDir, eserverImageDist,
+		if err := utils.CleanEden(command, eveDist, eveBaseDist, adamDist, certsDir, eserverImageDist, redisDist,
 			binDir, eserverPidFile, evePidFile); err != nil {
 			log.Fatalf("cannot CleanEden: %s", err)
 		}
@@ -54,6 +55,7 @@ func cleanInit() {
 	cleanCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
 	cleanCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
 	cleanCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, "dist", "eve"), "directory to save EVE")
+	cleanCmd.Flags().StringVarP(&redisDist, "redis-dist", "", filepath.Join(currentPath, "dist", "redis"), "redis dist")
 	cleanCmd.Flags().StringVarP(&eveBaseDist, "eve-base-dist", "", filepath.Join(currentPath, "dist", "evebaseos"), "directory to save Base image of EVE")
 	cleanCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, "dist", defaultQemuFileToSave), "file to save qemu config")
 	cleanCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")

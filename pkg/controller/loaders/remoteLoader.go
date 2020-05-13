@@ -38,6 +38,7 @@ type remoteLoader struct {
 
 //RemoteLoader return loader from files
 func RemoteLoader(getClient getClient, urlLogs getUrl, urlInfo getUrl) *remoteLoader {
+	log.Debugf("HTTP RemoteLoader init")
 	return &remoteLoader{urlLogs: urlLogs, urlInfo: urlInfo, getClient: getClient, firstLoad: true, lastTimesamp: nil, client: getClient()}
 }
 

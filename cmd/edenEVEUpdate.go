@@ -208,7 +208,7 @@ var eveUpdateCmd = &cobra.Command{
 func eveUpdateInit() {
 	eveUpdateCmd.Flags().StringVar(&configFile, "configFile", "", "path to configFile file")
 	eveUpdateCmd.Flags().StringVar(&eserverIP, "eserver-ip", "", "IP of eserver for EVE access")
-	eveUpdateCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", "8888", "eserver port")
+	eveUpdateCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", defaultEserverPort, "eserver port")
 	eveUpdateCmd.Flags().StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", utils.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
 	eveUpdateCmd.Flags().BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	eveUpdateCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")

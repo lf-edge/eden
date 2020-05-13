@@ -36,6 +36,11 @@ var stopCmd = &cobra.Command{
 		} else {
 			log.Infof("adam stopped")
 		}
+		if err := utils.StopRedis(redisRm); err != nil {
+			log.Infof("cannot stop redis: %s", err)
+		} else {
+			log.Infof("redis stopped")
+		}
 		if err := utils.StopEServer(eserverPidFile); err != nil {
 			log.Infof("cannot stop eserver: %s", err)
 		} else {
@@ -55,6 +60,7 @@ func stopInit() {
 		log.Fatal(err)
 	}
 	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
+	stopCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
 	stopCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
 	stopCmd.Flags().StringVar(&configFile, "config", "", "path to config file")

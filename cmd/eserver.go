@@ -108,7 +108,7 @@ func eserverInit() {
 		log.Fatal(err)
 	}
 	startEserverCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, "dist", "images"), "image dist for eserver")
-	startEserverCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", "8888", "eserver port")
+	startEserverCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", defaultEserverPort, "eserver port")
 	startEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
 	startEserverCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, "dist", "eserver.log"), "file for save eserver log")
 	stopEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")

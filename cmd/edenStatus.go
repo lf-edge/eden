@@ -33,6 +33,12 @@ var statusCmd = &cobra.Command{
 		} else {
 			fmt.Printf("Adam status: %s\n", statusAdam)
 		}
+		statusRedis, err := utils.StatusRedis()
+		if err != nil {
+			log.Errorf("cannot obtain status of redis: %s", err)
+		} else {
+			fmt.Printf("Redis status: %s\n", statusRedis)
+		}
 		statusEServer, err := utils.StatusEServer(eserverPidFile)
 		if err != nil {
 			log.Errorf("cannot obtain status of eserver: %s", err)

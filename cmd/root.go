@@ -59,6 +59,8 @@ func init() {
 	eveInit()
 	rootCmd.AddCommand(adamCmd)
 	adamInit()
+	rootCmd.AddCommand(redisCmd)
+	redisInit()
 	rootCmd.AddCommand(eserverCmd)
 	eserverInit()
 	rootCmd.AddCommand(configCmd)

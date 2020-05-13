@@ -11,7 +11,11 @@ import (
 	"path/filepath"
 )
 
-var adamTag string
+var (
+	adamTag            string
+	adamRemoteRedisURL string
+	adamRemoteRedis    bool
+)
 
 var adamCmd = &cobra.Command{
 	Use: "adam",
@@ -32,6 +36,8 @@ var startAdamCmd = &cobra.Command{
 			adamPort = viper.GetString("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamForce = viper.GetBool("adam.force")
+			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
+			adamRemoteRedis = viper.GetBool("adam.remote.redis")
 		}
 		return nil
 	},
@@ -48,10 +54,13 @@ var startAdamCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
-		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag); err != nil {
+		if !adamRemoteRedis {
+			adamRemoteRedisURL = ""
+		}
+		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
-			log.Infof("Adam is running and accesible on port %s", adamPort)
+			log.Infof("Adam is running and accessible on port %s", adamPort)
 		}
 	},
 }
@@ -112,8 +121,10 @@ func adamInit() {
 	}
 	startAdamCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "tag on adam container to pull")
 	startAdamCmd.Flags().StringVarP(&adamDist, "adam-dist", "", path.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
-	startAdamCmd.Flags().StringVarP(&adamPort, "adam-port", "", "3333", "adam dist to start")
+	startAdamCmd.Flags().StringVarP(&adamPort, "adam-port", "", defaultAdamPort, "adam port to start")
 	startAdamCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
+	startAdamCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
+	startAdamCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
 	stopAdamCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
 	adamCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }
