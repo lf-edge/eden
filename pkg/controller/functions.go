@@ -61,10 +61,9 @@ func (cloud *CloudCtx) devInit(devID string) error {
 		case err != nil:
 			return fmt.Errorf("error reading sshKey file %s: %v", cloud.vars.SshKey, err)
 		}
-		dev.SetSSHKeys([]string{string(b)})
+		dev.SetConfigItem("debug.enable.ssh", string(b))
 	}
-	dev.SetVncAccess(true)
-	dev.SetControllerLogLevel("info")
+	dev.SetConfigItem("app.allow.vnc", "true")
 	if err = cloud.ApplyDevModel(dev, deviceModel); err != nil {
 		return fmt.Errorf("fail in ApplyDevModel: %s", err)
 	}

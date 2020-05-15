@@ -14,22 +14,20 @@ type Ctx struct {
 	physicalIO                 []string
 	systemAdapters             []string
 	applicationInstanceConfigs []string
-	sshKeys                    []string
+	configItems                map[string]string
 	rebootCounter              uint32
 	rebootState                bool
 	devModel                   string
-	vncAccess                  bool
-	controllerLogLevel         string
-	timerConfigInterval        int
 }
 
 //CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
 func CreateWithBaseConfig(id uuid.UUID) *Ctx {
+	configItems := map[string]string{"timer.config.interval": "5"}
 	return &Ctx{
-		id:                  id,
-		rebootCounter:       1000,
-		rebootState:         false,
-		timerConfigInterval: 5,
+		id:            id,
+		rebootCounter: 1000,
+		rebootState:   false,
+		configItems:   configItems,
 	}
 }
 
@@ -51,23 +49,17 @@ func (cfg *Ctx) GetPhysicalIOs() []string { return cfg.physicalIO }
 //GetSystemAdapters return systemAdapters of device
 func (cfg *Ctx) GetSystemAdapters() []string { return cfg.systemAdapters }
 
-//GetSSHKeys return sshKeys of device
-func (cfg *Ctx) GetSSHKeys() []string { return cfg.sshKeys }
+//GetConfigItems return GetConfigItems of device
+func (cfg *Ctx) GetConfigItems() map[string]string { return cfg.configItems }
+
+//SetConfigItem set ConfigItem of device
+func (cfg *Ctx) SetConfigItem(key, val string) { cfg.configItems[key] = val }
 
 //GetDevModel return devModel of device
 func (cfg *Ctx) GetDevModel() string { return cfg.devModel }
 
 //GetApplicationInstances return applicationInstanceConfigs of device
 func (cfg *Ctx) GetApplicationInstances() []string { return cfg.applicationInstanceConfigs }
-
-//GetVncAccess return vncAccess of device
-func (cfg *Ctx) GetVncAccess() bool { return cfg.vncAccess }
-
-//GetControllerLogLevel return controllerLogLevel of device
-func (cfg *Ctx) GetControllerLogLevel() string { return cfg.controllerLogLevel }
-
-//GetTimerConfigInterval return timer.config.interval
-func (cfg *Ctx) GetTimerConfigInterval() int { return cfg.timerConfigInterval }
 
 //GetAdaptersForSwitch return adaptersForSwitch of device
 func (cfg *Ctx) GetAdaptersForSwitch() []string {
@@ -109,30 +101,9 @@ func (cfg *Ctx) SetSystemAdaptersConfig(configIDs []string) *Ctx {
 	return cfg
 }
 
-//SetSSHKeys set sshKeys
-func (cfg *Ctx) SetSSHKeys(keys []string) *Ctx {
-	cfg.sshKeys = keys
-	return cfg
-}
-
 //SetDevModel set devModel
 func (cfg *Ctx) SetDevModel(devModel string) {
 	cfg.devModel = devModel
-}
-
-//SetControllerLogLevel set controllerLogLevel
-func (cfg *Ctx) SetControllerLogLevel(controllerLogLevel string) {
-	cfg.controllerLogLevel = controllerLogLevel
-}
-
-//SetVncAccess set vncAccess
-func (cfg *Ctx) SetVncAccess(enabled bool) {
-	cfg.vncAccess = enabled
-}
-
-//SetTimerConfigInterval set timer.config.interval
-func (cfg *Ctx) SetTimerConfigInterval(interval int) {
-	cfg.timerConfigInterval = interval
 }
 
 //SetApplicationInstanceConfig set applicationInstanceConfigs by configIDs from cloud
