@@ -401,7 +401,6 @@ var edgeNodeUpdate = &cobra.Command{
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev error: %s", err)
 		}
-		log.Info("EVE update request has been sent")
 	},
 }
 

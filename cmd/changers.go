@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/config"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
@@ -20,6 +22,7 @@ type configChanger interface {
 
 type fileChanger struct {
 	fileConfig string
+	oldHash    [32]byte
 }
 
 func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
@@ -40,6 +43,11 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("configParse error: %s", err)
 	}
+	res, err := ctrl.GetConfigBytes(dev)
+	if err != nil {
+		return nil, nil, fmt.Errorf("GetConfigBytes error: %s", err)
+	}
+	ctx.oldHash = sha256.Sum256(res)
 	return ctrl, dev, nil
 }
 
@@ -48,14 +56,21 @@ func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.C
 	if err != nil {
 		return fmt.Errorf("GetConfigBytes error: %s", err)
 	}
+	newHash := sha256.Sum256(res)
+	if ctx.oldHash == newHash {
+		log.Debug("config not modified")
+		return nil
+	}
 	if err = ioutil.WriteFile(ctx.fileConfig, res, 0755); err != nil {
 		return fmt.Errorf("WriteFile error: %s", err)
 	}
+	log.Debug("config modification done")
 	return nil
 }
 
 type adamChanger struct {
 	adamUrl string
+	oldHash [32]byte
 }
 
 func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
@@ -94,10 +109,24 @@ func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("configParse error: %s", err)
 	}
+	res, err := ctrl.GetConfigBytes(dev)
+	if err != nil {
+		return nil, nil, fmt.Errorf("GetConfigBytes error: %s", err)
+	}
+	ctx.oldHash = sha256.Sum256(res)
 	return ctrl, dev, nil
 }
 
 func (ctx *adamChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.Ctx) error {
+	res, err := ctrl.GetConfigBytes(dev)
+	if err != nil {
+		return fmt.Errorf("GetConfigBytes error: %s", err)
+	}
+	newHash := sha256.Sum256(res)
+	if ctx.oldHash == newHash {
+		log.Debug("config not modified")
+		return nil
+	}
 	if err := ctrl.ConfigSync(dev); err != nil {
 		return fmt.Errorf("configSync error: %s", err)
 	}
