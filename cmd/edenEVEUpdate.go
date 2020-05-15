@@ -179,7 +179,7 @@ var eveUpdateCmd = &cobra.Command{
 				case err != nil:
 					log.Fatalf("error reading sshKey file %s: %v", eveSSHKey, err)
 				}
-				deviceCtx.SetSSHKeys([]string{string(b)})
+				deviceCtx.SetConfigItem("debug.enable.ssh", string(b))
 			}
 			deviceCtx.SetBaseOSConfig([]string{baseID})
 			err = ctrl.ConfigSync(deviceCtx)

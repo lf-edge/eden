@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -395,31 +394,8 @@ var edgeNodeUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
-		var sshKeys []string
 		for key, val := range configItems {
-			switch key {
-			case "debug.enable.ssh":
-				sshKeys = append(sshKeys, val)
-			case "debug.default.remote.loglevel":
-				dev.SetControllerLogLevel(val)
-			case "app.allow.vnc":
-				if b, err := strconv.ParseBool(val); err != nil {
-					log.Errorf("Cannot parse app.allow.vnc: %s", err)
-				} else {
-					dev.SetVncAccess(b)
-				}
-			case "timer.config.interval":
-				if n, err := strconv.Atoi(val); err != nil {
-					log.Errorf("Cannot parse timer.config.interval: %s", err)
-				} else {
-					dev.SetTimerConfigInterval(n)
-				}
-			default:
-				log.Warningf("config key %s not supported", key)
-			}
-		}
-		if len(sshKeys) > 0 { //not remove if no flag
-			dev.SetSSHKeys(sshKeys)
+			dev.SetConfigItem(key, val)
 		}
 
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
@@ -441,7 +417,7 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeUpdate)
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL>")
-	pf.StringVar(&configFile, "config", configPath, "path to config file")
+	pf.StringVar(&configFile, "config-file", configPath, "path to config file")
 	if err = cobra.MarkFlagRequired(pf, "mode"); err != nil {
 		log.Fatal(err)
 	}
@@ -459,5 +435,7 @@ func controllerInit() {
 		log.Fatal(err)
 	}
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
-	edgeNodeUpdateFlags.StringToStringVar(&configItems, "config", make(map[string]string), "config <key:value> items")
+	configUsage := `set of key=value items. 
+Supported keys are defined in https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md`
+	edgeNodeUpdateFlags.StringToStringVar(&configItems, "config", make(map[string]string), configUsage)
 }

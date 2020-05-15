@@ -9,7 +9,6 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
-	"strconv"
 )
 
 //StateUpdate refresh state file
@@ -92,18 +91,9 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 			return nil, fmt.Errorf("cloud.AddDevice: %s", err)
 		}
 	}
-	var sshKeys []string
 	for _, el := range config.ConfigItems {
-		switch el.GetKey() {
-		case "debug.enable.ssh":
-			sshKeys = append(sshKeys, el.GetValue())
-		case "app.allow.vnc":
-			dev.SetVncAccess(true)
-		case "debug.default.remote.loglevel":
-			dev.SetControllerLogLevel(el.GetValue())
-		}
+		dev.SetConfigItem(el.GetKey(), el.GetValue())
 	}
-	dev.SetSSHKeys(sshKeys)
 	for _, el := range config.Datastores {
 		_ = cloud.AddDataStore(el)
 	}
@@ -367,29 +357,10 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 		systemAdapterConfigs = append(systemAdapterConfigs, systemAdapterConfig)
 	}
 	var configItems []*config.ConfigItem
-	for _, sshKey := range dev.GetSSHKeys() {
+	for k, v := range dev.GetConfigItems() {
 		configItems = append(configItems, &config.ConfigItem{
-			Key:   "debug.enable.ssh",
-			Value: sshKey,
-		})
-	}
-	if dev.GetVncAccess() {
-		configItems = append(configItems, &config.ConfigItem{
-			Key:   "app.allow.vnc",
-			Value: "true",
-		})
-	}
-	if dev.GetControllerLogLevel() != "" {
-		configItems = append(configItems, &config.ConfigItem{
-			Key:   "debug.default.remote.loglevel",
-			Value: dev.GetControllerLogLevel(),
-		})
-	}
-
-	if dev.GetTimerConfigInterval() != 0 {
-		configItems = append(configItems, &config.ConfigItem{
-			Key:   "timer.config.interval",
-			Value: strconv.Itoa(dev.GetTimerConfigInterval()),
+			Key:   k,
+			Value: v,
 		})
 	}
 
