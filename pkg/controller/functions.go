@@ -1,13 +1,16 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -107,4 +110,39 @@ func (cloud *CloudCtx) OnBoard() error {
 		return fmt.Errorf("onboarding timeout")
 	}
 	return nil
+}
+
+//VersionIncrement use []byte with config.EdgeDevConfig and increment config version
+func VersionIncrement(configOld []byte) ([]byte, error) {
+	var deviceConfig config.EdgeDevConfig
+	if err := json.Unmarshal(configOld, &deviceConfig); err != nil {
+		return nil, fmt.Errorf("unmarshal error: %s", err)
+	}
+	existingId := deviceConfig.Id
+	oldVersion := 0
+	newVersion, versionError := strconv.Atoi(existingId.Version)
+	if versionError == nil {
+		oldVersion = newVersion
+		newVersion++
+	}
+	if deviceConfig.Id == nil {
+		if versionError != nil {
+			return nil, fmt.Errorf("cannot automatically non-number bump version %s", existingId.Version)
+		}
+		deviceConfig.Id = &config.UUIDandVersion{
+			Uuid:    existingId.Uuid,
+			Version: strconv.Itoa(newVersion),
+		}
+	} else {
+		if deviceConfig.Id.Version == "" {
+			if versionError != nil {
+				return nil, fmt.Errorf("cannot automatically non-number bump version %s", existingId.Version)
+			}
+			deviceConfig.Id.Version = strconv.Itoa(newVersion)
+		} else {
+			deviceConfig.Id.Version = strconv.Itoa(newVersion)
+		}
+	}
+	log.Debugf("VersionIncrement %d->%s", oldVersion, deviceConfig.Id.Version)
+	return json.Marshal(&deviceConfig)
 }

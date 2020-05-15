@@ -34,6 +34,7 @@ var startCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			adamTag = viper.GetString("adam.tag")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			adamPort = viper.GetString("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
@@ -84,6 +85,7 @@ func startInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	startCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "tag on adam container to pull")
 	startCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
 	startCmd.Flags().StringVarP(&adamPort, "adam-port", "", "3333", "adam dist to start")
 	startCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")

@@ -9,6 +9,7 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
+	"strconv"
 )
 
 //StateUpdate refresh state file
@@ -91,6 +92,8 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 			return nil, fmt.Errorf("cloud.AddDevice: %s", err)
 		}
 	}
+	version, _ := strconv.Atoi(config.Id.Version)
+	dev.SetConfigVersion(version)
 	for _, el := range config.ConfigItems {
 		dev.SetConfigItem(el.GetKey(), el.GetValue())
 	}
@@ -369,7 +372,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 	devConfig := &config.EdgeDevConfig{
 		Id: &config.UUIDandVersion{
 			Uuid:    dev.GetID().String(),
-			Version: "4",
+			Version: strconv.Itoa(dev.GetConfigVersion()),
 		},
 		Apps:              applicationInstances,
 		Networks:          networkConfigs,
