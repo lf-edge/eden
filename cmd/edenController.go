@@ -426,7 +426,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 }
 
 var edgeNodeUpdate = &cobra.Command{
-	Use:   "update",
+	Use:   "update --config key=value",
 	Short: "update EVE config",
 	Long:  `Update EVE config.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
