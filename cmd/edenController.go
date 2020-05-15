@@ -8,7 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -108,6 +110,25 @@ var edgeNodeReboot = &cobra.Command{
 	},
 }
 
+func checkIsFileOrUrl(pathToCheck string) (isFile bool, pathToRet string, err error) {
+	res, err := url.Parse(pathToCheck)
+	if err != nil {
+		return false, "", err
+	}
+	switch res.Scheme {
+	case "":
+		return true, pathToCheck, nil
+	case "file":
+		return true, strings.TrimLeft(pathToCheck, "file://"), nil
+	case "http":
+		return false, pathToCheck, nil
+	case "https":
+		return false, pathToCheck, nil
+	default:
+		return false, "", fmt.Errorf("%s scheme not supported now", res.Scheme)
+	}
+}
+
 var edgeNodeEVEImageUpdate = &cobra.Command{
 	Use:   "eveimage-update",
 	Short: "update EVE image",
@@ -130,9 +151,26 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		rootFsPath, err := utils.GetFileFollowLinks(baseOSImage)
+		isFile, baseOSImage, err := checkIsFileOrUrl(baseOSImage)
 		if err != nil {
-			log.Fatalf("GetFileFollowLinks: %s", err)
+			log.Fatalf("checkIsFileOrUrl: %s", err)
+		}
+		var rootFsPath string
+		if isFile {
+			rootFsPath, err = utils.GetFileFollowLinks(baseOSImage)
+			if err != nil {
+				log.Fatalf("GetFileFollowLinks: %s", err)
+			}
+		} else {
+			if err = os.MkdirAll(filepath.Join(eserverImageDist, "baseos", "tmp"), 0755); err != nil {
+				log.Fatalf("cannot create dir for download image %s", err)
+			}
+			r, _ := url.Parse(baseOSImage)
+			rootFsPath = filepath.Join(eserverImageDist, "baseos", "tmp", path.Base(r.Path))
+			defer os.Remove(rootFsPath)
+			if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
+				log.Fatalf("DownloadFile error: %s", err)
+			}
 		}
 		modeType, modeURL, err := getControllerMode()
 		if err != nil {
@@ -155,15 +193,30 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
-
-		dataStore := &config.DatastoreConfig{
-			Id:       dataStoreID,
-			DType:    config.DsType_DsHttp,
-			Fqdn:     fmt.Sprintf("http://%s:%s", eserverIP, eserverPort),
-			ApiKey:   "",
-			Password: "",
-			Dpath:    "",
-			Region:   "",
+		var dataStore *config.DatastoreConfig
+		if isFile {
+			dataStore = &config.DatastoreConfig{
+				Id:       dataStoreID,
+				DType:    config.DsType_DsHttp,
+				Fqdn:     fmt.Sprintf("http://%s:%s", eserverIP, eserverPort),
+				ApiKey:   "",
+				Password: "",
+				Dpath:    "",
+				Region:   "",
+			}
+		} else {
+			dataStore = &config.DatastoreConfig{
+				Id:       dataStoreID,
+				DType:    config.DsType_DsHttp,
+				Fqdn:     strings.TrimRight(baseOSImage, filepath.Base(rootFsPath)),
+				ApiKey:   "",
+				Password: "",
+				Dpath:    "",
+				Region:   "",
+			}
+			if strings.Contains(baseOSImage, "https://") {
+				dataStore.DType = config.DsType_DsHttps
+			}
 		}
 		if _, err := os.Lstat(rootFsPath); os.IsNotExist(err) {
 			log.Fatalf("image file problem (%s): %s", args[0], err)
@@ -180,12 +233,14 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		}
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
-
-		imageFullPath := filepath.Join(eserverImageDist, "baseos", defaultFilename)
+		imageFullPath := filepath.Join(eserverImageDist, "baseos", filepath.Base(rootFsPath))
 		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
 			log.Fatalf("CopyFile problem: %s", err)
 		}
-		imageDSPath := fmt.Sprintf("baseos/%s", defaultFilename)
+		imageDSPath := fmt.Sprintf("baseos/%s", filepath.Base(rootFsPath))
+		if !isFile {
+			imageDSPath = filepath.Base(rootFsPath)
+		}
 		fi, err := os.Stat(imageFullPath)
 		if err != nil {
 			log.Fatalf("ImageFile (%s): %s", imageFullPath, err)
@@ -260,7 +315,6 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev error: %s", err)
 		}
-		log.Info("EVE update request has been sent")
 	},
 }
 
@@ -281,9 +335,26 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		rootFsPath, err := utils.GetFileFollowLinks(baseOSImage)
+		isFile, baseOSImage, err := checkIsFileOrUrl(baseOSImage)
 		if err != nil {
-			log.Fatalf("GetFileFollowLinks: %s", err)
+			log.Fatalf("checkIsFileOrUrl: %s", err)
+		}
+		var rootFsPath string
+		if isFile {
+			rootFsPath, err = utils.GetFileFollowLinks(baseOSImage)
+			if err != nil {
+				log.Fatalf("GetFileFollowLinks: %s", err)
+			}
+		} else {
+			if err = os.MkdirAll(filepath.Join(eserverImageDist, "baseos", "tmp"), 0755); err != nil {
+				log.Fatalf("cannot create dir for download image %s", err)
+			}
+			r, _ := url.Parse(baseOSImage)
+			rootFsPath = filepath.Join(eserverImageDist, "baseos", "tmp", path.Base(r.Path))
+			defer os.Remove(rootFsPath)
+			if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
+				log.Fatalf("DownloadFile error: %s", err)
+			}
 		}
 		modeType, modeURL, err := getControllerMode()
 		if err != nil {
@@ -323,13 +394,12 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
 
-		imageFullPath := filepath.Join(eserverImageDist, "baseos", defaultFilename)
+		imageFullPath := filepath.Join(eserverImageDist, "baseos", filepath.Base(rootFsPath))
 		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
 			log.Fatalf("CopyFile problem: %s", err)
 		}
 
-		sha256sum := ""
-		sha256sum, err = utils.SHA256SUM(imageFullPath)
+		sha256sum, err := utils.SHA256SUM(imageFullPath)
 		if err != nil {
 			log.Fatalf("SHA256SUM (%s): %s", imageFullPath, err)
 		}
@@ -352,7 +422,6 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev error: %s", err)
 		}
-		log.Info("EVE update request has been sent")
 	},
 }
 
@@ -424,12 +493,12 @@ func controllerInit() {
 	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", utils.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
-	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSImage, "image", "", "", "image file")
+	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSImage, "image", "", "", "image file or url (file:// or http(s)://)")
 	if err = cobra.MarkFlagRequired(edgeNodeEVEImageUpdateFlags, "image"); err != nil {
 		log.Fatal(err)
 	}
 	edgeNodeEVEImageRemoveFlags := edgeNodeEVEImageRemove.Flags()
-	edgeNodeEVEImageRemoveFlags.StringVarP(&baseOSImage, "image", "", "", "image file for compare hash")
+	edgeNodeEVEImageRemoveFlags.StringVarP(&baseOSImage, "image", "", "", "image file or url (file:// or http(s)://) for compare hash")
 	if err = cobra.MarkFlagRequired(edgeNodeEVEImageRemoveFlags, "image"); err != nil {
 		log.Fatal(err)
 	}
