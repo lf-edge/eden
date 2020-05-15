@@ -61,6 +61,9 @@ func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.C
 		log.Debug("config not modified")
 		return nil
 	}
+	if res, err = controller.VersionIncrement(res); err != nil {
+		return fmt.Errorf("VersionIncrement error: %s", err)
+	}
 	if err = ioutil.WriteFile(ctx.fileConfig, res, 0755); err != nil {
 		return fmt.Errorf("WriteFile error: %s", err)
 	}
@@ -127,6 +130,7 @@ func (ctx *adamChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.C
 		log.Debug("config not modified")
 		return nil
 	}
+	dev.SetConfigVersion(dev.GetConfigVersion() + 1)
 	if err := ctrl.ConfigSync(dev); err != nil {
 		return fmt.Errorf("configSync error: %s", err)
 	}

@@ -33,6 +33,7 @@ var (
 	defaultQemuHostFwd = map[string]string{"2222": "22"}
 	cobraToViper       = map[string]string{
 		"adam.dist":   "adam-dist",
+		"adam.tag":    "adam-tag",
 		"adam.port":   "adam-port",
 		"adam.domain": "domain",
 		"adam.ip":     "ip",

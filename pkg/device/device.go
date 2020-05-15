@@ -7,6 +7,7 @@ import (
 //Ctx is base struct for device
 type Ctx struct {
 	id                         uuid.UUID
+	configVersion              int
 	baseOSConfigs              []string
 	networkInstances           []string
 	adaptersForSwitch          []string
@@ -28,11 +29,18 @@ func CreateWithBaseConfig(id uuid.UUID) *Ctx {
 		rebootCounter: 1000,
 		rebootState:   false,
 		configItems:   configItems,
+		configVersion: 4,
 	}
 }
 
 //GetID return id of device
 func (cfg *Ctx) GetID() uuid.UUID { return cfg.id }
+
+//GetConfigVersion return configVersion of device
+func (cfg *Ctx) GetConfigVersion() int { return cfg.configVersion }
+
+//SetConfigVersion set configVersion of device
+func (cfg *Ctx) SetConfigVersion(version int) { cfg.configVersion = version }
 
 //GetBaseOSConfigs return baseOSConfigs of device
 func (cfg *Ctx) GetBaseOSConfigs() []string { return cfg.baseOSConfigs }
