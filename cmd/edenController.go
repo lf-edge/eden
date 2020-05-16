@@ -147,6 +147,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if viperLoaded {
 			eserverIP = viper.GetString("eden.eserver.ip")
 			eserverPort = viper.GetString("eden.eserver.port")
+			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 		}
 		return nil
 	},
@@ -234,6 +235,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
 		imageFullPath := filepath.Join(eserverImageDist, "baseos", filepath.Base(rootFsPath))
+		os.MkdirAll(filepath.Join(eserverImageDist, "baseos"), os.ModePerm)
 		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
 			log.Fatalf("CopyFile problem: %s", err)
 		}

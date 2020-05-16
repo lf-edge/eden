@@ -38,6 +38,12 @@ var startEserverCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
+
+		// lets make sure eserverImageDist exists
+		if os.MkdirAll(eserverImageDist, os.ModePerm) != nil {
+			log.Fatal("%s does not exist and can not be created", eserverImageDist)
+		}
+
 		if err := utils.StartEServer(command, eserverPort, eserverImageDist, eserverLogFile, eserverPidFile); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
