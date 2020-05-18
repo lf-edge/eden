@@ -473,6 +473,50 @@ var edgeNodeUpdate = &cobra.Command{
 	},
 }
 
+var edgeNodeGetConfig = &cobra.Command{
+	Use:   "get-config",
+	Short: "fetch EVE config",
+	Long:  `Fetch EVE config.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		modeType, modeURL, err := getControllerMode()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("Mode type: %s", modeType)
+		log.Infof("Mode url: %s", modeURL)
+		var changer configChanger
+		switch modeType {
+		case "file":
+			changer = &fileChanger{fileConfig: modeURL}
+		case "adam":
+			changer = &adamChanger{adamUrl: modeURL}
+
+		default:
+			log.Fatalf("Not implemented type: %s", modeType)
+		}
+
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev error: %s", err)
+		}
+
+		res, err := ctrl.GetConfigBytes(dev, true)
+		if err != nil {
+			log.Fatalf("GetConfigBytes error: %s", err)
+		}
+
+		fmt.Printf("%s\n",string(res))
+	},
+}
+
 func controllerInit() {
 	configPath, err := utils.DefaultConfigPath()
 	if err != nil {
@@ -483,6 +527,7 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
 	edgeNode.AddCommand(edgeNodeEVEImageRemove)
 	edgeNode.AddCommand(edgeNodeUpdate)
+	edgeNode.AddCommand(edgeNodeGetConfig)
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL>")
 	pf.StringVar(&configFile, "config-file", configPath, "path to config file")

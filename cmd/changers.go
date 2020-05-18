@@ -43,7 +43,7 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("configParse error: %s", err)
 	}
-	res, err := ctrl.GetConfigBytes(dev)
+	res, err := ctrl.GetConfigBytes(dev, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetConfigBytes error: %s", err)
 	}
@@ -52,7 +52,7 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 }
 
 func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.Ctx) error {
-	res, err := ctrl.GetConfigBytes(dev)
+	res, err := ctrl.GetConfigBytes(dev, false)
 	if err != nil {
 		return fmt.Errorf("GetConfigBytes error: %s", err)
 	}
@@ -112,7 +112,7 @@ func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("configParse error: %s", err)
 	}
-	res, err := ctrl.GetConfigBytes(dev)
+	res, err := ctrl.GetConfigBytes(dev, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetConfigBytes error: %s", err)
 	}
@@ -121,7 +121,7 @@ func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 }
 
 func (ctx *adamChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.Ctx) error {
-	res, err := ctrl.GetConfigBytes(dev)
+	res, err := ctrl.GetConfigBytes(dev, false)
 	if err != nil {
 		return fmt.Errorf("GetConfigBytes error: %s", err)
 	}

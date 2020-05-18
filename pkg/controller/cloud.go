@@ -41,7 +41,7 @@ type Cloud interface {
 	GetImage(id string) (image *config.Image, err error)
 	AddImage(imageConfig *config.Image) error
 	RemoveImage(id string) error
-	GetConfigBytes(dev *device.Ctx) ([]byte, error)
+	GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error)
 	GetDeviceFirst() (dev *device.Ctx, err error)
 	ConfigSync(dev *device.Ctx) (err error)
 	ConfigParse(config *config.EdgeDevConfig) (dev *device.Ctx, err error)

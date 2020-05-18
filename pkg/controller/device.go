@@ -14,7 +14,7 @@ import (
 
 //StateUpdate refresh state file
 func (cloud *CloudCtx) StateUpdate(dev *device.Ctx) (err error) {
-	devConfig, err := cloud.GetConfigBytes(dev)
+	devConfig, err := cloud.GetConfigBytes(dev, false)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 
 //ConfigSync set config for devID
 func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
-	devConfig, err := cloud.GetConfigBytes(dev)
+	devConfig, err := cloud.GetConfigBytes(dev, false)
 	if err != nil {
 		return err
 	}
@@ -285,7 +285,7 @@ func (cloud *CloudCtx) checkDrive(drive *config.Drive, dataStores []*config.Data
 }
 
 //GetConfigBytes generate json representation of device config
-func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
+func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error) {
 	var baseOS []*config.BaseOSConfig
 	var dataStores []*config.DatastoreConfig
 	for _, baseOSConfigID := range dev.GetBaseOSConfigs() {
@@ -390,5 +390,9 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx) ([]byte, error) {
 		Enterprise:        "",
 		Name:              "",
 	}
-	return json.Marshal(devConfig)
+	if pretty {
+		return json.MarshalIndent(devConfig, "", "    ")
+	} else {
+		return json.Marshal(devConfig)
+	}
 }
