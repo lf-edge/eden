@@ -3,6 +3,7 @@ package loaders
 import (
 	"fmt"
 	"github.com/fsnotify/fsnotify"
+	"github.com/lf-edge/eden/pkg/controller/cachers"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -17,6 +18,7 @@ type fileLoader struct {
 	devUUID    uuid.UUID
 	logsGetter getDir
 	infoGetter getDir
+	cache      cachers.Cacher
 }
 
 //FileLoader return loader from files
@@ -25,9 +27,14 @@ func FileLoader(logsGetter getDir, infoGetter getDir) *fileLoader {
 	return &fileLoader{logsGetter: logsGetter, infoGetter: infoGetter}
 }
 
+//SetRemoteCache add cache layer
+func (loader *fileLoader) SetRemoteCache(cache cachers.Cacher) {
+	loader.cache = cache
+}
+
 //Clone create copy
 func (loader *fileLoader) Clone() Loader {
-	return &fileLoader{logsGetter: loader.logsGetter, infoGetter: loader.infoGetter, devUUID: loader.devUUID}
+	return &fileLoader{logsGetter: loader.logsGetter, infoGetter: loader.infoGetter, devUUID: loader.devUUID, cache: loader.cache}
 }
 
 func (loader *fileLoader) getFilePath(typeToProcess infoOrLogs) string {
@@ -66,6 +73,11 @@ func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess
 		if err != nil {
 			log.Error("Can't open ", fileFullPath)
 			continue
+		}
+		if loader.cache != nil {
+			if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+				log.Errorf("error in cache: %s", err)
+			}
 		}
 		doContinue, err := process(data)
 		if err != nil {
@@ -111,6 +123,11 @@ func (loader *fileLoader) ProcessStream(process ProcessFunction, typeToProcess i
 						continue
 					}
 					log.Debugf("local controller parse %s", event.Name)
+					if loader.cache != nil {
+						if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+							log.Errorf("error in cache: %s", err)
+						}
+					}
 					doContinue, err := process(data)
 					if err != nil {
 						done <- err

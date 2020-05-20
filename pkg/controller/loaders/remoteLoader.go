@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
@@ -34,6 +35,7 @@ type remoteLoader struct {
 	urlInfo      getUrl
 	getClient    getClient
 	client       *http.Client
+	cache        cachers.Cacher
 }
 
 //RemoteLoader return loader from files
@@ -42,9 +44,14 @@ func RemoteLoader(getClient getClient, urlLogs getUrl, urlInfo getUrl) *remoteLo
 	return &remoteLoader{urlLogs: urlLogs, urlInfo: urlInfo, getClient: getClient, firstLoad: true, lastTimesamp: nil, client: getClient()}
 }
 
+//SetRemoteCache add cache layer
+func (loader *remoteLoader) SetRemoteCache(cache cachers.Cacher) {
+	loader.cache = cache
+}
+
 //Clone create copy
 func (loader *remoteLoader) Clone() Loader {
-	return &remoteLoader{urlLogs: loader.urlLogs, urlInfo: loader.urlInfo, getClient: loader.getClient, firstLoad: true, lastTimesamp: nil, devUUID: loader.devUUID, client: loader.getClient()}
+	return &remoteLoader{urlLogs: loader.urlLogs, urlInfo: loader.urlInfo, getClient: loader.getClient, firstLoad: true, lastTimesamp: nil, devUUID: loader.devUUID, client: loader.getClient(), cache: loader.cache}
 }
 
 func (loader *remoteLoader) getUrl(typeToProcess infoOrLogs) string {
@@ -101,6 +108,11 @@ func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFu
 		mler := jsonpb.Marshaler{}
 		if err := mler.Marshal(&buf, &emp); err != nil {
 			return false, false, err
+		}
+	}
+	if loader.cache != nil {
+		if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), buf.Bytes()); err != nil {
+			log.Errorf("error in cache: %s", err)
 		}
 	}
 	if loader.lastCount > loader.curCount {

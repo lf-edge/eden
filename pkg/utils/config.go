@@ -17,27 +17,30 @@ import (
 
 //ConfigVars struct with parameters from config file
 type ConfigVars struct {
-	AdamIP           string
-	AdamPort         string
-	AdamDir          string
-	AdamCA           string
-	AdamRemote       bool
-	AdamRemoteRedis  bool
-	AdamRedisUrlEden string
-	AdamRedisUrlAdam string
-	EveBaseTag       string
-	EveBaseVersion   string
-	EveHV            string
-	SshKey           string
-	CheckLogs        bool
-	EveCert          string
-	EveSerial        string
-	ZArch            string
-	DevModel         string
-	EdenBinDir       string
-	EdenProg         string
-	TestProg         string
-	TestScript       string
+	AdamIP            string
+	AdamPort          string
+	AdamDir           string
+	AdamCA            string
+	AdamRemote        bool
+	AdamCaching       bool
+	AdamCachingRedis  bool
+	AdamCachingPrefix string
+	AdamRemoteRedis   bool
+	AdamRedisUrlEden  string
+	AdamRedisUrlAdam  string
+	EveBaseTag        string
+	EveBaseVersion    string
+	EveHV             string
+	SshKey            string
+	CheckLogs         bool
+	EveCert           string
+	EveSerial         string
+	ZArch             string
+	DevModel          string
+	EdenBinDir        string
+	EdenProg          string
+	TestProg          string
+	TestScript        string
 }
 
 //InitVars loads vars from viper
@@ -52,27 +55,30 @@ func InitVars() (*ConfigVars, error) {
 	}
 	if loaded {
 		var vars = &ConfigVars{
-			AdamIP:           viper.GetString("adam.ip"),
-			AdamPort:         viper.GetString("adam.port"),
-			AdamDir:          ResolveAbsPath(viper.GetString("adam.dist")),
-			AdamCA:           ResolveAbsPath(viper.GetString("adam.ca")),
-			AdamRedisUrlEden: viper.GetString("adam.redis.eden"),
-			AdamRedisUrlAdam: viper.GetString("adam.redis.adam"),
-			SshKey:           ResolveAbsPath(viper.GetString("eden.ssh-key")),
-			CheckLogs:        viper.GetBool("eden.logs"),
-			EveCert:          ResolveAbsPath(viper.GetString("eve.cert")),
-			EveSerial:        viper.GetString("eve.serial"),
-			ZArch:            viper.GetString("eve.arch"),
-			EveHV:            viper.GetString("eve.hv"),
-			EveBaseTag:       viper.GetString("eve.base-tag"),
-			EveBaseVersion:   fmt.Sprintf("%s-%s-%s", viper.GetString("eve.base-version"), viper.GetString("eve.hv"), viper.GetString("eve.arch")),
-			DevModel:         viper.GetString("eve.devmodel"),
-			AdamRemote:       viper.GetBool("adam.remote.enabled"),
-			AdamRemoteRedis:  viper.GetBool("adam.remote.redis"),
-			EdenBinDir:       viper.GetString("eden.bin-dist"),
-			EdenProg:         viper.GetString("eden.eden-bin"),
-			TestProg:         viper.GetString("eden.test-bin"),
-			TestScript:       viper.GetString("eden.test-script"),
+			AdamIP:            viper.GetString("adam.ip"),
+			AdamPort:          viper.GetString("adam.port"),
+			AdamDir:           ResolveAbsPath(viper.GetString("adam.dist")),
+			AdamCA:            ResolveAbsPath(viper.GetString("adam.ca")),
+			AdamRedisUrlEden:  viper.GetString("adam.redis.eden"),
+			AdamRedisUrlAdam:  viper.GetString("adam.redis.adam"),
+			SshKey:            ResolveAbsPath(viper.GetString("eden.ssh-key")),
+			CheckLogs:         viper.GetBool("eden.logs"),
+			EveCert:           ResolveAbsPath(viper.GetString("eve.cert")),
+			EveSerial:         viper.GetString("eve.serial"),
+			ZArch:             viper.GetString("eve.arch"),
+			EveHV:             viper.GetString("eve.hv"),
+			EveBaseTag:        viper.GetString("eve.base-tag"),
+			EveBaseVersion:    fmt.Sprintf("%s-%s-%s", viper.GetString("eve.base-version"), viper.GetString("eve.hv"), viper.GetString("eve.arch")),
+			DevModel:          viper.GetString("eve.devmodel"),
+			AdamRemote:        viper.GetBool("adam.remote.enabled"),
+			AdamRemoteRedis:   viper.GetBool("adam.remote.redis"),
+			AdamCaching:       viper.GetBool("adam.caching.enabled"),
+			AdamCachingPrefix: viper.GetString("adam.caching.prefix"),
+			AdamCachingRedis:  viper.GetBool("adam.caching.redis"),
+			EdenBinDir:        viper.GetString("eden.bin-dist"),
+			EdenProg:          viper.GetString("eden.eden-bin"),
+			TestProg:          viper.GetString("eden.test-bin"),
+			TestScript:        viper.GetString("eden.test-script"),
 		}
 		return vars, nil
 	}
@@ -135,6 +141,15 @@ adam:
 
     #use v1 api
     v1: true
+
+    caching:
+        enabled: false
+
+        #caching logs and info to redis instead of local
+        redis: false
+        
+        #prefix for directory/redis stream
+        prefix: cache
 
 eve:
     #devmodel

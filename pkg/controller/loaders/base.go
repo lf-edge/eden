@@ -1,6 +1,7 @@
 package loaders
 
 import (
+	"github.com/lf-edge/eden/pkg/controller/cachers"
 	uuid "github.com/satori/go.uuid"
 	"time"
 )
@@ -10,6 +11,7 @@ type Loader interface {
 	SetUUID(devUUID uuid.UUID)
 	ProcessStream(process ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) error
 	ProcessExisting(process ProcessFunction, typeToProcess infoOrLogs) error
+	SetRemoteCache(cache cachers.Cacher)
 	Clone() Loader
 }
 
