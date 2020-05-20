@@ -67,5 +67,4 @@ func downloaderInit() {
 	downloaderCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH), "output directory")
 	downloaderCmd.Flags().BoolVarP(&baseos, "baseos", "", false, "base OS download")
-	downloaderCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }

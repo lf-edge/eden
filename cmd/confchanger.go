@@ -158,5 +158,4 @@ func confChangerInit() {
 	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", filepath.Join(currentPath, "dist", "adam", "run", "config"), "path for config drive")
 	confChangerCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
 	confChangerCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
-	confChangerCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }

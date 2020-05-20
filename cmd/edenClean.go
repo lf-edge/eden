@@ -63,5 +63,4 @@ func cleanInit() {
 
 	cleanCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, "dist", "certs"), "directory with certs")
 	cleanCmd.Flags().StringVarP(&binDir, "bin-dist", "", filepath.Join(currentPath, "dist", "bin"), "directory for binaries")
-	cleanCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }

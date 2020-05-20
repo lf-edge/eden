@@ -31,5 +31,6 @@ require (
 	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
 	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools v2.2.0+incompatible
 )

@@ -126,5 +126,4 @@ func adamInit() {
 	startAdamCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
 	startAdamCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
 	stopAdamCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
-	adamCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }

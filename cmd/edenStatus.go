@@ -61,5 +61,4 @@ func statusInit() {
 	}
 	statusCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file with eserver pid")
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file with EVE pid")
-	statusCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }
