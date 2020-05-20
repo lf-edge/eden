@@ -3,6 +3,7 @@ package loaders
 import (
 	"fmt"
 	"github.com/go-redis/redis/v7"
+	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -21,6 +22,7 @@ type redisLoader struct {
 	streamLogs getStream
 	streamInfo getStream
 	client     *redis.Client
+	cache      cachers.Cacher
 	devUUID    uuid.UUID
 }
 
@@ -36,6 +38,11 @@ func RedisLoader(addr string, password string, databaseID int, streamLogs getStr
 	}
 }
 
+//SetRemoteCache add cache layer
+func (loader *redisLoader) SetRemoteCache(cache cachers.Cacher) {
+	loader.cache = cache
+}
+
 //Clone create copy
 func (loader *redisLoader) Clone() Loader {
 	return &redisLoader{
@@ -45,6 +52,7 @@ func (loader *redisLoader) Clone() Loader {
 		streamLogs: loader.streamLogs,
 		streamInfo: loader.streamInfo,
 		lastID:     "",
+		cache:      loader.cache,
 		devUUID:    loader.devUUID,
 	}
 }
@@ -87,6 +95,11 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 				if err != nil {
 					return false, false, fmt.Errorf("process: %s", err)
 				}
+				if loader.cache != nil {
+					if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+						log.Errorf("error in cache: %s", err)
+					}
+				}
 				if !tocontinue {
 					return true, true, nil
 				}
@@ -115,6 +128,11 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 			if err != nil {
 				return false, false, fmt.Errorf("process first: %s", err)
 			}
+			if loader.cache != nil {
+				if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+					log.Errorf("error in cache: %s", err)
+				}
+			}
 			if !tocontinue {
 				return true, true, nil
 			}
@@ -135,6 +153,11 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 				tocontinue, err := process(data)
 				if err != nil {
 					return false, false, fmt.Errorf("process: %s", err)
+				}
+				if loader.cache != nil {
+					if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+						log.Errorf("error in cache: %s", err)
+					}
 				}
 				if !tocontinue {
 					return true, true, nil

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lf-edge/adam/pkg/server"
+	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
@@ -20,13 +21,16 @@ import (
 )
 
 type Ctx struct {
-	dir              string
-	url              string
-	serverCA         string
-	insecureTLS      bool
-	AdamRemote       bool
-	AdamRemoteRedis  bool   //use redis for obtain logs and info
-	AdamRedisUrlEden string //string with redis url for obtain logs and info
+	dir               string
+	url               string
+	serverCA          string
+	insecureTLS       bool
+	AdamRemote        bool
+	AdamRemoteRedis   bool   //use redis for obtain logs and info
+	AdamRedisUrlEden  string //string with redis url for obtain logs and info
+	AdamCaching       bool   //enable caching of adam`s logs/info
+	AdamCachingRedis  bool   //caching to redis instead of files
+	AdamCachingPrefix string //custom prefix for file or stream naming for cache
 }
 
 //parseRedisUrl try to use string from config to obtain redis url
@@ -69,6 +73,19 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 		log.Info("will use local adam loader")
 		loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
 	}
+	if adam.AdamCaching {
+		var cache cachers.Cacher
+		if adam.AdamCachingRedis {
+			addr, password, databaseID, err := parseRedisUrl(adam.AdamRedisUrlEden)
+			if err != nil {
+				log.Fatalf("Cannot parse adam redis url: %s", err)
+			}
+			cache = cachers.RedisCache(addr, password, databaseID, adam.getLogsRedisStreamCache, adam.getInfoRedisStreamCache)
+		} else {
+			cache = cachers.FileCache(adam.getLogsDirCache, adam.getInfoDirCache)
+		}
+		loader.SetRemoteCache(cache)
+	}
 	return
 }
 
@@ -80,6 +97,9 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.serverCA = vars.AdamCA
 	adam.AdamRemote = vars.AdamRemote
 	adam.AdamRemoteRedis = vars.AdamRemoteRedis
+	adam.AdamCaching = vars.AdamCaching
+	adam.AdamCachingRedis = vars.AdamCachingRedis
+	adam.AdamCachingPrefix = vars.AdamCachingPrefix
 	adam.AdamRedisUrlEden = vars.AdamRedisUrlEden
 	return nil
 }
@@ -97,6 +117,38 @@ func (adam *Ctx) getLogsRedisStream(devUUID uuid.UUID) (dir string) {
 //getInfoRedisStream return info stream for devUUID for load from redis
 func (adam *Ctx) getInfoRedisStream(devUUID uuid.UUID) (dir string) {
 	return fmt.Sprintf("INFO_EVE_%s", devUUID.String())
+}
+
+//getLogsRedisStreamCache return logs stream for devUUID for caching in redis
+func (adam *Ctx) getLogsRedisStreamCache(devUUID uuid.UUID) (dir string) {
+	if adam.AdamCachingPrefix == "" {
+		return adam.getLogsRedisStream(devUUID)
+	}
+	return fmt.Sprintf("LOGS_EVE_%s_%s", adam.AdamCachingPrefix, devUUID.String())
+}
+
+//getInfoRedisStreamCache return info stream for devUUID for caching in redis
+func (adam *Ctx) getInfoRedisStreamCache(devUUID uuid.UUID) (dir string) {
+	if adam.AdamCachingPrefix == "" {
+		return adam.getInfoRedisStream(devUUID)
+	}
+	return fmt.Sprintf("INFO_EVE_%s_%s", adam.AdamCachingPrefix, devUUID.String())
+}
+
+//getRedisStreamCache return logs stream for devUUID for caching in redis
+func (adam *Ctx) getLogsDirCache(devUUID uuid.UUID) (dir string) {
+	if adam.AdamCachingPrefix == "" {
+		return adam.getLogsDir(devUUID)
+	}
+	return path.Join(adam.dir, adam.AdamCachingPrefix, devUUID.String(), "logs")
+}
+
+//getInfoDirCache return info directory for devUUID for caching
+func (adam *Ctx) getInfoDirCache(devUUID uuid.UUID) (dir string) {
+	if adam.AdamCachingPrefix == "" {
+		return adam.getInfoDir(devUUID)
+	}
+	return path.Join(adam.dir, adam.AdamCachingPrefix, devUUID.String(), "info")
 }
 
 //getLogsDir return logs directory for devUUID
