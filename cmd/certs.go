@@ -80,5 +80,4 @@ func certsInit() {
 	certsCmd.Flags().StringVarP(&certsIP, "ip", "i", defaultIP, "IP address to use")
 	certsCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaultEVEIP, "IP address to use for EVE")
 	certsCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaultUUID, "UUID to use for device")
-	certsCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 }

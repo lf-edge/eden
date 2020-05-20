@@ -515,15 +515,11 @@ var edgeNodeGetConfig = &cobra.Command{
 			log.Fatalf("GetConfigBytes error: %s", err)
 		}
 
-		fmt.Printf("%s\n",string(res))
+		fmt.Printf("%s\n", string(res))
 	},
 }
 
 func controllerInit() {
-	configPath, err := utils.DefaultConfigPath()
-	if err != nil {
-		log.Fatal(err)
-	}
 	controllerCmd.AddCommand(edgeNode)
 	edgeNode.AddCommand(edgeNodeReboot)
 	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
@@ -532,8 +528,7 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeGetConfig)
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL>")
-	pf.StringVar(&configFile, "config-file", configPath, "path to config file")
-	if err = cobra.MarkFlagRequired(pf, "mode"); err != nil {
+	if err := cobra.MarkFlagRequired(pf, "mode"); err != nil {
 		log.Fatal(err)
 	}
 	edgeNodeEVEImageUpdateFlags := edgeNodeEVEImageUpdate.Flags()
@@ -541,12 +536,12 @@ func controllerInit() {
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
 	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSImage, "image", "", "", "image file or url (file:// or http(s)://)")
-	if err = cobra.MarkFlagRequired(edgeNodeEVEImageUpdateFlags, "image"); err != nil {
+	if err := cobra.MarkFlagRequired(edgeNodeEVEImageUpdateFlags, "image"); err != nil {
 		log.Fatal(err)
 	}
 	edgeNodeEVEImageRemoveFlags := edgeNodeEVEImageRemove.Flags()
 	edgeNodeEVEImageRemoveFlags.StringVarP(&baseOSImage, "image", "", "", "image file or url (file:// or http(s)://) for compare hash")
-	if err = cobra.MarkFlagRequired(edgeNodeEVEImageRemoveFlags, "image"); err != nil {
+	if err := cobra.MarkFlagRequired(edgeNodeEVEImageRemoveFlags, "image"); err != nil {
 		log.Fatal(err)
 	}
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()

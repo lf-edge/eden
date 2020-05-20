@@ -209,11 +209,6 @@ var setupCmd = &cobra.Command{
 }
 
 func setupInit() {
-	configPath, err := utils.DefaultConfigPath()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -252,5 +247,4 @@ func setupInit() {
 	setupCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "")
 	setupCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
-	setupCmd.Flags().StringVar(&configFile, "config", configPath, "path to config file")
 }

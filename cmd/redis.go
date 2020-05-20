@@ -121,5 +121,4 @@ func redisInit() {
 	startRedisCmd.Flags().StringVarP(&redisPort, "redis-port", "", defaultRedisPort, "redis port to start")
 	startRedisCmd.Flags().BoolVarP(&redisForce, "redis-force", "", false, "redis force rebuild")
 	stopRedisCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
-	redisCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }

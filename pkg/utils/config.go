@@ -281,11 +281,11 @@ func DefaultEdenDir() (string, error) {
 
 //DefaultConfigPath returns path to default config
 func DefaultConfigPath() (string, error) {
-	usr, err := user.Current()
+	context, err := ContextLoad()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("context load error: %s", err)
 	}
-	return filepath.Join(usr.HomeDir, ".eden", "config.yml"), nil
+	return context.GetCurrentConfig(), nil
 }
 
 //CurrentDirConfigPath returns path to config.yml in current folder
@@ -305,6 +305,7 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 			return false, fmt.Errorf("fail in DefaultConfigPath: %s", err.Error())
 		}
 	}
+	log.Debugf("Will use config from %s", config)
 	if _, err = os.Stat(config); os.IsNotExist(err) {
 		if err = GenerateConfigFile(config); err != nil {
 			return false, fmt.Errorf("fail in generate yaml: %s", err.Error())
@@ -344,6 +345,11 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 
 //GenerateConfigFile is a function to generate default yml
 func GenerateConfigFile(filePath string) error {
+	context, err := ContextInit()
+	if err != nil {
+		return err
+	}
+	context.Save()
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)

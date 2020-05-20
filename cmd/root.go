@@ -4,10 +4,12 @@
 package cmd
 
 import (
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io"
+	"log"
 	"os"
 )
 
@@ -81,6 +83,11 @@ func init() {
 
 // Execute primary function for cobra
 func Execute() {
+	configPath, err := utils.DefaultConfigPath()
+	if err != nil {
+		log.Fatal(err)
+	}
+	rootCmd.PersistentFlags().StringVar(&configFile, "config-file", configPath, "path to config file")
 	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", logrus.InfoLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
 	_ = rootCmd.Execute()
 }

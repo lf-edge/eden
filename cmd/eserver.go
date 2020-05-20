@@ -113,5 +113,4 @@ func eserverInit() {
 	startEserverCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, "dist", "eserver.log"), "file for save eserver log")
 	stopEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
 	statusEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
-	eserverCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }

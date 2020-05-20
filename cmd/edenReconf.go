@@ -76,6 +76,5 @@ var reconfCmd = &cobra.Command{
 }
 
 func reconfInit() {
-	reconfCmd.Flags().StringVar(&configFile, "config", "", "path to config file")
 	reconfCmd.Flags().BoolVar(&getConfig, "get", false, "get config instead of set")
 }
