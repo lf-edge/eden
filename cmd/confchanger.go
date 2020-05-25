@@ -7,6 +7,7 @@ import (
 	"github.com/diskfs/go-diskfs"
 	"github.com/diskfs/go-diskfs/disk"
 	"github.com/diskfs/go-diskfs/filesystem"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -154,8 +155,8 @@ func confChangerInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	confChangerCmd.Flags().StringVarP(&eveImageFile, "image-file", "", filepath.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH, "live.qcow2"), "image to modify (required)")
-	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", filepath.Join(currentPath, "dist", "adam", "run", "config"), "path for config drive")
-	confChangerCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
+	confChangerCmd.Flags().StringVarP(&eveImageFile, "image-file", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist, "dist", runtime.GOARCH, "live.qcow2"), "image to modify (required)")
+	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist, "run", "config"), "path for config drive")
+	confChangerCmd.Flags().StringVarP(&eveHV, "hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
 	confChangerCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
 }

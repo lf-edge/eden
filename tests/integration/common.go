@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
@@ -34,9 +35,7 @@ type appInstLocal struct {
 	accessPortInternal string
 }
 
-var eServerDataStoreID = "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
-
-var eServerURL = "http://mydomain.adam:8888"
+var eServerURL = fmt.Sprintf("http://%s:%d", defaults.DefaultDomain, defaults.DefaultEserverPort)
 
 var (
 	networkInstanceLocal = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e1",
@@ -75,7 +74,7 @@ var (
 )
 
 var (
-	appInstanceLocalVM = &appInstLocal{eServerDataStoreID,
+	appInstanceLocalVM = &appInstLocal{defaults.DefaultDataStoreID,
 
 		"1ab8761b-5f89-4e0b-b757-4b87a9fa93e1",
 		config.Format_QCOW2,
@@ -90,7 +89,7 @@ var (
 		"8027",
 		"80",
 	}
-	appInstanceLocalContainer = &appInstLocal{eServerDataStoreID,
+	appInstanceLocalContainer = &appInstLocal{defaults.DefaultDataStoreID,
 
 		"1ab8761b-5f89-4e0b-b757-4b87a9fa93e2",
 		config.Format_CONTAINER,
@@ -123,16 +122,16 @@ func prepareImageLocal(ctx controller.Cloud, dataStoreID string, imageID string,
 		}
 	}
 
-	imageFullPath := path.Join(filepath.Dir(ctx.GetDir()), "images", "vm", imageFileName)
+	imageFullPath := path.Join(filepath.Dir(ctx.GetDir()), defaults.DefaultImageDist, "vm", imageFileName)
 	imageDSPath := fmt.Sprintf("vm/%s", imageFileName)
 
 	if imageFormat == config.Format_CONTAINER {
-		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), "images", "docker", imageFileName)
+		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), defaults.DefaultImageDist, "docker", imageFileName)
 		imageDSPath = fmt.Sprintf("docker/%s", imageFileName)
 	}
 
 	if isBaseOS {
-		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), "images", "baseos", imageFileName)
+		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), defaults.DefaultImageDist, "baseos", imageFileName)
 		imageDSPath = fmt.Sprintf("baseos/%s", imageFileName)
 	}
 	fi, err := os.Stat(imageFullPath)

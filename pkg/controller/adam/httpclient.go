@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -126,8 +127,8 @@ func (adam *Ctx) putObj(path string, obj []byte) (err error) {
 }
 
 func repeatableAttempt(client *http.Client, req *http.Request) (response *http.Response, err error) {
-	maxRepeat := utils.DefaultRepeatCount
-	delayTime := utils.DefaultRepeatTimeout
+	maxRepeat := defaults.DefaultRepeatCount
+	delayTime := defaults.DefaultRepeatTimeout
 
 	for i := 0; i < maxRepeat; i++ {
 		timer := time.AfterFunc(2*delayTime, func() {

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -9,10 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 )
-
-const defaultContextFile = "context.yml"
-const defaultContextDirectory = "contexts"
-const DefaultContext = "default"
 
 //Context for use with multiple config files
 type Context struct {
@@ -22,7 +19,7 @@ type Context struct {
 
 //ContextInit generates and returns default context
 func ContextInit() (*Context, error) {
-	context := &Context{Current: DefaultContext, Directory: defaultContextDirectory}
+	context := &Context{Current: defaults.DefaultContext, Directory: defaults.DefaultContextDirectory}
 	return context, nil
 }
 
@@ -72,7 +69,7 @@ func (ctx *Context) Save() {
 	if err != nil {
 		log.Fatalf("Context Marshal error: %s", err)
 	}
-	contextFile := filepath.Join(edenDir, defaultContextFile)
+	contextFile := filepath.Join(edenDir, defaults.DefaultContextFile)
 	if err := ioutil.WriteFile(contextFile, data, 0755); err != nil {
 		log.Fatalf("Write Context File %s error: %s", contextFile, err)
 	}
@@ -84,7 +81,7 @@ func ContextLoad() (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("context Load DefaultEdenDir error: %s", err)
 	}
-	contextFile := filepath.Join(edenDir, defaultContextFile)
+	contextFile := filepath.Join(edenDir, defaults.DefaultContextFile)
 	if _, err := os.Stat(contextFile); os.IsNotExist(err) {
 		return ContextInit()
 	}

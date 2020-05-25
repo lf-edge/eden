@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
 )
@@ -32,18 +33,13 @@ func (ctx *DevModel) GetFirstAdapterForSwitches() string {
 
 //GetNetDHCPID return netDHCPID id
 func (ctx *DevModel) GetNetDHCPID() string {
-	return netDHCPID
+	return defaults.NetDHCPID
 }
 
 //GetNetNoDHCPID return netNoDHCPID id
 func (ctx *DevModel) GetNetNoDHCPID() string {
-	return netNoDHCPID
+	return defaults.NetNoDHCPID
 }
-
-const (
-	netDHCPID   = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
-	netNoDHCPID = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
-)
 
 //DevModelTypeEmpty is empty model type
 const DevModelTypeEmpty DevModelType = "Empty"
@@ -97,7 +93,7 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 				},
 				[]*config.NetworkConfig{
 					{
-						Id:   netDHCPID,
+						Id:   defaults.NetDHCPID,
 						Type: config.NetworkType_V4,
 						Ip: &config.Ipspec{
 							Dhcp:      config.DHCPType_Client,
@@ -106,7 +102,7 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 						Wireless: nil,
 					},
 					{
-						Id:   netNoDHCPID,
+						Id:   defaults.NetNoDHCPID,
 						Type: config.NetworkType_V4,
 						Ip: &config.Ipspec{
 							Dhcp:      config.DHCPType_DHCPNone,
@@ -119,11 +115,11 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 					{
 						Name:        "eth0",
 						Uplink:      true,
-						NetworkUUID: netDHCPID,
+						NetworkUUID: defaults.NetDHCPID,
 					},
 					{
 						Name:        "eth1",
-						NetworkUUID: netNoDHCPID,
+						NetworkUUID: defaults.NetNoDHCPID,
 					},
 				},
 				[]string{"eth1"},

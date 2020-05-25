@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,7 +34,7 @@ var startAdamCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			adamTag = viper.GetString("adam.tag")
-			adamPort = viper.GetString("adam.port")
+			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamForce = viper.GetBool("adam.force")
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
@@ -60,7 +61,7 @@ var startAdamCmd = &cobra.Command{
 		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
-			log.Infof("Adam is running and accessible on port %s", adamPort)
+			log.Infof("Adam is running and accessible on port %d", adamPort)
 		}
 	},
 }
@@ -119,9 +120,9 @@ func adamInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	startAdamCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "tag on adam container to pull")
-	startAdamCmd.Flags().StringVarP(&adamDist, "adam-dist", "", path.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
-	startAdamCmd.Flags().StringVarP(&adamPort, "adam-port", "", defaultAdamPort, "adam port to start")
+	startAdamCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "tag on adam container to pull")
+	startAdamCmd.Flags().StringVarP(&adamDist, "adam-dist", "", path.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
+	startAdamCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam port to start")
 	startAdamCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	startAdamCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
 	startAdamCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")

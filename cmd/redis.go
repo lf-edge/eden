@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -13,7 +14,7 @@ import (
 
 var (
 	redisTag   string
-	redisPort  string
+	redisPort  int
 	redisDist  string
 	redisForce bool
 	redisRm    bool
@@ -35,7 +36,7 @@ var startRedisCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			redisTag = viper.GetString("redis.tag")
-			redisPort = viper.GetString("redis.port")
+			redisPort = viper.GetInt("redis.port")
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			redisForce = viper.GetBool("redis.force")
 		}
@@ -57,7 +58,7 @@ var startRedisCmd = &cobra.Command{
 		if err := utils.StartRedis(redisPort, redisPath, redisForce, redisTag); err != nil {
 			log.Errorf("cannot start redis: %s", err)
 		} else {
-			log.Infof("Redis is running and accessible on port %s", redisPort)
+			log.Infof("Redis is running and accessible on port %d", redisPort)
 		}
 	},
 }
@@ -116,9 +117,9 @@ func redisInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	startRedisCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaultRedisTag, "tag of redis container to pull")
-	startRedisCmd.Flags().StringVarP(&redisDist, "redis-dist", "", path.Join(currentPath, "dist", "redis"), "redis dist to start (required)")
-	startRedisCmd.Flags().StringVarP(&redisPort, "redis-port", "", defaultRedisPort, "redis port to start")
+	startRedisCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag of redis container to pull")
+	startRedisCmd.Flags().StringVarP(&redisDist, "redis-dist", "", path.Join(currentPath, defaults.DefaultDist, defaults.DefaultRedisDist), "redis dist to start (required)")
+	startRedisCmd.Flags().IntVarP(&redisPort, "redis-port", "", defaults.DefaultRedisPort, "redis port to start")
 	startRedisCmd.Flags().BoolVarP(&redisForce, "redis-force", "", false, "redis force rebuild")
 	stopRedisCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
 }

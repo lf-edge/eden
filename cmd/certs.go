@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -75,9 +76,9 @@ func certsInit() {
 		log.Fatal(err)
 	}
 
-	certsCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, "dist", "certs"), "directory to save")
-	certsCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaultDomain, "FQDN for certificates")
-	certsCmd.Flags().StringVarP(&certsIP, "ip", "i", defaultIP, "IP address to use")
-	certsCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaultEVEIP, "IP address to use for EVE")
-	certsCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaultUUID, "UUID to use for device")
+	certsCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory to save")
+	certsCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaults.DefaultDomain, "FQDN for certificates")
+	certsCmd.Flags().StringVarP(&certsIP, "ip", "i", defaults.DefaultIP, "IP address to use")
+	certsCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaults.DefaultEVEIP, "IP address to use for EVE")
+	certsCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaults.DefaultUUID, "UUID to use for device")
 }

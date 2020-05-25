@@ -5,6 +5,7 @@ import (
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -44,12 +45,12 @@ var eveUpdateCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			certsIP = viper.GetString("adam.ip")
-			adamPort = viper.GetString("adam.port")
+			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamCA = utils.ResolveAbsPath(viper.GetString("adam.ca"))
 			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
 			eserverIP = viper.GetString("eden.eserver.ip")
-			eserverPort = viper.GetString("eden.eserver.port")
+			eserverPort = viper.GetInt("eden.eserver.port")
 			eveHV = viper.GetString("eve.hv")
 			eveArch = viper.GetString("eve.arch")
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
@@ -69,9 +70,9 @@ var eveUpdateCmd = &cobra.Command{
 			log.Fatalf("OnBoard: %s", err)
 		}
 		dataStore := &config.DatastoreConfig{
-			Id:       dataStoreID,
+			Id:       defaults.DefaultDataStoreID,
 			DType:    config.DsType_DsHttp,
-			Fqdn:     fmt.Sprintf("http://%s:%s", eserverIP, eserverPort),
+			Fqdn:     fmt.Sprintf("http://%s:%d", eserverIP, eserverPort),
 			ApiKey:   "",
 			Password: "",
 			Dpath:    "",
@@ -84,20 +85,20 @@ var eveUpdateCmd = &cobra.Command{
 		if getFromFileName {
 			rootFSName := strings.TrimSuffix(filepath.Base(rootFsPath), filepath.Ext(rootFsPath))
 			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
-			re := regexp.MustCompile(rootFSVersionPattern)
+			re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
 			if !re.MatchString(rootFSName) {
-				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, rootFSVersionPattern)
+				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
 			}
 			baseOSVersion = rootFSName
 		}
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
 
-		imageFullPath := filepath.Join(eserverImageDist, "baseos", defaultFilename)
+		imageFullPath := filepath.Join(eserverImageDist, "baseos", defaults.DefaultFilename)
 		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
 			log.Fatalf("CopyFile problem: %s", err)
 		}
-		imageDSPath := fmt.Sprintf("baseos/%s", defaultFilename)
+		imageDSPath := fmt.Sprintf("baseos/%s", defaults.DefaultFilename)
 		fi, err := os.Stat(imageFullPath)
 		if err != nil {
 			log.Fatalf("ImageFile (%s): %s", imageFullPath, err)
@@ -111,13 +112,13 @@ var eveUpdateCmd = &cobra.Command{
 		}
 		img := &config.Image{
 			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    imageID,
+				Uuid:    defaults.DefaultImageID,
 				Version: "4",
 			},
 			Name:      imageDSPath,
 			Sha256:    sha256sum,
 			Iformat:   config.Format_QCOW2,
-			DsId:      dataStoreID,
+			DsId:      defaults.DefaultDataStoreID,
 			SizeBytes: size,
 			Siginfo: &config.SignatureInfo{
 				Intercertsurl: "",
@@ -125,7 +126,7 @@ var eveUpdateCmd = &cobra.Command{
 				Signature:     nil,
 			},
 		}
-		if ds, _ := ctrl.GetDataStore(dataStoreID); ds == nil {
+		if ds, _ := ctrl.GetDataStore(defaults.DefaultDataStoreID); ds == nil {
 			if err = ctrl.AddDataStore(dataStore); err != nil {
 				log.Fatalf("AddDataStore: %s", err)
 			}
@@ -136,7 +137,7 @@ var eveUpdateCmd = &cobra.Command{
 
 		if err = ctrl.AddBaseOsConfig(&config.BaseOSConfig{
 			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    baseID,
+				Uuid:    defaults.DefaultBaseID,
 				Version: "4",
 			},
 			Drives: []*config.Drive{{
@@ -181,7 +182,7 @@ var eveUpdateCmd = &cobra.Command{
 				}
 				deviceCtx.SetConfigItem("debug.enable.ssh", string(b))
 			}
-			deviceCtx.SetBaseOSConfig([]string{baseID})
+			deviceCtx.SetBaseOSConfig([]string{defaults.DefaultBaseID})
 			err = ctrl.ConfigSync(deviceCtx)
 			log.Info("Request for update sended")
 			if wait {
@@ -207,10 +208,10 @@ var eveUpdateCmd = &cobra.Command{
 
 func eveUpdateInit() {
 	eveUpdateCmd.Flags().StringVar(&eserverIP, "eserver-ip", "", "IP of eserver for EVE access")
-	eveUpdateCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", defaultEserverPort, "eserver port")
-	eveUpdateCmd.Flags().StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", utils.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
+	eveUpdateCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
+	eveUpdateCmd.Flags().StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", defaults.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
 	eveUpdateCmd.Flags().BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
-	eveUpdateCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
+	eveUpdateCmd.Flags().StringVarP(&eveHV, "hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
 	eveUpdateCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
 	eveUpdateCmd.Flags().BoolVar(&wait, "wait", true, "wait for system update")
 }

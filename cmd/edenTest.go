@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"os"
 	"os/exec"
 	"strings"
@@ -33,7 +34,7 @@ func runTest(args []string) {
 		args = append(args, "-test.v")
 	}
 	tstr := path
-	for _, arg := range args{
+	for _, arg := range args {
 		tstr += " " + arg
 	}
 	log.Info("Test: ", tstr)
@@ -43,7 +44,7 @@ func runTest(args []string) {
 	err = tst.Run()
 	if err != nil {
 		log.Fatalf("Test running failed with %s\n", err)
-	}	
+	}
 }
 
 func runScript() {
@@ -53,7 +54,7 @@ func runScript() {
 	}
 	defer file.Close()
 
-	log.Info("runScript: ", )
+	log.Info("runScript: ")
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		var targs []string
@@ -70,20 +71,20 @@ func runScript() {
 var testCmd = &cobra.Command{
 	Use:   "test",
 	Short: "Run tests",
-	Long:  `Run tests from test binary. Verbose testing works with any level of general verbosity above "info"
+	Long: `Run tests from test binary. Verbose testing works with any level of general verbosity above "info"
 
 test [-s <script>] [-t <timewait>] [-v <level>]
 test -l <regexp>
 test -r <regexp> [-t <timewait>] [-v <level>]
 
 `,
-        PreRunE: func(cmd *cobra.Command, args []string) error {
-                vars, err := utils.InitVars()
-                if err != nil {
-                        log.Fatalf("error reading config: %s\n", err)
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		vars, err := utils.InitVars()
+		if err != nil {
+			log.Fatalf("error reading config: %s\n", err)
 			return err
-                }
-		
+		}
+
 		if testProg == "" {
 			testProg = vars.TestProg
 		}
@@ -101,18 +102,18 @@ test -r <regexp> [-t <timewait>] [-v <level>]
 		if os.IsNotExist(err) {
 			testScript = utils.ResolveAbsPath(testScript)
 		}
-		
+
 		log.Debug("testProg: ", testProg)
 		log.Debug("testScript:", testScript)
-                return nil
-        },
- 	Run: func(cmd *cobra.Command, args []string) {
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
 		switch {
 		case testList != "":
-			runTest([]string{"-test.list", testList,})
+			runTest([]string{"-test.list", testList})
 			return
 		case testRun != "":
-			runTest([]string{"-test.run", testRun,})
+			runTest([]string{"-test.run", testRun})
 			return
 		case testScript != "":
 			runScript()
@@ -122,7 +123,7 @@ test -r <regexp> [-t <timewait>] [-v <level>]
 }
 
 func testInit() {
-	testCmd.Flags().StringVarP(&testProg, "prog", "p", defaultTestProg, "program binary to run tests")
+	testCmd.Flags().StringVarP(&testProg, "prog", "p", defaults.DefaultTestProg, "program binary to run tests")
 	testCmd.Flags().StringVarP(&testRun, "run", "r", "", "run only those tests matching the regular expression")
 	testCmd.Flags().StringVarP(&testTimeout, "timeout", "t", "", "panic if test exceded the timeout")
 	testCmd.Flags().StringVarP(&testList, "list", "l", "", "list tests matching the regular expression")
