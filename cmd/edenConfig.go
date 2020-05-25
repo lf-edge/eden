@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -295,13 +296,13 @@ var configDeleteCmd = &cobra.Command{
 		currentContext := context.Current
 		log.Infof("currentContext %s", currentContext)
 		log.Infof("contextName %s", contextNameDel)
-		if (contextNameDel == "" || contextNameDel == utils.DefaultContext) && utils.DefaultContext == currentContext {
+		if (contextNameDel == "" || contextNameDel == defaults.DefaultContext) && defaults.DefaultContext == currentContext {
 			log.Fatal("Cannot delete default context. Use 'eden clean' instead.")
 		}
 		if contextNameDel == "" {
 			contextNameDel = context.Current
-			context.SetContext(utils.DefaultContext)
-			log.Infof("Move to %s context", utils.DefaultContext)
+			context.SetContext(defaults.DefaultContext)
+			log.Infof("Move to %s context", defaults.DefaultContext)
 		}
 		context.Current = contextNameDel
 		currentContextFile := context.GetCurrentConfig()
@@ -320,17 +321,17 @@ func configInit() {
 	configGetCmd.Flags().StringVar(&contextKeyGet, "key", "", "will return value of key from current config context")
 	configGetCmd.Flags().BoolVar(&contextAllGet, "all", false, "will return config context")
 	configCmd.AddCommand(configSetCmd)
-	configSetCmd.Flags().StringVar(&contextNameSet, "name", utils.DefaultContext, "context name to set as current")
+	configSetCmd.Flags().StringVar(&contextNameSet, "name", defaults.DefaultContext, "context name to set as current")
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configAddCmd)
-	configAddCmd.Flags().StringVar(&contextName, "name", utils.DefaultContext, "context name to add")
+	configAddCmd.Flags().StringVar(&contextName, "name", defaults.DefaultContext, "context name to add")
 	configAddCmd.Flags().StringVar(&contextFile, "file", "", "file with config to add")
-	configAddCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaultQemuFileToSave, "file to save config")
-	configAddCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaultQemuCpus, "cpus")
-	configAddCmd.Flags().IntVarP(&qemuMemory, "memory", "", defaultQemuMemory, "memory (MB)")
+	configAddCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
+	configAddCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaults.DefaultQemuCpus, "cpus")
+	configAddCmd.Flags().IntVarP(&qemuMemory, "memory", "", defaults.DefaultQemuMemory, "memory (MB)")
 	configAddCmd.Flags().StringSliceVarP(&qemuFirmware, "eve-firmware", "", nil, "firmware path")
 	configAddCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", "", "path for config drive")
 	configAddCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
-	configAddCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaultQemuHostFwd, "port forward map")
+	configAddCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
 }

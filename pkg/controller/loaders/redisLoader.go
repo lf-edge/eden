@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v7"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
-	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/defaults"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -185,9 +185,9 @@ func (loader *redisLoader) getOrCreateClient() (*redis.Client, error) {
 			Addr:            loader.addr,
 			Password:        loader.password,
 			DB:              loader.databaseID,
-			MaxRetries:      utils.DefaultRepeatCount,
-			MinRetryBackoff: utils.DefaultRepeatTimeout / 2,
-			MaxRetryBackoff: utils.DefaultRepeatTimeout * 2,
+			MaxRetries:      defaults.DefaultRepeatCount,
+			MinRetryBackoff: defaults.DefaultRepeatTimeout / 2,
+			MaxRetryBackoff: defaults.DefaultRepeatTimeout * 2,
 		})
 	}
 	_, err := loader.client.Ping().Result()

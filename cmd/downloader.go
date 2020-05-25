@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -52,7 +53,7 @@ var downloaderCmd = &cobra.Command{
 		if err := utils.PullImage(image); err != nil {
 			log.Fatalf("ImagePull: %s", err)
 		}
-		if err := utils.SaveImage(image, outputDir, defaultEvePrefixInTar); err != nil {
+		if err := utils.SaveImage(image, outputDir, defaults.DefaultEvePrefixInTar); err != nil {
 			log.Fatalf("SaveImage: %s", err)
 		}
 	},
@@ -63,8 +64,8 @@ func downloaderInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	downloaderCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaultEveTag, "tag to download")
+	downloaderCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEveTag, "tag to download")
 	downloaderCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
-	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, "dist", "eve", "dist", runtime.GOARCH), "output directory")
+	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist, "dist", runtime.GOARCH), "output directory")
 	downloaderCmd.Flags().BoolVarP(&baseos, "baseos", "", false, "base OS download")
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/docker/docker/pkg/fileutils"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
@@ -36,7 +37,7 @@ func getParams(line, regEx string) (paramsMap map[string]string) {
 }
 
 func getControllerMode() (modeType, modeURL string, err error) {
-	params := getParams(controllerMode, controllerModePattern)
+	params := getParams(controllerMode, defaults.DefaultControllerModePattern)
 	if len(params) == 0 {
 		return "", "", fmt.Errorf("cannot parse mode (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
 	}
@@ -146,7 +147,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		}
 		if viperLoaded {
 			eserverIP = viper.GetString("eden.eserver.ip")
-			eserverPort = viper.GetString("eden.eserver.port")
+			eserverPort = viper.GetInt("eden.eserver.port")
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 		}
 		return nil
@@ -197,9 +198,9 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		var dataStore *config.DatastoreConfig
 		if isFile {
 			dataStore = &config.DatastoreConfig{
-				Id:       dataStoreID,
+				Id:       defaults.DefaultDataStoreID,
 				DType:    config.DsType_DsHttp,
-				Fqdn:     fmt.Sprintf("http://%s:%s", eserverIP, eserverPort),
+				Fqdn:     fmt.Sprintf("http://%s:%d", eserverIP, eserverPort),
 				ApiKey:   "",
 				Password: "",
 				Dpath:    "",
@@ -207,7 +208,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 			}
 		} else {
 			dataStore = &config.DatastoreConfig{
-				Id:       dataStoreID,
+				Id:       defaults.DefaultDataStoreID,
 				DType:    config.DsType_DsHttp,
 				Fqdn:     strings.TrimRight(baseOSImage, filepath.Base(rootFsPath)),
 				ApiKey:   "",
@@ -226,9 +227,9 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if getFromFileName {
 			rootFSName := strings.TrimSuffix(filepath.Base(rootFsPath), filepath.Ext(rootFsPath))
 			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
-			re := regexp.MustCompile(rootFSVersionPattern)
+			re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
 			if !re.MatchString(rootFSName) {
-				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, rootFSVersionPattern)
+				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
 			}
 			baseOSVersion = rootFSName
 		}
@@ -256,13 +257,13 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		}
 		img := &config.Image{
 			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    imageID,
+				Uuid:    defaults.DefaultImageID,
 				Version: "4",
 			},
 			Name:      imageDSPath,
 			Sha256:    sha256sum,
 			Iformat:   config.Format_QCOW2,
-			DsId:      dataStoreID,
+			DsId:      defaults.DefaultDataStoreID,
 			SizeBytes: size,
 			Siginfo: &config.SignatureInfo{
 				Intercertsurl: "",
@@ -270,16 +271,16 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 				Signature:     nil,
 			},
 		}
-		if _, err := ctrl.GetDataStore(dataStoreID); err == nil {
-			if err = ctrl.RemoveDataStore(dataStoreID); err != nil {
+		if _, err := ctrl.GetDataStore(defaults.DefaultDataStoreID); err == nil {
+			if err = ctrl.RemoveDataStore(defaults.DefaultDataStoreID); err != nil {
 				log.Fatalf("RemoveDataStore: %s", err)
 			}
 		}
 		if err = ctrl.AddDataStore(dataStore); err != nil {
 			log.Fatalf("AddDataStore: %s", err)
 		}
-		if _, err := ctrl.GetImage(imageID); err == nil {
-			if err = ctrl.RemoveImage(imageID); err != nil {
+		if _, err := ctrl.GetImage(defaults.DefaultImageID); err == nil {
+			if err = ctrl.RemoveImage(defaults.DefaultImageID); err != nil {
 				log.Fatalf("RemoveImage: %s", err)
 			}
 		}
@@ -289,7 +290,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 
 		baseOSConfig := &config.BaseOSConfig{
 			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    baseID,
+				Uuid:    defaults.DefaultBaseID,
 				Version: "4",
 			},
 			Drives: []*config.Drive{{
@@ -304,8 +305,8 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 			BaseOSVersion: baseOSVersion,
 			BaseOSDetails: nil,
 		}
-		if _, err := ctrl.GetBaseOSConfig(baseID); err == nil {
-			if err = ctrl.RemoveBaseOsConfig(baseID); err != nil {
+		if _, err := ctrl.GetBaseOSConfig(defaults.DefaultBaseID); err == nil {
+			if err = ctrl.RemoveBaseOsConfig(defaults.DefaultBaseID); err != nil {
 				log.Fatalf("RemoveBaseOsConfig: %s", err)
 			}
 		}
@@ -313,7 +314,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if err = ctrl.AddBaseOsConfig(baseOSConfig); err != nil {
 			log.Fatalf("AddBaseOsConfig: %s", err)
 		}
-		dev.SetBaseOSConfig([]string{baseID})
+		dev.SetBaseOSConfig([]string{defaults.DefaultBaseID})
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev error: %s", err)
 		}
@@ -332,7 +333,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		}
 		if viperLoaded {
 			eserverIP = viper.GetString("eden.eserver.ip")
-			eserverPort = viper.GetString("eden.eserver.port")
+			eserverPort = viper.GetInt("eden.eserver.port")
 		}
 		return nil
 	},
@@ -387,9 +388,9 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		if getFromFileName {
 			rootFSName := strings.TrimSuffix(filepath.Base(rootFsPath), filepath.Ext(rootFsPath))
 			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
-			re := regexp.MustCompile(rootFSVersionPattern)
+			re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
 			if !re.MatchString(rootFSName) {
-				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, rootFSVersionPattern)
+				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
 			}
 			baseOSVersion = rootFSName
 		}
@@ -439,7 +440,7 @@ var edgeNodeUpdate = &cobra.Command{
 		}
 		if viperLoaded {
 			eserverIP = viper.GetString("eden.eserver.ip")
-			eserverPort = viper.GetString("eden.eserver.port")
+			eserverPort = viper.GetInt("eden.eserver.port")
 		}
 		return nil
 	},
@@ -532,7 +533,7 @@ func controllerInit() {
 		log.Fatal(err)
 	}
 	edgeNodeEVEImageUpdateFlags := edgeNodeEVEImageUpdate.Flags()
-	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", utils.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
+	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", defaults.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
 	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSImage, "image", "", "", "image file or url (file:// or http(s)://)")

@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"math/big"
 	"net"
 	"os"
@@ -50,8 +51,8 @@ func GenCARoot() (*x509.Certificate, *rsa.PrivateKey) {
 	var rootTemplate = x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			Country:      []string{"RU"},
-			Organization: []string{"Company Co."},
+			Country:      []string{defaults.DefaultX509Country},
+			Organization: []string{defaults.DefaultX509Company},
 			CommonName:   "Root CA",
 		},
 		NotBefore:             time.Now().Add(-10 * time.Second),
@@ -89,8 +90,8 @@ func GenServerCert(cert *x509.Certificate, key *rsa.PrivateKey, serial *big.Int,
 		IPAddresses:    ip,
 		DNSNames:       dns,
 		Subject: pkix.Name{
-			Country:      []string{"RU"},
-			Organization: []string{"Itmo"},
+			Country:      []string{defaults.DefaultX509Country},
+			Organization: []string{defaults.DefaultX509Company},
 			CommonName:   CN,
 		},
 	}
@@ -118,8 +119,8 @@ func GenServerCertElliptic(cert *x509.Certificate, key *rsa.PrivateKey, serial *
 		IPAddresses:    ip,
 		DNSNames:       dns,
 		Subject: pkix.Name{
-			Country:      []string{"RU"},
-			Organization: []string{"Itmo"},
+			Country:      []string{defaults.DefaultX509Country},
+			Organization: []string{defaults.DefaultX509Company},
 			CommonName:   uuid,
 		},
 	}

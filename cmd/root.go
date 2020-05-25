@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,7 +34,7 @@ func setUpLogs(out io.Writer, level string) error {
 }
 
 func assingCobraToViper(cmd *cobra.Command) {
-	for k, v := range cobraToViper {
+	for k, v := range defaults.DefaultCobraToViper {
 		if flag := cmd.Flag(v); flag != nil {
 			_ = viper.BindPFlag(k, flag)
 		}

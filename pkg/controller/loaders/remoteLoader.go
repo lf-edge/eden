@@ -7,7 +7,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
-	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
@@ -161,8 +161,8 @@ func (loader *remoteLoader) repeatableConnection(process ProcessFunction, typeTo
 	} else {
 		loader.client.Timeout = 0
 	}
-	maxRepeat := utils.DefaultRepeatCount
-	delayTime := utils.DefaultRepeatTimeout
+	maxRepeat := defaults.DefaultRepeatCount
+	delayTime := defaults.DefaultRepeatTimeout
 
 repeatLoop:
 	for i := 0; i < maxRepeat; i++ {

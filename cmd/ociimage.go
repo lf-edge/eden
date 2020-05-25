@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
+	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io"
@@ -80,10 +81,10 @@ var ociImageCmd = &cobra.Command{
 }
 
 func ociImageInit() {
-	ociImageCmd.Flags().StringVarP(&fileToSave, "output", "o", defaultFileToSave, "file to save")
-	ociImageCmd.Flags().StringVarP(&image, "image", "i", defaultImage, "image to save")
-	ociImageCmd.Flags().StringVarP(&registry, "registry", "r", defaultRegistry, "registry")
-	ociImageCmd.Flags().BoolVarP(&isLocal, "local", "l", defaultIsLocal, "use local docker image")
+	ociImageCmd.Flags().StringVarP(&fileToSave, "output", "o", defaults.DefaultFileToSave, "file to save")
+	ociImageCmd.Flags().StringVarP(&image, "image", "i", defaults.DefaultImage, "image to save")
+	ociImageCmd.Flags().StringVarP(&registry, "registry", "r", defaults.DefaultRegistry, "registry")
+	ociImageCmd.Flags().BoolVarP(&isLocal, "local", "l", defaults.DefaultIsLocal, "use local docker image")
 }
 
 // appendImageManifest add the given manifest to the given tar file. Opinionated

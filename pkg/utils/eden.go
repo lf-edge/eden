@@ -2,43 +2,37 @@ package utils
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
-)
-
-const (
-	redisContainerName = "eden_redis"
-	redisContainerRef  = "redis"
-	adamContainerName  = "eden_adam"
-	adamContainerRef   = "lfedge/adam"
-	logLevelToPrint    = log.InfoLevel
 )
 
 //StartRedis function run redis in docker with mounted redisPath:/data
 //if redisForce is set, it recreates container
-func StartRedis(redisPort string, redisPath string, redisForce bool, redisTag string) (err error) {
-	portMap := map[string]string{"6379": redisPort}
+func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
+	portMap := map[string]string{"6379": strconv.Itoa(redisPort)}
 	volumeMap := map[string]string{"/data": fmt.Sprintf("%s", redisPath)}
 	redisServerCommand := strings.Fields("redis-server")
 	if redisForce {
-		_ = StopContainer(redisContainerName, true)
-		if err := CreateAndRunContainer(redisContainerName, redisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+		_ = StopContainer(defaults.DefaultRedisContainerName, true)
+		if err := CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
 			return fmt.Errorf("error in create redis container: %s", err)
 		}
 	} else {
-		state, err := StateContainer(redisContainerName)
+		state, err := StateContainer(defaults.DefaultRedisContainerName)
 		if err != nil {
 			return fmt.Errorf("error in get state of redis container: %s", err)
 		}
 		if state == "" {
-			if err := CreateAndRunContainer(redisContainerName, redisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+			if err := CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
 				return fmt.Errorf("error in create redis container: %s", err)
 			}
 		} else if state != "running" {
-			if err := StartContainer(redisContainerName); err != nil {
+			if err := StartContainer(defaults.DefaultRedisContainerName); err != nil {
 				return fmt.Errorf("error in restart redis container: %s", err)
 			}
 		}
@@ -48,13 +42,13 @@ func StartRedis(redisPort string, redisPath string, redisForce bool, redisTag st
 
 //StopRedis function stop redis container
 func StopRedis(redisRm bool) (err error) {
-	state, err := StateContainer(redisContainerName)
+	state, err := StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
 		return fmt.Errorf("error in get state of redis container: %s", err)
 	}
 	if state != "running" {
 		if redisRm {
-			if err := StopContainer(redisContainerName, true); err != nil {
+			if err := StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
 				return fmt.Errorf("error in rm redis container: %s", err)
 			}
 		}
@@ -62,11 +56,11 @@ func StopRedis(redisRm bool) (err error) {
 		return nil
 	} else {
 		if redisRm {
-			if err := StopContainer(redisContainerName, false); err != nil {
+			if err := StopContainer(defaults.DefaultRedisContainerName, false); err != nil {
 				return fmt.Errorf("error in rm redis container: %s", err)
 			}
 		} else {
-			if err := StopContainer(redisContainerName, true); err != nil {
+			if err := StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
 				return fmt.Errorf("error in rm redis container: %s", err)
 			}
 		}
@@ -76,7 +70,7 @@ func StopRedis(redisRm bool) (err error) {
 
 //StatusRedis function return status of redis
 func StatusRedis() (status string, err error) {
-	state, err := StateContainer(redisContainerName)
+	state, err := StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
 		return "", fmt.Errorf("error in get state of redis container: %s", err)
 	}
@@ -88,29 +82,29 @@ func StatusRedis() (status string, err error) {
 
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
-func StartAdam(adamPort string, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string) (err error) {
-	portMap := map[string]string{"8080": adamPort}
+func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string) (err error) {
+	portMap := map[string]string{"8080": strconv.Itoa(adamPort)}
 	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
 	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
 	if adamRemoteRedisURL != "" {
 		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--db-url %s", adamRemoteRedisURL))...)
 	}
 	if adamForce {
-		_ = StopContainer(adamContainerName, true)
-		if err := CreateAndRunContainer(adamContainerName, adamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
+		_ = StopContainer(defaults.DefaultAdamContainerName, true)
+		if err := CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}
 	} else {
-		state, err := StateContainer(adamContainerName)
+		state, err := StateContainer(defaults.DefaultAdamContainerName)
 		if err != nil {
 			return fmt.Errorf("error in get state of adam container: %s", err)
 		}
 		if state == "" {
-			if err := CreateAndRunContainer(adamContainerName, adamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
+			if err := CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 				return fmt.Errorf("error in create adam container: %s", err)
 			}
 		} else if state != "running" {
-			if err := StartContainer(adamContainerName); err != nil {
+			if err := StartContainer(defaults.DefaultAdamContainerName); err != nil {
 				return fmt.Errorf("error in restart adam container: %s", err)
 			}
 		}
@@ -120,13 +114,13 @@ func StartAdam(adamPort string, adamPath string, adamForce bool, adamTag string,
 
 //StopAdam function stop adam container
 func StopAdam(adamRm bool) (err error) {
-	state, err := StateContainer(adamContainerName)
+	state, err := StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
 		return fmt.Errorf("error in get state of adam container: %s", err)
 	}
 	if state != "running" {
 		if adamRm {
-			if err := StopContainer(adamContainerName, true); err != nil {
+			if err := StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		}
@@ -134,11 +128,11 @@ func StopAdam(adamRm bool) (err error) {
 		return nil
 	} else {
 		if adamRm {
-			if err := StopContainer(adamContainerName, false); err != nil {
+			if err := StopContainer(defaults.DefaultAdamContainerName, false); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		} else {
-			if err := StopContainer(adamContainerName, true); err != nil {
+			if err := StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		}
@@ -148,7 +142,7 @@ func StopAdam(adamRm bool) (err error) {
 
 //StatusAdam function return status of adam
 func StatusAdam() (status string, err error) {
-	state, err := StateContainer(adamContainerName)
+	state, err := StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
 		return "", fmt.Errorf("error in get state of adam container: %s", err)
 	}
@@ -159,8 +153,8 @@ func StatusAdam() (status string, err error) {
 }
 
 //StartEServer function run eserver to serve images
-func StartEServer(commandPath string, serverPort string, imageDist string, logFile string, pidFile string) (err error) {
-	commandArgsString := fmt.Sprintf("server -p %s -d %s -v %s", serverPort, imageDist, log.GetLevel())
+func StartEServer(commandPath string, serverPort int, imageDist string, logFile string, pidFile string) (err error) {
+	commandArgsString := fmt.Sprintf("server -p %d -d %s -v %s", serverPort, imageDist, log.GetLevel())
 	log.Infof("StartEServer run: %s %s", commandPath, commandArgsString)
 	return RunCommandNohup(commandPath, logFile, pidFile, strings.Fields(commandArgsString)...)
 }
@@ -180,7 +174,7 @@ func StartEVEQemu(commandPath string, qemuARCH string, qemuOS string, eveImageFi
 	commandArgsString := fmt.Sprintf("eve start --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s -v %s",
 		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile, log.GetLevel())
 	log.Infof("StartEVEQemu run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //StopEVEQemu function stop EVE
@@ -202,11 +196,11 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 	}
 	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s -v %s", certsDir, domain, ip, eveIP, uuid, log.GetLevel())
 	log.Infof("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //CopyCertsToAdamConfig function copy certs to adam config
-func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port string, adamDist string, apiV1 bool) (err error) {
+func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port int, adamDist string, apiV1 bool) (err error) {
 	adamConfig := filepath.Join(adamDist, "run", "config")
 	adamServer := filepath.Join(adamDist, "run", "adam")
 	if _, err = os.Stat(filepath.Join(certsDir, "server.pem")); os.IsNotExist(err) {
@@ -253,7 +247,7 @@ func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port strin
 		}
 	}
 	if _, err = os.Stat(filepath.Join(adamConfig, "server")); os.IsNotExist(err) {
-		if err = ioutil.WriteFile(filepath.Join(adamConfig, "server"), []byte(fmt.Sprintf("%s:%s\n", domain, port)), 0666); err != nil {
+		if err = ioutil.WriteFile(filepath.Join(adamConfig, "server"), []byte(fmt.Sprintf("%s:%d\n", domain, port)), 0666); err != nil {
 			return err
 		}
 	}
@@ -270,7 +264,7 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	}
 	commandArgsString := fmt.Sprintf("clone --branch %s --single-branch %s %s", tag, gitRepo, dist)
 	log.Infof("CloneFromGit run: %s %s", "git", commandArgsString)
-	return RunCommandWithLogAndWait("git", logLevelToPrint, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait("git", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //DownloadEveFormDocker function clone EVE from docker
@@ -284,7 +278,7 @@ func DownloadEveFormDocker(commandPath string, dist string, arch string, tag str
 	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s --baseos=%t -v %s",
 		tag, arch, filepath.Join(dist, "dist", arch), baseOs, log.GetLevel())
 	log.Infof("DownloadEveFormDocker run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //ChangeConfigPartAndRootFs replace config and rootfs part in EVE live image
@@ -300,7 +294,7 @@ func ChangeConfigPartAndRootFs(commandPath string, distEve string, distAdam stri
 	commandArgsString := fmt.Sprintf("eve confchanger --image-file=%s --config-part=%s --hv=%s -v %s",
 		imagePath, configPath, hv, log.GetLevel())
 	log.Infof("ChangeConfigPartAndRootFs run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //MakeEveInRepo build live image of EVE
@@ -318,23 +312,23 @@ func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, root
 		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s rootfs",
 			distEve, hv, configPath)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 	} else {
 		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s IMG_FORMAT=qcow2 live",
 			distEve, hv, configPath)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 		biosPath := filepath.Join(distEve, "dist", arch, "OVMF.fd")
 		commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
 			distEve, hv, biosPath)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
+		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 		if arch == "arm64" {
 			dtbPath := filepath.Join(distEve, "dist", "eve.dtb")
 			commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
 				distEve, hv, dtbPath)
 			log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-			err = RunCommandWithLogAndWait("make", logLevelToPrint, strings.Fields(commandArgsString)...)
+			err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 		}
 	}
 	return
@@ -352,13 +346,13 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 	commandArgsString := fmt.Sprintf("build -format raw-bios -dir %s %s",
 		distImageDir, imageConfig)
 	log.Infof("BuildVM run: %s %s", linuxKitPath, commandArgsString)
-	if err = RunCommandWithLogAndWait(linuxKitPath, logLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+	if err = RunCommandWithLogAndWait(linuxKitPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in linuxkit: %s", err)
 	}
 	commandArgsString = fmt.Sprintf("convert -c -f raw -O qcow2 %s %s",
 		imageConfigTmp, distImage)
 	log.Infof("BuildVM run: %s %s", "qemu-img", commandArgsString)
-	if err = RunCommandWithLogAndWait("qemu-img", logLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+	if err = RunCommandWithLogAndWait("qemu-img", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in qemu-img: %s", err)
 	}
 	return os.Remove(imageConfigTmp)
@@ -370,7 +364,7 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 	commandArgsString := fmt.Sprintf("eve qemuconf --qemu-config=%s --eve-firmware=%s --config-part=%s --eve-hostfwd=\"%s\" --dtb-part=%s -v %s",
 		qemuConfigFile, firmwares, configPart, eveHostFWD, dtbPath, log.GetLevel())
 	log.Infof("PrepareQEMUConfig run: %s %s", commandPath, commandArgsString)
-	if err = RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+	if err = RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in qemuconf: %s", err)
 	}
 	return nil

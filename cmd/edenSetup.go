@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -44,7 +45,7 @@ var setupCmd = &cobra.Command{
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 			//adam
 			adamTag = viper.GetString("adam.tag")
-			adamPort = viper.GetString("adam.port")
+			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			certsDomain = viper.GetString("adam.domain")
 			certsIP = viper.GetString("adam.ip")
@@ -159,12 +160,12 @@ var setupCmd = &cobra.Command{
 		}
 		containerImageFile := filepath.Join(eserverImageDist, "docker", "alpine.tar")
 		if _, err := os.Stat(containerImageFile); os.IsNotExist(err) {
-			if err = utils.BuildContainer(dockerYML, defaultImageTag); err != nil {
+			if err = utils.BuildContainer(dockerYML, defaults.DefaultImageTag); err != nil {
 				log.Errorf("Cannot build container image: %s", err)
 			} else {
 				log.Info("Container image build done")
 			}
-			if err = utils.DockerImageRepack(command, containerImageFile, defaultImageTag); err != nil {
+			if err = utils.DockerImageRepack(command, containerImageFile, defaults.DefaultImageTag); err != nil {
 				log.Errorf("Cannot repack container image: %s", err)
 			} else {
 				log.Info("Container image repack done")
@@ -180,7 +181,7 @@ var setupCmd = &cobra.Command{
 		linuxKitPath := filepath.Join(binDir, fmt.Sprintf("linuxkit-%s-%s", runtime.GOOS, runtime.GOARCH))
 		linuxKitSymlinkPath := filepath.Join(binDir, "linuxkit")
 		if _, err := os.Stat(linuxKitPath); os.IsNotExist(err) {
-			linuxKitUrl := fmt.Sprintf("https://github.com/linuxkit/linuxkit/releases/download/%s/linuxkit-%s-%s", defaultLinuxKitVersion, runtime.GOOS, runtime.GOARCH)
+			linuxKitUrl := fmt.Sprintf("https://github.com/linuxkit/linuxkit/releases/download/%s/linuxkit-%s-%s", defaults.DefaultLinuxKitVersion, runtime.GOOS, runtime.GOARCH)
 			if err = utils.DownloadFile(linuxKitPath, linuxKitUrl); err != nil {
 				log.Errorf("Download LinuxKit from %s failed: %s", linuxKitUrl, err)
 			} else {
@@ -214,36 +215,35 @@ func setupInit() {
 		log.Fatal(err)
 	}
 
-	setupCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, "dist", "certs"), "directory with certs")
-	setupCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaultDomain, "FQDN for certificates")
-	setupCmd.Flags().StringVarP(&certsIP, "ip", "i", defaultIP, "IP address to use")
-	setupCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaultEVEIP, "IP address to use for EVE")
-	setupCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaultUUID, "UUID to use for device")
+	setupCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
+	setupCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaults.DefaultDomain, "FQDN for certificates")
+	setupCmd.Flags().StringVarP(&certsIP, "ip", "i", defaults.DefaultIP, "IP address to use")
+	setupCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaults.DefaultEVEIP, "IP address to use for EVE")
+	setupCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaults.DefaultUUID, "UUID to use for device")
 
-	setupCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "Adam tag")
-	setupCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
-	setupCmd.Flags().StringVarP(&adamPort, "adam-port", "", defaultAdamPort, "adam dist to start")
+	setupCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "Adam tag")
+	setupCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
+	setupCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam dist to start")
 
 	setupCmd.Flags().StringSliceVarP(&qemuFirmware, "eve-firmware", "", nil, "firmware path")
 	setupCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", "", "path for config drive")
 	setupCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
 	setupCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path for image drive (required)")
-	setupCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, "dist", "eve"), "directory to save EVE")
-	setupCmd.Flags().StringVarP(&eveBaseDist, "eve-base-dist", "", filepath.Join(currentPath, "dist", "evebaseos"), "directory to save Base image of EVE")
-	setupCmd.Flags().StringVarP(&eveRepo, "eve-repo", "", defaultEveRepo, "EVE repo")
-	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaultEveTag, "EVE tag")
+	setupCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist), "directory to save EVE")
+	setupCmd.Flags().StringVarP(&eveBaseDist, "eve-base-dist", "", filepath.Join(currentPath, defaults.DefaultDist, "evebaseos"), "directory to save Base image of EVE")
+	setupCmd.Flags().StringVarP(&eveRepo, "eve-repo", "", defaults.DefaultEveRepo, "EVE repo")
+	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEveTag, "EVE tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
-	setupCmd.Flags().StringVarP(&eveBaseTag, "eve-base-tag", "", utils.DefaultBaseOSTag, "tag of base image of EVE")
-	setupCmd.Flags().StringVarP(&eveBaseTag, "ovs-version", "", utils.DefaultBaseOSVersion, "version of rootfs of base image of EVE")
-	setupCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaultQemuHostFwd, "port forward map")
-	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, "dist", defaultQemuFileToSave), "file to save qemu config")
+	setupCmd.Flags().StringVarP(&eveBaseTag, "eve-base-tag", "", defaults.DefaultBaseOSTag, "tag of base image of EVE")
+	setupCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
+	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "file to save qemu config")
 	setupCmd.Flags().BoolVarP(&download, "download", "", true, "download EVE or build")
-	setupCmd.Flags().StringVarP(&eveHV, "hv", "", "kvm", "hv of rootfs to use")
+	setupCmd.Flags().StringVarP(&eveHV, "hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
 
-	setupCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, "dist", "images"), "image dist for eserver")
-	setupCmd.Flags().StringVarP(&binDir, "bin-dist", "", filepath.Join(currentPath, "dist", "bin"), "directory for binaries")
-	setupCmd.Flags().StringVarP(&dockerYML, "docker-yml", "", filepath.Join(currentPath, "images", "docker", "alpine", "alpine.yml"), "directory for binaries")
-	setupCmd.Flags().StringVarP(&vmYML, "vm-yml", "", filepath.Join(currentPath, "images", "vm", "alpine", "alpine.yml"), "directory for binaries")
+	setupCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
+	setupCmd.Flags().StringVarP(&binDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")
+	setupCmd.Flags().StringVarP(&dockerYML, "docker-yml", "", filepath.Join(currentPath, defaults.DefaultImageDist, "docker", "alpine", "alpine.yml"), "directory for binaries")
+	setupCmd.Flags().StringVarP(&vmYML, "vm-yml", "", filepath.Join(currentPath, defaults.DefaultImageDist, "vm", "alpine", "alpine.yml"), "directory for binaries")
 	setupCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "")
 	setupCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")

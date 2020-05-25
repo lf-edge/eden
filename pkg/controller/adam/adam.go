@@ -8,6 +8,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +44,7 @@ func parseRedisUrl(s string) (addr, password string, databaseID int, err error) 
 	if URL.Host != "" {
 		addr = URL.Host
 	} else {
-		addr = "localhost:6379"
+		addr = fmt.Sprintf("%s:%s", defaults.DefaultRedisHost, defaults.DefaultRedisPort)
 	}
 	if URL.Path != "" {
 		if databaseID, err = strconv.Atoi(strings.Trim(URL.Path, "/")); err != nil {
@@ -111,12 +112,12 @@ func (adam *Ctx) GetDir() (dir string) {
 
 //getLogsRedisStream return info stream for devUUID for load from redis
 func (adam *Ctx) getLogsRedisStream(devUUID uuid.UUID) (dir string) {
-	return fmt.Sprintf("LOGS_EVE_%s", devUUID.String())
+	return fmt.Sprintf("%s%s", defaults.DefaultLogsRedisPrefix, devUUID.String())
 }
 
 //getInfoRedisStream return info stream for devUUID for load from redis
 func (adam *Ctx) getInfoRedisStream(devUUID uuid.UUID) (dir string) {
-	return fmt.Sprintf("INFO_EVE_%s", devUUID.String())
+	return fmt.Sprintf("%s%s", defaults.DefaultInfoRedisPrefix, devUUID.String())
 }
 
 //getLogsRedisStreamCache return logs stream for devUUID for caching in redis

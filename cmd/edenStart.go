@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -13,10 +14,10 @@ import (
 
 var (
 	adamDist         string
-	adamPort         string
+	adamPort         int
 	adamForce        bool
 	eserverImageDist string
-	eserverPort      string
+	eserverPort      int
 	eserverPidFile   string
 	eserverLogFile   string
 	evePidFile       string
@@ -36,17 +37,17 @@ var startCmd = &cobra.Command{
 		if viperLoaded {
 			adamTag = viper.GetString("adam.tag")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
-			adamPort = viper.GetString("adam.port")
+			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamForce = viper.GetBool("adam.force")
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
 			redisTag = viper.GetString("redis.tag")
-			redisPort = viper.GetString("redis.port")
+			redisPort = viper.GetInt("redis.port")
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			redisForce = viper.GetBool("redis.force")
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
-			eserverPort = viper.GetString("eden.eserver.port")
+			eserverPort = viper.GetInt("eden.eserver.port")
 			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			eserverLogFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.log"))
 			qemuARCH = viper.GetString("eve.arch")
@@ -78,7 +79,7 @@ var startCmd = &cobra.Command{
 		if err := utils.StartRedis(redisPort, redisPath, redisForce, redisTag); err != nil {
 			log.Errorf("cannot start redis: %s", err)
 		} else {
-			log.Infof("Redis is running and accessible on port %s", redisPort)
+			log.Infof("Redis is running and accessible on port %d", redisPort)
 		}
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
@@ -86,12 +87,12 @@ var startCmd = &cobra.Command{
 		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
-			log.Infof("Adam is running and accesible on port %s", adamPort)
+			log.Infof("Adam is running and accesible on port %d", adamPort)
 		}
 		if err := utils.StartEServer(command, eserverPort, eserverImageDist, eserverLogFile, eserverPidFile); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
-			log.Infof("Eserver is running and accesible on port %s", eserverPort)
+			log.Infof("Eserver is running and accesible on port %d", eserverPort)
 		}
 		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
 			log.Errorf("cannot start eve: %s", err)
@@ -106,25 +107,25 @@ func startInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	startCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaultAdamTag, "tag on adam container to pull")
-	startCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, "dist", "adam"), "adam dist to start (required)")
-	startCmd.Flags().StringVarP(&adamPort, "adam-port", "", defaultAdamPort, "adam dist to start")
+	startCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "tag on adam container to pull")
+	startCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
+	startCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam dist to start")
 	startCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	startCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
 	startCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
-	startCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaultRedisTag, "tag on redis container to pull")
-	startCmd.Flags().StringVarP(&redisDist, "redis-dist", "", filepath.Join(currentPath, "dist", "redis"), "redis dist to start (required)")
-	startCmd.Flags().StringVarP(&redisPort, "redis-port", "", defaultRedisPort, "redis dist to start")
+	startCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag on redis container to pull")
+	startCmd.Flags().StringVarP(&redisDist, "redis-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultRedisDist), "redis dist to start (required)")
+	startCmd.Flags().IntVarP(&redisPort, "redis-port", "", defaults.DefaultRedisPort, "redis dist to start")
 	startCmd.Flags().BoolVarP(&redisForce, "redis-force", "", false, "redis force rebuild")
-	startCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, "dist", "images"), "image dist for eserver")
-	startCmd.Flags().StringVarP(&eserverPort, "eserver-port", "", defaultEserverPort, "eserver port")
-	startCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, "dist", "eserver.pid"), "file for save eserver pid")
-	startCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, "dist", "eserver.log"), "file for save eserver log")
+	startCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
+	startCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
+	startCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file for save eserver pid")
+	startCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.log"), "file for save eserver log")
 	startCmd.Flags().StringVarP(&qemuARCH, "eve-arch", "", runtime.GOARCH, "arch of system")
 	startCmd.Flags().StringVarP(&qemuOS, "eve-os", "", runtime.GOOS, "os to run on")
 	startCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")
-	startCmd.Flags().StringVarP(&qemuSMBIOSSerial, "eve-serial", "", "", "SMBIOS serial")
-	startCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", filepath.Join(currentPath, "dist", "qemu.conf"), "config file to use")
-	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, "dist", "eve.pid"), "file for save EVE pid")
-	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, "dist", "eve.log"), "file for save EVE log")
+	startCmd.Flags().StringVarP(&qemuSMBIOSSerial, "eve-serial", "", defaults.DefaultEVESerial, "SMBIOS serial")
+	startCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "config file to use")
+	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
+	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 }

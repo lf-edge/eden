@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/go-connections/nat"
+	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
@@ -308,7 +309,7 @@ func DockerImageRepack(commandPath string, distImage string, imageTag string) (e
 	commandArgsString := fmt.Sprintf("ociimage -i %s -o %s -l",
 		imageTag, distImage)
 	log.Infof("DockerImageRepack run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, logLevelToPrint, strings.Fields(commandArgsString)...)
+	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //ExtractFilesFromDocker extract all files from docker layer into directory

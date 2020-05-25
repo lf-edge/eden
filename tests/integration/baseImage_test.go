@@ -4,6 +4,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
 	"testing"
 	"time"
@@ -24,11 +25,11 @@ func TestBaseImage(t *testing.T) {
 		imageFormat       config.Format
 		eveBaseRef        string
 	}{
-		{eServerDataStoreID,
+		{defaults.DefaultDataStoreID,
 
-			"1ab8761b-5f89-4e0b-b757-4b87a9fa93ec",
+			defaults.DefaultImageID,
 
-			"22b8761b-5f89-4e0b-b757-4b87a9fa93ec",
+			defaults.DefaultBaseID,
 
 			"baseos.qcow2",
 			config.Format_QCOW2,
