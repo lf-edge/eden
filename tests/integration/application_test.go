@@ -1,20 +1,52 @@
 package integration
 
 import (
+	"flag"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/spf13/viper"
 	"gotest.tools/assert"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
 
+var (
+	dockerYML = flag.String("app-docker.yml", "", "docker yml file to build")
+	vmYML     = flag.String("app-vm.yml", "", "vm yml file to build")
+)
+
 //TestApplication test base image loading into eve
 func TestApplication(t *testing.T) {
+	viperLoaded, err := utils.LoadConfigFile("")
+	if err != nil {
+		t.Fatalf("error reading config: %s", err.Error())
+	}
+	if dockerYML == nil || *dockerYML == "" {
+		t.Fatal("app-docker.yml has no value")
+	} else {
+		t.Logf("dockerYML: %s", *dockerYML)
+	}
+	dockerYMLAbs := utils.ResolveAbsPath(*dockerYML)
+	if vmYML == nil || *vmYML == "" {
+		t.Fatal("app-vm.yml has no value")
+	} else {
+		t.Logf("vmYML: %s", *vmYML)
+	}
+	vmYMLAbs := utils.ResolveAbsPath(*vmYML)
+	if viperLoaded {
+		eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
+	}
 	ctx, err := controller.CloudPrepare()
 	if err != nil {
 		t.Fatalf("CloudPrepare: %s", err)
@@ -62,6 +94,7 @@ func TestApplication(t *testing.T) {
 		appDefinition   *appInstLocal
 		networkAdapters []*config.NetworkAdapter
 		vncDisplay      uint32
+		ymlToBuild      string
 	}{
 		{
 			appInstanceLocalVM,
@@ -100,6 +133,7 @@ func TestApplication(t *testing.T) {
 				}}},
 			},
 			0,
+			vmYMLAbs,
 		},
 		{
 			appInstanceLocalContainer,
@@ -137,10 +171,14 @@ func TestApplication(t *testing.T) {
 					Id:      2,
 				}}}},
 			1,
+			dockerYMLAbs,
 		},
 	}
 	for _, tt := range applicationTests {
 		t.Run(tt.appDefinition.appName, func(t *testing.T) {
+			t.Run("Setup", func(t *testing.T) {
+				SetupApplication(t, tt.appDefinition.imageFormat, tt.ymlToBuild)
+			})
 			metadata, metaDataToTest := metadataBuilder(tt.appDefinition.imageFormat)
 			err = prepareApplicationLocal(ctx, tt.appDefinition, metadata, tt.vncDisplay, tt.networkAdapters)
 
@@ -254,7 +292,106 @@ func TestApplication(t *testing.T) {
 				}
 				t.Logf("VNC DesktopName: %s", desktopName)
 			})
+			t.Run("Clean", func(t *testing.T) {
+				CleanApplication(t, tt.appDefinition.imageFormat, tt.ymlToBuild)
+			})
 		})
 	}
 
+}
+
+func CleanApplication(t *testing.T, format config.Format, ymlPath string) {
+	imageFile := strings.TrimSuffix(filepath.Base(ymlPath), filepath.Ext(ymlPath))
+	switch format {
+	case config.Format_CONTAINER:
+		containerImageFile := filepath.Join(eserverImageDist, "docker", fmt.Sprintf("%s.tar", imageFile))
+		if _, err := os.Stat(containerImageFile); !os.IsNotExist(err) {
+			if err = os.Remove(containerImageFile); err != nil {
+				t.Fatal(err)
+			}
+		}
+		t.Log("Container image remove done")
+	case config.Format_QCOW2:
+		vmImageFile := filepath.Join(eserverImageDist, "vm", fmt.Sprintf("%s.qcow2", imageFile))
+		if _, err := os.Stat(vmImageFile); !os.IsNotExist(err) {
+			if err = os.Remove(vmImageFile); err != nil {
+				t.Fatal(err)
+			}
+		}
+		t.Log("VM image remove done")
+	default:
+		t.Fatalf("Unsupported format: %d", format)
+	}
+}
+
+func SetupApplication(t *testing.T, format config.Format, ymlPath string) {
+	vars, err := utils.InitVars()
+	if err != nil {
+		t.Fatalf("error reading config: %s\n", err)
+	}
+	command := vars.EdenProg
+	_, err = exec.LookPath(command)
+	if err != nil {
+		command = utils.ResolveAbsPath(vars.EdenBinDir + "/" + command)
+		_, err = exec.LookPath(command)
+		if err != nil {
+			t.Fatalf("cannot obtain executable path: %s", err)
+		}
+	}
+	imageFile := strings.TrimSuffix(filepath.Base(ymlPath), filepath.Ext(ymlPath))
+	switch format {
+	case config.Format_CONTAINER:
+		containerImageFile := filepath.Join(eserverImageDist, "docker", fmt.Sprintf("%s.tar", imageFile))
+		if _, err := os.Stat(containerImageFile); os.IsNotExist(err) {
+			if err = utils.BuildContainer(ymlPath, defaults.DefaultImageTag); err != nil {
+				t.Fatalf("Cannot build container image: %s", err)
+			} else {
+				t.Log("Container image build done")
+			}
+			if err = utils.DockerImageRepack(command, containerImageFile, defaults.DefaultImageTag); err != nil {
+				t.Fatalf("Cannot repack container image: %s", err)
+			} else {
+				t.Log("Container image repack done")
+			}
+		} else {
+			t.Log("Container image build done")
+		}
+	case config.Format_QCOW2:
+		binDir := filepath.Dir(command)
+		if _, err := os.Lstat(binDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(binDir, 0755); err != nil {
+				t.Fatalf("Cannot create binDir: %s", err)
+			}
+		}
+		linuxKitPath := filepath.Join(binDir, fmt.Sprintf("linuxkit-%s-%s", runtime.GOOS, runtime.GOARCH))
+		linuxKitSymlinkPath := filepath.Join(binDir, "linuxkit")
+		if _, err := os.Stat(linuxKitPath); os.IsNotExist(err) {
+			linuxKitUrl := fmt.Sprintf("https://github.com/linuxkit/linuxkit/releases/download/%s/linuxkit-%s-%s", defaults.DefaultLinuxKitVersion, runtime.GOOS, runtime.GOARCH)
+			if err = utils.DownloadFile(linuxKitPath, linuxKitUrl); err != nil {
+				t.Fatalf("Download LinuxKit from %s failed: %s", linuxKitUrl, err)
+			} else {
+				if err := os.Chmod(linuxKitPath, 755); err != nil {
+					t.Fatalf("Cannot Chmod LinuxKit: %s", err)
+				}
+				if err := os.Symlink(linuxKitPath, linuxKitSymlinkPath); err != nil {
+					t.Fatalf("Cannot make LinuxKit symlink: %s", err)
+				}
+			}
+			t.Log("LinuxKit download done")
+		} else {
+			t.Log("LinuxKit already exists")
+		}
+		vmImageFile := filepath.Join(eserverImageDist, "vm", fmt.Sprintf("%s.qcow2", imageFile))
+		if _, err := os.Stat(vmImageFile); os.IsNotExist(err) {
+			if err = utils.BuildVM(linuxKitSymlinkPath, ymlPath, vmImageFile); err != nil {
+				t.Fatalf("Cannot build VM image: %s", err)
+			} else {
+				t.Log("VM image build done")
+			}
+		} else {
+			t.Log("VM image build done")
+		}
+	default:
+		t.Fatalf("Unsupported format: %d", format)
+	}
 }

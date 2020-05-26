@@ -1,3 +1,5 @@
+DEBUG ?= "debug"
+
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
 # we need to keep track of them separately
@@ -19,8 +21,6 @@ WORKDIR=$(CURDIR)/dist
 BINDIR := $(WORKDIR)/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
-TESTBIN := eden.integration.test
-LOCALTESTBIN := $(BINDIR)/$(TESTBIN)-$(OS)-$(ARCH)
 
 MEDIA_SIZE=1024M
 
@@ -29,31 +29,20 @@ export ZARCH
 
 .DEFAULT_GOAL := help
 
-clean: bin
+clean: stop
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) ECONFIG=$(ECONFIG) clean
 	$(LOCALBIN) clean
-	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN)
+	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN)
 
 $(WORKDIR):
 	mkdir -p $@
+
 $(BINDIR):
 	mkdir -p $@
 
-test_controller:
-	go test ./tests/integration/controller_test.go ./tests/integration/common.go -v -count=1 -timeout 3000s
-
-test_base_image: test_controller
-	go test ./tests/integration/baseImage_test.go ./tests/integration/common.go -v -count=1 -timeout 4500s
-
-test_network_instance: test_controller
-	go test ./tests/integration/networkInstance_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
-
-test_application_instance: test_controller
-	go test ./tests/integration/application_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
-
-test_hooks: test_controller
-	go test ./tests/integration/hooks_test.go ./tests/integration/common.go -v -count=1 -timeout 4000s
-
-test: test_base_image test_network_instance test_application_instance
+ECONFIG := `$(LOCALBIN) config get`
+test: build
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) ECONFIG=$(ECONFIG) test
 
 build: bin testbin
 
@@ -61,29 +50,24 @@ bin: $(BIN)
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
 $(BIN): $(LOCALBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALBIN) $(BINDIR)/$@; fi
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALBIN) $@; fi
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $(BINDIR)/$@; fi
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $@; fi
 
-testbin: $(TESTBIN)
-$(LOCALTESTBIN): $(BINDIR) tests/integration/*.go
-	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ tests/integration/*.go
-$(TESTBIN): $(LOCALTESTBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALTESTBIN) $(BINDIR)/$@; fi
+testbin:
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
 config: build
-	$(LOCALBIN) config add default -v debug
+	$(LOCALBIN) config add default -v $(DEBUG)
 
 setup: config
-	$(LOCALBIN) setup -v debug
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
+	$(LOCALBIN) setup -v $(DEBUG)
 
 run: setup
-	$(LOCALBIN) start -v debug
+	$(LOCALBIN) start -v $(DEBUG)
 
 stop: bin
-	$(LOCALBIN) stop -v debug
-
-download: bin
-	$(LOCALBIN) download --output=$(EVE_DIST)/dist/$(ZARCH) --arch=$(ZARCH) --tag=$(EVE_REF)
+	$(LOCALBIN) stop -v $(DEBUG)
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
@@ -100,7 +84,6 @@ help:
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
-	@echo "   download      download eve from docker"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
 	@echo "Also, you need to install 'uuidgen' utility."

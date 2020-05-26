@@ -74,8 +74,6 @@ func init() {
 	setupInit()
 	rootCmd.AddCommand(reconfCmd)
 	reconfInit()
-	rootCmd.AddCommand(eveUpdateCmd)
-	eveUpdateInit()
 	rootCmd.AddCommand(testCmd)
 	testInit()
 	rootCmd.AddCommand(controllerCmd)

@@ -268,15 +268,15 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 }
 
 //DownloadEveFormDocker function clone EVE from docker
-func DownloadEveFormDocker(commandPath string, dist string, arch string, tag string, baseOs bool) (err error) {
+func DownloadEveFormDocker(commandPath string, dist string, arch string, tag string) (err error) {
 	if _, err := os.Stat(dist); !os.IsNotExist(err) {
 		return fmt.Errorf("directory already exists: %s", dist)
 	}
 	if tag == "" {
 		tag = "latest"
 	}
-	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s --baseos=%t -v %s",
-		tag, arch, filepath.Join(dist, "dist", arch), baseOs, log.GetLevel())
+	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s -d %s -v %s",
+		tag, arch, filepath.Join(dist, "dist", arch), log.GetLevel())
 	log.Infof("DownloadEveFormDocker run: %s %s", commandPath, commandArgsString)
 	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
@@ -371,7 +371,7 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(commandPath, eveDist, eveBaseDist, adamDist, certsDist, imagesDist, redisDist, binDir, eserverPID, evePID string) (err error) {
+func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist, binDir, eserverPID, evePID string) (err error) {
 	commandArgsString := fmt.Sprintf("stop --eserver-pid=%s --eve-pid=%s --adam-rm=true",
 		eserverPID, evePID)
 	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
@@ -382,11 +382,6 @@ func CleanEden(commandPath, eveDist, eveBaseDist, adamDist, certsDist, imagesDis
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
 			return fmt.Errorf("error in %s delete: %s", eveDist, err)
-		}
-	}
-	if _, err = os.Stat(eveBaseDist); !os.IsNotExist(err) {
-		if err = os.RemoveAll(eveBaseDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", eveBaseDist, err)
 		}
 	}
 	if _, err = os.Stat(certsDist); !os.IsNotExist(err) {

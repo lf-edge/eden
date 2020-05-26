@@ -83,8 +83,8 @@ eden:
     #test binary
     test-bin: {{ .DefaultTestProg }}
 
-    #test script
-    test-script: {{ .DefaultTestScript }}
+    #test scenario
+    test-scenario: {{ .DefaultTestScenario }}
 
 redis:
     #port for access redis
