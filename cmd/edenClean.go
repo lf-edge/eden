@@ -25,7 +25,6 @@ var cleanCmd = &cobra.Command{
 			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
-			eveBaseDist = utils.ResolveAbsPath(viper.GetString("eve.base-dist"))
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
@@ -40,7 +39,7 @@ var cleanCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.CleanEden(command, eveDist, eveBaseDist, adamDist, certsDir, eserverImageDist, redisDist,
+		if err := utils.CleanEden(command, eveDist, adamDist, certsDir, eserverImageDist, redisDist,
 			binDir, eserverPidFile, evePidFile); err != nil {
 			log.Fatalf("cannot CleanEden: %s", err)
 		}
@@ -57,7 +56,6 @@ func cleanInit() {
 	cleanCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	cleanCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist), "directory to save EVE")
 	cleanCmd.Flags().StringVarP(&redisDist, "redis-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultRedisDist), "redis dist")
-	cleanCmd.Flags().StringVarP(&eveBaseDist, "eve-base-dist", "", filepath.Join(currentPath, defaults.DefaultDist, "evebaseos"), "directory to save Base image of EVE")
 	cleanCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "file to save qemu config")
 	cleanCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
 	cleanCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")

@@ -70,25 +70,6 @@ var configAddCmd = &cobra.Command{
 			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 		}
-		testSript := utils.ResolveAbsPath(viper.GetString("eden.test-script"))
-		if _, err := os.Stat(testSript); !os.IsNotExist(err) {
-			if force {
-				if err := os.Remove(testSript); err != nil {
-					log.Fatal(err)
-				}
-				err = utils.GenerateTestSript(testSript)
-				if err != nil {
-					log.Fatal(err)
-				}
-			} else {
-				log.Debugf("Test script already exists: %s", testSript)
-			}
-		} else {
-			err = utils.GenerateTestSript(testSript)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {

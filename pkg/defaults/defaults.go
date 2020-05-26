@@ -16,13 +16,12 @@ const (
 	DefaultCertsDist        = "certs"            //directory for certs inside dist
 	DefaultBinDist          = "bin"              //directory for binaries inside dist
 	DefaultEdenHomeDir      = ".eden"            //directory inside HOME directory for configs
-	DefaultCurrentDirConfig = "config.yml"       //file for search config in current directory
+	DefaultCurrentDirConfig = "eden-config.yml"  //file for search config in current directory
 	DefaultContextFile      = "context.yml"      //file for saving current context inside DefaultEdenHomeDir
 	DefaultContextDirectory = "contexts"         //directory for saving contexts inside DefaultEdenHomeDir
 	DefaultQemuFileToSave   = "qemu.conf"        //qemu config file inside DefaultEdenHomeDir
-	DefaultFilename         = "rootfs.img"       //EVE`s rootfs file
 	DefaultSSHKey           = "certs/id_rsa.pub" //file for save ssh key
-	DefaultConfigHidden     = ".config.yml"      //file to save config get --all
+	DefaultConfigHidden     = ".eden-config.yml" //file to save config get --all
 
 	DefaultContext = "default" //default context name
 
@@ -39,11 +38,8 @@ const (
 	DefaultAdamPort    = 3333
 
 	//tags, versions, repos
-	DefaultEVETag            = "5ee6043906449f7fa3447c96fd38dc9a536c5693"        //DefaultEVETag tag for EVE image
-	DefaultBaseOSTag         = "571d94a11fa19d79805a0465030175b7257d343b"        //DefaultBaseOSTag for uploadable rootfs
-	DefaultBaseOSVersion     = "0.0.0-snapshot-master-93c2dbb2-2020-05-08.13.15" //DefaultBaseOSVersion for uploadable rootfs
+	DefaultEVETag            = "5ee6043906449f7fa3447c96fd38dc9a536c5693" //DefaultEVETag tag for EVE image
 	DefaultAdamTag           = "0.0.44"
-	DefaultEveTag            = "5.1.11"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"
 	DefaultImage             = "library/alpine"
@@ -70,8 +66,8 @@ const (
 	DefaultBaseID                = "22b8761b-5f89-4e0b-b757-4b87a9fa93ec"
 	NetDHCPID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
 	NetNoDHCPID                  = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
-	DefaultTestProg              = "eden.integration.test"
-	DefaultTestScript            = "eden.integration.tests.txt"
+	DefaultTestProg              = ""
+	DefaultTestScenario          = ""
 	DefaultRootFSVersionPattern  = `^(\d+\.*){2,3}.*-(xen|kvm|acrn)-(amd64|arm64)$`
 	DefaultControllerModePattern = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.*)$`
 	DefaultRedisContainerName    = "eden_redis"
@@ -113,7 +109,6 @@ var (
 		"eve.firmware":     "eve-firmware",
 		"eve.repo":         "eve-repo",
 		"eve.tag":          "eve-tag",
-		"eve.base-tag":     "eve-base-tag",
 		"eve.hostfwd":      "eve-hostfwd",
 		"eve.dist":         "eve-dist",
 		"eve.base-dist":    "eve-base-dist",
@@ -135,7 +130,7 @@ var (
 		"eden.certs-dist":    "certs-dist",
 		"eden.bin-dist":      "bin-dist",
 		"eden.ssh-key":       "ssh-key",
-		"eden.test-bin":      "eden.integration.test",
-		"test-script":        "eden.integration.tests.txt",
+		"eden.test-bin":      "prog",
+		"eden.test-scenario": "scenario",
 	}
 )
