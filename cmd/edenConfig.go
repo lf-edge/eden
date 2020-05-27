@@ -13,22 +13,20 @@ import (
 )
 
 var (
-	qemuFileToSave string
-	qemuCpus       int
-	qemuMemory     int
-	qemuFirmware   []string
-	qemuConfigPath string
-	eveImageFile   string
-	qemuDTBPath    string
-	qemuHostFwd    map[string]string
-	qemuSocketPath string
-	contextName    string
-	contextFile    string
-	contextNameDel string
-	contextNameGet string
-	contextNameSet string
-	contextKeyGet  string
-	contextAllGet  bool
+	qemuFileToSave  string
+	qemuCpus        int
+	qemuMemory      int
+	qemuFirmware    []string
+	qemuConfigPath  string
+	eveImageFile    string
+	qemuDTBPath     string
+	qemuHostFwd     map[string]string
+	qemuSocketPath  string
+	contextFile     string
+	contextKeySet   string
+	contextValueSet string
+	contextKeyGet   string
+	contextAllGet   bool
 )
 
 var configCmd = &cobra.Command{
@@ -36,10 +34,12 @@ var configCmd = &cobra.Command{
 	Short: "work with config",
 	Long:  `Work with config.`,
 }
+
 var configAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "generate config eden",
-	Long:  `Generate config eden.`,
+	Use:   "add <name>",
+	Short: "generate config context for eden with defined name",
+	Long:  `Generate config context for eden.`,
+	Args:  cobra.ExactValidArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		if configFile == "" {
@@ -97,7 +97,7 @@ var configAddCmd = &cobra.Command{
 			log.Fatalf("Load context error: %s", err)
 		}
 		currentContextName := context.Current
-		context.Current = contextName
+		context.Current = args[0]
 		configFile = context.GetCurrentConfig()
 		if contextFile != "" {
 			if err := utils.CopyFile(contextFile, configFile); err != nil {
@@ -172,7 +172,7 @@ var configAddCmd = &cobra.Command{
 
 var configListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List configs",
+	Short: "List config contexts",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
@@ -199,8 +199,10 @@ var configListCmd = &cobra.Command{
 }
 
 var configSetCmd = &cobra.Command{
-	Use:   "set name",
-	Short: "Set current contexts",
+	Use:   "set <name>",
+	Short: "Set current context to name",
+	Long:  "Set current context to name \n\t will only modify key for name context if --key not empty",
+	Args:  cobra.ExactValidArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
@@ -214,20 +216,35 @@ var configSetCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Load context error: %s", err)
 		}
+		oldContext := context.Current
+		if contextKeySet != "" {
+			defer context.SetContext(oldContext) //restore context after modifications
+		}
 		contexts := context.ListContexts()
 		for _, el := range contexts {
-			if el == contextNameSet {
+			if el == args[0] {
 				context.SetContext(el)
+				if contextKeySet != "" {
+					_, err := utils.LoadConfigFile(context.GetCurrentConfig())
+					if err != nil {
+						log.Fatalf("error reading config: %s", err.Error())
+					}
+					viper.Set(contextKeySet, contextValueSet)
+					if err = viper.WriteConfig(); err != nil {
+						log.Fatalf("error writing config: %s", err)
+					}
+				}
 				return
 			}
 		}
-		log.Fatalf("context not found %s", contextNameSet)
+		log.Fatalf("context not found %s", args[0])
 	},
 }
 
-var configGetCmd = &cobra.Command{
-	Use:   "get",
-	Short: "get config context",
+var configResetCmd = &cobra.Command{
+	Use:   "reset [name]",
+	Short: "Reset current or context with defined name to defaults",
+	Args:  cobra.RangeArgs(0, 1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
@@ -237,6 +254,53 @@ var configGetCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		context, err := utils.ContextLoad()
+		if err != nil {
+			log.Fatalf("Load context error: %s", err)
+		}
+		oldContext := context.Current
+		defer context.SetContext(oldContext) //restore context after modifications
+
+		contextNameReset := context.Current
+		if len(args) == 1 {
+			contextNameReset = args[0]
+		}
+		contexts := context.ListContexts()
+		for _, el := range contexts {
+			if el == contextNameReset {
+				context.SetContext(el)
+				if err = os.Remove(context.GetCurrentConfig()); err != nil {
+					log.Fatalf("cannot delete old config file: %s", err)
+				}
+				_, err := utils.LoadConfigFile(context.GetCurrentConfig())
+				if err != nil {
+					log.Fatalf("error reading config: %s", err.Error())
+				}
+				return
+			}
+		}
+		log.Fatalf("context not found %s", contextNameReset)
+	},
+}
+
+var configGetCmd = &cobra.Command{
+	Use:   "get [name]",
+	Short: "get config context for current or defined name",
+	Long:  "Get config context for current or defined name. \n\tif --key set will show selected key only\n\tif --all set will return complete config",
+	Args:  cobra.RangeArgs(0, 1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		contextNameGet := ""
+		if len(args) == 1 {
+			contextNameGet = args[0]
+		}
 		context, err := utils.ContextLoad()
 		if err != nil {
 			log.Fatalf("Load context error: %s", err)
@@ -266,8 +330,10 @@ var configGetCmd = &cobra.Command{
 		} else if contextKeyGet != "" {
 			fmt.Println(viper.Get(contextKeyGet))
 		} else if contextAllGet {
-			configFile := context.GetCurrentConfig()
-			data, err := ioutil.ReadFile(configFile)
+			if err = viper.WriteConfigAs(defaults.DefaultConfigHidden); err != nil {
+				log.Fatal(err)
+			}
+			data, err := ioutil.ReadFile(defaults.DefaultConfigHidden)
 			if err != nil {
 				log.Fatalf("cannot read context config file %s: %s", configFile, err)
 				return
@@ -278,8 +344,9 @@ var configGetCmd = &cobra.Command{
 }
 
 var configDeleteCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete [name]",
 	Short: "delete config context",
+	Args:  cobra.RangeArgs(0, 1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
@@ -289,6 +356,10 @@ var configDeleteCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		contextNameDel := ""
+		if len(args) == 1 {
+			contextNameDel = args[0]
+		}
 		context, err := utils.ContextLoad()
 		if err != nil {
 			log.Fatalf("Load context error: %s", err)
@@ -315,16 +386,14 @@ var configDeleteCmd = &cobra.Command{
 
 func configInit() {
 	configCmd.AddCommand(configDeleteCmd)
-	configDeleteCmd.Flags().StringVar(&contextNameDel, "name", "", "context name to delete (empty - current)")
 	configCmd.AddCommand(configGetCmd)
-	configGetCmd.Flags().StringVar(&contextNameGet, "name", "", "context name to get from (empty - current)")
 	configGetCmd.Flags().StringVar(&contextKeyGet, "key", "", "will return value of key from current config context")
 	configGetCmd.Flags().BoolVar(&contextAllGet, "all", false, "will return config context")
 	configCmd.AddCommand(configSetCmd)
-	configSetCmd.Flags().StringVar(&contextNameSet, "name", defaults.DefaultContext, "context name to set as current")
+	configSetCmd.Flags().StringVar(&contextKeySet, "key", "", "will set value of key from current config context")
+	configSetCmd.Flags().StringVar(&contextValueSet, "value", "", "will set value of key from current config context")
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configAddCmd)
-	configAddCmd.Flags().StringVar(&contextName, "name", defaults.DefaultContext, "context name to add")
 	configAddCmd.Flags().StringVar(&contextFile, "file", "", "file with config to add")
 	configAddCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
 	configAddCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaults.DefaultQemuCpus, "cpus")
@@ -334,4 +403,5 @@ func configInit() {
 	configAddCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
 	configAddCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
+	configCmd.AddCommand(configResetCmd)
 }

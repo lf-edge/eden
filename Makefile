@@ -71,7 +71,7 @@ $(TESTBIN): $(LOCALTESTBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" -a ! -e "$@" ]; then ln -sf $(LOCALTESTBIN) $(BINDIR)/$@; fi
 
 config: build
-	$(LOCALBIN) config add -v debug
+	$(LOCALBIN) config add default -v debug
 
 setup: config
 	$(LOCALBIN) setup -v debug

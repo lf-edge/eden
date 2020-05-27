@@ -22,6 +22,7 @@ const (
 	DefaultQemuFileToSave   = "qemu.conf"        //qemu config file inside DefaultEdenHomeDir
 	DefaultFilename         = "rootfs.img"       //EVE`s rootfs file
 	DefaultSSHKey           = "certs/id_rsa.pub" //file for save ssh key
+	DefaultConfigHidden     = ".config.yml"      //file to save config get --all
 
 	DefaultContext = "default" //default context name
 
