@@ -75,6 +75,7 @@ const (
 	DefaultControllerModePattern = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.+)$`
 	DefaultRedisContainerName    = "eden_redis"
 	DefaultAdamContainerName     = "eden_adam"
+	DefaultDockerNetworkName     = "eden_network"
 	DefaultLogLevelToPrint       = log.InfoLevel
 	DefaultX509Country           = "RU"
 	DefaultX509Company           = "Itmo"

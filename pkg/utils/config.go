@@ -109,7 +109,7 @@ adam:
       #host of adam's redis for EDEN access
       eden: redis://{{ .IP }}:{{ .DefaultRedisPort }}
       #host of adam's redis for ADAM access
-      adam: redis://{{ .IP }}:{{ .DefaultRedisPort }}
+      adam: redis://{{ .DefaultRedisContainerName }}:{{ .DefaultRedisPort }}
 
     #force adam rebuild
     force: true
@@ -420,6 +420,8 @@ func GenerateConfigFile(filePath string) error {
 			DefaultTestProg      string
 			DefaultSSHKey        string
 			DefaultEveRepo       string
+
+			DefaultRedisContainerName string
 		}{
 			DefaultAdamDist:      defaults.DefaultAdamDist,
 			DefaultAdamPort:      defaults.DefaultAdamPort,
@@ -451,6 +453,8 @@ func GenerateConfigFile(filePath string) error {
 			DefaultTestProg:      defaults.DefaultTestProg,
 			DefaultSSHKey:        defaults.DefaultSSHKey,
 			DefaultEveRepo:       defaults.DefaultEveRepo,
+
+			DefaultRedisContainerName: defaults.DefaultRedisContainerName,
 		})
 	if err != nil {
 		return err

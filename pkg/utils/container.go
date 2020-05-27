@@ -26,6 +26,28 @@ import (
 	"time"
 )
 
+//CreateDockerNetwork create network for docker`s containers
+func CreateDockerNetwork(name string) error {
+	log.Debugf("Try to create network %s for docker`s containers %s", name)
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("NewClientWithOpts: %s", err)
+	}
+	//check existing networks
+	result, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	if err != nil {
+		return fmt.Errorf("NetworkListOptions: %s", err)
+	}
+	for _, el := range result {
+		if el.Name == name {
+			return nil
+		}
+	}
+	_, err = cli.NetworkCreate(ctx, name, types.NetworkCreate{})
+	return err
+}
+
 //CreateAndRunContainer run container with defined name from image with port and volume mapping and defined command
 func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string, volumeMap map[string]string, command []string) error {
 
@@ -61,12 +83,16 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 			Target: target,
 		})
 	}
+	if err = CreateDockerNetwork(defaults.DefaultDockerNetworkName); err != nil {
+		return err
+	}
 	hostConfig := &container.HostConfig{
 		PortBindings: portBinding,
 		Mounts:       mounts,
 		DNS:          []string{},
 		DNSOptions:   []string{},
 		DNSSearch:    []string{},
+		NetworkMode:  container.NetworkMode(defaults.DefaultDockerNetworkName),
 	}
 	userCurrent, err := user.Current()
 	if err != nil {
@@ -121,6 +147,10 @@ func PullImage(image string) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
+	_, _, err = cli.ImageInspectWithRaw(ctx, image)
+	if err == nil { //local image is ok
+		return nil
 	}
 	resp, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
