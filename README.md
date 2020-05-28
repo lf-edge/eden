@@ -24,6 +24,10 @@ To stop harness use: `make stop`.
 
 You can get more information about `make` actions by running `make help`.
 
+More information can be found at the
+[wiki](https://wiki.lfedge.org/display/EVE/EDEN) or in the #eve-help channel in
+[slack](slack.lfedge.org/).
+
 ## Utilites
 
 Eden is controlled by a single command named (in a secret code) `eden`. It has multple sub-commands and options.
