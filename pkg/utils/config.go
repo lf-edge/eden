@@ -304,6 +304,18 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 		if err != nil {
 			return false, fmt.Errorf("fail in DefaultConfigPath: %s", err.Error())
 		}
+	} else {
+		context, err := ContextInit()
+		if err != nil {
+			return false, fmt.Errorf("context Load DefaultEdenDir error: %s", err)
+		}
+		contextFile := context.GetCurrentConfig()
+		if config != contextFile {
+			loaded, err := LoadConfigFile(contextFile)
+			if err != nil {
+				return loaded, err
+			}
+		}
 	}
 	log.Debugf("Will use config from %s", config)
 	if _, err = os.Stat(config); os.IsNotExist(err) {
@@ -318,7 +330,7 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 		return false, fmt.Errorf("fail in reading filepath: %s", err.Error())
 	}
 	viper.SetConfigFile(abs)
-	if err := viper.ReadInConfig(); err != nil {
+	if err := viper.MergeInConfig(); err != nil {
 		return false, fmt.Errorf("failed to read config file: %s", err.Error())
 	}
 	currentFolderDir, err := CurrentDirConfigPath()
@@ -345,6 +357,10 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 
 //GenerateConfigFile is a function to generate default yml
 func GenerateConfigFile(filePath string) error {
+	return generateConfigFileFromTemplate(filePath, defaultEnvConfig)
+}
+
+func generateConfigFileFromTemplate(filePath string, templateString string) error {
 	context, err := ContextInit()
 	if err != nil {
 		return err
@@ -369,7 +385,7 @@ func GenerateConfigFile(filePath string) error {
 	}
 
 	t := template.New("t")
-	_, err = t.Parse(defaultEnvConfig)
+	_, err = t.Parse(templateString)
 	if err != nil {
 		return err
 	}
