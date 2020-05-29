@@ -105,6 +105,16 @@ var configAddCmd = &cobra.Command{
 			} else {
 				log.Infof("Context file generated: %s", contextFile)
 			}
+		} else {
+			if _, err := os.Stat(configFile); os.IsNotExist(err) {
+				if err = utils.GenerateConfigFileDiff(configFile); err != nil {
+					log.Fatalf("error generate config: %s", err)
+				} else {
+					log.Infof("Context file generated: %s", configFile)
+				}
+			} else {
+				log.Debugf("Config file already exists %s", configFile)
+			}
 		}
 		_, err = utils.LoadConfigFile(configFile)
 		if err != nil {
