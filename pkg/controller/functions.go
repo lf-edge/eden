@@ -107,7 +107,7 @@ func (cloud *CloudCtx) OnBoard() error {
 			log.Infof("Attempt to list devices (%d) of (%d)", i, maxRepeat)
 			time.Sleep(delayTime)
 		}
-		return fmt.Errorf("onboarding timeout")
+		return fmt.Errorf("onboarding timeout. You may try to run this onboard command again in several minutes. If not successful see logs of adam/eve")
 	}
 	return nil
 }
