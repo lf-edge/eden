@@ -26,6 +26,9 @@ type fileChanger struct {
 }
 
 func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
+	if ctx.fileConfig == "" {
+		return nil, nil, fmt.Errorf("cannot use empty url for file")
+	}
 	if _, err := os.Lstat(ctx.fileConfig); os.IsNotExist(err) {
 		return nil, nil, err
 	}
@@ -77,17 +80,19 @@ type adamChanger struct {
 }
 
 func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
-	ipPort := strings.Split(ctx.adamUrl, ":")
-	ip := ipPort[0]
-	if ip == "" {
-		return nil, nil, fmt.Errorf("cannot get ip/hostname from %s", ctx.adamUrl)
+	if ctx.adamUrl != "" { //overwrite config only if url defined
+		ipPort := strings.Split(ctx.adamUrl, ":")
+		ip := ipPort[0]
+		if ip == "" {
+			return nil, nil, fmt.Errorf("cannot get ip/hostname from %s", ctx.adamUrl)
+		}
+		port := "80"
+		if len(ipPort) > 1 {
+			port = ipPort[1]
+		}
+		viper.Set("adam.ip", ip)
+		viper.Set("adam.port", port)
 	}
-	port := "80"
-	if len(ipPort) > 1 {
-		port = ipPort[1]
-	}
-	viper.Set("adam.ip", ip)
-	viper.Set("adam.port", port)
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return nil, nil, fmt.Errorf("CloudPrepare error: %s", err)

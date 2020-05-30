@@ -18,7 +18,6 @@ import (
 )
 
 var controllerMode string
-var baseOSImage string
 var baseOSImageActivate bool
 var configItems map[string]string
 
@@ -131,9 +130,10 @@ func checkIsFileOrUrl(pathToCheck string) (isFile bool, pathToRet string, err er
 }
 
 var edgeNodeEVEImageUpdate = &cobra.Command{
-	Use:   "eveimage-update",
+	Use:   "eveimage-update <image file or url (file:// or http(s)://)>",
 	Short: "update EVE image",
 	Long:  `Update EVE image.`,
+	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
 		if baseOSVersionFlag := cmd.Flags().Lookup("os-version"); baseOSVersionFlag != nil {
@@ -153,6 +153,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		baseOSImage := args[0]
 		isFile, baseOSImage, err := checkIsFileOrUrl(baseOSImage)
 		if err != nil {
 			log.Fatalf("checkIsFileOrUrl: %s", err)
@@ -322,9 +323,10 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 }
 
 var edgeNodeEVEImageRemove = &cobra.Command{
-	Use:   "eveimage-remove",
+	Use:   "eveimage-remove <image file or url (file:// or http(s)://)>",
 	Short: "remove EVE image",
 	Long:  `Remove EVE image.`,
+	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
@@ -338,6 +340,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		baseOSImage := args[0]
 		isFile, baseOSImage, err := checkIsFileOrUrl(baseOSImage)
 		if err != nil {
 			log.Fatalf("checkIsFileOrUrl: %s", err)
@@ -528,7 +531,7 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeUpdate)
 	edgeNode.AddCommand(edgeNodeGetConfig)
 	pf := controllerCmd.PersistentFlags()
-	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL>")
+	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (required)")
 	if err := cobra.MarkFlagRequired(pf, "mode"); err != nil {
 		log.Fatal(err)
 	}
@@ -536,15 +539,6 @@ func controllerInit() {
 	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", defaults.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
-	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSImage, "image", "", "", "image file or url (file:// or http(s)://)")
-	if err := cobra.MarkFlagRequired(edgeNodeEVEImageUpdateFlags, "image"); err != nil {
-		log.Fatal(err)
-	}
-	edgeNodeEVEImageRemoveFlags := edgeNodeEVEImageRemove.Flags()
-	edgeNodeEVEImageRemoveFlags.StringVarP(&baseOSImage, "image", "", "", "image file or url (file:// or http(s)://) for compare hash")
-	if err := cobra.MarkFlagRequired(edgeNodeEVEImageRemoveFlags, "image"); err != nil {
-		log.Fatal(err)
-	}
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
 	configUsage := `set of key=value items. 
 Supported keys are defined in https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md`
