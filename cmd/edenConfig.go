@@ -54,7 +54,7 @@ var configAddCmd = &cobra.Command{
 					log.Fatal(err)
 				}
 			} else {
-				log.Infof("current config already exists: %s", configFile)
+				log.Debugf("current config already exists: %s", configFile)
 			}
 		}
 		assingCobraToViper(cmd)
@@ -81,7 +81,7 @@ var configAddCmd = &cobra.Command{
 					log.Fatal(err)
 				}
 			} else {
-				log.Infof("Test script already exists: %s", testSript)
+				log.Debugf("Test script already exists: %s", testSript)
 			}
 		} else {
 			err = utils.GenerateTestSript(testSript)
@@ -165,7 +165,7 @@ var configAddCmd = &cobra.Command{
 			}
 			log.Infof("QEMU config file generated: %s", qemuFileToSave)
 		} else {
-			log.Infof("QEMU config already exists: %s", qemuFileToSave)
+			log.Debugf("QEMU config already exists: %s", qemuFileToSave)
 		}
 	},
 }
@@ -234,10 +234,51 @@ var configSetCmd = &cobra.Command{
 						log.Fatalf("error writing config: %s", err)
 					}
 				}
+				log.Infof("Current context is: %s", el)
 				return
 			}
 		}
 		log.Fatalf("context not found %s", args[0])
+	},
+}
+
+var configEditCmd = &cobra.Command{
+	Use:   "edit [name]",
+	Short: "Edit current or context with defined name with $EDITOR",
+	Args:  cobra.RangeArgs(0, 1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		editor := os.Getenv("EDITOR")
+		if editor == "" {
+			log.Fatal("$EDITOR environment not set")
+		}
+		context, err := utils.ContextLoad()
+		if err != nil {
+			log.Fatalf("Load context error: %s", err)
+		}
+
+		contextNameEdit := context.Current
+		if len(args) == 1 {
+			contextNameEdit = args[0]
+		}
+		contexts := context.ListContexts()
+		for _, el := range contexts {
+			if el == contextNameEdit {
+				context.Current = contextNameEdit
+				if err = utils.RunCommandForeground(editor, context.GetCurrentConfig()); err != nil {
+					log.Fatal(err)
+				}
+				return
+			}
+		}
+		log.Fatalf("context not found %s", contextNameEdit)
 	},
 }
 
@@ -404,4 +445,5 @@ func configInit() {
 	configAddCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
 	configCmd.AddCommand(configResetCmd)
+	configCmd.AddCommand(configEditCmd)
 }

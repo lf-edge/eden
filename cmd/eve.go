@@ -203,6 +203,40 @@ var sshEveCmd = &cobra.Command{
 	},
 }
 
+var onboardEveCmd = &cobra.Command{
+	Use:   "onboard",
+	Short: "OnBoard EVE in Adam",
+	Long:  `Adding an EVE onboarding certificate to Adam and waiting for EVE to register.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		eveUUID := viper.GetString("eve.uuid")
+		edenDir, err := utils.DefaultEdenDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = utils.TouchFile(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))); err != nil {
+			log.Fatal(err)
+		}
+		changer := &adamChanger{}
+		ctrl, device, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = ctrl.StateUpdate(device); err != nil {
+			log.Fatal(err)
+		}
+		log.Info("onboarded")
+		log.Info("device UUID: ", device.GetID().String())
+	},
+}
+
 func eveInit() {
 	eveCmd.AddCommand(confChangerCmd)
 	confChangerInit()
@@ -213,6 +247,7 @@ func eveInit() {
 	eveCmd.AddCommand(statusEveCmd)
 	eveCmd.AddCommand(sshEveCmd)
 	eveCmd.AddCommand(consoleEveCmd)
+	eveCmd.AddCommand(onboardEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)

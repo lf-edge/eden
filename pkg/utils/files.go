@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
@@ -101,6 +102,7 @@ func ResolveAbsPath(curPath string) string {
 
 //GetFileFollowLinks resolve file by walking through symlinks
 func GetFileFollowLinks(filePath string) (string, error) {
+	log.Debugf("GetFileFollowLinks %s", filePath)
 	fileInfo, err := os.Lstat(filePath)
 	if os.IsNotExist(err) {
 		return "", err
@@ -110,7 +112,11 @@ func GetFileFollowLinks(filePath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return GetFileFollowLinks(originFile)
+		fileToSearch := originFile
+		if _, err := os.Lstat(fileToSearch); os.IsNotExist(err) {
+			fileToSearch = filepath.Join(filepath.Dir(filePath), originFile)
+		}
+		return GetFileFollowLinks(fileToSearch)
 	}
 	return filepath.Join(filepath.Dir(filePath), fileInfo.Name()), nil
 }
