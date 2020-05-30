@@ -31,7 +31,7 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 			if err := CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
 				return fmt.Errorf("error in create redis container: %s", err)
 			}
-		} else if state != "running" {
+		} else if !strings.Contains(state, "running") {
 			if err := StartContainer(defaults.DefaultRedisContainerName); err != nil {
 				return fmt.Errorf("error in restart redis container: %s", err)
 			}
@@ -46,7 +46,7 @@ func StopRedis(redisRm bool) (err error) {
 	if err != nil {
 		return fmt.Errorf("error in get state of redis container: %s", err)
 	}
-	if state != "running" {
+	if !strings.Contains(state, "running") {
 		if redisRm {
 			if err := StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
 				return fmt.Errorf("error in rm redis container: %s", err)
@@ -75,7 +75,7 @@ func StatusRedis() (status string, err error) {
 		return "", fmt.Errorf("error in get state of redis container: %s", err)
 	}
 	if state == "" {
-		return "redis container not exists", nil
+		return "container doesn't exist", nil
 	}
 	return state, nil
 }
@@ -103,7 +103,7 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 			if err := CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 				return fmt.Errorf("error in create adam container: %s", err)
 			}
-		} else if state != "running" {
+		} else if !strings.Contains(state, "running") {
 			if err := StartContainer(defaults.DefaultAdamContainerName); err != nil {
 				return fmt.Errorf("error in restart adam container: %s", err)
 			}
@@ -118,7 +118,7 @@ func StopAdam(adamRm bool) (err error) {
 	if err != nil {
 		return fmt.Errorf("error in get state of adam container: %s", err)
 	}
-	if state != "running" {
+	if !strings.Contains(state, "running") {
 		if adamRm {
 			if err := StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
@@ -147,7 +147,7 @@ func StatusAdam() (status string, err error) {
 		return "", fmt.Errorf("error in get state of adam container: %s", err)
 	}
 	if state == "" {
-		return "adam container not exists", nil
+		return "container doesn't exist", nil
 	}
 	return state, nil
 }

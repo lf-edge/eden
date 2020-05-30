@@ -245,7 +245,7 @@ func StateContainer(containerName string) (state string, err error) {
 			}
 		}
 		if isFound {
-			return cont.State, nil
+			return fmt.Sprintf("container with name %s is %s", strings.TrimLeft(cont.Names[0], "/"), cont.State), nil
 		}
 	}
 	return "", nil

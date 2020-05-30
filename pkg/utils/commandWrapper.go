@@ -115,19 +115,19 @@ func StopCommandWithPid(pidFile string) (err error) {
 func StatusCommandWithPid(pidFile string) (status string, err error) {
 	content, err := ioutil.ReadFile(pidFile)
 	if err != nil {
-		return "no pid file", nil
+		return "process doesn't exist", nil
 	}
 	pid, err := strconv.Atoi(string(content))
 	if err != nil {
 		return "", fmt.Errorf("cannot parse pid from file %s: %s", pidFile, err)
 	}
 	if _, err = os.FindProcess(pid); err != nil {
-		return "not found", nil
+		return "process not running", nil
 	}
 	if err = syscall.Kill(pid, syscall.Signal(0)); err != nil {
-		return "not found", nil
+		return "process not running", nil
 	}
-	return "running", nil
+	return fmt.Sprintf("running with pid %d", pid), nil
 }
 
 //RunCommandForeground command run in foreground
