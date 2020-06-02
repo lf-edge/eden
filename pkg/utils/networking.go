@@ -119,3 +119,24 @@ func ResolveURL(b, p string) (string, error) {
 	}
 	return base.ResolveReference(u).String(), nil
 }
+
+//GetSubnetIPs return all IPs from subnet
+func GetSubnetIPs(subnet string) (result []net.IP) {
+	ip, ipnet, err := net.ParseCIDR(subnet)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
+		result = append(result, net.ParseIP(ip.String()))
+	}
+	return
+}
+
+func inc(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
+}

@@ -41,3 +41,8 @@ func (cloud *CloudCtx) RemoveImage(id string) error {
 	}
 	return fmt.Errorf("not found Image with ID: %s", id)
 }
+
+//ListImage return Image configs from cloud
+func (cloud *CloudCtx) ListImage() []*config.Image {
+	return cloud.images
+}

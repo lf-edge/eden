@@ -315,16 +315,16 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 				return nil, err
 			}
 		}
+		networkInstanceConfigArray := dev.GetNetworkInstances()
 		//check network instances from apps
 		for _, networkInstanceConfig := range applicationInstance.Interfaces {
 			if networkInstanceConfig != nil && networkInstanceConfig.NetworkId != "" {
-				networkInstanceConfigArray := dev.GetNetworkInstances()
 				if _, ok := utils.FindEleInSlice(networkInstanceConfigArray, networkInstanceConfig.NetworkId); !ok {
 					networkInstanceConfigArray = append(networkInstanceConfigArray, networkInstanceConfig.NetworkId)
-					dev.SetNetworkInstanceConfig(networkInstanceConfigArray)
 				}
 			}
 		}
+		dev.SetNetworkInstanceConfig(networkInstanceConfigArray)
 		applicationInstances = append(applicationInstances, applicationInstance)
 	}
 	var networkInstanceConfigs []*config.NetworkInstanceConfig

@@ -70,6 +70,7 @@ const (
 	DefaultTestScenario          = ""
 	DefaultRootFSVersionPattern  = `^(\d+\.*){2,3}.*-(xen|kvm|acrn)-(amd64|arm64)$`
 	DefaultControllerModePattern = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.*)$`
+	DefaultPodLinkPattern        = `^(?P<TYPE>(docker)):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
 	DefaultRedisContainerName    = "eden_redis"
 	DefaultAdamContainerName     = "eden_adam"
 	DefaultDockerNetworkName     = "eden_network"
@@ -78,6 +79,8 @@ const (
 	DefaultX509Company           = "Itmo"
 	DefaultLogsRedisPrefix       = "LOGS_EVE_"
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
+
+	DefaultAppSubnet = "10.1.0.0/24"
 )
 
 var (
