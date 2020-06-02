@@ -80,6 +80,8 @@ func init() {
 	testInit()
 	rootCmd.AddCommand(controllerCmd)
 	controllerInit()
+	rootCmd.AddCommand(podCmd)
+	podInit()
 }
 
 // Execute primary function for cobra

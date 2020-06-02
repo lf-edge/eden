@@ -37,3 +37,8 @@ func (cloud *CloudCtx) RemoveDataStore(id string) error {
 	}
 	return fmt.Errorf("not found DataStore with ID: %s", id)
 }
+
+//ListDataStore return DataStore configs from cloud
+func (cloud *CloudCtx) ListDataStore() []*config.DatastoreConfig {
+	return cloud.datastores
+}

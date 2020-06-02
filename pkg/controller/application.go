@@ -39,3 +39,8 @@ func (cloud *CloudCtx) RemoveApplicationInstanceConfig(id string) error {
 	utils.DelEleInSlice(cloud.applicationInstances, applicationInstanceConfigInd)
 	return nil
 }
+
+//ListApplicationInstanceConfig return ApplicationInstance configs from cloud
+func (cloud *CloudCtx) ListApplicationInstanceConfig() []*config.AppInstanceConfig {
+	return cloud.applicationInstances
+}
