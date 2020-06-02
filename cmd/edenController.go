@@ -25,22 +25,8 @@ var (
 	getFromFileName     bool
 )
 
-func getParams(line, regEx string) (paramsMap map[string]string) {
-
-	var compRegEx = regexp.MustCompile(regEx)
-	match := compRegEx.FindStringSubmatch(strings.TrimSpace(line))
-
-	paramsMap = make(map[string]string)
-	for i, name := range compRegEx.SubexpNames() {
-		if i > 0 && i <= len(match) {
-			paramsMap[name] = match[i]
-		}
-	}
-	return
-}
-
 func getControllerMode() (modeType, modeURL string, err error) {
-	params := getParams(controllerMode, defaults.DefaultControllerModePattern)
+	params := utils.GetParams(controllerMode, defaults.DefaultControllerModePattern)
 	if len(params) == 0 {
 		return "", "", fmt.Errorf("cannot parse mode (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
 	}

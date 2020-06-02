@@ -39,3 +39,8 @@ func (cloud *CloudCtx) RemoveNetworkInstanceConfig(id string) error {
 	utils.DelEleInSlice(cloud.networkInstances, networkInstanceConfigInd)
 	return nil
 }
+
+//ListNetworkInstanceConfig return NetworkInstance configs from cloud
+func (cloud *CloudCtx) ListNetworkInstanceConfig() []*config.NetworkInstanceConfig {
+	return cloud.networkInstances
+}

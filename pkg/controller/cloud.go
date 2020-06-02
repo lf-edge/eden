@@ -35,12 +35,15 @@ type Cloud interface {
 	AddDataStore(dataStoreConfig *config.DatastoreConfig) error
 	GetDataStore(id string) (ds *config.DatastoreConfig, err error)
 	RemoveDataStore(id string) error
+	ListDataStore() []*config.DatastoreConfig
 	GetNetworkInstanceConfig(id string) (networkInstanceConfig *config.NetworkInstanceConfig, err error)
 	AddNetworkInstanceConfig(networkInstanceConfig *config.NetworkInstanceConfig) error
+	ListNetworkInstanceConfig() []*config.NetworkInstanceConfig
 	RemoveNetworkInstanceConfig(id string) error
 	GetImage(id string) (image *config.Image, err error)
 	AddImage(imageConfig *config.Image) error
 	RemoveImage(id string) error
+	ListImage() []*config.Image
 	GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error)
 	GetDeviceFirst() (dev *device.Ctx, err error)
 	ConfigSync(dev *device.Ctx) (err error)
@@ -61,6 +64,7 @@ type Cloud interface {
 	GetApplicationInstanceConfig(id string) (applicationInstanceConfig *config.AppInstanceConfig, err error)
 	AddApplicationInstanceConfig(applicationInstanceConfig *config.AppInstanceConfig) error
 	RemoveApplicationInstanceConfig(id string) error
+	ListApplicationInstanceConfig() []*config.AppInstanceConfig
 	StateUpdate(dev *device.Ctx) (err error)
 	OnBoard() error
 	GetVars() *utils.ConfigVars
