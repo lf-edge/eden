@@ -58,6 +58,13 @@ var configAddCmd = &cobra.Command{
 			}
 		}
 		assingCobraToViper(cmd)
+		if _, err = os.Stat(configFile); os.IsNotExist(err) {
+			if err = utils.GenerateConfigFile(configFile); err != nil {
+				log.Fatalf("fail in generate yaml: %s", err.Error())
+			} else {
+				log.Infof("Config file generated: %s", configFile)
+			}
+		}
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			log.Fatalf("error reading config: %s", err)

@@ -300,11 +300,7 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 	}
 	log.Debugf("Will use config from %s", config)
 	if _, err = os.Stat(config); os.IsNotExist(err) {
-		if err = GenerateConfigFile(config); err != nil {
-			return false, fmt.Errorf("fail in generate yaml: %s", err.Error())
-		} else {
-			log.Infof("Config file generated: %s", config)
-		}
+		log.Fatal("no config, please run 'eden config add default'")
 	}
 	abs, err := filepath.Abs(config)
 	if err != nil {
