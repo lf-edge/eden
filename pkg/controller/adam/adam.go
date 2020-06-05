@@ -60,7 +60,7 @@ func parseRedisUrl(s string) (addr, password string, databaseID int, err error) 
 //getLoader return loader object from Adam`s config
 func (adam *Ctx) getLoader() (loader loaders.Loader) {
 	if adam.AdamRemote {
-		log.Info("will use remote adam loader")
+		log.Debug("will use remote adam loader")
 		if adam.AdamRemoteRedis {
 			addr, password, databaseID, err := parseRedisUrl(adam.AdamRedisUrlEden)
 			if err != nil {
@@ -71,7 +71,7 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 			loader = loaders.RemoteLoader(adam.getHTTPClient, adam.getLogsUrl, adam.getInfoUrl)
 		}
 	} else {
-		log.Info("will use local adam loader")
+		log.Debug("will use local adam loader")
 		loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
 	}
 	if adam.AdamCaching {
