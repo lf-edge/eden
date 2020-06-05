@@ -77,7 +77,7 @@ func (cloud *CloudCtx) devInit(devID string) error {
 func (cloud *CloudCtx) OnBoard() error {
 	devUUID, err := cloud.GetDeviceFirst()
 	if devUUID == nil {
-		log.Info("Try to add onboarding")
+		log.Info("EVE not onboarded. Calling 'eden eve onboard'")
 		err = cloud.Register(cloud.vars.EveCert, cloud.vars.EveSerial)
 		if err != nil {
 			return fmt.Errorf("ctx.register: %s", err)
@@ -104,10 +104,10 @@ func (cloud *CloudCtx) OnBoard() error {
 				log.Infof("Device uuid: %s", cmdOut[0])
 				return cloud.devInit(cmdOut[0])
 			}
-			log.Infof("Attempt to list devices (%d) of (%d)", i, maxRepeat)
+			log.Infof("Adam waiting for EVE registration (%d) of (%d)", i, maxRepeat)
 			time.Sleep(delayTime)
 		}
-		return fmt.Errorf("onboarding timeout. You may try to run this onboard command again in several minutes. If not successful see logs of adam/eve")
+		return fmt.Errorf("onboarding timeout. You may try to run 'eden eve onboard' command again in several minutes. If not successful see logs of adam/eve")
 	}
 	return nil
 }
