@@ -2,9 +2,7 @@
 
 Eden is the simpliest way to setup & test [EVE](https://github.com/lf-edge/eve) and [Adam](https://github.com/lf-edge/adam).
 
-Eden is inspired to become a Kubernetes for LFEdge 
-
-Eden is the easy way to deploy & communicate with Adam/Eve. You don't need any other project except Eden to try LFEdge. 
+Eden is inspired by Kubernetes workflows and CLI
 
 Eden contains  series of integration tests implemented in Golang. Tests are structured as normal Golang tests by using ```_test.go``` nomenclature and be available for test runs using standard go test framework.
 
@@ -14,7 +12,7 @@ Install requirements from [eve](https://github.com/lf-edge/eve#install-dependenc
 
 Also, you need to install `uuidgen`.
 
-Your user needs to be able to run `docker` commands and able to access kvm.
+You need to be able to run docker commands and able to access virtualization accelerators (KVM on Linux or machyve on Mac OS X)
 
 ## Quickstart
 ```
@@ -92,3 +90,4 @@ The current sub-commands are:
    * `info` -- scans Info file accordingly by regular expression of requests to json fields;
    * `log` -- scans Log file accordingly by regular expression of requests to json fields;
    * `eve` -- sub-commands for interact with EVE.
+   * `controller` -- sub-commands to update EVE.
