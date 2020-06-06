@@ -15,6 +15,8 @@ import (
 
 var podName = ""
 
+var portPublish []string
+
 var podCmd = &cobra.Command{
 	Use: "pod",
 }
@@ -40,7 +42,8 @@ var podDeployCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev: %s", err)
 		}
-		expectation := expect.AppExpectationFromUrl(ctrl, appLink, podName)
+		qemuPorts := viper.GetStringMapString("eve.hostfwd")
+		expectation := expect.AppExpectationFromUrl(ctrl, appLink, podName, portPublish, qemuPorts)
 		appInstanceConfig := expectation.Application()
 		devModel, err := ctrl.GetDevModelByName(viper.GetString("eve.devmodel"))
 		if err != nil {
@@ -278,6 +281,7 @@ var podDeleteCmd = &cobra.Command{
 
 func podInit() {
 	podCmd.AddCommand(podDeployCmd)
+	podDeployCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
