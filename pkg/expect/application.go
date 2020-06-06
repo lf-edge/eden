@@ -5,6 +5,7 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 func checkAppInstanceConfig(app *config.AppInstanceConfig, appName string, appType appType, appUrl string, appVersion string) bool {
@@ -17,11 +18,37 @@ func checkAppInstanceConfig(app *config.AppInstanceConfig, appName string, appTy
 	return false
 }
 
-func createAppInstanceConfig(img *config.Image, appName string, netInstId string, appType appType, appUrl string, appVersion string) (*config.AppInstanceConfig, error) {
+func createAppInstanceConfig(img *config.Image, appName string, netInstId string, appType appType, appUrl string, appVersion string, ports map[int]int) (*config.AppInstanceConfig, error) {
 	var app *config.AppInstanceConfig
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
+	}
+	acls := []*config.ACE{{
+		Matches: []*config.ACEMatch{{
+			Type: "host",
+		}},
+		Id: 1,
+	}}
+	var aclID int32 = 2
+	if ports != nil {
+		for po, pi := range ports {
+			acls = append(acls, &config.ACE{
+				Id: aclID,
+				Matches: []*config.ACEMatch{{
+					Type:  "protocol",
+					Value: "tcp",
+				}, {
+					Type:  "lport",
+					Value: strconv.Itoa(po),
+				}},
+				Actions: []*config.ACEAction{{
+					Portmap: true,
+					AppPort: uint32(pi),
+				}},
+				Dir: config.ACEDirection_BOTH})
+			aclID++
+		}
 	}
 	switch appType {
 	case dockerApp:
@@ -45,12 +72,7 @@ func createAppInstanceConfig(img *config.Image, appName string, netInstId string
 			Interfaces: []*config.NetworkAdapter{{
 				Name:      "default",
 				NetworkId: netInstId,
-				Acls: []*config.ACE{{
-					Matches: []*config.ACEMatch{{
-						Type: "host",
-					}},
-					Id: 1,
-				}},
+				Acls:      acls,
 			}},
 		}
 		return app, nil
@@ -71,7 +93,7 @@ func (exp *appExpectation) Application() (appInstanceConfig *config.AppInstanceC
 		}
 	}
 	if appInstanceConfig == nil {
-		if appInstanceConfig, err = createAppInstanceConfig(image, exp.appName, networkInstance.Uuidandversion.Uuid, exp.appType, exp.appUrl, exp.appVersion); err != nil {
+		if appInstanceConfig, err = createAppInstanceConfig(image, exp.appName, networkInstance.Uuidandversion.Uuid, exp.appType, exp.appUrl, exp.appVersion, exp.ports); err != nil {
 			log.Fatalf("cannot create app: %s", err)
 		}
 		if err = exp.ctrl.AddApplicationInstanceConfig(appInstanceConfig); err != nil {
