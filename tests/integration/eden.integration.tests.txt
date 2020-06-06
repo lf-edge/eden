@@ -1,0 +1,8 @@
+eden.integration.test -test.run TestAdamOnBoard
+eden.integration.test -test.run TestControllerSetConfig
+eden.integration.test -test.run TestControllerGetConfig
+eden.integration.test -test.run TestControllerLogs
+eden.integration.test -test.run TestControllerInfo
+eden.integration.test -test.run TestBaseImage -baseos.eve.tag=571d94a11fa19d79805a0465030175b7257d343b
+eden.integration.test -test.run TestNetworkInstance
+eden.integration.test -test.run TestApplication -app-vm.yml=images-src/vm/alpine/alpine.yml -app-docker.yml=images-src/docker/alpine/alpine.yml

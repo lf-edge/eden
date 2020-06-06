@@ -37,6 +37,8 @@ type appInstLocal struct {
 
 var eServerURL = fmt.Sprintf("http://%s:%d", defaults.DefaultDomain, defaults.DefaultEserverPort)
 
+var eserverImageDist string
+
 var (
 	networkInstanceLocal = &netInst{"eab8761b-5f89-4e0b-b757-4b87a9fa93e1",
 		"test-local", config.ZNetworkInstType_ZnetInstLocal, &config.Ipspec{

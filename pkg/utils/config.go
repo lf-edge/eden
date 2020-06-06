@@ -28,8 +28,6 @@ type ConfigVars struct {
 	AdamRemoteRedis   bool
 	AdamRedisUrlEden  string
 	AdamRedisUrlAdam  string
-	EveBaseTag        string
-	EveBaseVersion    string
 	EveHV             string
 	SshKey            string
 	CheckLogs         bool
@@ -40,7 +38,7 @@ type ConfigVars struct {
 	EdenBinDir        string
 	EdenProg          string
 	TestProg          string
-	TestScript        string
+	TestScenario      string
 }
 
 //InitVars loads vars from viper
@@ -67,8 +65,6 @@ func InitVars() (*ConfigVars, error) {
 			EveSerial:         viper.GetString("eve.serial"),
 			ZArch:             viper.GetString("eve.arch"),
 			EveHV:             viper.GetString("eve.hv"),
-			EveBaseTag:        viper.GetString("eve.base-tag"),
-			EveBaseVersion:    fmt.Sprintf("%s-%s-%s", viper.GetString("eve.base-version"), viper.GetString("eve.hv"), viper.GetString("eve.arch")),
 			DevModel:          viper.GetString("eve.devmodel"),
 			AdamRemote:        viper.GetBool("adam.remote.enabled"),
 			AdamRemoteRedis:   viper.GetBool("adam.remote.redis"),
@@ -78,7 +74,7 @@ func InitVars() (*ConfigVars, error) {
 			EdenBinDir:        viper.GetString("eden.bin-dist"),
 			EdenProg:          viper.GetString("eden.eden-bin"),
 			TestProg:          viper.GetString("eden.test-bin"),
-			TestScript:        viper.GetString("eden.test-script"),
+			TestScenario:      viper.GetString("eden.test-scenario"),
 		}
 		return vars, nil
 	}
@@ -173,12 +169,6 @@ eve:
     #eve tag
     tag: {{ .DefaultEVETag }}
 
-    #eve tag for base os
-    base-tag: {{ .DefaultBaseOSTag }}
-
-    #eve version (without hv and os)
-    base-version: {{ .DefaultBaseOSVersion }}
-
     #forward of ports in qemu [(HOST:EVE)]
     hostfwd:
         {{ .DefaultSSHPort }}: 22
@@ -189,9 +179,6 @@ eve:
 
     #location of eve directory
     dist: {{ .DefaultEVEDist }}
-
-    #location of EVE base os directory
-    base-dist: evebaseos
 
     #file to save qemu config
     qemu-config: {{ .EdenDir }}/qemu.conf
@@ -214,12 +201,6 @@ eden:
     images:
         #directory to save images
         dist: {{ .DefaultImageDist }}
-
-        #yml to build docker image
-        docker: {{ .ImageDir }}/docker/alpine/alpine.yml
-
-        #yml to build vm image
-        vm: {{ .ImageDir }}/vm/alpine/alpine.yml
 
     #download eve instead of build
     download: true
@@ -254,10 +235,10 @@ eden:
     eden-bin: eden
 
     #test binary
-    test-bin: {{ .DefaultTestProg }}
+    test-bin: "{{ .DefaultTestProg }}"
 
-    #test script
-    test-script: {{ .DefaultTestScript }}
+    #test scenario
+    test-scenario: "{{ .DefaultTestScenario }}"
 
 redis:
     #port for access redis
@@ -288,7 +269,7 @@ func DefaultConfigPath() (string, error) {
 	return context.GetCurrentConfig(), nil
 }
 
-//CurrentDirConfigPath returns path to config.yml in current folder
+//CurrentDirConfigPath returns path to eden-config.yml in current folder
 func CurrentDirConfigPath() (string, error) {
 	currentPath, err := os.Getwd()
 	if err != nil {
@@ -304,6 +285,18 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 		if err != nil {
 			return false, fmt.Errorf("fail in DefaultConfigPath: %s", err.Error())
 		}
+	} else {
+		context, err := ContextInit()
+		if err != nil {
+			return false, fmt.Errorf("context Load DefaultEdenDir error: %s", err)
+		}
+		contextFile := context.GetCurrentConfig()
+		if config != contextFile {
+			loaded, err := LoadConfigFile(contextFile)
+			if err != nil {
+				return loaded, err
+			}
+		}
 	}
 	log.Debugf("Will use config from %s", config)
 	if _, err = os.Stat(config); os.IsNotExist(err) {
@@ -318,7 +311,7 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 		return false, fmt.Errorf("fail in reading filepath: %s", err.Error())
 	}
 	viper.SetConfigFile(abs)
-	if err := viper.ReadInConfig(); err != nil {
+	if err := viper.MergeInConfig(); err != nil {
 		return false, fmt.Errorf("failed to read config file: %s", err.Error())
 	}
 	currentFolderDir, err := CurrentDirConfigPath()
@@ -345,6 +338,10 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 
 //GenerateConfigFile is a function to generate default yml
 func GenerateConfigFile(filePath string) error {
+	return generateConfigFileFromTemplate(filePath, defaultEnvConfig)
+}
+
+func generateConfigFileFromTemplate(filePath string, templateString string) error {
 	context, err := ContextInit()
 	if err != nil {
 		return err
@@ -369,7 +366,7 @@ func GenerateConfigFile(filePath string) error {
 	}
 
 	t := template.New("t")
-	_, err = t.Parse(defaultEnvConfig)
+	_, err = t.Parse(templateString)
 	if err != nil {
 		return err
 	}
@@ -416,7 +413,7 @@ func GenerateConfigFile(filePath string) error {
 			DefaultBinDist       string
 			DefaultEVEHV         string
 			DefaultSSHPort       int
-			DefaultTestScript    string
+			DefaultTestScenario  string
 			DefaultTestProg      string
 			DefaultSSHKey        string
 			DefaultEveRepo       string
@@ -435,8 +432,6 @@ func GenerateConfigFile(filePath string) error {
 			Arch:                 runtime.GOARCH,
 			OS:                   runtime.GOOS,
 			EdenDir:              edenDir,
-			DefaultBaseOSVersion: defaults.DefaultBaseOSVersion,
-			DefaultBaseOSTag:     defaults.DefaultBaseOSTag,
 			DefaultEVETag:        defaults.DefaultEVETag,
 			DefaultDomain:        defaults.DefaultDomain,
 			DefaultRedisPort:     defaults.DefaultRedisPort,
@@ -449,7 +444,7 @@ func GenerateConfigFile(filePath string) error {
 			DefaultBinDist:       defaults.DefaultBinDist,
 			DefaultEVEHV:         defaults.DefaultEVEHV,
 			DefaultSSHPort:       defaults.DefaultSSHPort,
-			DefaultTestScript:    defaults.DefaultTestScript,
+			DefaultTestScenario:  defaults.DefaultTestScenario,
 			DefaultTestProg:      defaults.DefaultTestProg,
 			DefaultSSHKey:        defaults.DefaultSSHKey,
 			DefaultEveRepo:       defaults.DefaultEveRepo,

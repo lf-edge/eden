@@ -16,7 +16,6 @@ var (
 	eveArch   string
 	eveTag    string
 	outputDir string
-	baseos    bool
 )
 
 var downloaderCmd = &cobra.Command{
@@ -35,11 +34,7 @@ var downloaderCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			if !baseos {
-				eveTag = viper.GetString("eve.tag")
-			} else {
-				eveTag = viper.GetString("eve.base-tag")
-			}
+			eveTag = viper.GetString("eve.tag")
 			eveArch = viper.GetString("eve.arch")
 			outputDir = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 		}
@@ -51,7 +46,7 @@ var downloaderCmd = &cobra.Command{
 		}
 		image = fmt.Sprintf("lfedge/eve:%s-%s", eveTag, eveArch)
 		if err := utils.PullImage(image); err != nil {
-			log.Fatalf("ImagePull: %s", err)
+			log.Fatalf("ImagePull (%s): %s", image, err)
 		}
 		if err := utils.SaveImage(image, outputDir, defaults.DefaultEvePrefixInTar); err != nil {
 			log.Fatalf("SaveImage: %s", err)
@@ -64,8 +59,7 @@ func downloaderInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	downloaderCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEveTag, "tag to download")
+	downloaderCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
 	downloaderCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloaderCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", path.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist, "dist", runtime.GOARCH), "output directory")
-	downloaderCmd.Flags().BoolVarP(&baseos, "baseos", "", false, "base OS download")
 }

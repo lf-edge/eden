@@ -70,25 +70,6 @@ var configAddCmd = &cobra.Command{
 			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 		}
-		testSript := utils.ResolveAbsPath(viper.GetString("eden.test-script"))
-		if _, err := os.Stat(testSript); !os.IsNotExist(err) {
-			if force {
-				if err := os.Remove(testSript); err != nil {
-					log.Fatal(err)
-				}
-				err = utils.GenerateTestSript(testSript)
-				if err != nil {
-					log.Fatal(err)
-				}
-			} else {
-				log.Debugf("Test script already exists: %s", testSript)
-			}
-		} else {
-			err = utils.GenerateTestSript(testSript)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -104,6 +85,16 @@ var configAddCmd = &cobra.Command{
 				log.Fatalf("Cannot copy file: %s", err)
 			} else {
 				log.Infof("Context file generated: %s", contextFile)
+			}
+		} else {
+			if _, err := os.Stat(configFile); os.IsNotExist(err) {
+				if err = utils.GenerateConfigFileDiff(configFile); err != nil {
+					log.Fatalf("error generate config: %s", err)
+				} else {
+					log.Infof("Context file generated: %s", configFile)
+				}
+			} else {
+				log.Debugf("Config file already exists %s", configFile)
 			}
 		}
 		_, err = utils.LoadConfigFile(configFile)

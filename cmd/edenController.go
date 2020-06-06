@@ -16,10 +16,14 @@ import (
 	"regexp"
 	"strings"
 )
-
-var controllerMode string
-var baseOSImageActivate bool
-var configItems map[string]string
+var (
+	controllerMode      string
+	baseOSImageActivate bool
+	configItems         map[string]string
+	eserverIP           string
+	baseOSVersion       string
+	getFromFileName     bool
+)
 
 func getParams(line, regEx string) (paramsMap map[string]string) {
 
@@ -68,11 +72,6 @@ var edgeNodeReboot = &cobra.Command{
 	Long:  `reboot EVE instance.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		if baseOSVersionFlag := cmd.Flags().Lookup("os-version"); baseOSVersionFlag != nil {
-			if err := viper.BindPFlag("eve.base-tag", baseOSVersionFlag); err != nil {
-				log.Fatal(err)
-			}
-		}
 		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading configFile: %s", err.Error())
@@ -536,7 +535,7 @@ func controllerInit() {
 		log.Fatal(err)
 	}
 	edgeNodeEVEImageUpdateFlags := edgeNodeEVEImageUpdate.Flags()
-	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", fmt.Sprintf("%s-%s-%s", defaults.DefaultBaseOSVersion, eveHV, eveArch), "version of ROOTFS")
+	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
