@@ -1,15 +1,15 @@
 package cmd
 
 import (
-	"bufio"
-	"github.com/lf-edge/eden/pkg/defaults"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/utils"
 )
 
 var (
@@ -23,53 +23,52 @@ var (
 )
 
 func runTest(testApp string, args []string, testArgs string) {
-	if testProg == "" {
-		log.Fatal("Please set the --prog option or environment variable eden.test-bin in the EDEN configuration.")
-		return
-	}
-	vars, err := utils.InitVars()
-	if err != nil {
-		log.Fatalf("error reading config: %s\n", err)
-		return
-	}
-	path, err := exec.LookPath(testApp)
-	if err != nil {
-		testApp = utils.ResolveAbsPath(vars.EdenBinDir + "/" + testApp)
-	}
-
-	_, err = os.Stat(testApp)
-	if os.IsNotExist(err) {
-		log.Fatalf("Test binary file %s is not exist\n", testApp)
-		return
-	} else {
+	if testApp != "" {
+		log.Debug("testApp: ", testApp)
+		vars, err := utils.InitVars()
 		if err != nil {
-			log.Fatalf("Test binary file %s error reading: %s\n", testApp, err)
+			log.Fatalf("error reading config: %s\n", err)
 			return
 		}
-	}	
+		path, err := exec.LookPath(testApp)
+		if err != nil {
+			testApp = utils.ResolveAbsPath(vars.EdenBinDir + "/" + testApp)
+		}
 
-	path, err = exec.LookPath(testApp)
-	if err != nil {
-		log.Fatalf("didn't find '%s' executable\n", testApp)
-		return
-	}
+		_, err = os.Stat(testApp)
+		if os.IsNotExist(err) {
+			log.Fatalf("Test binary file %s does not exist\n", testApp)
+			return
+		} else {
+			if err != nil {
+				log.Fatalf("Error reading test binary %s\n", testApp, err)
+				return
+			}
+		}
 
-	log.Debug("testProg: ", path)
-	if testTimeout != "" {
-		args = append(args, "-test.timeout", testTimeout)
-	}
-	if verbosity != "info" {
-		args = append(args, "-test.v")
-	}
+		path, err = exec.LookPath(testApp)
+		if err != nil {
+			log.Fatalf("Cannot find executable %s\n", testApp)
+			return
+		}
 
-	resultArgs := append(args, strings.Fields(testArgs)...)
-	log.Debugf("Test: %s %s", path, strings.Join(resultArgs, " "))
-	tst := exec.Command(path, resultArgs...)
-	tst.Stdout = os.Stdout
-	tst.Stderr = os.Stderr
-	err = tst.Run()
-	if err != nil {
-		log.Fatalf("Test running failed with %s\n", err)
+		log.Debug("testProg: ", path)
+		if testTimeout != "" {
+			args = append(args, "-test.timeout", testTimeout)
+		}
+		if verbosity != "info" {
+			args = append(args, "-test.v")
+		}
+
+		resultArgs := append(args, strings.Fields(testArgs)...)
+		log.Debugf("Test: %s %s", path, strings.Join(resultArgs, " "))
+		tst := exec.Command(path, resultArgs...)
+		tst.Stdout = os.Stdout
+		tst.Stderr = os.Stderr
+		err = tst.Run()
+		if err != nil {
+			log.Fatalf("Test running failed with %s\n", err)
+		}
 	}
 }
 
@@ -87,27 +86,25 @@ func runScenario() {
 				log.Fatalf("Scenario file %s error reading: %s\n", testScenario, err)
 				return
 			}
-		}	
+		}
 	}
+
 	log.Debug("testScenario:", testScenario)
 
-	file, err := os.Open(testScenario)
+	tmpl, err := ioutil.ReadFile(testScenario)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
 
-	log.Debug("runScenario: ")
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		var targs []string
-		str := scanner.Text()
+	out, err := utils.RenderTemplate(configFile, string(tmpl))
+	if err != nil {
+		log.Fatal(err)
+	}
+	strs := strings.Split(out, "\n")
+	var targs []string
+	for _, str := range strs  {
 		targs = strings.Split(str, " ")
 		runTest(targs[0], targs[1:], "")
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
 	}
 }
 
@@ -149,12 +146,12 @@ test [test_dir] -r <regexp> [-t <timewait>] [-v <level>]
 			testScenario = vars.TestScenario
 		}
 
-		
+
 		if testScenario == "" && testProg == "" && testRun == "" {
 			log.Fatal("Please set the --scenario option or environment variable eden.test-scenario in the EDEN configuration.")
 			return err
 		}
-		
+
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
