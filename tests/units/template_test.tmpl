@@ -1,0 +1,3 @@
+eden.root = {{EdenConfig "eden.root"}}
+eden.images.dist = {{EdenConfig "eden.images.dist"}} -> {{EdenConfigPath "eden.images.dist"}}
+{{$i := EdenConfig "eden.images.dist"}}eden.images.dist = {{$i}} -> {{EdenPath $i }}

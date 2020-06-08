@@ -8,7 +8,10 @@ OS ?= $(HOSTOS)
 WORKDIR ?= $(CURDIR)/../../dist
 ECONFIG ?= `$(LOCALBIN) config get`
 
-test: integration_test
+test: units_test integration_test
+
+units_test:
+	make -C units test
 
 integration_test:
 	make -C integration DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) ECONFIG=$(ECONFIG) test
