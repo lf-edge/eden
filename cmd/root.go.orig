@@ -76,8 +76,6 @@ func init() {
 	reconfInit()
 	rootCmd.AddCommand(testCmd)
 	testInit()
-	rootCmd.AddCommand(utilsCmd)
-	utilsInit()
 	rootCmd.AddCommand(controllerCmd)
 	controllerInit()
 	rootCmd.AddCommand(podCmd)
