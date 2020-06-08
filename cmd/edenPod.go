@@ -5,11 +5,14 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
+	"strconv"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -66,15 +69,49 @@ type appState struct {
 	adamState string
 	eveState  string
 	ip        string
+	ports     string
 	deleted   bool
 }
 
 func appStateHeader() string {
-	return "NAME\tIMAGE\tIP\tSTATE(ADAM)\tLAST_STATE(EVE)"
+	return "NAME\tIMAGE\tIP\tPORTS\tSTATE(ADAM)\tLAST_STATE(EVE)"
 }
 
 func (appStateObj *appState) toString() string {
-	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s", appStateObj.name, appStateObj.image, appStateObj.ip, appStateObj.adamState, appStateObj.eveState)
+	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", appStateObj.name, appStateObj.image, appStateObj.ip,
+		appStateObj.ports, appStateObj.adamState, appStateObj.eveState)
+}
+
+func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]string) string {
+	ports := []string{}
+	for _, intf := range appConfig.Interfaces {
+		fromPort := ""
+		toPort := ""
+		for _, acl := range intf.Acls {
+			for _, match := range acl.Matches {
+				if match.Type == "lport" {
+					fromPort = match.Value
+				}
+			}
+			for _, action := range acl.Actions {
+				if action.Portmap {
+					toPort = strconv.Itoa(int(action.AppPort))
+				}
+			}
+			if fromPort != "" && toPort != "" {
+				if qemuPorts != nil && len(qemuPorts) > 0 {
+					for p1, p2 := range qemuPorts {
+						if p2 == fromPort {
+							fromPort = p1
+							break
+						}
+					}
+				}
+				ports = append(ports, fmt.Sprintf("%s->%s", fromPort, toPort))
+			}
+		}
+	}
+	return strings.Join(ports, ",")
 }
 
 //podPsCmd is a command to list deployed apps
@@ -90,6 +127,7 @@ var podPsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		qemuPorts := viper.GetStringMapString("eve.hostfwd")
 		changer := &adamChanger{}
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {
@@ -105,7 +143,8 @@ var podPsCmd = &cobra.Command{
 			if len(app.Drives) > 0 {
 				imageName = app.Drives[0].Image.Name
 			}
-			appStateObj := &appState{name: app.Displayname, image: imageName, adamState: "IN_CONFIG", eveState: "UNKNOWN", ip: "-"}
+			appStateObj := &appState{name: app.Displayname, image: imageName, adamState: "IN_CONFIG",
+				eveState: "UNKNOWN", ip: "-", ports: getPortMapping(app, qemuPorts)}
 			appStates[app.Uuidandversion.Uuid] = appStateObj
 		}
 		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
