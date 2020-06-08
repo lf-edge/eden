@@ -1,0 +1,4 @@
+echo eden.root = {{EdenConfig "eden.root"}}
+echo eden.images.dist = {{EdenConfig "eden.images.dist"}} -> {{EdenConfigPath "eden.images.dist"}}
+echo {{$i := EdenConfig "eden.images.dist"}}eden.images.dist = {{$i}} -> {{EdenPath $i }}
+
