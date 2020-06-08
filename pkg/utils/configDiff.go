@@ -81,10 +81,10 @@ eden:
     ssh-key: {{ .DefaultSSHKey }}
 
     #test binary
-    test-bin: {{ .DefaultTestProg }}
+    test-bin: "{{ .DefaultTestProg }}"
 
     #test scenario
-    test-scenario: {{ .DefaultTestScenario }}
+    test-scenario: "{{ .DefaultTestScenario }}"
 
 redis:
     #port for access redis
