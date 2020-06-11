@@ -2,13 +2,12 @@ package templates
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"os/exec"
-        "testing"
-	"github.com/spf13/viper"
-	"github.com/lf-edge/eden/pkg/utils"
+	"testing"
 )
-
 
 func getConfig(t *testing.T) string {
 	context, err := utils.ContextLoad()
@@ -32,9 +31,9 @@ func TestTemplateString(t *testing.T) {
 		t.Fatalf("error reading config: %s", err.Error())
 	}
 	if viperLoaded {
-		tests := map[string]string {
-			"{{EdenConfig \"eden.root\"}}": viper.GetString("eden.root"),
-			"{{EdenConfigPath \"eden.images.dist\"}}": utils.ResolveAbsPath(viper.GetString("eden.images.dist")),
+		tests := map[string]string{
+			"{{EdenConfig \"eden.root\"}}":                             viper.GetString("eden.root"),
+			"{{EdenConfigPath \"eden.images.dist\"}}":                  utils.ResolveAbsPath(viper.GetString("eden.images.dist")),
 			"{{$i := EdenConfig \"eden.images.dist\"}}{{EdenPath $i}}": utils.ResolveAbsPath(viper.GetString("eden.images.dist")),
 		}
 
@@ -63,12 +62,12 @@ func TestTemplateFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	out = fmt.Sprintln(out)
-	
-	res,  err := exec.Command("../../eden", "utils", "template", "template_test.tmpl").Output()
+
+	res, err := exec.Command("../../eden", "utils", "template", "template_test.tmpl").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if out != string(res) {
 		t.Fatalf("Template rendering error. We got:\n'%s'\nMust be:\n'%s'\n", out, res)
 	}

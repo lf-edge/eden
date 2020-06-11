@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller/adam"
+	"github.com/lf-edge/eden/pkg/controller/types"
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -24,7 +26,7 @@ func CloudPrepare() (Cloud, error) {
 	if err := ctx.InitWithVars(vars); err != nil {
 		return nil, fmt.Errorf("cloud.InitWithVars: %s", err)
 	}
-	devices, err := ctx.DeviceList()
+	devices, err := ctx.DeviceList(types.RegisteredDeviceFilter)
 	if err != nil {
 		return ctx, fmt.Errorf("DeviceList.GetDevModelByName: %s", err)
 	}
@@ -38,6 +40,10 @@ func CloudPrepare() (Cloud, error) {
 
 func (cloud *CloudCtx) GetVars() *utils.ConfigVars {
 	return cloud.vars
+}
+
+func (cloud *CloudCtx) SetVars(vars *utils.ConfigVars) {
+	cloud.vars = vars
 }
 
 func (cloud *CloudCtx) devInit(devID string) error {
@@ -73,6 +79,48 @@ func (cloud *CloudCtx) devInit(devID string) error {
 	return nil
 }
 
+//OnBoardDev in controller
+func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
+	err := cloud.Register(node.GetOnboardKey(), node.GetSerial())
+	if err != nil {
+		return fmt.Errorf("register: %s", err)
+	}
+	res, err := cloud.OnBoardList()
+	if err != nil {
+		return fmt.Errorf("OnBoardList: %s", err)
+	}
+	if len(res) == 0 {
+		return fmt.Errorf("no onboard in list")
+	}
+	log.Info(res)
+
+	maxRepeat := 20
+	delayTime := 20 * time.Second
+
+	for i := 0; i < maxRepeat; i++ {
+		dev, err := cloud.DeviceGetByOnboard(node.GetOnboardKey())
+		if err != nil {
+			log.Debugf("DeviceGetByOnboard %s", err)
+			log.Infof("Adam waiting for EVE registration (%d) of (%d)", i, maxRepeat)
+			time.Sleep(delayTime)
+		} else {
+			log.Debug("Done onboarding in adam!")
+			log.Infof("Device uuid: %s", dev.String())
+			node.SetID(dev)
+			node.SetState(device.Onboarded)
+			deviceModel, err := cloud.GetDevModelByName(node.GetDevModel())
+			if err != nil {
+				log.Fatalf("fail to get dev model %s: %s", node.GetDevModel(), err)
+			}
+			if err = cloud.ApplyDevModel(node, deviceModel); err != nil {
+				return fmt.Errorf("fail in ApplyDevModel: %s", err)
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("onboarding timeout. You may try to run 'eden eve onboard' command again in several minutes. If not successful see logs of adam/eve")
+}
+
 //OnBoard in controller
 func (cloud *CloudCtx) OnBoard() error {
 	devUUID, err := cloud.GetDeviceFirst()
@@ -95,7 +143,7 @@ func (cloud *CloudCtx) OnBoard() error {
 		delayTime := 20 * time.Second
 
 		for i := 0; i < maxRepeat; i++ {
-			cmdOut, err := cloud.DeviceList()
+			cmdOut, err := cloud.DeviceList(types.RegisteredDeviceFilter)
 			if err != nil {
 				return fmt.Errorf("ctx.DeviceList: %s", err)
 			}

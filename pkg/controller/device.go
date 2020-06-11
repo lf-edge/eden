@@ -1,14 +1,17 @@
 package controller
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
+	"log"
 	"strconv"
 )
 
@@ -93,6 +96,7 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 		}
 	}
 	version, _ := strconv.Atoi(config.Id.Version)
+	dev.SetName(config.Name)
 	dev.SetConfigVersion(version)
 	for _, el := range config.ConfigItems {
 		dev.SetConfigItem(el.GetKey(), el.GetValue())
@@ -172,7 +176,11 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	if config.Reboot != nil {
 		dev.SetRebootCounter(config.Reboot.Counter, config.Reboot.DesiredState)
 	}
-
+	res, err := cloud.GetConfigBytes(dev, false)
+	if err != nil {
+		return nil, fmt.Errorf("GetConfigBytes error: %s", err)
+	}
+	dev.CheckHash(sha256.Sum256(res))
 	return dev, nil
 }
 
@@ -182,10 +190,17 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	if err != nil {
 		return err
 	}
-	if err = cloud.ConfigSet(dev.GetID(), devConfig); err != nil {
-		return err
+	hash := sha256.Sum256(devConfig)
+	if dev.CheckHash(hash) {
+		if devConfig, err = VersionIncrement(devConfig); err != nil {
+			return fmt.Errorf("VersionIncrement error: %s", err)
+		}
+		if err = cloud.ConfigSet(dev.GetID(), devConfig); err != nil {
+			return err
+		}
+		return cloud.StateUpdate(dev)
 	}
-	return cloud.StateUpdate(dev)
+	return nil
 }
 
 //GetDeviceUUID return device object by devUUID
@@ -204,6 +219,71 @@ func (cloud *CloudCtx) GetDeviceFirst() (dev *device.Ctx, err error) {
 		return nil, errors.New("no device found")
 	}
 	return cloud.devices[0], nil
+}
+
+func (cloud *CloudCtx) processDev(id uuid.UUID, state device.EdgeNodeState) {
+	configString, err := cloud.ConfigGet(id)
+	if err != nil {
+		log.Fatalf("ConfigGet error: %s", err)
+	}
+	var deviceConfig config.EdgeDevConfig
+	err = json.Unmarshal([]byte(configString), &deviceConfig)
+	if err != nil {
+		log.Fatalf("unmarshal error: %s", err)
+	}
+	dev, err := cloud.ConfigParse(&deviceConfig)
+	if err != nil {
+		log.Fatalf("configParse error: %s", err)
+	}
+	dev.SetState(state)
+	cloud.devices = append(cloud.devices, dev)
+
+}
+
+func (cloud *CloudCtx) GetAllNodes() {
+	nodes, err := cloud.DeviceList(types.RegisteredDeviceFilter)
+	if err != nil {
+		log.Fatalf("DeviceList: %s", err)
+	}
+	for _, el := range nodes {
+		id, err := uuid.FromString(el)
+		if err != nil {
+			log.Fatalf("Cannot parse Device UUID %s", err)
+		}
+		cloud.processDev(id, device.Onboarded)
+	}
+	nodes, err = cloud.DeviceList(types.NotRegisteredDeviceFilter)
+	if err != nil {
+		log.Fatalf("DeviceList: %s", err)
+	}
+	for _, el := range nodes {
+		id, err := uuid.FromString(el)
+		if err != nil {
+			log.Fatalf("Cannot parse Device UUID %s", err)
+		}
+		cloud.processDev(id, device.NotOnboarded)
+	}
+}
+
+//GetEdgeNode by name
+func (cloud *CloudCtx) GetEdgeNode(name string) *device.Ctx {
+	if name == "" {
+		node, _ := cloud.GetDeviceFirst()
+		if node != nil {
+			return node
+		} else {
+			return nil
+		}
+	}
+	if len(cloud.devices) == 0 {
+		return nil
+	}
+	for _, el := range cloud.devices {
+		if el.GetName() == name {
+			return el
+		}
+	}
+	return nil
 }
 
 //AddDevice add device with specified devUUID
@@ -388,7 +468,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		ProductName:       "",
 		NetworkInstances:  networkInstanceConfigs,
 		Enterprise:        "",
-		Name:              "",
+		Name:              dev.GetName(),
 	}
 	if pretty {
 		return json.MarshalIndent(devConfig, "", "    ")

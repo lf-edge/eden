@@ -4,6 +4,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"testing"
 	"time"
 )
@@ -35,7 +36,7 @@ func TestAdamOnBoard(t *testing.T) {
 		delayTime := 20 * time.Second
 
 		for i := 0; i < maxRepeat; i++ {
-			cmdOut, err := ctx.DeviceList()
+			cmdOut, err := ctx.DeviceList(types.RegisteredDeviceFilter)
 			if err != nil {
 				t.Fatal(err)
 			}

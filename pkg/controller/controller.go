@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	"time"
@@ -17,7 +18,9 @@ type Controller interface {
 	InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error)
 	InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc) (err error)
 	OnBoardList() (out []string, err error)
-	DeviceList() (out []string, err error)
+	DeviceList(types.DeviceStateFilter) (out []string, err error)
+	DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err error)
+	DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error)
 	Register(eveCert string, eveSerial string) error
 	GetDir() (dir string)
 	InitWithVars(vars *utils.ConfigVars) error
