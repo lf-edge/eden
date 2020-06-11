@@ -2,10 +2,25 @@ package device
 
 import (
 	"github.com/satori/go.uuid"
+	"log"
 )
 
-//Ctx is base struct for device
+//EdgeNodeState determinate state of EdgeNode
+type EdgeNodeState int
+
+var (
+	NotOnboarded EdgeNodeState = 0 //NotOnboarded EdgeNode
+	Onboarded    EdgeNodeState = 1 //Onboarded EdgeNode
+)
+
+//Ctx is base struct for EdgeNode
 type Ctx struct {
+	onboardKey                 string
+	serial                     string
+	state                      EdgeNodeState
+	name                       string
+	project                    string
+	hash                       [32]byte
 	id                         uuid.UUID
 	configVersion              int
 	baseOSConfigs              []string
@@ -21,15 +36,31 @@ type Ctx struct {
 	devModel                   string
 }
 
-//CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
-func CreateWithBaseConfig(id uuid.UUID) *Ctx {
+//CreateEdgeNode generates EdgeNode
+func CreateEdgeNode() *Ctx {
 	configItems := map[string]string{"timer.config.interval": "5"}
+	id, _ := uuid.NewV4()
 	return &Ctx{
 		id:            id,
 		rebootCounter: 1000,
 		rebootState:   false,
 		configItems:   configItems,
 		configVersion: 4,
+		state:         NotOnboarded,
+	}
+}
+
+//CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
+func CreateWithBaseConfig(id uuid.UUID) *Ctx {
+	configItems := map[string]string{"timer.config.interval": "5"}
+	return &Ctx{
+		name:          id.String(),
+		id:            id,
+		rebootCounter: 1000,
+		rebootState:   false,
+		configItems:   configItems,
+		configVersion: 4,
+		state:         NotOnboarded,
 	}
 }
 
@@ -129,4 +160,73 @@ func (cfg *Ctx) SetRebootCounter(counter uint32, state bool) {
 //SetRebootCounter getter
 func (cfg *Ctx) GetRebootCounter() (counter uint32, state bool) {
 	return cfg.rebootCounter, cfg.rebootState
+}
+
+//SetProject setter
+func (cfg *Ctx) SetProject(name string) {
+	cfg.project = name
+}
+
+//Reboot node by incrementing RebootCounter
+func (cfg *Ctx) Reboot() {
+	if cfg == nil {
+		log.Fatal("EdgeNode not initialized")
+	}
+	c, _ := cfg.GetRebootCounter()
+	cfg.SetRebootCounter(c+1, true)
+}
+
+//GetName getter
+func (cfg *Ctx) GetName() string {
+	return cfg.name
+}
+
+//SetName setter
+func (cfg *Ctx) SetName(name string) {
+	cfg.name = name
+}
+
+//GetState setter
+func (cfg *Ctx) GetState() EdgeNodeState {
+	return cfg.state
+}
+
+//SetState setter
+func (cfg *Ctx) SetState(state EdgeNodeState) {
+	cfg.state = state
+}
+
+//GetSerial getter
+func (cfg *Ctx) GetSerial() string {
+	return cfg.serial
+}
+
+//SetSerial setter
+func (cfg *Ctx) SetSerial(serial string) {
+	cfg.serial = serial
+}
+
+//GetOnboardKey setter
+func (cfg *Ctx) GetOnboardKey() string {
+	return cfg.onboardKey
+}
+
+//GetOnboardKey getter
+func (cfg *Ctx) SetOnboardKey(key string) {
+	cfg.onboardKey = key
+}
+
+//SetID setter
+func (cfg *Ctx) SetID(id uuid.UUID) {
+	cfg.id = id
+}
+
+//CheckHash check hash and update
+//returns true if hash is new
+func (cfg *Ctx) CheckHash(newHash [32]byte) bool {
+	if cfg.hash != newHash {
+		cfg.hash = newHash
+		return true
+	}
+	return false
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ import (
 	"regexp"
 	"strings"
 )
+
 var (
 	controllerMode      string
 	baseOSImageActivate bool
@@ -24,21 +26,6 @@ var (
 	baseOSVersion       string
 	getFromFileName     bool
 )
-
-func getControllerMode() (modeType, modeURL string, err error) {
-	params := utils.GetParams(controllerMode, defaults.DefaultControllerModePattern)
-	if len(params) == 0 {
-		return "", "", fmt.Errorf("cannot parse mode (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
-	}
-	ok := false
-	if modeType, ok = params["Type"]; !ok {
-		return "", "", fmt.Errorf("cannot parse modeType (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
-	}
-	if modeURL, ok = params["URL"]; !ok {
-		return "", "", fmt.Errorf("cannot parse modeURL (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
-	}
-	return
-}
 
 var controllerCmd = &cobra.Command{
 	Use:   "controller",
@@ -65,7 +52,7 @@ var edgeNodeReboot = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		modeType, modeURL, err := getControllerMode()
+		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -160,7 +147,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 				log.Fatalf("DownloadFile error: %s", err)
 			}
 		}
-		modeType, modeURL, err := getControllerMode()
+		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -347,7 +334,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 				log.Fatalf("DownloadFile error: %s", err)
 			}
 		}
-		modeType, modeURL, err := getControllerMode()
+		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -433,7 +420,7 @@ var edgeNodeUpdate = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		modeType, modeURL, err := getControllerMode()
+		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -477,7 +464,7 @@ var edgeNodeGetConfig = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		modeType, modeURL, err := getControllerMode()
+		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
 		}

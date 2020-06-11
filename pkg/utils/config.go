@@ -134,7 +134,7 @@ adam:
 
 eve:
     #devmodel
-    devmodel: Qemu
+    devmodel: {{ .DefaultEVEModel }}
 
     #EVE arch (amd64/arm64)
     arch: {{ .Arch }}
@@ -414,36 +414,40 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultSSHKey        string
 			DefaultEveRepo       string
 
+			DefaultEVEModel string
+
 			DefaultRedisContainerName string
 		}{
-			DefaultAdamDist:      defaults.DefaultAdamDist,
-			DefaultAdamPort:      defaults.DefaultAdamPort,
-			DefaultAdamTag:       defaults.DefaultAdamTag,
-			DefaultImageDist:     defaults.DefaultImageDist,
-			ImageDir:             filepath.Join(currentPath, defaults.DefaultImageDist),
-			Root:                 filepath.Join(currentPath, defaults.DefaultDist),
-			IP:                   ip,
-			EVEIP:                eveIP,
-			UUID:                 id.String(),
-			Arch:                 runtime.GOARCH,
-			OS:                   runtime.GOOS,
-			EdenDir:              edenDir,
-			DefaultEVETag:        defaults.DefaultEVETag,
-			DefaultDomain:        defaults.DefaultDomain,
-			DefaultRedisPort:     defaults.DefaultRedisPort,
-			DefaultRedisTag:      defaults.DefaultRedisTag,
-			DefaultEVEDist:       defaults.DefaultEVEDist,
-			DefaultEserverPort:   defaults.DefaultEserverPort,
-			DefaultEVESerial:     defaults.DefaultEVESerial,
-			DefaultRedisDist:     defaults.DefaultRedisDist,
-			DefaultCertsDist:     defaults.DefaultCertsDist,
-			DefaultBinDist:       defaults.DefaultBinDist,
-			DefaultEVEHV:         defaults.DefaultEVEHV,
-			DefaultSSHPort:       defaults.DefaultSSHPort,
-			DefaultTestScenario:  defaults.DefaultTestScenario,
-			DefaultTestProg:      defaults.DefaultTestProg,
-			DefaultSSHKey:        defaults.DefaultSSHKey,
-			DefaultEveRepo:       defaults.DefaultEveRepo,
+			DefaultAdamDist:     defaults.DefaultAdamDist,
+			DefaultAdamPort:     defaults.DefaultAdamPort,
+			DefaultAdamTag:      defaults.DefaultAdamTag,
+			DefaultImageDist:    defaults.DefaultImageDist,
+			ImageDir:            filepath.Join(currentPath, defaults.DefaultImageDist),
+			Root:                filepath.Join(currentPath, defaults.DefaultDist),
+			IP:                  ip,
+			EVEIP:               eveIP,
+			UUID:                id.String(),
+			Arch:                runtime.GOARCH,
+			OS:                  runtime.GOOS,
+			EdenDir:             edenDir,
+			DefaultEVETag:       defaults.DefaultEVETag,
+			DefaultDomain:       defaults.DefaultDomain,
+			DefaultRedisPort:    defaults.DefaultRedisPort,
+			DefaultRedisTag:     defaults.DefaultRedisTag,
+			DefaultEVEDist:      defaults.DefaultEVEDist,
+			DefaultEserverPort:  defaults.DefaultEserverPort,
+			DefaultEVESerial:    defaults.DefaultEVESerial,
+			DefaultRedisDist:    defaults.DefaultRedisDist,
+			DefaultCertsDist:    defaults.DefaultCertsDist,
+			DefaultBinDist:      defaults.DefaultBinDist,
+			DefaultEVEHV:        defaults.DefaultEVEHV,
+			DefaultSSHPort:      defaults.DefaultSSHPort,
+			DefaultTestScenario: defaults.DefaultTestScenario,
+			DefaultTestProg:     defaults.DefaultTestProg,
+			DefaultSSHKey:       defaults.DefaultSSHKey,
+			DefaultEveRepo:      defaults.DefaultEveRepo,
+
+			DefaultEVEModel: defaults.DefaultEVEModel,
 
 			DefaultRedisContainerName: defaults.DefaultRedisContainerName,
 		})

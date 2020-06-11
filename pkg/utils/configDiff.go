@@ -31,7 +31,7 @@ eve:
     image-file: {{ .DefaultEVEDist }}/dist/amd64/live.qcow2
 
     #devmodel
-    devmodel: Qemu
+    devmodel: ZedVirtual-4G
 
     #file to save qemu config
     qemu-config: {{ .EdenDir }}/qemu.conf

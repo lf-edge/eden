@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lf-edge/adam/pkg/server"
+	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
@@ -210,8 +212,12 @@ func (adam *Ctx) OnBoardList() (out []string, err error) {
 }
 
 //DeviceList return device list
-func (adam *Ctx) DeviceList() (out []string, err error) {
-	return adam.getList("/admin/device")
+func (adam *Ctx) DeviceList(filter types.DeviceStateFilter) (out []string, err error) {
+	if filter == types.RegisteredDeviceFilter || filter == types.AllDevicesFilter {
+		return adam.getList("/admin/device")
+	} else {
+		return []string{}, nil
+	}
 }
 
 //ConfigSet set config for devID
@@ -246,4 +252,61 @@ func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoTy
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return einfo.InfoLast(loader, q, einfo.ZInfoFind, handler, infoType)
+}
+
+//DeviceGetOnboard get device onboardUUID for devUUID
+func (adam *Ctx) DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error) {
+	var devCert server.DeviceCert
+	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String()))
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if err = json.Unmarshal([]byte(devInfo), &devCert); err != nil {
+		return uuid.Nil, err
+	}
+
+	cert, err := x509.ParseCert(devCert.Onboard)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return uuid.FromString(cert.Subject.CommonName)
+}
+
+//DeviceGetByOnboard try to get device by onboard eveCert
+func (adam *Ctx) DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err error) {
+	b, err := ioutil.ReadFile(eveCert)
+	switch {
+	case err != nil && os.IsNotExist(err):
+		log.Printf("cert file %s does not exist", eveCert)
+		return uuid.Nil, err
+	case err != nil:
+		log.Printf("error reading cert file %s: %v", eveCert, err)
+		return uuid.Nil, err
+	}
+	cert, err := x509.ParseCert(b)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	uuidToFound, err := uuid.FromString(cert.Subject.CommonName)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	devIDs, err := adam.DeviceList(types.RegisteredDeviceFilter)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	for _, devID := range devIDs {
+		devUUID, err := uuid.FromString(devID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		if onboardUUID, err := adam.DeviceGetOnboard(devUUID); err == nil {
+			if onboardUUID.String() == uuidToFound.String() {
+				return devUUID, nil
+			}
+		} else {
+			return uuid.Nil, err
+		}
+	}
+	return uuid.Nil, fmt.Errorf("not implemented now")
 }

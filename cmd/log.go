@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -40,7 +41,7 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 		if err := ctrl.OnBoard(); err != nil {
 			log.Fatalf("OnBoard: %s", err)
 		}
-		devices, err := ctrl.DeviceList()
+		devices, err := ctrl.DeviceList(types.RegisteredDeviceFilter)
 		if err != nil {
 			log.Fatalf("DeviceList: %s", err)
 		}

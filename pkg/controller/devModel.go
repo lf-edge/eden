@@ -45,7 +45,7 @@ func (ctx *DevModel) GetNetNoDHCPID() string {
 const DevModelTypeEmpty DevModelType = "Empty"
 
 //DevModelTypeQemu is model type for qemu
-const DevModelTypeQemu DevModelType = "Qemu"
+const DevModelTypeQemu DevModelType = "ZedVirtual-4G"
 
 //CreateDevModel create manual DevModel with provided params
 func (cloud *CloudCtx) CreateDevModel(PhysicalIOs []*config.PhysicalIO, Networks []*config.NetworkConfig, Adapters []*config.SystemAdapter, AdapterForSwitches []string, modelType DevModelType) *DevModel {

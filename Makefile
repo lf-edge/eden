@@ -22,15 +22,13 @@ BINDIR := $(WORKDIR)/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 
-MEDIA_SIZE=1024M
-
 ZARCH ?= $(HOSTARCH)
 export ZARCH
 
 .DEFAULT_GOAL := help
 
 clean: stop
-	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) ECONFIG=$(ECONFIG) clean
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
 	$(LOCALBIN) clean
 	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN)
 
@@ -40,9 +38,8 @@ $(WORKDIR):
 $(BINDIR):
 	mkdir -p $@
 
-ECONFIG := `$(LOCALBIN) config get`
 test: build
-	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) ECONFIG=$(ECONFIG) test
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
 build: bin testbin
 
@@ -53,17 +50,17 @@ $(BIN): $(LOCALBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $(BINDIR)/$@; fi
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $@; fi
 
-testbin:
+testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
-config: build
+config: bin
 	$(LOCALBIN) config add default -v $(DEBUG)
 
 setup: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
 	$(LOCALBIN) setup -v $(DEBUG)
 
-run: setup
+run: bin setup
 	$(LOCALBIN) start -v $(DEBUG)
 
 stop: bin
