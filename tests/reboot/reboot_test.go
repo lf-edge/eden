@@ -24,6 +24,7 @@ tc *TestContext // TestContext is at least {
                 //    ...
                 // }
 */
+
 var (
 	timewait = flag.Int("timewait", 60, "Timewait for reboot waiting in seconds")
 	tc       *projects.TestContext
