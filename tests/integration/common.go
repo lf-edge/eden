@@ -191,7 +191,6 @@ func prepareApplicationLocal(ctx controller.Cloud, appDefinition *appInstLocal, 
 	var drive = &config.Drive{
 		Image:    img,
 		Readonly: false,
-		Preserve: false,
 		Drvtype:  config.DriveType_HDD,
 		Target:   config.Target_Disk,
 	}
@@ -249,7 +248,6 @@ func prepareBaseImageLocal(ctx controller.Cloud, dataStoreID string, imageID str
 		Drives: []*config.Drive{{
 			Image:        img,
 			Readonly:     false,
-			Preserve:     false,
 			Drvtype:      config.DriveType_Unclassified,
 			Target:       config.Target_TgtUnknown,
 			Maxsizebytes: img.SizeBytes,
