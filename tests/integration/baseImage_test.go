@@ -170,7 +170,7 @@ func SetupBaseImage(t *testing.T) (fileToUse string) {
 		}
 	} else {
 		if _, err := os.Stat(eveBaseDist); os.IsNotExist(err) {
-			if err := utils.DownloadEveFormDocker(command, eveBaseDist, eveArch, *eveBaseTag); err != nil {
+			if err := utils.DownloadEveFormDocker(command, eveBaseDist, eveArch, eveHV, *eveBaseTag, false); err != nil {
 				t.Fatalf("cannot download Base EVE: %s", err)
 			} else {
 				t.Log("download Base EVE done")

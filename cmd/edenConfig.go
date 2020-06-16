@@ -115,12 +115,12 @@ var configAddCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			qemuConfigPathAbsolute := ""
-			if qemuConfigPath != "" {
+			/*if qemuConfigPath != "" {
 				qemuConfigPathAbsolute, err = filepath.Abs(qemuConfigPath)
 				if err != nil {
 					log.Fatal(err)
 				}
-			}
+			}*/
 			qemuDTBPathAbsolute := ""
 			if qemuDTBPath != "" {
 				qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)

@@ -160,9 +160,6 @@ eve:
     #EVE log file
     log: eve.log
 
-    #EVE firmware
-    firmware: {{ .DefaultEVEDist }}/dist/amd64/OVMF.fd
-
     #eve repo used in clone mode (eden.download = false)
     repo: {{ .DefaultEveRepo }}
 

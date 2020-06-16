@@ -107,15 +107,17 @@ var setupCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveFormDocker(command, eveDist, eveArch, eveTag); err != nil {
+				if err := utils.DownloadEveFormDocker(command, eveDist, eveArch, eveHV, eveTag, defaults.DefaultNewBuildProcess); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Info("download EVE done")
 				}
-				if err := utils.ChangeConfigPartAndRootFs(command, eveDist, adamDist, eveArch, eveHV); err != nil {
-					log.Errorf("cannot ChangeConfigPartAndRootFs EVE: %s", err)
-				} else {
-					log.Info("ChangeConfigPartAndRootFs EVE done")
+				if !defaults.DefaultNewBuildProcess {
+					if err := utils.ChangeConfigPartAndRootFs(command, eveDist, adamDist, eveArch, eveHV); err != nil {
+						log.Errorf("cannot ChangeConfigPartAndRootFs EVE: %s", err)
+					} else {
+						log.Info("ChangeConfigPartAndRootFs EVE done")
+					}
 				}
 			} else {
 				log.Infof("EVE already exists in dir: %s", eveDist)

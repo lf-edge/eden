@@ -38,7 +38,8 @@ const (
 	DefaultAdamPort    = 3333
 
 	//tags, versions, repos
-	DefaultEVETag            = "5ee6043906449f7fa3447c96fd38dc9a536c5693" //DefaultEVETag tag for EVE image
+	DefaultNewBuildProcess   = true
+	DefaultEVETag            = "5.6.0" //DefaultEVETag tag for EVE image
 	DefaultAdamTag           = "0.0.44"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"
@@ -83,6 +84,8 @@ const (
 	DefaultAppSubnet = "10.1.0.0/24"
 
 	DefaultEVEModel = "ZedVirtual-4G"
+
+	DefaultEVEImageSize = 8192
 )
 
 var (
