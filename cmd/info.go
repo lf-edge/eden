@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
-	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"strings"
@@ -40,44 +38,35 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 		if err != nil {
 			log.Fatalf("CloudPrepare: %s", err)
 		}
-		if err := ctrl.OnBoard(); err != nil {
-			log.Fatalf("OnBoard: %s", err)
-		}
-		devices, err := ctrl.DeviceList(types.RegisteredDeviceFilter)
+		devFirst, err := ctrl.GetDeviceFirst()
 		if err != nil {
-			log.Fatalf("DeviceList: %s", err)
+			log.Fatalf("GetDeviceFirst error: %s", err)
 		}
-		for _, devID := range devices {
-			devUUID, err := uuid.FromString(devID)
-			if err != nil {
-				log.Fatalf("uuidGet: %s", err)
-			}
-			follow, err := cmd.Flags().GetBool("follow")
-			if err != nil {
-				fmt.Printf("Error in get param 'follow'")
-				return
-			}
-			zInfoType, err := einfo.GetZInfoType(infoType)
-			if err != nil {
-				fmt.Printf("Error in get param 'type': %s", err)
-				return
-			}
-			q := make(map[string]string)
-			for _, a := range args[0:] {
-				s := strings.Split(a, ":")
-				q[s[0]] = s[1]
-			}
+		devUUID := devFirst.GetID()
+		follow, err := cmd.Flags().GetBool("follow")
+		if err != nil {
+			fmt.Printf("Error in get param 'follow'")
+			return
+		}
+		zInfoType, err := einfo.GetZInfoType(infoType)
+		if err != nil {
+			fmt.Printf("Error in get param 'type': %s", err)
+			return
+		}
+		q := make(map[string]string)
+		for _, a := range args[0:] {
+			s := strings.Split(a, ":")
+			q[s[0]] = s[1]
+		}
 
-			if follow {
-				if err = ctrl.InfoChecker(devUUID, q, zInfoType, einfo.HandleAll, einfo.InfoNew, 0); err != nil {
-					log.Fatalf("InfoChecker: %s", err)
-				}
-			} else {
-				if err = ctrl.InfoLastCallback(devUUID, q, zInfoType, einfo.HandleAll); err != nil {
-					log.Fatalf("InfoChecker: %s", err)
-				}
+		if follow {
+			if err = ctrl.InfoChecker(devUUID, q, zInfoType, einfo.HandleAll, einfo.InfoNew, 0); err != nil {
+				log.Fatalf("InfoChecker: %s", err)
 			}
-			break
+		} else {
+			if err = ctrl.InfoLastCallback(devUUID, q, zInfoType, einfo.HandleAll); err != nil {
+				log.Fatalf("InfoChecker: %s", err)
+			}
 		}
 	},
 }

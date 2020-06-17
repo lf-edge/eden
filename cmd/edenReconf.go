@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
-	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -39,39 +37,30 @@ var reconfCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("CloudPrepare: %s", err)
 		}
-		if err := ctrl.OnBoard(); err != nil {
-			log.Fatalf("OnBoard: %s", err)
-		}
-		devices, err := ctrl.DeviceList(types.RegisteredDeviceFilter)
+		devFirst, err := ctrl.GetDeviceFirst()
 		if err != nil {
-			log.Fatalf("DeviceList: %s", err)
+			log.Fatalf("GetDeviceFirst error: %s", err)
 		}
-		for _, devID := range devices {
-			devUUID, err := uuid.FromString(devID)
+		devUUID := devFirst.GetID()
+		if getConfig {
+			data, err := ctrl.ConfigGet(devUUID)
 			if err != nil {
-				log.Fatalf("uuidGet: %s", err)
+				log.Fatalf("ConfigSet: %s", err)
 			}
-			if getConfig {
-				data, err := ctrl.ConfigGet(devUUID)
-				if err != nil {
-					log.Fatalf("ConfigSet: %s", err)
-				}
-				if err = ioutil.WriteFile(args[0], []byte(data), 0755); err != nil {
-					log.Fatalf("WriteFile: %s", err)
-				}
-				log.Infof("File saved: %s", args[0])
-			} else {
-				data, err := ioutil.ReadFile(args[0])
-				if err != nil {
-					log.Fatalf("File reading error:", err)
-					return
-				}
-				if err = ctrl.ConfigSet(devUUID, data); err != nil {
-					log.Fatalf("ConfigSet: %s", err)
-				}
-				log.Infof("File loaded: %s", args[0])
+			if err = ioutil.WriteFile(args[0], []byte(data), 0755); err != nil {
+				log.Fatalf("WriteFile: %s", err)
 			}
-			break
+			log.Infof("File saved: %s", args[0])
+		} else {
+			data, err := ioutil.ReadFile(args[0])
+			if err != nil {
+				log.Fatalf("File reading error:", err)
+				return
+			}
+			if err = ctrl.ConfigSet(devUUID, data); err != nil {
+				log.Fatalf("ConfigSet: %s", err)
+			}
+			log.Infof("File loaded: %s", args[0])
 		}
 	},
 }

@@ -110,7 +110,7 @@ var (
 		"eve.arch":         "eve-arch",
 		"eve.os":           "eve-os",
 		"eve.accel":        "eve-accel",
-		"eve.hv":           "hv",
+		"eve.hv":           "eve-hv",
 		"eve.serial":       "eve-serial",
 		"eve.pid":          "eve-pid",
 		"eve.log":          "eve-log",

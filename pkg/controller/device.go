@@ -293,7 +293,8 @@ func (cloud *CloudCtx) AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error)
 			return nil, errors.New("already exists")
 		}
 	}
-	dev = device.CreateWithBaseConfig(devUUID)
+	dev = device.CreateEdgeNode()
+	dev.SetID(devUUID)
 	cloud.devices = append(cloud.devices, dev)
 	return
 }

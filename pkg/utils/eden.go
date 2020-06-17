@@ -291,7 +291,7 @@ func ChangeConfigPartAndRootFs(commandPath string, distEve string, distAdam stri
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return fmt.Errorf("directory not exists: %s", configPath)
 	}
-	commandArgsString := fmt.Sprintf("eve confchanger --image-file=%s --config-part=%s --hv=%s -v %s",
+	commandArgsString := fmt.Sprintf("eve confchanger --image-file=%s --config-part=%s --eve-hv=%s -v %s",
 		imagePath, configPath, hv, log.GetLevel())
 	log.Infof("ChangeConfigPartAndRootFs run: %s %s", commandPath, commandArgsString)
 	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
