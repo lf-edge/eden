@@ -1,4 +1,4 @@
-DEBUG ?= "-v debug"
+DEBUG ?= "debug"
 
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
@@ -61,7 +61,7 @@ $(LOCALTESTBIN): $(BINDIR) *.go
 $(TESTBIN): $(LOCALTESTBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN); fi
 
-setup: testbin
+setup: testbin ${IMAGESOURCES}
 	cp $(TESTSCN) $(WORKDIR) 
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(CURDIR)/$(TESTBIN) $(BINDIR)/; fi
 

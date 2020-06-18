@@ -114,13 +114,6 @@ var configAddCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-			qemuConfigPathAbsolute := ""
-			if qemuConfigPath != "" {
-				qemuConfigPathAbsolute, err = filepath.Abs(qemuConfigPath)
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
 			qemuDTBPathAbsolute := ""
 			if qemuDTBPath != "" {
 				qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
@@ -142,13 +135,12 @@ var configAddCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			settings := utils.QemuSettings{
-				ConfigDrive: qemuConfigPathAbsolute,
-				DTBDrive:    qemuDTBPathAbsolute,
-				Firmware:    qemuFirmwareParam,
-				MemoryMB:    qemuMemory,
-				CPUs:        qemuCpus,
-				HostFWD:     qemuHostFwd,
-				NetDevs:     nets,
+				DTBDrive: qemuDTBPathAbsolute,
+				Firmware: qemuFirmwareParam,
+				MemoryMB: qemuMemory,
+				CPUs:     qemuCpus,
+				HostFWD:  qemuHostFwd,
+				NetDevs:  nets,
 			}
 			conf, err := settings.GenerateQemuConfig()
 			if err != nil {

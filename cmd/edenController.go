@@ -269,7 +269,6 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 			Drives: []*config.Drive{{
 				Image:        img,
 				Readonly:     false,
-				Preserve:     false,
 				Drvtype:      config.DriveType_Unclassified,
 				Target:       config.Target_TgtUnknown,
 				Maxsizebytes: img.SizeBytes,

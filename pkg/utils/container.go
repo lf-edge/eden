@@ -16,6 +16,7 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/user"
@@ -28,7 +29,7 @@ import (
 
 //CreateDockerNetwork create network for docker`s containers
 func CreateDockerNetwork(name string) error {
-	log.Debugf("Try to create network %s for docker`s containers %s", name)
+	log.Debugf("Try to create network %s", name)
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -160,6 +161,25 @@ func PullImage(image string) error {
 		return fmt.Errorf("imagePull LOG: %s", err)
 	}
 	return nil
+}
+
+//GenEVEImage from docker to outputFile only with defined configDir
+func GenEVEImage(image, outputDir, command, format string, configDir string) (fileName string, err error) {
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return "", err
+	}
+	volumeMap := map[string]string{"/in": configDir, "/out": outputDir}
+	u, err := RunDockerCommand(image, fmt.Sprintf("-f %s %s %d", format, command, defaults.DefaultEVEImageSize), volumeMap)
+	if err != nil {
+		log.Printf("error GenEVEImage: %v", err)
+		return "", err
+	}
+	log.Debug(u)
+	fileName = filepath.Join(outputDir, fmt.Sprintf("%s.raw", command))
+	if format == "qcow2" {
+		fileName = fileName + "." + format
+	}
+	return fileName, nil
 }
 
 //SaveImage from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
@@ -370,6 +390,7 @@ func ExtractFilesFromDocker(u io.ReadCloser, directory string, prefixDirectory s
 	return nil
 }
 
+//if prefixDirectory is empty, extract all
 func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory string) error {
 	pathBuilder := func(oldPath string) string {
 		return path.Join(directory, strings.TrimPrefix(oldPath, prefixDirectory))
@@ -384,7 +405,7 @@ func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory stri
 			return fmt.Errorf("ExtractFilesFromDocker: Next() failed: %s", err.Error())
 		}
 		//extract only from directory of interest
-		if strings.TrimLeft(header.Name, prefixDirectory) == header.Name {
+		if prefixDirectory != "" && strings.TrimLeft(header.Name, prefixDirectory) == header.Name {
 			continue
 		}
 		switch header.Typeflag {
@@ -508,4 +529,57 @@ func ComputeShaOCITar(filename string) (string, error) {
 	hashArray := sha256.Sum256(manifestB)
 	hash = hashArray[:]
 	return fmt.Sprintf("%x", hash), nil
+}
+
+//RunDockerCommand is run wrapper for docker container
+func RunDockerCommand(image string, command string, volumeMap map[string]string) (result string, err error) {
+	log.Debugf("Try to call 'docker run %s %s' with volumes %s", image, command, volumeMap)
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return "", err
+	}
+	if err := PullImage(image); err != nil {
+		return "", err
+	}
+	var mounts []mount.Mount
+	for target, source := range volumeMap {
+		mounts = append(mounts, mount.Mount{
+			Type:   mount.TypeBind,
+			Source: source,
+			Target: target,
+		})
+	}
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: image,
+		Cmd:   strings.Fields(command),
+		Tty:   true,
+	}, &container.HostConfig{
+		Mounts: mounts},
+		nil,
+		"")
+	if err != nil {
+		return "", err
+	}
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return "", err
+	}
+	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return "", err
+		}
+	case <-statusCh:
+	}
+
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	if err != nil {
+		return "", err
+	}
+	if b, err := ioutil.ReadAll(out); err == nil {
+		return string(b), nil
+	} else {
+		return "", err
+	}
 }
