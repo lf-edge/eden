@@ -3,8 +3,12 @@ package reboot
 import (
 	"flag"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"testing"
@@ -28,7 +32,25 @@ tc *TestContext // TestContext is at least {
 var (
 	timewait = flag.Int("timewait", 60, "Timewait for reboot waiting in seconds")
 	tc       *projects.TestContext
+
+	lastRebootTime *timestamp.Timestamp
 )
+
+func checkReboot(im *info.ZInfoMsg) error {
+	if im.GetDinfo() == nil {
+		return nil
+	}
+	currentLastRebootTime := im.GetDinfo().LastRebootTime
+	if lastRebootTime == nil {
+		lastRebootTime = currentLastRebootTime
+	} else {
+		if !proto.Equal(lastRebootTime, currentLastRebootTime) {
+			lastRebootTime = currentLastRebootTime
+			return fmt.Errorf("rebooted with reason %s at %s", im.GetDinfo().LastRebootReason, ptypes.TimestampString(lastRebootTime))
+		}
+	}
+	return nil
+}
 
 // TestMain is used to provide setup and teardown for the rest of the
 // tests. As part of setup we make sure that context has a slice of
@@ -95,7 +117,7 @@ func TestReboot(t *testing.T) {
 	// note that GetEdgeNode() without any argument is
 	// equivalent to the default (first one). Otherwise
 	// one can specify a name GetEdgeNode("foo")
-	edgeNode := tc.GetEdgeNode("")
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	// this is modeled after: zcli edge-node reboot [-f] <name>
 	// this is expected to be a synchronous call for now
@@ -105,19 +127,7 @@ func TestReboot(t *testing.T) {
 
 	log.Infof("Wait for reboot of %s", edgeNode.GetName())
 
-	// this is how we make sure that the right event actually happens.
-	// Note that unlike previous call this is completely asynchronous.
-	// We expect AssertInfo method to return immediately and simply
-	// register a listener function that would check every incoming
-	// Info message and either exit with success on one of them OR
-	// exit with failure. However both of these events may happen minutes
-	// after the following call is made:
-	tc.AssertInfo(t, "expected reboot to happen", CheckRebootInfo)
+	tc.AddProcInfo(edgeNode, checkReboot)
 
-	// now we're blocking until the time elapses or asserts fires
-	//tc.WaitForAsserts(t, 60)  // this is guarantee to exit under 60 seconds
-	// this is guarantee to exit under 'timewait' CLI option
-	tc.WaitForAsserts(t, *timewait)
-
-	t.Log("done")
+	tc.WaitForProc(*timewait)
 }

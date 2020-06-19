@@ -10,6 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"strings"
+	"testing"
+	"time"
 )
 
 //GetControllerMode parse url with controller
@@ -33,6 +35,8 @@ type TestContext struct {
 	cloud   controller.Cloud
 	project *Project
 	nodes   []*device.Ctx
+	procBus *processingBus
+	tests   map[*device.Ctx]*testing.T
 }
 
 //NewTestContext creates new TestContext
@@ -75,7 +79,12 @@ func NewTestContext() *TestContext {
 		log.Fatalf("cloud.InitWithVars: %s", err)
 	}
 	ctx.GetAllNodes()
-	return &TestContext{cloud: ctx}
+	tstCtx := &TestContext{
+		cloud: ctx,
+		tests: map[*device.Ctx]*testing.T{},
+	}
+	tstCtx.procBus = initBus(tstCtx)
+	return tstCtx
 }
 
 //GetNodeDescriptions returns list of nodes from config
@@ -103,15 +112,33 @@ func (ctx *TestContext) InitProject(name string) {
 	ctx.project = &Project{name: name}
 }
 
+type GetEdgeNodeOpts func(*device.Ctx) bool
+
+//FilterByName check EdgeNode name
+func (ctx *TestContext) FilterByName(name string) GetEdgeNodeOpts {
+	return func(d *device.Ctx) bool {
+		return d.GetName() == name
+	}
+}
+
+//WithTest assign *testing.T for device
+func (ctx *TestContext) WithTest(t *testing.T) GetEdgeNodeOpts {
+	return func(d *device.Ctx) bool {
+		ctx.tests[d] = t
+		return true
+	}
+}
+
 //GetEdgeNode return node from context
-func (ctx *TestContext) GetEdgeNode(name string) *device.Ctx {
+func (ctx *TestContext) GetEdgeNode(opts ...GetEdgeNodeOpts) *device.Ctx {
+Node:
 	for _, el := range ctx.nodes {
-		if name == "" {
-			return el
+		for _, opt := range opts {
+			if !opt(el) {
+				continue Node
+			}
 		}
-		if el.GetName() == name {
-			return el
-		}
+		return el
 	}
 	return nil
 }
@@ -145,4 +172,45 @@ func (ctx *TestContext) ConfigSync(edgeNode *device.Ctx) {
 	if err := ctx.GetController().ConfigSync(edgeNode); err != nil {
 		log.Fatalf("Cannot send config of %s", edgeNode.GetName())
 	}
+}
+
+//WaitForProc blocking execution until the time elapses or all Procs gone
+//returns error on timeout
+func (tc *TestContext) WaitForProc(secs int) {
+	timeout := time.Duration(secs) * time.Second
+	waitChan := make(chan struct{})
+	go func() {
+		tc.procBus.wg.Wait()
+		close(waitChan)
+	}()
+	select {
+	case <-waitChan:
+		for node, el := range tc.tests {
+			el.Logf("done for device %s", node.GetName())
+		}
+		return
+	case <-time.After(timeout):
+		if len(tc.tests) == 0 {
+			log.Fatalf("WaitForProc terminated by timeout %s", timeout)
+		}
+		for _, el := range tc.tests {
+			el.Errorf("WaitForProc terminated by timeout %s", timeout)
+		}
+		return
+	}
+}
+
+//AddProcLog add processFunction, that will get all logs for edgeNode
+func (tc *TestContext) AddProcLog(edgeNode *device.Ctx, processFunction ProcLogFunc) {
+	tc.procBus.addProc(edgeNode, processFunction)
+}
+
+//AddProcInfo add processFunction, that will get all info for edgeNode
+func (tc *TestContext) AddProcInfo(edgeNode *device.Ctx, processFunction ProcInfoFunc) {
+	tc.procBus.addProc(edgeNode, processFunction)
+}
+
+//AddProcMetric add processFunction, that will get all metrics for edgeNode
+func (tc *TestContext) AddProcMetric(edgeNode *device.Ctx, processFunction ProcMetricFunc) {
+	tc.procBus.addProc(edgeNode, processFunction)
 }
