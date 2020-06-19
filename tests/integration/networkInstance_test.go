@@ -5,6 +5,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"testing"
 	"time"
 )
@@ -20,7 +21,7 @@ func TestNetworkInstance(t *testing.T) {
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
-	devModel, err := ctx.GetDevModelByName(deviceCtx.GetDevModel())
+	devModel, err := ctx.GetDevModelByName(defaults.DefaultEVEModel)
 	if err != nil {
 		t.Fatal("Fail in get dev model: ", err)
 	}

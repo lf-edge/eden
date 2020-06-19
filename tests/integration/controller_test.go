@@ -4,9 +4,8 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
-	"github.com/lf-edge/eden/pkg/controller/types"
+	"github.com/lf-edge/eden/pkg/device"
 	"testing"
-	"time"
 )
 
 //TestAdamOnBoard test onboarding into controller
@@ -16,39 +15,14 @@ func TestAdamOnBoard(t *testing.T) {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
 	vars := ctx.GetVars()
-	devUUID, err := ctx.GetDeviceFirst()
-	if devUUID == nil {
-		t.Logf("Try to add onboarding")
-		err = ctx.Register(vars.EveCert, vars.EveSerial)
-		if err != nil {
-			t.Fatal(err)
-		}
-		res, err := ctx.OnBoardList()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(res) == 0 {
-			t.Fatal("No onboard in list")
-		}
-		t.Log(res)
-
-		maxRepeat := 20
-		delayTime := 20 * time.Second
-
-		for i := 0; i < maxRepeat; i++ {
-			cmdOut, err := ctx.DeviceList(types.RegisteredDeviceFilter)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(cmdOut) > 0 {
-				t.Logf("Done onboarding in adam!")
-				t.Logf("Device uuid: %s", cmdOut)
-				return
-			}
-			t.Logf("Attempt to list devices (%d) of (%d)", i, maxRepeat)
-			time.Sleep(delayTime)
-		}
-		t.Fatal("Onboarding timeout")
+	dev := device.CreateEdgeNode()
+	dev.SetSerial(vars.EveSerial)
+	dev.SetOnboardKey(vars.EveCert)
+	dev.SetDevModel(vars.DevModel)
+	t.Logf("Try to add onboarding")
+	err = ctx.OnBoardDev(dev)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -50,20 +50,6 @@ func CreateEdgeNode() *Ctx {
 	}
 }
 
-//CreateWithBaseConfig generate base config for device with id and associate with cloudCtx
-func CreateWithBaseConfig(id uuid.UUID) *Ctx {
-	configItems := map[string]string{"timer.config.interval": "5"}
-	return &Ctx{
-		name:          id.String(),
-		id:            id,
-		rebootCounter: 1000,
-		rebootState:   false,
-		configItems:   configItems,
-		configVersion: 4,
-		state:         NotOnboarded,
-	}
-}
-
 //GetID return id of device
 func (cfg *Ctx) GetID() uuid.UUID { return cfg.id }
 

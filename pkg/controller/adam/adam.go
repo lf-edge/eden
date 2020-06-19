@@ -11,6 +11,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -183,20 +184,20 @@ func (adam *Ctx) getInfoUrl(devUUID uuid.UUID) string {
 }
 
 //Register device in adam
-func (adam *Ctx) Register(eveCert string, eveSerial string) error {
-	b, err := ioutil.ReadFile(eveCert)
+func (adam *Ctx) Register(device *device.Ctx) error {
+	b, err := ioutil.ReadFile(device.GetOnboardKey())
 	switch {
 	case err != nil && os.IsNotExist(err):
-		log.Printf("cert file %s does not exist", eveCert)
+		log.Printf("cert file %s does not exist", device.GetOnboardKey())
 		return err
 	case err != nil:
-		log.Printf("error reading cert file %s: %v", eveCert, err)
+		log.Printf("error reading cert file %s: %v", device.GetOnboardKey(), err)
 		return err
 	}
 
 	objToSend := server.OnboardCert{
 		Cert:   b,
-		Serial: eveSerial,
+		Serial: device.GetSerial(),
 	}
 	body, err := json.Marshal(objToSend)
 	if err != nil {
@@ -204,11 +205,6 @@ func (adam *Ctx) Register(eveCert string, eveSerial string) error {
 		return err
 	}
 	return adam.postObj("/admin/onboard", body)
-}
-
-//OnBoardList return onboard list
-func (adam *Ctx) OnBoardList() (out []string, err error) {
-	return adam.getList("/admin/onboard")
 }
 
 //DeviceList return device list
@@ -308,5 +304,5 @@ func (adam *Ctx) DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err erro
 			return uuid.Nil, err
 		}
 	}
-	return uuid.Nil, fmt.Errorf("not implemented now")
+	return uuid.Nil, fmt.Errorf("no device found")
 }

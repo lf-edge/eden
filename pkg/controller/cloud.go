@@ -67,8 +67,8 @@ type Cloud interface {
 	RemoveApplicationInstanceConfig(id string) error
 	ListApplicationInstanceConfig() []*config.AppInstanceConfig
 	StateUpdate(dev *device.Ctx) (err error)
-	OnBoard() error
 	OnBoardDev(node *device.Ctx) error
 	GetVars() *utils.ConfigVars
 	SetVars(*utils.ConfigVars)
+	GetAllNodes()
 }

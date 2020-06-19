@@ -157,6 +157,6 @@ func confChangerInit() {
 	}
 	confChangerCmd.Flags().StringVarP(&eveImageFile, "image-file", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist, "dist", runtime.GOARCH, "live.qcow2"), "image to modify (required)")
 	confChangerCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist, "run", "config"), "path for config drive")
-	confChangerCmd.Flags().StringVarP(&eveHV, "hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
+	confChangerCmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
 	confChangerCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
 }

@@ -52,7 +52,12 @@ func TestApplication(t *testing.T) {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
 
-	deviceModel, err := ctx.GetDevModel(controller.DevModelTypeQemu)
+	deviceCtx, err := ctx.GetDeviceFirst()
+	if err != nil {
+		t.Fatal("Fail in get first device: ", err)
+	}
+
+	deviceModel, err := ctx.GetDevModelByName(defaults.DefaultEVEModel)
 	if err != nil {
 		t.Fatal("Fail in get deviceModel: ", err)
 	}
@@ -184,14 +189,6 @@ func TestApplication(t *testing.T) {
 
 			if err != nil {
 				t.Fatal("Fail in prepare app from local file: ", err)
-			}
-			deviceCtx, err := ctx.GetDeviceFirst()
-			if err != nil {
-				t.Fatal("Fail in get first device: ", err)
-			}
-			err = ctx.ApplyDevModel(deviceCtx, deviceModel)
-			if err != nil {
-				t.Fatal("Fail in ApplyDevModel: ", err)
 			}
 			appInstances = append(appInstances, tt.appDefinition.appID)
 			deviceCtx.SetApplicationInstanceConfig(appInstances)

@@ -76,15 +76,14 @@ func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.C
 
 type adamChanger struct {
 	adamUrl string
-	oldHash [32]byte
 }
 
-func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
+func (ctx *adamChanger) getController() (controller.Cloud, error) {
 	if ctx.adamUrl != "" { //overwrite config only if url defined
 		ipPort := strings.Split(ctx.adamUrl, ":")
 		ip := ipPort[0]
 		if ip == "" {
-			return nil, nil, fmt.Errorf("cannot get ip/hostname from %s", ctx.adamUrl)
+			return nil, fmt.Errorf("cannot get ip/hostname from %s", ctx.adamUrl)
 		}
 		port := "80"
 		if len(ipPort) > 1 {
@@ -95,47 +94,24 @@ func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	}
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
-		return nil, nil, fmt.Errorf("CloudPrepare error: %s", err)
+		return nil, fmt.Errorf("CloudPrepare error: %s", err)
 	}
-	if err := ctrl.OnBoard(); err != nil {
-		return nil, nil, fmt.Errorf("OnBoard: %s", err)
+	return ctrl, nil
+}
+
+func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
+	ctrl, err := ctx.getController()
+	if err != nil {
+		return nil, nil, fmt.Errorf("getController error: %s", err)
 	}
 	devFirst, err := ctrl.GetDeviceFirst()
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetDeviceFirst error: %s", err)
 	}
-	configString, err := ctrl.ConfigGet(devFirst.GetID())
-	if err != nil {
-		return nil, nil, fmt.Errorf("ConfigGet error: %s", err)
-	}
-	var deviceConfig config.EdgeDevConfig
-	err = json.Unmarshal([]byte(configString), &deviceConfig)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unmarshal error: %s", err)
-	}
-	dev, err := ctrl.ConfigParse(&deviceConfig)
-	if err != nil {
-		return nil, nil, fmt.Errorf("configParse error: %s", err)
-	}
-	res, err := ctrl.GetConfigBytes(dev, false)
-	if err != nil {
-		return nil, nil, fmt.Errorf("GetConfigBytes error: %s", err)
-	}
-	ctx.oldHash = sha256.Sum256(res)
-	return ctrl, dev, nil
+	return ctrl, devFirst, nil
 }
 
 func (ctx *adamChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.Ctx) error {
-	res, err := ctrl.GetConfigBytes(dev, false)
-	if err != nil {
-		return fmt.Errorf("GetConfigBytes error: %s", err)
-	}
-	newHash := sha256.Sum256(res)
-	if ctx.oldHash == newHash {
-		log.Debug("config not modified")
-		return nil
-	}
-	dev.SetConfigVersion(dev.GetConfigVersion() + 1)
 	if err := ctrl.ConfigSync(dev); err != nil {
 		return fmt.Errorf("configSync error: %s", err)
 	}

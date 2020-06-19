@@ -56,8 +56,8 @@ var edgeNodeReboot = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Mode type: %s", modeType)
-		log.Infof("Mode url: %s", modeURL)
+		log.Debugf("Mode type: %s", modeType)
+		log.Debugf("Mode url: %s", modeURL)
 		var changer configChanger
 		switch modeType {
 		case "file":
@@ -151,8 +151,8 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Mode type: %s", modeType)
-		log.Infof("Mode url: %s", modeURL)
+		log.Debugf("Mode type: %s", modeType)
+		log.Debugf("Mode url: %s", modeURL)
 		var changer configChanger
 		switch modeType {
 		case "file":
@@ -337,8 +337,8 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Mode type: %s", modeType)
-		log.Infof("Mode url: %s", modeURL)
+		log.Debugf("Mode type: %s", modeType)
+		log.Debugf("Mode url: %s", modeURL)
 		var changer configChanger
 		switch modeType {
 		case "file":
@@ -423,8 +423,8 @@ var edgeNodeUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Mode type: %s", modeType)
-		log.Infof("Mode url: %s", modeURL)
+		log.Debugf("Mode type: %s", modeType)
+		log.Debugf("Mode url: %s", modeURL)
 		var changer configChanger
 		switch modeType {
 		case "file":
@@ -467,8 +467,8 @@ var edgeNodeGetConfig = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Mode type: %s", modeType)
-		log.Infof("Mode url: %s", modeURL)
+		log.Debugf("Mode type: %s", modeType)
+		log.Debugf("Mode url: %s", modeURL)
 		var changer configChanger
 		switch modeType {
 		case "file":

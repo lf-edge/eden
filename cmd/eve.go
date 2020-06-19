@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -225,15 +226,24 @@ var onboardEveCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		changer := &adamChanger{}
-		ctrl, device, err := changer.getControllerAndDev()
+		ctrl, err := changer.getController()
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err = ctrl.StateUpdate(device); err != nil {
+		vars := ctrl.GetVars()
+		dev := device.CreateEdgeNode()
+		dev.SetSerial(vars.EveSerial)
+		dev.SetOnboardKey(vars.EveCert)
+		dev.SetDevModel(vars.DevModel)
+		err = ctrl.OnBoardDev(dev)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = ctrl.StateUpdate(dev); err != nil {
 			log.Fatal(err)
 		}
 		log.Info("onboarded")
-		log.Info("device UUID: ", device.GetID().String())
+		log.Info("device UUID: ", dev.GetID().String())
 	},
 }
 
