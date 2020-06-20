@@ -8,6 +8,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -283,6 +284,18 @@ func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoTy
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return einfo.InfoLast(loader, q, einfo.ZInfoFind, handler, infoType)
+}
+
+//MetricChecker check metrics by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
+func (adam *Ctx) MetricChecker(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc, mode emetric.MetricCheckerMode, timeout time.Duration) (err error) {
+	return emetric.MetricChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
+}
+
+//MetricLastCallback check metrics by pattern from existence files with callback
+func (adam *Ctx) MetricLastCallback(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc) (err error) {
+	var loader = adam.getLoader()
+	loader.SetUUID(devUUID)
+	return emetric.MetricLast(loader, q, handler)
 }
 
 //DeviceGetOnboard get device onboardUUID for devUUID
