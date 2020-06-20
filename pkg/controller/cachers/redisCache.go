@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
+	"github.com/lf-edge/eve/api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,21 +16,23 @@ import (
 type getStream = func(devUUID uuid.UUID) (stream string)
 
 type redisCache struct {
-	addr       string
-	password   string
-	databaseID int
-	streamLogs getStream
-	streamInfo getStream
-	client     *redis.Client
+	addr          string
+	password      string
+	databaseID    int
+	streamLogs    getStream
+	streamInfo    getStream
+	streamMetrics getStream
+	client        *redis.Client
 }
 
-func RedisCache(addr string, password string, databaseID int, dirLogs getDir, dirInfo getDir) *redisCache {
+func RedisCache(addr string, password string, databaseID int, streamLogs getStream, streamInfo getStream, streamMetrics getStream) *redisCache {
 	return &redisCache{
-		addr:       addr,
-		password:   password,
-		databaseID: databaseID,
-		streamLogs: dirLogs,
-		streamInfo: dirInfo,
+		addr:          addr,
+		password:      password,
+		databaseID:    databaseID,
+		streamLogs:    streamLogs,
+		streamInfo:    streamInfo,
+		streamMetrics: streamMetrics,
 	}
 }
 
@@ -65,6 +68,13 @@ func (cacher *redisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess int, dat
 	case int(InfoType):
 		streamToWrite = cacher.streamInfo(devUUID)
 		var emp info.ZInfoMsg
+		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+			return err
+		}
+		itemTimeStamp = emp.AtTimeStamp
+	case int(MetricsType):
+		streamToWrite = cacher.streamMetrics(devUUID)
+		var emp metrics.ZMetricMsg
 		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
 			return err
 		}

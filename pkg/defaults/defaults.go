@@ -80,6 +80,7 @@ const (
 	DefaultX509Company           = "Itmo"
 	DefaultLogsRedisPrefix       = "LOGS_EVE_"
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
+	DefaultMetricsRedisPrefix    = "METRICS_EVE_"
 
 	DefaultAppSubnet = "10.1.0.0/24"
 

@@ -69,13 +69,13 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 			if err != nil {
 				log.Fatalf("Cannot parse adam redis url: %s", err)
 			}
-			loader = loaders.RedisLoader(addr, password, databaseID, adam.getLogsRedisStream, adam.getInfoRedisStream)
+			loader = loaders.RedisLoader(addr, password, databaseID, adam.getLogsRedisStream, adam.getInfoRedisStream, adam.getMetricsRedisStream)
 		} else {
-			loader = loaders.RemoteLoader(adam.getHTTPClient, adam.getLogsUrl, adam.getInfoUrl)
+			loader = loaders.RemoteLoader(adam.getHTTPClient, adam.getLogsUrl, adam.getInfoUrl, adam.getMetricsUrl)
 		}
 	} else {
 		log.Debug("will use local adam loader")
-		loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir)
+		loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir, adam.getMetricsDir)
 	}
 	if adam.AdamCaching {
 		var cache cachers.Cacher
@@ -84,9 +84,9 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 			if err != nil {
 				log.Fatalf("Cannot parse adam redis url: %s", err)
 			}
-			cache = cachers.RedisCache(addr, password, databaseID, adam.getLogsRedisStreamCache, adam.getInfoRedisStreamCache)
+			cache = cachers.RedisCache(addr, password, databaseID, adam.getLogsRedisStreamCache, adam.getInfoRedisStreamCache, adam.getMetricsRedisStreamCache)
 		} else {
-			cache = cachers.FileCache(adam.getLogsDirCache, adam.getInfoDirCache)
+			cache = cachers.FileCache(adam.getLogsDirCache, adam.getInfoDirCache, adam.getMetricsDirCache)
 		}
 		loader.SetRemoteCache(cache)
 	}
@@ -123,6 +123,11 @@ func (adam *Ctx) getInfoRedisStream(devUUID uuid.UUID) (dir string) {
 	return fmt.Sprintf("%s%s", defaults.DefaultInfoRedisPrefix, devUUID.String())
 }
 
+//getMetricsRedisStream return metrics stream for devUUID for load from redis
+func (adam *Ctx) getMetricsRedisStream(devUUID uuid.UUID) (dir string) {
+	return fmt.Sprintf("%s%s", defaults.DefaultMetricsRedisPrefix, devUUID.String())
+}
+
 //getLogsRedisStreamCache return logs stream for devUUID for caching in redis
 func (adam *Ctx) getLogsRedisStreamCache(devUUID uuid.UUID) (dir string) {
 	if adam.AdamCachingPrefix == "" {
@@ -137,6 +142,14 @@ func (adam *Ctx) getInfoRedisStreamCache(devUUID uuid.UUID) (dir string) {
 		return adam.getInfoRedisStream(devUUID)
 	}
 	return fmt.Sprintf("INFO_EVE_%s_%s", adam.AdamCachingPrefix, devUUID.String())
+}
+
+//getMetricsRedisStreamCache return metrics stream for devUUID for caching in redis
+func (adam *Ctx) getMetricsRedisStreamCache(devUUID uuid.UUID) (dir string) {
+	if adam.AdamCachingPrefix == "" {
+		return adam.getMetricsRedisStream(devUUID)
+	}
+	return fmt.Sprintf("METRICS_EVE_%s_%s", adam.AdamCachingPrefix, devUUID.String())
 }
 
 //getRedisStreamCache return logs stream for devUUID for caching in redis
@@ -155,6 +168,14 @@ func (adam *Ctx) getInfoDirCache(devUUID uuid.UUID) (dir string) {
 	return path.Join(adam.dir, adam.AdamCachingPrefix, devUUID.String(), "info")
 }
 
+//getMetricsDirCache return metrics directory for devUUID for caching
+func (adam *Ctx) getMetricsDirCache(devUUID uuid.UUID) (dir string) {
+	if adam.AdamCachingPrefix == "" {
+		return adam.getMetricsDir(devUUID)
+	}
+	return path.Join(adam.dir, adam.AdamCachingPrefix, devUUID.String(), "metrics")
+}
+
 //getLogsDir return logs directory for devUUID
 func (adam *Ctx) getLogsDir(devUUID uuid.UUID) (dir string) {
 	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "logs")
@@ -163,6 +184,11 @@ func (adam *Ctx) getLogsDir(devUUID uuid.UUID) (dir string) {
 //getInfoDir return info directory for devUUID
 func (adam *Ctx) getInfoDir(devUUID uuid.UUID) (dir string) {
 	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "info")
+}
+
+//getMetricsDir return metrics directory for devUUID
+func (adam *Ctx) getMetricsDir(devUUID uuid.UUID) (dir string) {
+	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "metrics")
 }
 
 //getLogsUrl return logs url for devUUID
@@ -177,6 +203,15 @@ func (adam *Ctx) getLogsUrl(devUUID uuid.UUID) string {
 //getLogsUrl return info url for devUUID
 func (adam *Ctx) getInfoUrl(devUUID uuid.UUID) string {
 	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "info"))
+	if err != nil {
+		log.Fatalf("ResolveURL: %s", err)
+	}
+	return resUrl
+}
+
+//getMetricsUrl return metrics url for devUUID
+func (adam *Ctx) getMetricsUrl(devUUID uuid.UUID) string {
+	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "metrics"))
 	if err != nil {
 		log.Fatalf("ResolveURL: %s", err)
 	}

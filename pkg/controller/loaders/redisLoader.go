@@ -15,26 +15,28 @@ import (
 type getStream = func(devUUID uuid.UUID) (stream string)
 
 type redisLoader struct {
-	lastID     string
-	addr       string
-	password   string
-	databaseID int
-	streamLogs getStream
-	streamInfo getStream
-	client     *redis.Client
-	cache      cachers.Cacher
-	devUUID    uuid.UUID
+	lastID        string
+	addr          string
+	password      string
+	databaseID    int
+	streamLogs    getStream
+	streamInfo    getStream
+	streamMetrics getStream
+	client        *redis.Client
+	cache         cachers.Cacher
+	devUUID       uuid.UUID
 }
 
 //RedisLoader return loader from redis
-func RedisLoader(addr string, password string, databaseID int, streamLogs getStream, streamInfo getStream) *redisLoader {
+func RedisLoader(addr string, password string, databaseID int, streamLogs getStream, streamInfo getStream, streamMetrics getStream) *redisLoader {
 	log.Debugf("RedisLoader init")
 	return &redisLoader{
-		addr:       addr,
-		password:   password,
-		databaseID: databaseID,
-		streamLogs: streamLogs,
-		streamInfo: streamInfo,
+		addr:          addr,
+		password:      password,
+		databaseID:    databaseID,
+		streamLogs:    streamLogs,
+		streamInfo:    streamInfo,
+		streamMetrics: streamMetrics,
 	}
 }
 
@@ -46,14 +48,15 @@ func (loader *redisLoader) SetRemoteCache(cache cachers.Cacher) {
 //Clone create copy
 func (loader *redisLoader) Clone() Loader {
 	return &redisLoader{
-		addr:       loader.addr,
-		password:   loader.password,
-		databaseID: loader.databaseID,
-		streamLogs: loader.streamLogs,
-		streamInfo: loader.streamInfo,
-		lastID:     "",
-		cache:      loader.cache,
-		devUUID:    loader.devUUID,
+		addr:          loader.addr,
+		password:      loader.password,
+		databaseID:    loader.databaseID,
+		streamLogs:    loader.streamLogs,
+		streamInfo:    loader.streamInfo,
+		streamMetrics: loader.streamMetrics,
+		lastID:        "",
+		cache:         loader.cache,
+		devUUID:       loader.devUUID,
 	}
 }
 
@@ -63,6 +66,8 @@ func (loader *redisLoader) getStream(typeToProcess infoOrLogs) string {
 		return loader.streamLogs(loader.devUUID)
 	case InfoType:
 		return loader.streamInfo(loader.devUUID)
+	case MetricsType:
+		return loader.streamMetrics(loader.devUUID)
 	default:
 		return ""
 	}
