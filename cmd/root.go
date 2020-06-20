@@ -46,6 +46,8 @@ func init() {
 	infoInit()
 	rootCmd.AddCommand(logCmd)
 	logInit()
+	rootCmd.AddCommand(metricCmd)
+	metricInit()
 	rootCmd.AddCommand(certsCmd)
 	certsInit()
 	rootCmd.AddCommand(serverCmd)
