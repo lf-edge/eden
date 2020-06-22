@@ -37,17 +37,13 @@ var (
 )
 
 func checkReboot(im *info.ZInfoMsg) error {
-	if im.GetDinfo() == nil {
+	if im.GetZtype() != info.ZInfoTypes_ZiDevice {
 		return nil
 	}
 	currentLastRebootTime := im.GetDinfo().LastRebootTime
-	if lastRebootTime == nil {
+	if !proto.Equal(lastRebootTime, currentLastRebootTime) {
 		lastRebootTime = currentLastRebootTime
-	} else {
-		if !proto.Equal(lastRebootTime, currentLastRebootTime) {
-			lastRebootTime = currentLastRebootTime
-			return fmt.Errorf("rebooted with reason %s at %s", im.GetDinfo().LastRebootReason, ptypes.TimestampString(lastRebootTime))
-		}
+		return fmt.Errorf("rebooted with reason %s at %s", im.GetDinfo().LastRebootReason, ptypes.TimestampString(lastRebootTime))
 	}
 	return nil
 }
@@ -104,6 +100,8 @@ func TestMain(m *testing.M) {
 		tc.AddNode(edgeNode)
 	}
 
+	tc.StartTrackingState(false)
+
 	// we now have a situation where TestContext has enough EVE nodes known
 	// for the rest of the tests to run. So run them:
 	res := m.Run()
@@ -119,13 +117,21 @@ func TestReboot(t *testing.T) {
 	// one can specify a name GetEdgeNode("foo")
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
+	t.Logf("Wait for state of %s", edgeNode.GetName())
+
+	tc.WaitForState(edgeNode, *timewait)
+
+	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
+
+	t.Logf("lastRebootTime: %s", ptypes.TimestampString(lastRebootTime))
+
 	// this is modeled after: zcli edge-node reboot [-f] <name>
 	// this is expected to be a synchronous call for now
 	edgeNode.Reboot()
 
 	tc.ConfigSync(edgeNode)
 
-	log.Infof("Wait for reboot of %s", edgeNode.GetName())
+	t.Logf("Wait for reboot of %s", edgeNode.GetName())
 
 	tc.AddProcInfo(edgeNode, checkReboot)
 
