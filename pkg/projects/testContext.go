@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -37,6 +38,7 @@ type TestContext struct {
 	nodes   []*device.Ctx
 	procBus *processingBus
 	tests   map[*device.Ctx]*testing.T
+	states  map[*device.Ctx]*state
 }
 
 //NewTestContext creates new TestContext
@@ -213,4 +215,71 @@ func (tc *TestContext) AddProcInfo(edgeNode *device.Ctx, processFunction ProcInf
 //AddProcMetric add processFunction, that will get all metrics for edgeNode
 func (tc *TestContext) AddProcMetric(edgeNode *device.Ctx, processFunction ProcMetricFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)
+}
+
+//StartTrackingState init function for state monitoring
+//if onlyNewElements set no use old information from controller
+func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
+	tc.states = map[*device.Ctx]*state{}
+	for _, dev := range tc.nodes {
+		curState := InitState(dev)
+		tc.states[dev] = curState
+		if !onlyNewElements {
+			err := tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, einfo.ZAll, curState.getProcessorInfo())
+			if err != nil {
+				log.Errorf("InfoChecker for dev %s error %s", dev.GetID(), err)
+			}
+		}
+		if _, exists := tc.procBus.proc[dev]; !exists {
+			go func() {
+				err := tc.GetController().InfoChecker(dev.GetID(), map[string]string{}, einfo.ZAll, tc.procBus.getMainProcessorInfo(dev), einfo.InfoNew, 0)
+				if err != nil {
+					log.Errorf("InfoChecker for dev %s error %s", dev.GetID(), err)
+				}
+			}()
+		}
+		tc.procBus.proc[dev] = append(tc.procBus.proc[dev], &absFunc{proc: curState.GetInfoProcessingFunction(), disabled: false})
+	}
+}
+
+//WaitForState wait for state initialization from controller
+func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
+	state, isOk := tc.states[edgeNode]
+	if !isOk {
+		log.Fatalf("edgeNode not found with name %s", edgeNode.GetName())
+	}
+	timeout := time.Duration(secs) * time.Second
+	waitChan := make(chan struct{})
+	go func() {
+		for {
+			if state.CheckReady() {
+				close(waitChan)
+				return
+			} else {
+				time.Sleep(defaults.DefaultRepeatTimeout)
+			}
+		}
+	}()
+	select {
+	case <-waitChan:
+		if el, isOk := tc.tests[edgeNode]; !isOk {
+			log.Println("done waiting for state")
+		} else {
+			el.Logf("done waiting for state")
+		}
+		return
+	case <-time.After(timeout):
+		if len(tc.tests) == 0 {
+			log.Fatalf("WaitForState terminated by timeout %s", timeout)
+		}
+		for _, el := range tc.tests {
+			el.Fatalf("WaitForState terminated by timeout %s", timeout)
+		}
+		return
+	}
+}
+
+//GetState returns state object for edgeNode
+func (tc *TestContext) GetState(edgeNode *device.Ctx) *state {
+	return tc.states[edgeNode]
 }
