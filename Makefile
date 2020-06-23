@@ -27,7 +27,7 @@ export ZARCH
 
 .DEFAULT_GOAL := help
 
-clean: stop
+clean: config stop
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
 	$(LOCALBIN) clean
 	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN)

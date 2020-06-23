@@ -375,9 +375,9 @@ var configGetCmd = &cobra.Command{
 }
 
 var configDeleteCmd = &cobra.Command{
-	Use:   "delete [name]",
+	Use:   "delete <name>",
 	Short: "delete config context",
-	Args:  cobra.RangeArgs(0, 1),
+	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
@@ -387,10 +387,7 @@ var configDeleteCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		contextNameDel := ""
-		if len(args) == 1 {
-			contextNameDel = args[0]
-		}
+		contextNameDel := args[0]
 		context, err := utils.ContextLoad()
 		if err != nil {
 			log.Fatalf("Load context error: %s", err)
@@ -401,7 +398,7 @@ var configDeleteCmd = &cobra.Command{
 		if (contextNameDel == "" || contextNameDel == defaults.DefaultContext) && defaults.DefaultContext == currentContext {
 			log.Fatal("Cannot delete default context. Use 'eden clean' instead.")
 		}
-		if contextNameDel == "" {
+		if contextNameDel == currentContext {
 			contextNameDel = context.Current
 			context.SetContext(defaults.DefaultContext)
 			log.Infof("Move to %s context", defaults.DefaultContext)
