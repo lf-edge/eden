@@ -15,16 +15,17 @@ import (
 type getDir = func(devUUID uuid.UUID) (dir string)
 
 type fileLoader struct {
-	devUUID    uuid.UUID
-	logsGetter getDir
-	infoGetter getDir
-	cache      cachers.Cacher
+	devUUID       uuid.UUID
+	logsGetter    getDir
+	infoGetter    getDir
+	metricsGetter getDir
+	cache         cachers.Cacher
 }
 
 //FileLoader return loader from files
-func FileLoader(logsGetter getDir, infoGetter getDir) *fileLoader {
+func FileLoader(logsGetter getDir, infoGetter getDir, metricsGetter getDir) *fileLoader {
 	log.Debugf("FileLoader init")
-	return &fileLoader{logsGetter: logsGetter, infoGetter: infoGetter}
+	return &fileLoader{logsGetter: logsGetter, infoGetter: infoGetter, metricsGetter: metricsGetter}
 }
 
 //SetRemoteCache add cache layer
@@ -34,7 +35,13 @@ func (loader *fileLoader) SetRemoteCache(cache cachers.Cacher) {
 
 //Clone create copy
 func (loader *fileLoader) Clone() Loader {
-	return &fileLoader{logsGetter: loader.logsGetter, infoGetter: loader.infoGetter, devUUID: loader.devUUID, cache: loader.cache}
+	return &fileLoader{
+		logsGetter:    loader.logsGetter,
+		infoGetter:    loader.infoGetter,
+		metricsGetter: loader.metricsGetter,
+		devUUID:       loader.devUUID,
+		cache:         loader.cache,
+	}
 }
 
 func (loader *fileLoader) getFilePath(typeToProcess infoOrLogs) string {
@@ -43,6 +50,8 @@ func (loader *fileLoader) getFilePath(typeToProcess infoOrLogs) string {
 		return loader.logsGetter(loader.devUUID)
 	case InfoType:
 		return loader.infoGetter(loader.devUUID)
+	case MetricsType:
+		return loader.metricsGetter(loader.devUUID)
 	default:
 		return ""
 	}

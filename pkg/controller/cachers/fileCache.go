@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
+	"github.com/lf-edge/eve/api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"os"
@@ -16,14 +17,16 @@ import (
 type getDir = func(devUUID uuid.UUID) (dir string)
 
 type fileCache struct {
-	dirLogs getDir
-	dirInfo getDir
+	dirLogs    getDir
+	dirInfo    getDir
+	dirMetrics getDir
 }
 
-func FileCache(dirLogs getDir, dirInfo getDir) *fileCache {
+func FileCache(dirLogs getDir, dirInfo getDir, dirMetrics getDir) *fileCache {
 	return &fileCache{
-		dirLogs: dirLogs,
-		dirInfo: dirInfo,
+		dirLogs:    dirLogs,
+		dirInfo:    dirInfo,
+		dirMetrics: dirMetrics,
 	}
 }
 
@@ -43,6 +46,13 @@ func (cacher *fileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess int, data
 	case int(InfoType):
 		pathToCheck = cacher.dirInfo(devUUID)
 		var emp info.ZInfoMsg
+		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+			return err
+		}
+		itemTimeStamp = emp.AtTimeStamp
+	case int(MetricsType):
+		pathToCheck = cacher.dirMetrics(devUUID)
+		var emp metrics.ZMetricMsg
 		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
 			return err
 		}

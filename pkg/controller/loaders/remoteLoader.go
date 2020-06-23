@@ -33,15 +33,24 @@ type remoteLoader struct {
 	devUUID      uuid.UUID
 	urlLogs      getUrl
 	urlInfo      getUrl
+	urlMetrics   getUrl
 	getClient    getClient
 	client       *http.Client
 	cache        cachers.Cacher
 }
 
 //RemoteLoader return loader from files
-func RemoteLoader(getClient getClient, urlLogs getUrl, urlInfo getUrl) *remoteLoader {
+func RemoteLoader(getClient getClient, urlLogs getUrl, urlInfo getUrl, urlMetrics getUrl) *remoteLoader {
 	log.Debugf("HTTP RemoteLoader init")
-	return &remoteLoader{urlLogs: urlLogs, urlInfo: urlInfo, getClient: getClient, firstLoad: true, lastTimesamp: nil, client: getClient()}
+	return &remoteLoader{
+		urlLogs:      urlLogs,
+		urlInfo:      urlInfo,
+		urlMetrics:   urlMetrics,
+		getClient:    getClient,
+		firstLoad:    true,
+		lastTimesamp: nil,
+		client:       getClient(),
+	}
 }
 
 //SetRemoteCache add cache layer
@@ -51,7 +60,17 @@ func (loader *remoteLoader) SetRemoteCache(cache cachers.Cacher) {
 
 //Clone create copy
 func (loader *remoteLoader) Clone() Loader {
-	return &remoteLoader{urlLogs: loader.urlLogs, urlInfo: loader.urlInfo, getClient: loader.getClient, firstLoad: true, lastTimesamp: nil, devUUID: loader.devUUID, client: loader.getClient(), cache: loader.cache}
+	return &remoteLoader{
+		urlLogs:      loader.urlLogs,
+		urlInfo:      loader.urlInfo,
+		urlMetrics:   loader.urlMetrics,
+		getClient:    loader.getClient,
+		firstLoad:    true,
+		lastTimesamp: nil,
+		devUUID:      loader.devUUID,
+		client:       loader.getClient(),
+		cache:        loader.cache,
+	}
 }
 
 func (loader *remoteLoader) getUrl(typeToProcess infoOrLogs) string {
@@ -60,6 +79,8 @@ func (loader *remoteLoader) getUrl(typeToProcess infoOrLogs) string {
 		return loader.urlLogs(loader.devUUID)
 	case InfoType:
 		return loader.urlInfo(loader.devUUID)
+	case MetricsType:
+		return loader.urlMetrics(loader.devUUID)
 	default:
 		return ""
 	}

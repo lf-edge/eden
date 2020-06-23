@@ -23,5 +23,8 @@ var LogsType infoOrLogs = 1
 //InfoType for observe info
 var InfoType infoOrLogs = 2
 
+//MetricsType for observe metrics
+var MetricsType infoOrLogs = 3
+
 //ProcessFunction is prototype of processing function
 type ProcessFunction func(bytes []byte) (bool, error)
