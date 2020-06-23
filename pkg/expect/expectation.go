@@ -14,7 +14,11 @@ import (
 
 type appType int
 
-var dockerApp appType = 1
+var (
+	dockerApp appType = 1
+	httpApp   appType = 2
+	httpsApp  appType = 3
+)
 
 //appExpectation is description of app, expected to run on EVE
 type appExpectation struct {
@@ -23,12 +27,21 @@ type appExpectation struct {
 	appUrl     string
 	appVersion string
 	appName    string
+	appLink    string
 	ports      map[int]int
+	cpu        uint32
+	mem        uint32
 }
 
 //AppExpectationFromUrl init appExpectation with defined appLink
 func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, portPublish []string, qemuPorts map[string]string) (expectation *appExpectation) {
-	expectation = &appExpectation{ctrl: ctrl, ports: make(map[int]int)}
+	expectation = &appExpectation{
+		ctrl:    ctrl,
+		ports:   make(map[int]int),
+		appLink: appLink,
+		cpu:     defaults.DefaultAppCpu,
+		mem:     defaults.DefaultAppMem,
+	}
 	if portPublish != nil && len(portPublish) > 0 {
 	exit:
 		for _, el := range portPublish {
@@ -79,7 +92,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 	}
 	params := utils.GetParams(appLink, defaults.DefaultPodLinkPattern)
 	if len(params) == 0 {
-		log.Fatalf("fail to parse <docker>://<TAG>[:<VERSION>] from argument (%s)", appLink)
+		log.Fatalf("fail to parse (docker|http(s))://(<TAG>[:<VERSION>] | <URL>) from argument (%s)", appLink)
 	}
 	expectation.appType = 0
 	expectation.appUrl = ""
@@ -92,6 +105,10 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 	switch appType {
 	case "docker":
 		expectation.appType = dockerApp
+	case "http":
+		expectation.appType = httpApp
+	case "https":
+		expectation.appType = httpsApp
 	case "":
 		expectation.appType = dockerApp
 	default:
@@ -100,7 +117,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 	if expectation.appUrl, ok = params["TAG"]; !ok || expectation.appUrl == "" {
 		log.Fatalf("cannot parse appTag: %s", appLink)
 	}
-	if expectation.appVersion, ok = params["VERSION"]; !ok || expectation.appVersion == "" {
+	if expectation.appVersion, ok = params["VERSION"]; expectation.appType == dockerApp && (!ok || expectation.appVersion == "") {
 		log.Debugf("cannot parse appVersion from %s will use latest", appLink)
 		expectation.appVersion = "latest"
 	}

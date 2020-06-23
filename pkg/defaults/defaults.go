@@ -71,7 +71,7 @@ const (
 	DefaultTestScenario          = ""
 	DefaultRootFSVersionPattern  = `^(\d+\.*){2,3}.*-(xen|kvm|acrn)-(amd64|arm64)$`
 	DefaultControllerModePattern = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.*)$`
-	DefaultPodLinkPattern        = `^(?P<TYPE>(docker)):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
+	DefaultPodLinkPattern        = `^(?P<TYPE>(docker|http[s]{0,1})):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
 	DefaultRedisContainerName    = "eden_redis"
 	DefaultAdamContainerName     = "eden_adam"
 	DefaultDockerNetworkName     = "eden_network"
@@ -87,6 +87,9 @@ const (
 	DefaultEVEModel = "ZedVirtual-4G"
 
 	DefaultEVEImageSize = 8192
+
+	DefaultAppMem = 1024000
+	DefaultAppCpu = 1
 )
 
 var (

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net"
+	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -139,4 +141,17 @@ func inc(ip net.IP) {
 			break
 		}
 	}
+}
+
+//GetFileSizeUrl returns file size for url
+func GetFileSizeUrl(url string) int64 {
+	resp, err := http.Head(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal(resp.Status)
+	}
+	size, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
+	return int64(size)
 }

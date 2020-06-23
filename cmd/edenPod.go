@@ -26,7 +26,7 @@ var podCmd = &cobra.Command{
 
 //podDeployCmd is command for deploy application on EVE
 var podDeployCmd = &cobra.Command{
-	Use:   "deploy <docker>://<TAG>[:<VERSION>]",
+	Use:   "deploy (docker|http(s))://(<TAG>[:<VERSION>] | <URL for qcow2 image>)",
 	Short: "Deploy app in pod",
 	Long:  `Deploy app in pod.`,
 	Args:  cobra.ExactArgs(1),

@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func checkNetworkInstance(netInst *config.NetworkInstanceConfig) bool {
+func (exp *appExpectation) checkNetworkInstance(netInst *config.NetworkInstanceConfig) bool {
 	if netInst == nil {
 		return false
 	}
@@ -18,7 +18,7 @@ func checkNetworkInstance(netInst *config.NetworkInstanceConfig) bool {
 	return false
 }
 
-func createNetworkInstance() (*config.NetworkInstanceConfig, error) {
+func (exp *appExpectation) createNetworkInstance() (*config.NetworkInstanceConfig, error) {
 	var netInst *config.NetworkInstanceConfig
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -56,13 +56,13 @@ func createNetworkInstance() (*config.NetworkInstanceConfig, error) {
 func (exp *appExpectation) NetworkInstance() (networkInstance *config.NetworkInstanceConfig) {
 	var err error
 	for _, netInst := range exp.ctrl.ListNetworkInstanceConfig() {
-		if checkNetworkInstance(netInst) {
+		if exp.checkNetworkInstance(netInst) {
 			networkInstance = netInst
 			break
 		}
 	}
 	if networkInstance == nil {
-		if networkInstance, err = createNetworkInstance(); err != nil {
+		if networkInstance, err = exp.createNetworkInstance(); err != nil {
 			log.Fatalf("cannot create NetworkInstance: %s", err)
 		}
 		if err = exp.ctrl.AddNetworkInstanceConfig(networkInstance); err != nil {

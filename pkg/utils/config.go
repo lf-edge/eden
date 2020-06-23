@@ -19,6 +19,7 @@ import (
 type ConfigVars struct {
 	AdamIP            string
 	AdamPort          string
+	AdamDomain        string
 	AdamDir           string
 	AdamCA            string
 	AdamRemote        bool
@@ -39,6 +40,8 @@ type ConfigVars struct {
 	EdenProg          string
 	TestProg          string
 	TestScenario      string
+	EServerImageDist  string
+	EServerPort       string
 }
 
 //InitVars loads vars from viper
@@ -55,6 +58,7 @@ func InitVars() (*ConfigVars, error) {
 		var vars = &ConfigVars{
 			AdamIP:            viper.GetString("adam.ip"),
 			AdamPort:          viper.GetString("adam.port"),
+			AdamDomain:        viper.GetString("adam.domain"),
 			AdamDir:           ResolveAbsPath(viper.GetString("adam.dist")),
 			AdamCA:            ResolveAbsPath(viper.GetString("adam.ca")),
 			AdamRedisUrlEden:  viper.GetString("adam.redis.eden"),
@@ -75,6 +79,8 @@ func InitVars() (*ConfigVars, error) {
 			EdenProg:          viper.GetString("eden.eden-bin"),
 			TestProg:          viper.GetString("eden.test-bin"),
 			TestScenario:      viper.GetString("eden.test-scenario"),
+			EServerImageDist:  ResolveAbsPath(viper.GetString("eden.images.dist")),
+			EServerPort:       viper.GetString("eden.eserver.port"),
 		}
 		return vars, nil
 	}
