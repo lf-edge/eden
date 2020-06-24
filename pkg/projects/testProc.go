@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
@@ -59,6 +60,11 @@ func (lb *processingBus) process(edgeNode *device.Ctx, inp interface{}) bool {
 						if match {
 							lb.processReturn(edgeNode, procFunc, pf(el))
 						}
+					case ProcMetricFunc:
+						el, match := inp.(*metrics.ZMetricMsg)
+						if match {
+							lb.processReturn(edgeNode, procFunc, pf(el))
+						}
 					}
 				}
 			}
@@ -79,20 +85,36 @@ func (lb *processingBus) getMainProcessorInfo(dev *device.Ctx) einfo.HandlerFunc
 	}
 }
 
+func (lb *processingBus) getMainProcessorMetric(dev *device.Ctx) emetric.HandlerFunc {
+	return func(msg *metrics.ZMetricMsg) bool {
+		return lb.process(dev, msg)
+	}
+}
+
+func (lb *processingBus) initCheckers(dev *device.Ctx) {
+	go func() {
+		err := lb.tc.GetController().LogChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorLog(dev), elog.LogNew, 0)
+		if err != nil {
+			log.Errorf("LogChecker for dev %s error %s", dev.GetID(), err)
+		}
+	}()
+	go func() {
+		err := lb.tc.GetController().InfoChecker(dev.GetID(), map[string]string{}, einfo.ZAll, lb.getMainProcessorInfo(dev), einfo.InfoNew, 0)
+		if err != nil {
+			log.Errorf("InfoChecker for dev %s error %s", dev.GetID(), err)
+		}
+	}()
+	go func() {
+		err := lb.tc.GetController().MetricChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorMetric(dev), emetric.MetricNew, 0)
+		if err != nil {
+			log.Errorf("MetricChecker for dev %s error %s", dev.GetID(), err)
+		}
+	}()
+}
+
 func (lb *processingBus) addProc(dev *device.Ctx, procFunc interface{}) {
 	if _, exists := lb.proc[dev]; !exists {
-		go func() {
-			err := lb.tc.GetController().LogChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorLog(dev), elog.LogNew, 0)
-			if err != nil {
-				log.Errorf("LogChecker for dev %s error %s", dev.GetID(), err)
-			}
-		}()
-		go func() {
-			err := lb.tc.GetController().InfoChecker(dev.GetID(), map[string]string{}, einfo.ZAll, lb.getMainProcessorInfo(dev), einfo.InfoNew, 0)
-			if err != nil {
-				log.Errorf("InfoChecker for dev %s error %s", dev.GetID(), err)
-			}
-		}()
+		lb.initCheckers(dev)
 	}
 	lb.proc[dev] = append(lb.proc[dev], &absFunc{proc: procFunc, disabled: false})
 	lb.wg.Add(1)

@@ -2,8 +2,10 @@ package projects
 
 import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve/api/go/metrics"
 )
 
 type infoState struct {
@@ -13,6 +15,11 @@ type infoState struct {
 	volume          []*info.ZInfoVolume
 	contentTree     []*info.ZInfoContentTree
 	blobs           []*info.ZInfoBlob
+
+	appMetrics             []*metrics.AppMetric
+	networkInstanceMetrics []*metrics.ZMetricNetworkInstance
+	vmMetrics              []*metrics.ZMetricVolume
+	deviceMetric           *metrics.DeviceMetric
 }
 
 type state struct {
@@ -25,7 +32,7 @@ func InitState(device *device.Ctx) *state {
 	return &state{device: device, deviceInfo: &infoState{}}
 }
 
-func (state *state) process(infoMsg *info.ZInfoMsg) error {
+func (state *state) processInfo(infoMsg *info.ZInfoMsg) error {
 	if infoMsg.DevId != state.device.GetID().String() {
 		return nil
 	}
@@ -86,14 +93,38 @@ func (state *state) process(infoMsg *info.ZInfoMsg) error {
 
 func (state *state) getProcessorInfo() einfo.HandlerFunc {
 	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
-		return state.process(im) == nil
+		return state.processInfo(im) == nil
 	}
 }
 
 //GetInfoProcessingFunction returns processing function for ZInfoMsg
 func (state *state) GetInfoProcessingFunction() ProcInfoFunc {
 	return func(infoMsg *info.ZInfoMsg) error {
-		return state.process(infoMsg)
+		return state.processInfo(infoMsg)
+	}
+}
+
+func (state *state) processMetric(metricMsg *metrics.ZMetricMsg) error {
+	if metricMsg.DevID != state.device.GetID().String() {
+		return nil
+	}
+	state.deviceInfo.appMetrics = metricMsg.GetAm()
+	state.deviceInfo.networkInstanceMetrics = metricMsg.GetNm()
+	state.deviceInfo.vmMetrics = metricMsg.GetVm()
+	state.deviceInfo.deviceMetric = metricMsg.GetDm()
+	return nil
+}
+
+func (state *state) getProcessorMetric() emetric.HandlerFunc {
+	return func(msg *metrics.ZMetricMsg) bool {
+		return state.processMetric(msg) == nil
+	}
+}
+
+//GetMetricProcessingFunction returns processing function for ZMetricMsg
+func (state *state) GetMetricProcessingFunction() ProcMetricFunc {
+	return func(metricMsg *metrics.ZMetricMsg) error {
+		return state.processMetric(metricMsg)
 	}
 }
 
@@ -127,9 +158,32 @@ func (state *state) GetBinfoSlice() []*info.ZInfoBlob {
 	return state.deviceInfo.blobs
 }
 
+//GetAm get []*metrics.AppMetric from obtained metrics
+func (state *state) GetAm() []*metrics.AppMetric {
+	return state.deviceInfo.appMetrics
+}
+
+//GetNm get []*metrics.ZMetricNetworkInstance from obtained metrics
+func (state *state) GetNm() []*metrics.ZMetricNetworkInstance {
+	return state.deviceInfo.networkInstanceMetrics
+}
+
+//GetVm get []*metrics.ZMetricVolume from obtained metrics
+func (state *state) GetVm() []*metrics.ZMetricVolume {
+	return state.deviceInfo.vmMetrics
+}
+
+//GetDm get *metrics.DeviceMetric from obtained metrics
+func (state *state) GetDm() *metrics.DeviceMetric {
+	return state.deviceInfo.deviceMetric
+}
+
 //CheckReady returns true in all needed information obtained from controller
 func (state *state) CheckReady() bool {
 	if state.deviceInfo.device == nil {
+		return false
+	}
+	if state.deviceInfo.deviceMetric == nil {
 		return false
 	}
 	return true
