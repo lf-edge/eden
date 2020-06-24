@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -72,7 +72,7 @@ func runTest(testApp string, args []string, testArgs string) {
 	}
 }
 
-func runScenario() {
+func runScenario(testArgs string) {
 	// is it path to file?
 	_, err := os.Stat(testScenario)
 	if os.IsNotExist(err) {
@@ -102,9 +102,9 @@ func runScenario() {
 	}
 	strs := strings.Split(out, "\n")
 	var targs []string
-	for _, str := range strs  {
+	for _, str := range strs {
 		targs = strings.Split(str, " ")
-		runTest(targs[0], targs[1:], "")
+		runTest(targs[0], targs[1:], testArgs)
 	}
 }
 
@@ -146,7 +146,6 @@ test [test_dir] -r <regexp> [-t <timewait>] [-v <level>]
 			testScenario = vars.TestScenario
 		}
 
-
 		if testScenario == "" && testProg == "" && testRun == "" {
 			log.Fatal("Please set the --scenario option or environment variable eden.test-scenario in the EDEN configuration.")
 			return err
@@ -163,10 +162,10 @@ test [test_dir] -r <regexp> [-t <timewait>] [-v <level>]
 			runTest(testProg, []string{"-test.run", testRun}, testArgs)
 			return
 		case testScenario != "":
-			runScenario()
+			runScenario(testArgs)
 			return
 		default:
-			runScenario()
+			runScenario(testArgs)
 			return
 		}
 
