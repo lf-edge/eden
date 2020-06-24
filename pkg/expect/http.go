@@ -15,7 +15,7 @@ func (exp *appExpectation) createImageHttp(id uuid.UUID, dsId string) *config.Im
 	log.Infof("Starting download of image from %s", exp.appLink)
 	filePath := filepath.Join(exp.ctrl.GetVars().EServerImageDist, path.Base(exp.appUrl))
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
-		log.Info("file already exists %s", filePath)
+		log.Infof("file already exists %s", filePath)
 	} else {
 		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 			log.Fatal(err)

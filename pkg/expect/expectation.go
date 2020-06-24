@@ -31,16 +31,18 @@ type appExpectation struct {
 	ports      map[int]int
 	cpu        uint32
 	mem        uint32
+	metadata   string
 }
 
 //AppExpectationFromUrl init appExpectation with defined appLink
-func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, portPublish []string, qemuPorts map[string]string) (expectation *appExpectation) {
+func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, portPublish []string, qemuPorts map[string]string, metadata string) (expectation *appExpectation) {
 	expectation = &appExpectation{
-		ctrl:    ctrl,
-		ports:   make(map[int]int),
-		appLink: appLink,
-		cpu:     defaults.DefaultAppCpu,
-		mem:     defaults.DefaultAppMem,
+		ctrl:     ctrl,
+		ports:    make(map[int]int),
+		appLink:  appLink,
+		cpu:      defaults.DefaultAppCpu,
+		mem:      defaults.DefaultAppMem,
+		metadata: strings.Replace(metadata, `\n`, "\n", -1),
 	}
 	if portPublish != nil && len(portPublish) > 0 {
 	exit:

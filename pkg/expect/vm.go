@@ -1,6 +1,7 @@
 package expect
 
 import (
+	"encoding/base64"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 )
@@ -19,6 +20,7 @@ func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, netInstI
 		Drives: []*config.Drive{{
 			Image: img,
 		}},
+		UserData:    base64.StdEncoding.EncodeToString([]byte(exp.metadata)),
 		Activate:    true,
 		Displayname: exp.appName,
 		Interfaces: []*config.NetworkAdapter{{

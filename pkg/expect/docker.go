@@ -1,6 +1,7 @@
 package expect
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -60,6 +61,7 @@ func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, netI
 		Drives: []*config.Drive{{
 			Image: img,
 		}},
+		UserData:    base64.StdEncoding.EncodeToString([]byte(exp.metadata)),
 		Activate:    true,
 		Displayname: exp.appName,
 		Interfaces: []*config.NetworkAdapter{{
