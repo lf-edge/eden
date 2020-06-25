@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
@@ -10,15 +11,20 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 )
 
-var podName = ""
-var podMetadata = ""
-var portPublish []string
+var (
+	podName     string
+	podMetadata string
+	portPublish []string
+	qemuPorts   map[string]string
+)
 
 var podCmd = &cobra.Command{
 	Use: "pod",
@@ -64,22 +70,35 @@ type appState struct {
 	image     string
 	adamState string
 	eveState  string
-	ip        string
-	ports     string
+	intIp     string
+	extIp     string
+	intPort   string
+	extPort   string
 	deleted   bool
 }
 
 func appStateHeader() string {
-	return "NAME\tIMAGE\tIP\tPORTS\tSTATE(ADAM)\tLAST_STATE(EVE)"
+	return "NAME\tIMAGE\tINTERNAL\tEXTERNAL\tSTATE(ADAM)\tLAST_STATE(EVE)"
 }
 
 func (appStateObj *appState) toString() string {
-	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", appStateObj.name, appStateObj.image, appStateObj.ip,
-		appStateObj.ports, appStateObj.adamState, appStateObj.eveState)
+	internal := fmt.Sprintf("%s:%s", appStateObj.intIp, appStateObj.intPort)
+	if appStateObj.intPort == "" {
+		internal = appStateObj.intIp
+	}
+	external := fmt.Sprintf("%s:%s", appStateObj.extIp, appStateObj.extPort)
+	if appStateObj.extPort == "" {
+		external = "-"
+	}
+	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", appStateObj.name, appStateObj.image,
+		internal,
+		external,
+		appStateObj.adamState, appStateObj.eveState)
 }
 
-func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]string) string {
-	ports := []string{}
+func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]string) (intports, extports string) {
+	iports := []string{}
+	eports := []string{}
 	for _, intf := range appConfig.Interfaces {
 		fromPort := ""
 		toPort := ""
@@ -103,11 +122,12 @@ func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]st
 						}
 					}
 				}
-				ports = append(ports, fmt.Sprintf("%s->%s", fromPort, toPort))
+				iports = append(iports, toPort)
+				eports = append(eports, fromPort)
 			}
 		}
 	}
-	return strings.Join(ports, ",")
+	return strings.Join(iports, ","), strings.Join(eports, ",")
 }
 
 //podPsCmd is a command to list deployed apps
@@ -120,10 +140,11 @@ var podPsCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
+		devModel = viper.GetString("eve.devmodel")
+		qemuPorts = viper.GetStringMapString("eve.hostfwd")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		qemuPorts := viper.GetStringMapString("eve.hostfwd")
 		changer := &adamChanger{}
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {
@@ -139,29 +160,52 @@ var podPsCmd = &cobra.Command{
 			if len(app.Drives) > 0 {
 				imageName = app.Drives[0].Image.Name
 			}
+			intPort, extPort := getPortMapping(app, qemuPorts)
 			appStateObj := &appState{name: app.Displayname, image: imageName, adamState: "IN_CONFIG",
-				eveState: "UNKNOWN", ip: "-", ports: getPortMapping(app, qemuPorts)}
+				eveState: "UNKNOWN", intIp: "-", extIp: "-", intPort: intPort, extPort: extPort}
 			appStates[app.Uuidandversion.Uuid] = appStateObj
 		}
 		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
-			appStateObj, ok := appStates[im.GetAinfo().AppID]
-			if !ok {
-				imageName := ""
-				if len(im.GetAinfo().GetSoftwareList()) > 0 {
-					imageName = im.GetAinfo().GetSoftwareList()[0].ImageName
+			switch im.GetZtype() {
+			case info.ZInfoTypes_ZiApp:
+				appStateObj, ok := appStates[im.GetAinfo().AppID]
+				if !ok {
+					imageName := ""
+					if len(im.GetAinfo().GetSoftwareList()) > 0 {
+						imageName = im.GetAinfo().GetSoftwareList()[0].ImageName
+					}
+					appStateObj = &appState{name: im.GetAinfo().AppName, image: imageName, adamState: "NOT_IN_CONFIG"}
+					appStates[im.GetAinfo().AppID] = appStateObj
 				}
-				appStateObj = &appState{name: im.GetAinfo().AppName, image: imageName, adamState: "NOT_IN_CONFIG"}
-				appStates[im.GetAinfo().AppID] = appStateObj
-			}
-			appStateObj.eveState = im.GetAinfo().State.String()
-			if len(im.GetAinfo().Network) > 0 && len(im.GetAinfo().Network[0].IPAddrs) > 0 {
-				appStateObj.ip = im.GetAinfo().Network[0].IPAddrs[0]
-			} else {
-				appStateObj.ip = "-"
+				appStateObj.eveState = im.GetAinfo().State.String()
+				if len(im.GetAinfo().Network) > 0 && len(im.GetAinfo().Network[0].IPAddrs) > 0 {
+					appStateObj.intIp = im.GetAinfo().Network[0].IPAddrs[0]
+				} else {
+					appStateObj.intIp = "-"
+				}
+			case info.ZInfoTypes_ZiDevice:
+				for _, appStateObj := range appStates {
+					if devModel == defaults.DefaultRPIModel {
+						for _, nw := range im.GetDinfo().Network {
+							for _, addr := range nw.IPAddrs {
+								ip, _, err := net.ParseCIDR(addr)
+								if err != nil {
+									log.Fatal(err)
+								}
+								ipv4 := ip.To4()
+								if ipv4 != nil {
+									appStateObj.extIp = ipv4.String()
+								}
+							}
+						}
+					} else {
+						appStateObj.extIp = "127.0.0.1"
+					}
+				}
 			}
 			return false
 		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZInfoAppInstance, handleInfo); err != nil {
+		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZAll, handleInfo); err != nil {
 			log.Fatalf("Fail in get InfoLastCallback: %s", err)
 		}
 		var handleInfoDevice = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
@@ -185,7 +229,14 @@ var podPsCmd = &cobra.Command{
 		if _, err = fmt.Fprintln(w, appStateHeader()); err != nil {
 			log.Fatal(err)
 		}
-		for _, el := range appStates {
+		appStatesSlice := make([]*appState, 0, len(appStates))
+		for _, k := range appStates {
+			appStatesSlice = append(appStatesSlice, k)
+		}
+		sort.SliceStable(appStatesSlice, func(i, j int) bool {
+			return appStatesSlice[i].name < appStatesSlice[j].name
+		})
+		for _, el := range appStatesSlice {
 			if el.deleted == false {
 				if _, err = fmt.Fprintln(w, el.toString()); err != nil {
 					log.Fatal(err)
