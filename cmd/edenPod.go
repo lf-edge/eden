@@ -47,6 +47,9 @@ var podDeployCmd = &cobra.Command{
 		}
 		qemuPorts := viper.GetStringMapString("eve.hostfwd")
 		expectation := expect.AppExpectationFromUrl(ctrl, appLink, podName, portPublish, qemuPorts, podMetadata)
+		if len(qemuPorts) == 0 {
+			qemuPorts = nil
+		}
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {

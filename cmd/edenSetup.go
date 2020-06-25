@@ -22,6 +22,8 @@ var (
 	force     bool
 	dryRun    bool
 	apiV1     bool
+
+	devModel string
 )
 
 var setupCmd = &cobra.Command{
@@ -64,6 +66,8 @@ var setupCmd = &cobra.Command{
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			//eserver
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
+
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -90,6 +94,20 @@ var setupCmd = &cobra.Command{
 		} else {
 			log.Infof("Certs already exists in adam dir: %s", certsDir)
 		}
+		var imageFormat string
+		switch devModel {
+		case defaults.DefaultRPIModel:
+			if eveHV == "kvm" {
+				eveHV = fmt.Sprintf("rpi-%s", eveHV)
+			} else {
+				eveHV = "rpi"
+			}
+			imageFormat = "raw"
+		case defaults.DefaultEVEModel:
+			imageFormat = "qcow2"
+		default:
+			log.Fatalf("Unsupported dev model %s", devModel)
+		}
 		if !download {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
 				if err := utils.CloneFromGit(eveDist, eveRepo, eveTag); err != nil {
@@ -97,10 +115,23 @@ var setupCmd = &cobra.Command{
 				} else {
 					log.Info("clone EVE done")
 				}
-				if err := utils.MakeEveInRepo(eveDist, adamDist, eveArch, eveHV, false); err != nil {
+				builedImage := ""
+				builedAdditional := ""
+				if builedImage, builedAdditional, err = utils.MakeEveInRepo(eveDist, adamDist, eveArch, eveHV, imageFormat, false); err != nil {
 					log.Errorf("cannot MakeEveInRepo: %s", err)
 				} else {
 					log.Info("MakeEveInRepo done")
+				}
+				if err = utils.CopyFile(builedImage, eveImageFile); err != nil {
+					log.Fatal(err)
+				}
+				if builedAdditional != "" {
+					if err = utils.CopyFile(builedAdditional, filepath.Join(filepath.Dir(eveImageFile), filepath.Base(builedAdditional))); err != nil {
+						log.Fatal(err)
+					}
+				}
+				if devModel == defaults.DefaultRPIModel {
+					log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
 				}
 			} else {
 				log.Infof("EVE already exists in dir: %s", eveDist)

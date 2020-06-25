@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -50,10 +53,14 @@ var startEveCmd = &cobra.Command{
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if devModel == defaults.DefaultRPIModel {
+			return
+		}
 		qemuCommand := ""
 		qemuOptions := fmt.Sprintf("-display none -serial telnet:localhost:%d,server,nowait -nodefaults -no-user-config ", eveTelnetPort)
 		if qemuSMBIOSSerial != "" {
@@ -120,10 +127,15 @@ var stopEveCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if devModel == defaults.DefaultRPIModel {
+			log.Debug("Cannot stop RPI EVE")
+			return
+		}
 		if err := utils.StopEVEQemu(evePidFile); err != nil {
 			log.Errorf("cannot stop EVE: %s", err)
 		}
@@ -142,15 +154,15 @@ var statusEveCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusEVE, err := utils.StatusEVEQemu(evePidFile)
-		if err != nil {
-			log.Errorf("cannot obtain status of EVE: %s", err)
+		if devModel == defaults.DefaultRPIModel {
+			eveStatusRPI()
 		} else {
-			fmt.Printf("EVE status: %s\n", statusEVE)
+			eveStatusQEMU()
 		}
 	},
 }
@@ -165,9 +177,14 @@ var consoleEveCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
+		devModel = viper.GetString("eve.devmodel")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if devModel == defaults.DefaultRPIModel {
+			log.Info("Cannot telnet to RPI")
+			return
+		}
 		log.Infof("Try to telnet %s:%d", eveHost, eveTelnetPort)
 		if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", eveHost, eveTelnetPort))...); err != nil {
 			log.Fatalf("telnet error: %s", err)
@@ -189,11 +206,46 @@ var sshEveCmd = &cobra.Command{
 			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
 			extension := filepath.Ext(eveSSHKey)
 			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
+			if devModel == defaults.DefaultRPIModel { //obtain IP of EVE from info
+				if !cmd.Flags().Changed("eve-ssh-port") {
+					eveSSHPort = 22
+				}
+				if !cmd.Flags().Changed("eve-host") {
+					changer := &adamChanger{}
+					ctrl, dev, err := changer.getControllerAndDev()
+					if err != nil {
+						log.Fatalf("getControllerAndDev: %s", err)
+					}
+					var lastDInfo *info.ZInfoMsg
+					var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+						lastDInfo = im
+						return false
+					}
+					if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZInfoNetwork, handleInfo); err != nil {
+						log.Fatalf("Fail in get InfoLastCallback: %s", err)
+					}
+					if lastDInfo != nil {
+						for _, nw := range lastDInfo.GetDinfo().Network {
+							for _, addr := range nw.IPAddrs {
+								ip, _, err := net.ParseCIDR(addr)
+								if err != nil {
+									log.Fatal(err)
+								}
+								ipv4 := ip.To4()
+								if ipv4 != nil {
+									eveHost = ipv4.String()
+								}
+							}
+						}
+					}
+				}
+			}
 			log.Infof("Try to SHH %s:%d with key %s", eveHost, eveSSHPort, eveSSHKey)
 			if err := utils.RunCommandForeground("ssh", strings.Fields(fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s", eveSSHKey, eveSSHPort, eveHost))...); err != nil {
 				log.Fatalf("ssh error: %s", err)

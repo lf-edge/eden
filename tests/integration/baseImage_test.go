@@ -160,7 +160,7 @@ func SetupBaseImage(t *testing.T) (fileToUse string) {
 			} else {
 				t.Log("clone BASE EVE done")
 			}
-			if err := utils.MakeEveInRepo(eveBaseDist, adamDist, eveArch, eveHV, true); err != nil {
+			if _, _, err = utils.MakeEveInRepo(eveBaseDist, adamDist, eveArch, eveHV, "raw", true); err != nil {
 				t.Fatalf("cannot MakeEveInRepo base: %s", err)
 			} else {
 				t.Log("MakeEveInRepo base done")

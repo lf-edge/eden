@@ -164,12 +164,16 @@ func PullImage(image string) error {
 }
 
 //GenEVEImage from docker to outputFile only with defined configDir
-func GenEVEImage(image, outputDir, command, format string, configDir string) (fileName string, err error) {
+func GenEVEImage(image, outputDir, command, format string, configDir string, size int) (fileName string, err error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", err
 	}
 	volumeMap := map[string]string{"/in": configDir, "/out": outputDir}
-	u, err := RunDockerCommand(image, fmt.Sprintf("-f %s %s %d", format, command, defaults.DefaultEVEImageSize), volumeMap)
+	dockerCommand := fmt.Sprintf("-f %s %s %d", format, command, size)
+	if size == 0 {
+		dockerCommand = fmt.Sprintf("-f %s %s", format, command)
+	}
+	u, err := RunDockerCommand(image, dockerCommand, volumeMap)
 	if err != nil {
 		log.Printf("error GenEVEImage: %v", err)
 		return "", err
