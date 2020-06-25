@@ -5,6 +5,7 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
+	log "github.com/sirupsen/logrus"
 )
 
 //DevModelType is type of dev model
@@ -41,11 +42,33 @@ func (ctx *DevModel) GetNetNoDHCPID() string {
 	return defaults.NetNoDHCPID
 }
 
+//SetWiFiParams set ssid and psk for RPI
+func (ctx *DevModel) SetWiFiParams(ssid string, psk string) {
+	if ssid != "" {
+		log.Debugf("will set params for ssid %s", ssid)
+		if ctx.devModelType == DevModelTypeRaspberry {
+			log.Debug("Change for RPI")
+			ctx.networks[1].Wireless.WifiCfg = []*config.WifiConfig{{
+				WifiSSID:  ssid,
+				KeyScheme: config.WiFiKeyScheme_WPAPSK,
+				Password:  psk,
+			}}
+			ctx.physicalIOs[1].Usage = evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps
+			ctx.physicalIOs[1].UsagePolicy = &config.PhyIOUsagePolicy{
+				FreeUplink: true,
+			}
+		}
+	}
+}
+
 //DevModelTypeEmpty is empty model type
 const DevModelTypeEmpty DevModelType = "Empty"
 
 //DevModelTypeQemu is model type for qemu
-const DevModelTypeQemu DevModelType = "ZedVirtual-4G"
+const DevModelTypeQemu DevModelType = defaults.DefaultEVEModel
+
+//DevModelTypeRaspberry is model type for Raspberry
+const DevModelTypeRaspberry DevModelType = defaults.DefaultRPIModel
 
 //CreateDevModel create manual DevModel with provided params
 func (cloud *CloudCtx) CreateDevModel(PhysicalIOs []*config.PhysicalIO, Networks []*config.NetworkConfig, Adapters []*config.SystemAdapter, AdapterForSwitches []string, modelType DevModelType) *DevModel {
@@ -125,6 +148,69 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 				[]string{"eth1"},
 				DevModelTypeQemu),
 			nil
+	case DevModelTypeRaspberry:
+		return cloud.CreateDevModel(
+				[]*config.PhysicalIO{{
+					Ptype:        evecommon.PhyIoType_PhyIoNetEth,
+					Phylabel:     "eth0",
+					Logicallabel: "eth0",
+					Assigngrp:    "eth0",
+					Phyaddrs:     map[string]string{"Ifname": "eth0"},
+					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps,
+					UsagePolicy: &config.PhyIOUsagePolicy{
+						FreeUplink: true,
+					},
+				}, {
+					Ptype:        evecommon.PhyIoType_PhyIoNetWLAN,
+					Phylabel:     "wlan0",
+					Logicallabel: "wlan0",
+					Assigngrp:    "wlan0",
+					Phyaddrs:     map[string]string{"Ifname": "wlan0"},
+					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDisabled,
+					UsagePolicy: &config.PhyIOUsagePolicy{
+						FreeUplink: false,
+					},
+				},
+				},
+				[]*config.NetworkConfig{
+					{
+						Id:   defaults.NetDHCPID,
+						Type: config.NetworkType_V4,
+						Ip: &config.Ipspec{
+							Dhcp:      config.DHCPType_Client,
+							DhcpRange: &config.IpRange{},
+						},
+						Wireless: nil,
+					},
+					{
+						Id:   defaults.NetWiFiID,
+						Type: config.NetworkType_V4,
+						Ip: &config.Ipspec{
+							Dhcp:      config.DHCPType_Client,
+							DhcpRange: &config.IpRange{},
+						},
+						Wireless: &config.WirelessConfig{
+							Type:        config.WirelessType_WiFi,
+							CellularCfg: nil,
+							WifiCfg:     nil,
+						},
+					},
+				},
+				[]*config.SystemAdapter{
+					{
+						Name:        "eth0",
+						Uplink:      true,
+						NetworkUUID: defaults.NetDHCPID,
+					},
+					{
+						Name:        "wlan0",
+						NetworkUUID: defaults.NetWiFiID,
+					},
+				},
+				nil,
+				DevModelTypeRaspberry),
+			nil
+
 	}
 	return nil, fmt.Errorf("not implemented type: %s", devModelType)
 }

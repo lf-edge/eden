@@ -39,7 +39,7 @@ const (
 
 	//tags, versions, repos
 	DefaultNewBuildProcess   = true
-	DefaultEVETag            = "5.6.1" //DefaultEVETag tag for EVE image
+	DefaultEVETag            = "0.0.0-snapshot-master-a833eaf1" //DefaultEVETag tag for EVE image
 	DefaultAdamTag           = "0.0.44"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"
@@ -67,6 +67,7 @@ const (
 	DefaultBaseID                = "22b8761b-5f89-4e0b-b757-4b87a9fa93ec"
 	NetDHCPID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
 	NetNoDHCPID                  = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
+	NetWiFiID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf3"
 	DefaultTestProg              = ""
 	DefaultTestScenario          = ""
 	DefaultRootFSVersionPattern  = `^(\d+\.*){2,3}.*-(xen|kvm|acrn)-(amd64|arm64)$`
@@ -85,6 +86,8 @@ const (
 	DefaultAppSubnet = "10.1.0.0/24"
 
 	DefaultEVEModel = "ZedVirtual-4G"
+
+	DefaultRPIModel = "RPi4"
 
 	DefaultEVEImageSize = 8192
 
@@ -130,6 +133,7 @@ var (
 		"eve.dtb-part":     "dtb-part",
 		"eve.config-part":  "config-part",
 		"eve.base-version": "os-version",
+		"eve.devmodel":     "devmodel",
 
 		"eden.images.dist":   "image-dist",
 		"eden.images.docker": "docker-yml",

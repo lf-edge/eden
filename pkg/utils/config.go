@@ -102,7 +102,7 @@ adam:
     domain: {{ .DefaultDomain }}
 
     #ip of adam for EVE access
-    eve-ip: {{ .EVEIP }}
+    eve-ip: {{ .IP }}
 
     #ip of adam for EDEN access
     ip: {{ .IP }}
@@ -155,7 +155,7 @@ eve:
     hv: {{ .DefaultEVEHV }}
 
     #serial number in SMBIOS
-    serial: {{ .DefaultEVESerial }}
+    serial: "{{ .DefaultEVESerial }}"
 
     #onboarding certificate of EVE to put into adam
     cert: certs/onboard.cert.pem
@@ -167,7 +167,7 @@ eve:
     log: eve.log
 
     #EVE firmware
-    firmware: [{{ .DefaultEVEDist }}/dist/amd64/OVMF_CODE.fd,{{ .DefaultEVEDist }}/dist/amd64/OVMF_VARS.fd]
+    firmware: [{{ .DefaultImageDist }}/eve/OVMF_CODE.fd,{{ .DefaultImageDist }}/eve/OVMF_VARS.fd]
 
     #eve repo used in clone mode (eden.download = false)
     repo: {{ .DefaultEveRepo }}
@@ -193,10 +193,10 @@ eve:
     uuid: {{ .UUID }}
 
     #live image of EVE
-    image-file: {{ .DefaultEVEDist }}/dist/amd64/live.qcow2
+    image-file: {{ .DefaultImageDist }}/eve/live.img
 
     #dtb directory of EVE
-    dtb-part: 
+    dtb-part: ""
 
     #config part of EVE
     config-part: {{ .DefaultAdamDist }}/run/config

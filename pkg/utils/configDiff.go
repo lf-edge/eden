@@ -12,7 +12,7 @@ adam:
     domain: {{ .DefaultDomain }}
 
     #ip of adam for EVE access
-    eve-ip: {{ .EVEIP }}
+    eve-ip: {{ .IP }}
 
     #ip of adam for EDEN access
     ip: {{ .IP }}
@@ -28,7 +28,7 @@ adam:
 
 eve:
     #live image of EVE
-    image-file: {{ .DefaultEVEDist }}/dist/amd64/live.qcow2
+    image-file: {{ .DefaultImageDist }}/eve/live.img
 
     #devmodel
     devmodel: ZedVirtual-4G
@@ -46,13 +46,13 @@ eve:
     uuid: {{ .UUID }}
 
     #serial number in SMBIOS
-    serial: {{ .DefaultEVESerial }}
+    serial: "{{ .DefaultEVESerial }}"
 
     #onboarding certificate of EVE to put into adam
     cert: certs/onboard.cert.pem
 
     #EVE firmware
-    firmware: {{ .DefaultEVEDist }}/dist/amd64/OVMF.fd
+    firmware: [{{ .DefaultImageDist }}/eve/OVMF_CODE.fd,{{ .DefaultImageDist }}/eve/OVMF_VARS.fd]
 
     #forward of ports in qemu [(HOST:EVE)]
     hostfwd:
