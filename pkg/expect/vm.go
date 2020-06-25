@@ -24,7 +24,7 @@ func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, netInstI
 		Activate:    true,
 		Displayname: exp.appName,
 		Interfaces: []*config.NetworkAdapter{{
-			Name:      "default",
+			Name:      "eth0",
 			NetworkId: netInstId,
 			Acls:      acls,
 		}},

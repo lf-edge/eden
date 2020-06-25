@@ -87,7 +87,7 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 					Phyaddrs:     map[string]string{"Ifname": "eth1"},
 					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageShared,
 					UsagePolicy: &config.PhyIOUsagePolicy{
-						FreeUplink: true,
+						FreeUplink: false,
 					},
 				},
 				},

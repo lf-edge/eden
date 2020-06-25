@@ -4,6 +4,7 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve/api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,9 +33,10 @@ func (exp *appExpectation) createNetworkInstance() (*config.NetworkInstanceConfi
 		},
 		Displayname: "local",
 		InstType:    config.ZNetworkInstType_ZnetInstLocal,
-		Activate:    false,
+		Activate:    true,
 		Port: &config.Adapter{
-			Name: "uplink",
+			Name: "eth0",
+			Type: evecommon.PhyIoType_PhyIoNetEth,
 		},
 		Cfg:    &config.NetworkInstanceOpaqueConfig{},
 		IpType: config.AddressType_IPV4,
