@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
@@ -37,6 +39,8 @@ var certsCmd = &cobra.Command{
 			certsIP = viper.GetString("adam.ip")
 			certsEVEIP = viper.GetString("adam.eve-ip")
 			certsUUID = viper.GetString("eve.uuid")
+			certsUUID = viper.GetString("eve.uuid")
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -67,6 +71,19 @@ var certsCmd = &cobra.Command{
 		if err := utils.GenerateSSHKeyPair(filepath.Join(certsDir, "id_rsa"), filepath.Join(certsDir, "id_rsa.pub")); err != nil {
 			log.Fatal(err)
 		}
+		if ssid != "" && password != "" {
+			log.Debug("generating DevicePortConfig")
+			if portConfig := controller.GetPortConfig(devModel, ssid, password); portConfig != "" {
+				if _, err := os.Stat(filepath.Join(certsDir, "DevicePortConfig", "override.json")); os.IsNotExist(err) {
+					if err := os.MkdirAll(filepath.Join(certsDir, "DevicePortConfig"), 0755); err != nil {
+						log.Fatal(err)
+					}
+					if err := ioutil.WriteFile(filepath.Join(certsDir, "DevicePortConfig", "override.json"), []byte(portConfig), 0666); err != nil {
+						log.Fatal(err)
+					}
+				}
+			}
+		}
 	},
 }
 
@@ -81,4 +98,6 @@ func certsInit() {
 	certsCmd.Flags().StringVarP(&certsIP, "ip", "i", defaults.DefaultIP, "IP address to use")
 	certsCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaults.DefaultEVEIP, "IP address to use for EVE")
 	certsCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaults.DefaultUUID, "UUID to use for device")
+	certsCmd.Flags().StringVar(&ssid, "ssid", "", "SSID for wifi")
+	certsCmd.Flags().StringVar(&password, "password", "", "password for wifi")
 }

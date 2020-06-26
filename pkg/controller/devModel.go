@@ -46,18 +46,76 @@ func (ctx *DevModel) GetNetNoDHCPID() string {
 func (ctx *DevModel) SetWiFiParams(ssid string, psk string) {
 	if ssid != "" {
 		log.Debugf("will set params for ssid %s", ssid)
-		if ctx.devModelType == DevModelTypeRaspberry {
-			log.Debug("Change for RPI")
-			ctx.networks[1].Wireless.WifiCfg = []*config.WifiConfig{{
-				WifiSSID:  ssid,
-				KeyScheme: config.WiFiKeyScheme_WPAPSK,
-				Password:  psk,
-			}}
-			ctx.physicalIOs[1].Usage = evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps
-			ctx.physicalIOs[1].UsagePolicy = &config.PhyIOUsagePolicy{
-				FreeUplink: true,
+		for _, el := range ctx.networks {
+			if el.Wireless != nil {
+				el.Wireless.WifiCfg = []*config.WifiConfig{{
+					WifiSSID:  ssid,
+					KeyScheme: config.WiFiKeyScheme_WPAPSK,
+					Password:  psk,
+				}}
 			}
 		}
+		for _, el := range ctx.physicalIOs {
+			switch el.Ptype {
+			case evecommon.PhyIoType_PhyIoNetEth:
+				el.Usage = evecommon.PhyIoMemberUsage_PhyIoUsageDisabled
+				el.UsagePolicy = &config.PhyIOUsagePolicy{
+					FreeUplink: false,
+				}
+				for _, adapter := range ctx.adapters {
+					if adapter.Name == el.Phylabel {
+						adapter.Uplink = false
+						break
+					}
+				}
+			case evecommon.PhyIoType_PhyIoNetWLAN:
+				el.Usage = evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps
+				el.UsagePolicy = &config.PhyIOUsagePolicy{
+					FreeUplink: true,
+				}
+				for _, adapter := range ctx.adapters {
+					if adapter.Name == el.Phylabel {
+						adapter.Uplink = true
+						break
+					}
+				}
+			}
+		}
+	}
+}
+
+//GetPortConfig returns PortConfig overwrite
+func GetPortConfig(devModel string, ssid string, psk string) string {
+	switch devModel {
+	case defaults.DefaultRPIModel:
+		return fmt.Sprintf(`{
+	"Version": 1,
+	"Ports": [{
+			"Dhcp": 4,
+			"Free": false,
+			"IfName": "eth0",
+			"Name": "Management1",
+			"IsMgmt": false
+		},
+		{
+			"Dhcp": 4,
+			"Free": true,
+			"IfName": "wlan0",
+			"Name": "Management",
+			"IsMgmt": true,
+			"WirelessCfg": {
+				"WType": 2,
+				"Wifi": [{
+					"KeyScheme": 1,
+					"SSID": "%s",
+					"Password": "%s"
+				}]
+			}
+		}
+	]
+}`, ssid, psk)
+	default:
+		return ""
 	}
 }
 
