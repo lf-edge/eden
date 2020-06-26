@@ -5,6 +5,8 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve/api/go/evecommon"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"strconv"
@@ -33,6 +35,8 @@ type appExpectation struct {
 	cpu        uint32
 	mem        uint32
 	metadata   string
+
+	uplinkAdapter *config.Adapter
 }
 
 //AppExpectationFromUrl init appExpectation with defined:
@@ -42,6 +46,16 @@ type appExpectation struct {
 //   qemuPorts - mapping of ports in qemu (nil if no qemu port forwarding)
 //   metadata - string with metadata for app (env for docker, no-cloud user-data for vm
 func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, portPublish []string, qemuPorts map[string]string, metadata string) (expectation *appExpectation) {
+	var adapter = &config.Adapter{
+		Name: "eth0",
+		Type: evecommon.PhyIoType_PhyIoNetEth,
+	}
+	if ctrl.GetVars().EveSSID != "" {
+		adapter = &config.Adapter{
+			Name: "wlan0",
+			Type: evecommon.PhyIoType_PhyIoNetWLAN,
+		}
+	}
 	expectation = &appExpectation{
 		ctrl:     ctrl,
 		ports:    make(map[int]int),
@@ -49,6 +63,8 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 		cpu:      defaults.DefaultAppCpu,
 		mem:      defaults.DefaultAppMem,
 		metadata: strings.Replace(metadata, `\n`, "\n", -1),
+
+		uplinkAdapter: adapter,
 	}
 	//check portPublish variable
 	if portPublish != nil && len(portPublish) > 0 {
