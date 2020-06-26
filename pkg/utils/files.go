@@ -20,7 +20,6 @@ func SHA256SUM(filePath string) (result string, err error) {
 		return
 	}
 	defer file.Close()
-
 	hash := sha256.New()
 	if _, err = io.Copy(hash, file); err != nil {
 		return
@@ -119,4 +118,13 @@ func GetFileFollowLinks(filePath string) (string, error) {
 		return GetFileFollowLinks(fileToSearch)
 	}
 	return filepath.Join(filepath.Dir(filePath), fileInfo.Name()), nil
+}
+
+//GetFileSize returns file size
+func GetFileSize(filePath string) int64 {
+	fi, err := os.Stat(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return fi.Size()
 }

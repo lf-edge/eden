@@ -8,18 +8,17 @@ import (
 	"strconv"
 )
 
-func checkAppInstanceConfig(app *config.AppInstanceConfig, appName string, appType appType, appUrl string, appVersion string) bool {
+func (exp *appExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig) bool {
 	if app == nil {
 		return false
 	}
-	if app.Displayname == appName {
+	if app.Displayname == exp.appName {
 		return true
 	}
 	return false
 }
 
-func createAppInstanceConfig(img *config.Image, appName string, netInstId string, appType appType, appUrl string, appVersion string, ports map[int]int) (*config.AppInstanceConfig, error) {
-	var app *config.AppInstanceConfig
+func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstId string) (*config.AppInstanceConfig, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -31,8 +30,8 @@ func createAppInstanceConfig(img *config.Image, appName string, netInstId string
 		Id: 1,
 	}}
 	var aclID int32 = 2
-	if ports != nil {
-		for po, pi := range ports {
+	if exp.ports != nil {
+		for po, pi := range exp.ports {
 			acls = append(acls, &config.ACE{
 				Id: aclID,
 				Matches: []*config.ACEMatch{{
@@ -50,32 +49,11 @@ func createAppInstanceConfig(img *config.Image, appName string, netInstId string
 			aclID++
 		}
 	}
-	switch appType {
+	switch exp.appType {
 	case dockerApp:
-		app = &config.AppInstanceConfig{
-			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    id.String(),
-				Version: "1",
-			},
-			Fixedresources: &config.VmConfig{
-				Memory:     1024000,
-				Maxmem:     1024000,
-				Vcpus:      1,
-				Rootdev:    "/dev/xvda1",
-				Bootloader: "/usr/bin/pygrub",
-			},
-			Drives: []*config.Drive{{
-				Image: img,
-			}},
-			Activate:    true,
-			Displayname: appName,
-			Interfaces: []*config.NetworkAdapter{{
-				Name:      "default",
-				NetworkId: netInstId,
-				Acls:      acls,
-			}},
-		}
-		return app, nil
+		return exp.createAppInstanceConfigDocker(img, netInstId, id, acls), nil
+	case httpApp, httpsApp:
+		return exp.createAppInstanceConfigVM(img, netInstId, id, acls), nil
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
@@ -87,13 +65,13 @@ func (exp *appExpectation) Application() (appInstanceConfig *config.AppInstanceC
 	image := exp.Image()
 	networkInstance := exp.NetworkInstance()
 	for _, app := range exp.ctrl.ListApplicationInstanceConfig() {
-		if checkAppInstanceConfig(app, exp.appName, exp.appType, exp.appUrl, exp.appVersion) {
+		if exp.checkAppInstanceConfig(app) {
 			appInstanceConfig = app
 			break
 		}
 	}
 	if appInstanceConfig == nil {
-		if appInstanceConfig, err = createAppInstanceConfig(image, exp.appName, networkInstance.Uuidandversion.Uuid, exp.appType, exp.appUrl, exp.appVersion, exp.ports); err != nil {
+		if appInstanceConfig, err = exp.createAppInstanceConfig(image, networkInstance.Uuidandversion.Uuid); err != nil {
 			log.Fatalf("cannot create app: %s", err)
 		}
 		if err = exp.ctrl.AddApplicationInstanceConfig(appInstanceConfig); err != nil {

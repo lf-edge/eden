@@ -7,35 +7,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func checkDataStore(ds *config.DatastoreConfig, appType appType, appUrl string) bool {
+func (exp *appExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 	if ds == nil {
 		return false
 	}
-	if appType == dockerApp && ds.DType == config.DsType_DsContainerRegistry && ds.Fqdn == "docker://docker.io" {
-		return true
+	switch exp.appType {
+	case dockerApp:
+		return exp.checkDataStoreDocker(ds)
+	case httpApp, httpsApp:
+		return exp.checkDataStoreHttp(ds)
 	}
 	return false
 }
 
-func createDataStore(appType appType, appUrl string) (*config.DatastoreConfig, error) {
-	var ds *config.DatastoreConfig
+func (exp *appExpectation) createDataStore() (*config.DatastoreConfig, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-	switch appType {
+	switch exp.appType {
 	case dockerApp:
-		ds = &config.DatastoreConfig{
-			Id:         id.String(),
-			DType:      config.DsType_DsContainerRegistry,
-			Fqdn:       "docker://docker.io",
-			ApiKey:     "",
-			Password:   "",
-			Dpath:      "",
-			Region:     "",
-			CipherData: nil,
-		}
-		return ds, nil
+		return exp.createDataStoreDocker(id), nil
+	case httpApp, httpsApp:
+		return exp.createDataStoreHttp(id), nil
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
@@ -45,13 +39,13 @@ func createDataStore(appType appType, appUrl string) (*config.DatastoreConfig, e
 func (exp *appExpectation) DataStore() (datastore *config.DatastoreConfig) {
 	var err error
 	for _, ds := range exp.ctrl.ListDataStore() {
-		if checkDataStore(ds, exp.appType, exp.appUrl) {
+		if exp.checkDataStore(ds) {
 			datastore = ds
 			break
 		}
 	}
 	if datastore == nil {
-		if datastore, err = createDataStore(exp.appType, exp.appUrl); err != nil {
+		if datastore, err = exp.createDataStore(); err != nil {
 			log.Fatalf("cannot create datastore: %s", err)
 		}
 		if err = exp.ctrl.AddDataStore(datastore); err != nil {

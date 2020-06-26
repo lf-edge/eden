@@ -7,37 +7,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func checkImage(img *config.Image, dsId string, appType appType, appUrl string, appVersion string) bool {
+func (exp *appExpectation) checkImage(img *config.Image, dsId string) bool {
 	if img == nil {
 		return false
 	}
-	if appType == dockerApp {
-		if img.DsId == dsId && img.Name == fmt.Sprintf("%s:%s", appUrl, appVersion) && img.Iformat == config.Format_CONTAINER {
-			return true
-		}
+	switch exp.appType {
+	case dockerApp:
+		return exp.checkImageDocker(img, dsId)
+	case httpApp, httpsApp:
+		return exp.checkImageHttp(img, dsId)
 	}
 	return false
 }
 
-func createImage(dsId string, appType appType, appUrl string, appVersion string) (*config.Image, error) {
-	var img *config.Image
+func (exp *appExpectation) createImage(dsId string) (*config.Image, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-	switch appType {
+	switch exp.appType {
 	case dockerApp:
-		img = &config.Image{
-			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    id.String(),
-				Version: "1",
-			},
-			Name:    fmt.Sprintf("%s:%s", appUrl, appVersion),
-			Iformat: config.Format_CONTAINER,
-			DsId:    dsId,
-			Siginfo: &config.SignatureInfo{},
-		}
-		return img, nil
+		return exp.createImageDocker(id, dsId), nil
+	case httpApp, httpsApp:
+		return exp.createImageHttp(id, dsId), nil
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
@@ -48,13 +40,13 @@ func (exp *appExpectation) Image() (image *config.Image) {
 	datastore := exp.DataStore()
 	var err error
 	for _, img := range exp.ctrl.ListImage() {
-		if checkImage(img, datastore.Id, exp.appType, exp.appUrl, exp.appVersion) {
+		if exp.checkImage(img, datastore.Id) {
 			image = img
 			break
 		}
 	}
 	if image == nil {
-		if image, err = createImage(datastore.Id, exp.appType, exp.appUrl, exp.appVersion); err != nil {
+		if image, err = exp.createImage(datastore.Id); err != nil {
 			log.Fatalf("cannot create image: %s", err)
 		}
 		if err = exp.ctrl.AddImage(image); err != nil {
