@@ -225,20 +225,18 @@ func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 		curState := InitState(dev)
 		tc.states[dev] = curState
 		if !onlyNewElements {
-			err := tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, einfo.ZAll, curState.getProcessorInfo())
-			if err != nil {
-				log.Errorf("InfoChecker for dev %s error %s", dev.GetID(), err)
+			if err := tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, einfo.ZAll, curState.getProcessorInfo()); err != nil {
+				log.Errorf("InfoLastCallback for dev %s error %s", dev.GetID(), err)
+			}
+			if err := tc.GetController().MetricLastCallback(dev.GetID(), map[string]string{}, curState.getProcessorMetric()); err != nil {
+				log.Errorf("MetricLastCallback for dev %s error %s", dev.GetID(), err)
 			}
 		}
 		if _, exists := tc.procBus.proc[dev]; !exists {
-			go func() {
-				err := tc.GetController().InfoChecker(dev.GetID(), map[string]string{}, einfo.ZAll, tc.procBus.getMainProcessorInfo(dev), einfo.InfoNew, 0)
-				if err != nil {
-					log.Errorf("InfoChecker for dev %s error %s", dev.GetID(), err)
-				}
-			}()
+			tc.procBus.initCheckers(dev)
 		}
 		tc.procBus.proc[dev] = append(tc.procBus.proc[dev], &absFunc{proc: curState.GetInfoProcessingFunction(), disabled: false})
+		tc.procBus.proc[dev] = append(tc.procBus.proc[dev], &absFunc{proc: curState.GetMetricProcessingFunction(), disabled: false})
 	}
 }
 
