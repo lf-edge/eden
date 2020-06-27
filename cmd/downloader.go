@@ -44,6 +44,7 @@ var downloaderCmd = &cobra.Command{
 			eveHV = viper.GetString("eve.hv")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+			devModel = viper.GetString("eve.devmodel")
 			if newDownload {
 				outputDir = filepath.Dir(eveImageFile)
 			} else {
@@ -68,23 +69,38 @@ var downloaderCmd = &cobra.Command{
 			log.Fatalf("ImagePull (%s): %s", image, err)
 		}
 		if newDownload {
-			if err := utils.PullImage(efiImage); err != nil {
-				log.Fatalf("ImagePull (%s): %s", efiImage, err)
-			}
 			configPath := filepath.Join(adamDist, "run", "config")
 			if _, err := os.Stat(configPath); os.IsNotExist(err) {
 				log.Fatalf("directory not exists: %s", configPath)
 			}
-			if err := utils.SaveImage(efiImage, outputDir, ""); err != nil {
-				log.Fatalf("SaveImage: %s", err)
+			var format string
+			var size int
+			if devModel == defaults.DefaultRPIModel {
+				format = "raw"
+				size = 0
+			} else {
+				format = "qcow2"
+				size = defaults.DefaultEVEImageSize
+				if err := utils.PullImage(efiImage); err != nil {
+					log.Infof("cannot pull %s", efiImage)
+					efiImage = fmt.Sprintf("lfedge/eve-uefi") //try with latest version of OVMF
+					log.Infof("will retry with %s", efiImage)
+					if err := utils.PullImage(efiImage); err != nil {
+						log.Fatalf("ImagePull (%s): %s", efiImage, err)
+					}
+				}
+				if err := utils.SaveImage(efiImage, outputDir, ""); err != nil {
+					log.Fatalf("SaveImage: %s", err)
+				}
 			}
-			if fileName, err := utils.GenEVEImage(image, outputDir, "live", "qcow2", configPath); err != nil {
+			if fileName, err := utils.GenEVEImage(image, outputDir, "live", format, configPath, size); err != nil {
 				log.Fatalf("GenEVEImage: %s", err)
 			} else {
-				log.Debug(eveImageFile)
-				log.Debug(fileName)
 				if err = utils.CopyFile(fileName, eveImageFile); err != nil {
 					log.Fatalf("cannot copy image %s", err)
+				}
+				if devModel == defaults.DefaultRPIModel {
+					log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
 				}
 			}
 		} else {

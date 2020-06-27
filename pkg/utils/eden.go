@@ -298,37 +298,45 @@ func ChangeConfigPartAndRootFs(commandPath string, distEve string, distAdam stri
 }
 
 //MakeEveInRepo build live image of EVE
-func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, rootFSOnly bool) (err error) {
+func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, imageFormat string, rootFSOnly bool) (image, additional string, err error) {
 	if _, err := os.Stat(distEve); os.IsNotExist(err) {
-		return fmt.Errorf("directory not exists: %s", distEve)
+		return "", "", fmt.Errorf("directory not exists: %s", distEve)
 	}
 	configPath := filepath.Join(distAdam, "run", "config")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		if err = os.MkdirAll(configPath, 0755); err != nil {
-			return err
+			return "", "", err
 		}
 	}
 	if rootFSOnly {
-		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s rootfs",
-			distEve, hv, configPath)
+		commandArgsString := fmt.Sprintf("-C %s ZARCH=%s HV=%s CONF_DIR=%s rootfs",
+			distEve, arch, hv, configPath)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
 		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+		image = filepath.Join(distEve, "dist", arch, "installer", fmt.Sprintf("live.%s", imageFormat))
 	} else {
-		commandArgsString := fmt.Sprintf("-C %s HV=%s CONF_DIR=%s IMG_FORMAT=qcow2 live",
-			distEve, hv, configPath)
+		image = filepath.Join(distEve, "dist", arch, fmt.Sprintf("live.%s", imageFormat))
+		commandArgsString := fmt.Sprintf("-C %s ZARCH=%s HV=%s CONF_DIR=%s IMG_FORMAT=%s live",
+			distEve, arch, hv, configPath, imageFormat)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
 		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
-		biosPath := filepath.Join(distEve, "dist", arch, "OVMF.fd")
-		commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
-			distEve, hv, biosPath)
-		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
-		if arch == "arm64" {
-			dtbPath := filepath.Join(distEve, "dist", "eve.dtb")
-			commandArgsString = fmt.Sprintf("-C %s HV=%s %s",
-				distEve, hv, dtbPath)
+		switch arch {
+		case "amd64":
+			biosPath := filepath.Join(distEve, "dist", arch, "OVMF.fd")
+			commandArgsString = fmt.Sprintf("-C %s ZARCH=%s HV=%s %s",
+				distEve, arch, hv, biosPath)
 			log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
 			err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+			additional = biosPath
+		case "arm64":
+			dtbPath := filepath.Join(distEve, "dist", arch, "dtb", "eve.dtb")
+			commandArgsString = fmt.Sprintf("-C %s ZARCH=%s HV=%s %s",
+				distEve, arch, hv, dtbPath)
+			log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
+			err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+			additional = dtbPath
+		default:
+			return "", "", fmt.Errorf("unsupported arch %s", arch)
 		}
 	}
 	return

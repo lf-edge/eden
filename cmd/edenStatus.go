@@ -2,14 +2,65 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+func eveStatusRPI() {
+	log.Debugf("Will try to obtain info from ADAM")
+	changer := &adamChanger{}
+	ctrl, dev, err := changer.getControllerAndDev()
+	if err != nil {
+		log.Debugf("getControllerAndDev: %s", err)
+		fmt.Println("EVE status: undefined (no onboarded EVE)")
+	} else {
+		var lastDInfo *info.ZInfoMsg
+		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+			lastDInfo = im
+			return false
+		}
+		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZInfoNetwork, handleInfo); err != nil {
+			log.Fatalf("Fail in get InfoLastCallback: %s", err)
+		}
+		if lastDInfo != nil {
+			var ips []string
+			for _, nw := range lastDInfo.GetDinfo().Network {
+				for _, addr := range nw.IPAddrs {
+					ip, _, err := net.ParseCIDR(addr)
+					if err != nil {
+						log.Fatal(err)
+					}
+					ipv4 := ip.To4()
+					if ipv4 != nil {
+						ips = append(ips, ipv4.String())
+					}
+				}
+			}
+			fmt.Printf("EVE REMOTE IPs: %s\n", strings.Join(ips, "; "))
+		} else {
+			fmt.Printf("EVE REMOTE IPs: %s\n", "waiting for info...")
+		}
+	}
+}
+
+func eveStatusQEMU() {
+	statusEVE, err := utils.StatusEVEQemu(evePidFile)
+	if err != nil {
+		log.Errorf("cannot obtain status of EVE process: %s", err)
+	} else {
+		fmt.Printf("EVE process status: %s\n", statusEVE)
+		fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath("eve.log"))
+	}
+}
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
@@ -24,6 +75,7 @@ var statusCmd = &cobra.Command{
 		if viperLoaded {
 			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -69,12 +121,10 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", viper.GetString("eden.eserver.ip"), viper.GetInt("eden.eserver.port"))
 			fmt.Printf("\tLogs for local EServer at: %s\n", utils.ResolveAbsPath("eserver.log"))
 		}
-		statusEVE, err := utils.StatusEVEQemu(evePidFile)
-		if err != nil {
-			log.Errorf("cannot obtain status of EVE process: %s", err)
+		if devModel == defaults.DefaultRPIModel {
+			eveStatusRPI()
 		} else {
-			fmt.Printf("EVE process status: %s\n", statusEVE)
-			fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath("eve.log"))
+			eveStatusQEMU()
 		}
 	},
 }

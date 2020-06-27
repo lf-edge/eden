@@ -62,13 +62,17 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 			if err != nil {
 				log.Fatalf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT: %s", el, err)
 			}
-			for _, qv := range qemuPorts {
-				if qv == strconv.Itoa(extPort) {
-					expectation.ports[extPort] = intPort
-					break exit
+			if qemuPorts != nil && len(qemuPorts) > 0 { //not empty forwarding rules, need to check for existing
+				for _, qv := range qemuPorts {
+					if qv == strconv.Itoa(extPort) {
+						expectation.ports[extPort] = intPort
+						break exit
+					}
 				}
+				log.Fatalf("Cannot use external port %d. Not in Qemu %s", extPort, qemuPorts)
+			} else {
+				expectation.ports[extPort] = intPort
 			}
-			log.Fatalf("Cannot use external port %d. Not in Qemu %s", extPort, qemuPorts)
 		}
 	}
 	//check used ports
