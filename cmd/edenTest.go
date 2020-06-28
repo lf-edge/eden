@@ -14,6 +14,7 @@ import (
 
 var (
 	testArgs     string
+	testOpts     bool
 	testRun      string
 	testTimeout  string
 	testList     string
@@ -113,9 +114,10 @@ var testCmd = &cobra.Command{
 	Short: "Run tests",
 	Long: `Run tests from test binary. Verbose testing works with any level of general verbosity above "info"
 
-test [test_dir] [-s <scenario>] [-t <timewait>] [-v <level>]
-test [test_dir] -l <regexp>
-test [test_dir] -r <regexp> [-t <timewait>] [-v <level>]
+test <test_dir> [-s <scenario>] [-t <timewait>] [-v <level>]
+test <test_dir> -l <regexp>
+test <test_dir> -o
+test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 
 `,
 	Args: cobra.MaximumNArgs(1),
@@ -158,6 +160,9 @@ test [test_dir] -r <regexp> [-t <timewait>] [-v <level>]
 		case testList != "":
 			runTest(testProg, []string{"-test.list", testList}, "")
 			return
+		case testOpts:
+			runTest(testProg, []string{"-h"}, "")
+			return
 		case testRun != "":
 			runTest(testProg, []string{"-test.run", testRun}, testArgs)
 			return
@@ -185,4 +190,5 @@ func testInit() {
 	testCmd.Flags().StringVarP(&testArgs, "args", "a", "", "Arguments for test binary")
 	testCmd.Flags().StringVarP(&testList, "list", "l", "", "list tests matching the regular expression")
 	testCmd.Flags().StringVarP(&testScenario, "scenario", "s", "", "scenario for tests bunch running")
+	testCmd.Flags().BoolVarP(&testOpts, "opts", "o", false, "Options description for test binary which may be used in test scenarious and '-a|--args' option")
 }
