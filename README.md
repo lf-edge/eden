@@ -131,3 +131,6 @@ The current sub-commands are:
    * `eve` -- sub-commands for interact with EVE.
    * `controller` -- sub-commands to update EVE.
    * `pod` -- work with applications running on EVE (containers and VMs)
+
+You can find more detailed information about the commands in:
+* `eden test` -- [TESTING.md](TESTING.md)
