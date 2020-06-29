@@ -88,6 +88,7 @@ const (
 	DefaultEVEModel = "ZedVirtual-4G"
 
 	DefaultRPIModel = "RPi4"
+	DefaultEVEName  = "node1"
 
 	DefaultEVEImageSize = 8192
 

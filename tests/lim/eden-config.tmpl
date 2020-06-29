@@ -8,7 +8,7 @@ eden:
 test:
     controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
     eve:
-      Node1:
+      {{EdenConfig "eve.name"}}:
         onboard-cert: {{EdenConfigPath "eve.cert"}}
         serial: "{{EdenConfig "eve.serial"}}"
         model: {{EdenConfig "eve.devmodel"}}

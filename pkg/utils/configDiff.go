@@ -27,6 +27,9 @@ adam:
       adam: redis://{{ .DefaultRedisContainerName }}:{{ .DefaultRedisPort }}
 
 eve:
+    #name
+    name: {{ .DefaultEVEName }}
+
     #live image of EVE
     image-file: {{ .DefaultImageDist }}/eve/live.img
 

@@ -30,6 +30,7 @@ type ConfigVars struct {
 	AdamRedisUrlEden  string
 	AdamRedisUrlAdam  string
 	EveHV             string
+	EveName           string
 	SshKey            string
 	CheckLogs         bool
 	EveCert           string
@@ -70,6 +71,7 @@ func InitVars() (*ConfigVars, error) {
 			ZArch:             viper.GetString("eve.arch"),
 			EveHV:             viper.GetString("eve.hv"),
 			DevModel:          viper.GetString("eve.devmodel"),
+			EveName:           viper.GetString("eve.name"),
 			AdamRemote:        viper.GetBool("adam.remote.enabled"),
 			AdamRemoteRedis:   viper.GetBool("adam.remote.redis"),
 			AdamCaching:       viper.GetBool("adam.caching.enabled"),
@@ -139,6 +141,9 @@ adam:
         prefix: cache
 
 eve:
+    #name
+    name: {{ .DefaultEVEName }}
+
     #devmodel
     devmodel: {{ .DefaultEVEModel }}
 
@@ -421,6 +426,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultEveRepo       string
 
 			DefaultEVEModel string
+			DefaultEVEName  string
 
 			DefaultRedisContainerName string
 		}{
@@ -454,6 +460,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultEveRepo:      defaults.DefaultEveRepo,
 
 			DefaultEVEModel: defaults.DefaultEVEModel,
+			DefaultEVEName:  defaults.DefaultEVEName,
 
 			DefaultRedisContainerName: defaults.DefaultRedisContainerName,
 		})
