@@ -225,12 +225,9 @@ func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 		curState := InitState(dev)
 		tc.states[dev] = curState
 		if !onlyNewElements {
-			if err := tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, einfo.ZAll, curState.getProcessorInfo()); err != nil {
-				log.Errorf("InfoLastCallback for dev %s error %s", dev.GetID(), err)
-			}
-			if err := tc.GetController().MetricLastCallback(dev.GetID(), map[string]string{}, curState.getProcessorMetric()); err != nil {
-				log.Errorf("MetricLastCallback for dev %s error %s", dev.GetID(), err)
-			}
+			//process all events from controller
+			_ = tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, einfo.ZAll, curState.getProcessorInfo())
+			_ = tc.GetController().MetricLastCallback(dev.GetID(), map[string]string{}, curState.getProcessorMetric())
 		}
 		if _, exists := tc.procBus.proc[dev]; !exists {
 			tc.procBus.initCheckers(dev)
