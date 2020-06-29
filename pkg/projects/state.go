@@ -93,7 +93,9 @@ func (state *state) processInfo(infoMsg *info.ZInfoMsg) error {
 
 func (state *state) getProcessorInfo() einfo.HandlerFunc {
 	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
-		return state.processInfo(im) == nil
+		_ = state.processInfo(im)
+		//process all events from controller
+		return false
 	}
 }
 
@@ -117,7 +119,9 @@ func (state *state) processMetric(metricMsg *metrics.ZMetricMsg) error {
 
 func (state *state) getProcessorMetric() emetric.HandlerFunc {
 	return func(msg *metrics.ZMetricMsg) bool {
-		return state.processMetric(msg) == nil
+		_ = state.processMetric(msg)
+		//process all events from controller
+		return false
 	}
 }
 
