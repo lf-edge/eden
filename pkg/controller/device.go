@@ -365,8 +365,55 @@ func (cloud *CloudCtx) checkDrive(drive *config.Drive, dataStores []*config.Data
 	return dataStores, nil
 }
 
+func imageToContentTree(image *config.Image) *config.ContentTree {
+	return &config.ContentTree{
+		Uuid:            image.Uuidandversion.Uuid,
+		DsId:            image.DsId,
+		URL:             image.Name,
+		Iformat:         image.Iformat,
+		Sha256:          image.Sha256,
+		MaxSizeBytes:    uint64(image.SizeBytes),
+		Siginfo:         image.Siginfo,
+		DisplayName:     image.Name,
+		GenerationCount: 0,
+	}
+}
+
+func checkContentTree(contentTree *config.ContentTree, contentTrees []*config.ContentTree) []*config.ContentTree {
+	for _, el := range contentTrees {
+		if el.Uuid == contentTree.Uuid {
+			return contentTrees
+		}
+	}
+	return append(contentTrees, contentTree)
+}
+
+func driveToVolume(dr *config.Drive) *config.Volume {
+	return &config.Volume{
+		Uuid: dr.Image.Uuidandversion.Uuid,
+		Origin: &config.VolumeContentOrigin{
+			Type:                  config.VolumeContentOriginType_VCOT_DOWNLOAD,
+			DownloadContentTreeID: dr.Image.Uuidandversion.Uuid,
+		},
+		Protocols:    nil,
+		Maxsizebytes: dr.Maxsizebytes,
+		DisplayName:  dr.Image.Name,
+	}
+}
+
+func checkVolume(vol *config.Volume, vols []*config.Volume) []*config.Volume {
+	for _, el := range vols {
+		if el.Uuid == vol.Uuid {
+			return vols
+		}
+	}
+	return append(vols, vol)
+}
+
 //GetConfigBytes generate json representation of device config
 func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error) {
+	var contentInfo []*config.ContentTree
+	var volumes []*config.Volume
 	var baseOS []*config.BaseOSConfig
 	var dataStores []*config.DatastoreConfig
 	for _, baseOSConfigID := range dev.GetBaseOSConfigs() {
@@ -380,6 +427,8 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 			if err != nil {
 				return nil, err
 			}
+			contentInfo = checkContentTree(imageToContentTree(drive.Image), contentInfo)
+			volumes = checkVolume(driveToVolume(drive), volumes)
 		}
 		baseOS = append(baseOS, baseOSConfig)
 	}
@@ -390,11 +439,19 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 			return nil, err
 		}
 		//check drives from apps
+		applicationInstance.VolumeRefList = []*config.VolumeRef{}
 		for _, drive := range applicationInstance.Drives {
 			dataStores, err = cloud.checkDrive(drive, dataStores)
 			if err != nil {
 				return nil, err
 			}
+			contentInfo = checkContentTree(imageToContentTree(drive.Image), contentInfo)
+			volume := driveToVolume(drive)
+			applicationInstance.VolumeRefList = append(applicationInstance.VolumeRefList, &config.VolumeRef{
+				Uuid:            volume.Uuid,
+				GenerationCount: 0,
+			})
+			volumes = checkVolume(volume, volumes)
 		}
 		networkInstanceConfigArray := dev.GetNetworkInstances()
 		//check network instances from apps
@@ -455,6 +512,8 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 			Uuid:    dev.GetID().String(),
 			Version: strconv.Itoa(dev.GetConfigVersion()),
 		},
+		Volumes:           volumes,
+		ContentInfo:       contentInfo,
 		Apps:              applicationInstances,
 		Networks:          networkConfigs,
 		Datastores:        dataStores,
