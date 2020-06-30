@@ -18,7 +18,7 @@ You need to be able to run docker commands and able to access virtualization acc
 ```
 git clone https://github.com/lf-edge/eden.git
 cd eden
-make bin
+make build
 eden setup
 eden start
 eden status
@@ -88,6 +88,66 @@ List running applications and their ip/ports
 eden pod ps
 ```
 
+## Tests
+
+To run tests make sure you called `make build`.
+
+The easy way to run tests is to call `eden test <test folder>`
+
+For example - run reboot test:
+
+`eden test tests/reboot/`
+
+Some tests may accept parameters - run Log/Metrics/Info test in debug mode with  timeout of 600 seconds  and requiring  3  messages of each type  
+
+`eden test tests/lim/ -v debug -a '-timewait 600 -number 3'` 
+
+You can find more detailed information about `eden test` in [TESTING.md](TESTING.md)
+
+## Raspberry Pi 4 support
+
+Eden is the only thing you need to work with Raspberry and deploy containers there: 
+
+Step 1: Install EVE on Raspberry instead of any other OS.
+
+Prepare Raspberry image
+```
+git clone https://github.com/lf-edge/eden.git
+cd eden
+eden config add default --devmodel RPi4
+eden setup
+eden start
+```
+Then you will have an .img that can be transfered to SD card. 
+https://www.raspberrypi.org/documentation/installation/installing-images/
+
+For example for MacOS: 
+```
+diskutil list
+diskutil unmountDisk /dev/diskN
+sudo dd bs=1m if=path_of_your_image.img of=/dev/rdiskN; sync
+sudo diskutil eject /dev/rdiskN
+```
+
+Put in SD card into Raspberry and power it on
+
+Step 2: Connect to  Raspberry and run some app.
+
+```
+eden eve onboard
+eden pod deploy -p 8028:80 docker://nginx
+```
+
+After these lines you will have nginx available on public EVE IP at port 8028
+
+Use 
+```
+eden status
+eden pod ps
+```
+to get the status of the deployment
+
+
 ## Help
 
 You can get more information about `make` actions by running `make help`.
@@ -132,5 +192,3 @@ The current sub-commands are:
    * `controller` -- sub-commands to update EVE.
    * `pod` -- work with applications running on EVE (containers and VMs)
 
-You can find more detailed information about the commands in:
-* `eden test` -- [TESTING.md](TESTING.md)
