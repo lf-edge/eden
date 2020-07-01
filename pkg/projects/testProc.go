@@ -5,19 +5,23 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
 	"sync"
+	"time"
 )
 
 type ProcInfoFunc func(info *info.ZInfoMsg) error
 type ProcLogFunc func(log *elog.LogItem) error
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
+type ProcTimerFunc func() error
 
 type absFunc struct {
 	disabled bool
+	states   bool
 	proc     interface{}
 }
 
@@ -29,6 +33,18 @@ type processingBus struct {
 
 func initBus(tc *TestContext) *processingBus {
 	return &processingBus{tc: tc, proc: map[*device.Ctx][]*absFunc{}, wg: &sync.WaitGroup{}}
+}
+
+func (lb *processingBus) clean() {
+	for _, funcs := range lb.proc {
+		for _, el := range funcs {
+			if el.states || el.disabled {
+				continue
+			}
+			el.disabled = true
+		}
+	}
+	lb.wg = &sync.WaitGroup{}
 }
 
 func (lb *processingBus) processReturn(edgeNode *device.Ctx, procFunc *absFunc, result error) {
@@ -73,6 +89,22 @@ func (lb *processingBus) process(edgeNode *device.Ctx, inp interface{}) bool {
 	return false
 }
 
+func (lb *processingBus) processTimers(edgeNode *device.Ctx) bool {
+	for node, functions := range lb.proc {
+		if node == edgeNode {
+			for _, procFunc := range functions {
+				if procFunc.disabled == false {
+					switch pf := procFunc.proc.(type) {
+					case ProcTimerFunc:
+						lb.processReturn(edgeNode, procFunc, pf())
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 func (lb *processingBus) getMainProcessorLog(dev *device.Ctx) elog.HandlerFunc {
 	return func(im *elog.LogItem) bool {
 		return lb.process(dev, im)
@@ -108,6 +140,13 @@ func (lb *processingBus) initCheckers(dev *device.Ctx) {
 		err := lb.tc.GetController().MetricChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorMetric(dev), emetric.MetricNew, 0)
 		if err != nil {
 			log.Errorf("MetricChecker for dev %s error %s", dev.GetID(), err)
+		}
+	}()
+	go func() {
+		for {
+			timer := time.NewTimer(defaults.DefaultRepeatTimeout)
+			<-timer.C
+			lb.processTimers(dev)
 		}
 	}()
 }

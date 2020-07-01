@@ -42,7 +42,7 @@ func CreateEdgeNode() *Ctx {
 	id, _ := uuid.NewV4()
 	return &Ctx{
 		id:            id,
-		rebootCounter: 1000,
+		rebootCounter: 0,
 		rebootState:   false,
 		configItems:   configItems,
 		configVersion: 4,

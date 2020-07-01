@@ -27,3 +27,9 @@ func (ctx *TestContext) WithCurrentProject() EdgeNodeOption {
 		d.SetProject(ctx.project.name)
 	}
 }
+
+func (ctx *TestContext) WithDeviceModel(devModel string) EdgeNodeOption {
+	return func(d *device.Ctx) {
+		d.SetDevModel(devModel)
+	}
+}
