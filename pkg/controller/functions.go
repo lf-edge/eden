@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -11,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -39,8 +41,39 @@ func (cloud *CloudCtx) SetVars(vars *utils.ConfigVars) {
 
 //OnBoardDev in controller
 func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
+	edenDir, err := utils.DefaultEdenDir()
+	if err != nil {
+		return err
+	}
+	alreadyRegistered := false
 	oldDevUUID, _ := cloud.DeviceGetByOnboard(node.GetOnboardKey())
-	err := cloud.Register(node)
+	if oldDevUUID != uuid.Nil {
+		b, err := ioutil.ReadFile(node.GetOnboardKey())
+		switch {
+		case err != nil && os.IsNotExist(err):
+			log.Printf("cert file %s does not exist", node.GetOnboardKey())
+			return err
+		case err != nil:
+			log.Printf("error reading cert file %s: %v", node.GetOnboardKey(), err)
+			return err
+		}
+		cert, err := x509.ParseCert(b)
+		if err != nil {
+			return err
+		}
+		uuidToFound, err := uuid.FromString(cert.Subject.CommonName)
+		if err != nil {
+			return err
+		}
+		fi, err := os.Stat(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", uuidToFound)))
+		if err == nil {
+			size := fi.Size()
+			if size > 0 {
+				alreadyRegistered = true
+			}
+		}
+	}
+	err = cloud.Register(node)
 	if err != nil {
 		return fmt.Errorf("register: %s", err)
 	}
@@ -59,7 +92,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 			log.Infof("Device uuid: %s", dev.String())
 			node.SetID(dev)
 			node.SetState(device.Onboarded)
-			if oldDevUUID == uuid.Nil { //new node
+			if !alreadyRegistered { //new node
 				node.SetConfigItem("app.allow.vnc", "true")
 				log.Debugf("will apply devModel %s", node.GetDevModel())
 				deviceModel, err := cloud.GetDevModelByName(node.GetDevModel())
