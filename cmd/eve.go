@@ -312,6 +312,53 @@ var onboardEveCmd = &cobra.Command{
 	},
 }
 
+var resetEveCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "Reset EVE to initial config",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assingCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		eveUUID := viper.GetString("eve.uuid")
+		edenDir, err := utils.DefaultEdenDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = os.Remove(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))); err != nil {
+			log.Fatal(err)
+		}
+		if err = utils.TouchFile(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))); err != nil {
+			log.Fatal(err)
+		}
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatal(err)
+		}
+		vars := ctrl.GetVars()
+		dev.SetApplicationInstanceConfig(nil)
+		dev.SetBaseOSConfig(nil)
+		dev.SetSerial(vars.EveSerial)
+		dev.SetOnboardKey(vars.EveCert)
+		dev.SetDevModel(vars.DevModel)
+		dev.SetName(vars.EveName)
+		err = ctrl.OnBoardDev(dev)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = ctrl.StateUpdate(dev); err != nil {
+			log.Fatal(err)
+		}
+		log.Info("reset done")
+		log.Info("device UUID: ", dev.GetID().String())
+	},
+}
+
 func eveInit() {
 	eveCmd.AddCommand(confChangerCmd)
 	confChangerInit()
@@ -323,6 +370,7 @@ func eveInit() {
 	eveCmd.AddCommand(sshEveCmd)
 	eveCmd.AddCommand(consoleEveCmd)
 	eveCmd.AddCommand(onboardEveCmd)
+	eveCmd.AddCommand(resetEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
