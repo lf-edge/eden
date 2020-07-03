@@ -2,6 +2,10 @@
 
 test: test_go test_sceanrio
 
+setup:
+build:
+clean:
+
 test_go:
 	go test templates_test.go -v
 
@@ -17,6 +21,5 @@ help:
 	@echo "   test          run tests"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
-	@echo "Also, you need to install 'uuidgen' utility."
 	@echo "You need access to docker socket and installed qemu packages."
 
