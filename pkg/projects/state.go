@@ -13,13 +13,12 @@ import (
 )
 
 type infoState struct {
-	Dinfo      *info.ZInfoDevice
-	Ainfo      []*info.ZInfoApp
-	Niinfo     []*info.ZInfoNetworkInstance
-	Vinfo      []*info.ZInfoVolume
-	Cinfo      []*info.ZInfoContentTree
-	Binfo      []*info.ZInfoBlob
-	Cipherinfo []*info.ZInfoCipher
+	Dinfo  *info.ZInfoDevice
+	Ainfo  []*info.ZInfoApp
+	Niinfo []*info.ZInfoNetworkInstance
+	Vinfo  []*info.ZInfoVolume
+	Cinfo  []*info.ZInfoContentTree
+	Binfo  []*info.ZInfoBlob
 
 	Am []*metrics.AppMetric
 	Nm []*metrics.ZMetricNetworkInstance
@@ -80,15 +79,6 @@ func (state *state) processInfo(infoMsg *info.ZInfoMsg) error {
 			}
 		}
 		state.deviceInfo.Cinfo = append(state.deviceInfo.Cinfo, cInfo)
-	case info.ZInfoTypes_Z_INFO_TYPES_CIPHER_INFO:
-		cInfo := infoMsg.GetCipherinfo()
-		for ind, cipherInfo := range state.deviceInfo.Cipherinfo {
-			if cipherInfo.Id == cInfo.Id {
-				state.deviceInfo.Cipherinfo[ind] = cInfo
-				return nil
-			}
-		}
-		state.deviceInfo.Cipherinfo = append(state.deviceInfo.Cipherinfo, cInfo)
 	case info.ZInfoTypes_ZiBlobList:
 		bInfoList := infoMsg.GetBinfo()
 	blobsLoop:
@@ -174,11 +164,6 @@ func (state *state) GetCinfoSlice() []*info.ZInfoContentTree {
 //GetBinfoSlice get []*info.ZInfoBlob from obtained info
 func (state *state) GetBinfoSlice() []*info.ZInfoBlob {
 	return state.deviceInfo.Binfo
-}
-
-//GetCipherinfoSlice get []*info.ZInfoCipher from obtained info
-func (state *state) GetCipherinfoSlice() []*info.ZInfoCipher {
-	return state.deviceInfo.Cipherinfo
 }
 
 //GetAm get []*metrics.AppMetric from obtained metrics
