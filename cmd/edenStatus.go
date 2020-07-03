@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func eveStatusRPI() {
@@ -24,11 +25,15 @@ func eveStatusRPI() {
 		fmt.Println("EVE status: undefined (no onboarded EVE)")
 	} else {
 		var lastDInfo *info.ZInfoMsg
+		var lastTime time.Time
 		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
-			lastDInfo = im
+			lastTime = time.Unix(im.AtTimeStamp.GetSeconds(), 0)
+			if im.GetZtype() == info.ZInfoTypes_ZiDevice {
+				lastDInfo = im
+			}
 			return false
 		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZInfoNetwork, handleInfo); err != nil {
+		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZAll, handleInfo); err != nil {
 			log.Fatalf("Fail in get InfoLastCallback: %s", err)
 		}
 		if lastDInfo != nil {
@@ -46,6 +51,7 @@ func eveStatusRPI() {
 				}
 			}
 			fmt.Printf("EVE REMOTE IPs: %s\n", strings.Join(ips, "; "))
+			fmt.Printf("\tLast info received time: %s\n", lastTime)
 		} else {
 			fmt.Printf("EVE REMOTE IPs: %s\n", "waiting for info...")
 		}
