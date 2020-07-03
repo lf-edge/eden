@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 var (
@@ -97,10 +98,13 @@ var setupCmd = &cobra.Command{
 		var imageFormat string
 		switch devModel {
 		case defaults.DefaultRPIModel:
-			if eveHV == "kvm" {
-				eveHV = fmt.Sprintf("rpi-%s", eveHV)
-			} else {
-				eveHV = "rpi"
+			// don't second guess explicit rpi- setting
+			if !strings.HasPrefix(eveHV, "rpi-") {
+				if eveHV == "kvm" {
+					eveHV = fmt.Sprintf("rpi-%s", eveHV)
+				} else {
+					eveHV = "rpi"
+				}
 			}
 			imageFormat = "raw"
 		case defaults.DefaultEVEModel:
