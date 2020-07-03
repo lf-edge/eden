@@ -162,10 +162,17 @@ Eden is controlled by a single command named (in a secret code) `eden`. It has m
 Run `eden help` to see sub-commands.
 
 To build `eden`:
+```
+make bin
+```
+
+To build `eden` and tests inside eden 
+It's better to call `eden config add` first, so the build command can build tests for the desired architecture
 
 ```
 make build
 ```
+
 
 You can build it for different computer architectures and operating systems by passing `OS` and `ARCH` options.
 The default, however, is for the architecture and OS on which you are building it.
@@ -191,4 +198,11 @@ The current sub-commands are:
    * `eve` -- sub-commands for interact with EVE.
    * `controller` -- sub-commands to update EVE.
    * `pod` -- work with applications running on EVE (containers and VMs)
+
+## Eden EVE commands
+
+`eden eve onboard` - onboard EVE that is the current config
+`eden eve reset` - put EVE to the initial state (reset to config) removing all changes made by commands or tests
+
+
 
