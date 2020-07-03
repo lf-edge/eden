@@ -67,6 +67,5 @@ help:
 	@echo "   clean         cleanup of test harness"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
-	@echo "Also, you need to install 'uuidgen' utility."
 	@echo "You need access to docker socket and installed qemu packages."
 

@@ -1,4 +1,6 @@
 DEBUG ?= "debug"
+CONFIG ?= 
+TESTS ?= $(shell find tests/ -maxdepth 1 -mindepth 1 -type d  -exec basename {} \;)
 
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
@@ -39,7 +41,7 @@ $(BINDIR):
 	mkdir -p $@
 
 test: build
-	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
+	make -C tests TESTS="$(TESTS)" DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
 build: bin testbin
 
@@ -54,7 +56,7 @@ testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
 config: bin
-	$(LOCALBIN) config add default -v $(DEBUG)
+	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
 
 setup: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
@@ -82,7 +84,11 @@ help:
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo
+	@echo "You can use some parameters:"
+	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. make CONFIG='--devmodel RPi4' run"
+	@echo "   TESTS         list of tests for 'make test' to run, for ex. make TESTS='lim units' test"
+	@echo "   DEBUG         debug level for 'eden' command ('debug' by default)"
+	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
-	@echo "Also, you need to install 'uuidgen' utility."
 	@echo "You need access to docker socket and installed qemu packages."
 

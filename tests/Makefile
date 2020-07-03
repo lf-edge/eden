@@ -1,4 +1,5 @@
 DEBUG ?= "debug"
+TESTS ?= $(shell find . -maxdepth 1 -mindepth 1 -type d)
 
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
@@ -16,47 +17,21 @@ OS ?= $(HOSTOS)
 
 WORKDIR ?= $(CURDIR)/../dist
 
-test: units_test integration_test lim_test
+test: $(TESTS:=_test)
 
-build: integration_build reboot_build lim_build
-setup: integration_setup reboot_setup lim_setup
-clean: integration_clean reboot_clean lim_clean
+build: $(TESTS:=_build)
+setup: $(TESTS:=_setup)
+clean: $(TESTS:=_clean)
 
-units_test:
-	make -C units test
+%_test: % %_build %_setup
+	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
-integration_test: integration_build integration_setup
-	make -C integration DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
+%_build: %
+	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
-reboot_test: reboot_build reboot_setup
-	make -C reboot DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
+%_setup: %
+	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
 
-lim_test: reboot_build reboot_setup
-	make -C lim DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
+%_clean: %
+	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
 
-integration_build:
-	make -C integration DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
-
-reboot_build:
-	make -C reboot DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
-
-lim_build:
-	make -C lim DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
-
-integration_setup:
-	make -C integration DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
-
-reboot_setup:
-	make -C reboot DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
-
-lim_setup:
-	make -C lim DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
-
-integration_clean:
-	make -C integration DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
-
-reboot_clean:
-	make -C reboot DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
-
-lim_clean:
-	make -C lim DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
