@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -212,16 +213,25 @@ var sshEveCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
+			changer := &adamChanger{}
+			ctrl, dev, err := changer.getControllerAndDev()
+			if err != nil {
+				log.Fatalf("Cannot get controller or dev, please start them and onboard: %s", err)
+			}
+			b, err := ioutil.ReadFile(ctrl.GetVars().SshKey)
+			switch {
+			case err != nil:
+				log.Fatalf("error reading sshKey file %s: %v", ctrl.GetVars().SshKey, err)
+			}
+			dev.SetConfigItem("debug.enable.ssh", string(b))
+			if err = ctrl.ConfigSync(dev); err != nil {
+				log.Fatal(err)
+			}
 			if devModel == defaults.DefaultRPIModel { //obtain IP of EVE from info
 				if !cmd.Flags().Changed("eve-ssh-port") {
 					eveSSHPort = 22
 				}
 				if !cmd.Flags().Changed("eve-host") {
-					changer := &adamChanger{}
-					ctrl, dev, err := changer.getControllerAndDev()
-					if err != nil {
-						log.Fatalf("getControllerAndDev: %s", err)
-					}
 					var lastDInfo *info.ZInfoMsg
 					var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
 						lastDInfo = im
@@ -230,17 +240,19 @@ var sshEveCmd = &cobra.Command{
 					if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZInfoNetwork, handleInfo); err != nil {
 						log.Fatalf("Fail in get InfoLastCallback: %s", err)
 					}
-					if lastDInfo != nil {
-						for _, nw := range lastDInfo.GetDinfo().Network {
-							for _, addr := range nw.IPAddrs {
-								ip, _, err := net.ParseCIDR(addr)
-								if err != nil {
-									log.Fatal(err)
-								}
-								ipv4 := ip.To4()
-								if ipv4 != nil {
-									eveHost = ipv4.String()
-								}
+					if lastDInfo == nil {
+						log.Info("No info message obtained from EVE, please try again")
+						return
+					}
+					for _, nw := range lastDInfo.GetDinfo().Network {
+						for _, addr := range nw.IPAddrs {
+							ip, _, err := net.ParseCIDR(addr)
+							if err != nil {
+								log.Fatal(err)
+							}
+							ipv4 := ip.To4()
+							if ipv4 != nil {
+								eveHost = ipv4.String()
 							}
 						}
 					}
