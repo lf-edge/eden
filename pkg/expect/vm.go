@@ -7,6 +7,9 @@ import (
 	"log"
 )
 
+//createAppInstanceConfigVM creates AppInstanceConfig for VM with provided img, netInstance, id and acls
+//  it uses name of app and cpu/mem params from appExpectation
+//  it use ZArch param to choose VirtualizationMode
 func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, netInstId string, id uuid.UUID, acls []*config.ACE) *config.AppInstanceConfig {
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{

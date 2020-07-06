@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//checkNetworkInstance checks if provided netInst match expectation
 func (exp *appExpectation) checkNetworkInstance(netInst *config.NetworkInstanceConfig) bool {
 	if netInst == nil {
 		return false
@@ -19,20 +20,21 @@ func (exp *appExpectation) checkNetworkInstance(netInst *config.NetworkInstanceC
 	return false
 }
 
+//createNetworkInstance creates NetworkInstanceConfig for appExpectation
 func (exp *appExpectation) createNetworkInstance() (*config.NetworkInstanceConfig, error) {
 	var netInst *config.NetworkInstanceConfig
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-	subentIPs := utils.GetSubnetIPs(defaults.DefaultAppSubnet)
+	subentIPs := utils.GetSubnetIPs(defaults.DefaultAppSubnet) //we use predefined subnet for now
 	netInst = &config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    id.String(),
 			Version: "1",
 		},
 		Displayname: "local",
-		InstType:    config.ZNetworkInstType_ZnetInstLocal,
+		InstType:    config.ZNetworkInstType_ZnetInstLocal, //we use local networks for now
 		Activate:    true,
 		Port: &config.Adapter{
 			Name: "eth0",
@@ -55,6 +57,7 @@ func (exp *appExpectation) createNetworkInstance() (*config.NetworkInstanceConfi
 }
 
 //NetworkInstance expects network instance in cloud
+//it gets NetworkInstanceConfig with defined in appExpectation params, or creates new one, if not exists
 func (exp *appExpectation) NetworkInstance() (networkInstance *config.NetworkInstanceConfig) {
 	var err error
 	for _, netInst := range exp.ctrl.ListNetworkInstanceConfig() {
@@ -63,7 +66,7 @@ func (exp *appExpectation) NetworkInstance() (networkInstance *config.NetworkIns
 			break
 		}
 	}
-	if networkInstance == nil {
+	if networkInstance == nil { //if networkInstance not exists, create it
 		if networkInstance, err = exp.createNetworkInstance(); err != nil {
 			log.Fatalf("cannot create NetworkInstance: %s", err)
 		}

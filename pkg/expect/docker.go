@@ -7,6 +7,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+//createImageDocker creates Image for docker with tag and version from appExpectation and provided id and datastoreId
 func (exp *appExpectation) createImageDocker(id uuid.UUID, dsId string) *config.Image {
 	return &config.Image{
 		Uuidandversion: &config.UUIDandVersion{
@@ -20,6 +21,7 @@ func (exp *appExpectation) createImageDocker(id uuid.UUID, dsId string) *config.
 	}
 }
 
+//checkImageDocker checks if provided img match expectation
 func (exp *appExpectation) checkImageDocker(img *config.Image, dsId string) bool {
 	if img.DsId == dsId && img.Name == fmt.Sprintf("%s:%s", exp.appUrl, exp.appVersion) && img.Iformat == config.Format_CONTAINER {
 		return true
@@ -27,6 +29,7 @@ func (exp *appExpectation) checkImageDocker(img *config.Image, dsId string) bool
 	return false
 }
 
+//checkDataStoreDocker checks if provided ds match expectation
 func (exp *appExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool {
 	if ds.DType == config.DsType_DsContainerRegistry && ds.Fqdn == "docker://docker.io" {
 		return true
@@ -34,6 +37,7 @@ func (exp *appExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 	return false
 }
 
+//createDataStoreDocker creates DatastoreConfig for docker.io with provided id
 func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
 	return &config.DatastoreConfig{
 		Id:         id.String(),
@@ -47,6 +51,8 @@ func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 	}
 }
 
+//createAppInstanceConfigDocker creates AppInstanceConfig for docker with provided img, netInstance, id and acls
+//  it uses name of app and cpu/mem params from appExpectation
 func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, netInstId string, id uuid.UUID, acls []*config.ACE) *config.AppInstanceConfig {
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
