@@ -92,6 +92,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 			log.Infof("Device uuid: %s", dev.String())
 			node.SetID(dev)
 			node.SetState(device.Onboarded)
+			node.SetRemote(cloud.vars.EveRemote)
 			if !alreadyRegistered { //new node
 				node.SetConfigItem("app.allow.vnc", "true")
 				log.Debugf("will apply devModel %s", node.GetDevModel())

@@ -80,6 +80,7 @@ var configAddCmd = &cobra.Command{
 			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
@@ -113,16 +114,18 @@ var configAddCmd = &cobra.Command{
 			log.Fatalf("error reading config: %s", err)
 		}
 		if devModel == defaults.DefaultRPIModel { //modify default settings according to RPI4 params
+			eveRemote = true
 			viper.Set("eve.hostfwd", map[string]string{})
 			viper.Set("eve.devmodel", defaults.DefaultRPIModel)
 			viper.Set("eve.arch", "arm64")
 			viper.Set("eve.serial", "*")
+			viper.Set("eve.remote", eveRemote)
 			if err = viper.WriteConfig(); err != nil {
 				log.Fatalf("error writing config: %s", err)
 			}
 		}
 		context.SetContext(currentContextName)
-		if devModel == defaults.DefaultRPIModel {
+		if eveRemote {
 			return
 		}
 		if _, err := os.Stat(qemuFileToSave); os.IsNotExist(err) {

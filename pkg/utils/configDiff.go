@@ -65,6 +65,9 @@ eve:
         8027: 8027
         8028: 8028
 
+    #is EVE remote or local
+    remote: {{ .DefaultEVERemote }}
+
 eden:
     #root directory of eden
     root: {{ .Root }}

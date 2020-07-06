@@ -90,6 +90,8 @@ const (
 	DefaultRPIModel = "RPi4"
 	DefaultEVEName  = "node1"
 
+	DefaultEVERemote = false
+
 	DefaultEVEImageSize = 8192
 
 	DefaultAppMem = 1024000

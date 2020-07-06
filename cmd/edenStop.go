@@ -28,7 +28,7 @@ var stopCmd = &cobra.Command{
 		if viperLoaded {
 			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
-			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
@@ -48,7 +48,7 @@ var stopCmd = &cobra.Command{
 		} else {
 			log.Infof("eserver stopped")
 		}
-		if devModel == defaults.DefaultRPIModel {
+		if eveRemote {
 			return
 		}
 		if err := utils.StopEVEQemu(evePidFile); err != nil {

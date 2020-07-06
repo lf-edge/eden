@@ -3,7 +3,6 @@ package projects
 import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
@@ -184,27 +183,18 @@ func (state *state) GetDm() *metrics.DeviceMetric {
 	return state.deviceInfo.deviceMetric
 }
 
-//CheckEVERemote returns true if we use remote EVE
-func (state *state) CheckEVERemote() bool {
-	if state.device.GetDevModel() == defaults.DefaultRPIModel {
-		return true
-	}
-	//we also should check connection to remote EVE in cloud
-	return false
-}
-
 //GetEVEIPs returns EVE IPs from info
 func (state *state) GetEVEIPs() (ips []string) {
-	if state.CheckEVERemote() {
+	if state.device.GetRemote() {
 		if dInfo := state.GetDinfo(); dInfo != nil {
 			if len(dInfo.Network) > 0 {
 				if dInfo.Network[0] != nil {
 					if len(dInfo.Network[0].IPAddrs) > 0 {
-						ip, _, err := net.ParseCIDR(dInfo.Network[0].IPAddrs[0])
-						if err != nil {
+						if ip, _, err := net.ParseCIDR(dInfo.Network[0].IPAddrs[0]); err != nil {
 							return nil
+						} else {
+							ips = append(ips, ip.To4().String())
 						}
-						ips = append(ips, ip.To4().String())
 					}
 				}
 			}

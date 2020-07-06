@@ -54,12 +54,12 @@ var startEveCmd = &cobra.Command{
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
-			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if devModel == defaults.DefaultRPIModel {
+		if eveRemote {
 			return
 		}
 		qemuCommand := ""
@@ -128,13 +128,13 @@ var stopEveCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
-			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if devModel == defaults.DefaultRPIModel {
-			log.Debug("Cannot stop RPI EVE")
+		if eveRemote {
+			log.Debug("Cannot stop remote EVE")
 			return
 		}
 		if err := utils.StopEVEQemu(evePidFile); err != nil {
@@ -155,12 +155,12 @@ var statusEveCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
-			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if devModel == defaults.DefaultRPIModel {
+		if eveRemote {
 			eveStatusRPI()
 		} else {
 			eveStatusQEMU()
@@ -178,12 +178,12 @@ var consoleEveCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
-		devModel = viper.GetString("eve.devmodel")
+		eveRemote = viper.GetBool("eve.remote")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if devModel == defaults.DefaultRPIModel {
-			log.Info("Cannot telnet to RPI")
+		if eveRemote {
+			log.Info("Cannot telnet to remote EVE")
 			return
 		}
 		log.Infof("Try to telnet %s:%d", eveHost, eveTelnetPort)
@@ -207,7 +207,7 @@ var sshEveCmd = &cobra.Command{
 			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
 			extension := filepath.Ext(eveSSHKey)
 			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
-			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
@@ -227,7 +227,7 @@ var sshEveCmd = &cobra.Command{
 			if err = ctrl.ConfigSync(dev); err != nil {
 				log.Fatal(err)
 			}
-			if devModel == defaults.DefaultRPIModel { //obtain IP of EVE from info
+			if eveRemote { //obtain IP of EVE from info
 				if !cmd.Flags().Changed("eve-ssh-port") {
 					eveSSHPort = 22
 				}

@@ -81,7 +81,7 @@ var statusCmd = &cobra.Command{
 		if viperLoaded {
 			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
-			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
@@ -127,7 +127,7 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", viper.GetString("eden.eserver.ip"), viper.GetInt("eden.eserver.port"))
 			fmt.Printf("\tLogs for local EServer at: %s\n", utils.ResolveAbsPath("eserver.log"))
 		}
-		if devModel == defaults.DefaultRPIModel {
+		if eveRemote {
 			eveStatusRPI()
 		} else {
 			eveStatusQEMU()

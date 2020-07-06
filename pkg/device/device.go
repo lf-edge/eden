@@ -34,6 +34,7 @@ type Ctx struct {
 	rebootCounter              uint32
 	rebootState                bool
 	devModel                   string
+	remote                     bool
 }
 
 //CreateEdgeNode generates EdgeNode
@@ -82,6 +83,12 @@ func (cfg *Ctx) SetConfigItem(key, val string) { cfg.configItems[key] = val }
 
 //GetDevModel return devModel of device
 func (cfg *Ctx) GetDevModel() string { return cfg.devModel }
+
+//GetRemote return true if EVE is remote
+func (cfg *Ctx) GetRemote() bool { return cfg.remote }
+
+//SetRemote set remote status of EVE
+func (cfg *Ctx) SetRemote(remote bool) { cfg.remote = remote }
 
 //GetApplicationInstances return applicationInstanceConfigs of device
 func (cfg *Ctx) GetApplicationInstances() []string { return cfg.applicationInstanceConfigs }
