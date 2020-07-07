@@ -11,6 +11,7 @@ import (
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -81,11 +82,21 @@ func checkAppRunning(appName string) projects.ProcInfoFunc {
 //getEVEIP wait for IPs of EVE and returns them
 func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
-		if eveIPs := tc.GetState(edgeNode).GetEVEIPs(); len(eveIPs) > 0 {
-			externalIP = eveIPs[0]
+		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
+			if eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]"); err != nil {
+				return nil
+			} else {
+				if ip, _, err := net.ParseCIDR(eveIPCIDR.String()); err != nil {
+					return nil
+				} else {
+					externalIP = ip.To4().String()
+					return fmt.Errorf("external ip is: %s", externalIP)
+				}
+			}
+		} else {
+			externalIP = edgeNode.GetRemoteAddr()
 			return fmt.Errorf("external ip is: %s", externalIP)
 		}
-		return nil
 	}
 }
 

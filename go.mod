@@ -19,6 +19,7 @@ require (
 	github.com/lf-edge/adam v0.0.0-20200502191324-bedd2e5e0d61
 	github.com/lf-edge/eve/api/go v0.0.0-20200615094333-d830e240d9c6
 	github.com/magiconair/properties v1.8.1 // indirect
+	github.com/mcuadros/go-lookup v0.0.0-20200513230334-5988786b5617
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
