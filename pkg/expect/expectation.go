@@ -12,12 +12,13 @@ import (
 	"time"
 )
 
+//appType is type of app according to provided appLink
 type appType int
 
 var (
-	dockerApp appType = 1
-	httpApp   appType = 2
-	httpsApp  appType = 3
+	dockerApp appType = 1 //for docker application
+	httpApp   appType = 2 //for application with image from http link
+	httpsApp  appType = 3 //for application with image from https link
 )
 
 //appExpectation is description of app, expected to run on EVE
@@ -34,7 +35,12 @@ type appExpectation struct {
 	metadata   string
 }
 
-//AppExpectationFromUrl init appExpectation with defined appLink
+//AppExpectationFromUrl init appExpectation with defined:
+//   appLink - docker url to pull or link to qcow2 image
+//   podName - name of app
+//   portPublish - publish ports of app in format externalPort:internalPort
+//   qemuPorts - mapping of ports in qemu (nil if no qemu port forwarding)
+//   metadata - string with metadata for app (env for docker, no-cloud user-data for vm
 func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, portPublish []string, qemuPorts map[string]string, metadata string) (expectation *appExpectation) {
 	expectation = &appExpectation{
 		ctrl:     ctrl,
@@ -44,6 +50,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 		mem:      defaults.DefaultAppMem,
 		metadata: strings.Replace(metadata, `\n`, "\n", -1),
 	}
+	//check portPublish variable
 	if portPublish != nil && len(portPublish) > 0 {
 	exit:
 		for _, el := range portPublish {
@@ -91,11 +98,14 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 			}
 		}
 	}
+	//generate random name
 	rand.Seed(time.Now().UnixNano())
 	expectation.appName = namesgenerator.GetRandomName(0)
 	if podName != "" {
+		//set defined name if provided
 		expectation.appName = podName
 	}
+	//parse provided appLink to obtain params
 	params := utils.GetParams(appLink, defaults.DefaultPodLinkPattern)
 	if len(params) == 0 {
 		log.Fatalf("fail to parse (docker|http(s))://(<TAG>[:<VERSION>] | <URL>) from argument (%s)", appLink)

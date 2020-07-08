@@ -8,6 +8,7 @@ import (
 	"strconv"
 )
 
+//checkAppInstanceConfig checks if provided app match expectation
 func (exp *appExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig) bool {
 	if app == nil {
 		return false
@@ -18,6 +19,8 @@ func (exp *appExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig)
 	return false
 }
 
+//createAppInstanceConfig creates AppInstanceConfig with provided img and netInstId
+//  it uses published ports info from appExpectation to create ACE
 func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstId string) (*config.AppInstanceConfig, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -59,7 +62,8 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstId 
 	}
 }
 
-//Application expects application in controller
+//Application expectation gets or creates Image definition, gets or create NetworkInstance definition,
+//gets AppInstanceConfig and returns it or creates AppInstanceConfig, adds it into internal controller and returns it
 func (exp *appExpectation) Application() (appInstanceConfig *config.AppInstanceConfig) {
 	var err error
 	image := exp.Image()
@@ -70,7 +74,7 @@ func (exp *appExpectation) Application() (appInstanceConfig *config.AppInstanceC
 			break
 		}
 	}
-	if appInstanceConfig == nil {
+	if appInstanceConfig == nil { //if appInstanceConfig not exists, create it
 		if appInstanceConfig, err = exp.createAppInstanceConfig(image, networkInstance.Uuidandversion.Uuid); err != nil {
 			log.Fatalf("cannot create app: %s", err)
 		}

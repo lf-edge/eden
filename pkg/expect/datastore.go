@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//checkDataStore checks if provided ds match expectation
 func (exp *appExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 	if ds == nil {
 		return false
@@ -20,6 +21,7 @@ func (exp *appExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 	return false
 }
 
+//createDataStore creates DatastoreConfig for appExpectation
 func (exp *appExpectation) createDataStore() (*config.DatastoreConfig, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -36,6 +38,7 @@ func (exp *appExpectation) createDataStore() (*config.DatastoreConfig, error) {
 }
 
 //DataStore expects datastore in controller
+//it gets DatastoreConfig with defined in appExpectation params, or creates new one, if not exists
 func (exp *appExpectation) DataStore() (datastore *config.DatastoreConfig) {
 	var err error
 	for _, ds := range exp.ctrl.ListDataStore() {
@@ -44,7 +47,7 @@ func (exp *appExpectation) DataStore() (datastore *config.DatastoreConfig) {
 			break
 		}
 	}
-	if datastore == nil {
+	if datastore == nil { //if datastore not exists, create it
 		if datastore, err = exp.createDataStore(); err != nil {
 			log.Fatalf("cannot create datastore: %s", err)
 		}

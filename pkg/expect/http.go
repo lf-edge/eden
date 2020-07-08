@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 )
 
+//createImageHttp downloads image into EServer directory from http/https endpoint and calculates size and sha256 of image
 func (exp *appExpectation) createImageHttp(id uuid.UUID, dsId string) *config.Image {
 	log.Infof("Starting download of image from %s", exp.appLink)
 	filePath := filepath.Join(exp.ctrl.GetVars().EServerImageDist, path.Base(exp.appUrl))
@@ -43,6 +44,7 @@ func (exp *appExpectation) createImageHttp(id uuid.UUID, dsId string) *config.Im
 	}
 }
 
+//checkImageHttp checks if provided img match expectation
 func (exp *appExpectation) checkImageHttp(img *config.Image, dsId string) bool {
 	if img.DsId == dsId && img.Name == path.Join(exp.appName, path.Base(exp.appUrl)) && img.Iformat == config.Format_QCOW2 {
 		return true
@@ -50,6 +52,7 @@ func (exp *appExpectation) checkImageHttp(img *config.Image, dsId string) bool {
 	return false
 }
 
+//checkDataStoreHttp checks if provided ds match expectation
 func (exp *appExpectation) checkDataStoreHttp(ds *config.DatastoreConfig) bool {
 	if ds.DType == config.DsType_DsHttp && ds.Fqdn == fmt.Sprintf("http://%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort) {
 		return true
@@ -57,6 +60,7 @@ func (exp *appExpectation) checkDataStoreHttp(ds *config.DatastoreConfig) bool {
 	return false
 }
 
+//createDataStoreHttp creates datastore, pointed onto EServer http endpoint
 func (exp *appExpectation) createDataStoreHttp(id uuid.UUID) *config.DatastoreConfig {
 	return &config.DatastoreConfig{
 		Id:         id.String(),
