@@ -185,7 +185,7 @@ func (state *state) GetDm() *metrics.DeviceMetric {
 
 //GetEVEIPs returns EVE IPs from info
 func (state *state) GetEVEIPs() (ips []string) {
-	if state.device.GetRemote() {
+	if state.device.GetRemoteAddr() == "" {
 		if dInfo := state.GetDinfo(); dInfo != nil {
 			if len(dInfo.Network) > 0 {
 				if dInfo.Network[0] != nil {
@@ -200,7 +200,7 @@ func (state *state) GetEVEIPs() (ips []string) {
 			}
 		}
 	} else {
-		return []string{"127.0.0.1"}
+		return []string{state.device.GetRemoteAddr()}
 	}
 	return
 }

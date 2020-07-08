@@ -29,6 +29,7 @@ var (
 	eveHost          string
 	eveSSHPort       int
 	eveTelnetPort    int
+	eveRemoteAddr    string
 )
 
 var eveCmd = &cobra.Command{
@@ -208,6 +209,7 @@ var sshEveCmd = &cobra.Command{
 			extension := filepath.Ext(eveSSHKey)
 			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
 			eveRemote = viper.GetBool("eve.remote")
+			eveRemoteAddr = viper.GetString("eve.remote-addr")
 		}
 		return nil
 	},
@@ -227,7 +229,7 @@ var sshEveCmd = &cobra.Command{
 			if err = ctrl.ConfigSync(dev); err != nil {
 				log.Fatal(err)
 			}
-			if eveRemote { //obtain IP of EVE from info
+			if eveRemoteAddr == "" { //obtain IP of EVE from info
 				if !cmd.Flags().Changed("eve-ssh-port") {
 					eveSSHPort = 22
 				}
@@ -257,6 +259,8 @@ var sshEveCmd = &cobra.Command{
 						}
 					}
 				}
+			} else {
+				eveHost = eveRemoteAddr
 			}
 			log.Infof("Try to SHH %s:%d with key %s", eveHost, eveSSHPort, eveSSHKey)
 			if err := utils.RunCommandForeground("ssh", strings.Fields(fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s", eveSSHKey, eveSSHPort, eveHost))...); err != nil {

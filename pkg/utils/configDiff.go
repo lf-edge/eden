@@ -68,6 +68,9 @@ eve:
     #is EVE remote or local
     remote: {{ .DefaultEVERemote }}
 
+    #EVE address for access from Eden
+    remote-addr: {{ .DefaultEVERemoteAddr }}
+
 eden:
     #root directory of eden
     root: {{ .Root }}

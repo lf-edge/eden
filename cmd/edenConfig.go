@@ -120,6 +120,7 @@ var configAddCmd = &cobra.Command{
 			viper.Set("eve.arch", "arm64")
 			viper.Set("eve.serial", "*")
 			viper.Set("eve.remote", eveRemote)
+			viper.Set("eve.remote-addr", "")
 			if err = viper.WriteConfig(); err != nil {
 				log.Fatalf("error writing config: %s", err)
 			}
