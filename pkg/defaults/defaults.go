@@ -39,8 +39,8 @@ const (
 
 	//tags, versions, repos
 	DefaultNewBuildProcess   = true
-	DefaultEVETag            = "0.0.0-snapshot-master-a833eaf1" //DefaultEVETag tag for EVE image
-	DefaultAdamTag           = "0.0.44"
+	DefaultEVETag            = "5.7.0" //DefaultEVETag tag for EVE image
+	DefaultAdamTag           = "0.0.48"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"
 	DefaultImage             = "library/alpine"

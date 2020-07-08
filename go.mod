@@ -17,7 +17,7 @@ require (
 	github.com/golang/protobuf v1.4.0-rc.4.0.20200313231945-b860323f09d0
 	github.com/google/go-containerregistry v0.0.0-20200331213917-3d03ed9b1ca2
 	github.com/lf-edge/adam v0.0.0-20200502191324-bedd2e5e0d61
-	github.com/lf-edge/eve/api/go v0.0.0-20200615094333-d830e240d9c6
+	github.com/lf-edge/eve/api/go v0.0.0-20200629214554-06d8ed583398
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
