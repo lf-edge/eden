@@ -1,0 +1,14 @@
+eden:
+    #test binary
+    test-bin: "eden.vnc.test"
+
+    #test scenario
+    test-scenario: "eden.vnc.tests.txt"
+
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

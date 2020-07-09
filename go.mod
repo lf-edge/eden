@@ -17,10 +17,9 @@ require (
 	github.com/golang/protobuf v1.4.0-rc.4.0.20200313231945-b860323f09d0
 	github.com/google/go-containerregistry v0.0.0-20200331213917-3d03ed9b1ca2
 	github.com/lf-edge/adam v0.0.0-20200502191324-bedd2e5e0d61
-	github.com/lf-edge/eve/api/go v0.0.0-20200629214554-06d8ed583398
+	github.com/lf-edge/eve/api/go v0.0.0-20200708222443-cb16dc711160
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200513230334-5988786b5617
-	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
@@ -31,7 +30,6 @@ require (
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
 	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3 // indirect
-	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools v2.2.0+incompatible
 )
