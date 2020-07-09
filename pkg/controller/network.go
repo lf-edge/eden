@@ -36,6 +36,6 @@ func (cloud *CloudCtx) RemoveNetworkConfig(id string) error {
 	if err != nil {
 		return err
 	}
-	utils.DelEleInSlice(cloud.networks, networkConfigInd)
+	utils.DelEleInSlice(&cloud.networks, networkConfigInd)
 	return nil
 }

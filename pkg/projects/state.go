@@ -1,25 +1,30 @@
 package projects
 
 import (
+	"errors"
+	"fmt"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
+	"github.com/mcuadros/go-lookup"
+	"reflect"
 )
 
 type infoState struct {
-	device          *info.ZInfoDevice
-	app             []*info.ZInfoApp
-	networkInstance []*info.ZInfoNetworkInstance
-	volume          []*info.ZInfoVolume
-	contentTree     []*info.ZInfoContentTree
-	blobs           []*info.ZInfoBlob
+	Dinfo      *info.ZInfoDevice
+	Ainfo      []*info.ZInfoApp
+	Niinfo     []*info.ZInfoNetworkInstance
+	Vinfo      []*info.ZInfoVolume
+	Cinfo      []*info.ZInfoContentTree
+	Binfo      []*info.ZInfoBlob
+	Cipherinfo []*info.ZInfoCipher
 
-	appMetrics             []*metrics.AppMetric
-	networkInstanceMetrics []*metrics.ZMetricNetworkInstance
-	vmMetrics              []*metrics.ZMetricVolume
-	deviceMetric           *metrics.DeviceMetric
+	Am []*metrics.AppMetric
+	Nm []*metrics.ZMetricNetworkInstance
+	Vm []*metrics.ZMetricVolume
+	Dm *metrics.DeviceMetric
 }
 
 type state struct {
@@ -38,54 +43,63 @@ func (state *state) processInfo(infoMsg *info.ZInfoMsg) error {
 	}
 	switch infoMsg.GetZtype() {
 	case info.ZInfoTypes_ZiDevice:
-		state.deviceInfo.device = infoMsg.GetDinfo()
+		state.deviceInfo.Dinfo = infoMsg.GetDinfo()
 	case info.ZInfoTypes_ZiApp:
 		aInfo := infoMsg.GetAinfo()
-		for ind, app := range state.deviceInfo.app {
+		for ind, app := range state.deviceInfo.Ainfo {
 			if app.AppID == aInfo.AppID {
-				state.deviceInfo.app[ind] = aInfo
+				state.deviceInfo.Ainfo[ind] = aInfo
 				return nil
 			}
 		}
-		state.deviceInfo.app = append(state.deviceInfo.app, aInfo)
+		state.deviceInfo.Ainfo = append(state.deviceInfo.Ainfo, aInfo)
 	case info.ZInfoTypes_ZiNetworkInstance:
 		niInfo := infoMsg.GetNiinfo()
-		for ind, ni := range state.deviceInfo.networkInstance {
+		for ind, ni := range state.deviceInfo.Niinfo {
 			if ni.NetworkID == niInfo.NetworkID {
-				state.deviceInfo.networkInstance[ind] = niInfo
+				state.deviceInfo.Niinfo[ind] = niInfo
 				return nil
 			}
 		}
-		state.deviceInfo.networkInstance = append(state.deviceInfo.networkInstance, niInfo)
+		state.deviceInfo.Niinfo = append(state.deviceInfo.Niinfo, niInfo)
 	case info.ZInfoTypes_ZiVolume:
 		vInfo := infoMsg.GetVinfo()
-		for ind, volume := range state.deviceInfo.volume {
+		for ind, volume := range state.deviceInfo.Vinfo {
 			if volume.Uuid == vInfo.Uuid {
-				state.deviceInfo.volume[ind] = vInfo
+				state.deviceInfo.Vinfo[ind] = vInfo
 				return nil
 			}
 		}
-		state.deviceInfo.volume = append(state.deviceInfo.volume, vInfo)
+		state.deviceInfo.Vinfo = append(state.deviceInfo.Vinfo, vInfo)
 	case info.ZInfoTypes_ZiContentTree:
 		cInfo := infoMsg.GetCinfo()
-		for ind, contentTree := range state.deviceInfo.contentTree {
+		for ind, contentTree := range state.deviceInfo.Cinfo {
 			if contentTree.Uuid == cInfo.Uuid {
-				state.deviceInfo.contentTree[ind] = cInfo
+				state.deviceInfo.Cinfo[ind] = cInfo
 				return nil
 			}
 		}
-		state.deviceInfo.contentTree = append(state.deviceInfo.contentTree, cInfo)
+		state.deviceInfo.Cinfo = append(state.deviceInfo.Cinfo, cInfo)
+	case info.ZInfoTypes_Z_INFO_TYPES_CIPHER_INFO:
+		cInfo := infoMsg.GetCipherinfo()
+		for ind, cipherInfo := range state.deviceInfo.Cipherinfo {
+			if cipherInfo.Id == cInfo.Id {
+				state.deviceInfo.Cipherinfo[ind] = cInfo
+				return nil
+			}
+		}
+		state.deviceInfo.Cipherinfo = append(state.deviceInfo.Cipherinfo, cInfo)
 	case info.ZInfoTypes_ZiBlobList:
 		bInfoList := infoMsg.GetBinfo()
 	blobsLoop:
-		for ind, blob := range state.deviceInfo.blobs {
+		for ind, blob := range state.deviceInfo.Binfo {
 			for _, newBlob := range bInfoList.Blob {
 				if blob.Sha256 == newBlob.Sha256 {
-					state.deviceInfo.blobs[ind] = newBlob
+					state.deviceInfo.Binfo[ind] = newBlob
 					continue blobsLoop
 				}
 			}
-			state.deviceInfo.blobs = append(state.deviceInfo.blobs, blob)
+			state.deviceInfo.Binfo = append(state.deviceInfo.Binfo, blob)
 		}
 	}
 	return nil
@@ -110,10 +124,10 @@ func (state *state) processMetric(metricMsg *metrics.ZMetricMsg) error {
 	if metricMsg.DevID != state.device.GetID().String() {
 		return nil
 	}
-	state.deviceInfo.appMetrics = metricMsg.GetAm()
-	state.deviceInfo.networkInstanceMetrics = metricMsg.GetNm()
-	state.deviceInfo.vmMetrics = metricMsg.GetVm()
-	state.deviceInfo.deviceMetric = metricMsg.GetDm()
+	state.deviceInfo.Am = metricMsg.GetAm()
+	state.deviceInfo.Nm = metricMsg.GetNm()
+	state.deviceInfo.Vm = metricMsg.GetVm()
+	state.deviceInfo.Dm = metricMsg.GetDm()
 	return nil
 }
 
@@ -134,60 +148,97 @@ func (state *state) GetMetricProcessingFunction() ProcMetricFunc {
 
 //GetDinfo get *info.ZInfoDevice from obtained info
 func (state *state) GetDinfo() *info.ZInfoDevice {
-	return state.deviceInfo.device
+	return state.deviceInfo.Dinfo
 }
 
 //GetAinfoSlice get []*info.ZInfoApp from obtained info
 func (state *state) GetAinfoSlice() []*info.ZInfoApp {
-	return state.deviceInfo.app
+	return state.deviceInfo.Ainfo
 }
 
 //GetNiinfoSlice get []*info.ZInfoNetworkInstance from obtained info
 func (state *state) GetNiinfoSlice() []*info.ZInfoNetworkInstance {
-	return state.deviceInfo.networkInstance
+	return state.deviceInfo.Niinfo
 }
 
 //GetVinfoSlice get []*info.ZInfoVolume from obtained info
 func (state *state) GetVinfoSlice() []*info.ZInfoVolume {
-	return state.deviceInfo.volume
+	return state.deviceInfo.Vinfo
 }
 
 //GetCinfoSlice get []*info.ZInfoContentTree from obtained info
 func (state *state) GetCinfoSlice() []*info.ZInfoContentTree {
-	return state.deviceInfo.contentTree
+	return state.deviceInfo.Cinfo
 }
 
 //GetBinfoSlice get []*info.ZInfoBlob from obtained info
 func (state *state) GetBinfoSlice() []*info.ZInfoBlob {
-	return state.deviceInfo.blobs
+	return state.deviceInfo.Binfo
+}
+
+//GetCipherinfoSlice get []*info.ZInfoCipher from obtained info
+func (state *state) GetCipherinfoSlice() []*info.ZInfoCipher {
+	return state.deviceInfo.Cipherinfo
 }
 
 //GetAm get []*metrics.AppMetric from obtained metrics
 func (state *state) GetAm() []*metrics.AppMetric {
-	return state.deviceInfo.appMetrics
+	return state.deviceInfo.Am
 }
 
 //GetNm get []*metrics.ZMetricNetworkInstance from obtained metrics
 func (state *state) GetNm() []*metrics.ZMetricNetworkInstance {
-	return state.deviceInfo.networkInstanceMetrics
+	return state.deviceInfo.Nm
 }
 
 //GetVm get []*metrics.ZMetricVolume from obtained metrics
 func (state *state) GetVm() []*metrics.ZMetricVolume {
-	return state.deviceInfo.vmMetrics
+	return state.deviceInfo.Vm
 }
 
 //GetDm get *metrics.DeviceMetric from obtained metrics
 func (state *state) GetDm() *metrics.DeviceMetric {
-	return state.deviceInfo.deviceMetric
+	return state.deviceInfo.Dm
+}
+
+//LookUp access fields of state objects by path
+//path contains address to lookup
+//for example: LookUp("Dinfo.Network[0].IPAddrs[0]") will return first IP of first network of EVE
+//All top fields to lookup in:
+//Dinfo      *info.ZInfoDevice
+//Ainfo      []*info.ZInfoApp
+//Niinfo     []*info.ZInfoNetworkInstance
+//Vinfo      []*info.ZInfoVolume
+//Cinfo      []*info.ZInfoContentTree
+//Binfo      []*info.ZInfoBlob
+//Cipherinfo []*info.ZInfoCipher
+//Am []*metrics.AppMetric
+//Nm []*metrics.ZMetricNetworkInstance
+//Vm []*metrics.ZMetricVolume
+//Dm *metrics.DeviceMetric
+func (state *state) LookUp(path string) (value reflect.Value, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = errors.New(fmt.Sprint(r))
+			}
+		}
+	}()
+	value, err = lookup.LookupString(state.deviceInfo, path)
+	return
 }
 
 //CheckReady returns true in all needed information obtained from controller
 func (state *state) CheckReady() bool {
-	if state.deviceInfo.device == nil {
+	if state.deviceInfo.Dinfo == nil {
 		return false
 	}
-	if state.deviceInfo.deviceMetric == nil {
+	if state.deviceInfo.Dm == nil {
 		return false
 	}
 	return true

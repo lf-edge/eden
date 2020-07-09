@@ -22,6 +22,7 @@ var (
 	eserverLogFile   string
 	evePidFile       string
 	eveLogFile       string
+	eveRemote        bool
 )
 
 var startCmd = &cobra.Command{
@@ -57,7 +58,7 @@ var startCmd = &cobra.Command{
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
-			devModel = viper.GetString("eve.devmodel")
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
@@ -95,7 +96,7 @@ var startCmd = &cobra.Command{
 		} else {
 			log.Infof("Eserver is running and accesible on port %d", eserverPort)
 		}
-		if devModel == defaults.DefaultRPIModel {
+		if eveRemote {
 			return
 		}
 		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {

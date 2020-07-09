@@ -181,6 +181,8 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 		return nil, fmt.Errorf("GetConfigBytes error: %s", err)
 	}
 	dev.CheckHash(sha256.Sum256(res))
+	dev.SetRemote(cloud.vars.EveRemote)
+	dev.SetRemoteAddr(cloud.vars.EveRemoteAddr)
 	return dev, nil
 }
 

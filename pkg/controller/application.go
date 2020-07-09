@@ -36,7 +36,7 @@ func (cloud *CloudCtx) RemoveApplicationInstanceConfig(id string) error {
 	if err != nil {
 		return err
 	}
-	utils.DelEleInSlice(cloud.applicationInstances, applicationInstanceConfigInd)
+	utils.DelEleInSlice(&cloud.applicationInstances, applicationInstanceConfigInd)
 	return nil
 }
 

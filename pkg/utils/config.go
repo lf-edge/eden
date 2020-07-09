@@ -31,6 +31,8 @@ type ConfigVars struct {
 	AdamRedisUrlAdam  string
 	EveHV             string
 	EveName           string
+	EveRemote         bool
+	EveRemoteAddr     string
 	SshKey            string
 	CheckLogs         bool
 	EveCert           string
@@ -72,6 +74,8 @@ func InitVars() (*ConfigVars, error) {
 			EveHV:             viper.GetString("eve.hv"),
 			DevModel:          viper.GetString("eve.devmodel"),
 			EveName:           viper.GetString("eve.name"),
+			EveRemote:         viper.GetBool("eve.remote"),
+			EveRemoteAddr:     viper.GetString("eve.remote-addr"),
 			AdamRemote:        viper.GetBool("adam.remote.enabled"),
 			AdamRemoteRedis:   viper.GetBool("adam.remote.redis"),
 			AdamCaching:       viper.GetBool("adam.caching.enabled"),
@@ -205,6 +209,12 @@ eve:
 
     #config part of EVE
     config-part: {{ .DefaultAdamDist }}/run/config
+
+    #is EVE remote or local
+    remote: {{ .DefaultEVERemote }}
+
+    #EVE address for access from Eden
+    remote-addr: {{ .DefaultEVERemoteAddr }}
 
 eden:
     #root directory of eden
@@ -428,6 +438,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultEVEModel string
 			DefaultEVEName  string
 
+			DefaultEVERemote     bool
+			DefaultEVERemoteAddr string
+
 			DefaultRedisContainerName string
 		}{
 			DefaultAdamDist:     defaults.DefaultAdamDist,
@@ -461,6 +474,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 
 			DefaultEVEModel: defaults.DefaultEVEModel,
 			DefaultEVEName:  defaults.DefaultEVEName,
+
+			DefaultEVERemote:     defaults.DefaultEVERemote,
+			DefaultEVERemoteAddr: defaults.DefaultEVEHost,
 
 			DefaultRedisContainerName: defaults.DefaultRedisContainerName,
 		})
