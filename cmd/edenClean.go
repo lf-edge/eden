@@ -24,7 +24,6 @@ var cleanCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
@@ -41,7 +40,7 @@ var cleanCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		if err := utils.CleanEden(command, eveDist, adamDist, certsDir, eserverImageDist, redisDist,
-			configDir, eserverPidFile, evePidFile); err != nil {
+			configDir, evePidFile); err != nil {
 			log.Fatalf("cannot CleanEden: %s", err)
 		}
 		log.Infof("CleanEden done")
@@ -57,7 +56,6 @@ func cleanInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cleanCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file with eserver pid")
 	cleanCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	cleanCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist), "directory to save EVE")
 	cleanCmd.Flags().StringVarP(&redisDist, "redis-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultRedisDist), "redis dist")

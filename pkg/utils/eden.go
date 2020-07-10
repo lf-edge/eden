@@ -1,14 +1,19 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //StartRedis function run redis in docker with mounted redisPath:/data
@@ -152,21 +157,73 @@ func StatusAdam() (status string, err error) {
 	return state, nil
 }
 
-//StartEServer function run eserver to serve images
-func StartEServer(commandPath string, serverPort int, imageDist string, logFile string, pidFile string) (err error) {
-	commandArgsString := fmt.Sprintf("server -p %d -d %s -v %s", serverPort, imageDist, log.GetLevel())
-	log.Infof("StartEServer run: %s %s", commandPath, commandArgsString)
-	return RunCommandNohup(commandPath, logFile, pidFile, strings.Fields(commandArgsString)...)
+//StartEServer function run eserver in docker
+//if eserverForce is set, it recreates container
+func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTag string) (err error) {
+	portMap := map[string]string{"8888": strconv.Itoa(serverPort)}
+	volumeMap := map[string]string{"/eserver/run/eserver/": fmt.Sprintf("%s", imageDist)}
+	eserverServerCommand := strings.Fields("server")
+	if eserverForce {
+		_ = StopContainer(defaults.DefaultEServerContainerName, true)
+		if err := CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
+			return fmt.Errorf("error in create eserver container: %s", err)
+		}
+	} else {
+		state, err := StateContainer(defaults.DefaultEServerContainerName)
+		if err != nil {
+			return fmt.Errorf("error in get state of eserver container: %s", err)
+		}
+		if state == "" {
+			if err := CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
+				return fmt.Errorf("error in create eserver container: %s", err)
+			}
+		} else if !strings.Contains(state, "running") {
+			if err := StartContainer(defaults.DefaultEServerContainerName); err != nil {
+				return fmt.Errorf("error in restart eserver container: %s", err)
+			}
+		}
+	}
+	return nil
 }
 
-//StopEServer function stop eserver
-func StopEServer(pidFile string) (err error) {
-	return StopCommandWithPid(pidFile)
+//StopEServer function stop eserver container
+func StopEServer(eserverRm bool) (err error) {
+	state, err := StateContainer(defaults.DefaultEServerContainerName)
+	if err != nil {
+		return fmt.Errorf("error in get state of eserver container: %s", err)
+	}
+	if !strings.Contains(state, "running") {
+		if eserverRm {
+			if err := StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
+				return fmt.Errorf("error in rm eserver container: %s", err)
+			}
+		}
+	} else if state == "" {
+		return nil
+	} else {
+		if eserverRm {
+			if err := StopContainer(defaults.DefaultEServerContainerName, false); err != nil {
+				return fmt.Errorf("error in rm eserver container: %s", err)
+			}
+		} else {
+			if err := StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
+				return fmt.Errorf("error in rm eserver container: %s", err)
+			}
+		}
+	}
+	return nil
 }
 
-//StatusEServer function get status of eserver
-func StatusEServer(pidFile string) (status string, err error) {
-	return StatusCommandWithPid(pidFile)
+//StatusEServer function return eserver of adam
+func StatusEServer() (status string, err error) {
+	state, err := StateContainer(defaults.DefaultEServerContainerName)
+	if err != nil {
+		return "", fmt.Errorf("error in get eserver of adam container: %s", err)
+	}
+	if state == "" {
+		return "container doesn't exist", nil
+	}
+	return state, nil
 }
 
 //StartEVEQemu function run EVE in qemu
@@ -381,9 +438,9 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist, configDir, eserverPID, evePID string) (err error) {
-	commandArgsString := fmt.Sprintf("stop --eserver-pid=%s --eve-pid=%s --adam-rm=true",
-		eserverPID, evePID)
+func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist, configDir, evePID string) (err error) {
+	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=true",
+		evePID)
 	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
 	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
 	if err != nil {
@@ -420,4 +477,97 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist,
 		}
 	}
 	return nil
+}
+
+//EServer for connection to eserver
+type EServer struct {
+	EServerIP   string
+	EserverPort string
+}
+
+func (server *EServer) getHTTPClient() *http.Client {
+	var client = &http.Client{
+		Timeout: time.Second * 10,
+		Transport: &http.Transport{
+			ResponseHeaderTimeout: 10 * time.Second,
+		},
+	}
+	return client
+}
+
+//EServerAddFileUrl send url to download image into eserver
+func (server *EServer) EServerAddFileUrl(url string) (name string) {
+	u, err := ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-url")
+	if err != nil {
+		log.Fatalf("error constructing URL: %v", err)
+	}
+	client := server.getHTTPClient()
+	objToSend := api.UrlArg{
+		Url: url,
+	}
+	body, err := json.Marshal(objToSend)
+	if err != nil {
+		log.Fatalf("error encoding json: %v", err)
+	}
+	req, err := http.NewRequest("POST", u, bytes.NewBuffer(body))
+	if err != nil {
+		log.Fatalf("unable to create new http request: %v", err)
+	}
+
+	response, err := RepeatableAttempt(client, req)
+	if err != nil {
+		log.Fatalf("unable to send request: %v", err)
+	}
+	buf, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatalf("unable to read data from URL %s: %v", u, err)
+	}
+	return string(buf)
+}
+
+//EServerCheckStatus checks status of image in eserver
+func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) {
+	u, err := ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), fmt.Sprintf("admin/status/%s", name))
+	if err != nil {
+		log.Fatalf("error constructing URL: %v", err)
+	}
+	client := server.getHTTPClient()
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		log.Fatalf("unable to create new http request: %v", err)
+	}
+
+	response, err := RepeatableAttempt(client, req)
+	if err != nil {
+		log.Fatalf("unable to send request: %v", err)
+	}
+	buf, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatalf("unable to read data from URL %s: %v", u, err)
+	}
+	if err := json.Unmarshal(buf, &fileInfo); err != nil {
+		log.Fatal(err)
+	}
+	return
+}
+
+//EServerAddFile send file with image into eserver
+func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) {
+	u, err := ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-file")
+	if err != nil {
+		log.Fatalf("error constructing URL: %v", err)
+	}
+	client := server.getHTTPClient()
+	response, err := UploadFile(client, u, filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	buf, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatalf("unable to read data from URL %s: %v", u, err)
+	}
+	if err := json.Unmarshal(buf, &fileInfo); err != nil {
+		log.Fatal(err)
+	}
+	return
 }

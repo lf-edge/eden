@@ -50,8 +50,6 @@ func init() {
 	metricInit()
 	rootCmd.AddCommand(certsCmd)
 	certsInit()
-	rootCmd.AddCommand(serverCmd)
-	serverInit()
 	rootCmd.AddCommand(ociImageCmd)
 	ociImageInit()
 	rootCmd.AddCommand(startCmd)

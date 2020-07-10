@@ -125,16 +125,16 @@ func prepareImageLocal(ctx controller.Cloud, dataStoreID string, imageID string,
 	}
 
 	imageFullPath := path.Join(filepath.Dir(ctx.GetDir()), defaults.DefaultImageDist, "vm", imageFileName)
-	imageDSPath := fmt.Sprintf("vm/%s", imageFileName)
+	imageDSPath := fmt.Sprintf("eserver/vm/%s", imageFileName)
 
 	if imageFormat == config.Format_CONTAINER {
 		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), defaults.DefaultImageDist, "docker", imageFileName)
-		imageDSPath = fmt.Sprintf("docker/%s", imageFileName)
+		imageDSPath = fmt.Sprintf("eserver/docker/%s", imageFileName)
 	}
 
 	if isBaseOS {
 		imageFullPath = path.Join(filepath.Dir(ctx.GetDir()), defaults.DefaultImageDist, "baseos", imageFileName)
-		imageDSPath = fmt.Sprintf("baseos/%s", imageFileName)
+		imageDSPath = fmt.Sprintf("eserver/baseos/%s", imageFileName)
 	}
 	fi, err := os.Stat(imageFullPath)
 	if err != nil {

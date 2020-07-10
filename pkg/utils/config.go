@@ -45,6 +45,7 @@ type ConfigVars struct {
 	TestScenario      string
 	EServerImageDist  string
 	EServerPort       string
+	EServerIp         string
 }
 
 //InitVars loads vars from viper
@@ -87,6 +88,7 @@ func InitVars() (*ConfigVars, error) {
 			TestScenario:      viper.GetString("eden.test-scenario"),
 			EServerImageDist:  ResolveAbsPath(viper.GetString("eden.images.dist")),
 			EServerPort:       viper.GetString("eden.eserver.port"),
+			EServerIp:         viper.GetString("eden.eserver.ip"),
 		}
 		return vars, nil
 	}
@@ -229,16 +231,19 @@ eden:
     #eserver is tool for serve images
     eserver:
         #ip (domain name) of eserver for EVE access
-        ip: {{ .DefaultDomain }}
+        eve-ip: {{ .DefaultDomain }}
+
+        #ip of eserver for EDEN access
+        ip: {{ .IP }}
 
         #port for eserver
         port: {{ .DefaultEserverPort }}
 
-        #pid for eserver
-        pid: eserver.pid
+        #tag of eserver container
+        tag: {{ .DefaultEServerTag }}
 
-        #log of eserver
-        log: eserver.log
+        #force eserver rebuild
+        force: true
 
     #directory to save certs
     certs-dist: {{ .DefaultCertsDist }}
@@ -442,6 +447,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultEVERemoteAddr string
 
 			DefaultRedisContainerName string
+
+			DefaultEServerTag string
 		}{
 			DefaultAdamDist:     defaults.DefaultAdamDist,
 			DefaultAdamPort:     defaults.DefaultAdamPort,
@@ -479,6 +486,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultEVERemoteAddr: defaults.DefaultEVEHost,
 
 			DefaultRedisContainerName: defaults.DefaultRedisContainerName,
+
+			DefaultEServerTag: defaults.DefaultEServerTag,
 		})
 	if err != nil {
 		return err

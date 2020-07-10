@@ -50,6 +50,9 @@ const (
 	DefaultEveRepo           = "https://github.com/lf-edge/eve.git"
 	DefaultRegistry          = "docker.io"
 
+	DefaultEServerTag          = "0.0.3"
+	DefaultEServerContainerRef = "lfedge/eden-http-server"
+
 	//DefaultRepeatCount is repeat count for requests
 	DefaultRepeatCount = 20
 	//DefaultRepeatTimeout is time wait for next attempt
@@ -72,9 +75,10 @@ const (
 	DefaultTestScenario          = ""
 	DefaultRootFSVersionPattern  = `^(\d+\.*){2,3}.*-(xen|kvm|acrn|rpi|rpi-xen|rpi-kvm)-(amd64|arm64)$`
 	DefaultControllerModePattern = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.*)$`
-	DefaultPodLinkPattern        = `^(?P<TYPE>(docker|http[s]{0,1})):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
+	DefaultPodLinkPattern        = `^(?P<TYPE>(docker|http[s]{0,1}|file)):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
 	DefaultRedisContainerName    = "eden_redis"
 	DefaultAdamContainerName     = "eden_adam"
+	DefaultEServerContainerName  = "eden_eserver"
 	DefaultDockerNetworkName     = "eden_network"
 	DefaultLogLevelToPrint       = log.InfoLevel
 	DefaultX509Country           = "RU"
@@ -144,8 +148,8 @@ var (
 		"eden.download":      "download",
 		"eden.eserver.ip":    "eserver-ip",
 		"eden.eserver.port":  "eserver-port",
-		"eden.eserver.pid":   "eserver-pid",
-		"eden.eserver.log":   "eserver-log",
+		"eden.eserver.tag":   "eserver-tag",
+		"eden.eserver.force": "eserver-force",
 		"eden.certs-dist":    "certs-dist",
 		"eden.bin-dist":      "bin-dist",
 		"eden.ssh-key":       "ssh-key",

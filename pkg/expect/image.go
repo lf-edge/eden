@@ -15,7 +15,7 @@ func (exp *appExpectation) checkImage(img *config.Image, dsId string) bool {
 	switch exp.appType {
 	case dockerApp:
 		return exp.checkImageDocker(img, dsId)
-	case httpApp, httpsApp:
+	case httpApp, httpsApp, fileApp:
 		return exp.checkImageHttp(img, dsId)
 	}
 	return false
@@ -32,6 +32,8 @@ func (exp *appExpectation) createImage(dsId string) (*config.Image, error) {
 		return exp.createImageDocker(id, dsId), nil
 	case httpApp, httpsApp:
 		return exp.createImageHttp(id, dsId), nil
+	case fileApp:
+		return exp.createImageFile(id, dsId), nil
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}

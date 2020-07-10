@@ -79,7 +79,6 @@ var statusCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 		}
@@ -119,13 +118,13 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tRedis is expected at %s\n", viper.GetString("adam.redis.eden"))
 			fmt.Printf("\tFor local Redis you can run 'docker logs %s' to see logs\n", defaults.DefaultRedisContainerName)
 		}
-		statusEServer, err := utils.StatusEServer(eserverPidFile)
+		statusEServer, err := utils.StatusEServer()
 		if err != nil {
 			log.Errorf("cannot obtain status of EServer process: %s", err)
 		} else {
 			fmt.Printf("EServer process status: %s\n", statusEServer)
 			fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", viper.GetString("eden.eserver.ip"), viper.GetInt("eden.eserver.port"))
-			fmt.Printf("\tLogs for local EServer at: %s\n", utils.ResolveAbsPath("eserver.log"))
+			fmt.Printf("\tFor local EServer you can run 'docker logs %s' to see logs\n", defaults.DefaultEServerContainerName)
 		}
 		if eveRemote {
 			eveStatusRPI()
@@ -140,6 +139,5 @@ func statusInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	statusCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file with eserver pid")
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 }

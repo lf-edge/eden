@@ -19,6 +19,7 @@ var (
 	dockerApp appType = 1 //for docker application
 	httpApp   appType = 2 //for application with image from http link
 	httpsApp  appType = 3 //for application with image from https link
+	fileApp   appType = 4 //for application with image from file path
 )
 
 //appExpectation is description of app, expected to run on EVE
@@ -36,7 +37,7 @@ type appExpectation struct {
 }
 
 //AppExpectationFromUrl init appExpectation with defined:
-//   appLink - docker url to pull or link to qcow2 image
+//   appLink - docker url to pull or link to qcow2 image or path to qcow2 image file
 //   podName - name of app
 //   portPublish - publish ports of app in format externalPort:internalPort
 //   qemuPorts - mapping of ports in qemu (nil if no qemu port forwarding)
@@ -108,7 +109,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 	//parse provided appLink to obtain params
 	params := utils.GetParams(appLink, defaults.DefaultPodLinkPattern)
 	if len(params) == 0 {
-		log.Fatalf("fail to parse (docker|http(s))://(<TAG>[:<VERSION>] | <URL>) from argument (%s)", appLink)
+		log.Fatalf("fail to parse (docker|http(s)|file)://(<TAG>[:<VERSION>] | <URL> | <PATH>) from argument (%s)", appLink)
 	}
 	expectation.appType = 0
 	expectation.appUrl = ""
@@ -125,6 +126,8 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 		expectation.appType = httpApp
 	case "https":
 		expectation.appType = httpsApp
+	case "file":
+		expectation.appType = fileApp
 	case "":
 		expectation.appType = dockerApp
 	default:

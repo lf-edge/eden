@@ -16,10 +16,10 @@ var (
 	adamDist         string
 	adamPort         int
 	adamForce        bool
+	eserverForce     bool
 	eserverImageDist string
 	eserverPort      int
-	eserverPidFile   string
-	eserverLogFile   string
+	eserverTag       string
 	evePidFile       string
 	eveLogFile       string
 	eveRemote        bool
@@ -49,8 +49,9 @@ var startCmd = &cobra.Command{
 			redisForce = viper.GetBool("redis.force")
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 			eserverPort = viper.GetInt("eden.eserver.port")
-			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
-			eserverLogFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.log"))
+			eserverForce = viper.GetBool("eden.eserver.force")
+			eserverTag = viper.GetString("eden.eserver.tag")
+			adamForce = viper.GetBool("adam.force")
 			qemuARCH = viper.GetString("eve.arch")
 			qemuOS = viper.GetString("eve.os")
 			qemuAccel = viper.GetBool("eve.accel")
@@ -91,7 +92,7 @@ var startCmd = &cobra.Command{
 		} else {
 			log.Infof("Adam is running and accesible on port %d", adamPort)
 		}
-		if err := utils.StartEServer(command, eserverPort, eserverImageDist, eserverLogFile, eserverPidFile); err != nil {
+		if err := utils.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
 			log.Infof("Eserver is running and accesible on port %d", eserverPort)
@@ -124,8 +125,8 @@ func startInit() {
 	startCmd.Flags().BoolVarP(&redisForce, "redis-force", "", false, "redis force rebuild")
 	startCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
 	startCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
-	startCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file for save eserver pid")
-	startCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.log"), "file for save eserver log")
+	startCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
+	startCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")
 	startCmd.Flags().StringVarP(&qemuARCH, "eve-arch", "", runtime.GOARCH, "arch of system")
 	startCmd.Flags().StringVarP(&qemuOS, "eve-os", "", runtime.GOOS, "os to run on")
 	startCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")

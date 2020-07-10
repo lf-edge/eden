@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -52,7 +50,7 @@ func (adam *Ctx) getObj(path string) (out string, err error) {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
 
-	response, err := repeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -76,7 +74,7 @@ func (adam *Ctx) getList(path string) (out []string, err error) {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
 
-	response, err := repeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -101,7 +99,7 @@ func (adam *Ctx) postObj(path string, obj []byte) (err error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	_, err = repeatableAttempt(client, req)
+	_, err = utils.RepeatableAttempt(client, req)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -119,29 +117,9 @@ func (adam *Ctx) putObj(path string, obj []byte) (err error) {
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
-	_, err = repeatableAttempt(client, req)
+	_, err = utils.RepeatableAttempt(client, req)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
 	return nil
-}
-
-func repeatableAttempt(client *http.Client, req *http.Request) (response *http.Response, err error) {
-	maxRepeat := defaults.DefaultRepeatCount
-	delayTime := defaults.DefaultRepeatTimeout
-
-	for i := 0; i < maxRepeat; i++ {
-		timer := time.AfterFunc(2*delayTime, func() {
-			i = 0
-		})
-		resp, err := client.Do(req)
-		if err == nil {
-			return resp, nil
-		}
-		log.Debugf("error %s URL %s: %v", req.Method, req.RequestURI, err)
-		timer.Stop()
-		log.Infof("Attempt to re-establish connection with controller (%d) of (%d)", i, maxRepeat)
-		time.Sleep(delayTime)
-	}
-	return nil, fmt.Errorf("all connection attempts failed")
 }

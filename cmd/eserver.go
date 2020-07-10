@@ -28,8 +28,8 @@ var startEserverCmd = &cobra.Command{
 		if viperLoaded {
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 			eserverPort = viper.GetInt("eden.eserver.port")
-			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
-			eserverLogFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.log"))
+			eserverForce = viper.GetBool("eden.eserver.force")
+			eserverTag = viper.GetString("eden.eserver.tag")
 		}
 		return nil
 	},
@@ -45,7 +45,7 @@ var startEserverCmd = &cobra.Command{
 			log.Fatal("%s does not exist and can not be created", eserverImageDist)
 		}
 
-		if err := utils.StartEServer(command, eserverPort, eserverImageDist, eserverLogFile, eserverPidFile); err != nil {
+		if err := utils.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
 			log.Infof("Eserver is running and accesible on port %d", eserverPort)
@@ -59,17 +59,14 @@ var stopEserverCmd = &cobra.Command{
 	Long:  `Stop eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
+		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := utils.StopEServer(eserverPidFile); err != nil {
+		if err := utils.StopEServer(eserverRm); err != nil {
 			log.Errorf("cannot stop eserver: %s", err)
 		}
 	},
@@ -81,17 +78,14 @@ var statusEserverCmd = &cobra.Command{
 	Long:  `Status of eserver.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assingCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
+		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusEServer, err := utils.StatusEServer(eserverPidFile)
+		statusEServer, err := utils.StatusEServer()
 		if err != nil {
 			log.Errorf("cannot obtain status of eserver: %s", err)
 		} else {
@@ -110,8 +104,7 @@ func eserverInit() {
 	}
 	startEserverCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
 	startEserverCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
-	startEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file for save eserver pid")
-	startEserverCmd.Flags().StringVarP(&eserverLogFile, "eserver-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.log"), "file for save eserver log")
-	stopEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file for save eserver pid")
-	statusEserverCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file for save eserver pid")
+	startEserverCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
+	startEserverCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")
+	stopEserverCmd.Flags().BoolVarP(&eserverRm, "eserver-rm", "", false, "eserver rm on stop")
 }

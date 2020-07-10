@@ -208,12 +208,12 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		}
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
-		imageFullPath := filepath.Join(eserverImageDist, "baseos", filepath.Base(rootFsPath))
-		os.MkdirAll(filepath.Join(eserverImageDist, "baseos"), os.ModePerm)
+		imageFullPath := filepath.Join(eserverImageDist, filepath.Base(rootFsPath))
+		os.MkdirAll(filepath.Join(eserverImageDist), os.ModePerm)
 		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
 			log.Fatalf("CopyFile problem: %s", err)
 		}
-		imageDSPath := fmt.Sprintf("baseos/%s", filepath.Base(rootFsPath))
+		imageDSPath := fmt.Sprintf("eserver/%s", filepath.Base(rootFsPath))
 		if !isFile {
 			imageDSPath = filepath.Base(rootFsPath)
 		}
