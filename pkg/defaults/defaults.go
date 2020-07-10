@@ -39,7 +39,7 @@ const (
 
 	//tags, versions, repos
 	DefaultNewBuildProcess   = true
-	DefaultEVETag            = "5.7.0" //DefaultEVETag tag for EVE image
+	DefaultEVETag            = "5.7.1" //DefaultEVETag tag for EVE image
 	DefaultAdamTag           = "0.0.48"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"
