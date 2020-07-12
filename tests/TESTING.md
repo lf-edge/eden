@@ -114,3 +114,13 @@ https://github.com/lf-edge/eden/blob/master/tests/reboot/eden-config.tmpl
 https://github.com/lf-edge/eden/blob/master/tests/integration/eden.integration.tests.txt
 
 The second option is more flexible, because we can run the same test several times with different parameters in the same scenario.
+
+## Test scripting
+
+Escript test binary `eden.escript.test` provides support for defining filesystem-based tests by creating scripts in a directory.
+To basic implementation of internal Go testscripts added support of `eden` commands, test-binaries and templates.
+
+Test scripts can be used as glue logic for test binaries “detectors” and “actors”. All components that are required for tests,
+such as configuration files, test data, or external scripts, can be placed in a test script and processed by the Eden template engine.
+
+You can read more about the test scripting for Eden testing at [ESCRIPTS.md](escript/ESCRIPTS.md).
