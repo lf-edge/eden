@@ -1,0 +1,10 @@
+eden stop
+! stderr .
+
+eden status
+stdout 'Adam status: container doesn''t exist'
+stdout 'Redis status: container doesn''t exist'
+stdout 'EServer process status: process doesn.t exist'
+stdout 'EVE process status: process doesn''t exist'
+! stderr .
+

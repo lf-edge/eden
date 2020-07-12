@@ -1,0 +1,11 @@
+test eden.escript.test -test.run TestEdenScripts/message -test.v -testdata {{EdenConfig "eden.root"}}/../tests/escript/testdata/
+cp stdout out
+
+mkdir testdata
+cp message.txt testdata/
+test eden.escript.test -test.run TestEdenScripts/message -test.v
+
+cmp stdout out
+
+-- message.txt --
+message 'Hello world!'
