@@ -23,11 +23,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rogpeppe/go-internal/imports"
-	"github.com/rogpeppe/go-internal/internal/os/execpath"
-	"github.com/rogpeppe/go-internal/par"
-	"github.com/rogpeppe/go-internal/testenv"
-	"github.com/rogpeppe/go-internal/txtar"
+	"github.com/lf-edge/eden/tests/escript/go-internal/imports"
+	"github.com/lf-edge/eden/tests/escript/go-internal/internal/os/execpath"
+	"github.com/lf-edge/eden/tests/escript/go-internal/par"
+	"github.com/lf-edge/eden/tests/escript/go-internal/testenv"
+	"github.com/lf-edge/eden/tests/escript/go-internal/txtar"
 )
 
 var execCache par.Cache
@@ -294,7 +294,6 @@ func (ts *TestScript) setup() string {
 		Vars: []string{
 			"WORK=" + ts.workdir, // must be first for ts.abbrev
 			"PATH=" + os.Getenv("PATH"),
-			homeEnvName() + "=/no-home",
 			tempEnvName() + "=" + filepath.Join(ts.workdir, "tmp"),
 			"devnull=" + os.DevNull,
 			"/=" + string(os.PathSeparator),
@@ -304,6 +303,17 @@ func (ts *TestScript) setup() string {
 		Values:  make(map[interface{}]interface{}),
 		Cd:      ts.workdir,
 		ts:      ts,
+	}
+	// MacOS envs set
+	if runtime.GOOS == "darwin" {
+		env.Vars = append(env.Vars,
+			homeEnvName() + "=" + os.Getenv("HOME"),
+			"USER=" + os.Getenv("USER"),
+		)
+	} else {
+		env.Vars = append(env.Vars,
+			homeEnvName() + "=/no-home",
+		)
 	}
 	// Must preserve SYSTEMROOT on Windows: https://github.com/golang/go/issues/25513 et al
 	if runtime.GOOS == "windows" {

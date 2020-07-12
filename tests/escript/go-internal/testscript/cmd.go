@@ -14,8 +14,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rogpeppe/go-internal/internal/textutil"
-	"github.com/rogpeppe/go-internal/txtar"
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eden/tests/escript/go-internal/internal/textutil"
+	"github.com/lf-edge/eden/tests/escript/go-internal/txtar"
 )
 
 // scriptCmds are the script command implementations.
@@ -29,10 +30,12 @@ var scriptCmds = map[string]func(*TestScript, bool, []string){
 	"cmp":     (*TestScript).cmdCmp,
 	"cmpenv":  (*TestScript).cmdCmpenv,
 	"cp":      (*TestScript).cmdCp,
+	"eden":    (*TestScript).cmdEden,
 	"env":     (*TestScript).cmdEnv,
 	"exec":    (*TestScript).cmdExec,
 	"exists":  (*TestScript).cmdExists,
 	"grep":    (*TestScript).cmdGrep,
+	"message": (*TestScript).cmdMsg,
 	"mkdir":   (*TestScript).cmdMkdir,
 	"rm":      (*TestScript).cmdRm,
 	"unquote": (*TestScript).cmdUnquote,
@@ -42,6 +45,7 @@ var scriptCmds = map[string]func(*TestScript, bool, []string){
 	"stdout":  (*TestScript).cmdStdout,
 	"stop":    (*TestScript).cmdStop,
 	"symlink": (*TestScript).cmdSymlink,
+	"test":    (*TestScript).cmdTest,
 	"wait":    (*TestScript).cmdWait,
 }
 
@@ -191,6 +195,116 @@ func (ts *TestScript) cmdCp(neg bool, args []string) {
 	}
 }
 
+// eden execute EDEN's commands.
+func (ts *TestScript) cmdEden(neg bool, args []string) {
+	if len(args) < 1 || (len(args) == 1 && args[0] == "&") {
+		ts.Fatalf("usage: eden command [args...] [&]")
+	}
+
+	vars, err := utils.InitVars()
+	if err != nil {
+		ts.Fatalf("error reading config: %s\n", err)
+	}
+
+	edenProg := utils.ResolveAbsPath(vars.EdenBinDir + "/" + vars.EdenProg)
+	fmt.Println("edenProg: ", edenProg)
+
+	_, err = exec.LookPath(edenProg)
+	if err != nil {
+		ts.Fatalf("can't find 'eden' executable: %s\n", err)
+	}
+
+	if len(args) > 0 && args[len(args)-1] == "&" {
+		var cmd *exec.Cmd
+		cmd, err = ts.execBackground(edenProg, args...)
+		if err == nil {
+			wait := make(chan struct{})
+			go func() {
+				ctxWait(ts.ctxt, cmd)
+				close(wait)
+			}()
+			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
+		}
+		ts.stdout, ts.stderr = "", ""
+	} else {
+		ts.stdout, ts.stderr, err = ts.exec(edenProg, args...)
+		if ts.stdout != "" {
+			fmt.Fprintf(&ts.log, "[stdout]\n%s", ts.stdout)
+		}
+		if ts.stderr != "" {
+			fmt.Fprintf(&ts.log, "[stderr]\n%s", ts.stderr)
+		}
+		if err == nil && neg {
+			ts.Fatalf("unexpected command success")
+		}
+	}
+
+	if err != nil {
+		fmt.Fprintf(&ts.log, "[%v]\n", err)
+		if ts.ctxt.Err() != nil {
+			ts.Fatalf("test timed out while running command")
+		} else if !neg {
+			ts.Fatalf("unexpected command failure")
+		}
+	}
+}
+
+// eden execute EDEN's test commands.
+func (ts *TestScript) cmdTest(neg bool, args []string) {
+	if len(args) < 1 || (len(args) == 1 && args[0] == "&") {
+		ts.Fatalf("usage: test program [args...] [&]")
+	}
+
+	vars, err := utils.InitVars()
+	if err != nil {
+		ts.Fatalf("error reading config: %s\n", err)
+	}
+
+	testProg := utils.ResolveAbsPath(vars.EdenBinDir + "/" + args[0])
+	args = args[1:]
+
+	_, err = exec.LookPath(testProg)
+	if err != nil {
+		ts.Fatalf("can't find eden test executable: %s\n", err)
+	} else {
+		ts.Logf("testProg: %s\n", testProg)
+	}
+
+	if len(args) > 0 && args[len(args)-1] == "&" {
+		var cmd *exec.Cmd
+		cmd, err = ts.execBackground(testProg, args...)
+		if err == nil {
+			wait := make(chan struct{})
+			go func() {
+				ctxWait(ts.ctxt, cmd)
+				close(wait)
+			}()
+			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
+		}
+		ts.stdout, ts.stderr = "", ""
+	} else {
+		ts.stdout, ts.stderr, err = ts.exec(testProg, args...)
+		if ts.stdout != "" {
+			fmt.Fprintf(&ts.log, "[stdout]\n%s", ts.stdout)
+		}
+		if ts.stderr != "" {
+			fmt.Fprintf(&ts.log, "[stderr]\n%s", ts.stderr)
+		}
+		if err == nil && neg {
+			ts.Fatalf("unexpected command success")
+		}
+	}
+
+	if err != nil {
+		fmt.Fprintf(&ts.log, "[%v]\n", err)
+		if ts.ctxt.Err() != nil {
+			ts.Fatalf("test timed out while running command")
+		} else if !neg {
+			ts.Fatalf("unexpected command failure")
+		}
+	}
+}
+
 // env displays or adds to the environment.
 func (ts *TestScript) cmdEnv(neg bool, args []string) {
 	if neg {
@@ -290,6 +404,18 @@ func (ts *TestScript) cmdExists(neg bool, args []string) {
 	}
 }
 
+// stop stops execution of the test (marking it passed).
+func (ts *TestScript) cmdMsg(neg bool, args []string) {
+	if neg {
+		ts.Fatalf("unsupported: ! stop")
+	}
+	if len(args) == 1 {
+		ts.Logf("message: %s\n", args[0])
+	} else {
+		ts.Fatalf("usage: message [msg]")
+	}
+}
+
 // mkdir creates directories.
 func (ts *TestScript) cmdMkdir(neg bool, args []string) {
 	if neg {
@@ -363,7 +489,9 @@ func (ts *TestScript) cmdStdin(neg bool, args []string) {
 	if len(args) != 1 {
 		ts.Fatalf("usage: stdin filename")
 	}
-	ts.stdin = ts.ReadFile(args[0])
+	data, err := ioutil.ReadFile(ts.MkAbs(args[0]))
+	ts.Check(err)
+	ts.stdin = string(data)
 }
 
 // stdout checks that the last go command standard output matches a regexp.

@@ -35,6 +35,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/utils"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -74,7 +75,12 @@ func ParseFile(file string) (*Archive, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Parse(data), nil
+	out, err := utils.RenderTemplate("", string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	return Parse([]byte(out)), nil
 }
 
 // Parse parses the serialized form of an Archive.
