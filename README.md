@@ -4,7 +4,9 @@ Eden is the simpliest way to setup & test [EVE](https://github.com/lf-edge/eve) 
 
 Eden is inspired by Kubernetes workflows and CLI
 
-Eden contains  series of integration tests implemented in Golang. Tests are structured as normal Golang tests by using ```_test.go``` nomenclature and be available for test runs using standard go test framework.
+All components of Eden -- the main executable file `eden` and test binaries can be used as stand-alone applications without the need to install and configure the development environment on your computer. Generally, you will only need a text editor to configure the system and create test scenarios and scripts using `eden` and pre-compiled test files. To create more complex tests, you can use standard Go testing machinery.
+
+Eden contains series of integration tests implemented in Golang. Tests are structured as normal Golang tests by using `_test.go` nomenclature and be available for test runs using standard go test framework.
 
 ## Install Prerequisites
 
@@ -94,7 +96,7 @@ To run tests make sure you called `make build`.
 
 The easy way to run tests is to call `eden test <test folder>`
 
-For example - run reboot test:
+For example -- run reboot test:
 
 `eden test tests/reboot/`
 
@@ -102,7 +104,7 @@ Some tests may accept parameters - run Log/Metrics/Info test in debug mode with 
 
 `eden test tests/lim/ -v debug -a '-timewait 600 -number 3'` 
 
-You can find more detailed information about `eden test` in [TESTING.md](TESTING.md)
+You can find more detailed information about `eden test` in [TESTING.md](tests/TESTING.md) and [ESCRIPTS.md](tests/escript/ESCRIPTS.md)
 
 ## Raspberry Pi 4 support
 

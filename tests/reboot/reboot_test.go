@@ -31,7 +31,10 @@ tc *TestContext // TestContext is at least {
 
 var (
 	timewait = flag.Int("timewait", 60, "Timewait for reboot waiting in seconds")
-	tc       *projects.TestContext
+	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
+	count    = flag.Int("count", 1, "Number of reboots")
+
+	tc *projects.TestContext
 
 	lastRebootTime *timestamp.Timestamp
 )
@@ -119,21 +122,35 @@ func TestReboot(t *testing.T) {
 
 	t.Logf("Wait for state of %s", edgeNode.GetName())
 
+	t.Log("timewait: ", *timewait)
+	t.Log("reboot: ", *reboot)
+	t.Log("count: ", *count)
+
 	tc.WaitForState(edgeNode, *timewait)
 
 	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
 
 	t.Logf("lastRebootTime: %s", ptypes.TimestampString(lastRebootTime))
 
-	// this is modeled after: zcli edge-node reboot [-f] <name>
-	// this is expected to be a synchronous call for now
-	edgeNode.Reboot()
+	var number int
+	for *count > number {
+		// this is modeled after: zcli edge-node reboot [-f] <name>
+		// this is expected to be a synchronous call for now
+		if *reboot {
+			edgeNode.Reboot()
+		}
 
-	tc.ConfigSync(edgeNode)
+		tc.ConfigSync(edgeNode)
 
-	t.Logf("Wait for reboot of %s", edgeNode.GetName())
+		t.Logf("Wait for reboot of %s", edgeNode.GetName())
 
-	tc.AddProcInfo(edgeNode, checkReboot)
+		tc.AddProcInfo(edgeNode, checkReboot)
 
-	tc.WaitForProc(*timewait)
+		tc.WaitForProc(*timewait)
+
+		number += 1
+		t.Logf("Reboot number: %d\n", number)
+	}
+
+	t.Logf("Number of reboots: %d\n", number)
 }
