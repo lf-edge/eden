@@ -100,11 +100,7 @@ var setupCmd = &cobra.Command{
 		case defaults.DefaultRPIModel:
 			// don't second guess explicit rpi- setting
 			if !strings.HasPrefix(eveHV, "rpi-") {
-				if eveHV == "kvm" {
-					eveHV = fmt.Sprintf("rpi-%s", eveHV)
-				} else {
-					eveHV = "rpi"
-				}
+				eveHV = fmt.Sprintf("rpi-%s", eveHV)
 			}
 			imageFormat = "raw"
 		case defaults.DefaultEVEModel:
@@ -129,9 +125,12 @@ var setupCmd = &cobra.Command{
 				if err = utils.CopyFile(builedImage, eveImageFile); err != nil {
 					log.Fatal(err)
 				}
-				if builedAdditional != "" {
-					if err = utils.CopyFile(builedAdditional, filepath.Join(filepath.Dir(eveImageFile), filepath.Base(builedAdditional))); err != nil {
-						log.Fatal(err)
+				builedAdditionalSplitted := strings.Split(builedAdditional, ",")
+				for _, additionalFile := range builedAdditionalSplitted {
+					if additionalFile != "" {
+						if err = utils.CopyFile(additionalFile, filepath.Join(filepath.Dir(eveImageFile), filepath.Base(additionalFile))); err != nil {
+							log.Fatal(err)
+						}
 					}
 				}
 				if devModel == defaults.DefaultRPIModel {

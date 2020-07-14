@@ -322,12 +322,14 @@ func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, imag
 		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 		switch arch {
 		case "amd64":
-			biosPath := filepath.Join(distEve, "dist", arch, "OVMF.fd")
-			commandArgsString = fmt.Sprintf("-C %s ZARCH=%s HV=%s %s",
-				distEve, arch, hv, biosPath)
+			biosPath1 := filepath.Join(distEve, "dist", arch, "OVMF.fd")
+			biosPath2 := filepath.Join(distEve, "dist", arch, "OVMF_CODE.fd")
+			biosPath3 := filepath.Join(distEve, "dist", arch, "OVMF_VARS.fd")
+			commandArgsString = fmt.Sprintf("-C %s ZARCH=%s HV=%s %s %s %s",
+				distEve, arch, hv, biosPath1, biosPath2, biosPath3)
 			log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
 			err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
-			additional = biosPath
+			additional = strings.Join([]string{biosPath1, biosPath2, biosPath3}, ",")
 		case "arm64":
 			dtbPath := filepath.Join(distEve, "dist", arch, "dtb", "eve.dtb")
 			commandArgsString = fmt.Sprintf("-C %s ZARCH=%s HV=%s %s",
