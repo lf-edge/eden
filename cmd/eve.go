@@ -144,6 +144,49 @@ var stopEveCmd = &cobra.Command{
 	},
 }
 
+var versionEveCmd = &cobra.Command{
+	Use:   "version",
+	Short: "version of eve",
+	Long:  `Version of eve.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		if viperLoaded {
+			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			eveRemote = viper.GetBool("eve.remote")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		log.Debugf("Will try to obtain info from ADAM")
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Debugf("getControllerAndDev: %s", err)
+			fmt.Println("EVE status: undefined (no onboarded EVE)")
+		} else {
+			var lastDInfo *info.ZInfoMsg
+			var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+				if im.GetZtype() == info.ZInfoTypes_ZiDevice {
+					lastDInfo = im
+				}
+				return false
+			}
+			if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZAll, handleInfo); err != nil {
+				log.Fatalf("Fail in get InfoLastCallback: %s", err)
+			}
+			if lastDInfo == nil {
+				log.Info("no info messages")
+			} else {
+				fmt.Println(lastDInfo.GetDinfo().SwList[0].ShortVersion)
+			}
+		}
+	},
+}
+
 var statusEveCmd = &cobra.Command{
 	Use:   "status",
 	Short: "status of eve",
@@ -375,6 +418,7 @@ func eveInit() {
 	eveCmd.AddCommand(consoleEveCmd)
 	eveCmd.AddCommand(onboardEveCmd)
 	eveCmd.AddCommand(resetEveCmd)
+	eveCmd.AddCommand(versionEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
