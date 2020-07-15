@@ -489,14 +489,13 @@ type EServer struct {
 	EserverPort string
 }
 
-func (server *EServer) getHTTPClient() *http.Client {
-	var client = &http.Client{
-		Timeout: time.Second * 10,
+func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
 		Transport: &http.Transport{
-			ResponseHeaderTimeout: 10 * time.Second,
+			ResponseHeaderTimeout: defaults.DefaultRepeatTimeout,
 		},
 	}
-	return client
 }
 
 //EServerAddFileUrl send url to download image into eserver
@@ -505,7 +504,7 @@ func (server *EServer) EServerAddFileUrl(url string) (name string) {
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
-	client := server.getHTTPClient()
+	client := server.getHTTPClient(defaults.DefaultRepeatTimeout)
 	objToSend := api.UrlArg{
 		Url: url,
 	}
@@ -535,7 +534,7 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
-	client := server.getHTTPClient()
+	client := server.getHTTPClient(defaults.DefaultRepeatTimeout)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
@@ -561,7 +560,7 @@ func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) 
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
-	client := server.getHTTPClient()
+	client := server.getHTTPClient(0)
 	response, err := UploadFile(client, u, filepath)
 	if err != nil {
 		log.Fatal(err)

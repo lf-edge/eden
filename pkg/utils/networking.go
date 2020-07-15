@@ -225,7 +225,7 @@ func UploadFile(client *http.Client, url string, filePath string) (result *http.
 		}
 	}()
 
-	resp, err := RepeatableAttempt(client, req)
+	resp, err := client.Do(req)
 	merr := <-errchan
 
 	if err != nil || merr != nil {

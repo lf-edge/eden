@@ -7,7 +7,6 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"os/user"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -73,18 +72,7 @@ func (exp *appExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 func (exp *appExpectation) BaseOSImage() (baseOSConfig *config.BaseOSConfig) {
 	var err error
 	if exp.appType == fileApp {
-		usr, err := user.Current()
-		if err != nil {
-			log.Fatal(err)
-		}
-		newPath := exp.appUrl
-		dir := usr.HomeDir
-		if newPath == "~" {
-			newPath = dir
-		} else if strings.HasPrefix(newPath, "~/") {
-			newPath = filepath.Join(dir, newPath[2:])
-		}
-		if exp.appUrl, err = utils.GetFileFollowLinks(newPath); err != nil {
+		if exp.appUrl, err = utils.GetFileFollowLinks(exp.appUrl); err != nil {
 			log.Fatalf("GetFileFollowLinks: %s", err)
 		}
 	}
