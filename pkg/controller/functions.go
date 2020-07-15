@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/lf-edge/adam/pkg/x509"
@@ -10,10 +12,13 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -100,6 +105,14 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 				deviceModel, err := cloud.GetDevModelByName(node.GetDevModel())
 				if err != nil {
 					log.Fatalf("fail to get dev model %s: %s", node.GetDevModel(), err)
+				}
+				if cloud.vars.EveSSID != "" {
+					ssid := cloud.vars.EveSSID
+					fmt.Printf("Enter password for wifi %s: ", ssid)
+					pass, _ := terminal.ReadPassword(0)
+					wifiPSK := strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
+					fmt.Println()
+					deviceModel.SetWiFiParams(cloud.vars.EveSSID, wifiPSK)
 				}
 				if cloud.vars.SshKey != "" {
 					b, err := ioutil.ReadFile(cloud.vars.SshKey)

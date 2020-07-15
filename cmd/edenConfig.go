@@ -27,6 +27,8 @@ var (
 	contextValueSet string
 	contextKeyGet   string
 	contextAllGet   bool
+	ssid            string
+	password        string
 )
 
 var configCmd = &cobra.Command{
@@ -121,6 +123,9 @@ var configAddCmd = &cobra.Command{
 			viper.Set("eve.serial", "*")
 			viper.Set("eve.remote", eveRemote)
 			viper.Set("eve.remote-addr", "")
+			if ssid != "" {
+				viper.Set("eve.ssid", ssid)
+			}
 			if err = viper.WriteConfig(); err != nil {
 				log.Fatalf("error writing config: %s", err)
 			}
@@ -452,6 +457,7 @@ func configInit() {
 	configAddCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
 	configAddCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
+	configAddCmd.Flags().StringVar(&ssid, "ssid", "", "set ssid of wifi for rpi")
 	configCmd.AddCommand(configResetCmd)
 	configCmd.AddCommand(configEditCmd)
 }

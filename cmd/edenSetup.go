@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/ssh/terminal"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -69,6 +73,8 @@ var setupCmd = &cobra.Command{
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 
 			devModel = viper.GetString("eve.devmodel")
+
+			ssid = viper.GetString("eve.ssid")
 		}
 		return nil
 	},
@@ -78,7 +84,14 @@ var setupCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		if _, err := os.Stat(filepath.Join(certsDir, "server.pem")); os.IsNotExist(err) {
-			if err := utils.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID); err != nil {
+			wifiPSK := ""
+			if ssid != "" {
+				fmt.Printf("Enter password for wifi %s: ", ssid)
+				pass, _ := terminal.ReadPassword(0)
+				wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
+				fmt.Println()
+			}
+			if err := utils.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, ssid, wifiPSK); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")

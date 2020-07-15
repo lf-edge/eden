@@ -245,13 +245,15 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 }
 
 //GenerateEveCerts function generates certs for EVE
-func GenerateEveCerts(commandPath string, certsDir string, domain string, ip string, eveIP string, uuid string) (err error) {
+func GenerateEveCerts(commandPath string, certsDir string, domain string, ip string, eveIP string, uuid string, ssid string, password string) (err error) {
 	if _, err := os.Stat(certsDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(certsDir, 0755); err != nil {
 			return err
 		}
 	}
-	commandArgsString := fmt.Sprintf("certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s -v %s", certsDir, domain, ip, eveIP, uuid, log.GetLevel())
+	commandArgsString := fmt.Sprintf(
+		"certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s --ssid=%s --password=%s -v %s",
+		certsDir, domain, ip, eveIP, uuid, ssid, password, log.GetLevel())
 	log.Infof("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
 	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
@@ -288,9 +290,11 @@ func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port int, 
 	if err = CopyFileNotExists(filepath.Join(certsDir, "onboard.key.pem"), filepath.Join(adamConfig, "onboard.key.pem")); err != nil {
 		return err
 	}
-	/*if err = CopyFileNotExists(filepath.Join(certsDir, "id_rsa.pub"), filepath.Join(adamConfig, "authorized_keys")); err != nil {
-		return err
-	}*/
+	if _, err = os.Stat(filepath.Join(certsDir, "DevicePortConfig", "override.json")); !os.IsNotExist(err) {
+		if err = CopyFileNotExists(filepath.Join(certsDir, "DevicePortConfig", "override.json"), filepath.Join(adamConfig, "DevicePortConfig", "override.json")); err != nil {
+			return err
+		}
+	}
 	if _, err = os.Stat(filepath.Join(adamConfig, "hosts")); os.IsNotExist(err) {
 		if err = ioutil.WriteFile(filepath.Join(adamConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
 			return err

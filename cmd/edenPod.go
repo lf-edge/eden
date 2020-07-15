@@ -42,6 +42,7 @@ var podDeployCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
+		ssid = viper.GetString("eve.ssid")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
