@@ -6,10 +6,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-//createAppInstanceConfigVM creates AppInstanceConfig for VM with provided img, netInstance, id and acls
+//createAppInstanceConfigVM creates appBundle for VM with provided img, netInstance, id and acls
 //  it uses name of app and cpu/mem params from appExpectation
 //  it use ZArch param to choose VirtualizationMode
-func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.UUID) *config.AppInstanceConfig {
+func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.UUID) *appBundle {
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    id.String(),
@@ -33,12 +33,23 @@ func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.
 	if exp.diskSize > 0 {
 		maxSizeBytes = exp.diskSize
 	}
-	app.Drives = []*config.Drive{{
+	drive := &config.Drive{
 		Image:        img,
 		Readonly:     false,
 		Drvtype:      config.DriveType_HDD,
 		Target:       config.Target_Disk,
 		Maxsizebytes: maxSizeBytes,
-	}}
-	return app
+	}
+	app.Drives = []*config.Drive{drive}
+	contentTree := exp.imageToContentTree(img, exp.appName)
+	contentTrees := []*config.ContentTree{contentTree}
+	volume := exp.driveToVolume(drive, 0, contentTree)
+	volumes := []*config.Volume{volume}
+	app.VolumeRefList = []*config.VolumeRef{{MountDir: "/", Uuid: volume.Uuid}}
+
+	return &appBundle{
+		appInstanceConfig: app,
+		contentTrees:      contentTrees,
+		volumes:           volumes,
+	}
 }

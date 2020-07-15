@@ -13,6 +13,8 @@ type CloudCtx struct {
 	devices              []*device.Ctx
 	datastores           []*config.DatastoreConfig
 	images               []*config.Image
+	contentTrees         []*config.ContentTree
+	volumes              []*config.Volume
 	baseOS               []*config.BaseOSConfig
 	networkInstances     []*config.NetworkInstanceConfig
 	networks             []*config.NetworkConfig
@@ -45,6 +47,14 @@ type Cloud interface {
 	AddImage(imageConfig *config.Image) error
 	RemoveImage(id string) error
 	ListImage() []*config.Image
+	GetContentTree(id string) (image *config.ContentTree, err error)
+	AddContentTree(contentTreeConfig *config.ContentTree) error
+	RemoveContentTree(id string) error
+	ListContentTree() []*config.ContentTree
+	GetVolume(id string) (image *config.Volume, err error)
+	AddVolume(volumeConfig *config.Volume) error
+	RemoveVolume(id string) error
+	ListVolume() []*config.Volume
 	GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error)
 	GetDeviceFirst() (dev *device.Ctx, err error)
 	ConfigSync(dev *device.Ctx) (err error)

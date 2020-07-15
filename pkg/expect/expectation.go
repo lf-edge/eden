@@ -4,6 +4,7 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
@@ -46,13 +47,16 @@ type appExpectation struct {
 	uplinkAdapter *config.Adapter
 
 	virtualizationMode config.VmMode
+
+	device *device.Ctx
 }
 
 //AppExpectationFromUrl init appExpectation with defined:
 //   appLink - docker url to pull or link to qcow2 image or path to qcow2 image file
 //   podName - name of app
+//   device - device to set updates in volumes and content trees
 //   opts can be used to modify parameters of expectation
-func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, opts ...ExpectationOption) (expectation *appExpectation) {
+func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink string, podName string, opts ...ExpectationOption) (expectation *appExpectation) {
 	var adapter = &config.Adapter{
 		Name: "eth0",
 		Type: evecommon.PhyIoType_PhyIoNetEth,
@@ -74,6 +78,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 		mem:     defaults.DefaultAppMem,
 
 		uplinkAdapter: adapter,
+		device:        device,
 	}
 	switch expectation.ctrl.GetVars().ZArch {
 	case "amd64":

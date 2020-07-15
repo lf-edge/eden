@@ -173,6 +173,20 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	}
 	dev.SetApplicationInstanceConfig(appInstances)
 
+	var volumes []string
+	for _, el := range config.Volumes {
+		_ = cloud.AddVolume(el)
+		volumes = append(volumes, el.Uuid)
+	}
+	dev.SetVolumeConfigs(volumes)
+
+	var contentTrees []string
+	for _, el := range config.ContentInfo {
+		_ = cloud.AddContentTree(el)
+		contentTrees = append(contentTrees, el.Uuid)
+	}
+	dev.SetContentTreeConfig(contentTrees)
+
 	if config.Reboot != nil {
 		dev.SetRebootCounter(config.Reboot.Counter, config.Reboot.DesiredState)
 	}
@@ -353,7 +367,20 @@ func checkIfDatastoresContains(dsID string, ds []*config.DatastoreConfig) bool {
 	return false
 }
 
-func (cloud *CloudCtx) checkDrive(drive *config.Drive, dataStores []*config.DatastoreConfig) (result []*config.DatastoreConfig, err error) {
+//checkContentTreeDs checks dataStores and adds one from contentTree if needed
+func (cloud *CloudCtx) checkContentTreeDs(contentTree *config.ContentTree, dataStores []*config.DatastoreConfig) (result []*config.DatastoreConfig, err error) {
+	dataStore, err := cloud.GetDataStore(contentTree.GetDsId())
+	if err != nil {
+		return nil, err
+	}
+	if !checkIfDatastoresContains(dataStore.Id, dataStores) {
+		return append(dataStores, dataStore), nil
+	}
+	return dataStores, nil
+}
+
+//checkDriveDs checks dataStores and adds one from drive if needed
+func (cloud *CloudCtx) checkDriveDs(drive *config.Drive, dataStores []*config.DatastoreConfig) (result []*config.DatastoreConfig, err error) {
 	if drive.Image == nil {
 		return nil, errors.New("empty Image in Drive")
 	}
@@ -367,54 +394,9 @@ func (cloud *CloudCtx) checkDrive(drive *config.Drive, dataStores []*config.Data
 	return dataStores, nil
 }
 
-func imageToContentTree(image *config.Image) *config.ContentTree {
-	return &config.ContentTree{
-		Uuid:            image.Uuidandversion.Uuid,
-		DsId:            image.DsId,
-		URL:             image.Name,
-		Iformat:         image.Iformat,
-		Sha256:          image.Sha256,
-		MaxSizeBytes:    uint64(image.SizeBytes),
-		Siginfo:         image.Siginfo,
-		DisplayName:     image.Name,
-		GenerationCount: 0,
-	}
-}
-
-func checkContentTree(contentTree *config.ContentTree, contentTrees []*config.ContentTree) []*config.ContentTree {
-	for _, el := range contentTrees {
-		if el.Uuid == contentTree.Uuid {
-			return contentTrees
-		}
-	}
-	return append(contentTrees, contentTree)
-}
-
-func driveToVolume(dr *config.Drive) *config.Volume {
-	return &config.Volume{
-		Uuid: dr.Image.Uuidandversion.Uuid,
-		Origin: &config.VolumeContentOrigin{
-			Type:                  config.VolumeContentOriginType_VCOT_DOWNLOAD,
-			DownloadContentTreeID: dr.Image.Uuidandversion.Uuid,
-		},
-		Protocols:    nil,
-		Maxsizebytes: dr.Maxsizebytes,
-		DisplayName:  dr.Image.Name,
-	}
-}
-
-func checkVolume(vol *config.Volume, vols []*config.Volume) []*config.Volume {
-	for _, el := range vols {
-		if el.Uuid == vol.Uuid {
-			return vols
-		}
-	}
-	return append(vols, vol)
-}
-
 //GetConfigBytes generate json representation of device config
 func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error) {
-	var contentInfo []*config.ContentTree
+	var contentTrees []*config.ContentTree
 	var volumes []*config.Volume
 	var baseOS []*config.BaseOSConfig
 	var dataStores []*config.DatastoreConfig
@@ -425,12 +407,10 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		}
 		//check drives from baseOSConfigs
 		for _, drive := range baseOSConfig.Drives {
-			dataStores, err = cloud.checkDrive(drive, dataStores)
+			dataStores, err = cloud.checkDriveDs(drive, dataStores)
 			if err != nil {
 				return nil, err
 			}
-			contentInfo = checkContentTree(imageToContentTree(drive.Image), contentInfo)
-			volumes = checkVolume(driveToVolume(drive), volumes)
 		}
 		baseOS = append(baseOS, baseOSConfig)
 	}
@@ -440,20 +420,34 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		if err != nil {
 			return nil, err
 		}
-		//check drives from apps
-		applicationInstance.VolumeRefList = []*config.VolumeRef{}
 		for _, drive := range applicationInstance.Drives {
-			dataStores, err = cloud.checkDrive(drive, dataStores)
+			dataStores, err = cloud.checkDriveDs(drive, dataStores)
 			if err != nil {
 				return nil, err
 			}
-			contentInfo = checkContentTree(imageToContentTree(drive.Image), contentInfo)
-			volume := driveToVolume(drive)
-			applicationInstance.VolumeRefList = append(applicationInstance.VolumeRefList, &config.VolumeRef{
-				Uuid:            volume.Uuid,
-				GenerationCount: 0,
-			})
-			volumes = checkVolume(volume, volumes)
+		}
+	volumeLoop:
+		//we must check VolumeRefList of applicationInstance and add volumes and contentTrees into EdgeDevConfig
+		for _, volumeRef := range applicationInstance.VolumeRefList {
+			volumeConfig, err := cloud.GetVolume(volumeRef.Uuid)
+			if err != nil {
+				return nil, err
+			}
+			volumes = append(volumes, volumeConfig)
+			if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
+				for _, contentTree := range contentTrees {
+					if contentTree.Uuid == contentTreeConfig.Uuid {
+						//we already define this contentTree in EdgeDevConfig
+						continue volumeLoop
+					}
+				}
+				//add required datastores
+				dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
+				if err != nil {
+					return nil, err
+				}
+				contentTrees = append(contentTrees, contentTreeConfig)
+			}
 		}
 		networkInstanceConfigArray := dev.GetNetworkInstances()
 		//check network instances from apps
@@ -515,7 +509,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 			Version: strconv.Itoa(dev.GetConfigVersion()),
 		},
 		Volumes:           volumes,
-		ContentInfo:       contentInfo,
+		ContentInfo:       contentTrees,
 		Apps:              applicationInstances,
 		Networks:          networkConfigs,
 		Datastores:        dataStores,
@@ -527,7 +521,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		SystemAdapterList: systemAdapterConfigs,
 		DeviceIoList:      physicalIOs,
 		Manufacturer:      "",
-		ProductName:       "",
+		ProductName:       dev.GetDevModel(),
 		NetworkInstances:  networkInstanceConfigs,
 		Enterprise:        "",
 		Name:              dev.GetName(),
