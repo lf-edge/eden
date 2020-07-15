@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -102,6 +103,7 @@ func ResolveAbsPath(curPath string) string {
 //GetFileFollowLinks resolve file by walking through symlinks
 func GetFileFollowLinks(filePath string) (string, error) {
 	log.Debugf("GetFileFollowLinks %s", filePath)
+	filePath = ResolveHomeDir(filePath)
 	fileInfo, err := os.Lstat(filePath)
 	if os.IsNotExist(err) {
 		return "", err
@@ -127,4 +129,19 @@ func GetFileSize(filePath string) int64 {
 		log.Fatal(err)
 	}
 	return fi.Size()
+}
+
+//ResolveHomeDir resolve ~ in path
+func ResolveHomeDir(filePath string) string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	dir := usr.HomeDir
+	if filePath == "~" {
+		filePath = dir
+	} else if strings.HasPrefix(filePath, "~/") {
+		filePath = filepath.Join(dir, filePath[2:])
+	}
+	return filePath
 }

@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	adamRm bool
+	adamRm    bool
+	eserverRm bool
 )
 
 var stopCmd = &cobra.Command{
@@ -26,7 +27,6 @@ var stopCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverPidFile = utils.ResolveAbsPath(viper.GetString("eden.eserver.pid"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 		}
@@ -43,7 +43,7 @@ var stopCmd = &cobra.Command{
 		} else {
 			log.Infof("redis stopped")
 		}
-		if err := utils.StopEServer(eserverPidFile); err != nil {
+		if err := utils.StopEServer(eserverRm); err != nil {
 			log.Infof("cannot stop eserver: %s", err)
 		} else {
 			log.Infof("eserver stopped")
@@ -66,6 +66,6 @@ func stopInit() {
 	}
 	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
 	stopCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
-	stopCmd.Flags().StringVarP(&eserverPidFile, "eserver-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eserver.pid"), "file with eserver pid")
+	stopCmd.Flags().BoolVarP(&eserverRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 }

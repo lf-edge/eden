@@ -81,7 +81,10 @@ eden:
     #eserver is tool for serve images
     eserver:
         #ip (domain name) of eserver for EVE access
-        ip: {{ .DefaultDomain }}
+        eve-ip: {{ .DefaultDomain }}
+
+        #ip of eserver for EDEN access
+        ip: {{ .IP }}
 
         #port for eserver
         port: {{ .DefaultEserverPort }}

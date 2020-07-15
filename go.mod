@@ -17,6 +17,7 @@ require (
 	github.com/golang/protobuf v1.4.0-rc.4.0.20200313231945-b860323f09d0
 	github.com/google/go-containerregistry v0.0.0-20200331213917-3d03ed9b1ca2
 	github.com/lf-edge/adam v0.0.0-20200502191324-bedd2e5e0d61
+	github.com/lf-edge/eden/eserver v0.0.0-00010101000000-000000000000
 	github.com/lf-edge/eve/api/go v0.0.0-20200711013237-83b38f65d2e4
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200513230334-5988786b5617
@@ -24,7 +25,7 @@ require (
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.4.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
@@ -34,3 +35,5 @@ require (
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools v2.2.0+incompatible
 )
+
+replace github.com/lf-edge/eden/eserver => ./eserver

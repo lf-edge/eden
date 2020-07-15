@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -91,7 +91,7 @@ func checkIsFileOrUrl(pathToCheck string) (isFile bool, pathToRet string, err er
 	case "":
 		return true, pathToCheck, nil
 	case "file":
-		return true, strings.TrimLeft(pathToCheck, "file://"), nil
+		return true, strings.TrimPrefix(pathToCheck, "file://"), nil
 	case "http":
 		return false, pathToCheck, nil
 	case "https":
@@ -126,27 +126,6 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		baseOSImage := args[0]
-		isFile, baseOSImage, err := checkIsFileOrUrl(baseOSImage)
-		if err != nil {
-			log.Fatalf("checkIsFileOrUrl: %s", err)
-		}
-		var rootFsPath string
-		if isFile {
-			rootFsPath, err = utils.GetFileFollowLinks(baseOSImage)
-			if err != nil {
-				log.Fatalf("GetFileFollowLinks: %s", err)
-			}
-		} else {
-			if err = os.MkdirAll(filepath.Join(eserverImageDist, "baseos", "tmp"), 0755); err != nil {
-				log.Fatalf("cannot create dir for download image %s", err)
-			}
-			r, _ := url.Parse(baseOSImage)
-			rootFsPath = filepath.Join(eserverImageDist, "baseos", "tmp", path.Base(r.Path))
-			defer os.Remove(rootFsPath)
-			if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
-				log.Fatalf("DownloadFile error: %s", err)
-			}
-		}
 		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
@@ -159,136 +138,21 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 			changer = &fileChanger{fileConfig: modeURL}
 		case "adam":
 			changer = &adamChanger{adamUrl: modeURL}
-
 		default:
 			log.Fatalf("Not implemented type: %s", modeType)
 		}
-
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
-		var dataStore *config.DatastoreConfig
-		if isFile {
-			dataStore = &config.DatastoreConfig{
-				Id:       defaults.DefaultDataStoreID,
-				DType:    config.DsType_DsHttp,
-				Fqdn:     fmt.Sprintf("http://%s:%d", eserverIP, eserverPort),
-				ApiKey:   "",
-				Password: "",
-				Dpath:    "",
-				Region:   "",
-			}
-		} else {
-			dataStore = &config.DatastoreConfig{
-				Id:       defaults.DefaultDataStoreID,
-				DType:    config.DsType_DsHttp,
-				Fqdn:     strings.TrimRight(baseOSImage, filepath.Base(rootFsPath)),
-				ApiKey:   "",
-				Password: "",
-				Dpath:    "",
-				Region:   "",
-			}
-			if strings.Contains(baseOSImage, "https://") {
-				dataStore.DType = config.DsType_DsHttps
-			}
+		expectation := expect.AppExpectationFromUrl(ctrl, baseOSImage, "", nil, nil, "")
+		if len(qemuPorts) == 0 {
+			qemuPorts = nil
 		}
-		if _, err := os.Lstat(rootFsPath); os.IsNotExist(err) {
-			log.Fatalf("image file problem (%s): %s", args[0], err)
-		}
-
-		if getFromFileName {
-			rootFSName := strings.TrimSuffix(filepath.Base(rootFsPath), filepath.Ext(rootFsPath))
-			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
-			re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
-			if !re.MatchString(rootFSName) {
-				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
-			}
-			baseOSVersion = rootFSName
-		}
-
-		log.Infof("Will use rootfs version %s", baseOSVersion)
-		imageFullPath := filepath.Join(eserverImageDist, "baseos", filepath.Base(rootFsPath))
-		os.MkdirAll(filepath.Join(eserverImageDist, "baseos"), os.ModePerm)
-		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
-			log.Fatalf("CopyFile problem: %s", err)
-		}
-		imageDSPath := fmt.Sprintf("baseos/%s", filepath.Base(rootFsPath))
-		if !isFile {
-			imageDSPath = filepath.Base(rootFsPath)
-		}
-		fi, err := os.Stat(imageFullPath)
-		if err != nil {
-			log.Fatalf("ImageFile (%s): %s", imageFullPath, err)
-		}
-		size := fi.Size()
-
-		sha256sum := ""
-		sha256sum, err = utils.SHA256SUM(imageFullPath)
-		if err != nil {
-			log.Fatalf("SHA256SUM (%s): %s", imageFullPath, err)
-		}
-		img := &config.Image{
-			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    defaults.DefaultImageID,
-				Version: "4",
-			},
-			Name:      imageDSPath,
-			Sha256:    sha256sum,
-			Iformat:   config.Format_QCOW2,
-			DsId:      defaults.DefaultDataStoreID,
-			SizeBytes: size,
-			Siginfo: &config.SignatureInfo{
-				Intercertsurl: "",
-				Signercerturl: "",
-				Signature:     nil,
-			},
-		}
-		if _, err := ctrl.GetDataStore(defaults.DefaultDataStoreID); err == nil {
-			if err = ctrl.RemoveDataStore(defaults.DefaultDataStoreID); err != nil {
-				log.Fatalf("RemoveDataStore: %s", err)
-			}
-		}
-		if err = ctrl.AddDataStore(dataStore); err != nil {
-			log.Fatalf("AddDataStore: %s", err)
-		}
-		if _, err := ctrl.GetImage(defaults.DefaultImageID); err == nil {
-			if err = ctrl.RemoveImage(defaults.DefaultImageID); err != nil {
-				log.Fatalf("RemoveImage: %s", err)
-			}
-		}
-		if err = ctrl.AddImage(img); err != nil {
-			log.Fatalf("AddImage: %s", err)
-		}
-
-		baseOSConfig := &config.BaseOSConfig{
-			Uuidandversion: &config.UUIDandVersion{
-				Uuid:    defaults.DefaultBaseID,
-				Version: "4",
-			},
-			Drives: []*config.Drive{{
-				Image:        img,
-				Readonly:     false,
-				Drvtype:      config.DriveType_Unclassified,
-				Target:       config.Target_TgtUnknown,
-				Maxsizebytes: img.SizeBytes,
-			}},
-			Activate:      baseOSImageActivate,
-			BaseOSVersion: baseOSVersion,
-			BaseOSDetails: nil,
-		}
-		if _, err := ctrl.GetBaseOSConfig(defaults.DefaultBaseID); err == nil {
-			if err = ctrl.RemoveBaseOsConfig(defaults.DefaultBaseID); err != nil {
-				log.Fatalf("RemoveBaseOsConfig: %s", err)
-			}
-		}
-
-		if err = ctrl.AddBaseOsConfig(baseOSConfig); err != nil {
-			log.Fatalf("AddBaseOsConfig: %s", err)
-		}
-		dev.SetBaseOSConfig([]string{defaults.DefaultBaseID})
+		baseOSImageConfig := expectation.BaseOSImage()
+		dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev error: %s", err)
+			log.Fatalf("setControllerAndDev: %s", err)
 		}
 	},
 }
@@ -323,11 +187,11 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 				log.Fatalf("GetFileFollowLinks: %s", err)
 			}
 		} else {
-			if err = os.MkdirAll(filepath.Join(eserverImageDist, "baseos", "tmp"), 0755); err != nil {
+			if err = os.MkdirAll(filepath.Join(eserverImageDist, "tmp"), 0755); err != nil {
 				log.Fatalf("cannot create dir for download image %s", err)
 			}
 			r, _ := url.Parse(baseOSImage)
-			rootFsPath = filepath.Join(eserverImageDist, "baseos", "tmp", path.Base(r.Path))
+			rootFsPath = filepath.Join(eserverImageDist, "tmp", path.Base(r.Path))
 			defer os.Remove(rootFsPath)
 			if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
 				log.Fatalf("DownloadFile error: %s", err)
@@ -371,7 +235,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
 
-		imageFullPath := filepath.Join(eserverImageDist, "baseos", filepath.Base(rootFsPath))
+		imageFullPath := filepath.Join(eserverImageDist, filepath.Base(rootFsPath))
 		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
 			log.Fatalf("CopyFile problem: %s", err)
 		}
@@ -380,18 +244,20 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		if err != nil {
 			log.Fatalf("SHA256SUM (%s): %s", imageFullPath, err)
 		}
-
+		toActivate := true
 		for _, baseOSConfig := range ctrl.ListBaseOSConfig() {
 			if len(baseOSConfig.Drives) == 1 {
 				if baseOSConfig.Drives[0].Image.Sha256 == sha256sum {
-					if err = ctrl.RemoveBaseOsConfig(baseOSConfig.Uuidandversion.GetUuid()); err != nil {
-						log.Fatalf("RemoveBaseOsConfig (%s): %s", baseOSConfig.Uuidandversion.GetUuid(), err)
-					}
 					if ind, found := utils.FindEleInSlice(dev.GetBaseOSConfigs(), baseOSConfig.Uuidandversion.GetUuid()); found {
 						configs := dev.GetBaseOSConfigs()
 						utils.DelEleInSlice(&configs, ind)
 						dev.SetBaseOSConfig(configs)
-						log.Infof("EVE image removed with id %s", baseOSConfig.Uuidandversion.GetUuid())
+						log.Infof("EVE base OS image removed with id %s", baseOSConfig.Uuidandversion.GetUuid())
+					}
+				} else {
+					if toActivate {
+						toActivate = false
+						baseOSConfig.Activate = true //activate another one if exists
 					}
 				}
 			}

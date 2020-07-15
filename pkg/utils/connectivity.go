@@ -17,6 +17,7 @@ import (
 // writeCounter counts the number of bytes written to it. It implements to the io.Writer interface
 // and we can pass this into io.TeeReader() which will report progress on each write cycle.
 type writeCounter struct {
+	message     string
 	total       uint64
 	beforePrint uint64
 	step        uint64
@@ -37,7 +38,7 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 func (wc writeCounter) printProgress() {
 	if log.IsLevelEnabled(log.InfoLevel) {
 		fmt.Printf("\r%s", strings.Repeat(" ", 35))
-		fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.total))
+		fmt.Printf("\r%s %s complete", wc.message, humanize.Bytes(wc.total))
 	}
 }
 
@@ -101,7 +102,7 @@ func DownloadFile(filepath string, url string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	counter := &writeCounter{step: 10 * 1024 * 1024}
+	counter := &writeCounter{step: 10 * 1024 * 1024, message: "Downloading..."}
 	if _, err = io.Copy(out, io.TeeReader(resp.Body, counter)); err != nil {
 		out.Close()
 		return err
