@@ -149,6 +149,54 @@ eden pod ps
 ```
 to get the status of the deployment
 
+### Obtain information about EVE on SD card
+
+To get information from SD card about previously flashed instance of EVE you should:
+
+Step 0 (for MacOS): Install required packets after installing of [brew](https://brew.sh/):
+```
+brew cask install osxfuse
+brew install ext4fuse squashfuse
+```
+
+Step 1: List partitions.
+
+For MacOS `diskutil list`
+
+For Linux `lsblk`
+
+You should find your SD and 5 partitions on it.
+
+Step 2: Mount partitions of SD card on your PC
+
+For MacOS (`diskN` is SD card from step 1)
+```
+sudo umount /dev/diskN*
+sudo squashfuse /dev/diskNs2 ~/tmp/rootfs -o allow_other
+sudo ext4fuse /dev/diskNs9 ~/tmp/persist -o allow_other
+```
+For Linux (`sdN` is SD card from step 1)
+```
+mkdir -p ~/tmp/rootfs ~/tmp/persist
+sudo umount /dev/sdN*
+sudo mount /dev/sdN2 ~/tmp/rootfs
+sudo mount /dev/sdN9 ~/tmp/persist
+```
+Step 3: Extract files and save them:
+- syslog.txt contains logs of EVE: `sudo cp ~/tmp/persist/rsyslog/syslog.txt ~/syslog.txt`
+- eve-release contains version of EVE: `sudo cp ~/tmp/rootfs/etc/eve-release ~/eve-release`
+
+Step 4: Umount and eject SD
+For MacOS
+```
+sudo umount /dev/diskN*
+sudo diskutil eject /dev/diskN
+```
+For Linux
+```
+sudo umount /dev/sdN*
+sudo eject /dev/sdN
+```
 
 ## Help
 
