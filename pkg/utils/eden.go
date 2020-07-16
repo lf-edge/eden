@@ -493,7 +493,7 @@ func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
 	return &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			ResponseHeaderTimeout: defaults.DefaultRepeatTimeout,
+			ResponseHeaderTimeout: defaults.DefaultRepeatTimeout * defaults.DefaultRepeatCount,
 		},
 	}
 }
@@ -534,7 +534,7 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
-	client := server.getHTTPClient(defaults.DefaultRepeatTimeout)
+	client := server.getHTTPClient(defaults.DefaultRepeatTimeout * defaults.DefaultRepeatCount)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
