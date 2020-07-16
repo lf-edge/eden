@@ -33,7 +33,7 @@ func setUpLogs(out io.Writer, level string) error {
 	return nil
 }
 
-func assingCobraToViper(cmd *cobra.Command) {
+func assignCobraToViper(cmd *cobra.Command) {
 	for k, v := range defaults.DefaultCobraToViper {
 		if flag := cmd.Flag(v); flag != nil {
 			_ = viper.BindPFlag(k, flag)

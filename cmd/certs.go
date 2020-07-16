@@ -28,7 +28,7 @@ var certsCmd = &cobra.Command{
 	Short: "manage certs",
 	Long:  `Managed certificates for Adam and EVE.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())

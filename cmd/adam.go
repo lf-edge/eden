@@ -27,7 +27,7 @@ var startAdamCmd = &cobra.Command{
 	Short: "start adam",
 	Long:  `Start adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -71,7 +71,7 @@ var stopAdamCmd = &cobra.Command{
 	Short: "stop adam",
 	Long:  `Stop adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -93,7 +93,7 @@ var statusAdamCmd = &cobra.Command{
 	Short: "status of adam",
 	Long:  `Status of adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
