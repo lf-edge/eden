@@ -442,7 +442,7 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist, configDir, evePID string) (err error) {
+func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist, configDir, evePID string, configSaved string) (err error) {
 	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=true",
 		evePID)
 	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
@@ -478,6 +478,11 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist,
 	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configDir); err != nil {
 			return fmt.Errorf("error in %s delete: %s", configDir, err)
+		}
+	}
+	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
+		if err = os.RemoveAll(configSaved); err != nil {
+			return fmt.Errorf("error in %s delete: %s", configSaved, err)
 		}
 	}
 	return nil

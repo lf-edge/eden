@@ -22,6 +22,7 @@ const (
 	DefaultQemuFileToSave   = "qemu.conf"        //qemu config file inside DefaultEdenHomeDir
 	DefaultSSHKey           = "certs/id_rsa.pub" //file for save ssh key
 	DefaultConfigHidden     = ".eden-config.yml" //file to save config get --all
+	DefaultConfigSaved      = "config_saved.yml" //file to save config during 'eden setup'
 
 	DefaultContext = "default" //default context name
 
