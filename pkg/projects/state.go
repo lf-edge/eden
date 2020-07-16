@@ -1,14 +1,12 @@
 package projects
 
 import (
-	"errors"
-	"fmt"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
-	"github.com/mcuadros/go-lookup"
 	"reflect"
 )
 
@@ -202,19 +200,7 @@ func (state *state) GetDm() *metrics.DeviceMetric {
 //Vm []*metrics.ZMetricVolume
 //Dm *metrics.DeviceMetric
 func (state *state) LookUp(path string) (value reflect.Value, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			switch x := r.(type) {
-			case string:
-				err = errors.New(x)
-			case error:
-				err = x
-			default:
-				err = errors.New(fmt.Sprint(r))
-			}
-		}
-	}()
-	value, err = lookup.LookupString(state.deviceInfo, path)
+	value, err = utils.LookUp(state.deviceInfo, path)
 	return
 }
 

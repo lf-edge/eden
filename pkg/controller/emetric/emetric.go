@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -56,20 +57,26 @@ func ParseMetricItem(data string) (logItem *metrics.ZMetricMsg, err error) {
 }
 
 //MetricItemFind find LogItem records by reqexps in 'query' corresponded to LogItem structure.
-func MetricItemFind(le *metrics.ZMetricMsg, query map[string]string) int {
-	matched := 1
+func MetricItemFind(le *metrics.ZMetricMsg, query map[string]string) bool {
+	matched := true
+	var err error
 	for k, v := range query {
 		// Uppercase of filed's name first letter
-		n := strings.Title(k)
-		// Find field in structure by Titlized() name 'n'
-		r := reflect.ValueOf(le)
-		f := fmt.Sprint(reflect.Indirect(r).FieldByName(n))
-		matched, err := regexp.Match(v, []byte(f))
-		if err != nil {
-			return -1
+		var n []string
+		for _, pathElement := range strings.Split(k, ".") {
+			n = append(n, strings.Title(pathElement))
 		}
+		var clb = func(inp reflect.Value) {
+			f := fmt.Sprint(inp)
+			matched, err = regexp.Match(v, []byte(f))
+			if err != nil {
+				log.Debug(err)
+			}
+		}
+		matched = false
+		utils.LookupWithCallback(reflect.ValueOf(le).Interface(), strings.Join(n, "."), clb)
 		if matched == false {
-			return 0
+			return matched
 		}
 	}
 	return matched
@@ -112,7 +119,14 @@ func metricProcess(query map[string]string, handler HandlerFunc) loaders.Process
 		if devID != "" && devID != lb.DevID {
 			return true, nil
 		}
-		if MetricItemFind(lb, query) == 1 {
+		for el, i := range query {
+			splitRequest := strings.Split(el, ".")
+			if len(splitRequest) > 0 && strings.ToLower(splitRequest[0]) == "dm" { //dm is located in MetricContent
+				query[strings.Join(append([]string{"MetricContent"}, splitRequest...), ".")] = i
+				delete(query, el)
+			}
+		}
+		if MetricItemFind(lb, query) {
 			if handler(lb) {
 				return false, nil
 			}

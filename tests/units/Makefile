@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-test: test_go test_sceanrio
+test: test_go test_scenario test_lookup
 
 setup:
 build:
@@ -9,8 +9,11 @@ clean:
 test_go:
 	go test templates_test.go -v
 
-test_sceanrio:
+test_scenario:
 	./template_test_scenario.sh
+
+test_lookup:
+	go test lookup_test.go -v
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
