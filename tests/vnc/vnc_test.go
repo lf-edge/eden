@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,15 +27,13 @@ import (
 var (
 	timewait     = flag.Int("timewait", 300, "Timewait for items waiting in seconds")
 	name         = flag.String("name", "", "Name of app, random if empty")
+	vncDisplay   = flag.Int("vncDisplay", 1, "VNC display number")
+	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
+	appLink      = flag.String("applink", "http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-%s.qcow2", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	tc           *projects.TestContext
 	externalIP   string
 	externalPort int
 	appName      string
-	vncDisplay   = 0
-	metadata     = "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n"
-	appLink      = func(arch string) string {
-		return fmt.Sprintf("http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-%s.qcow2", arch)
-	}
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -64,7 +63,7 @@ func TestMain(m *testing.M) {
 //for rpi it is direct
 func getVNCPort(edgeNode *device.Ctx, vncDisplay int) int {
 	if edgeNode.GetDevModel() == defaults.DefaultRPIModel {
-		return 5901 + vncDisplay
+		return 5900 + vncDisplay
 	} else {
 		return 5911 + vncDisplay //forwarded by qemu ports
 	}
@@ -149,14 +148,21 @@ func TestVNCVMStart(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), appLink(tc.GetController().GetVars().ZArch), appName, nil, nil, metadata)
+	var appLinkFunc = func(arch string) string {
+		if strings.Count(*appLink, "%s") == 1 {
+			return fmt.Sprintf(*appLink, arch)
+		}
+		return *appLink
+	}
+
+	expectation := expect.AppExpectationFromUrl(tc.GetController(), appLinkFunc(tc.GetController().GetVars().ZArch), appName, nil, nil, *metadata)
 
 	appInstanceConfig := expectation.Application()
 
-	appInstanceConfig.Fixedresources.VncDisplay = uint32(vncDisplay)
+	appInstanceConfig.Fixedresources.VncDisplay = uint32(*vncDisplay)
 	appInstanceConfig.Fixedresources.EnableVnc = true
 
-	externalPort = getVNCPort(edgeNode, vncDisplay)
+	externalPort = getVNCPort(edgeNode, *vncDisplay)
 
 	t.Log("Add app to list")
 
