@@ -50,7 +50,7 @@ const (
 	DefaultEveRepo           = "https://github.com/lf-edge/eve.git"
 	DefaultRegistry          = "docker.io"
 
-	DefaultEServerTag          = "0.0.3"
+	DefaultEServerTag          = "latest"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
 	//DefaultRepeatCount is repeat count for requests

@@ -197,7 +197,6 @@ func UploadFile(client *http.Client, url string, filePath string) (result *http.
 	errchan := make(chan error)
 
 	go func() {
-		defer close(errchan)
 		defer writer.Close()
 		defer mwriter.Close()
 		w, err := mwriter.CreateFormFile("file", filepath.Base(filePath))
@@ -223,14 +222,23 @@ func UploadFile(client *http.Client, url string, filePath string) (result *http.
 			errchan <- err
 			return
 		}
+		log.Info("Waiting for SHA256 calculation")
 	}()
-
-	resp, err := client.Do(req)
-	merr := <-errchan
-
-	if err != nil || merr != nil {
-		return resp, fmt.Errorf("http error: %v, multipart error: %v", err, merr)
+	respchan := make(chan *http.Response)
+	go func() {
+		resp, err := client.Do(req)
+		if err != nil {
+			errchan <- err
+		} else {
+			respchan <- resp
+		}
+	}()
+	var merr error
+	var resp *http.Response
+	select {
+	case merr = <-errchan:
+		return nil, fmt.Errorf("http/multipart error: %v", merr)
+	case resp = <-respchan:
+		return resp, nil
 	}
-
-	return resp, nil
 }
