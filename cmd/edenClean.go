@@ -11,7 +11,10 @@ import (
 	"path/filepath"
 )
 
-var configDir string
+var (
+	configDir   string
+	configSaved string
+)
 
 var cleanCmd = &cobra.Command{
 	Use:   "clean",
@@ -31,6 +34,7 @@ var cleanCmd = &cobra.Command{
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
+			configSaved = utils.ResolveAbsPath(defaults.DefaultConfigSaved)
 		}
 		return nil
 	},
@@ -39,8 +43,9 @@ var cleanCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.CleanEden(command, eveDist, adamDist, certsDir, eserverImageDist, redisDist,
-			configDir, evePidFile); err != nil {
+		if err := utils.CleanEden(command, eveDist, adamDist, certsDir,
+			eserverImageDist, redisDist, configDir, evePidFile,
+			configSaved); err != nil {
 			log.Fatalf("cannot CleanEden: %s", err)
 		}
 		log.Infof("CleanEden done")

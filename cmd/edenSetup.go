@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 )
@@ -31,16 +32,68 @@ var (
 	devModel string
 )
 
+func configCheck() {
+	sconf := utils.ResolveAbsPath(defaults.DefaultConfigSaved)
+
+	abs, err := filepath.Abs(sconf)
+	if err != nil {
+		log.Fatalf("fail in reading filepath: %s\n", err.Error())
+		os.Exit(-2)
+	}
+
+	if _, err = os.Lstat(abs); os.IsNotExist(err) {
+		if err = utils.CopyFile(configFile, abs); err != nil {
+			log.Fatalf("copying fail %s\n", err.Error())
+			os.Exit(-3)
+		}
+	} else {
+
+		viperLoaded, err := utils.LoadConfigFile(abs)
+		if err != nil {
+			log.Fatalf("error reading config %s: %s\n", abs, err.Error())
+			os.Exit(-2)
+		}
+		if viperLoaded {
+			confOld := viper.AllSettings()
+
+			viperLoaded, err = utils.LoadConfigFile(configFile)
+			if err != nil {
+				log.Fatalf("error reading config %s: %s", configFile, err.Error())
+				os.Exit(-2)
+			}
+
+			confCur := viper.AllSettings()
+
+			if reflect.DeepEqual(confOld, confCur) {
+				log.Infof("Config file %s is the same as %s\n", configFile, sconf)
+			} else {
+				log.Fatalf("The current configuration file %s is different from the saved %s. You can fix this with the commands 'eden config clean' and 'eden config add/set/edit'.\n", configFile, abs)
+				os.Exit(-1)
+			}
+		} else {
+			/* Incorrect saved config -- just rewrite by current */
+			if err = utils.CopyFile(configFile, abs); err != nil {
+				log.Fatalf("copying fail %s\n", err.Error())
+				os.Exit(-3)
+			}
+		}
+	}
+}
+
 var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "setup harness",
 	Long:  `Setup harness.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assignCobraToViper(cmd)
+
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
+
+		configCheck()
+
 		if viperLoaded {
 			download = viper.GetBool("eden.download")
 			binDir = utils.ResolveAbsPath(viper.GetString("eden.bin-dist"))
@@ -76,6 +129,7 @@ var setupCmd = &cobra.Command{
 
 			ssid = viper.GetString("eve.ssid")
 		}
+
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
