@@ -41,7 +41,7 @@ var startEveCmd = &cobra.Command{
 	Short: "start eve",
 	Long:  `Start eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -122,7 +122,7 @@ var stopEveCmd = &cobra.Command{
 	Short: "stop eve",
 	Long:  `Stop eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -149,7 +149,7 @@ var statusEveCmd = &cobra.Command{
 	Short: "status of eve",
 	Long:  `Status of eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -174,7 +174,7 @@ var consoleEveCmd = &cobra.Command{
 	Short: "telnet into eve",
 	Long:  `Telnet into eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -199,7 +199,7 @@ var sshEveCmd = &cobra.Command{
 	Short: "ssh into eve",
 	Long:  `SSH into eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -277,7 +277,7 @@ var onboardEveCmd = &cobra.Command{
 	Short: "OnBoard EVE in Adam",
 	Long:  `Adding an EVE onboarding certificate to Adam and waiting for EVE to register.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
@@ -320,7 +320,7 @@ var resetEveCmd = &cobra.Command{
 	Use:   "reset",
 	Short: "Reset EVE to initial config",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())

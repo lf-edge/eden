@@ -44,7 +44,7 @@ var edgeNodeReboot = &cobra.Command{
 	Short: "reboot EVE instance",
 	Long:  `reboot EVE instance.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading configFile: %s", err.Error())
@@ -107,7 +107,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 	Long:  `Update EVE image.`,
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		if baseOSVersionFlag := cmd.Flags().Lookup("os-version"); baseOSVersionFlag != nil {
 			if err := viper.BindPFlag("eve.base-tag", baseOSVersionFlag); err != nil {
 				log.Fatal(err)
@@ -163,7 +163,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 	Long:  `Remove EVE image.`,
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading configFile: %s", err.Error())
@@ -273,7 +273,7 @@ var edgeNodeUpdate = &cobra.Command{
 	Short: "update EVE config",
 	Long:  `Update EVE config.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading configFile: %s", err.Error())
@@ -321,7 +321,7 @@ var edgeNodeGetConfig = &cobra.Command{
 	Short: "fetch EVE config",
 	Long:  `Fetch EVE config.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading configFile: %s", err.Error())

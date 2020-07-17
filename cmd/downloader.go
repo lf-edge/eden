@@ -26,7 +26,7 @@ var downloaderCmd = &cobra.Command{
 	Short: "download eve from docker",
 	Long:  `Download eve from docker.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assingCobraToViper(cmd)
+		assignCobraToViper(cmd)
 		if !newDownload {
 			if outputDirFlag := cmd.Flags().Lookup("downloader-dist"); outputDirFlag != nil {
 				if err := viper.BindPFlag("eve.image-file", outputDirFlag); err != nil {
