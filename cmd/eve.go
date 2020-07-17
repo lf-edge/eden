@@ -407,10 +407,6 @@ var resetEveCmd = &cobra.Command{
 }
 
 func eveInit() {
-	eveCmd.AddCommand(confChangerCmd)
-	confChangerInit()
-	eveCmd.AddCommand(downloaderCmd)
-	downloaderInit()
 	eveCmd.AddCommand(startEveCmd)
 	eveCmd.AddCommand(stopEveCmd)
 	eveCmd.AddCommand(statusEveCmd)

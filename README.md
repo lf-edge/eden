@@ -254,5 +254,11 @@ The current sub-commands are:
 `eden eve onboard` - onboard EVE that is the current config
 `eden eve reset` - put EVE to the initial state (reset to config) removing all changes made by commands or tests
 
+## Eden utils commands
+
+`eden utils certs` - generate certificates for Adam and EVE
+`eden utils download eve` - download EVE live image from docker hub
+`eden utils download eve-rootfs` - download EVE rootfs image from docker hub
+
 
 

@@ -170,15 +170,10 @@ func SetupBaseImage(t *testing.T) (fileToUse string) {
 		}
 	} else {
 		if _, err := os.Stat(eveBaseDist); os.IsNotExist(err) {
-			if err := utils.DownloadEveFormDocker(command, eveBaseDist, eveArch, eveHV, *eveBaseTag, false); err != nil {
+			if image, err := utils.DownloadEveRootFS(eveBaseDist, eveArch, eveHV, *eveBaseTag); err != nil {
 				t.Fatalf("cannot download Base EVE: %s", err)
 			} else {
-				t.Log("download Base EVE done")
-			}
-			if err := utils.ChangeConfigPartAndRootFs(command, eveBaseDist, adamDist, eveArch, eveHV); err != nil {
-				t.Fatalf("cannot ChangeConfigPartAndRootFs Base EVE: %s", err)
-			} else {
-				t.Log("ChangeConfigPartAndRootFs Base EVE done")
+				t.Logf("download Base EVE done: %s", image)
 			}
 		} else {
 			t.Logf("Base EVE already exists in dir: %s", eveBaseDist)

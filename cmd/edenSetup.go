@@ -19,15 +19,14 @@ import (
 )
 
 var (
-	eveDist   string
-	eveRepo   string
-	download  bool
-	binDir    string
-	dockerYML string
-	vmYML     string
-	force     bool
-	dryRun    bool
-	apiV1     bool
+	eveDist  string
+	eveRepo  string
+	download bool
+	binDir   string
+	eveHV    string
+	force    bool
+	dryRun   bool
+	apiV1    bool
 
 	devModel string
 )
@@ -97,8 +96,6 @@ var setupCmd = &cobra.Command{
 		if viperLoaded {
 			download = viper.GetBool("eden.download")
 			binDir = utils.ResolveAbsPath(viper.GetString("eden.bin-dist"))
-			dockerYML = utils.ResolveAbsPath(viper.GetString("eden.images.docker"))
-			vmYML = utils.ResolveAbsPath(viper.GetString("eden.images.vm"))
 			//certs
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 			//adam
@@ -209,20 +206,16 @@ var setupCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveFormDocker(command, eveDist, eveArch, eveHV, eveTag, defaults.DefaultNewBuildProcess); err != nil {
+				if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, imageFormat); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
-					log.Info("download EVE done")
-				}
-				if !defaults.DefaultNewBuildProcess {
-					if err := utils.ChangeConfigPartAndRootFs(command, eveDist, adamDist, eveArch, eveHV); err != nil {
-						log.Errorf("cannot ChangeConfigPartAndRootFs EVE: %s", err)
-					} else {
-						log.Info("ChangeConfigPartAndRootFs EVE done")
+					log.Infof("download EVE done: %s", eveImageFile)
+					if devModel == defaults.DefaultRPIModel {
+						log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
 					}
 				}
 			} else {
-				log.Infof("EVE already exists in dir: %s", eveDist)
+				log.Infof("EVE already exists in dir: %s", filepath.Dir(eveImageFile))
 			}
 		}
 	},

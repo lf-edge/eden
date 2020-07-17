@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -51,20 +50,34 @@ func CopyFile(src string, dst string) (err error) {
 			return err
 		}
 	}
-	srcLink := src
 	if info.Mode()&os.ModeSymlink != 0 {
 		//follow symlinks
-		srcLink, err = os.Readlink(src)
+		src, err = os.Readlink(src)
 		if err != nil {
 			return err
 		}
-		srcLink = filepath.Join(filepath.Dir(src), filepath.Base(srcLink))
+		src = filepath.Join(filepath.Dir(src), filepath.Base(src))
 	}
-	data, err := ioutil.ReadFile(srcLink)
+	in, err := os.Open(src)
 	if err != nil {
-		return err
+		return
 	}
-	return ioutil.WriteFile(dst, data, info.Mode()^os.ModeSymlink)
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return
+	}
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	if _, err = io.Copy(out, in); err != nil {
+		return
+	}
+	err = out.Sync()
+	return
 }
 
 //TouchFile create empty file
