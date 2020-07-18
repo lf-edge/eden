@@ -163,29 +163,6 @@ func PullImage(image string) error {
 	return nil
 }
 
-//GenEVEImage from docker to outputFile only with defined configDir
-func GenEVEImage(image, outputDir, command, format string, configDir string, size int) (fileName string, err error) {
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return "", err
-	}
-	volumeMap := map[string]string{"/in": configDir, "/out": outputDir}
-	dockerCommand := fmt.Sprintf("-f %s %s %d", format, command, size)
-	if size == 0 {
-		dockerCommand = fmt.Sprintf("-f %s %s", format, command)
-	}
-	u, err := RunDockerCommand(image, dockerCommand, volumeMap)
-	if err != nil {
-		log.Printf("error GenEVEImage: %v", err)
-		return "", err
-	}
-	log.Debug(u)
-	fileName = filepath.Join(outputDir, fmt.Sprintf("%s.raw", command))
-	if format == "qcow2" {
-		fileName = fileName + "." + format
-	}
-	return fileName, nil
-}
-
 //SaveImage from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
 func SaveImage(image, outputDir, defaultEvePrefixInTar string) error {
 	ctx := context.Background()
@@ -360,7 +337,7 @@ func DockerImageRepack(commandPath string, distImage string, imageTag string) (e
 			return err
 		}
 	}
-	commandArgsString := fmt.Sprintf("ociimage -i %s -o %s -l",
+	commandArgsString := fmt.Sprintf("utils ociimage -i %s -o %s -l",
 		imageTag, distImage)
 	log.Infof("DockerImageRepack run: %s %s", commandPath, commandArgsString)
 	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
@@ -557,7 +534,7 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: image,
 		Cmd:   strings.Fields(command),
-		Tty:   true,
+		Tty:   false,
 	}, &container.HostConfig{
 		Mounts: mounts},
 		nil,
@@ -575,12 +552,14 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 			return "", err
 		}
 	case <-statusCh:
+
 	}
 
-	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		return "", err
 	}
+	defer out.Close()
 	if b, err := ioutil.ReadAll(out); err == nil {
 		return string(b), nil
 	} else {

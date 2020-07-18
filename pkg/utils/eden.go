@@ -252,7 +252,7 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 		}
 	}
 	commandArgsString := fmt.Sprintf(
-		"certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s --ssid=%s --password=%s -v %s",
+		"utils certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s --ssid=%s --password=%s -v %s",
 		certsDir, domain, ip, eveIP, uuid, ssid, password, log.GetLevel())
 	log.Infof("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
 	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
@@ -326,36 +326,6 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	commandArgsString := fmt.Sprintf("clone --branch %s --single-branch %s %s", tag, gitRepo, dist)
 	log.Infof("CloneFromGit run: %s %s", "git", commandArgsString)
 	return RunCommandWithLogAndWait("git", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
-}
-
-//DownloadEveFormDocker function clone EVE from docker
-func DownloadEveFormDocker(commandPath string, dist string, arch string, hv string, tag string, newDownload bool) (err error) {
-	if _, err := os.Stat(dist); !os.IsNotExist(err) {
-		return fmt.Errorf("directory already exists: %s", dist)
-	}
-	if tag == "" {
-		tag = "latest"
-	}
-	commandArgsString := fmt.Sprintf("eve download --eve-tag=%s --eve-arch=%s --eve-hv=%s --new-download=%t -d %s -v %s",
-		tag, arch, hv, newDownload, filepath.Join(dist, "dist", arch), log.GetLevel())
-	log.Infof("DownloadEveFormDocker run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
-}
-
-//ChangeConfigPartAndRootFs replace config and rootfs part in EVE live image
-func ChangeConfigPartAndRootFs(commandPath string, distEve string, distAdam string, arch string, hv string) (err error) {
-	imagePath := filepath.Join(distEve, "dist", arch, "live.qcow2")
-	if _, err := os.Stat(imagePath); os.IsNotExist(err) {
-		return fmt.Errorf("file not exists: %s", imagePath)
-	}
-	configPath := filepath.Join(distAdam, "run", "config")
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return fmt.Errorf("directory not exists: %s", configPath)
-	}
-	commandArgsString := fmt.Sprintf("eve confchanger --image-file=%s --config-part=%s --eve-hv=%s -v %s",
-		imagePath, configPath, hv, log.GetLevel())
-	log.Infof("ChangeConfigPartAndRootFs run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //MakeEveInRepo build live image of EVE

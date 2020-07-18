@@ -39,7 +39,6 @@ const (
 	DefaultAdamPort    = 3333
 
 	//tags, versions, repos
-	DefaultNewBuildProcess   = true
 	DefaultEVETag            = "5.7.1" //DefaultEVETag tag for EVE image
 	DefaultAdamTag           = "0.0.48"
 	DefaultRedisTag          = "6"
@@ -59,7 +58,6 @@ const (
 	//DefaultRepeatTimeout is time wait for next attempt
 	DefaultRepeatTimeout         = 5 * time.Second
 	DefaultUUID                  = "1"
-	DefaultEvePrefixInTar        = "bits"
 	DefaultFileToSave            = "./test.tar"
 	DefaultIsLocal               = false
 	DefaultEVEHV                 = "kvm"
