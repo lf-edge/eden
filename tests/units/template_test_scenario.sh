@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DIR=`mktemp -d --suffix=.eden_template_test`
+DIR=$(mktemp -d 2>/dev/null || mktemp -d -t '.eden_template_test')
 
 #echo Test dir: $DIR
 cp template_test_scenario.tmpl $DIR

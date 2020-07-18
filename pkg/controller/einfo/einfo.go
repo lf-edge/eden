@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -131,18 +132,23 @@ func HandleAll(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) b
 }
 
 func processElem(value reflect.Value, query map[string]string) bool {
-
 	matched := true
 	var err error
 	for k, v := range query {
 		// Uppercase of filed's name first letter
-		n := strings.Title(k)
-		f := fmt.Sprint(reflect.Indirect(value).FieldByName(n))
-		matched, err = regexp.Match(v, []byte(f))
-		if err != nil {
-			log.Print(err)
-			return false
+		var n []string
+		for _, pathElement := range strings.Split(k, ".") {
+			n = append(n, strings.Title(pathElement))
 		}
+		var clb = func(inp reflect.Value) {
+			f := fmt.Sprint(inp)
+			matched, err = regexp.Match(v, []byte(f))
+			if err != nil {
+				log.Debug(err)
+			}
+		}
+		matched = false
+		utils.LookupWithCallback(reflect.Indirect(value).Interface(), strings.Join(n, "."), clb)
 		if matched == false {
 			break
 		}
@@ -189,8 +195,27 @@ func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) [
 			}
 		}
 	} else {
-		var strValT ZInfoMsgInterface = im
-		dsws = append(dsws, &strValT)
+		var d reflect.Value
+		switch im.Ztype {
+		case info.ZInfoTypes_ZiDevice:
+			d = reflect.ValueOf(im.GetDinfo())
+		case info.ZInfoTypes_ZiApp:
+			d = reflect.ValueOf(im.GetAinfo())
+		case info.ZInfoTypes_ZiBlobList:
+			d = reflect.ValueOf(im.GetBinfo())
+		case info.ZInfoTypes_ZiContentTree:
+			d = reflect.ValueOf(im.GetCinfo())
+		case info.ZInfoTypes_ZiVolume:
+			d = reflect.ValueOf(im.GetVinfo())
+		case info.ZInfoTypes_ZiNetworkInstance:
+			d = reflect.ValueOf(im.GetNiinfo())
+		default:
+			return dsws
+		}
+		if processElem(d, query) {
+			var strValT ZInfoMsgInterface = im
+			dsws = append(dsws, &strValT)
+		}
 	}
 	return dsws
 }
