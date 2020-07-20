@@ -411,6 +411,7 @@ func (ts *TestScript) cmdMsg(neg bool, args []string) {
 	}
 	if len(args) == 1 {
 		ts.Logf("message: %s\n", args[0])
+		fmt.Printf("message: %s\n", args[0])
 	} else {
 		ts.Fatalf("usage: message [msg]")
 	}

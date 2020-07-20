@@ -119,6 +119,7 @@ var configAddCmd = &cobra.Command{
 			eveRemote = true
 			viper.Set("eve.hostfwd", map[string]string{})
 			viper.Set("eve.devmodel", defaults.DefaultRPIModel)
+			viper.Set("eve.hv", fmt.Sprintf("rpi-%s", defaults.DefaultEVEHV))
 			viper.Set("eve.arch", "arm64")
 			viper.Set("eve.serial", "*")
 			viper.Set("eve.remote", eveRemote)

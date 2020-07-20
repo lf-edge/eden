@@ -103,7 +103,10 @@ func genEVERootFSImage(image, outputDir string, size int) (fileName string, err 
 		return "", err
 	}
 	u = strings.TrimFunc(u, func(r rune) bool {
-		return !unicode.IsGraphic(r)
+		if unicode.IsDigit(r) || unicode.IsLetter(r) || r == '.' || r == '-' {
+			return false
+		}
+		return true
 	})
 	log.Debugf("rootfs version: %s", u)
 	fileName = filepath.Join(outputDir, fmt.Sprintf("rootfs-%s.squashfs", u))
