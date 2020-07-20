@@ -26,14 +26,14 @@ func eveStatusRPI() {
 	} else {
 		var lastDInfo *info.ZInfoMsg
 		var lastTime time.Time
-		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 			lastTime = time.Unix(im.AtTimeStamp.GetSeconds(), 0)
 			if im.GetZtype() == info.ZInfoTypes_ZiDevice {
 				lastDInfo = im
 			}
 			return false
 		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZAll, handleInfo); err != nil {
+		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
 			log.Fatalf("Fail in get InfoLastCallback: %s", err)
 		}
 		if lastDInfo != nil {
