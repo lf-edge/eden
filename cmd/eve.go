@@ -169,13 +169,13 @@ var versionEveCmd = &cobra.Command{
 			fmt.Println("EVE status: undefined (no onboarded EVE)")
 		} else {
 			var lastDInfo *info.ZInfoMsg
-			var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+			var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 				if im.GetZtype() == info.ZInfoTypes_ZiDevice {
 					lastDInfo = im
 				}
 				return false
 			}
-			if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZAll, handleInfo); err != nil {
+			if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
 				log.Fatalf("Fail in get InfoLastCallback: %s", err)
 			}
 			if lastDInfo == nil {
@@ -278,11 +278,11 @@ var sshEveCmd = &cobra.Command{
 				}
 				if !cmd.Flags().Changed("eve-host") {
 					var lastDInfo *info.ZInfoMsg
-					var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+					var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 						lastDInfo = im
 						return false
 					}
-					if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZInfoNetwork, handleInfo); err != nil {
+					if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
 						log.Fatalf("Fail in get InfoLastCallback: %s", err)
 					}
 					if lastDInfo == nil {

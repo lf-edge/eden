@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var infoType string
 var printFields []string
 
 var infoCmd = &cobra.Command{
@@ -50,20 +49,15 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 			fmt.Printf("Error in get param 'follow'")
 			return
 		}
-		zInfoType, err := einfo.GetZInfoType(infoType)
-		if err != nil {
-			fmt.Printf("Error in get param 'type': %s", err)
-			return
-		}
 		q := make(map[string]string)
 		for _, a := range args[0:] {
 			s := strings.Split(a, ":")
 			q[s[0]] = s[1]
 		}
 
-		handleInfo := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+		handleInfo := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 			if printFields == nil {
-				einfo.ZInfoPrn(im, ds, infoType)
+				einfo.ZInfoPrn(im, ds)
 			} else {
 				einfo.ZInfoPrint(im, printFields).Print()
 			}
@@ -71,11 +65,11 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 		}
 
 		if follow {
-			if err = ctrl.InfoChecker(devUUID, q, zInfoType, handleInfo, einfo.InfoNew, 0); err != nil {
+			if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoNew, 0); err != nil {
 				log.Fatalf("InfoChecker: %s", err)
 			}
 		} else {
-			if err = ctrl.InfoLastCallback(devUUID, q, zInfoType, handleInfo); err != nil {
+			if err = ctrl.InfoLastCallback(devUUID, q, handleInfo); err != nil {
 				log.Fatalf("InfoChecker: %s", err)
 			}
 		}
@@ -85,5 +79,4 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 func infoInit() {
 	infoCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
 	infoCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
-	infoCmd.PersistentFlags().StringVarP(&infoType, "type", "", "all", fmt.Sprintf("info type (%s)", strings.Join(einfo.ListZInfoType(), ",")))
 }

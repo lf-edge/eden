@@ -50,7 +50,7 @@ func TestNetworkInstance(t *testing.T) {
 				t.Fatal("Fail in sync config with controller: ", err)
 			}
 			t.Run("Process", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": tt.networkInstance.networkInstanceID}, einfo.ZInfoNetworkInstance, einfo.HandleFirst, einfo.InfoAny, 300)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": tt.networkInstance.networkInstanceID}, einfo.HandleFirst, einfo.InfoAny, 300)
 				if err != nil {
 					t.Fatal("Fail in waiting for process start from info: ", err)
 				}
@@ -70,7 +70,7 @@ func TestNetworkInstance(t *testing.T) {
 				timeout = 800
 			}
 			t.Run("Active", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": tt.networkInstance.networkInstanceID, "activated": "true"}, einfo.ZInfoNetworkInstance, einfo.HandleFirst, einfo.InfoAny, timeout)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "networkID": tt.networkInstance.networkInstanceID, "activated": "true"}, einfo.HandleFirst, einfo.InfoAny, timeout)
 				if err != nil {
 					t.Fatal("Fail in waiting for activated state from info: ", err)
 				}

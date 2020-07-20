@@ -198,7 +198,7 @@ func TestApplication(t *testing.T) {
 				t.Fatal("Fail in sync config with controller: ", err)
 			}
 			t.Run("Started", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID}, einfo.ZInfoAppInstance, einfo.HandleFirst, einfo.InfoAny, 1200)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID}, einfo.HandleFirst, einfo.InfoAny, 1200)
 				if err != nil {
 					t.Fatal("Fail in waiting for app started status: ", err)
 				}
@@ -227,7 +227,7 @@ func TestApplication(t *testing.T) {
 				timeout = 2400
 			}
 			t.Run("Running", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID, "state": "RUNNING"}, einfo.ZInfoAppInstance, einfo.HandleFirst, einfo.InfoAny, timeout)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID, "state": "RUNNING"}, einfo.HandleFirst, einfo.InfoAny, timeout)
 				if err != nil {
 					t.Fatal("Fail in waiting for app running status: ", err)
 				}
@@ -262,7 +262,7 @@ func TestApplication(t *testing.T) {
 				assert.Equal(t, "http://127.0.0.1/user-data.html", result)
 			})
 			t.Run("ObtainIP", func(t *testing.T) {
-				handler := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+				handler := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 					appNetwork := im.GetAinfo().Network
 					isOk := false
 					for _, el := range appNetwork {
@@ -280,7 +280,7 @@ func TestApplication(t *testing.T) {
 					}
 					return true
 				}
-				err = ctx.InfoLastCallback(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID, "state": "RUNNING", "network": ".*"}, einfo.ZInfoAppInstance, handler)
+				err = ctx.InfoLastCallback(devUUID, map[string]string{"devId": devUUID.String(), "AppID": tt.appDefinition.appID, "state": "RUNNING", "network": ".*"}, handler)
 			})
 			t.Run("RemoteConsole", func(t *testing.T) {
 				desktopName, err := utils.GetDesktopName(fmt.Sprintf("127.0.0.1:591%d", tt.vncDisplay+1), "")

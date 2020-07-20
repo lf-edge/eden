@@ -87,13 +87,13 @@ func TestBaseImage(t *testing.T) {
 				t.Fatal("Fail in sync config with controller: ", err)
 			}
 			t.Run("Started", func(t *testing.T) {
-				err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 300)
+				err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion}, einfo.HandleFirst, einfo.InfoAny, 300)
 				if err != nil {
 					t.Fatal("Fail in waiting for base image update init: ", err)
 				}
 			})
 			t.Run("Downloaded", func(t *testing.T) {
-				err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, 1500)
+				err := ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "downloadProgress": "100"}, einfo.HandleFirst, einfo.InfoAny, 1500)
 				if err != nil {
 					t.Fatal("Fail in waiting for base image download progress: ", err)
 				}
@@ -113,7 +113,7 @@ func TestBaseImage(t *testing.T) {
 				timeout = 2400
 			}
 			t.Run("Active", func(t *testing.T) {
-				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED", "partitionState": "(inprogress|active)"}, einfo.ZInfoDevSW, einfo.HandleFirst, einfo.InfoAny, timeout)
+				err = ctx.InfoChecker(devUUID, map[string]string{"devId": devUUID.String(), "shortVersion": baseOSVersion, "status": "INSTALLED", "partitionState": "(inprogress|active)"}, einfo.HandleFirst, einfo.InfoAny, timeout)
 				if err != nil {
 					t.Fatal("Fail in waiting for base image installed status: ", err)
 				}

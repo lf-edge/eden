@@ -275,15 +275,15 @@ func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler
 }
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.
-func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error) {
-	return einfo.InfoChecker(adam.getLoader(), devUUID, q, infoType, handler, mode, timeout)
+func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error) {
+	return einfo.InfoChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
 }
 
 //InfoLastCallback check info by pattern from existence files with callback
-func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, infoType einfo.ZInfoType, handler einfo.HandlerFunc) (err error) {
+func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, handler einfo.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
-	return einfo.InfoLast(loader, q, einfo.ZInfoFind, handler, infoType)
+	return einfo.InfoLast(loader, q, einfo.ZInfoFind, handler)
 }
 
 //MetricChecker check metrics by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files

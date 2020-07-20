@@ -166,7 +166,7 @@ var podPsCmd = &cobra.Command{
 				eveState: "UNKNOWN", intIp: "-", extIp: "-", intPort: intPort, extPort: extPort}
 			appStates[app.Uuidandversion.Uuid] = appStateObj
 		}
-		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 			switch im.GetZtype() {
 			case info.ZInfoTypes_ZiApp:
 				appStateObj, ok := appStates[im.GetAinfo().AppID]
@@ -206,10 +206,10 @@ var podPsCmd = &cobra.Command{
 			}
 			return false
 		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZAll, handleInfo); err != nil {
+		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
 			log.Fatalf("Fail in get InfoLastCallback: %s", err)
 		}
-		var handleInfoDevice = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+		var handleInfoDevice = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 			for _, appStateObj := range appStates {
 				if appStateObj.adamState == "NOT_IN_CONFIG" {
 					appStateObj.deleted = true
@@ -222,7 +222,7 @@ var podPsCmd = &cobra.Command{
 			}
 			return false
 		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, einfo.ZInfoDinfo, handleInfoDevice); err != nil {
+		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfoDevice); err != nil {
 			log.Fatalf("Fail in get InfoLastCallback: %s", err)
 		}
 		w := new(tabwriter.Writer)

@@ -19,62 +19,14 @@ import (
 
 //HandlerFunc must process info.ZInfoMsg and return true to exit
 //or false to continue
-type HandlerFunc func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool
+type HandlerFunc func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface) bool
 
 //QHandlerFunc must process info.ZInfoMsg with query parameters
 //and return true to exit or false to continue
-type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) []*ZInfoMsgInterface
+type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) []*ZInfoMsgInterface
 
 //ZInfoMsgInterface is an interface to pass between handlers
 type ZInfoMsgInterface interface{}
-
-type zInfoPacket struct {
-	upperType string
-	lowerType string
-}
-
-//ZInfoType is an parameter for obtain particular info from files
-type ZInfoType *zInfoPacket
-
-var (
-	//ZInfoDinfo can be used for filter GetNiinfo
-	ZInfoDinfo ZInfoType = &zInfoPacket{upperType: "GetDinfo"}
-	//ZInfoDevSW can be used for filter GetDinfo SwList
-	ZInfoDevSW ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "SwList"}
-	//ZInfoNetwork can be used for filter GetDinfo Network
-	ZInfoNetwork ZInfoType = &zInfoPacket{upperType: "GetDinfo", lowerType: "Network"}
-	//ZInfoNetworkInstance can be used for filter GetNiinfo
-	ZInfoNetworkInstance ZInfoType = &zInfoPacket{upperType: "GetNiinfo"}
-	//ZInfoAppInstance can be used for filter GetAinfo
-	ZInfoAppInstance ZInfoType = &zInfoPacket{upperType: "GetAinfo"}
-	//ZAll can be used for display all info items
-	ZAll ZInfoType = &zInfoPacket{}
-)
-
-//GetZInfoType return ZInfoType by name
-func GetZInfoType(name string) (ZInfoType, error) {
-	var zInfoType ZInfoType
-	switch name {
-	case "all":
-		zInfoType = ZAll
-	case "dinfo-network":
-		zInfoType = ZInfoNetwork
-	case "dinfo-swlist":
-		zInfoType = ZInfoDevSW
-	case "ainfo":
-		zInfoType = ZInfoAppInstance
-	case "niinfo":
-		zInfoType = ZInfoNetworkInstance
-	default:
-		return nil, fmt.Errorf("not implemented: %s", name)
-	}
-	return zInfoType, nil
-}
-
-//ListZInfoType return all implemented
-func ListZInfoType() []string {
-	return []string{"all", "dinfo-network", "dinfo-swlist", "ainfo", "niinfo"}
-}
 
 //ParseZInfoMsg unmarshal ZInfoMsg
 func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
@@ -101,16 +53,9 @@ func InfoPrn(im *info.ZInfoMsg) {
 }
 
 //ZInfoPrn print data from ZInfoMsg structure
-func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) {
+func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface) {
 	fmt.Println("ztype:", im.GetZtype())
 	fmt.Println("devId:", im.GetDevId())
-	if infoType.upperType != "" {
-		if infoType.lowerType != "" {
-			fmt.Printf("%s.%s:\n", infoType.upperType, infoType.lowerType)
-		} else {
-			fmt.Printf("%s:\n", infoType.upperType)
-		}
-	}
 	for i, d := range ds {
 		fmt.Printf("[%d]: %s\n", i, *d)
 	}
@@ -119,16 +64,16 @@ func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) {
 }
 
 //HandleFirst runs once and interrupts the workflow of InfoWatch
-func HandleFirst(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
+func HandleFirst(im *info.ZInfoMsg, ds []*ZInfoMsgInterface) bool {
 	//InfoPrn(im, ds)
-	ZInfoPrn(im, ds, infoType)
+	ZInfoPrn(im, ds)
 	return true
 }
 
 //HandleAll runs for all Info's selected by InfoWatch
-func HandleAll(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) bool {
+func HandleAll(im *info.ZInfoMsg, ds []*ZInfoMsgInterface) bool {
 	//InfoPrn(im, ds)
-	ZInfoPrn(im, ds, infoType)
+	ZInfoPrn(im, ds)
 	return false
 }
 
@@ -161,23 +106,6 @@ func processElem(value reflect.Value, query map[string]string) bool {
 
 //ZInfoPrint finds ZInfoMsg records by path in 'query'
 func ZInfoPrint(im *info.ZInfoMsg, query []string) *types.PrintResult {
-	var d reflect.Value
-	switch im.Ztype {
-	case info.ZInfoTypes_ZiDevice:
-		d = reflect.ValueOf(im.GetDinfo())
-	case info.ZInfoTypes_ZiApp:
-		d = reflect.ValueOf(im.GetAinfo())
-	case info.ZInfoTypes_ZiBlobList:
-		d = reflect.ValueOf(im.GetBinfo())
-	case info.ZInfoTypes_ZiContentTree:
-		d = reflect.ValueOf(im.GetCinfo())
-	case info.ZInfoTypes_ZiVolume:
-		d = reflect.ValueOf(im.GetVinfo())
-	case info.ZInfoTypes_ZiNetworkInstance:
-		d = reflect.ValueOf(im.GetNiinfo())
-	default:
-		return nil
-	}
 	result := make(types.PrintResult)
 	for _, v := range query {
 		// Uppercase of filed's name first letter
@@ -189,71 +117,18 @@ func ZInfoPrint(im *info.ZInfoMsg, query []string) *types.PrintResult {
 			f := fmt.Sprint(inp)
 			result[v] = append(result[v], f)
 		}
-		utils.LookupWithCallback(reflect.Indirect(d).Interface(), strings.Join(n, "."), clb)
+		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(im)).Interface(), strings.Join(n, "."), clb)
 	}
 	return &result
 }
 
 //ZInfoFind finds ZInfoMsg records with 'devid' and ZInfoDevSWF structure fields
 //by reqexps in 'query'
-func ZInfoFind(im *info.ZInfoMsg, query map[string]string, infoType ZInfoType) []*ZInfoMsgInterface {
+func ZInfoFind(im *info.ZInfoMsg, query map[string]string) []*ZInfoMsgInterface {
 	var dsws []*ZInfoMsgInterface
-
-	devid, ok := query["devId"]
-	if ok {
-		if devid != im.DevId {
-			return nil
-		}
-	}
-
-	delete(query, "devId")
-
-	if infoType.upperType != "" {
-		dInfo := reflect.ValueOf(im).MethodByName(infoType.upperType).Call([]reflect.Value{})
-		if len(dInfo) != 1 || dInfo[0].Interface() == nil {
-			return nil
-		}
-		if reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).Kind() == reflect.Invalid {
-			return nil
-		}
-		if infoType.lowerType != "" && infoType.upperType != "" {
-			dInfoField := reflect.Indirect(reflect.ValueOf(dInfo[0].Interface())).FieldByName(infoType.lowerType)
-			for i := 0; i < dInfoField.Len(); i++ {
-				d := dInfoField.Index(i)
-				if processElem(d, query) {
-					var strValT ZInfoMsgInterface = d.Interface()
-					dsws = append(dsws, &strValT)
-				}
-			}
-		} else if infoType.upperType != "" {
-			d := dInfo[0]
-			if processElem(d, query) {
-				var strValT ZInfoMsgInterface = d.Interface()
-				dsws = append(dsws, &strValT)
-			}
-		}
-	} else {
-		var d reflect.Value
-		switch im.Ztype {
-		case info.ZInfoTypes_ZiDevice:
-			d = reflect.ValueOf(im.GetDinfo())
-		case info.ZInfoTypes_ZiApp:
-			d = reflect.ValueOf(im.GetAinfo())
-		case info.ZInfoTypes_ZiBlobList:
-			d = reflect.ValueOf(im.GetBinfo())
-		case info.ZInfoTypes_ZiContentTree:
-			d = reflect.ValueOf(im.GetCinfo())
-		case info.ZInfoTypes_ZiVolume:
-			d = reflect.ValueOf(im.GetVinfo())
-		case info.ZInfoTypes_ZiNetworkInstance:
-			d = reflect.ValueOf(im.GetNiinfo())
-		default:
-			return dsws
-		}
-		if processElem(d, query) {
-			var strValT ZInfoMsgInterface = im
-			dsws = append(dsws, &strValT)
-		}
+	if processElem(reflect.ValueOf(im), query) {
+		var strValT ZInfoMsgInterface = im
+		dsws = append(dsws, &strValT)
 	}
 	return dsws
 }
@@ -289,15 +164,15 @@ const (
 	InfoAny                          // use both mechanisms
 )
 
-func infoProcess(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) loaders.ProcessFunction {
+func infoProcess(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc) loaders.ProcessFunction {
 	return func(bytes []byte) (bool, error) {
 		im, err := ParseZInfoMsg(bytes)
 		if err != nil {
 			return true, nil
 		}
-		ds := qhandler(&im, query, infoType)
+		ds := qhandler(&im, query)
 		if ds != nil {
-			if handler(&im, ds, infoType) {
+			if handler(&im, ds) {
 				return false, nil
 			}
 		}
@@ -306,36 +181,36 @@ func infoProcess(query map[string]string, qhandler QHandlerFunc, handler Handler
 }
 
 //InfoLast search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
-func InfoLast(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType) error {
-	return loader.ProcessExisting(infoProcess(query, qhandler, handler, infoType), loaders.InfoType)
+func InfoLast(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc) error {
+	return loader.ProcessExisting(infoProcess(query, qhandler, handler), loaders.InfoType)
 }
 
 //InfoWatch monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function with 'timeoutSeconds'.
-func InfoWatch(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, infoType ZInfoType, timeoutSeconds time.Duration) error {
-	return loader.ProcessStream(infoProcess(query, qhandler, handler, infoType), loaders.InfoType, timeoutSeconds)
+func InfoWatch(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, timeoutSeconds time.Duration) error {
+	return loader.ProcessStream(infoProcess(query, qhandler, handler), loaders.InfoType, timeoutSeconds)
 }
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout (0 for infinite).
-func InfoChecker(loader loaders.Loader, devUUID uuid.UUID, query map[string]string, infoType ZInfoType, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
+func InfoChecker(loader loaders.Loader, devUUID uuid.UUID, query map[string]string, handler HandlerFunc, mode InfoCheckerMode, timeout time.Duration) (err error) {
 	loader.SetUUID(devUUID)
 	done := make(chan error)
 
 	// observe new files
 	if mode == InfoNew || mode == InfoAny {
 		go func() {
-			done <- InfoWatch(loader.Clone(), query, ZInfoFind, handler, infoType, timeout)
+			done <- InfoWatch(loader.Clone(), query, ZInfoFind, handler, timeout)
 		}()
 	}
 	// check info by pattern in existing files
 	if mode == InfoExist || mode == InfoAny {
 		go func() {
-			handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) (result bool) {
-				if result = handler(im, ds, infoType); result {
+			handler := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface) (result bool) {
+				if result = handler(im, ds); result {
 					done <- nil
 				}
 				return
 			}
-			if err = InfoLast(loader.Clone(), query, ZInfoFind, handler, infoType); err != nil {
+			if err = InfoLast(loader.Clone(), query, ZInfoFind, handler); err != nil {
 				done <- err
 			}
 		}()
