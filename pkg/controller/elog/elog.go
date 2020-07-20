@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
+	"github.com/lf-edge/eden/pkg/controller/types"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -67,21 +69,47 @@ func ParseLogItem(data string) (logItem LogItem, err error) {
 	return le, err
 }
 
+//LogItemPrint find LogItem elements by paths in 'query'
+func LogItemPrint(le *LogItem, query []string) *types.PrintResult {
+	result := make(types.PrintResult)
+	for _, v := range query {
+		// Uppercase of filed's name first letter
+		var n []string
+		for _, pathElement := range strings.Split(v, ".") {
+			n = append(n, strings.Title(pathElement))
+		}
+		var clb = func(inp reflect.Value) {
+			f := fmt.Sprint(inp)
+			result[v] = append(result[v], f)
+		}
+		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(le)).Interface(), strings.Join(n, "."), clb)
+	}
+	return &result
+}
+
 //LogItemFind find LogItem records by reqexps in 'query' corresponded to LogItem structure.
-func LogItemFind(le LogItem, query map[string]string) int {
-	matched := 1
+func LogItemFind(le LogItem, query map[string]string) bool {
+	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
-		n := strings.Title(k)
-		// Find field in structure by Titlized() name 'n'
-		r := reflect.ValueOf(le)
-		f := fmt.Sprint(reflect.Indirect(r).FieldByName(n))
-		matched, err := regexp.Match(v, []byte(f))
-		if err != nil {
-			return -1
+		var n []string
+		for _, pathElement := range strings.Split(k, ".") {
+			n = append(n, strings.Title(pathElement))
 		}
+		var clb = func(inp reflect.Value) {
+			f := fmt.Sprint(inp)
+			newMatched, err := regexp.Match(v, []byte(f))
+			if err != nil {
+				log.Debug(err)
+			}
+			if !matched && newMatched {
+				matched = newMatched
+			}
+		}
+		matched = false
+		utils.LookupWithCallback(reflect.ValueOf(le).Interface(), strings.Join(n, "."), clb)
 		if matched == false {
-			return 0
+			return matched
 		}
 	}
 	return matched
@@ -143,7 +171,7 @@ func logProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFun
 				log.Debugf("logProcess: %s", err)
 				continue
 			}
-			if LogItemFind(le, query) == 1 {
+			if LogItemFind(le, query) {
 				if handler(&le) {
 					return false, nil
 				}

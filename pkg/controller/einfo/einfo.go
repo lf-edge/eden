@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	uuid "github.com/satori/go.uuid"
@@ -133,7 +134,6 @@ func HandleAll(im *info.ZInfoMsg, ds []*ZInfoMsgInterface, infoType ZInfoType) b
 
 func processElem(value reflect.Value, query map[string]string) bool {
 	matched := true
-	var err error
 	for k, v := range query {
 		// Uppercase of filed's name first letter
 		var n []string
@@ -142,9 +142,12 @@ func processElem(value reflect.Value, query map[string]string) bool {
 		}
 		var clb = func(inp reflect.Value) {
 			f := fmt.Sprint(inp)
-			matched, err = regexp.Match(v, []byte(f))
+			newMatched, err := regexp.Match(v, []byte(f))
 			if err != nil {
 				log.Debug(err)
+			}
+			if !matched && newMatched {
+				matched = newMatched
 			}
 		}
 		matched = false
@@ -154,6 +157,41 @@ func processElem(value reflect.Value, query map[string]string) bool {
 		}
 	}
 	return matched
+}
+
+//ZInfoPrint finds ZInfoMsg records by path in 'query'
+func ZInfoPrint(im *info.ZInfoMsg, query []string) *types.PrintResult {
+	var d reflect.Value
+	switch im.Ztype {
+	case info.ZInfoTypes_ZiDevice:
+		d = reflect.ValueOf(im.GetDinfo())
+	case info.ZInfoTypes_ZiApp:
+		d = reflect.ValueOf(im.GetAinfo())
+	case info.ZInfoTypes_ZiBlobList:
+		d = reflect.ValueOf(im.GetBinfo())
+	case info.ZInfoTypes_ZiContentTree:
+		d = reflect.ValueOf(im.GetCinfo())
+	case info.ZInfoTypes_ZiVolume:
+		d = reflect.ValueOf(im.GetVinfo())
+	case info.ZInfoTypes_ZiNetworkInstance:
+		d = reflect.ValueOf(im.GetNiinfo())
+	default:
+		return nil
+	}
+	result := make(types.PrintResult)
+	for _, v := range query {
+		// Uppercase of filed's name first letter
+		var n []string
+		for _, pathElement := range strings.Split(v, ".") {
+			n = append(n, strings.Title(pathElement))
+		}
+		var clb = func(inp reflect.Value) {
+			f := fmt.Sprint(inp)
+			result[v] = append(result[v], f)
+		}
+		utils.LookupWithCallback(reflect.Indirect(d).Interface(), strings.Join(n, "."), clb)
+	}
+	return &result
 }
 
 //ZInfoFind finds ZInfoMsg records with 'devid' and ZInfoDevSWF structure fields

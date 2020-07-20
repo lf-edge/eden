@@ -53,13 +53,22 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 			q[s[0]] = s[1]
 		}
 
+		handleFunc := func(le *elog.LogItem) bool {
+			if printFields == nil {
+				elog.LogPrn(le)
+			} else {
+				elog.LogItemPrint(le, printFields).Print()
+			}
+			return false
+		}
+
 		if follow {
 			// Monitoring of new files
-			if err = ctrl.LogChecker(devUUID, q, elog.HandleAll, elog.LogNew, 0); err != nil {
+			if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogNew, 0); err != nil {
 				log.Fatalf("LogChecker: %s", err)
 			}
 		} else {
-			if err = ctrl.LogLastCallback(devUUID, q, elog.HandleAll); err != nil {
+			if err = ctrl.LogLastCallback(devUUID, q, handleFunc); err != nil {
 				log.Fatalf("LogChecker: %s", err)
 			}
 		}
@@ -67,5 +76,6 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 }
 
 func logInit() {
+	logCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	logCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
 }

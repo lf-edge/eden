@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"strings"
@@ -13,6 +14,7 @@ import (
 )
 
 var infoType string
+var printFields []string
 
 var infoCmd = &cobra.Command{
 	Use:   "info [field:regexp ...]",
@@ -59,12 +61,21 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 			q[s[0]] = s[1]
 		}
 
+		handleInfo := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+			if printFields == nil {
+				einfo.ZInfoPrn(im, ds, infoType)
+			} else {
+				einfo.ZInfoPrint(im, printFields).Print()
+			}
+			return false
+		}
+
 		if follow {
-			if err = ctrl.InfoChecker(devUUID, q, zInfoType, einfo.HandleAll, einfo.InfoNew, 0); err != nil {
+			if err = ctrl.InfoChecker(devUUID, q, zInfoType, handleInfo, einfo.InfoNew, 0); err != nil {
 				log.Fatalf("InfoChecker: %s", err)
 			}
 		} else {
-			if err = ctrl.InfoLastCallback(devUUID, q, zInfoType, einfo.HandleAll); err != nil {
+			if err = ctrl.InfoLastCallback(devUUID, q, zInfoType, handleInfo); err != nil {
 				log.Fatalf("InfoChecker: %s", err)
 			}
 		}
@@ -73,5 +84,6 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 
 func infoInit() {
 	infoCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
+	infoCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	infoCmd.PersistentFlags().StringVarP(&infoType, "type", "", "all", fmt.Sprintf("info type (%s)", strings.Join(einfo.ListZInfoType(), ",")))
 }

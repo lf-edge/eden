@@ -5,6 +5,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"strings"
@@ -53,13 +54,22 @@ Scans the ADAM metrics for correspondence with regular expressions requests to j
 			q[s[0]] = s[1]
 		}
 
+		handleFunc := func(le *metrics.ZMetricMsg) bool {
+			if printFields == nil {
+				emetric.MetricPrn(le)
+			} else {
+				emetric.MetricItemPrint(le, printFields).Print()
+			}
+			return false
+		}
+
 		if follow {
 			// Monitoring of new files
-			if err = ctrl.MetricChecker(devUUID, q, emetric.HandleAll, emetric.MetricNew, 0); err != nil {
+			if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricNew, 0); err != nil {
 				log.Fatalf("MetricChecker: %s", err)
 			}
 		} else {
-			if err = ctrl.MetricLastCallback(devUUID, q, emetric.HandleAll); err != nil {
+			if err = ctrl.MetricLastCallback(devUUID, q, handleFunc); err != nil {
 				log.Fatalf("MetricChecker: %s", err)
 			}
 		}
@@ -67,5 +77,6 @@ Scans the ADAM metrics for correspondence with regular expressions requests to j
 }
 
 func metricInit() {
+	metricCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	metricCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected metrics")
 }
