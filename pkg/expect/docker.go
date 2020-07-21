@@ -53,7 +53,7 @@ func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 
 //createAppInstanceConfigDocker creates AppInstanceConfig for docker with provided img, netInstance, id and acls
 //  it uses name of app and cpu/mem params from appExpectation
-func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, netInstId string, id uuid.UUID, acls []*config.ACE) *config.AppInstanceConfig {
+func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) *config.AppInstanceConfig {
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    id.String(),
@@ -64,20 +64,17 @@ func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, netI
 			Maxmem: exp.mem,
 			Vcpus:  exp.cpu,
 		},
-		Drives: []*config.Drive{{
-			Image: img,
-		}},
 		UserData:    base64.StdEncoding.EncodeToString([]byte(exp.metadata)),
 		Activate:    true,
 		Displayname: exp.appName,
-		Interfaces: []*config.NetworkAdapter{{
-			Name:      "default",
-			NetworkId: netInstId,
-			Acls:      acls,
-		}},
+	}
+	maxSizeBytes := int64(0)
+	if exp.diskSize > 0 {
+		maxSizeBytes = exp.diskSize
 	}
 	app.Drives = []*config.Drive{{
-		Image: img,
+		Image:        img,
+		Maxsizebytes: maxSizeBytes,
 	}}
 	return app
 }

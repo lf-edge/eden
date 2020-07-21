@@ -145,7 +145,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
-		expectation := expect.AppExpectationFromUrl(ctrl, baseOSImage, "", nil, nil, "")
+		expectation := expect.AppExpectationFromUrl(ctrl, baseOSImage, "")
 		if len(qemuPorts) == 0 {
 			qemuPorts = nil
 		}
