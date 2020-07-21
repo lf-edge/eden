@@ -104,6 +104,9 @@ func runScenario(testArgs string) {
 	strs := strings.Split(out, "\n")
 	var targs []string
 	for _, str := range strs {
+		// Handle line comments
+		str = strings.Split(str, "#")[0]
+		str = strings.Split(str, "//")[0]
 		targs = strings.Split(str, " ")
 		runTest(targs[0], targs[1:], testArgs)
 	}
