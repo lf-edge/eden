@@ -21,7 +21,7 @@ import (
 func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
 	portMap := map[string]string{"6379": strconv.Itoa(redisPort)}
 	volumeMap := map[string]string{"/data": fmt.Sprintf("%s", redisPath)}
-	redisServerCommand := strings.Fields("redis-server")
+	redisServerCommand := strings.Fields("redis-server --appendonly yes")
 	if redisForce {
 		_ = StopContainer(defaults.DefaultRedisContainerName, true)
 		if err := CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
