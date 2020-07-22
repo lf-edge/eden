@@ -32,7 +32,7 @@ export ZARCH
 clean: config stop
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
 	$(LOCALBIN) clean
-	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN)
+	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN) $(WORKDIR)
 
 $(WORKDIR):
 	mkdir -p $@

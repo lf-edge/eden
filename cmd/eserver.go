@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
-	"path/filepath"
 )
 
 var eserverCmd = &cobra.Command{
@@ -39,11 +38,6 @@ var startEserverCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
-
-		// lets make sure eserverImageDist exists
-		if os.MkdirAll(eserverImageDist, os.ModePerm) != nil {
-			log.Fatal("%s does not exist and can not be created", eserverImageDist)
-		}
 
 		if err := utils.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
@@ -98,11 +92,7 @@ func eserverInit() {
 	eserverCmd.AddCommand(startEserverCmd)
 	eserverCmd.AddCommand(stopEserverCmd)
 	eserverCmd.AddCommand(statusEserverCmd)
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	startEserverCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
+	startEserverCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
 	startEserverCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
 	startEserverCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
 	startEserverCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")

@@ -2,8 +2,10 @@ package utils
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
@@ -20,8 +22,13 @@ import (
 //if redisForce is set, it recreates container
 func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
 	portMap := map[string]string{"6379": strconv.Itoa(redisPort)}
-	volumeMap := map[string]string{"/data": fmt.Sprintf("%s", redisPath)}
+	volumeMap := map[string]string{"/data": redisPath}
 	redisServerCommand := strings.Fields("redis-server --appendonly yes")
+	if redisPath != "" {
+		if err = os.MkdirAll(redisPath, 0755); err != nil {
+			log.Fatalf("Cannot create directory for redis (%s): %s", redisPath, err)
+		}
+	}
 	if redisForce {
 		_ = StopContainer(defaults.DefaultRedisContainerName, true)
 		if err := CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
@@ -85,14 +92,45 @@ func StatusRedis() (status string, err error) {
 	return state, nil
 }
 
+//StartAdamAndGetRootCert function runs adam in docker and obtain its certificate
+func StartAdamAndGetRootCert(adamIP string, adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, certsDomain string, certsEVEIP string) (rootCert []byte, err error) {
+	if err = StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL, "--auto-cert=true", fmt.Sprintf("--cert-cn=%s", certsDomain), fmt.Sprintf("--cert-hosts=%s,%s,127.0.0.1,%s", certsDomain, certsEVEIP, adamIP)); err != nil {
+		return nil, err
+	}
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}}
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s:%d", adamIP, adamPort), nil)
+	if err != nil {
+		log.Fatalf("unable to create new http request: %v", err)
+	}
+	resp, err := RepeatableAttempt(client, req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		for _, cert := range resp.TLS.PeerCertificates {
+			return x509.PemEncodeCert(cert.Raw), nil
+		}
+	}
+	return nil, fmt.Errorf("no cetrtificate found")
+}
+
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
-func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string) (err error) {
+func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, opts ...string) (err error) {
 	portMap := map[string]string{"8080": strconv.Itoa(adamPort)}
 	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
 	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
+	if adamPath == "" {
+		volumeMap = map[string]string{"/adam/run": ""}
+		adamServerCommand = strings.Fields("server")
+	}
 	if adamRemoteRedisURL != "" {
 		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--db-url %s", adamRemoteRedisURL))...)
+	}
+	for _, el := range opts {
+		adamServerCommand = append(adamServerCommand, el)
 	}
 	if adamForce {
 		_ = StopContainer(defaults.DefaultAdamContainerName, true)
@@ -161,8 +199,12 @@ func StatusAdam() (status string, err error) {
 //if eserverForce is set, it recreates container
 func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTag string) (err error) {
 	portMap := map[string]string{"8888": strconv.Itoa(serverPort)}
-	volumeMap := map[string]string{"/eserver/run/eserver/": fmt.Sprintf("%s", imageDist)}
+	volumeMap := map[string]string{"/eserver/run/eserver/": imageDist}
 	eserverServerCommand := strings.Fields("server")
+	// lets make sure eserverImageDist exists
+	if imageDist != "" && os.MkdirAll(imageDist, os.ModePerm) != nil {
+		log.Fatalf("%s does not exist and can not be created", imageDist)
+	}
 	if eserverForce {
 		_ = StopContainer(defaults.DefaultEServerContainerName, true)
 		if err := CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
@@ -258,57 +300,27 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
-//CopyCertsToAdamConfig function copy certs to adam config
-func CopyCertsToAdamConfig(certsDir string, domain string, ip string, port int, adamDist string, apiV1 bool) (err error) {
-	adamConfig := filepath.Join(adamDist, "run", "config")
-	adamServer := filepath.Join(adamDist, "run", "adam")
-	if _, err = os.Stat(filepath.Join(certsDir, "server.pem")); os.IsNotExist(err) {
-		return err
-	}
-	if _, err = os.Stat(adamConfig); os.IsNotExist(err) {
-		if err = os.MkdirAll(adamConfig, 0755); err != nil {
+//GenerateEVEConfig function copy certs to EVE config folder
+func GenerateEVEConfig(eveConfig string, domain string, ip string, port int, apiV1 bool) (err error) {
+	if _, err = os.Stat(eveConfig); os.IsNotExist(err) {
+		if err = os.MkdirAll(eveConfig, 0755); err != nil {
 			return err
 		}
 	}
-	if _, err = os.Stat(adamServer); os.IsNotExist(err) {
-		if err = os.MkdirAll(adamServer, 0755); err != nil {
-			return err
-		}
-	}
-	if err = CopyFileNotExists(filepath.Join(certsDir, "server.pem"), filepath.Join(adamServer, "server.pem")); err != nil {
-		return err
-	}
-	if err = CopyFileNotExists(filepath.Join(certsDir, "server-key.pem"), filepath.Join(adamServer, "server-key.pem")); err != nil {
-		return err
-	}
-	if err = CopyFileNotExists(filepath.Join(certsDir, "root-certificate.pem"), filepath.Join(adamConfig, "root-certificate.pem")); err != nil {
-		return err
-	}
-	if err = CopyFileNotExists(filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(adamConfig, "onboard.cert.pem")); err != nil {
-		return err
-	}
-	if err = CopyFileNotExists(filepath.Join(certsDir, "onboard.key.pem"), filepath.Join(adamConfig, "onboard.key.pem")); err != nil {
-		return err
-	}
-	if _, err = os.Stat(filepath.Join(certsDir, "DevicePortConfig", "override.json")); !os.IsNotExist(err) {
-		if err = CopyFileNotExists(filepath.Join(certsDir, "DevicePortConfig", "override.json"), filepath.Join(adamConfig, "DevicePortConfig", "override.json")); err != nil {
-			return err
-		}
-	}
-	if _, err = os.Stat(filepath.Join(adamConfig, "hosts")); os.IsNotExist(err) {
-		if err = ioutil.WriteFile(filepath.Join(adamConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
+	if _, err = os.Stat(filepath.Join(eveConfig, "hosts")); os.IsNotExist(err) {
+		if err = ioutil.WriteFile(filepath.Join(eveConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
 			return err
 		}
 	}
 	if apiV1 {
-		if _, err = os.Stat(filepath.Join(adamConfig, "Force-API-V1")); os.IsNotExist(err) {
-			if err := TouchFile(filepath.Join(adamConfig, "Force-API-V1")); err != nil {
+		if _, err = os.Stat(filepath.Join(eveConfig, "Force-API-V1")); os.IsNotExist(err) {
+			if err := TouchFile(filepath.Join(eveConfig, "Force-API-V1")); err != nil {
 				log.Fatal(err)
 			}
 		}
 	}
-	if _, err = os.Stat(filepath.Join(adamConfig, "server")); os.IsNotExist(err) {
-		if err = ioutil.WriteFile(filepath.Join(adamConfig, "server"), []byte(fmt.Sprintf("%s:%d\n", domain, port)), 0666); err != nil {
+	if _, err = os.Stat(filepath.Join(eveConfig, "server")); os.IsNotExist(err) {
+		if err = ioutil.WriteFile(filepath.Join(eveConfig, "server"), []byte(fmt.Sprintf("%s:%d\n", domain, port)), 0666); err != nil {
 			return err
 		}
 	}
@@ -329,11 +341,10 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 }
 
 //MakeEveInRepo build live image of EVE
-func MakeEveInRepo(distEve string, distAdam string, arch string, hv string, imageFormat string, rootFSOnly bool) (image, additional string, err error) {
+func MakeEveInRepo(distEve string, configPath string, arch string, hv string, imageFormat string, rootFSOnly bool) (image, additional string, err error) {
 	if _, err := os.Stat(distEve); os.IsNotExist(err) {
 		return "", "", fmt.Errorf("directory not exists: %s", distEve)
 	}
-	configPath := filepath.Join(distAdam, "run", "config")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		if err = os.MkdirAll(configPath, 0755); err != nil {
 			return "", "", err
@@ -412,7 +423,7 @@ func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile [
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist, configDir, evePID string, configSaved string) (err error) {
+func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, configDir, evePID string, configSaved string) (err error) {
 	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=true",
 		evePID)
 	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
@@ -435,6 +446,11 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist,
 			return fmt.Errorf("error in %s delete: %s", imagesDist, err)
 		}
 	}
+	if _, err = os.Stat(eserverDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(eserverDist); err != nil {
+			return fmt.Errorf("error in %s delete: %s", eserverDist, err)
+		}
+	}
 	if _, err = os.Stat(adamDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(adamDist); err != nil {
 			return fmt.Errorf("error in %s delete: %s", adamDist, err)
@@ -454,6 +470,20 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, redisDist,
 		if err = os.RemoveAll(configSaved); err != nil {
 			return fmt.Errorf("error in %s delete: %s", configSaved, err)
 		}
+	}
+	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
+		if err = os.RemoveAll(configDir); err != nil {
+			return fmt.Errorf("error in %s delete: %s", configDir, err)
+		}
+	}
+	if err = RemoveGeneratedVolumeOfContainer(defaults.DefaultEServerContainerName); err != nil {
+		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultEServerContainerName, err)
+	}
+	if err = RemoveGeneratedVolumeOfContainer(defaults.DefaultRedisContainerName); err != nil {
+		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultRedisContainerName, err)
+	}
+	if err = RemoveGeneratedVolumeOfContainer(defaults.DefaultAdamContainerName); err != nil {
+		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultAdamContainerName, err)
 	}
 	return nil
 }

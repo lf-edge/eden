@@ -8,8 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
-	"path"
-	"path/filepath"
 )
 
 var (
@@ -43,19 +41,12 @@ var startRedisCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		redisPath, err := filepath.Abs(redisDist)
-		if err != nil {
-			log.Fatalf("redis-dist problems: %s", err)
-		}
-		if err = os.MkdirAll(redisPath, 0755); err != nil {
-			log.Fatalf("Cannot create directory for redis (%s): %s", redisPath, err)
-		}
 		command, err := os.Executable()
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
-		if err := utils.StartRedis(redisPort, redisPath, redisForce, redisTag); err != nil {
+		if err := utils.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
 			log.Errorf("cannot start redis: %s", err)
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
@@ -113,12 +104,8 @@ func redisInit() {
 	redisCmd.AddCommand(startRedisCmd)
 	redisCmd.AddCommand(stopRedisCmd)
 	redisCmd.AddCommand(statusRedisCmd)
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
 	startRedisCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag of redis container to pull")
-	startRedisCmd.Flags().StringVarP(&redisDist, "redis-dist", "", path.Join(currentPath, defaults.DefaultDist, defaults.DefaultRedisDist), "redis dist to start (required)")
+	startRedisCmd.Flags().StringVarP(&redisDist, "redis-dist", "", "", "redis dist to start (required)")
 	startRedisCmd.Flags().IntVarP(&redisPort, "redis-port", "", defaults.DefaultRedisPort, "redis port to start")
 	startRedisCmd.Flags().BoolVarP(&redisForce, "redis-force", "", false, "redis force rebuild")
 	stopRedisCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")

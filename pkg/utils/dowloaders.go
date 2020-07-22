@@ -11,16 +11,14 @@ import (
 )
 
 //DownloadEveLive pulls EVE live image from docker
-func DownloadEveLive(adamDist string, outputFile string, eveArch string, eveHV string, eveTag string, format string) (err error) {
+func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV string, eveTag string, format string) (err error) {
 	efiImage := fmt.Sprintf("lfedge/eve-uefi:%s-%s", eveTag, eveArch) //download OVMF
 	image := fmt.Sprintf("lfedge/eve:%s-%s-%s", eveTag, eveHV, eveArch)
 	log.Debugf("Try ImagePull with (%s)", image)
 	if err := PullImage(image); err != nil {
 		return fmt.Errorf("ImagePull (%s): %s", image, err)
 	}
-	var configPath string
-	if adamDist != "" {
-		configPath = filepath.Join(adamDist, "run", "config")
+	if configPath != "" {
 		if _, err := os.Stat(configPath); os.IsNotExist(err) {
 			return fmt.Errorf("directory not exists: %s", configPath)
 		}

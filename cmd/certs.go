@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"math/big"
-	"net"
 	"os"
 	"path/filepath"
 )
@@ -41,6 +40,10 @@ var certsCmd = &cobra.Command{
 			certsUUID = viper.GetString("eve.uuid")
 			certsUUID = viper.GetString("eve.uuid")
 			devModel = viper.GetString("eve.devmodel")
+			adamTag = viper.GetString("adam.tag")
+			adamPort = viper.GetInt("adam.port")
+			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
+			adamForce = viper.GetBool("adam.force")
 		}
 		return nil
 	},
@@ -52,18 +55,17 @@ var certsCmd = &cobra.Command{
 		}
 		log.Debug("generating CA")
 		rootCert, rootKey := utils.GenCARoot()
-		log.Debug("generating Adam cert and key")
-		ips := []net.IP{net.ParseIP(certsIP), net.ParseIP(certsEVEIP), net.ParseIP("127.0.0.1")}
-		ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), ips, []string{certsDomain}, certsDomain)
+		log.Debug("start Adam and get root-certificate.pem")
+		rootCertObtained, err := utils.StartAdamAndGetRootCert(certsIP, adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL, certsDomain, certsEVEIP)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = ioutil.WriteFile(filepath.Join(certsDir, "root-certificate.pem"), rootCertObtained, 0666); err != nil {
+			log.Fatal(err)
+		}
 		log.Debug("generating EVE cert and key")
 		ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, certsUUID)
 		log.Debug("saving files")
-		if err := utils.WriteToFiles(rootCert, rootKey, filepath.Join(certsDir, "root-certificate.pem"), filepath.Join(certsDir, "root-certificate.key")); err != nil {
-			log.Fatal(err)
-		}
-		if err := utils.WriteToFiles(ServerCert, ServerKey, filepath.Join(certsDir, "server.pem"), filepath.Join(certsDir, "server-key.pem")); err != nil {
-			log.Fatal(err)
-		}
 		if err := utils.WriteToFiles(ClientCert, ClientKey, filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(certsDir, "onboard.key.pem")); err != nil {
 			log.Fatal(err)
 		}
@@ -93,6 +95,10 @@ func certsInit() {
 		log.Fatal(err)
 	}
 
+	certsCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "tag on adam container to pull")
+	certsCmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start (required)")
+	certsCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam port to start")
+	certsCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	certsCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory to save")
 	certsCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaults.DefaultDomain, "FQDN for certificates")
 	certsCmd.Flags().StringVarP(&certsIP, "ip", "i", defaults.DefaultIP, "IP address to use")

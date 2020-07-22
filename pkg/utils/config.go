@@ -103,7 +103,7 @@ adam:
     tag: {{ .DefaultAdamTag }}
 
     #location of adam
-    dist: {{ .DefaultAdamDist }}
+    dist: "{{ .DefaultAdamDist }}"
 
     #port of adam
     port: {{ .DefaultAdamPort }}
@@ -127,7 +127,7 @@ adam:
     force: true
 
     #certificate for communication with adam
-    ca: {{ .DefaultAdamDist }}/run/config/root-certificate.pem
+    ca: {{ .DefaultCertsDist }}/root-certificate.pem
 
     #use remote adam
     remote: 
@@ -171,7 +171,7 @@ eve:
     serial: "{{ .DefaultEVESerial }}"
 
     #onboarding certificate of EVE to put into adam
-    cert: certs/onboard.cert.pem
+    cert: {{ .DefaultCertsDist }}/onboard.cert.pem
 
     #EVE pid file
     pid: eve.pid
@@ -212,7 +212,7 @@ eve:
     dtb-part: ""
 
     #config part of EVE
-    config-part: {{ .DefaultAdamDist }}/run/config
+    config-part: {{ .DefaultCertsDist }}
 
     #is EVE remote or local
     remote: {{ .DefaultEVERemote }}
@@ -225,7 +225,7 @@ eden:
     root: {{ .Root }}
     images:
         #directory to save images
-        dist: {{ .DefaultImageDist }}
+        dist: "{{ .DefaultEserverDist }}"
 
     #download eve instead of build
     download: true
@@ -276,7 +276,7 @@ redis:
     tag: {{ .DefaultRedisTag }}
 
     #directory to use for redis persistence
-    dist: {{ .DefaultRedisDist }}
+    dist: "{{ .DefaultRedisDist }}"
 `
 
 //DefaultEdenDir returns path to default directory
@@ -415,7 +415,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultAdamTag       string
 			DefaultAdamPort      int
 			DefaultImageDist     string
-			ImageDir             string
+			DefaultEserverDist   string
 			Root                 string
 			IP                   string
 			EVEIP                string
@@ -456,7 +456,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultAdamPort:     defaults.DefaultAdamPort,
 			DefaultAdamTag:      defaults.DefaultAdamTag,
 			DefaultImageDist:    defaults.DefaultImageDist,
-			ImageDir:            filepath.Join(currentPath, defaults.DefaultImageDist),
+			DefaultEserverDist:  defaults.DefaultEserverDist,
 			Root:                filepath.Join(currentPath, defaults.DefaultDist),
 			IP:                  ip,
 			EVEIP:               eveIP,
