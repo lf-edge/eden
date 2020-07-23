@@ -60,8 +60,8 @@ eve:
     #forward of ports in qemu [(HOST:EVE)]
     hostfwd:
         {{ .DefaultSSHPort }}: 22
-        5912: 5901
-        5911: 5900
+        5912: 5902
+        5911: 5901
         8027: 8027
         8028: 8028
 

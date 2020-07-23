@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
@@ -24,6 +25,11 @@ var (
 	podMetadata string
 	portPublish []string
 	qemuPorts   map[string]string
+	vncDisplay  uint32
+	vncPassword string
+	appCpus     uint32
+	appMemory   string
+	diskSize    string
 )
 
 var podCmd = &cobra.Command{
@@ -52,7 +58,22 @@ var podDeployCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev: %s", err)
 		}
-		expectation := expect.AppExpectationFromUrl(ctrl, appLink, podName, expect.WithPortsPublish(portPublish), expect.WithMetadata(podMetadata))
+		var opts []expect.ExpectationOption
+		opts = append(opts, expect.WithPortsPublish(portPublish))
+		opts = append(opts, expect.WithMetadata(podMetadata))
+		opts = append(opts, expect.WithVnc(vncDisplay))
+		opts = append(opts, expect.WithVncPassword(vncPassword))
+		diskSizeParsed, err := humanize.ParseBytes(diskSize)
+		if err != nil {
+			log.Fatal(err)
+		}
+		opts = append(opts, expect.WithDiskSize(int64(diskSizeParsed)))
+		appMemoryParsed, err := humanize.ParseBytes(appMemory)
+		if err != nil {
+			log.Fatal(err)
+		}
+		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
+		expectation := expect.AppExpectationFromUrl(ctrl, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
@@ -369,6 +390,11 @@ func podInit() {
 	podDeployCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podDeployCmd.Flags().StringVarP(&podMetadata, "metadata", "", "", "metadata for pod")
 	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
+	podDeployCmd.Flags().Uint32Var(&vncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
+	podDeployCmd.Flags().StringVar(&vncPassword, "vnc-password", "", "VNC password (empty - no password)")
+	podDeployCmd.Flags().Uint32Var(&appCpus, "cpus", defaults.DefaultAppCpu, "cpu number for app")
+	podDeployCmd.Flags().StringVar(&appMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
+	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)

@@ -65,7 +65,7 @@ func getVNCPort(edgeNode *device.Ctx, vncDisplay int) int {
 	if edgeNode.GetDevModel() == defaults.DefaultRPIModel {
 		return 5900 + vncDisplay
 	} else {
-		return 5911 + vncDisplay //forwarded by qemu ports
+		return 5910 + vncDisplay //forwarded by qemu ports
 	}
 }
 
