@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/nerd2/gexto"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -548,4 +551,68 @@ func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) 
 		log.Fatal(err)
 	}
 	return
+}
+
+//ReadFileInSquashFS returns the content of a single file (filePath) inside squashfs (squashFSPath)
+func ReadFileInSquashFS(squashFSPath, filePath string) (content []byte, err error) {
+	tmpdir, err := ioutil.TempDir("", "squashfs-unpack")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmpdir)
+	dirToUnpack := filepath.Join(tmpdir, "temp")
+	if output, err := exec.Command("unsquashfs", "-n", "-i", "-d", dirToUnpack, squashFSPath, filePath).CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("unsquashfs (%s): %v", output, err)
+	}
+	content, err = ioutil.ReadFile(filepath.Join(dirToUnpack, filePath))
+	if err != nil {
+		return nil, err
+	}
+	return content, nil
+}
+
+//EVEInfo contains info from SD card
+type EVEInfo struct {
+	EVERelease []byte //EVERelease is /etc/eve-release from rootfs
+	Syslog     []byte //Syslog is /rsyslog/syslog.txt from persist volume
+}
+
+//GetInfoFromSDCard obtain info from SD card with EVE
+// devicePath is /dev/sdX or /dev/diskX
+func GetInfoFromSDCard(devicePath string) (eveInfo *EVEInfo, err error) {
+	eveInfo = &EVEInfo{}
+	// /dev/sdXN notation by default
+	rootfsDev := fmt.Sprintf("%s2", devicePath)
+	persistDev := fmt.Sprintf("%s9", devicePath)
+	// /dev/diskXsN notation for MacOS
+	if runtime.GOOS == `darwin` {
+		rootfsDev = fmt.Sprintf("%ss2", devicePath)
+		persistDev = fmt.Sprintf("%ss9", devicePath)
+	}
+	if _, err := os.Stat(devicePath); os.IsNotExist(err) {
+		return nil, err
+	}
+	if _, err := os.Stat(rootfsDev); !os.IsNotExist(err) {
+		eveRelease, err := ReadFileInSquashFS(rootfsDev, "/etc/eve-release")
+		if err != nil {
+			return nil, err
+		}
+		eveInfo.EVERelease = eveRelease
+	}
+	if _, err := os.Stat(persistDev); !os.IsNotExist(err) {
+		fsPersist, err := gexto.NewFileSystem(persistDev)
+		if err != nil {
+			return nil, err
+		}
+		g, err := fsPersist.Open("/rsyslog/syslog.txt")
+		if err != nil {
+			return nil, err
+		}
+		syslog, err := ioutil.ReadAll(g)
+		if err != nil {
+			return nil, err
+		}
+		eveInfo.Syslog = syslog
+	}
+	return eveInfo, nil
 }

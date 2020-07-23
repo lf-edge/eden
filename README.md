@@ -12,7 +12,7 @@ Eden contains series of integration tests implemented in Golang. Tests are struc
 
 Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies)
 
-Also, you need to install `telnet`.
+Also, you need to install `telnet` and `squashfs-tools` (`squashfs` for Mac OS X).
 
 You need to be able to run docker commands and able to access virtualization accelerators (KVM on Linux or machyve on Mac OS X)
 
@@ -259,6 +259,7 @@ The current sub-commands are:
 `eden utils certs` - generate certificates for Adam and EVE
 `eden utils download eve` - download EVE live image from docker hub
 `eden utils download eve-rootfs` - download EVE rootfs image from docker hub
+`eden utils sd` - get information about EVE from provided SD card
 
 
 
