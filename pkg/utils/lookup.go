@@ -65,7 +65,8 @@ func LookupWithCallback(inpValue interface{}, inpPath string, callback checkPart
 		var firstPartValue reflect.Value
 		firstPartValue, err := LookUp(inpValue, firstPart)
 		if err != nil {
-			log.Fatal(err)
+			log.Debug(err)
+			return
 		}
 		switch firstPartValue.Kind() {
 		case reflect.Slice:
@@ -96,11 +97,13 @@ func LookupWithCallback(inpValue interface{}, inpPath string, callback checkPart
 				firstPart := inpPath[:lastOpen]
 				_, ind, err := parseIndex(inpPath[lastOpen-1:])
 				if err != nil {
-					log.Fatal(err)
+					log.Debug(err)
+					return
 				}
 				value, err := LookUp(inpValue, firstPart)
 				if err != nil {
-					log.Fatal(err)
+					log.Debug(err)
+					return
 				}
 				callback(value.Index(ind))
 			} else {

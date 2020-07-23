@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
-	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -259,7 +258,7 @@ func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 		tc.states[dev] = curState
 		if !onlyNewElements {
 			//process all events from controller
-			_ = tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, einfo.ZAll, curState.getProcessorInfo())
+			_ = tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, curState.getProcessorInfo())
 			_ = tc.GetController().MetricLastCallback(dev.GetID(), map[string]string{}, curState.getProcessorMetric())
 		}
 		if _, exists := tc.procBus.proc[dev]; !exists {

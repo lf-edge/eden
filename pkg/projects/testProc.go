@@ -112,7 +112,7 @@ func (lb *processingBus) getMainProcessorLog(dev *device.Ctx) elog.HandlerFunc {
 }
 
 func (lb *processingBus) getMainProcessorInfo(dev *device.Ctx) einfo.HandlerFunc {
-	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface, infoType einfo.ZInfoType) bool {
+	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 		return lb.process(dev, im)
 	}
 }
@@ -131,7 +131,7 @@ func (lb *processingBus) initCheckers(dev *device.Ctx) {
 		}
 	}()
 	go func() {
-		err := lb.tc.GetController().InfoChecker(dev.GetID(), map[string]string{}, einfo.ZAll, lb.getMainProcessorInfo(dev), einfo.InfoNew, 0)
+		err := lb.tc.GetController().InfoChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorInfo(dev), einfo.InfoNew, 0)
 		if err != nil {
 			log.Errorf("InfoChecker for dev %s error %s", dev.GetID(), err)
 		}
