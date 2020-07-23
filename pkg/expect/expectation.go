@@ -32,10 +32,16 @@ type appExpectation struct {
 	appVersion string
 	appName    string
 	appLink    string
-	ports      map[int]int
 	cpu        uint32
 	mem        uint32
 	metadata   string
+
+	vncDisplay  uint32
+	vncPassword string
+
+	netInstances []*netInstanceExpectation
+
+	diskSize int64
 
 	uplinkAdapter *config.Adapter
 }
@@ -43,10 +49,8 @@ type appExpectation struct {
 //AppExpectationFromUrl init appExpectation with defined:
 //   appLink - docker url to pull or link to qcow2 image or path to qcow2 image file
 //   podName - name of app
-//   portPublish - publish ports of app in format externalPort:internalPort
-//   qemuPorts - mapping of ports in qemu (nil if no qemu port forwarding)
-//   metadata - string with metadata for app (env for docker, no-cloud user-data for vm
-func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, portPublish []string, qemuPorts map[string]string, metadata string) (expectation *appExpectation) {
+//   opts can be used to modify parameters of expectation
+func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string, opts ...ExpectationOption) (expectation *appExpectation) {
 	var adapter = &config.Adapter{
 		Name: "eth0",
 		Type: evecommon.PhyIoType_PhyIoNetEth,
@@ -57,20 +61,30 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 			Type: evecommon.PhyIoType_PhyIoNetWLAN,
 		}
 	}
+	var qemuPorts map[string]string
+	if ctrl.GetVars().EveQemuPorts != nil {
+		qemuPorts = ctrl.GetVars().EveQemuPorts
+	}
 	expectation = &appExpectation{
-		ctrl:     ctrl,
-		ports:    make(map[int]int),
-		appLink:  appLink,
-		cpu:      defaults.DefaultAppCpu,
-		mem:      defaults.DefaultAppMem,
-		metadata: strings.Replace(metadata, `\n`, "\n", -1),
+		ctrl:    ctrl,
+		appLink: appLink,
+		cpu:     defaults.DefaultAppCpu,
+		mem:     defaults.DefaultAppMem,
 
 		uplinkAdapter: adapter,
 	}
+	for _, opt := range opts {
+		opt(expectation)
+	}
+	if expectation.netInstances == nil {
+		expectation.netInstances = []*netInstanceExpectation{{
+			subnet: defaults.DefaultAppSubnet,
+		}}
+	}
 	//check portPublish variable
-	if portPublish != nil && len(portPublish) > 0 {
+	for _, ni := range expectation.netInstances {
 	exit:
-		for _, el := range portPublish {
+		for _, el := range ni.portsReceived {
 			splitted := strings.Split(el, ":")
 			if len(splitted) != 2 {
 				log.Fatalf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT", el)
@@ -89,25 +103,27 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 			if qemuPorts != nil && len(qemuPorts) > 0 { //not empty forwarding rules, need to check for existing
 				for _, qv := range qemuPorts {
 					if qv == strconv.Itoa(extPort) {
-						expectation.ports[extPort] = intPort
+						ni.ports[extPort] = intPort
 						break exit
 					}
 				}
 				log.Fatalf("Cannot use external port %d. Not in Qemu %s", extPort, qemuPorts)
 			} else {
-				expectation.ports[extPort] = intPort
+				ni.ports[extPort] = intPort
 			}
 		}
 	}
 	//check used ports
-	if len(expectation.ports) > 0 {
-		for _, app := range ctrl.ListApplicationInstanceConfig() {
-			for _, iface := range app.Interfaces {
-				for _, acl := range iface.Acls {
-					for _, match := range acl.Matches {
-						for ip := range expectation.ports {
-							if match.Type == "lport" && match.Value == strconv.Itoa(ip) {
-								log.Fatalf("Port %d already in use", ip)
+	for _, ni := range expectation.netInstances {
+		if len(ni.ports) > 0 {
+			for _, app := range ctrl.ListApplicationInstanceConfig() {
+				for _, iface := range app.Interfaces {
+					for _, acl := range iface.Acls {
+						for _, match := range acl.Matches {
+							for ip := range ni.ports {
+								if match.Type == "lport" && match.Value == strconv.Itoa(ip) {
+									log.Fatalf("Port %d already in use", ip)
+								}
 							}
 						}
 					}

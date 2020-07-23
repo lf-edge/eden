@@ -141,7 +141,7 @@ func TestDockerStart(t *testing.T) {
 
 	appName = namesgenerator.GetRandomName(0)
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), appLink, appName, portPublish, nil, "")
+	expectation := expect.AppExpectationFromUrl(tc.GetController(), appLink, appName, expect.WithPortsPublish(portPublish))
 
 	appInstanceConfig := expectation.Application()
 

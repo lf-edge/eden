@@ -10,7 +10,7 @@ import (
 //createAppInstanceConfigVM creates AppInstanceConfig for VM with provided img, netInstance, id and acls
 //  it uses name of app and cpu/mem params from appExpectation
 //  it use ZArch param to choose VirtualizationMode
-func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, netInstId string, id uuid.UUID, acls []*config.ACE) *config.AppInstanceConfig {
+func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.UUID) *config.AppInstanceConfig {
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    id.String(),
@@ -21,17 +21,9 @@ func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, netInstI
 			Maxmem: exp.mem,
 			Vcpus:  exp.cpu,
 		},
-		Drives: []*config.Drive{{
-			Image: img,
-		}},
 		UserData:    base64.StdEncoding.EncodeToString([]byte(exp.metadata)),
 		Activate:    true,
 		Displayname: exp.appName,
-		Interfaces: []*config.NetworkAdapter{{
-			Name:      "default",
-			NetworkId: netInstId,
-			Acls:      acls,
-		}},
 	}
 	switch exp.ctrl.GetVars().ZArch {
 	case "amd64":
@@ -43,11 +35,16 @@ func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, netInstI
 	default:
 		log.Fatalf("Unexpected arch %s", exp.ctrl.GetVars().ZArch)
 	}
+	maxSizeBytes := img.SizeBytes
+	if exp.diskSize > 0 {
+		maxSizeBytes = exp.diskSize
+	}
 	app.Drives = []*config.Drive{{
-		Image:    img,
-		Readonly: false,
-		Drvtype:  config.DriveType_HDD,
-		Target:   config.Target_Disk,
+		Image:        img,
+		Readonly:     false,
+		Drvtype:      config.DriveType_HDD,
+		Target:       config.Target_Disk,
+		Maxsizebytes: maxSizeBytes,
 	}}
 	return app
 }

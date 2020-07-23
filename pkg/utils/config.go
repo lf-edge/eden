@@ -34,6 +34,7 @@ type ConfigVars struct {
 	EveName           string
 	EveRemote         bool
 	EveRemoteAddr     string
+	EveQemuPorts      map[string]string
 	SshKey            string
 	CheckLogs         bool
 	EveCert           string
@@ -79,6 +80,7 @@ func InitVars() (*ConfigVars, error) {
 			EveName:           viper.GetString("eve.name"),
 			EveRemote:         viper.GetBool("eve.remote"),
 			EveRemoteAddr:     viper.GetString("eve.remote-addr"),
+			EveQemuPorts:      viper.GetStringMapString("eve.hostfwd"),
 			AdamRemote:        viper.GetBool("adam.remote.enabled"),
 			AdamRemoteRedis:   viper.GetBool("adam.remote.redis"),
 			AdamCaching:       viper.GetBool("adam.caching.enabled"),
