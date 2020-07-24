@@ -2,8 +2,9 @@ package utils
 
 import (
 	"bytes"
+	"os"
 	"text/template"
-	
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -15,14 +16,19 @@ var funcs = template.FuncMap{
 		return val
 	},
 	// Resolve path from Eden config parameter relative
-	// to the Eden root directory  
-	"EdenConfigPath":  func(path string) string {
+	// to the Eden root directory
+	"EdenConfigPath": func(path string) string {
 		res := ResolveAbsPath(viper.GetString(path))
 		return res
 	},
-	// Resolve path relative to the Eden root directory  
-	"EdenPath":  func(path string) string {
+	// Resolve path relative to the Eden root directory
+	"EdenPath": func(path string) string {
 		res := ResolveAbsPath(path)
+		return res
+	},
+	// Retrieves the value of the environment variable named by the key.
+	"EdenGetEnv": func(key string) string {
+		res := os.Getenv(key)
 		return res
 	},
 }
@@ -31,7 +37,7 @@ var funcs = template.FuncMap{
 func RenderTemplate(configFile string, tmpl string) (string, error) {
 	var err error
 	var buf bytes.Buffer
-	
+
 	viperLoaded, err := LoadConfigFile(configFile)
 	if err != nil {
 		log.Fatalf("error reading config: %s", err.Error())
