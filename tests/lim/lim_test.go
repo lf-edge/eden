@@ -3,36 +3,73 @@ package lim
 import (
 	"flag"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
 
-// This context holds all the configuration items in the same
-// way that Eden context works: the commands line options override
-// YAML settings. In addition to that, context is polymorphic in
-// a sense that it abstracts away a particular controller (currently
-// Adam and Zedcloud are supported)
-/*
-tc *TestContext // TestContext is at least {
-                //    controller *Controller
-                //    project *Project
-                //    nodes []EdgeNode
-                //    ...
-                // }
-*/
-
 var (
 	number   = flag.Int("number", 1, "The number of items (0=unlimited) you need to get")
 	timewait = flag.Int("timewait", 60, "Timewait for items waiting in seconds")
-	tc       *projects.TestContext
+	out      = flag.String("out", "", "Paramters for out separated by ':'")
+
+	// This context holds all the configuration items in the same
+	// way that Eden context works: the commands line options override
+	// YAML settings. In addition to that, context is polymorphic in
+	// a sense that it abstracts away a particular controller (currently
+	// Adam and Zedcloud are supported)
+	/*
+	   tc *TestContext // TestContext is at least {
+	                   //    controller *Controller
+	                   //    project *Project
+	                   //    nodes []EdgeNode
+	                   //    ...
+	                   // }
+	*/
+	tc *projects.TestContext
+
+	query map[string]string = map[string]string{}
+	found bool
+	items int
 )
+
+func mkquery() error {
+	for _, a := range flag.Args() {
+		s := strings.Split(a, ":")
+		if len(s) == 1 {
+			return fmt.Errorf("Incorrect query: %s\n", a)
+		} else {
+			query[s[0]] = s[1]
+		}
+	}
+
+	return nil
+}
+
+func count(msg string, node string) string {
+	if found {
+		if *number == 0 {
+			return ""
+		} else {
+			items += 1
+			if items >= *number {
+				return fmt.Sprintf(msg, items, node)
+			} else {
+				return ""
+			}
+		}
+	}
+	return ""
+}
 
 // TestMain is used to provide setup and teardown for the rest of the
 // tests. As part of setup we make sure that context has a slice of
@@ -98,27 +135,42 @@ func TestMain(m *testing.M) {
 }
 
 func TestLog(t *testing.T) {
-	var logs int
+	err := mkquery()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	tc.ConfigSync(edgeNode)
 
-	t.Logf("Wait for log of %s number=%d timewait=%d\n", edgeNode.GetName(), *number, *timewait)
+	t.Logf("Wait for log of %s number=%d timewait=%d\n", edgeNode.GetName(),
+		*number, *timewait)
 
 	tc.AddProcLog(edgeNode, func(log *elog.LogItem) error {
-		return func(t *testing.T, edgeNode *device.Ctx, log *elog.LogItem) error {
-			t.Logf("LOG from %s: %s", edgeNode.GetName(), log)
-			if *number == 0 {
-				return nil
-			} else {
-				logs += 1
-				if logs >= *number {
-					return fmt.Errorf("Recieved %d logs from %s", logs, edgeNode.GetName())
+		return func(t *testing.T, edgeNode *device.Ctx,
+			log *elog.LogItem) error {
+			name := edgeNode.GetName()
+			if query != nil {
+				if elog.LogItemFind(*log, query) {
+					found = true
 				} else {
 					return nil
 				}
 			}
+			t.Logf("LOG %d(%d) from %s:\n", items+1, *number, name)
+			if len(*out) == 0 {
+				elog.LogPrn(log)
+			} else {
+				elog.LogItemPrint(log,
+					strings.Split(*out, ":")).Print()
+			}
+
+			cnt := count("Recieved %d logs from %s", name)
+			if cnt != "" {
+				return fmt.Errorf(cnt)
+			}
+			return nil
 		}(t, edgeNode, log)
 	})
 
@@ -126,55 +178,87 @@ func TestLog(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
-	var infos int
+	err := mkquery()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	tc.ConfigSync(edgeNode)
 
-	t.Logf("Wait for info of %s number=%d timewait=%d\n", edgeNode.GetName(), *number, *timewait)
+	t.Logf("Wait for info of %s number=%d timewait=%d\n",
+		edgeNode.GetName(), *number, *timewait)
 
-	tc.AddProcInfo(edgeNode, func(einfo *info.ZInfoMsg) error {
-		return func(t *testing.T, edgeNode *device.Ctx, einfo *info.ZInfoMsg) error {
-			t.Logf("INFO from %s: %s", edgeNode.GetName(), einfo)
-			if *number == 0 {
-				return nil
-			} else {
-				infos += 1
-				if infos >= *number {
-					return fmt.Errorf("Recieved %d infos from %s", infos, edgeNode.GetName())
+	tc.AddProcInfo(edgeNode, func(ei *info.ZInfoMsg) error {
+		return func(t *testing.T, edgeNode *device.Ctx,
+			ei *info.ZInfoMsg) error {
+			name := edgeNode.GetName()
+			if query != nil {
+				if einfo.ZInfoFind(ei, query) != nil {
+					found = true
 				} else {
 					return nil
 				}
 			}
-		}(t, edgeNode, einfo)
+
+			t.Logf("INFO %d(%d) from %s:\n", items+1, *number, name)
+			if len(*out) == 0 {
+				einfo.InfoPrn(ei)
+			} else {
+				einfo.ZInfoPrint(ei,
+					strings.Split(*out, ":")).Print()
+			}
+			cnt := count("Recieved %d infos from %s", name)
+			if cnt != "" {
+				return fmt.Errorf(cnt)
+			}
+			return nil
+		}(t, edgeNode, ei)
 	})
 
 	tc.WaitForProc(*timewait)
 }
 
 func TestMetrics(t *testing.T) {
-	var metrs int
+	err := mkquery()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	tc.ConfigSync(edgeNode)
 
-	t.Logf("Wait for metric of %s number=%d timewait=%d\n", edgeNode.GetName(), *number, *timewait)
+	t.Logf("Wait for metric of %s number=%d timewait=%d\n",
+		edgeNode.GetName(), *number, *timewait)
 
 	tc.AddProcMetric(edgeNode, func(metric *metrics.ZMetricMsg) error {
-		return func(t *testing.T, edgeNode *device.Ctx, metric *metrics.ZMetricMsg) error {
-			t.Logf("METRIC from %s: %s", edgeNode.GetName(), metric)
-			if *number == 0 {
-				return nil
-			} else {
-				metrs += 1
-				if metrs >= *number {
-					return fmt.Errorf("Recieved %d metrics from %s", metrs, edgeNode.GetName())
+		return func(t *testing.T, edgeNode *device.Ctx,
+			mtr *metrics.ZMetricMsg) error {
+			name := edgeNode.GetName()
+			if query != nil {
+				if emetric.MetricItemFind(mtr, query) {
+					found = true
 				} else {
 					return nil
 				}
 			}
+
+			t.Logf("METRICS %d(%d) from %s:\n",
+				items+1, *number, name)
+			if len(*out) == 0 {
+				emetric.MetricPrn(mtr)
+			} else {
+				emetric.MetricItemPrint(mtr,
+					strings.Split(*out, ":")).Print()
+			}
+
+			cnt := count("Recieved %d metrics from %s", name)
+			if cnt != "" {
+				return fmt.Errorf(cnt)
+			}
+			return nil
 		}(t, edgeNode, metric)
 	})
 
