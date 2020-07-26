@@ -20,15 +20,17 @@ import (
 // This test deploys the docker://nginx app into EVE with port forwarding 8028->80
 // wait for the RUNNING state and checks access to HTTP endpoint
 // and removes app from EVE
-
+// you can replace defaults with flags
 var (
 	timewait     = flag.Int("timewait", 600, "Timewait for items waiting in seconds")
+	name         = flag.String("name", "", "Name of app, random if empty")
+	externalPort = flag.Int("externalPort", 8028, "Port for access app from outside of EVE")
+	internalPort = flag.Int("internalPort", 80, "Port for access app inside EVE")
+	appLink      = flag.String("appLink", "docker://nginx", "Link to get app")
 	tc           *projects.TestContext
 	externalIP   string
+	portPublish  []string
 	appName      string
-	externalPort = 8028
-	appLink      = "docker://nginx"
-	portPublish  = []string{fmt.Sprintf("%d:80", externalPort)}
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -106,7 +108,7 @@ func checkAppAccess() projects.ProcTimerFunc {
 		if externalIP == "" {
 			return nil
 		}
-		res, err := utils.RequestHTTPWithTimeout(fmt.Sprintf("http://%s:%d", externalIP, externalPort), time.Second)
+		res, err := utils.RequestHTTPWithTimeout(fmt.Sprintf("http://%s:%d", externalIP, *externalPort), time.Second)
 		if err != nil {
 			return nil
 		} else {
@@ -137,11 +139,16 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 func TestDockerStart(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	rand.Seed(time.Now().UnixNano())
+	if *name == "" {
+		rand.Seed(time.Now().UnixNano())
+		appName = namesgenerator.GetRandomName(0) //generates new name if no flag set
+	} else {
+		appName = *name
+	}
 
-	appName = namesgenerator.GetRandomName(0)
+	portPublish = []string{fmt.Sprintf("%d:%d", *externalPort, *internalPort)}
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), appLink, appName, expect.WithPortsPublish(portPublish))
+	expectation := expect.AppExpectationFromUrl(tc.GetController(), *appLink, appName, expect.WithPortsPublish(portPublish))
 
 	appInstanceConfig := expectation.Application()
 
@@ -174,6 +181,15 @@ func TestDockerStart(t *testing.T) {
 //it checks if app absent in EVE
 //it uses timewait for processing all events
 func TestDockerDelete(t *testing.T) {
+
+	if appName == "" { //if previous appName not defined
+		if *name == "" {
+			t.Fatal("No name of app, please set 'name' flag")
+		} else {
+			appName = *name
+		}
+	}
+
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	t.Logf("Add waiting for app %s absent", appName)
