@@ -1,0 +1,44 @@
+{{$test_opts := "-test.v -timewait 600"}}
+
+[!exec:curl] stop
+
+# Starting of reboot detector with a 3 reboots limit
+! test eden.reboot.test {{$test_opts}} -reboot=0 -count=1 &
+
+# Run by docker's actor
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t1 -externalPort 8027
+stdout '--- PASS: TestDockerStart'
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t2 -externalPort 8028
+stdout '--- PASS: TestDockerStart'
+
+# Dockers detecting
+eden pod ps
+stdout 't1	nginx:latest	.*:80	127.0.0.1:8027	IN_CONFIG	RUNNING'
+stdout 't2	nginx:latest	.*:80	127.0.0.1:8028	IN_CONFIG	RUNNING'
+
+# Ngnix detecting
+exec curl localhost:8027
+stdout 'Welcome to nginx'
+exec curl localhost:8028
+stdout 'Welcome to nginx'
+
+# Stop by docker's actor
+test eden.docker.test {{$test_opts}} -test.run TestDockerDelete -name t1
+stdout '--- PASS: TestDockerDelete'
+test eden.docker.test {{$test_opts}} -test.run TestDockerDelete -name t2
+stdout '--- PASS: TestDockerDelete'
+
+# Dockers detecting
+eden pod ps
+! stdout '^t[12]'
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
