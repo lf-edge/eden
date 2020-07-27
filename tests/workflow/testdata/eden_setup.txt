@@ -1,0 +1,5 @@
+eden setup
+stdout 'GenerateEveCerts done'
+stdout 'CopyCertsToAdamConfig done'
+stdout 'download EVE done:'
+

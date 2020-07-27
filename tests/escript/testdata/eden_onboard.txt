@@ -1,3 +1,0 @@
-eden eve onboard
-stdout onboarded
-! stderr .

@@ -2,6 +2,7 @@
 [!exec:curl] stop
 [!exec:grep] stop
 
+# Fail if reboot
 ! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=1 &
 
 eden pod deploy -p 8028:80 docker://nginx -v debug

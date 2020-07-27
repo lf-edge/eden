@@ -1,13 +1,3 @@
 eden.escript.test -test.run TestEdenScripts/template
-eden.escript.test -test.run TestEdenScripts/eden_start  
-eden.escript.test -test.run TestEdenScripts/eden_onboard
-eden.escript.test -test.run TestEdenScripts/log_test -testdata ../lim/testdata/
-eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
-eden.escript.test -test.run TestEdenScripts/metric_test -testdata ../lim/testdata/
-eden.escript.test -test.run TestEdenScripts/reboot_eden -test.timeout 10m
-eden.escript.test -test.run TestEdenScripts/reboot_test
-eden.escript.test -test.run TestEdenScripts/deploy_docker_eden -test.timeout 10m
-eden.escript.test -test.run TestEdenScripts/deploy_docker_test
-eden.escript.test -test.run TestEdenScripts/deploy_vm
-eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/ -test.timeout 10m
-eden.escript.test -test.run TestEdenScripts/eden_stop
+eden.escript.test -test.run TestEdenScripts/message
+eden.escript.test -test.run TestEdenScripts/nested_scripts

@@ -1,0 +1,22 @@
+# eden start
+
+# Waiting of onboard reboot.
+! test eden.reboot.test -test.v -timewait 120 -reboot=0 -count=1 &
+
+# Onboarding.
+eden eve onboard
+stdout 'onboarded'
+
+# Waiting for reboot detection.
+wait
+stdout 'Number of reboots: 1'
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+

@@ -1,4 +1,4 @@
-{{$test := "test eden.lim.test -test.v -timewait 120 -test.run TestLog"}}
+{{$test := "test eden.lim.test -test.v -timewait 600 -test.run TestLog"}}
 
 #eden config add default
 #eden setup
