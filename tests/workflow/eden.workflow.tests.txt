@@ -4,6 +4,7 @@ eden.escript.test -test.run TestEdenScripts/eden_onboard
 eden.escript.test -test.run TestEdenScripts/log_test -testdata ../lim/testdata/
 eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
 eden.escript.test -test.run TestEdenScripts/metric_test -testdata ../lim/testdata/
+eden.escript.test -test.run TestEdenScripts/ssh
 // eden.escript.test -test.run TestEdenScripts/deploy_docker_eden -test.timeout 10m
 eden.escript.test -test.run TestEdenScripts/deploy_docker_test
 # eden.escript.test -test.run TestEdenScripts/reboot_eden -test.timeout 10m

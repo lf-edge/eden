@@ -1,0 +1,44 @@
+[!exec:bash] stop
+[!exec:grep] stop
+[!exec:sed] stop
+[!exec:ssh] stop
+
+#eden config add default
+#eden setup
+#eden start
+#eden eve onboard
+
+# Get EVE's onboarded UUID
+eden eve onboard
+cp stdout onboard
+exec bash uuid.sh
+
+# Get redirected SSH port
+eden config get --key eve.hostfwd
+cp stdout eve.hostfwd
+
+# SSH login to EVE and getting UUID
+exec bash ssh.sh
+
+# UUID's comparison
+cmp stdout uuid
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- uuid.sh --
+grep 'device UUID' onboard | sed 's/.*device UUID: \(.*\)"/\1/' > uuid
+
+-- ssh.sh --
+PORT=`cat eve.hostfwd | sed 's/.*[^0-9]\([0-9]*\):22[^0-9].*/\1/'`
+CERT=`echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.ssh-key"}} | sed 's/\.pub$//'`
+
+ssh -o ConnectTimeout=3 -oStrictHostKeyChecking=no -i $CERT -p $PORT root@{{EdenConfig "eve.remote-addr"}} cat /config/uuid
+
