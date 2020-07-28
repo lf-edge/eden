@@ -1,4 +1,4 @@
-eden setup
+eden -t 10m setup
 stdout 'GenerateEveCerts done'
 stdout 'CopyCertsToAdamConfig done'
 stdout 'download EVE done:'

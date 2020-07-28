@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eden/tests/escript/go-internal/internal/textutil"
@@ -48,6 +49,8 @@ var scriptCmds = map[string]func(*TestScript, bool, []string){
 	"test":    (*TestScript).cmdTest,
 	"wait":    (*TestScript).cmdWait,
 }
+
+var timewait time.Duration
 
 // cd changes to a different directory.
 func (ts *TestScript) cmdCd(neg bool, args []string) {
@@ -198,7 +201,7 @@ func (ts *TestScript) cmdCp(neg bool, args []string) {
 // eden execute EDEN's commands.
 func (ts *TestScript) cmdEden(neg bool, args []string) {
 	if len(args) < 1 || (len(args) == 1 && args[0] == "&") {
-		ts.Fatalf("usage: eden command [args...] [&]")
+		ts.Fatalf("usage: eden [-t timewait] command [args...] [&]")
 	}
 
 	vars, err := utils.InitVars()
@@ -207,12 +210,23 @@ func (ts *TestScript) cmdEden(neg bool, args []string) {
 	}
 
 	edenProg := utils.ResolveAbsPath(vars.EdenBinDir + "/" + vars.EdenProg)
-	fmt.Println("edenProg: ", edenProg)
 
 	_, err = exec.LookPath(edenProg)
 	if err != nil {
 		ts.Fatalf("can't find 'eden' executable: %s\n", err)
 	}
+
+	// timewait
+	if len(args) > 0 && args[0] == "-t" {
+		timewait, err = time.ParseDuration(args[1])
+		if err != nil {
+			ts.Fatalf("Incorrect time format in 'eden': %s\n", err)
+		}
+		args = args[2:]
+	} else {
+		timewait = 0
+	}
+	fmt.Printf("edenProg: %s timewait: %s\n", edenProg, timewait)
 
 	if len(args) > 0 && args[len(args)-1] == "&" {
 		var cmd *exec.Cmd
@@ -252,7 +266,7 @@ func (ts *TestScript) cmdEden(neg bool, args []string) {
 // eden execute EDEN's test commands.
 func (ts *TestScript) cmdTest(neg bool, args []string) {
 	if len(args) < 1 || (len(args) == 1 && args[0] == "&") {
-		ts.Fatalf("usage: test program [args...] [&]")
+		ts.Fatalf("usage: test [-t timewait] program [args...] [&]")
 	}
 
 	vars, err := utils.InitVars()
@@ -260,8 +274,21 @@ func (ts *TestScript) cmdTest(neg bool, args []string) {
 		ts.Fatalf("error reading config: %s\n", err)
 	}
 
+	// timewait
+	if len(args) > 0 && args[0] == "-t" {
+		timewait, err = time.ParseDuration(args[1])
+		if err != nil {
+			ts.Fatalf("Incorrect time format in 'test': %s\n", err)
+		}
+		args = args[2:]
+	} else {
+		timewait = 0
+	}
+
 	testProg := utils.ResolveAbsPath(vars.EdenBinDir + "/" + args[0])
 	args = args[1:]
+
+	fmt.Printf("testProg: %s timewait: %s\n", testProg, timewait)
 
 	_, err = exec.LookPath(testProg)
 	if err != nil {
@@ -335,10 +362,21 @@ func (ts *TestScript) cmdEnv(neg bool, args []string) {
 // exec runs the given command.
 func (ts *TestScript) cmdExec(neg bool, args []string) {
 	if len(args) < 1 || (len(args) == 1 && args[0] == "&") {
-		ts.Fatalf("usage: exec program [args...] [&]")
+		ts.Fatalf("usage: exec [-t timewait] program [args...] [&]")
 	}
 
 	var err error
+	if len(args) > 0 && args[0] == "-t" {
+		timewait, err = time.ParseDuration(args[1])
+		if err != nil {
+			ts.Fatalf("Incorrect time format in 'exec': %s\n", err)
+		}
+		args = args[2:]
+	} else {
+		timewait = 0
+	}
+	fmt.Printf("exec timewait: %s\n", timewait)
+
 	if len(args) > 0 && args[len(args)-1] == "&" {
 		var cmd *exec.Cmd
 		cmd, err = ts.execBackground(args[0], args[1:len(args)-1]...)
@@ -369,7 +407,12 @@ func (ts *TestScript) cmdExec(neg bool, args []string) {
 		if ts.ctxt.Err() != nil {
 			ts.Fatalf("test timed out while running command")
 		} else if !neg {
-			ts.Fatalf("unexpected command failure")
+			t := ts.ctxt.Value("kind")
+			if t != nil {
+				ts.Logf("exec timewait: %v\n", t)
+			} else {
+				ts.Fatalf("unexpected command failure")
+			}
 		}
 	}
 }
@@ -411,7 +454,6 @@ func (ts *TestScript) cmdMsg(neg bool, args []string) {
 	}
 	if len(args) == 1 {
 		ts.Logf("message: %s\n", args[0])
-		fmt.Printf("message: %s\n", args[0])
 	} else {
 		ts.Fatalf("usage: message [msg]")
 	}

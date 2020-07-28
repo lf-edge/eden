@@ -1,8 +1,15 @@
+{{$tests := 11}}
+/bin/echo Eden setup (1/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_setup
+/bin/echo Eden start (2/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_start  
+/bin/echo Eden onboard (3/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_onboard
+/bin/echo Eden Log test (4/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/log_test -testdata ../lim/testdata/
+/bin/echo Eden SSH test (5/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ssh
+/bin/echo Eden 2 dockers test (6/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
 {{/*
 eden.escript.test -test.run TestEdenScripts/deploy_docker_eden -test.timeout 10m
@@ -10,8 +17,14 @@ eden.escript.test -test.run TestEdenScripts/deploy_docker_test
 eden.escript.test -test.run TestEdenScripts/deploy_docker_eden
 eden.escript.test -test.run TestEdenScripts/reboot_eden -test.timeout 10m
 */}}
+/bin/echo Eden Info test (7/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
+/bin/echo Eden Metric test (8/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/metric_test -testdata ../lim/testdata/
+/bin/echo Eden Reboot test (9/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
-eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/ -test.timeout 10m
+#eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/ -test.timeout 10m
+/bin/echo Eden base OS update (10/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/
+/bin/echo Eden stop (11/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop

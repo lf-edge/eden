@@ -22,7 +22,7 @@
 
 # Download EVE rootfs into downloader-dist
 message 'EVE image download'
-eden utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{EdenConfig "eve.hv"}} --downloader-dist={{EdenConfigPath "eden.images.dist"}} -v debug
+eden -t 10m utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{EdenConfig "eve.hv"}} --downloader-dist={{EdenConfigPath "eden.images.dist"}} -v debug
 
 # Check stdout of previous command. Expected to get full path to squashfs
 stdout '{{EdenConfigPath "eden.images.dist"}}/rootfs-{{ $short_version }}.squashfs'
@@ -30,11 +30,10 @@ stdout '{{EdenConfigPath "eden.images.dist"}}/rootfs-{{ $short_version }}.squash
 
 # Send command to update eveimage
 message 'EVE update request'
-eden controller edge-node eveimage-update file://{{EdenConfigPath "eden.images.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eden.images.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
 
 # Check stderr, it must be empty
 ! stderr .
-
 
 # Run monitoring of Info messages to obtain info with PartitionState inprogress or active and previously defined ShortVersion
 message 'Waiting for EVE update...'

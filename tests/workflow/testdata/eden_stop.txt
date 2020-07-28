@@ -1,4 +1,4 @@
-eden stop
+eden -t 2m stop
 ! stderr .
 
 eden status

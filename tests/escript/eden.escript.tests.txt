@@ -1,3 +1,4 @@
 eden.escript.test -test.run TestEdenScripts/template
 eden.escript.test -test.run TestEdenScripts/message
 eden.escript.test -test.run TestEdenScripts/nested_scripts
+eden.escript.test -test.run TestEdenScripts/time

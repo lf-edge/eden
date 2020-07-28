@@ -9,7 +9,7 @@
 #eden eve onboard
 
 # Get EVE's onboarded UUID
-eden eve onboard
+eden -t 1m eve onboard
 cp stdout onboard
 exec bash uuid.sh
 
@@ -18,7 +18,7 @@ eden config get --key eve.hostfwd
 cp stdout eve.hostfwd
 
 # SSH login to EVE and getting UUID
-exec bash ssh.sh
+exec -t 1m bash ssh.sh
 
 # UUID's comparison
 cmp stdout uuid

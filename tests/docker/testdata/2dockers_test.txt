@@ -2,6 +2,8 @@
 
 [!exec:curl] stop
 
+eden -t 1s pod ps
+
 # Starting of reboot detector with a 3 reboots limit
 ! test eden.reboot.test {{$test_opts}} -reboot=0 -count=1 &
 
@@ -12,14 +14,14 @@ test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t2 -externa
 stdout '--- PASS: TestDockerStart'
 
 # Dockers detecting
-eden pod ps
+eden -t 1m pod ps
 stdout 't1	nginx:latest	.*:80	127.0.0.1:8027	IN_CONFIG	RUNNING'
 stdout 't2	nginx:latest	.*:80	127.0.0.1:8028	IN_CONFIG	RUNNING'
 
 # Ngnix detecting
-exec curl localhost:8027
+exec -t 1m curl localhost:8027
 stdout 'Welcome to nginx'
-exec curl localhost:8028
+exec -t 1m curl localhost:8028
 stdout 'Welcome to nginx'
 
 # Stop by docker's actor
@@ -29,7 +31,7 @@ test eden.docker.test {{$test_opts}} -test.run TestDockerDelete -name t2
 stdout '--- PASS: TestDockerDelete'
 
 # Dockers detecting
-eden pod ps
+eden -t 1m pod ps
 ! stdout '^t[12]'
 
 # Test's config. file

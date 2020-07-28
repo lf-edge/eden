@@ -1,7 +1,7 @@
 # eden start
 
 # Waiting of onboard reboot.
-! test eden.reboot.test -test.v -timewait 120 -reboot=0 -count=1 &
+test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=1 &
 
 # Onboarding.
 eden eve onboard
