@@ -33,11 +33,16 @@ type LogItem struct {
 //LogCheckerMode is InfoExist, InfoNew and InfoAny
 type LogCheckerMode int
 
+//LogTail returns LogCheckerMode for process only defined count of last messages
+func LogTail(count uint) LogCheckerMode {
+	return LogCheckerMode(count)
+}
+
 // LogChecker modes LogExist, LogNew and LogAny.
 const (
-	LogExist LogCheckerMode = iota // just look to existing files
-	LogNew                         // wait for new files
-	LogAny                         // use both mechanisms
+	LogExist LogCheckerMode = -3 // just look to existing files
+	LogNew   LogCheckerMode = -2 // wait for new files
+	LogAny   LogCheckerMode = -1 // use both mechanisms
 )
 
 //ParseLogBundle unmarshal LogBundle
@@ -213,11 +218,29 @@ func LogChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string, h
 				}
 				return
 			}
-			err := LogLast(loader.Clone(), q, handler)
-			if err != nil {
+			done <- LogLast(loader.Clone(), q, handler)
+		}()
+	}
+	// use for process only defined count of last messages
+	if mode > 0 {
+		logQueue := utils.InitQueueWithCapacity(int(mode))
+		handlerLocal := func(item *LogItem) (result bool) {
+			if err = logQueue.Enqueue(item); err != nil {
 				done <- err
 			}
-		}()
+			return false
+		}
+		if err = LogLast(loader.Clone(), q, handlerLocal); err != nil {
+			done <- err
+		}
+		el, err := logQueue.Dequeue()
+		for err == nil {
+			if result := handler(el.(*LogItem)); result {
+				return nil
+			}
+			el, err = logQueue.Dequeue()
+		}
+		return nil
 	}
 	return <-done
 }

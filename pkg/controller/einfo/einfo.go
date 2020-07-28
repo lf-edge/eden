@@ -157,11 +157,16 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 //InfoCheckerMode is InfoExist, InfoNew and InfoAny
 type InfoCheckerMode int
 
+//InfoTail returns InfoCheckerMode for process only defined count of last messages
+func InfoTail(count uint) InfoCheckerMode {
+	return InfoCheckerMode(count)
+}
+
 // InfoChecker modes InfoExist, InfoNew and InfoAny.
 const (
-	InfoExist InfoCheckerMode = iota // just look to existing files
-	InfoNew                          // wait for new files
-	InfoAny                          // use both mechanisms
+	InfoExist InfoCheckerMode = -3 // just look to existing files
+	InfoNew   InfoCheckerMode = -2 // wait for new files
+	InfoAny   InfoCheckerMode = -1 // use both mechanisms
 )
 
 func infoProcess(query map[string]string, qhandler QHandlerFunc, handler HandlerFunc) loaders.ProcessFunction {
@@ -210,10 +215,33 @@ func InfoChecker(loader loaders.Loader, devUUID uuid.UUID, query map[string]stri
 				}
 				return
 			}
-			if err = InfoLast(loader.Clone(), query, ZInfoFind, handler); err != nil {
+			done <- InfoLast(loader.Clone(), query, ZInfoFind, handler)
+		}()
+	}
+	// use for process only defined count of last messages
+	if mode > 0 {
+		type infoSave struct {
+			im *info.ZInfoMsg
+			ds []*ZInfoMsgInterface
+		}
+		infoQueue := utils.InitQueueWithCapacity(int(mode))
+		handlerLocal := func(im *info.ZInfoMsg, ds []*ZInfoMsgInterface) (result bool) {
+			if err = infoQueue.Enqueue(infoSave{im: im, ds: ds}); err != nil {
 				done <- err
 			}
-		}()
+			return false
+		}
+		if err = InfoLast(loader.Clone(), query, ZInfoFind, handlerLocal); err != nil {
+			done <- err
+		}
+		el, err := infoQueue.Dequeue()
+		for err == nil {
+			if result := handler(el.(infoSave).im, el.(infoSave).ds); result {
+				return nil
+			}
+			el, err = infoQueue.Dequeue()
+		}
+		return nil
 	}
 	return <-done
 }
