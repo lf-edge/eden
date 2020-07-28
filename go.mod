@@ -14,7 +14,7 @@ require (
 	github.com/google/go-containerregistry v0.0.0-20200331213917-3d03ed9b1ca2
 	github.com/lf-edge/adam v0.0.0-20200502191324-bedd2e5e0d61
 	github.com/lf-edge/eden/eserver v0.0.0-00010101000000-000000000000
-	github.com/lf-edge/eve/api/go v0.0.0-20200711013237-83b38f65d2e4
+	github.com/lf-edge/eve/api/go v0.0.0-20200728121256-42a37934d692
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200513230334-5988786b5617
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6

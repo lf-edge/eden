@@ -8,6 +8,7 @@ import (
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
@@ -27,6 +28,7 @@ var (
 	externalPort = flag.Int("externalPort", 8028, "Port for access app from outside of EVE")
 	internalPort = flag.Int("internalPort", 80, "Port for access app inside EVE")
 	appLink      = flag.String("appLink", "docker://nginx", "Link to get app")
+	nohyper      = flag.Bool("nohyper", false, "Do not use a hypervisor")
 	tc           *projects.TestContext
 	externalIP   string
 	portPublish  []string
@@ -148,7 +150,16 @@ func TestDockerStart(t *testing.T) {
 
 	portPublish = []string{fmt.Sprintf("%d:%d", *externalPort, *internalPort)}
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), *appLink, appName, expect.WithPortsPublish(portPublish))
+	var opts []expect.ExpectationOption
+
+	opts = append(opts, expect.WithPortsPublish(portPublish))
+
+	if *nohyper {
+		t.Log("will not use hypervisor")
+		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
+	}
+
+	expectation := expect.AppExpectationFromUrl(tc.GetController(), *appLink, appName, opts...)
 
 	appInstanceConfig := expectation.Application()
 

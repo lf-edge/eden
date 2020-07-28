@@ -2,6 +2,7 @@ package expect
 
 import (
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eve/api/go/config"
 	"strings"
 )
 
@@ -65,5 +66,12 @@ func WithResources(cpus uint32, memory uint32) ExpectationOption {
 	return func(expectation *appExpectation) {
 		expectation.cpu = cpus
 		expectation.mem = memory
+	}
+}
+
+//WithVirtualizationMode sets virtualizationMode for app
+func WithVirtualizationMode(virtualizationMode config.VmMode) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.virtualizationMode = virtualizationMode
 	}
 }

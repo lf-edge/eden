@@ -236,6 +236,8 @@ github.com/lf-edge/eve/api/go v0.0.0-20200708222443-cb16dc711160 h1:n6YseL7R20AL
 github.com/lf-edge/eve/api/go v0.0.0-20200708222443-cb16dc711160/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lf-edge/eve/api/go v0.0.0-20200711013237-83b38f65d2e4 h1:jUWbxQbgZdm/zvRd3yaxYTALYXgb5l2bgOJGUIiReoE=
 github.com/lf-edge/eve/api/go v0.0.0-20200711013237-83b38f65d2e4/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
+github.com/lf-edge/eve/api/go v0.0.0-20200728121256-42a37934d692 h1:XVaGZOo4pw6uFbwajjI+6cbF/i2ss4pRS/k1/h9jq/Q=
+github.com/lf-edge/eve/api/go v0.0.0-20200728121256-42a37934d692/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 h1:EnfXoSqDfSNJv0VBNqY/88RNnhSGYkrHaO0mmFGbVsc=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40/go.mod h1:vy1vK6wD6j7xX6O6hXe621WabdtNkou2h7uRtTfRMyg=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=

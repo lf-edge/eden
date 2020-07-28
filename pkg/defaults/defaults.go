@@ -40,7 +40,7 @@ const (
 	DefaultAdamPort    = 3333
 
 	//tags, versions, repos
-	DefaultEVETag            = "5.7.1" //DefaultEVETag tag for EVE image
+	DefaultEVETag            = "0.0.0-snapshot-master-3d7221dd" //DefaultEVETag tag for EVE image
 	DefaultAdamTag           = "0.0.51"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"

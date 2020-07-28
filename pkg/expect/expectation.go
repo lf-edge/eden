@@ -44,6 +44,8 @@ type appExpectation struct {
 	diskSize int64
 
 	uplinkAdapter *config.Adapter
+
+	virtualizationMode config.VmMode
 }
 
 //AppExpectationFromUrl init appExpectation with defined:
@@ -72,6 +74,14 @@ func AppExpectationFromUrl(ctrl controller.Cloud, appLink string, podName string
 		mem:     defaults.DefaultAppMem,
 
 		uplinkAdapter: adapter,
+	}
+	switch expectation.ctrl.GetVars().ZArch {
+	case "amd64":
+		expectation.virtualizationMode = config.VmMode_HVM
+	case "arm64":
+		expectation.virtualizationMode = config.VmMode_PV
+	default:
+		log.Fatalf("Unexpected arch %s", expectation.ctrl.GetVars().ZArch)
 	}
 	for _, opt := range opts {
 		opt(expectation)

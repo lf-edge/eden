@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
-	"log"
 )
 
 //createAppInstanceConfigVM creates AppInstanceConfig for VM with provided img, netInstance, id and acls
@@ -25,16 +24,11 @@ func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.
 		Activate:    true,
 		Displayname: exp.appName,
 	}
-	switch exp.ctrl.GetVars().ZArch {
-	case "amd64":
-		app.Fixedresources.VirtualizationMode = config.VmMode_HVM
-	case "arm64":
-		app.Fixedresources.VirtualizationMode = config.VmMode_PV
+	if exp.virtualizationMode == config.VmMode_PV {
 		app.Fixedresources.Rootdev = "/dev/xvda1"
 		app.Fixedresources.Bootloader = "/usr/bin/pygrub"
-	default:
-		log.Fatalf("Unexpected arch %s", exp.ctrl.GetVars().ZArch)
 	}
+	app.Fixedresources.VirtualizationMode = exp.virtualizationMode
 	maxSizeBytes := img.SizeBytes
 	if exp.diskSize > 0 {
 		maxSizeBytes = exp.diskSize
