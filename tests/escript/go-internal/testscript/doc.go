@@ -232,7 +232,7 @@ multi-phase script with a bug in it:
 The bug is that the final phase read TOST.TXT instead of TEST.TXT. The test failure looks like:
 
 	$ ./eden test tests/escript/ -r TestEdenScripts/bug
-	INFO[0000] testData direcory: testdata
+	INFO[0000] testData directory: testdata
 	--- FAIL: TestEdenScripts (0.00s)
 	    --- FAIL: TestEdenScripts/bug (0.02s)
 	        testscript.go:382:
@@ -272,7 +272,7 @@ for manual debugging of failing tests:
 	DEBU[0000] testProg: /home/user/work/EVE/github/itmo-eve/eden/dist/bin/eden.escript.test
 	DEBU[0000] Test: /home/user/work/EVE/github/itmo-eve/eden/dist/bin/eden.escript.test -test.run TestEdenScripts/bug -test.v -testwork
 	=== RUN   TestEdenScripts
-	INFO[0000] testData direcory: testdata
+	INFO[0000] testData directory: testdata
 	=== RUN   TestEdenScripts/bug
 	=== PAUSE TestEdenScripts/bug
 	=== CONT  TestEdenScripts/bug
