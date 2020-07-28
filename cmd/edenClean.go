@@ -27,6 +27,7 @@ var cleanCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
@@ -43,7 +44,7 @@ var cleanCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.CleanEden(command, eveDist, adamDist, certsDir,
+		if err := utils.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
 			eserverImageDist, redisDist, configDir, evePidFile,
 			configSaved); err != nil {
 			log.Fatalf("cannot CleanEden: %s", err)
@@ -63,10 +64,10 @@ func cleanInit() {
 	}
 	cleanCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	cleanCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist), "directory to save EVE")
-	cleanCmd.Flags().StringVarP(&redisDist, "redis-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultRedisDist), "redis dist")
+	cleanCmd.Flags().StringVarP(&redisDist, "redis-dist", "", "", "redis dist")
 	cleanCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "file to save qemu config")
-	cleanCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
-	cleanCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
+	cleanCmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start (required)")
+	cleanCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
 
 	cleanCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
 	cleanCmd.Flags().StringVarP(&configDir, "config-dist", "", configDist, "directory for config")

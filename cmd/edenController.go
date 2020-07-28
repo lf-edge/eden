@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/docker/docker/pkg/fileutils"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/projects"
@@ -25,6 +24,7 @@ var (
 	eserverIP           string
 	baseOSVersion       string
 	getFromFileName     bool
+	edenDist            string
 )
 
 var controllerCmd = &cobra.Command{
@@ -120,7 +120,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if viperLoaded {
 			eserverIP = viper.GetString("eden.eserver.ip")
 			eserverPort = viper.GetInt("eden.eserver.port")
-			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
+			edenDist = viper.GetString("eden.dist")
 		}
 		return nil
 	},
@@ -171,6 +171,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		if viperLoaded {
 			eserverIP = viper.GetString("eden.eserver.ip")
 			eserverPort = viper.GetInt("eden.eserver.port")
+			edenDist = viper.GetString("eden.dist")
 		}
 		return nil
 	},
@@ -187,11 +188,11 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 				log.Fatalf("GetFileFollowLinks: %s", err)
 			}
 		} else {
-			if err = os.MkdirAll(filepath.Join(eserverImageDist, "tmp"), 0755); err != nil {
+			if err = os.MkdirAll(filepath.Join(edenDist, "tmp"), 0755); err != nil {
 				log.Fatalf("cannot create dir for download image %s", err)
 			}
 			r, _ := url.Parse(baseOSImage)
-			rootFsPath = filepath.Join(eserverImageDist, "tmp", path.Base(r.Path))
+			rootFsPath = filepath.Join(edenDist, "tmp", path.Base(r.Path))
 			defer os.Remove(rootFsPath)
 			if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
 				log.Fatalf("DownloadFile error: %s", err)
@@ -235,14 +236,9 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
 
-		imageFullPath := filepath.Join(eserverImageDist, filepath.Base(rootFsPath))
-		if _, err := fileutils.CopyFile(rootFsPath, imageFullPath); err != nil {
-			log.Fatalf("CopyFile problem: %s", err)
-		}
-
-		sha256sum, err := utils.SHA256SUM(imageFullPath)
+		sha256sum, err := utils.SHA256SUM(rootFsPath)
 		if err != nil {
-			log.Fatalf("SHA256SUM (%s): %s", imageFullPath, err)
+			log.Fatalf("SHA256SUM (%s): %s", rootFsPath, err)
 		}
 		toActivate := true
 		for _, baseOSConfig := range ctrl.ListBaseOSConfig() {

@@ -7,8 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 )
@@ -87,16 +85,12 @@ var downloadEVERootFSCmd = &cobra.Command{
 }
 
 func downloaderInit() {
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
 	downloaderCmd.AddCommand(downloadEVECmd)
 	downloadEVECmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
 	downloadEVECmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloadEVECmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "HV of EVE (kvm or xen)")
 	downloadEVECmd.Flags().StringVarP(&eveImageFile, "image-file", "i", "", "path for image drive")
-	downloadEVECmd.Flags().StringVarP(&adamDist, "adam-dist", "", path.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start")
+	downloadEVECmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start")
 	downloaderCmd.AddCommand(downloadEVERootFSCmd)
 	downloadEVERootFSCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
 	downloadEVERootFSCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")

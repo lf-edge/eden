@@ -64,22 +64,11 @@ var startCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		adamPath, err := filepath.Abs(adamDist)
-		if err != nil {
-			log.Fatalf("adam-dist problems: %s", err)
-		}
-		redisPath, err := filepath.Abs(redisDist)
-		if err != nil {
-			log.Fatalf("redis-dist problems: %s", err)
-		}
-		if err = os.MkdirAll(redisPath, 0755); err != nil {
-			log.Fatalf("Cannot create directory for redis (%s): %s", redisPath, err)
-		}
 		command, err := os.Executable()
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.StartRedis(redisPort, redisPath, redisForce, redisTag); err != nil {
+		if err := utils.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
 			log.Errorf("cannot start redis: %s", err)
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
@@ -87,7 +76,7 @@ var startCmd = &cobra.Command{
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}
-		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+		if err := utils.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accesible on port %d", adamPort)
@@ -114,16 +103,16 @@ func startInit() {
 		log.Fatal(err)
 	}
 	startCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "tag on adam container to pull")
-	startCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
+	startCmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start (required)")
 	startCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam dist to start")
 	startCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	startCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
 	startCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
 	startCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag on redis container to pull")
-	startCmd.Flags().StringVarP(&redisDist, "redis-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultRedisDist), "redis dist to start (required)")
+	startCmd.Flags().StringVarP(&redisDist, "redis-dist", "", "", "redis dist to start (required)")
 	startCmd.Flags().IntVarP(&redisPort, "redis-port", "", defaults.DefaultRedisPort, "redis dist to start")
 	startCmd.Flags().BoolVarP(&redisForce, "redis-force", "", false, "redis force rebuild")
-	startCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
+	startCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
 	startCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
 	startCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
 	startCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")

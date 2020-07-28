@@ -8,8 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
-	"path"
-	"path/filepath"
 )
 
 var (
@@ -43,13 +41,6 @@ var startAdamCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		adamPath, err := filepath.Abs(adamDist)
-		if err != nil {
-			log.Fatalf("adam-dist problems: %s", err)
-		}
-		if _, err = os.Lstat(fmt.Sprintf("%s/run", adamPath)); os.IsNotExist(err) {
-			log.Fatalf("%s not found. Please run ./eden setup before start to generate certs", fmt.Sprintf("%s/run", adamPath))
-		}
 		command, err := os.Executable()
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
@@ -58,7 +49,7 @@ var startAdamCmd = &cobra.Command{
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}
-		if err := utils.StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+		if err := utils.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)
@@ -116,12 +107,8 @@ func adamInit() {
 	adamCmd.AddCommand(startAdamCmd)
 	adamCmd.AddCommand(stopAdamCmd)
 	adamCmd.AddCommand(statusAdamCmd)
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
 	startAdamCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "tag on adam container to pull")
-	startAdamCmd.Flags().StringVarP(&adamDist, "adam-dist", "", path.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
+	startAdamCmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start (required)")
 	startAdamCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam port to start")
 	startAdamCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	startAdamCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")

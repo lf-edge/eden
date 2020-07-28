@@ -18,7 +18,7 @@ adam:
     ip: {{ .IP }}
 
     #certificate for communication with adam
-    ca: {{ .DefaultAdamDist }}/run/config/root-certificate.pem
+    ca: {{ .DefaultCertsDist }}/root-certificate.pem
 
     redis:
       #host of adam's redis for EDEN access
@@ -52,7 +52,7 @@ eve:
     serial: "{{ .DefaultEVESerial }}"
 
     #onboarding certificate of EVE to put into adam
-    cert: certs/onboard.cert.pem
+    cert: {{ .DefaultCertsDist }}/onboard.cert.pem
 
     #EVE firmware
     firmware: [{{ .DefaultImageDist }}/eve/OVMF_CODE.fd,{{ .DefaultImageDist }}/eve/OVMF_VARS.fd]

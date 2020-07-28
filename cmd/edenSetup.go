@@ -134,7 +134,7 @@ var setupCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if _, err := os.Stat(filepath.Join(certsDir, "server.pem")); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(certsDir, "root-certificate.pem")); os.IsNotExist(err) {
 			wifiPSK := ""
 			if ssid != "" {
 				fmt.Printf("Enter password for wifi %s: ", ssid)
@@ -150,14 +150,10 @@ var setupCmd = &cobra.Command{
 		} else {
 			log.Infof("Certs already exists in certs dir: %s", certsDir)
 		}
-		if _, err := os.Stat(filepath.Join(adamDist, "run", "config", "server.pem")); os.IsNotExist(err) {
-			if err := utils.CopyCertsToAdamConfig(certsDir, certsDomain, certsEVEIP, adamPort, adamDist, apiV1); err != nil {
-				log.Errorf("cannot CopyCertsToAdamConfig: %s", err)
-			} else {
-				log.Info("CopyCertsToAdamConfig done")
-			}
+		if err := utils.GenerateEVEConfig(certsDir, certsDomain, certsEVEIP, adamPort, apiV1); err != nil {
+			log.Errorf("cannot GenerateEVEConfig: %s", err)
 		} else {
-			log.Infof("Certs already exists in adam dir: %s", certsDir)
+			log.Info("GenerateEVEConfig done")
 		}
 		var imageFormat string
 		switch devModel {
@@ -181,7 +177,7 @@ var setupCmd = &cobra.Command{
 				}
 				builedImage := ""
 				builedAdditional := ""
-				if builedImage, builedAdditional, err = utils.MakeEveInRepo(eveDist, adamDist, eveArch, eveHV, imageFormat, false); err != nil {
+				if builedImage, builedAdditional, err = utils.MakeEveInRepo(eveDist, certsDir, eveArch, eveHV, imageFormat, false); err != nil {
 					log.Errorf("cannot MakeEveInRepo: %s", err)
 				} else {
 					log.Info("MakeEveInRepo done")
@@ -206,7 +202,7 @@ var setupCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, imageFormat); err != nil {
+				if err := utils.DownloadEveLive(certsDir, eveImageFile, eveArch, eveHV, eveTag, imageFormat); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Infof("download EVE done: %s", eveImageFile)
@@ -234,7 +230,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaults.DefaultUUID, "UUID to use for device")
 
 	setupCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "Adam tag")
-	setupCmd.Flags().StringVarP(&adamDist, "adam-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultAdamDist), "adam dist to start (required)")
+	setupCmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start (required)")
 	setupCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam dist to start")
 
 	setupCmd.Flags().StringSliceVarP(&qemuFirmware, "eve-firmware", "", nil, "firmware path")
@@ -250,7 +246,7 @@ func setupInit() {
 	setupCmd.Flags().BoolVarP(&download, "download", "", true, "download EVE or build")
 	setupCmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
 
-	setupCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultImageDist), "image dist for eserver")
+	setupCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
 	setupCmd.Flags().StringVarP(&binDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")
 	setupCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "")

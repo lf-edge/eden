@@ -10,8 +10,9 @@ const (
 	//directories and files
 	DefaultDist             = "dist"             //root directory
 	DefaultImageDist        = "images"           //directory for images inside dist
-	DefaultRedisDist        = "redis"            //directory for volume of redis inside dist
-	DefaultAdamDist         = "adam"             //directory for volume of adam inside dist
+	DefaultEserverDist      = ""                 //directory to mount eserver images
+	DefaultRedisDist        = ""                 //directory for volume of redis inside dist
+	DefaultAdamDist         = ""                 //directory for volume of adam inside dist
 	DefaultEVEDist          = "eve"              //directory for build EVE inside dist
 	DefaultCertsDist        = "certs"            //directory for certs inside dist
 	DefaultBinDist          = "bin"              //directory for binaries inside dist
@@ -40,7 +41,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag            = "5.7.1" //DefaultEVETag tag for EVE image
-	DefaultAdamTag           = "0.0.48"
+	DefaultAdamTag           = "0.0.51"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"
 	DefaultImage             = "library/alpine"

@@ -3,7 +3,9 @@ package utils
 import (
 	"archive/tar"
 	"bufio"
+	"crypto/md5"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"github.com/docker/distribution/context"
 	"github.com/docker/docker/api/types"
@@ -49,14 +51,32 @@ func CreateDockerNetwork(name string) error {
 	return err
 }
 
+func dockerVolumeName(containerName string) string {
+	distPath := ResolveAbsPath(".")
+	hasher := md5.New()
+	hasher.Write([]byte(distPath))
+	hashMD5 := hasher.Sum(nil)
+	return fmt.Sprintf("%s_%s", containerName, hex.EncodeToString(hashMD5))
+}
+
+//RemoveGeneratedVolumeOfContainer remove volumes created by eden
+func RemoveGeneratedVolumeOfContainer(containerName string) error {
+	volumeName := dockerVolumeName(containerName)
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("NewClientWithOpts: %s", err)
+	}
+	return cli.VolumeRemove(ctx, volumeName, true)
+}
+
 //CreateAndRunContainer run container with defined name from image with port and volume mapping and defined command
 func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string, volumeMap map[string]string, command []string) error {
-
 	log.Debugf("Try to start container from image %s with command %s", imageName, command)
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return err
+		return fmt.Errorf("NewClientWithOpts: %s", err)
 	}
 	if err = PullImage(imageName); err != nil {
 		return err
@@ -77,15 +97,29 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 		}
 	}
 	var mounts []mount.Mount
+	userCurrent, err := user.Current()
+	if err != nil {
+		return err
+	}
+	user := fmt.Sprintf("%s:%s", userCurrent.Uid, userCurrent.Gid)
 	for target, source := range volumeMap {
-		mounts = append(mounts, mount.Mount{
-			Type:   mount.TypeBind,
-			Source: source,
-			Target: target,
-		})
+		if source != "" {
+			mounts = append(mounts, mount.Mount{
+				Type:   mount.TypeBind,
+				Source: source,
+				Target: target,
+			})
+		} else {
+			mounts = append(mounts, mount.Mount{
+				Type:   mount.TypeVolume,
+				Source: dockerVolumeName(containerName),
+				Target: target,
+			})
+			user = "" //non-root user required only for TypeBind for delete
+		}
 	}
 	if err = CreateDockerNetwork(defaults.DefaultDockerNetworkName); err != nil {
-		return err
+		return fmt.Errorf("CreateDockerNetwork: %s", err)
 	}
 	hostConfig := &container.HostConfig{
 		PortBindings: portBinding,
@@ -95,23 +129,19 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 		DNSSearch:    []string{},
 		NetworkMode:  container.NetworkMode(defaults.DefaultDockerNetworkName),
 	}
-	userCurrent, err := user.Current()
-	if err != nil {
-		return err
-	}
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Hostname:     containerName,
 		Image:        imageName,
 		Cmd:          command,
 		ExposedPorts: portExposed,
-		User:         fmt.Sprintf("%s:%s", userCurrent.Uid, userCurrent.Gid),
+		User:         user,
 	}, hostConfig, nil, containerName)
 	if err != nil {
-		return err
+		return fmt.Errorf("ContainerCreate: %s", err)
 	}
 
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return err
+		return fmt.Errorf("ContainerStart: %s", err)
 	}
 
 	log.Infof("started container: %s", resp.ID)
