@@ -29,13 +29,25 @@ func WithMetadata(metadata string) ExpectationOption {
 	}
 }
 
-//AddNetInstanceAndPortPublish adds NetInstance with defined subnet cidr and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
-func AddNetInstanceAndPortPublish(subnetCidr string, portPublish []string) ExpectationOption {
+//AddNetInstanceNameAndPortPublish adds NetInstance with defined name and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
+func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []string) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.netInstances = append(expectation.netInstances, &netInstanceExpectation{
+			name:          netInstanceName,
+			portsReceived: portPublish,
+			ports:         make(map[int]int),
+		})
+	}
+}
+
+//AddNetInstanceAndPortPublish adds NetInstance with defined subnet cidr, networkType and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
+func AddNetInstanceAndPortPublish(subnetCidr string, networkType string, portPublish []string) ExpectationOption {
 	return func(expectation *appExpectation) {
 		expectation.netInstances = append(expectation.netInstances, &netInstanceExpectation{
 			subnet:        subnetCidr,
 			portsReceived: portPublish,
 			ports:         make(map[int]int),
+			netInstType:   networkType,
 		})
 	}
 }

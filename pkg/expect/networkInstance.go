@@ -1,17 +1,22 @@
 package expect
 
 import (
+	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"math/rand"
+	"time"
 )
 
 //netInstanceExpectation stores options for create NetworkInstanceConfigs for apps
 type netInstanceExpectation struct {
+	name          string
 	subnet        string
 	portsReceived []string
 	ports         map[int]int
+	netInstType   string
 }
 
 //checkNetworkInstance checks if provided netInst match expectation
@@ -19,7 +24,9 @@ func (exp *appExpectation) checkNetworkInstance(netInst *config.NetworkInstanceC
 	if netInst == nil {
 		return false
 	}
-	if netInst.Ip.Subnet == instanceExpect.subnet {
+	if netInst.Ip.Subnet == instanceExpect.subnet || //if subnet defined and the same
+		(instanceExpect.name != "" && netInst.Displayname == instanceExpect.name) || //if name defined and the same
+		(instanceExpect.netInstType == "switch" && netInst.InstType == config.ZNetworkInstType_ZnetInstSwitch) { //only one switch for now
 		return true
 	}
 	return false
@@ -38,12 +45,11 @@ func (exp *appExpectation) createNetworkInstance(instanceExpect *netInstanceExpe
 			Uuid:    id.String(),
 			Version: "1",
 		},
-		Displayname: "local",
-		InstType:    config.ZNetworkInstType_ZnetInstLocal, //we use local networks for now
-		Activate:    true,
-		Port:        exp.uplinkAdapter,
-		Cfg:         &config.NetworkInstanceOpaqueConfig{},
-		IpType:      config.AddressType_IPV4,
+		InstType: config.ZNetworkInstType_ZnetInstLocal, //we use local networks for now
+		Activate: true,
+		Port:     exp.uplinkAdapter,
+		Cfg:      &config.NetworkInstanceOpaqueConfig{},
+		IpType:   config.AddressType_IPV4,
 		Ip: &config.Ipspec{
 			Subnet:  instanceExpect.subnet,
 			Gateway: subentIPs[1].String(),
@@ -55,26 +61,45 @@ func (exp *appExpectation) createNetworkInstance(instanceExpect *netInstanceExpe
 		},
 		Dns: nil,
 	}
+	if instanceExpect.netInstType == "switch" {
+		netInst.InstType = config.ZNetworkInstType_ZnetInstSwitch
+		if devModel, err := exp.ctrl.GetDevModelByName(exp.ctrl.GetVars().DevModel); err != nil {
+			log.Fatal(err)
+		} else {
+			netInst.Port = &config.Adapter{Name: devModel.GetFirstAdapterForSwitches()}
+		}
+		netInst.Ip = &config.Ipspec{}
+	}
+	rand.Seed(time.Now().UnixNano())
+	netInst.Displayname = namesgenerator.GetRandomName(0)
 	return netInst, nil
 }
 
-//NetworkInstance expects network instance in cloud
-//it gets NetworkInstanceConfig with defined in appExpectation params, or creates new one, if not exists
-func (exp *appExpectation) NetworkInstance(instanceExpect *netInstanceExpectation) (networkInstance *config.NetworkInstanceConfig) {
-	var err error
-	for _, netInst := range exp.ctrl.ListNetworkInstanceConfig() {
-		if exp.checkNetworkInstance(netInst, instanceExpect) {
-			networkInstance = netInst
-			break
+//NetworkInstances expects network instances in cloud
+//it iterates over NetworkInstanceConfigs from exp.netInstances, gets or creates new one, if not exists
+func (exp *appExpectation) NetworkInstances() (networkInstances map[*netInstanceExpectation]*config.NetworkInstanceConfig) {
+	networkInstances = make(map[*netInstanceExpectation]*config.NetworkInstanceConfig)
+	for _, ni := range exp.netInstances {
+		var err error
+		var networkInstance *config.NetworkInstanceConfig
+		for _, netInst := range exp.ctrl.ListNetworkInstanceConfig() {
+			if exp.checkNetworkInstance(netInst, ni) {
+				networkInstance = netInst
+				break
+			}
 		}
-	}
-	if networkInstance == nil { //if networkInstance not exists, create it
-		if networkInstance, err = exp.createNetworkInstance(instanceExpect); err != nil {
-			log.Fatalf("cannot create NetworkInstance: %s", err)
+		if networkInstance == nil { //if networkInstance not exists, create it
+			if ni.name != "" && ni.subnet == "" {
+				log.Fatalf("not found subnet with name %s", ni.name)
+			}
+			if networkInstance, err = exp.createNetworkInstance(ni); err != nil {
+				log.Fatalf("cannot create NetworkInstance: %s", err)
+			}
+			if err = exp.ctrl.AddNetworkInstanceConfig(networkInstance); err != nil {
+				log.Fatalf("AddNetworkInstanceConfig: %s", err)
+			}
 		}
-		if err = exp.ctrl.AddNetworkInstanceConfig(networkInstance); err != nil {
-			log.Fatalf("AddNetworkInstanceConfig: %s", err)
-		}
+		networkInstances[ni] = networkInstance
 	}
 	return
 }

@@ -248,6 +248,7 @@ The current sub-commands are:
    * `eve` -- sub-commands for interact with EVE.
    * `controller` -- sub-commands to update EVE.
    * `pod` -- work with applications running on EVE (containers and VMs)
+   * `network` -- sub-commands to work with networks running on EVE
 
 ## Eden EVE commands
 
