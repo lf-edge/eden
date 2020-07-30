@@ -10,8 +10,9 @@ eden.escript.test -test.run TestEdenScripts/log_test -testdata ../lim/testdata/
 /bin/echo Eden SSH test (5/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ssh
 /bin/echo Eden 2 dockers test (6/{{$tests}})
-eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
+eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testdata/
 {{/*
+eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
 eden.escript.test -test.run TestEdenScripts/deploy_docker_eden -test.timeout 10m
 eden.escript.test -test.run TestEdenScripts/deploy_docker_test
 eden.escript.test -test.run TestEdenScripts/deploy_docker_eden
