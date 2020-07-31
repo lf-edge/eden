@@ -100,7 +100,8 @@ EDEN supports [Go Templates](https://golang.org/pkg/text/template) with the abil
 Functions related to EDEN that can be used in templates:
 * `{{EdenConfig "<config_parameter>"}}` -- get value of Eden config parameter;
 * `{{EdenPath "<dir_of_file>"}}` -- resolve path relative to the Eden root directory;
-* `{{EdenConfigPath "<config_parameter>"}}` -- combination of EdenConfig and EdenPath.
+* `{{EdenConfigPath "<config_parameter>"}}` -- combination of EdenConfig and EdenPath;
+* `{{EdenGetEnv "<env_var_name>"}}` -- read a value from an environment variable,  can be used for passing external parameters in escripts.
 
 This allows you to use not only hardcoded parameters in test scenarios, eden-config.yml or any other file which may be handled by `eden utils template`, but to get them directly from the current configuration. Some examples about using of templates you can see at [Unit Tests](tests/units/).
 
@@ -108,12 +109,25 @@ This allows you to use not only hardcoded parameters in test scenarios, eden-con
 
 Specific arguments for testing binary files may be passed by two ways:
 
-* placing them in the local eden-config.yaml for this test, for ex.:
+* placing them in the local eden-config.tmpl for this test, for ex.:
 https://github.com/lf-edge/eden/blob/master/tests/reboot/eden-config.tmpl
+then you must generate eden-config.yaml for this test:
+```
+utils template eden-config.tmpl>eden-config.yml
+```
 * use of test arguments in test scripts or a selected test from an executable binary test for ex.:
 https://github.com/lf-edge/eden/blob/master/tests/integration/eden.integration.tests.txt
 
 The second option is more flexible, because we can run the same test several times with different parameters in the same scenario.
+
+The most commonly used `eden-config` parameters for setting up a test are:
+
+* `eden.escript.test-scenario` -- name of file with a default test scenario. This file should be placed in the test's directory or in the `eden.root` directory.
+* `eden.escript.test-bin`-- name of default test binary. Can be used with the `eden test -run` command to run the selected test from this binary. This file should be placed in the test's directory or in the `eden.root/eden.bin-dist` directory.
+
+## Test sceanrios
+
+Test sceanrios are plain text files with one line per command structure. The most commonly used commands are just test binaries with arguments. In sceanrios you can use inline comments in the Shell (#) and Go (//) styles. Comment blocks from Go templates {{/* */}} can also be used. Example of scenario: [workflow/eden.workflow.tests.txt](workflow/eden.workflow.tests.txt).
 
 ## Test scripting
 
@@ -123,4 +137,4 @@ To basic implementation of internal Go testscripts added support of `eden` comma
 Test scripts can be used as glue logic for test binaries “detectors” and “actors”. All components that are required for tests,
 such as configuration files, test data, or external scripts, can be placed in a test script and processed by the Eden template engine.
 
-You can read more about the test scripting for Eden testing at [ESCRIPTS.md](escript/ESCRIPTS.md).
+You can read more about the test scripting for Eden testing at [escript/README.md](escript/README.md).

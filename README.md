@@ -104,7 +104,7 @@ Some tests may accept parameters - run Log/Metrics/Info test in debug mode with 
 
 `eden test tests/lim/ -v debug -a '-timewait 600 -number 3'` 
 
-You can find more detailed information about `eden test` in [TESTING.md](tests/TESTING.md) and [ESCRIPTS.md](tests/escript/ESCRIPTS.md)
+You can find more detailed information about `eden test` in [tests/README.md](tests/README.md) and [tests/escript/README.md](tests/escript/README.md)
 
 ## Raspberry Pi 4 support
 
