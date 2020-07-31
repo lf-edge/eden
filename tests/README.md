@@ -120,7 +120,7 @@ https://github.com/lf-edge/eden/blob/master/tests/integration/eden.integration.t
 
 The second option is more flexible, because we can run the same test several times with different parameters in the same scenario.
 
-The most commonly used parameters for setting up a test are:
+The most commonly used `eden-config` parameters for setting up a test are:
 
 * `eden.escript.test-scenario` -- name of file with a default test scenario. This file should be placed in the test's directory or in the `eden.root` directory.
 * `eden.escript.test-bin`-- name of default test binary. Can be used with the `eden test -run` command to run the selected test from this binary. This file should be placed in the test's directory or in the `eden.root/eden.bin-dist` directory.
