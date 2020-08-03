@@ -78,6 +78,8 @@ func init() {
 	controllerInit()
 	rootCmd.AddCommand(podCmd)
 	podInit()
+	rootCmd.AddCommand(networkCmd)
+	networkInit()
 }
 
 // Execute primary function for cobra

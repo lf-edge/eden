@@ -100,6 +100,8 @@ const (
 
 	DefaultAppMem = 1024000
 	DefaultAppCpu = 1
+
+	DefaultDummyExpect = "docker://image"
 )
 
 var (

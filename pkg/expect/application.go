@@ -35,6 +35,7 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
+	appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
 
 	for k, ni := range netInstances {
 		acls := []*config.ACE{{
@@ -63,11 +64,11 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 				aclID++
 			}
 		}
-		appInstanceConfig.Interfaces = []*config.NetworkAdapter{{
+		appInstanceConfig.Interfaces = append(appInstanceConfig.Interfaces, &config.NetworkAdapter{
 			Name:      "default",
 			NetworkId: ni.Uuidandversion.Uuid,
 			Acls:      acls,
-		}}
+		})
 	}
 	if exp.vncDisplay != 0 {
 		appInstanceConfig.Fixedresources.EnableVnc = true
@@ -82,10 +83,7 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 func (exp *appExpectation) Application() (appInstanceConfig *config.AppInstanceConfig) {
 	var err error
 	image := exp.Image()
-	networkInstances := make(map[*netInstanceExpectation]*config.NetworkInstanceConfig)
-	for _, ni := range exp.netInstances {
-		networkInstances[ni] = exp.NetworkInstance(ni)
-	}
+	networkInstances := exp.NetworkInstances()
 	for _, app := range exp.ctrl.ListApplicationInstanceConfig() {
 		if exp.checkAppInstanceConfig(app) {
 			appInstanceConfig = app
