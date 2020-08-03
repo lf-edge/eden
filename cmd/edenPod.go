@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,6 +33,9 @@ var (
 	appCpus     uint32
 	appMemory   string
 	diskSize    string
+
+	outputTail   uint
+	outputFields []string
 )
 
 var podCmd = &cobra.Command{
@@ -385,6 +391,106 @@ var podDeleteCmd = &cobra.Command{
 	},
 }
 
+//podStopCmd is a command to delete app from EVE
+var podLogsCmd = &cobra.Command{
+	Use:   "logs <name>",
+	Short: "Logs of pod",
+	Args:  cobra.ExactArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		appName := args[0]
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		for _, el := range dev.GetApplicationInstances() {
+			app, err := ctrl.GetApplicationInstanceConfig(el)
+			if err != nil {
+				log.Fatalf("no app in cloud %s: %s", el, err)
+			}
+			if app.Displayname == appName {
+				for _, el := range outputFields {
+					switch el {
+					case "log":
+						//block for process logs
+						fmt.Printf("Log list for app %s:\n", app.Uuidandversion.Uuid)
+						//process only existing elements
+						logType := elog.LogExist
+
+						if outputTail > 0 {
+							//process only outputTail elements from end
+							logType = elog.LogTail(outputTail)
+						}
+
+						//logsQ for filtering logs by app
+						logsQ := make(map[string]string)
+						logsQ["msg"] = app.Uuidandversion.Uuid
+						if err = ctrl.LogChecker(dev.GetID(), logsQ, elog.HandleAll, logType, 0); err != nil {
+							log.Fatalf("LogChecker: %s", err)
+						}
+					case "info":
+						//block for process info
+						fmt.Printf("Info list for app %s:\n", app.Uuidandversion.Uuid)
+						//process only existing elements
+						infoType := einfo.InfoExist
+
+						if outputTail > 0 {
+							//process only outputTail elements from end
+							infoType = einfo.InfoTail(outputTail)
+						}
+
+						//infoQ for filtering infos by app
+						infoQ := make(map[string]string)
+						infoQ["InfoContent.Ainfo.AppID"] = app.Uuidandversion.Uuid
+						if err = ctrl.InfoChecker(dev.GetID(), infoQ, einfo.HandleAll, infoType, 0); err != nil {
+							log.Fatalf("InfoChecker: %s", err)
+						}
+					case "metric":
+						//block for process metrics
+						fmt.Printf("Metric list for app %s:\n", app.Uuidandversion.Uuid)
+
+						//process only existing elements
+						metricType := emetric.MetricExist
+
+						if outputTail > 0 {
+							//process only outputTail elements from end
+							metricType = emetric.MetricTail(outputTail)
+						}
+						handleMetric := func(le *metrics.ZMetricMsg) bool {
+							for i, el := range le.Am {
+								//filter metrics by application
+								if el.AppID == app.Uuidandversion.Uuid {
+									//we print only Am from obtained metric
+									emetric.MetricItemPrint(le, []string{fmt.Sprintf("Am[%d]", i)}).Print()
+								}
+							}
+							return false
+						}
+
+						//metricsQ for filtering metrics by app
+						metricsQ := make(map[string]string)
+						metricsQ["Am[].AppID"] = app.Uuidandversion.Uuid
+						if err = ctrl.MetricChecker(dev.GetID(), metricsQ, handleMetric, metricType, 0); err != nil {
+							log.Fatalf("MetricChecker: %s", err)
+						}
+
+					}
+				}
+				return
+			}
+		}
+		log.Infof("not found app with name %s", appName)
+	},
+}
+
 func podInit() {
 	podCmd.AddCommand(podDeployCmd)
 	podDeployCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
@@ -399,4 +505,7 @@ func podInit() {
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
 	podCmd.AddCommand(podDeleteCmd)
+	podCmd.AddCommand(podLogsCmd)
+	podLogsCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
+	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric"}, "Show defined elements")
 }

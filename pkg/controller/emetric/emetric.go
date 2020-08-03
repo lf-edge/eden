@@ -22,10 +22,16 @@ import (
 //MetricCheckerMode is MetricExist, MetricNew and MetricAny
 type MetricCheckerMode int
 
+//MetricTail returns MetricCheckerMode for process only defined count of last messages
+func MetricTail(count uint) MetricCheckerMode {
+	return MetricCheckerMode(count)
+}
+
+// MetricChecker modes MetricExist, MetricNew and MetricAny.
 const (
-	MetricExist MetricCheckerMode = iota // just look to existing files
-	MetricNew                            // wait for new files
-	MetricAny                            // use both mechanisms
+	MetricExist MetricCheckerMode = -3 //MetricExist just look to existing files
+	MetricNew   MetricCheckerMode = -2 //MetricNew wait for new files
+	MetricAny   MetricCheckerMode = -1 //MetricAny use both mechanisms
 )
 
 //ParseMetricsBundle unmarshal LogBundle
@@ -60,10 +66,10 @@ func ParseMetricItem(data string) (logItem *metrics.ZMetricMsg, err error) {
 //MetricItemPrint find ZMetricMsg records by path in 'query'
 func MetricItemPrint(mm *metrics.ZMetricMsg, query []string) *types.PrintResult {
 	result := make(types.PrintResult)
-	for i, v := range query {
+	for _, v := range query {
 		splitRequest := strings.Split(v, ".")
 		if len(splitRequest) > 0 && strings.ToLower(splitRequest[0]) == "dm" { //dm is located in MetricContent
-			query[i] = strings.Join(append([]string{"MetricContent"}, splitRequest...), ".")
+			v = strings.Join(append([]string{"MetricContent"}, splitRequest...), ".")
 		}
 		// Uppercase of filed's name first letter
 		var n []string
@@ -190,11 +196,29 @@ func MetricChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string
 				}
 				return
 			}
-			err := MetricLast(loader.Clone(), q, handler)
-			if err != nil {
+			done <- MetricLast(loader.Clone(), q, handler)
+		}()
+	}
+	// use for process only defined count of last messages
+	if mode > 0 {
+		metricQueue := utils.InitQueueWithCapacity(int(mode))
+		handlerLocal := func(item *metrics.ZMetricMsg) (result bool) {
+			if err = metricQueue.Enqueue(item); err != nil {
 				done <- err
 			}
-		}()
+			return false
+		}
+		if err = MetricLast(loader.Clone(), q, handlerLocal); err != nil {
+			done <- err
+		}
+		el, err := metricQueue.Dequeue()
+		for err == nil {
+			if result := handler(el.(*metrics.ZMetricMsg)); result {
+				return nil
+			}
+			el, err = metricQueue.Dequeue()
+		}
+		return nil
 	}
 	return <-done
 }
