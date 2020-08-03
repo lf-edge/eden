@@ -76,5 +76,6 @@ func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 		Image:        img,
 		Maxsizebytes: maxSizeBytes,
 	}}
+	app.Fixedresources.VirtualizationMode = exp.virtualizationMode
 	return app
 }
