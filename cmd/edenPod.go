@@ -27,6 +27,7 @@ var (
 	podName     string
 	podMetadata string
 	portPublish []string
+	podNetworks []string
 	qemuPorts   map[string]string
 	vncDisplay  uint32
 	vncPassword string
@@ -65,10 +66,21 @@ var podDeployCmd = &cobra.Command{
 			log.Fatalf("getControllerAndDev: %s", err)
 		}
 		var opts []expect.ExpectationOption
-		opts = append(opts, expect.WithPortsPublish(portPublish))
 		opts = append(opts, expect.WithMetadata(podMetadata))
 		opts = append(opts, expect.WithVnc(vncDisplay))
 		opts = append(opts, expect.WithVncPassword(vncPassword))
+		if len(podNetworks) > 0 {
+			for i, el := range podNetworks {
+				if i == 0 {
+					//allocate ports on first network
+					opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, portPublish))
+				} else {
+					opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, nil))
+				}
+			}
+		} else {
+			opts = append(opts, expect.WithPortsPublish(portPublish))
+		}
 		diskSizeParsed, err := humanize.ParseBytes(diskSize)
 		if err != nil {
 			log.Fatal(err)
@@ -501,6 +513,7 @@ func podInit() {
 	podDeployCmd.Flags().Uint32Var(&appCpus, "cpus", defaults.DefaultAppCpu, "cpu number for app")
 	podDeployCmd.Flags().StringVar(&appMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
 	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
+	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
