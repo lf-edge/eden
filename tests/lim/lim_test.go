@@ -37,7 +37,7 @@ var (
 	*/
 	tc *projects.TestContext
 
-	query map[string]string = map[string]string{}
+	query = map[string]string{}
 	found bool
 	items int
 )
@@ -142,8 +142,6 @@ func TestLog(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	tc.ConfigSync(edgeNode)
-
 	t.Logf("Wait for log of %s number=%d timewait=%d\n", edgeNode.GetName(),
 		*number, *timewait)
 
@@ -185,8 +183,6 @@ func TestInfo(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	tc.ConfigSync(edgeNode)
-
 	t.Logf("Wait for info of %s number=%d timewait=%d\n",
 		edgeNode.GetName(), *number, *timewait)
 
@@ -227,8 +223,6 @@ func TestMetrics(t *testing.T) {
 	}
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
-
-	tc.ConfigSync(edgeNode)
 
 	t.Logf("Wait for metric of %s number=%d timewait=%d\n",
 		edgeNode.GetName(), *number, *timewait)

@@ -80,14 +80,14 @@ func (state *state) processInfo(infoMsg *info.ZInfoMsg) error {
 	case info.ZInfoTypes_ZiBlobList:
 		bInfoList := infoMsg.GetBinfo()
 	blobsLoop:
-		for ind, blob := range state.deviceInfo.Binfo {
-			for _, newBlob := range bInfoList.Blob {
+		for _, newBlob := range bInfoList.Blob {
+			for ind, blob := range state.deviceInfo.Binfo {
 				if blob.Sha256 == newBlob.Sha256 {
 					state.deviceInfo.Binfo[ind] = newBlob
 					continue blobsLoop
 				}
 			}
-			state.deviceInfo.Binfo = append(state.deviceInfo.Binfo, blob)
+			state.deviceInfo.Binfo = append(state.deviceInfo.Binfo, newBlob)
 		}
 	}
 	return nil

@@ -138,9 +138,10 @@ func TestReboot(t *testing.T) {
 		// this is expected to be a synchronous call for now
 		if *reboot {
 			edgeNode.Reboot()
-		}
 
-		tc.ConfigSync(edgeNode)
+			//sync config only if reboot needed
+			tc.ConfigSync(edgeNode)
+		}
 
 		t.Logf("Wait for reboot of %s", edgeNode.GetName())
 
