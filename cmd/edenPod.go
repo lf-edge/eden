@@ -103,10 +103,12 @@ var podDeployCmd = &cobra.Command{
 
 type appState struct {
 	name      string
+	uuid      string
 	image     string
 	adamState string
 	eveState  string
-	intIp     string
+	intIp     []string
+	macs      []string
 	extIp     string
 	intPort   string
 	extPort   string
@@ -114,19 +116,37 @@ type appState struct {
 }
 
 func appStateHeader() string {
-	return "NAME\tIMAGE\tINTERNAL\tEXTERNAL\tSTATE(ADAM)\tLAST_STATE(EVE)"
+	return "NAME\tIMAGE\tUUID\tINTERNAL\tEXTERNAL\tSTATE(ADAM)\tLAST_STATE(EVE)"
 }
 
 func (appStateObj *appState) toString() string {
-	internal := fmt.Sprintf("%s:%s", appStateObj.intIp, appStateObj.intPort)
-	if appStateObj.intPort == "" {
-		internal = appStateObj.intIp
+	internal := "-"
+	if len(appStateObj.intIp) == 1 {
+		if appStateObj.intPort == "" {
+			internal = appStateObj.intIp[0] //if one internal IP and not forward, display it
+		} else {
+			internal = fmt.Sprintf("%s:%s", appStateObj.intIp[0], appStateObj.intPort)
+		}
+	} else if len(appStateObj.intIp) > 1 {
+		var els []string
+		for i, el := range appStateObj.intIp {
+			if i == 0 { //forward only on first network
+				if appStateObj.intPort == "" {
+					els = append(els, fmt.Sprintf("%s", el)) //if multiple internal IPs and not forward, display them
+				} else {
+					els = append(els, fmt.Sprintf("%s:%s", el, appStateObj.intPort))
+				}
+			} else {
+				els = append(els, el)
+			}
+		}
+		internal = strings.Join(els, "; ")
 	}
 	external := fmt.Sprintf("%s:%s", appStateObj.extIp, appStateObj.extPort)
 	if appStateObj.extPort == "" {
 		external = "-"
 	}
-	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", appStateObj.name, appStateObj.image,
+	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s", appStateObj.name, appStateObj.image, appStateObj.uuid,
 		internal,
 		external,
 		appStateObj.adamState, appStateObj.eveState)
@@ -197,8 +217,17 @@ var podPsCmd = &cobra.Command{
 				imageName = app.Drives[0].Image.Name
 			}
 			intPort, extPort := getPortMapping(app, qemuPorts)
-			appStateObj := &appState{name: app.Displayname, image: imageName, adamState: "IN_CONFIG",
-				eveState: "UNKNOWN", intIp: "-", extIp: "-", intPort: intPort, extPort: extPort}
+			appStateObj := &appState{
+				name:      app.Displayname,
+				image:     imageName,
+				adamState: "IN_CONFIG",
+				eveState:  "UNKNOWN",
+				intIp:     []string{"-"},
+				extIp:     "-",
+				intPort:   intPort,
+				extPort:   extPort,
+				uuid:      app.Uuidandversion.Uuid,
+			}
 			appStates[app.Uuidandversion.Uuid] = appStateObj
 		}
 		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
@@ -206,21 +235,61 @@ var podPsCmd = &cobra.Command{
 			case info.ZInfoTypes_ZiApp:
 				appStateObj, ok := appStates[im.GetAinfo().AppID]
 				if !ok {
-					imageName := ""
-					if len(im.GetAinfo().GetSoftwareList()) > 0 {
-						imageName = im.GetAinfo().GetSoftwareList()[0].ImageName
+					appStateObj = &appState{
+						name:      im.GetAinfo().AppName,
+						image:     "-",
+						adamState: "NOT_IN_CONFIG",
+						uuid:      im.GetAinfo().AppID,
 					}
-					appStateObj = &appState{name: im.GetAinfo().AppName, image: imageName, adamState: "NOT_IN_CONFIG"}
 					appStates[im.GetAinfo().AppID] = appStateObj
 				}
 				appStateObj.eveState = im.GetAinfo().State.String()
-				if len(im.GetAinfo().Network) > 0 && len(im.GetAinfo().Network[0].IPAddrs) > 0 {
-					appStateObj.intIp = im.GetAinfo().Network[0].IPAddrs[0]
+				if len(im.GetAinfo().AppErr) > 0 {
+					//if AppErr, show them
+					appStateObj.eveState = fmt.Sprintf("%s: %s", im.GetAinfo().State.String(), im.GetAinfo().AppErr)
+				}
+				if len(im.GetAinfo().Network) != 0 && len(im.GetAinfo().Network[0].IPAddrs) != 0 {
+					if len(im.GetAinfo().Network) > 1 {
+						appStateObj.intIp = []string{}
+						appStateObj.macs = []string{}
+						for _, el := range im.GetAinfo().Network {
+							if len(im.GetAinfo().Network[0].IPAddrs) != 0 {
+								appStateObj.intIp = append(appStateObj.intIp, el.IPAddrs[0])
+								appStateObj.macs = append(appStateObj.macs, el.MacAddr)
+							}
+						}
+					} else {
+						if len(im.GetAinfo().Network[0].IPAddrs) != 0 {
+							appStateObj.intIp = []string{im.GetAinfo().Network[0].IPAddrs[0]}
+							appStateObj.macs = []string{im.GetAinfo().Network[0].MacAddr}
+						}
+					}
 				} else {
-					appStateObj.intIp = "-"
+					appStateObj.intIp = []string{"-"}
+					appStateObj.macs = []string{}
+				}
+			case info.ZInfoTypes_ZiNetworkInstance: //try to find ips from NetworkInstances
+				for _, el := range im.GetNiinfo().IpAssignments {
+					for _, appStateObj := range appStates {
+						for ind, mac := range appStateObj.macs {
+							if mac == el.MacAddress {
+								appStateObj.intIp[ind] = el.IpAddress[0]
+							}
+						}
+					}
 				}
 			case info.ZInfoTypes_ZiDevice:
 				for _, appStateObj := range appStates {
+					seen := false
+					for _, el := range im.GetDinfo().AppInstances {
+						if appStateObj.uuid == el.Uuid {
+							seen = true
+							break
+						}
+					}
+					if !seen {
+						appStateObj.eveState = "UNKNOWN" //UNKNOWN if not found in recent AppInstances
+					}
 					if devModel == defaults.DefaultRPIModel {
 						for _, nw := range im.GetDinfo().Network {
 							for _, addr := range nw.IPAddrs {
@@ -246,12 +315,18 @@ var podPsCmd = &cobra.Command{
 		}
 		var handleInfoDevice = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 			for _, appStateObj := range appStates {
+				//check appStateObj not defined in adam
 				if appStateObj.adamState == "NOT_IN_CONFIG" {
-					appStateObj.deleted = true
-					if im.GetZtype() == info.ZInfoTypes_ZiDevice {
+					switch im.GetZtype() {
+					case info.ZInfoTypes_ZiApp:
+						if im.GetAinfo().AppID == appStateObj.uuid {
+							appStateObj.deleted = false //if in recent ZInfoTypes_ZiApp, than not deleted
+						}
+					case info.ZInfoTypes_ZiDevice:
+						appStateObj.deleted = true
 						for _, el := range im.GetDinfo().AppInstances {
-							if appStateObj.name == el.Name {
-								appStateObj.deleted = false
+							if el.Uuid == appStateObj.uuid {
+								appStateObj.deleted = false //if in recent ZInfoTypes_ZiDevice, than not deleted
 							}
 						}
 					}
