@@ -1,0 +1,84 @@
+## This is the typical example of the test set
+
+# Quickstart 
+
+Each testset or individual test should contain:
+* A makefile that builds the test
+* A template eden-config.tmpl. A template contains the nessesary information about binaries, config of the environment where the test runs, test scenario
+* A test scenario file named eden.<testname>.tests.txt A scenario can contain one or more tests. A scenario allows to run bash scripts, escripts and go binaries
+
+Test may contain
+* Go files 
+* Escript files in ./testdata catalogue  
+
+# Running the test
+
+To run the test use `eden test ./tests/<testfolder>`
+
+# Makefile
+
+Should have the following targets: 
+
+* clean
+* test
+* build
+* setup
+* help
+
+build happens whenever one calls `make build` in the eden directory
+clean happens whenever one calls `make clean` or `eden clean` in the eden directory 
+
+# A template file
+
+Example
+
+```
+eden:
+    #test binary
+    test-bin: "eden.escript.test"
+
+    #test scenario
+    test-scenario: "eden.workflow.tests.txt"
+
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+```
+
+A template file contains 2 sections: eden and test
+
+Eden section specifies the name of the test and the scenario. The scenario is the file that is presented in the test root directory
+ and that will be executed line-by-line by escript interpreter. Escript interpreter can be considered as an extended version
+ of bash interpreter + some additional features. It is  described in  https://github.com/lf-edge/eden/blob/master/tests/escript/ESCRIPTS.md
+
+Test section describes the environment required for the test. This data goes to config that the test sends to eve
+It is reccommended to use parameters from EdenConfig which is the current config file. 
+
+# A test scenario
+
+A scenario runs one or more binaries or escripts. A scenario is also processed by escript. Using scenario one can create a set of test runs or sequentially execute smaller tests.
+
+An example of test scenario is: 
+```
+#Set up a variable
+{{$tests := 4}}
+# Print the line "Eden setup 1/4"  Uses echo command
+/bin/echo Eden setup (1/{{$tests}})
+# Runs the escript ./testdata/eden_setup.txt 
+eden.escript.test -test.run TestEdenScripts/eden_setup
+/bin/echo Eden start (2/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_start
+/bin/echo Eden onboard (3/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_onboard
+/bin/echo Eden Log test (4/{{$tests}}) 
+# Runs the escript ../lim/testdata/log_test.txt As it is from the other test folder we need -testdata parameter
+eden.escript.test -test.run TestEdenScripts/log_test -testdata ../lim/testdata/
+```
+# testdata directory
+
+Containes escript tests (consider as individual tests) They can be also called from another scenario. Note that environment(template) will be used from calling test 
+

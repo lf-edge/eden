@@ -1,0 +1,4 @@
+eden config add default
+stdout 'Config file generated:'
+stdout 'QEMU config file generated:'
+

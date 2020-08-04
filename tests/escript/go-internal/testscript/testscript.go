@@ -307,12 +307,12 @@ func (ts *TestScript) setup() string {
 	// MacOS envs set
 	if runtime.GOOS == "darwin" {
 		env.Vars = append(env.Vars,
-			homeEnvName() + "=" + os.Getenv("HOME"),
-			"USER=" + os.Getenv("USER"),
+			homeEnvName()+"="+os.Getenv("HOME"),
+			"USER="+os.Getenv("USER"),
 		)
 	} else {
 		env.Vars = append(env.Vars,
-			homeEnvName() + "=/no-home",
+			homeEnvName()+"=/no-home",
 		)
 	}
 	// Must preserve SYSTEMROOT on Windows: https://github.com/golang/go/issues/25513 et al
@@ -662,7 +662,15 @@ func (ts *TestScript) buildExecCmd(command string, args ...string) (*exec.Cmd, e
 			command = lp
 		}
 	}
-	return exec.Command(command, args...), nil
+	if timewait == 0 {
+		//ts.ctxt = context.Background()
+		return exec.Command(command, args...), nil
+	} else {
+		//ts.ctxt, _ = context.WithTimeout(context.Background(), timewait)
+		//return exec.CommandContext(ts.ctxt, command, args...), nil
+		ctx, _ := context.WithTimeout(context.Background(), timewait)
+		return exec.CommandContext(ctx, command, args...), nil
+	}
 }
 
 // BackgroundCmds returns a slice containing all the commands that have

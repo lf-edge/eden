@@ -15,7 +15,7 @@ func TestEdenScripts(t *testing.T) {
 		log.Fatalf("can't find %s directory: %s\n", *testData, err)
 	}
 
-	log.Info("testData direcory: ", *testData)
+	log.Info("testData directory: ", *testData)
 	testscript.Run(t, testscript.Params{
 		Dir: *testData,
 	})
