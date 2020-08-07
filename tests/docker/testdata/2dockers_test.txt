@@ -1,11 +1,11 @@
-{{$test_opts := "-test.v -timewait 600"}}
+{{$test_opts := "-test.v -timewait 1200"}}
 
 [!exec:curl] stop
 
 eden -t 1s pod ps
 
-# Starting of reboot detector with a 3 reboots limit
-! test eden.reboot.test {{$test_opts}} -reboot=0 -count=1 &
+# Starting of reboot detector with a 2 reboots limit
+! test eden.reboot.test {{$test_opts}} -reboot=0 -count=2 &
 
 # Run by docker's actor
 test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t1 -externalPort 8027

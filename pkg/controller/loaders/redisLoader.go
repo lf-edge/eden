@@ -146,7 +146,7 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 		counter, _ := strconv.Atoi(splitted[1])
 		start = fmt.Sprintf("%s-%v", splitted[0], counter+1)
 		for {
-			rr, err := loader.client.XRangeN(OrderStream, start, "+", 10).Result()
+			rr, err := loader.client.XRangeN(OrderStream, start, "+", 100).Result()
 			if err != nil {
 				return false, false, fmt.Errorf("XRange error: %s", err)
 			}
@@ -171,6 +171,7 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 			splitted := strings.Split(loader.lastID, "-")
 			counter, _ := strconv.Atoi(splitted[1])
 			start = fmt.Sprintf("%s-%v", splitted[0], counter+1)
+			time.Sleep(time.Second) //sleep for second to reduce the load of redis
 		}
 	}
 }

@@ -1,4 +1,5 @@
-{{$test := "test eden.lim.test -test.v -timewait 600 -test.run TestLog"}}
+{{$test1 := "test eden.lim.test -test.v -timewait 600 -test.run TestLog"}}
+{{$test2 := "test eden.lim.test -test.v -test.run TestLog"}}
 
 #eden config add default
 #eden setup
@@ -6,11 +7,11 @@
 #eden eve onboard
 
 # Trying to find eth0 or eth1 in msg.
-{{$test}} -out msg 'msg:.*eth[01].*'
+{{$test1}} -out msg 'msg:.*eth[01].*'
 stdout 'eth[01]'
 
 # Checking msg for interfaces other than eth0 or eth1.
-! {{$test}} -out msg msg:'.*eth[^01].*'
+! {{$test2}} -out msg msg:'.*eth[^01].*'
 
 # Test's config. file
 -- eden-config.yml --

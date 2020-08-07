@@ -1,4 +1,5 @@
-{{$test := "test eden.lim.test -test.v -timewait 120 -test.run TestInfo"}}
+{{$test1 := "test eden.lim.test -test.v -timewait 600 -test.run TestInfo"}}
+{{$test2 := "test eden.lim.test -test.v -test.run TestInfo"}}
 
 #eden config add default
 #eden setup
@@ -6,11 +7,11 @@
 #eden eve onboard
 
 # Trying to find eth0 or eth1 in dinfo.network.devName.
-{{$test}} -out InfoContent.dinfo.network.devName 'InfoContent.dinfo.network.devName:.*eth[01].*'
+{{$test1}} -out InfoContent.dinfo.network.devName 'InfoContent.dinfo.network.devName:.*eth[01].*'
 stdout 'eth[01]'
 
 # Checking dinfo.network.devName for interfaces other than eth0 or eth1.
-! {{$test}} -out InfoContent.dinfo.network.devName 'InfoContent.dinfo.network.devName:.*eth[^01].*'
+! {{$test2}} -out InfoContent.dinfo.network.devName 'InfoContent.dinfo.network.devName:.*eth[^01].*'
 ! stdout 'eth[^01]'
 
 # Test's config. file
