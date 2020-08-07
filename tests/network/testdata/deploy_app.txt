@@ -1,0 +1,5 @@
+{{$env_net := EdenGetEnv "net"}}
+
+message {{$env_net}}
+
+eden pod deploy {{EdenGetEnv "external_port"}} --metadata='url={{EdenGetEnv "metadata"}}' --name='{{EdenGetEnv "name"}}' --networks={{ $env_net }} --vnc-display={{ EdenGetEnv "vnc" }} docker://itmoeve/docker-test:1.1 -v debug
