@@ -43,7 +43,7 @@ var configAddCmd = &cobra.Command{
 	Long:  `Generate config context for eden.`,
 	Args:  cobra.ExactValidArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if devModel != defaults.DefaultRPIModel && devModel != defaults.DefaultEVEModel {
+		if devModel != defaults.DefaultRPIModel && devModel != defaults.DefaultEVEModel && devModel != defaults.DefaultGCPModel {
 			log.Fatal("unsupported model")
 		}
 		var err error
@@ -127,6 +127,17 @@ var configAddCmd = &cobra.Command{
 			if ssid != "" {
 				viper.Set("eve.ssid", ssid)
 			}
+			if err = viper.WriteConfig(); err != nil {
+				log.Fatalf("error writing config: %s", err)
+			}
+		}
+		if devModel == defaults.DefaultGCPModel { //modify default settings according to GCP params
+			eveRemote = true
+			viper.Set("eve.hostfwd", map[string]string{})
+			viper.Set("eve.devmodel", defaults.DefaultGCPModel)
+			viper.Set("eve.serial", "*")
+			viper.Set("eve.remote", eveRemote)
+			viper.Set("eve.remote-addr", "")
 			if err = viper.WriteConfig(); err != nil {
 				log.Fatalf("error writing config: %s", err)
 			}

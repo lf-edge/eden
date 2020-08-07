@@ -295,7 +295,7 @@ var podPsCmd = &cobra.Command{
 					if !seen {
 						appStateObj.eveState = "UNKNOWN" //UNKNOWN if not found in recent AppInstances
 					}
-					if devModel == defaults.DefaultRPIModel {
+					if devModel == defaults.DefaultRPIModel || devModel == defaults.DefaultGCPModel {
 						for _, nw := range im.GetDinfo().Network {
 							for _, addr := range nw.IPAddrs {
 								ip, _, err := net.ParseCIDR(addr)

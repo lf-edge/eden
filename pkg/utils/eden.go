@@ -361,6 +361,9 @@ func MakeEveInRepo(distEve string, configPath string, arch string, hv string, im
 		image = filepath.Join(distEve, "dist", arch, "installer", fmt.Sprintf("live.%s", imageFormat))
 	} else {
 		image = filepath.Join(distEve, "dist", arch, fmt.Sprintf("live.%s", imageFormat))
+		if imageFormat == "gcp" {
+			image = filepath.Join(distEve, "dist", arch, "live.img.tar.gz")
+		}
 		commandArgsString := fmt.Sprintf("-C %s ZARCH=%s HV=%s CONF_DIR=%s IMG_FORMAT=%s live",
 			distEve, arch, hv, configPath, imageFormat)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
