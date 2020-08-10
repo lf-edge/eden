@@ -139,6 +139,10 @@ The predefined commands are:
     With no arguments, print the environment (useful for debugging).
     Otherwise add the listed key=value pairs to the environment.
 
+* source file...
+
+    Parse file and set environment variables from it.
+
 * [!] exec program [args...] [&]
 
     Run the given executable program with the arguments.

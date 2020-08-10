@@ -6,6 +6,7 @@ package testscript
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -33,6 +34,7 @@ var scriptCmds = map[string]func(*TestScript, bool, []string){
 	"cp":      (*TestScript).cmdCp,
 	"eden":    (*TestScript).cmdEden,
 	"env":     (*TestScript).cmdEnv,
+	"source":  (*TestScript).cmdSource,
 	"exec":    (*TestScript).cmdExec,
 	"exists":  (*TestScript).cmdExists,
 	"grep":    (*TestScript).cmdGrep,
@@ -356,6 +358,31 @@ func (ts *TestScript) cmdEnv(neg bool, args []string) {
 			continue
 		}
 		ts.Setenv(env[:i], env[i+1:])
+	}
+}
+
+// source parse variables from file to the environment.
+func (ts *TestScript) cmdSource(neg bool, args []string) {
+	if neg {
+		ts.Fatalf("unsupported: ! source")
+	}
+	if len(args) == 0 {
+		ts.Fatalf("No file defined to parse variables")
+	}
+	if len(args) < 1 {
+		ts.Fatalf("usage: source file...")
+	}
+	for _, arg := range args {
+		currentFile := ts.MkAbs(arg)
+		localViper := viper.New()
+		localViper.SetConfigType("env") //we support only env type
+		localViper.SetConfigFile(currentFile)
+		if err := localViper.ReadInConfig(); err != nil {
+			ts.Fatalf("Cannot process file %s: %v", currentFile, err)
+		}
+		for _, el := range localViper.AllKeys() {
+			ts.Setenv(el, fmt.Sprint(localViper.Get(el)))
+		}
 	}
 }
 
