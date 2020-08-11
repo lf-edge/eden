@@ -9,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,14 +39,7 @@ func eveStatusRemote() {
 			var ips []string
 			for _, nw := range lastDInfo.GetDinfo().Network {
 				for _, addr := range nw.IPAddrs {
-					ip, _, err := net.ParseCIDR(addr)
-					if err != nil {
-						log.Fatal(err)
-					}
-					ipv4 := ip.To4()
-					if ipv4 != nil {
-						ips = append(ips, ipv4.String())
-					}
+					ips = append(ips, addr)
 				}
 			}
 			fmt.Printf("EVE REMOTE IPs: %s\n", strings.Join(ips, "; "))
@@ -126,7 +118,9 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", viper.GetString("eden.eserver.ip"), viper.GetInt("eden.eserver.port"))
 			fmt.Printf("\tFor local EServer you can run 'docker logs %s' to see logs\n", defaults.DefaultEServerContainerName)
 		}
-		eveStatusRemote()
+		if statusAdam != "container doesn't exist" {
+			eveStatusRemote()
+		}
 		if !eveRemote {
 			eveStatusQEMU()
 		}
