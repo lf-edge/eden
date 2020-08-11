@@ -5,6 +5,6 @@ eden status
 stdout 'Adam status: container doesn''t exist'
 stdout 'Redis status: container doesn''t exist'
 stdout 'EServer process status: container doesn''t exist'
-stdout 'EVE process status: process doesn''t exist'
+stdout 'EVE on Qemu status: process doesn''t exist'
 ! stderr .
 

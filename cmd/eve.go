@@ -204,7 +204,10 @@ var statusEveCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		eveStatusRemote()
+		statusAdam, err := utils.StatusAdam()
+		if err == nil && statusAdam != "container doesn't exist" {
+			eveStatusRemote()
+		}
 		if !eveRemote {
 			eveStatusQEMU()
 		}
