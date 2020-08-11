@@ -91,7 +91,7 @@ var podDeployCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
-		expectation := expect.AppExpectationFromUrl(ctrl, appLink, podName, opts...)
+		expectation := expect.AppExpectationFromUrl(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {

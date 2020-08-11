@@ -30,6 +30,8 @@ type Ctx struct {
 	physicalIO                 []string
 	systemAdapters             []string
 	applicationInstanceConfigs []string
+	contentTrees               []string
+	volumes                    []string
 	configItems                map[string]string
 	rebootCounter              uint32
 	rebootState                bool
@@ -150,6 +152,24 @@ func (cfg *Ctx) SetApplicationInstanceConfig(configIDs []string) *Ctx {
 	cfg.applicationInstanceConfigs = configIDs
 	return cfg
 }
+
+//SetContentTreeConfig set contentTrees configs by configIDs from cloud
+func (cfg *Ctx) SetContentTreeConfig(configIDs []string) *Ctx {
+	cfg.contentTrees = configIDs
+	return cfg
+}
+
+//GetContentTrees return ContentTrees of device
+func (cfg *Ctx) GetContentTrees() []string { return cfg.contentTrees }
+
+//SetContentTreesConfig set volumes configs by configIDs from cloud
+func (cfg *Ctx) SetVolumeConfigs(configIDs []string) *Ctx {
+	cfg.volumes = configIDs
+	return cfg
+}
+
+//GetVolumes return volumes of device
+func (cfg *Ctx) GetVolumes() []string { return cfg.volumes }
 
 //SetRebootCounter setter
 func (cfg *Ctx) SetRebootCounter(counter uint32, state bool) {

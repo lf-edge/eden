@@ -159,7 +159,7 @@ func TestDockerStart(t *testing.T) {
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), *appLink, appName, opts...)
+	expectation := expect.AppExpectationFromUrl(tc.GetController(), edgeNode, *appLink, appName, opts...)
 
 	appInstanceConfig := expectation.Application()
 

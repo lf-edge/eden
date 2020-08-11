@@ -216,7 +216,7 @@ var networkCreateCmd = &cobra.Command{
 		}
 		var opts []expect.ExpectationOption
 		opts = append(opts, expect.AddNetInstanceAndPortPublish(subnet, networkType, nil))
-		expectation := expect.AppExpectationFromUrl(ctrl, defaults.DefaultDummyExpect, podName, opts...)
+		expectation := expect.AppExpectationFromUrl(ctrl, dev, defaults.DefaultDummyExpect, podName, opts...)
 		netInstancesConfigs := expectation.NetworkInstances()
 	mainloop:
 		for _, el := range netInstancesConfigs {

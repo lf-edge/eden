@@ -32,6 +32,7 @@ WORKDIR=$(CURDIR)/dist
 BINDIR := $(WORKDIR)/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
+EMPTY_DRIVE := $(WORKDIR)/empty.qcow2
 
 ZARCH ?= $(HOSTARCH)
 export ZARCH
@@ -52,11 +53,15 @@ $(BINDIR):
 test: build
 	make -C tests TESTS="$(TESTS)" DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
+# create empty drive in qcow2 format to use as additional volumes
+$(EMPTY_DRIVE):
+	qemu-img create -f qcow2 $(EMPTY_DRIVE) 100M
+
 build: bin testbin
 
-bin: $(BIN)
+bin: $(BIN) $(EMPTY_DRIVE)
 ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
-bin: $(BIN) eserver
+bin: $(BIN) $(EMPTY_DRIVE) eserver
 endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .

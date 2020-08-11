@@ -155,7 +155,7 @@ func TestVNCVMStart(t *testing.T) {
 		return *appLink
 	}
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), appLinkFunc(tc.GetController().GetVars().ZArch), appName, expect.WithMetadata(*metadata), expect.WithVnc(uint32(*vncDisplay)))
+	expectation := expect.AppExpectationFromUrl(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, expect.WithMetadata(*metadata), expect.WithVnc(uint32(*vncDisplay)))
 
 	appInstanceConfig := expectation.Application()
 

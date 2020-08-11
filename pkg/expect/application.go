@@ -8,6 +8,13 @@ import (
 	"strconv"
 )
 
+//appBundle type for aggregate objects, needed for application
+type appBundle struct {
+	appInstanceConfig *config.AppInstanceConfig
+	contentTrees      []*config.ContentTree
+	volumes           []*config.Volume
+}
+
 //checkAppInstanceConfig checks if provided app match expectation
 func (exp *appExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig) bool {
 	if app == nil {
@@ -21,21 +28,21 @@ func (exp *appExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig)
 
 //createAppInstanceConfig creates AppInstanceConfig with provided img and netInstances
 //  it uses published ports info from appExpectation to create ACE
-func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstances map[*netInstanceExpectation]*config.NetworkInstanceConfig) (*config.AppInstanceConfig, error) {
+func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstances map[*netInstanceExpectation]*config.NetworkInstanceConfig) (*appBundle, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-	var appInstanceConfig *config.AppInstanceConfig
+	var bundle *appBundle
 	switch exp.appType {
 	case dockerApp:
-		appInstanceConfig = exp.createAppInstanceConfigDocker(img, id)
+		bundle = exp.createAppInstanceConfigDocker(img, id)
 	case httpApp, httpsApp, fileApp:
-		appInstanceConfig = exp.createAppInstanceConfigVM(img, id)
+		bundle = exp.createAppInstanceConfigVM(img, id)
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
-	appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
+	bundle.appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
 
 	for k, ni := range netInstances {
 		acls := []*config.ACE{{
@@ -64,40 +71,45 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 				aclID++
 			}
 		}
-		appInstanceConfig.Interfaces = append(appInstanceConfig.Interfaces, &config.NetworkAdapter{
+		bundle.appInstanceConfig.Interfaces = append(bundle.appInstanceConfig.Interfaces, &config.NetworkAdapter{
 			Name:      "default",
 			NetworkId: ni.Uuidandversion.Uuid,
 			Acls:      acls,
 		})
 	}
 	if exp.vncDisplay != 0 {
-		appInstanceConfig.Fixedresources.EnableVnc = true
-		appInstanceConfig.Fixedresources.VncDisplay = exp.vncDisplay
-		appInstanceConfig.Fixedresources.VncPasswd = exp.vncPassword
+		bundle.appInstanceConfig.Fixedresources.EnableVnc = true
+		bundle.appInstanceConfig.Fixedresources.VncDisplay = exp.vncDisplay
+		bundle.appInstanceConfig.Fixedresources.VncPasswd = exp.vncPassword
 	}
-	return appInstanceConfig, nil
+	return bundle, nil
 }
 
 //Application expectation gets or creates Image definition, gets or create NetworkInstance definition,
 //gets AppInstanceConfig and returns it or creates AppInstanceConfig, adds it into internal controller and returns it
-func (exp *appExpectation) Application() (appInstanceConfig *config.AppInstanceConfig) {
-	var err error
+func (exp *appExpectation) Application() *config.AppInstanceConfig {
 	image := exp.Image()
 	networkInstances := exp.NetworkInstances()
 	for _, app := range exp.ctrl.ListApplicationInstanceConfig() {
 		if exp.checkAppInstanceConfig(app) {
-			appInstanceConfig = app
-			break
+			return app
 		}
 	}
-	if appInstanceConfig == nil { //if appInstanceConfig not exists, create it
-		if appInstanceConfig, err = exp.createAppInstanceConfig(image, networkInstances); err != nil {
-			log.Fatalf("cannot create app: %s", err)
-		}
-		if err = exp.ctrl.AddApplicationInstanceConfig(appInstanceConfig); err != nil {
-			log.Fatalf("AddApplicationInstanceConfig: %s", err)
-		}
-		log.Infof("new app created %s", appInstanceConfig.Uuidandversion.Uuid)
+	bundle, err := exp.createAppInstanceConfig(image, networkInstances)
+	if err != nil {
+		log.Fatalf("cannot create app: %s", err)
 	}
-	return
+	if err = exp.ctrl.AddApplicationInstanceConfig(bundle.appInstanceConfig); err != nil {
+		log.Fatalf("AddApplicationInstanceConfig: %s", err)
+	}
+	for _, el := range bundle.contentTrees {
+		_ = exp.ctrl.AddContentTree(el)
+		exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), el.Uuid))
+	}
+	for _, el := range bundle.volumes {
+		_ = exp.ctrl.AddVolume(el)
+		exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), el.Uuid))
+	}
+	log.Infof("new app created %s", bundle.appInstanceConfig.Uuidandversion.Uuid)
+	return bundle.appInstanceConfig
 }
