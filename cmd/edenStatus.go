@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-func eveStatusRPI() {
+func eveStatusRemote() {
 	log.Debugf("Will try to obtain info from ADAM")
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
@@ -61,9 +61,9 @@ func eveStatusRPI() {
 func eveStatusQEMU() {
 	statusEVE, err := utils.StatusEVEQemu(evePidFile)
 	if err != nil {
-		log.Errorf("cannot obtain status of EVE process: %s", err)
+		log.Errorf("cannot obtain status of EVE Qemu process: %s", err)
 	} else {
-		fmt.Printf("EVE process status: %s\n", statusEVE)
+		fmt.Printf("EVE on Qemu status: %s\n", statusEVE)
 		fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath("eve.log"))
 	}
 }
@@ -126,9 +126,8 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", viper.GetString("eden.eserver.ip"), viper.GetInt("eden.eserver.port"))
 			fmt.Printf("\tFor local EServer you can run 'docker logs %s' to see logs\n", defaults.DefaultEServerContainerName)
 		}
-		if eveRemote {
-			eveStatusRPI()
-		} else {
+		eveStatusRemote()
+		if !eveRemote {
 			eveStatusQEMU()
 		}
 	},

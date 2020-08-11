@@ -204,9 +204,8 @@ var statusEveCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if eveRemote {
-			eveStatusRPI()
-		} else {
+		eveStatusRemote()
+		if !eveRemote {
 			eveStatusQEMU()
 		}
 	},
