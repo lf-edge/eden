@@ -17,6 +17,7 @@ Also, you need to install `telnet` and `squashfs-tools` (`squashfs` for Mac OS X
 You need to be able to run docker commands and able to access virtualization accelerators (KVM on Linux or machyve on Mac OS X)
 
 ## Quickstart
+
 ```
 git clone https://github.com/lf-edge/eden.git
 cd eden
@@ -27,38 +28,29 @@ eden status
 eden test
 ```
 
-To find out what is running and where
+Note for cloud and VM users: eden and eve use virtualization. To run in VM-based environments, see [the cloud document](./docs/cloud.md).
+
+To find out what is running and where:
+
 ```
 eden status
 ```
 
-To create a new config named new1 and change the system to a new config 
+## Eden Config
 
-```
-EXPORT EDITOR=vim
-eden config add new1
-eden config edit new1
-eden config set new1 
-eden stop
-eden clean
-eden setup
-eden start
-```
-
-To get the config & update eve image stored in dist/amd64/installer/rootfs.img  after eden has started
-
-``` 
- eden controller -m adam:// edge-node get-config 
- eden controller -m adam:// edge-node eveimage-update dist/amd64/installer/rootfs.img
-``` 
+Eden's config is controlled via a yaml file, overriddable using command-line options. In most cases, the defaults will work just fine for you.
+For more informaton, see [docs/config.md](./docs/config.md).
 
 ## Remote access to eve
-Main way: 
+
+The main way to get a shell, especially once the device is fully registered to its `adam` controller, is via ssh:
+
 ```
 eden eve ssh
 ```
 
-You can also use telnet connection for Qemu console:
+If you need access to the actual device console, run:
+
 ``` 
 eden eve console
 ``` 
@@ -66,6 +58,7 @@ eden eve console
 ## Run applications on EVE
 
 Notice: if you are on QEMU there is a limited number of exposed ports. Add some if you want to expose more.
+
 ```
 hostfwd: 
          {{ .DefaultSSHPort }}: 22 
@@ -76,16 +69,19 @@ hostfwd:
 ``` 
 
 Deploy nginx server from dockerhub. Expose port 80 of the container to port 8028 of eve. 
+
 ``` 
 eden pod deploy -p 8028:80 docker://nginx
 ``` 
 
 Deploy a VM from Openstack. Initialize root user with password - 'passw0rd'  Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
+
 ``` 
 eden pod deploy -p 8027:22 http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-amd64.qcow2 -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
 ``` 
 
 List running applications and their ip/ports
+
 ```
 eden pod ps
 ```
@@ -113,6 +109,7 @@ Eden is the only thing you need to work with Raspberry and deploy containers the
 Step 1: Install EVE on Raspberry instead of any other OS.
 
 Prepare Raspberry image
+
 ```
 git clone https://github.com/lf-edge/eden.git
 cd eden
@@ -120,10 +117,12 @@ eden config add default --devmodel RPi4
 eden setup
 eden start
 ```
+
 Then you will have an .img that can be transfered to SD card. 
 https://www.raspberrypi.org/documentation/installation/installing-images/
 
 For example for MacOS: 
+
 ```
 diskutil list
 diskutil unmountDisk /dev/diskN
@@ -154,6 +153,7 @@ to get the status of the deployment
 To get information from SD card about previously flashed instance of EVE you should:
 
 Step 0 (for MacOS): Install required packets after installing of [brew](https://brew.sh/):
+
 ```
 brew cask install osxfuse
 brew install ext4fuse squashfuse
@@ -170,24 +170,30 @@ You should find your SD and 5 partitions on it.
 Step 2: Mount partitions of SD card on your PC
 
 For MacOS (`diskN` is SD card from step 1)
+
 ```
 sudo umount /dev/diskN*
 sudo squashfuse /dev/diskNs2 ~/tmp/rootfs -o allow_other
 sudo ext4fuse /dev/diskNs9 ~/tmp/persist -o allow_other
 ```
+
 For Linux (`sdN` is SD card from step 1)
+
 ```
 mkdir -p ~/tmp/rootfs ~/tmp/persist
 sudo umount /dev/sdN*
 sudo mount /dev/sdN2 ~/tmp/rootfs
 sudo mount /dev/sdN9 ~/tmp/persist
 ```
+
 Step 3: Extract files and save them:
 - syslog.txt contains logs of EVE: `sudo cp ~/tmp/persist/rsyslog/syslog.txt ~/syslog.txt`
 - eve-release contains version of EVE: `sudo cp ~/tmp/rootfs/etc/eve-release ~/eve-release`
 
 Step 4: Umount and eject SD
+
 For MacOS
+
 ```
 sudo umount /dev/diskN*
 sudo diskutil eject /dev/diskN
