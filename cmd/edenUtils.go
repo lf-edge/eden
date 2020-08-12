@@ -63,6 +63,8 @@ func utilsInit() {
 	ociImageInit()
 	utilsCmd.AddCommand(certsCmd)
 	certsInit()
+	utilsCmd.AddCommand(gcpCmd)
+	gcpInit()
 	utilsCmd.AddCommand(sdInfoEveCmd)
 	sdInfoEveCmd.Flags().StringVar(&syslogOutput, "syslog-out", filepath.Join(currentPath, "syslog.txt"), "File to save syslog.txt")
 	sdInfoEveCmd.Flags().StringVar(&eveReleaseOutput, "everelease-out", filepath.Join(currentPath, "eve-release"), "File to save eve-release")

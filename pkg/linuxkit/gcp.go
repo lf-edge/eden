@@ -125,6 +125,17 @@ func (g GCPClient) UploadFile(src, dst, bucketName string, public bool) error {
 	return nil
 }
 
+// RemoveFile removes a file from Google Storage
+func (g GCPClient) RemoveFile(file, bucketName string) error {
+	log.Infof("Removing of file %s from Google Storage", file)
+
+	if err := g.storage.Objects.Delete(bucketName, file).Do(); err != nil {
+		return err
+	}
+	log.Infof("Removing Complete!")
+	return nil
+}
+
 // CreateImage creates a GCP image using the a source from Google Storage
 func (g GCPClient) CreateImage(name, storageURL, family string, nested, replace bool) error {
 	if replace {
@@ -182,6 +193,31 @@ func (g GCPClient) DeleteImage(name string) error {
 		log.Infof("Image %s deleted", name)
 	}
 	return nil
+}
+
+// ListImages list all uploaded images
+func (g GCPClient) ListImages() ([]string, error) {
+	var result []string
+	var notFound bool
+	op, err := g.compute.Images.List(g.projectName).Do()
+	if err != nil {
+		if _, ok := err.(*googleapi.Error); !ok {
+			return nil, err
+		}
+		if err.(*googleapi.Error).Code != 404 {
+			return nil, err
+		}
+		notFound = true
+	}
+	if op == nil {
+		return result, nil
+	}
+	if !notFound {
+		for _, el := range op.Items {
+			result = append(result, el.Name)
+		}
+	}
+	return result, nil
 }
 
 // CreateInstance creates and starts an instance on GCP

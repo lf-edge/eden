@@ -108,6 +108,14 @@ const (
 
 	DefaultEmptyVolumeLinkDocker = "docker://hello-world"
 	DefaultEmptyVolumeLinkQcow2  = "empty.qcow2"
+
+	//defaults for gcp
+
+	DefaultGcpImageName   = "eden-gcp-test"
+	DefaultGcpBucketName  = "eve-live"
+	DefaultGcpProjectName = "lf-edge-eve"
+	DefaultGcpZone        = "us-west1-a"
+	DefaultGcpMachineType = "n1-standard-1"
 )
 
 var (
@@ -163,5 +171,7 @@ var (
 		"eden.ssh-key":       "ssh-key",
 		"eden.test-bin":      "prog",
 		"eden.test-scenario": "scenario",
+
+		"gcp.key": "key",
 	}
 )
