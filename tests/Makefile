@@ -1,5 +1,5 @@
 DEBUG ?= "debug"
-TESTS ?= $(shell find . -maxdepth 1 -mindepth 1 -type d)
+TESTS ?= $(wildcard */Makefile)
 
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
@@ -24,14 +24,14 @@ setup: $(TESTS:=_setup)
 clean: $(TESTS:=_clean)
 
 %_test: % %_build %_setup
-	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
+	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
 %_build: %
-	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
+	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
 %_setup: %
-	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
+	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
 
 %_clean: %
-	make -C $< DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
+	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
 
