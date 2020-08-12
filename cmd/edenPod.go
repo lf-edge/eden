@@ -36,6 +36,7 @@ var (
 	appMemory   string
 	diskSize    string
 	imageFormat string
+	volumeType  string
 
 	outputTail   uint
 	outputFields []string
@@ -92,6 +93,7 @@ var podDeployCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+		opts = append(opts, expect.WithVolumeType(expect.VolumeTypeByName(volumeType)))
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		expectation := expect.AppExpectationFromUrl(ctrl, dev, appLink, podName, opts...)
@@ -591,6 +593,7 @@ func podInit() {
 	podDeployCmd.Flags().Uint32Var(&appCpus, "cpus", defaults.DefaultAppCpu, "cpu number for app")
 	podDeployCmd.Flags().StringVar(&appMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
 	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
+	podDeployCmd.Flags().StringVar(&volumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2 or oci)")
 	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
 	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podCmd.AddCommand(podPsCmd)

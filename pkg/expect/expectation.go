@@ -51,6 +51,8 @@ type appExpectation struct {
 	virtualizationMode config.VmMode
 
 	device *device.Ctx
+
+	volumesType VolumeType
 }
 
 //AppExpectationFromUrl init appExpectation with defined:
@@ -81,6 +83,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 
 		uplinkAdapter: adapter,
 		device:        device,
+		volumesType:   VolumeQcow2,
 	}
 	switch expectation.ctrl.GetVars().ZArch {
 	case "amd64":

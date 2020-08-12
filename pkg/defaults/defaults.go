@@ -106,9 +106,8 @@ const (
 
 	DefaultVolumeSize = 1024 * 1024 * 200
 
-	//DefaultEmptyVolumeLink = "http://sdn.ifmo.ru/projects/eve/adam/disks/100m/at_download/file"
-	//DefaultEmptyVolumeLink = "docker://alpine"
-	DefaultEmptyVolumeLink = "empty.qcow2"
+	DefaultEmptyVolumeLinkDocker = "docker://hello-world"
+	DefaultEmptyVolumeLinkQcow2  = "empty.qcow2"
 )
 
 var (
