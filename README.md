@@ -1,6 +1,6 @@
 # Eden
 
-Eden is the simpliest way to setup & test [EVE](https://github.com/lf-edge/eve) and [Adam](https://github.com/lf-edge/adam).
+Eden is the simplest way to setup & test [EVE](https://github.com/lf-edge/eve) and [Adam](https://github.com/lf-edge/adam).
 
 Eden is inspired by Kubernetes workflows and CLI
 
@@ -51,40 +51,48 @@ eden eve ssh
 
 If you need access to the actual device console, run:
 
-``` 
+```
 eden eve console
-``` 
+```
 
 ## Run applications on EVE
 
 Notice: if you are on QEMU there is a limited number of exposed ports. Add some if you want to expose more.
 
 ```
-hostfwd: 
-         {{ .DefaultSSHPort }}: 22 
-         5912: 5901 
-         5911: 5900 
-         8027: 8027 
+hostfwd:
+         {{ .DefaultSSHPort }}: 22
+         5912: 5901
+         5911: 5900
+         8027: 8027
          8028: 8028
-``` 
+```
 
-Deploy nginx server from dockerhub. Expose port 80 of the container to port 8028 of eve. 
+Deploy nginx server from dockerhub. Expose port 80 of the container to port 8028 of eve.
 
-``` 
+```
 eden pod deploy -p 8028:80 docker://nginx
-``` 
+```
 
 Deploy a VM from Openstack. Initialize root user with password - 'passw0rd'  Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
 
-``` 
+```
 eden pod deploy -p 8027:22 http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-amd64.qcow2 -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
-``` 
+```
 
 List running applications and their ip/ports
 
 ```
 eden pod ps
 ```
+
+## Different EVE Builds
+
+eden runs EVE using a `live.img` file with an embedded config partition, which eve configures. In a normal
+run, eden takes care of getting and installing an eve OS disk image for you. However, you can configure eden
+to use a different image. This is particularly useful for eden's primary use case: testing EVE.
+
+To work with custom EVE images, see [docs/eve-images.md](./docs/eve-images.md).
 
 ## Tests
 
@@ -98,13 +106,13 @@ For example -- run reboot test:
 
 Some tests may accept parameters - run Log/Metrics/Info test in debug mode with  timeout of 600 seconds  and requiring  3  messages of each type  
 
-`eden test tests/lim/ -v debug -a '-timewait 600 -number 3'` 
+`eden test tests/lim/ -v debug -a '-timewait 600 -number 3'`
 
 You can find more detailed information about `eden test` in [tests/README.md](tests/README.md) and [tests/escript/README.md](tests/escript/README.md)
 
 ## Raspberry Pi 4 support
 
-Eden is the only thing you need to work with Raspberry and deploy containers there: 
+Eden is the only thing you need to work with Raspberry and deploy containers there:
 
 Step 1: Install EVE on Raspberry instead of any other OS.
 
@@ -118,10 +126,10 @@ eden setup
 eden start
 ```
 
-Then you will have an .img that can be transfered to SD card. 
+Then you will have an .img that can be transfered to SD card.
 https://www.raspberrypi.org/documentation/installation/installing-images/
 
-For example for MacOS: 
+For example for MacOS:
 
 ```
 diskutil list
@@ -141,7 +149,7 @@ eden pod deploy -p 8028:80 docker://nginx
 
 After these lines you will have nginx available on public EVE IP at port 8028
 
-Use 
+Use
 ```
 eden status
 eden pod ps
@@ -222,7 +230,7 @@ To build `eden`:
 make bin
 ```
 
-To build `eden` and tests inside eden 
+To build `eden` and tests inside eden
 It's better to call `eden config add` first, so the build command can build tests for the desired architecture
 
 ```
@@ -242,12 +250,12 @@ The generated command is place in `./dist/bin/eden-<arch>-<os>`, for example `ed
 To ease your life, a symlink is placed in the local directory named `eden` for your current architecture and OS.
 
 The current sub-commands are:
-   * `config` -- work with different configurations of environment; 
+   * `config` -- work with different configurations of environment;
    * `status` -- get status of all components;
    * `setup` --  get all components that are specified in the config and ensure they are ready for startup;
    * `start` -- start all components
    * `stop` -- stop all components;
-   * `test` -- run tests; 
+   * `test` -- run tests;
    * `info` -- displays Info records, accepts regular expression as a filter;
    * `log` -- displays Log records, accepts regular expression as a filter;
    * `metric` -- displays Metric records, accepts regular expression as a filter ;
@@ -267,6 +275,3 @@ The current sub-commands are:
 `eden utils download eve` - download EVE live image from docker hub
 `eden utils download eve-rootfs` - download EVE rootfs image from docker hub
 `eden utils sd` - get information about EVE from provided SD card
-
-
-
