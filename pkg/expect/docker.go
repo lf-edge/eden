@@ -3,6 +3,8 @@ package expect
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
+
 	"github.com/docker/distribution/context"
 	"github.com/docker/docker/client"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -13,17 +15,20 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 //createImageDocker creates Image for docker with tag and version from appExpectation and provided id and datastoreId
 func (exp *appExpectation) createImageDocker(id uuid.UUID, dsId string) *config.Image {
+	ref, err := name.ParseReference(exp.appUrl)
+	if err != nil {
+		return nil
+	}
 	return &config.Image{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    id.String(),
 			Version: "1",
 		},
-		Name:    fmt.Sprintf("%s:%s", exp.appUrl, exp.appVersion),
+		Name:    fmt.Sprintf("%s:%s", ref.Context().RepositoryStr(), exp.appVersion),
 		Iformat: config.Format_CONTAINER,
 		DsId:    dsId,
 		Siginfo: &config.SignatureInfo{},
@@ -48,10 +53,14 @@ func (exp *appExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 
 //createDataStoreDocker creates DatastoreConfig for docker.io with provided id
 func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
+	ref, err := name.ParseReference(exp.appUrl)
+	if err != nil {
+		return nil
+	}
 	return &config.DatastoreConfig{
 		Id:         id.String(),
 		DType:      config.DsType_DsContainerRegistry,
-		Fqdn:       "docker://docker.io",
+		Fqdn:       fmt.Sprintf("docker://%s", ref.Context().Registry.Name()),
 		ApiKey:     "",
 		Password:   "",
 		Dpath:      "",
