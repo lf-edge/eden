@@ -1,6 +1,11 @@
 package expect
 
 import (
+	"math/rand"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -9,10 +14,6 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
-	"strconv"
-	"strings"
-	"time"
 )
 
 //appType is type of app according to provided appLink
@@ -156,7 +157,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 	//parse provided appLink to obtain params
 	params := utils.GetParams(appLink, defaults.DefaultPodLinkPattern)
 	if len(params) == 0 {
-		log.Fatalf("fail to parse (docker|http(s)|file)://(<TAG>[:<VERSION>] | <URL> | <PATH>) from argument (%s)", appLink)
+		log.Fatalf("fail to parse (oci|docker|http(s)|file)://(<TAG>[:<VERSION>] | <URL> | <PATH>) from argument (%s)", appLink)
 	}
 	expectation.appType = 0
 	expectation.appUrl = ""
@@ -167,7 +168,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 		log.Fatalf("cannot parse appType (not [docker]): %s", appLink)
 	}
 	switch appType {
-	case "docker":
+	case "docker", "oci":
 		expectation.appType = dockerApp
 	case "http":
 		expectation.appType = httpApp

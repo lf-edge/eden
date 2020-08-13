@@ -15,8 +15,8 @@ stdout '--- PASS: TestDockerStart'
 
 # Dockers detecting
 eden -t 1m pod ps
-stdout 't1	nginx:latest	.*:80	127.0.0.1:8027	IN_CONFIG	RUNNING'
-stdout 't2	nginx:latest	.*:80	127.0.0.1:8028	IN_CONFIG	RUNNING'
+stdout 't1	library/nginx:latest	.*:80	127.0.0.1:8027	IN_CONFIG	RUNNING'
+stdout 't2	library/nginx:latest	.*:80	127.0.0.1:8028	IN_CONFIG	RUNNING'
 
 # Ngnix detecting
 exec -t 1m curl localhost:8027
@@ -43,4 +43,3 @@ test:
         onboard-cert: {{EdenConfigPath "eve.cert"}}
         serial: "{{EdenConfig "eve.serial"}}"
         model: {{EdenConfig "eve.devmodel"}}
-

@@ -1,9 +1,10 @@
 package defaults
 
 import (
-	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -75,7 +76,7 @@ const (
 	DefaultTestScenario          = ""
 	DefaultRootFSVersionPattern  = `^(\d+\.*){2,3}.*-(xen|kvm|acrn|rpi|rpi-xen|rpi-kvm)-(amd64|arm64)$`
 	DefaultControllerModePattern = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.*)$`
-	DefaultPodLinkPattern        = `^(?P<TYPE>(docker|http[s]{0,1}|file)):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
+	DefaultPodLinkPattern        = `^(?P<TYPE>(oci|docker|http[s]{0,1}|file)):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
 	DefaultRedisContainerName    = "eden_redis"
 	DefaultAdamContainerName     = "eden_adam"
 	DefaultEServerContainerName  = "eden_eserver"
