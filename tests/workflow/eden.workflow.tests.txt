@@ -19,12 +19,14 @@ eden.escript.test -test.run TestEdenScripts/reboot_eden -test.timeout 10m
 eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
 /bin/echo Eden Metric test (7/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/metric_test -testdata ../lim/testdata/
-/bin/echo Eden 2 dockers test (8/{{$tests}})
+/bin/echo Eden Network test (8/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/test_networking -testdata ../network/testdata/
+/bin/echo Eden 2 dockers test (9/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
-/bin/echo Eden Reboot test (9/{{$tests}})
+/bin/echo Eden Reboot test (10/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
 #eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/ -test.timeout 10m
-/bin/echo Eden base OS update (10/{{$tests}})
+/bin/echo Eden base OS update (11/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/
-/bin/echo Eden stop (11/{{$tests}})
+/bin/echo Eden stop (12/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop
