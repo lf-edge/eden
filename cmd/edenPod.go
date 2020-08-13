@@ -2,6 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"net"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"text/tabwriter"
+
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -15,12 +22,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"net"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
-	"text/tabwriter"
 )
 
 var (
@@ -34,6 +35,7 @@ var (
 	appCpus     uint32
 	appMemory   string
 	diskSize    string
+	imageFormat string
 
 	outputTail   uint
 	outputFields []string
@@ -91,6 +93,7 @@ var podDeployCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
+		opts = append(opts, expect.WithImageFormat(imageFormat))
 		expectation := expect.AppExpectationFromUrl(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
@@ -589,6 +592,7 @@ func podInit() {
 	podDeployCmd.Flags().StringVar(&appMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
 	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
+	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)

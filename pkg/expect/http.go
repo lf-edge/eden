@@ -2,14 +2,15 @@ package expect
 
 import (
 	"fmt"
+	"path"
+	"time"
+
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"path"
-	"time"
 )
 
 //createImageHttp downloads image into EServer directory from http/https endpoint and calculates size and sha256 of image
@@ -49,7 +50,7 @@ func (exp *appExpectation) createImageHttp(id uuid.UUID, dsId string) *config.Im
 			Version: "1",
 		},
 		Name:      filePath,
-		Iformat:   config.Format_QCOW2,
+		Iformat:   exp.imageFormatEnum(),
 		DsId:      dsId,
 		Siginfo:   &config.SignatureInfo{},
 		SizeBytes: fileSize,

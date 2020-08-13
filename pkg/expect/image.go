@@ -2,6 +2,7 @@ package expect
 
 import (
 	"fmt"
+
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -37,6 +38,28 @@ func (exp *appExpectation) createImage(dsId string) (*config.Image, error) {
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
+}
+
+// imageFormatEnum return the correct enum for the image format
+func (exp *appExpectation) imageFormatEnum() config.Format {
+	var defaultFormat, actual config.Format
+	switch exp.appType {
+	case dockerApp:
+		defaultFormat = config.Format_CONTAINER
+	case httpApp, httpsApp, fileApp:
+		defaultFormat = config.Format_QCOW2
+	default:
+		defaultFormat = config.Format_QCOW2
+	}
+	switch exp.imageFormat {
+	case "container", "oci":
+		actual = config.Format_CONTAINER
+	case "qcow2":
+		actual = config.Format_QCOW2
+	default:
+		actual = defaultFormat
+	}
+	return actual
 }
 
 //Image expects image in controller
