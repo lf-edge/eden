@@ -28,15 +28,16 @@ var (
 
 //appExpectation is description of app, expected to run on EVE
 type appExpectation struct {
-	ctrl       controller.Cloud
-	appType    appType
-	appUrl     string
-	appVersion string
-	appName    string
-	appLink    string
-	cpu        uint32
-	mem        uint32
-	metadata   string
+	ctrl        controller.Cloud
+	appType     appType
+	appUrl      string
+	appVersion  string
+	appName     string
+	appLink     string
+	imageFormat string
+	cpu         uint32
+	mem         uint32
+	metadata    string
 
 	vncDisplay  uint32
 	vncPassword string

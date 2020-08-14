@@ -1,9 +1,10 @@
 package expect
 
 import (
+	"strings"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
-	"strings"
 )
 
 //ExpectationOption is type to use for creation of appExpectation
@@ -85,5 +86,12 @@ func WithResources(cpus uint32, memory uint32) ExpectationOption {
 func WithVirtualizationMode(virtualizationMode config.VmMode) ExpectationOption {
 	return func(expectation *appExpectation) {
 		expectation.virtualizationMode = virtualizationMode
+	}
+}
+
+// WithImageFormat sets app format
+func WithImageFormat(format string) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.imageFormat = format
 	}
 }

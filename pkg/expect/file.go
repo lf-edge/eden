@@ -35,7 +35,7 @@ func (exp *appExpectation) createImageFile(id uuid.UUID, dsId string) *config.Im
 			Version: "1",
 		},
 		Name:      filePath,
-		Iformat:   config.Format_QCOW2,
+		Iformat:   exp.imageFormatEnum(),
 		DsId:      dsId,
 		Siginfo:   &config.SignatureInfo{},
 		SizeBytes: fileSize,
