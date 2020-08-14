@@ -5,7 +5,30 @@ import (
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
+	log "github.com/sirupsen/logrus"
 )
+
+//VolumeType defines type of empty volumes to use
+type VolumeType string
+
+//VolumeQcow2 use empty qcow2 image for volumes
+var VolumeQcow2 VolumeType = "qcow2"
+
+//VolumeOCI use empty oci image for volumes
+var VolumeOCI VolumeType = "oci"
+
+//VolumeTypeByName returns VolumeType by name
+func VolumeTypeByName(name string) VolumeType {
+	switch name {
+	case "qcow2":
+		return VolumeQcow2
+	case "oci":
+		return VolumeOCI
+	default:
+		log.Fatalf("Not supported volume type %s", name)
+	}
+	return VolumeQcow2
+}
 
 //ExpectationOption is type to use for creation of appExpectation
 type ExpectationOption func(expectation *appExpectation)
@@ -93,5 +116,12 @@ func WithVirtualizationMode(virtualizationMode config.VmMode) ExpectationOption 
 func WithImageFormat(format string) ExpectationOption {
 	return func(expectation *appExpectation) {
 		expectation.imageFormat = format
+	}
+}
+
+//WithVolumeType sets empty volumes type for app
+func WithVolumeType(volumesType VolumeType) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.volumesType = volumesType
 	}
 }

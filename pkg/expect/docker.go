@@ -111,7 +111,10 @@ func obtainVolumeInfo(image *config.Image) ([]string, error) {
 
 //prepareImage generates new image for mountable volume
 func (exp *appExpectation) prepareImage() *config.Image {
-	appLink := defaults.DefaultEmptyVolumeLink
+	appLink := defaults.DefaultEmptyVolumeLinkQcow2
+	if exp.volumesType == VolumeOCI {
+		appLink = defaults.DefaultEmptyVolumeLinkDocker
+	}
 	if !strings.Contains(appLink, "://") {
 		//if we use file, we must resolve absolute path
 		appLink = fmt.Sprintf("file://%s", utils.ResolveAbsPath(appLink))
