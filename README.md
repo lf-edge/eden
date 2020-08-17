@@ -12,7 +12,7 @@ Eden contains series of integration tests implemented in Golang. Tests are struc
 
 Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies)
 
-Also, you need to install `telnet` and `squashfs-tools` (`squashfs` for Mac OS X).
+Also, please install `telnet` and `squashfs-tools` (`squashfs` for Mac OS X).
 
 You need to be able to run docker commands and able to access virtualization accelerators (KVM on Linux or machyve on Mac OS X)
 
