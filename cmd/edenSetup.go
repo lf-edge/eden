@@ -4,6 +4,12 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"strings"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
@@ -11,11 +17,6 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ssh/terminal"
-	"os"
-	"path/filepath"
-	"reflect"
-	"runtime"
-	"strings"
 )
 
 var (
@@ -115,6 +116,7 @@ var setupCmd = &cobra.Command{
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
 			eveRepo = viper.GetString("eve.repo")
 			eveTag = viper.GetString("eve.tag")
+			eveUefiTag = viper.GetString("eve.uefi-tag")
 			eveHV = viper.GetString("eve.hv")
 			eveArch = viper.GetString("eve.arch")
 			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
@@ -202,7 +204,7 @@ var setupCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveLive(certsDir, eveImageFile, eveArch, eveHV, eveTag, imageFormat); err != nil {
+				if err := utils.DownloadEveLive(certsDir, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, imageFormat); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Infof("download EVE done: %s", eveImageFile)
@@ -240,6 +242,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist), "directory to save EVE")
 	setupCmd.Flags().StringVarP(&eveRepo, "eve-repo", "", defaults.DefaultEveRepo, "EVE repo")
 	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "EVE tag")
+	setupCmd.Flags().StringVarP(&eveUefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "EVE UEFI tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
 	setupCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "file to save qemu config")

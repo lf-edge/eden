@@ -2,19 +2,21 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
+	"runtime"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"path/filepath"
-	"runtime"
 )
 
 var (
-	eveArch   string
-	eveTag    string
-	outputDir string
+	eveArch    string
+	eveTag     string
+	eveUefiTag string
+	outputDir  string
 )
 
 var downloaderCmd = &cobra.Command{
@@ -32,6 +34,7 @@ var downloadEVECmd = &cobra.Command{
 		}
 		if viperLoaded {
 			eveTag = viper.GetString("eve.tag")
+			eveUefiTag = viper.GetString("eve.uefi-tag")
 			eveArch = viper.GetString("eve.arch")
 			eveHV = viper.GetString("eve.hv")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
@@ -45,7 +48,7 @@ var downloadEVECmd = &cobra.Command{
 		if devModel == defaults.DefaultRPIModel {
 			format = "raw"
 		}
-		if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, format); err != nil {
+		if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, format); err != nil {
 			log.Fatal(err)
 		} else {
 			if devModel == defaults.DefaultRPIModel {
@@ -86,7 +89,8 @@ var downloadEVERootFSCmd = &cobra.Command{
 
 func downloaderInit() {
 	downloaderCmd.AddCommand(downloadEVECmd)
-	downloadEVECmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
+	downloadEVECmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "tag to download eve")
+	downloadEVECmd.Flags().StringVarP(&eveUefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "tag to download eve UEFI")
 	downloadEVECmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloadEVECmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "HV of EVE (kvm or xen)")
 	downloadEVECmd.Flags().StringVarP(&eveImageFile, "image-file", "i", "", "path for image drive")

@@ -139,6 +139,7 @@ var (
 		"eve.firmware":     "eve-firmware",
 		"eve.repo":         "eve-repo",
 		"eve.tag":          "eve-tag",
+		"eve.uefi-tag":     "eve-uefi-tag",
 		"eve.hostfwd":      "eve-hostfwd",
 		"eve.dist":         "eve-dist",
 		"eve.base-dist":    "eve-base-dist",
