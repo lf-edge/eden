@@ -2,14 +2,20 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"strings"
 
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/spf13/cobra"
+)
+
+var (
+	logFormatName string
+	logFormat     elog.LogFormat
 )
 
 var logCmd = &cobra.Command{
@@ -28,6 +34,14 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamCA = utils.ResolveAbsPath(viper.GetString("adam.ca"))
+		}
+		switch logFormatName {
+		case "json":
+			logFormat = elog.LogJson
+		case "lines":
+			logFormat = elog.LogLines
+		default:
+			return fmt.Errorf("unknown log format: %s", logFormatName)
 		}
 		return nil
 	},
@@ -55,9 +69,9 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 
 		handleFunc := func(le *elog.LogItem) bool {
 			if printFields == nil {
-				elog.LogPrn(le)
+				elog.LogPrn(le, logFormat)
 			} else {
-				elog.LogItemPrint(le, printFields).Print()
+				elog.LogItemPrint(le, logFormat, printFields).Print()
 			}
 			return false
 		}
@@ -78,4 +92,5 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 func logInit() {
 	logCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	logCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
+	logCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
 }
