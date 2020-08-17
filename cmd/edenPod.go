@@ -525,7 +525,7 @@ var podLogsCmd = &cobra.Command{
 						//logsQ for filtering logs by app
 						logsQ := make(map[string]string)
 						logsQ["msg"] = app.Uuidandversion.Uuid
-						if err = ctrl.LogChecker(dev.GetID(), logsQ, elog.HandleAll, logType, 0); err != nil {
+						if err = ctrl.LogChecker(dev.GetID(), logsQ, elog.HandleFactory(logFormat, false), logType, 0); err != nil {
 							log.Fatalf("LogChecker: %s", err)
 						}
 					case "info":

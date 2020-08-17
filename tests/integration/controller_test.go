@@ -1,11 +1,12 @@
 package integration
 
 import (
+	"testing"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/device"
-	"testing"
 )
 
 //TestAdamOnBoard test onboarding into controller
@@ -70,7 +71,7 @@ func TestControllerLogs(t *testing.T) {
 		t.Fatal("Fail in get first device: ", err)
 	}
 	t.Log(devUUID.GetID())
-	err = ctx.LogChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String()}, elog.HandleFirst, elog.LogAny, 600)
+	err = ctx.LogChecker(devUUID.GetID(), map[string]string{"devId": devUUID.GetID().String()}, elog.HandleFactory(elog.LogLines, true), elog.LogAny, 600)
 	if err != nil {
 		t.Fatal("Fail in waiting for logs: ", err)
 	}

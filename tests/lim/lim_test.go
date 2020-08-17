@@ -3,6 +3,11 @@ package lim
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
@@ -11,10 +16,6 @@ import (
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 var (
@@ -158,9 +159,9 @@ func TestLog(t *testing.T) {
 			}
 			t.Logf("LOG %d(%d) from %s:\n", items+1, *number, name)
 			if len(*out) == 0 {
-				elog.LogPrn(log)
+				elog.LogPrn(log, elog.LogLines)
 			} else {
-				elog.LogItemPrint(log,
+				elog.LogItemPrint(log, elog.LogLines,
 					strings.Split(*out, ":")).Print()
 			}
 

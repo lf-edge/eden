@@ -3,6 +3,14 @@ package integration
 import (
 	"flag"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -12,13 +20,6 @@ import (
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/spf13/viper"
 	"gotest.tools/assert"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"testing"
-	"time"
 )
 
 var (
@@ -207,7 +208,7 @@ func TestApplication(t *testing.T) {
 				if !checkLogs {
 					t.Skip("no LOGS flag set - skipped")
 				}
-				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*AppID:\"%s\".*downloadProgress:100.*", tt.appDefinition.appID)}, elog.HandleFirst, elog.LogAny, 1200)
+				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*AppID:\"%s\".*downloadProgress:100.*", tt.appDefinition.appID)}, elog.HandleFactory(elog.LogLines, true), elog.LogAny, 1200)
 				if err != nil {
 					t.Fatal("Fail in waiting for app downloaded status: ", err)
 				}
@@ -216,7 +217,7 @@ func TestApplication(t *testing.T) {
 				if !checkLogs {
 					t.Skip("no LOGS flag set - skipped")
 				}
-				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*AppID:\"%s\".*state:INSTALLED.*", tt.appDefinition.appID)}, elog.HandleFirst, elog.LogAny, 1200)
+				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*AppID:\"%s\".*state:INSTALLED.*", tt.appDefinition.appID)}, elog.HandleFactory(elog.LogLines, true), elog.LogAny, 1200)
 				if err != nil {
 					t.Fatal("Fail in waiting for app installed status: ", err)
 				}

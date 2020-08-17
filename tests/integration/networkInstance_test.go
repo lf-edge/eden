@@ -2,12 +2,13 @@ package integration
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/defaults"
-	"testing"
-	"time"
 )
 
 //TestNetworkInstance test network instances creation in EVE
@@ -59,7 +60,7 @@ func TestNetworkInstance(t *testing.T) {
 				if !checkLogs {
 					t.Skip("no LOGS flag set - skipped")
 				}
-				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*handleNetworkInstanceModify\\(%s\\) done.*", tt.networkInstance.networkInstanceID), "level": "info"}, elog.HandleFirst, elog.LogAny, 600)
+				err = ctx.LogChecker(devUUID, map[string]string{"devId": devUUID.String(), "msg": fmt.Sprintf(".*handleNetworkInstanceModify\\(%s\\) done.*", tt.networkInstance.networkInstanceID), "level": "info"}, elog.HandleFactory(elog.LogLines, true), elog.LogAny, 600)
 				if err != nil {
 					t.Fatal("Fail in waiting for handleNetworkInstanceModify done from zedagent: ", err)
 				}

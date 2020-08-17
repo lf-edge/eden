@@ -5,6 +5,12 @@ package elog
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
@@ -12,26 +18,30 @@ import (
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"reflect"
-	"regexp"
-	"strings"
-	"time"
 )
 
 //LogItem is the structure for saving log fields
 type LogItem struct {
-	Source    string
-	Level     string
-	Msg       string
-	File      string
-	Func      string
-	Time      string
-	Pid       interface{}
-	Partition string
+	Source    string      `json:"source"`
+	Level     string      `json:"level"`
+	Msg       string      `json:"msg"`
+	File      string      `json:"file"`
+	Func      string      `json:"func"`
+	Time      string      `json:"time"`
+	Pid       interface{} `json:"pid"`
+	Partition string      `json:"partition"`
 }
 
 //LogCheckerMode is InfoExist, InfoNew and InfoAny
 type LogCheckerMode int
+
+// LogFormat the format to print output logs
+type LogFormat byte
+
+const (
+	LogLines LogFormat = iota
+	LogJson
+)
 
 //LogTail returns LogCheckerMode for process only defined count of last messages
 func LogTail(count uint) LogCheckerMode {
@@ -75,7 +85,7 @@ func ParseLogItem(data string) (logItem LogItem, err error) {
 }
 
 //LogItemPrint find LogItem elements by paths in 'query'
-func LogItemPrint(le *LogItem, query []string) *types.PrintResult {
+func LogItemPrint(le *LogItem, format LogFormat, query []string) *types.PrintResult {
 	result := make(types.PrintResult)
 	for _, v := range query {
 		// Uppercase of filed's name first letter
@@ -120,29 +130,32 @@ func LogItemFind(le LogItem, query map[string]string) bool {
 	return matched
 }
 
-//HandleFirst runs once and interrupts the workflow of LogWatch
-func HandleFirst(le *LogItem) bool {
-	LogPrn(le)
-	return true
-}
-
-//HandleAll runs for all Logs selected by LogWatch
-func HandleAll(le *LogItem) bool {
-	LogPrn(le)
-	return false
+func HandleFactory(format LogFormat, once bool) HandlerFunc {
+	return func(le *LogItem) bool {
+		LogPrn(le, format)
+		return once
+	}
 }
 
 //LogPrn print Log data
-func LogPrn(le *LogItem) {
-	fmt.Println("source:", le.Source)
-	fmt.Println("level:", le.Level)
-	fmt.Println("msg:", le.Msg)
-	fmt.Println("file:", le.File)
-	fmt.Println("func:", le.Func)
-	fmt.Println("time:", le.Time)
-	fmt.Println("pid:", le.Pid)
-	fmt.Println("partition:", le.Partition)
-	fmt.Println()
+func LogPrn(le *LogItem, format LogFormat) {
+	switch format {
+	case LogJson:
+		enc := json.NewEncoder(os.Stdout)
+		enc.Encode(le)
+	case LogLines:
+		fmt.Println("source:", le.Source)
+		fmt.Println("level:", le.Level)
+		fmt.Println("msg:", le.Msg)
+		fmt.Println("file:", le.File)
+		fmt.Println("func:", le.Func)
+		fmt.Println("time:", le.Time)
+		fmt.Println("pid:", le.Pid)
+		fmt.Println("partition:", le.Partition)
+		fmt.Println()
+	default:
+		fmt.Fprintf(os.Stderr, "unknown log format requested")
+	}
 }
 
 //HandlerFunc must process LogItem and return true to exit
