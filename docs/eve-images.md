@@ -43,7 +43,6 @@ To generate the docker container with your image:
 1. Work in the `github.com/lf-edge/eve` directory
 1. Configure your code as desired
 1. Run `make eve`, optionally setting the desired hypervisor, e.g. `make eve HV=kvm` (recommended with eden)
-1. Run `make eve-uefi`.
 
 When done, you will be provided with output telling you the docker image name and tag, e.g.
 
@@ -52,15 +51,6 @@ Successfully built a46458b4ce1a
 Successfully tagged lfedge/eve:0.0.0-testbranch-b6a6d6fd-kvm-amd64
 Tagging lfedge/eve:0.0.0-testbranch-b6a6d6fd-kvm-amd64 as lfedge/eve:0.0.0-testbranch-b6a6d6fd-kvm
 ```
-
-And for `eve-uefi`:
-
-```
-Tagging lfedge/eve-uefi:0.0.0-testbranch-b6a6d6fd-kvm-amd64 as lfedge/eve-uefi:0.0.0-testbranch-b6a6d6fd-kvm
-```
-
-You need to run both `make eve` and `make eve-uefi` because eden uses the `--eve-tag` to look for both
-the eve image and the eve-uefi image.
 
 Now, run eden setup, but tell eden to use the provided image:
 
@@ -82,6 +72,36 @@ eden setup
 ```
 
 eden now will use the above container image to generate and configure the live disk image.
+
+#### Changing UEFI
+
+eden uses separate tags for `eve` and `eve-uefi`. This means that you can set the tag
+just for `eve`, while it will continue to use the default for `eve-uefi`. This helps with
+a development cycle where you are changing `eve`, but do not want to make changes to or rebuild
+`eve-uefi`.
+
+On the other hand, you can make changes to `eve-uefi`, in addition to or independent of `eve`.
+
+To run eden setup to use just a specific `eve-uefi` image, or both `eve` and `eve-uefi`:
+
+```sh
+eden setup --eve-uefi-tag <uefi-tag>
+eden setup --eve-tag <tag> --eve-uefi-tag <uefi-tag>
+```
+
+Continuing the above example:
+
+```sh
+eden setup --eve-uefi-tag eve-uefi-special
+eden setup --eve-tag 0.0.0-testbranch-b6a6d6fd-kvm --eve-uefi-tag eve-uefi-special
+```
+
+Or you can save it, by setting it in the file:
+
+```console
+eden config set default --key eve.uefi-tag --value eve-uefi-special
+eden setup
+```
 
 ### Live Image
 

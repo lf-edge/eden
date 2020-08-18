@@ -2,17 +2,18 @@ package utils
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
 	"unicode"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	log "github.com/sirupsen/logrus"
 )
 
 //DownloadEveLive pulls EVE live image from docker
-func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV string, eveTag string, format string) (err error) {
-	efiImage := fmt.Sprintf("lfedge/eve-uefi:%s-%s", eveTag, eveArch) //download OVMF
+func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV string, eveTag, eveUefiTag string, format string) (err error) {
+	efiImage := fmt.Sprintf("lfedge/eve-uefi:%s-%s", eveUefiTag, eveArch) //download OVMF
 	image := fmt.Sprintf("lfedge/eve:%s-%s-%s", eveTag, eveHV, eveArch)
 	log.Debugf("Try ImagePull with (%s)", image)
 	if err := PullImage(image); err != nil {
