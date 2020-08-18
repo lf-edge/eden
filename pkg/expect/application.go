@@ -45,12 +45,23 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	bundle.appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
 
 	for k, ni := range netInstances {
-		acls := []*config.ACE{{
-			Matches: []*config.ACEMatch{{
-				Type: "host",
-			}},
-			Id: 1,
-		}}
+		var acls []*config.ACE
+		if exp.onlyHostAcl {
+			acls = append(acls, &config.ACE{
+				Matches: []*config.ACEMatch{{
+					Type: "host",
+				}},
+				Id: 1,
+			})
+		} else {
+			acls = append(acls, &config.ACE{
+				Matches: []*config.ACEMatch{{
+					Type:  "ip",
+					Value: "0.0.0.0/0",
+				}},
+				Id: 1,
+			})
+		}
 		var aclID int32 = 2
 		if k.ports != nil {
 			for po, pi := range k.ports {

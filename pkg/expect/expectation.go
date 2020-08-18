@@ -53,6 +53,8 @@ type appExpectation struct {
 	device *device.Ctx
 
 	volumesType VolumeType
+
+	onlyHostAcl bool
 }
 
 //AppExpectationFromUrl init appExpectation with defined:
@@ -84,6 +86,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 		uplinkAdapter: adapter,
 		device:        device,
 		volumesType:   VolumeQcow2,
+		onlyHostAcl:   false,
 	}
 	switch expectation.ctrl.GetVars().ZArch {
 	case "amd64":
