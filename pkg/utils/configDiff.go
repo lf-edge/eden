@@ -98,6 +98,10 @@ eden:
     #test scenario
     test-scenario: "{{ .DefaultTestScenario }}"
 
+gcp:
+    #path to the key to interact with gcp
+    key: ""
+
 redis:
     #port for access redis
     port: {{ .DefaultRedisPort }}

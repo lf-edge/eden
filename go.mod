@@ -18,12 +18,16 @@ require (
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200513230334-5988786b5617
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
+	github.com/rn/iso9660wrap v0.0.0-20180101235755-3a04f8ca150a
 	github.com/rogpeppe/go-internal v1.6.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
+	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	google.golang.org/api v0.13.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools v2.2.0+incompatible

@@ -266,12 +266,14 @@ The current sub-commands are:
 
 ## Eden EVE commands
 
-`eden eve onboard` - onboard EVE that is the current config
-`eden eve reset` - put EVE to the initial state (reset to config) removing all changes made by commands or tests
+    `eden eve onboard` - onboard EVE that is the current config
+    `eden eve reset` - put EVE to the initial state (reset to config) removing all changes made by commands or tests
 
 ## Eden utils commands
 
-`eden utils certs` - generate certificates for Adam and EVE
-`eden utils download eve` - download EVE live image from docker hub
-`eden utils download eve-rootfs` - download EVE rootfs image from docker hub
-`eden utils sd` - get information about EVE from provided SD card
+    `eden utils certs` - generate certificates for Adam and EVE
+    `eden utils download eve` - download EVE live image from docker hub
+    `eden utils download eve-rootfs` - download EVE rootfs image from docker hub
+    `eden utils sd` - get information about EVE from provided SD card
+    `eden utils gcp` - sub-commands to work with Google Cloud Platform
+   
