@@ -110,6 +110,34 @@ Some tests may accept parameters - run Log/Metrics/Info test in debug mode with 
 
 You can find more detailed information about `eden test` in [tests/README.md](tests/README.md) and [tests/escript/README.md](tests/escript/README.md)
 
+## Google Cloud support
+Eden is enough to deploy Eve on Google Cloud. We are going to make it one command, but now the process is: 
+* Make an image 
+* Upload it to GCP and run 
+* start eden (if not started yet) 
+* Onboard eve (use `eden eve onboard`)
+
+Step 1 : Make an image. You need to specify IP of Adam, by defalut Adam is a container inside machine with Eden, so put there an IP that is accessible from gcp
+```
+make CONFIG='--devmodel GCP' build
+./eden config set default --key adam.eve-ip --value <IP of Adam/Eden>  
+./eden setup
+```
+Step 2 : Upload image to gcp and run it. You will need a google service key json. https://cloud.google.com/iam/docs/creating-managing-service-account-keys 
+```
+./eden utils gcp image -k  <PATH TO SERVICE KEY FILE>  upload <PATH TO EVE IMAGE>
+./eden utils gcp vm -k <PATH TO SERVICE KEY FILE> 
+```
+vm is named eden-gcp-test
+`eden utils gcp` supports vm-name image-name and bucket-name  parameters
+
+Step 3 : Start eden and onboard Eve
+```
+./eden start
+./eden eve onboard
+```
+
+
 ## Raspberry Pi 4 support
 
 Eden is the only thing you need to work with Raspberry and deploy containers there:
