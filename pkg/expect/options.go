@@ -125,3 +125,10 @@ func WithVolumeType(volumesType VolumeType) ExpectationOption {
 		expectation.volumesType = volumesType
 	}
 }
+
+//WithAcl sets access for app only to external networks if onlyHost sets
+func WithAcl(onlyHost bool) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.onlyHostAcl = onlyHost
+	}
+}
