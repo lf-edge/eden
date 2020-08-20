@@ -26,7 +26,6 @@ func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV
 	}
 	size := 0
 	if format == "qcow2" {
-		format = "qcow2"
 		size = defaults.DefaultEVEImageSize
 		if err := PullImage(efiImage); err != nil {
 			log.Infof("cannot pull %s", efiImage)
@@ -39,6 +38,9 @@ func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV
 		if err := SaveImage(efiImage, filepath.Dir(outputFile), ""); err != nil {
 			return fmt.Errorf("SaveImage: %s", err)
 		}
+	}
+	if format == "gcp" {
+		size = defaults.DefaultEVEImageSize
 	}
 	if fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), format, configPath, size); err != nil {
 		return fmt.Errorf("genEVEImage: %s", err)
@@ -62,6 +64,9 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 	fileName = filepath.Join(outputDir, "live.raw")
 	if format == "qcow2" {
 		fileName = fileName + "." + format
+	}
+	if format == "gcp" {
+		fileName = fileName + ".img.tar.gz"
 	}
 	dockerCommand := fmt.Sprintf("-f %s live %d", format, size)
 	if size == 0 {

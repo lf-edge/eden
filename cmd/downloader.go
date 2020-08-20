@@ -48,11 +48,17 @@ var downloadEVECmd = &cobra.Command{
 		if devModel == defaults.DefaultRPIModel {
 			format = "raw"
 		}
+		if devModel == defaults.DefaultGCPModel {
+			format = "gcp"
+		}
 		if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, format); err != nil {
 			log.Fatal(err)
 		} else {
-			if devModel == defaults.DefaultRPIModel {
+			switch devModel {
+			case defaults.DefaultRPIModel:
 				log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
+			case defaults.DefaultGCPModel:
+				log.Infof("Upload %s to gcp and run", eveImageFile)
 			}
 			fmt.Println(eveImageFile)
 		}

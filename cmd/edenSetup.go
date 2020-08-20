@@ -165,6 +165,8 @@ var setupCmd = &cobra.Command{
 				eveHV = fmt.Sprintf("rpi-%s", eveHV)
 			}
 			imageFormat = "raw"
+		case defaults.DefaultGCPModel:
+			imageFormat = "gcp"
 		case defaults.DefaultEVEModel:
 			imageFormat = "qcow2"
 		default:
@@ -195,8 +197,12 @@ var setupCmd = &cobra.Command{
 						}
 					}
 				}
-				if devModel == defaults.DefaultRPIModel {
+
+				switch devModel {
+				case defaults.DefaultRPIModel:
 					log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
+				case defaults.DefaultGCPModel:
+					log.Infof("Upload %s to gcp and run", eveImageFile)
 				}
 			} else {
 				log.Infof("EVE already exists in dir: %s", eveDist)
@@ -208,8 +214,11 @@ var setupCmd = &cobra.Command{
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Infof("download EVE done: %s", eveImageFile)
-					if devModel == defaults.DefaultRPIModel {
+					switch devModel {
+					case defaults.DefaultRPIModel:
 						log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
+					case defaults.DefaultGCPModel:
+						log.Infof("Upload %s to gcp and run", eveImageFile)
 					}
 				}
 			} else {

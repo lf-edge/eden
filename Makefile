@@ -109,7 +109,7 @@ help:
 	@echo "   eserver       build eserver image"
 	@echo
 	@echo "You can use some parameters:"
-	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. make CONFIG='--devmodel RPi4' run"
+	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""
 	@echo "   TESTS         list of tests for 'make test' to run, for ex. make TESTS='lim units' test"
 	@echo "   DEBUG         debug level for 'eden' command ('debug' by default)"
 	@echo

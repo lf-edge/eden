@@ -128,6 +128,9 @@ const DevModelTypeQemu DevModelType = defaults.DefaultEVEModel
 //DevModelTypeRaspberry is model type for Raspberry
 const DevModelTypeRaspberry DevModelType = defaults.DefaultRPIModel
 
+//DevModelTypeGCP is model type for GCP
+const DevModelTypeGCP DevModelType = defaults.DefaultGCPModel
+
 //CreateDevModel create manual DevModel with provided params
 func (cloud *CloudCtx) CreateDevModel(PhysicalIOs []*config.PhysicalIO, Networks []*config.NetworkConfig, Adapters []*config.SystemAdapter, AdapterForSwitches []string, modelType DevModelType) *DevModel {
 	devModel := &DevModel{adapterForSwitches: AdapterForSwitches, physicalIOs: PhysicalIOs, networks: Networks, adapters: Adapters, devModelType: modelType}
@@ -148,7 +151,7 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 	switch devModelType {
 	case DevModelTypeEmpty:
 		return cloud.CreateDevModel(nil, nil, nil, nil, DevModelTypeEmpty), nil
-	case DevModelTypeQemu:
+	case DevModelTypeQemu, DevModelTypeGCP:
 		return cloud.CreateDevModel(
 				[]*config.PhysicalIO{{
 					Ptype:        evecommon.PhyIoType_PhyIoNetEth,

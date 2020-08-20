@@ -41,7 +41,7 @@ const (
 	DefaultAdamPort    = 3333
 
 	//tags, versions, repos
-	DefaultEVETag            = "5.9.0" //DefaultEVETag tag for EVE image
+	DefaultEVETag            = "0.0.0-snapshot-master-2684e660" //DefaultEVETag tag for EVE image
 	DefaultAdamTag           = "0.0.53"
 	DefaultRedisTag          = "6"
 	DefaultLinuxKitVersion   = "v0.7"
@@ -93,7 +93,10 @@ const (
 	DefaultEVEModel = "ZedVirtual-4G"
 
 	DefaultRPIModel = "RPi4"
-	DefaultEVEName  = "node1"
+
+	DefaultGCPModel = "GCP"
+
+	DefaultEVEName = "node1"
 
 	DefaultEVERemote = false
 

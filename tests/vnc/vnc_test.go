@@ -62,7 +62,7 @@ func TestMain(m *testing.M) {
 //for qemu it is forwarded
 //for rpi it is direct
 func getVNCPort(edgeNode *device.Ctx, vncDisplay int) int {
-	if edgeNode.GetDevModel() == defaults.DefaultRPIModel {
+	if edgeNode.GetDevModel() == defaults.DefaultRPIModel || edgeNode.GetDevModel() == defaults.DefaultGCPModel {
 		return 5900 + vncDisplay
 	} else {
 		return 5910 + vncDisplay //forwarded by qemu ports
