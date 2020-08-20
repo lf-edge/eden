@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"sort"
 	"strconv"
@@ -298,13 +297,13 @@ var podPsCmd = &cobra.Command{
 					if devModel == defaults.DefaultRPIModel || devModel == defaults.DefaultGCPModel {
 						for _, nw := range im.GetDinfo().Network {
 							for _, addr := range nw.IPAddrs {
-								ip, _, err := net.ParseCIDR(addr)
-								if err != nil {
-									log.Fatal(err)
-								}
-								ipv4 := ip.To4()
-								if ipv4 != nil {
-									appStateObj.extIp = ipv4.String()
+								//ip, _, err := net.ParseCIDR(addr)
+								//	if err != nil {
+								//		log.Fatal(err)
+								//	}
+								//ipv4 := ip.To4()
+								if addr != "" {
+									appStateObj.extIp = addr //ipv4.String()
 								}
 							}
 						}

@@ -2,6 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
@@ -10,12 +16,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"net"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
 )
 
 var (
@@ -295,13 +295,13 @@ var sshEveCmd = &cobra.Command{
 					}
 					for _, nw := range lastDInfo.GetDinfo().Network {
 						for _, addr := range nw.IPAddrs {
-							ip, _, err := net.ParseCIDR(addr)
-							if err != nil {
-								log.Fatal(err)
-							}
-							ipv4 := ip.To4()
-							if ipv4 != nil {
-								eveHost = ipv4.String()
+							//ip, _, err := net.ParseCIDR(addr)
+							//if err != nil {
+							//	log.Fatal(err)
+							//}
+							//ipv4 := ip.To4()
+							if addr != "" {
+								eveHost = addr //ipv4.String()
 							}
 						}
 					}
