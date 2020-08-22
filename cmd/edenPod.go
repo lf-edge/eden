@@ -299,13 +299,13 @@ var podPsCmd = &cobra.Command{
 					if devModel == defaults.DefaultRPIModel || devModel == defaults.DefaultGCPModel {
 						for _, nw := range im.GetDinfo().Network {
 							for _, addr := range nw.IPAddrs {
-								//ip, _, err := net.ParseCIDR(addr)
-								//	if err != nil {
-								//		log.Fatal(err)
-								//	}
-								//ipv4 := ip.To4()
 								if addr != "" {
-									appStateObj.extIp = addr //ipv4.String()
+									s := strings.Split(addr, ";")
+									for _, oneip := range s {
+										if strings.Contains(oneip, ".") {
+											appStateObj.extIp = oneip
+										}
+									}
 								}
 							}
 						}
