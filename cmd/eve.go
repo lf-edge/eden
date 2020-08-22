@@ -295,13 +295,13 @@ var sshEveCmd = &cobra.Command{
 					}
 					for _, nw := range lastDInfo.GetDinfo().Network {
 						for _, addr := range nw.IPAddrs {
-							//ip, _, err := net.ParseCIDR(addr)
-							//if err != nil {
-							//	log.Fatal(err)
-							//}
-							//ipv4 := ip.To4()
 							if addr != "" {
-								eveHost = addr //ipv4.String()
+								s := strings.Split(addr, ";")
+								for _, oneip := range s {
+									if strings.Contains(oneip, ".") {
+										eveHost = oneip
+									}
+								}
 							}
 						}
 					}
