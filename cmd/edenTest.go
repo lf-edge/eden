@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -108,6 +109,43 @@ func runScenario(testArgs string) {
 		str = strings.Split(str, "#")[0]
 		str = strings.Split(str, "//")[0]
 		targs = strings.Split(str, " ")
+		for i, part := range targs {
+			// Handle defined args
+			flagsParsed := make(map[string]string)
+			// parse provided testArgs
+			flags := strings.Split(strings.Trim(testArgs, "\""), ",")
+			for _, el := range flags {
+				fl := strings.TrimPrefix(el, "-")
+				fl = strings.TrimPrefix(fl, "-")
+				split := strings.SplitN(fl, "=", 2)
+				if len(split) == 2 {
+					flagsParsed[strings.TrimSpace(split[0])] = strings.TrimSpace(split[1])
+				}
+			}
+			// parse args from scenario
+			splitStr := strings.SplitN(part, "args=\"", 2)
+			if len(splitStr) == 2 {
+				flags := strings.Split(strings.SplitN(splitStr[1], "\"", 2)[0], ",")
+				for _, el := range flags {
+					fl := strings.TrimPrefix(el, "-")
+					fl = strings.TrimPrefix(fl, "-")
+					split := strings.SplitN(fl, "=", 2)
+					if len(split) == 2 {
+						if _, ok := flagsParsed[strings.TrimSpace(split[0])]; !ok { // do not overwrite flags from args
+							flagsParsed[strings.TrimSpace(split[0])] = strings.TrimSpace(split[1])
+						}
+					}
+				}
+
+				// merge result map into args
+				var resultArgs []string
+				for k, v := range flagsParsed {
+					resultArgs = append(resultArgs, fmt.Sprintf("%s=%s", k, v))
+				}
+				targs[i] = fmt.Sprintf("-args=\"%s\"", strings.Join(resultArgs, ","))
+				log.Info(targs[i])
+			}
+		}
 		runTest(targs[0], targs[1:], testArgs)
 	}
 }

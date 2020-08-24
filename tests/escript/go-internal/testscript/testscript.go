@@ -19,6 +19,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -31,6 +32,7 @@ import (
 )
 
 var execCache par.Cache
+var envMapMutex = sync.RWMutex{}
 
 // If -testwork is specified, the test prints the name of the temp directory
 // and does not remove it when done, so that a programmer can
@@ -152,6 +154,8 @@ type Params struct {
 	// a manual change will be needed if it is not unquoted in the
 	// script.
 	UpdateScripts bool
+
+	Flags map[string]string
 }
 
 // RunDir runs the tests in the given directory. All files in dir with a ".txt"

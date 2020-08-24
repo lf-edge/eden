@@ -102,6 +102,12 @@ Params.Condition.
 
 The predefined commands are:
 
+* arg name env
+
+    Set environment variable (env) with value from argument (name) passed into script    
+    You can define arguments in top tests file: `eden.escript.test -test.run TestEdenScripts/arg -args="test1=123,test2=456"`    
+    You can override provided args by run: `./eden test tests/escript/ -v debug -a="test1=789"`
+
 * cd dir
 
     Change to the given directory for future commands.

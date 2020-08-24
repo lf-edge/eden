@@ -37,7 +37,7 @@ $(BINDIR):
 	mkdir -p $@
 
 test_escript:
-	go test escript_test.go common.go -v -count=1 -timeout 3000s
+	go test escript_test.go -v -count=1 -timeout 3000s
 
 test:
 	$(LOCALBIN) test $(CURDIR) -v $(DEBUG)

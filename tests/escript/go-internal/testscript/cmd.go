@@ -27,6 +27,7 @@ import (
 // NOTE: If you make changes here, update doc.go.
 //
 var scriptCmds = map[string]func(*TestScript, bool, []string){
+	"arg":     (*TestScript).cmdArg,
 	"cd":      (*TestScript).cmdCd,
 	"chmod":   (*TestScript).cmdChmod,
 	"cmp":     (*TestScript).cmdCmp,
@@ -358,6 +359,21 @@ func (ts *TestScript) cmdEnv(neg bool, args []string) {
 			continue
 		}
 		ts.Setenv(env[:i], env[i+1:])
+	}
+}
+
+// cmdArg process args and set value into environment variable.
+func (ts *TestScript) cmdArg(neg bool, args []string) {
+	if neg {
+		ts.Fatalf("unsupported: ! env")
+	}
+	if len(args) != 2 {
+		ts.Fatalf("usage: arg argument env_variable")
+	}
+	if val, ok := ts.params.Flags[args[0]]; !ok {
+		ts.Logf("argument %s not found in passed argument", args[0])
+	} else {
+		ts.Setenv(args[1], val)
 	}
 }
 
