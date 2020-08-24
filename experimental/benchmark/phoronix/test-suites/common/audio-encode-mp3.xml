@@ -1,0 +1,15 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>encode-mp3</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>encode-mp3</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/encode-mp3-1.7.4</Test> 
+  </Execute>
+</PhoronixTestSuite>
+

@@ -1,0 +1,66 @@
+- name: /win-phoronix/ check memory limit
+  win_shell: "Get-Item WSMan:\\localhost\\Shell\\MaxMemoryPerShellMB"
+  changed_when: false
+  register: result
+
+- name: /win-phoronix/ increase winrm memory limits
+  win_shell: "Set-Item WSMan:\\localhost\\Shell\\MaxMemoryPerShellMB 3096"
+  when: '"3096" not in result.stdout'
+
+- name: /win-phoronix/ Install NuGet
+  win_shell:
+    Install-PackageProvider -Force -Name NuGet
+
+- name: /win-phoronix/ Install PendingReboot
+  win_shell:
+    Install-Module -Force -Name PendingReboot
+
+- name: /win-phoronix/ install php
+  win_chocolatey:
+    name: php
+    state: present
+    params:  "/InstallDir:{{ ansible_env.SystemDrive }}\\PHP"
+
+- name: /win-phoronix/ enable php openssl
+  win_lineinfile:
+    line: 'extension=openssl'
+    path: "{{ ansible_env.SystemDrive }}\\PHP\\php.ini"
+    regex: ';?extension=openssl'
+
+- name: /win-phoronix/ install cygwin
+  win_chocolatey:
+    name: cygwin
+    state: present
+    params:  "/InstallDir:{{ ansible_env.SystemDrive }}\\cygwin64"
+
+- name: /win-phoronix/ install python2
+  win_chocolatey:
+    name: python2
+    state: present
+    params:  "/InstallDir:{{ ansible_env.SystemDrive }}\\python27"
+
+- name: /win-phoronix/ install python3
+  win_chocolatey:
+    name: python3
+    pinned: true
+    state: present
+    version: "3.7.1"
+    params:  "/InstallDir:{{ ansible_env.USERPROFILE }}\\AppData\\Local\\Programs\\Python\\Python37"
+
+- name: /win-phoronix/ fetch MSIs
+  win_get_url:
+    dest: "{{ ansible_env.TEMP }}\\{{ item.url|basename }}"
+    url: "{{ item.url }}"
+  with_items: "{{ winphoronix_msis }}"
+
+- name: /win-phoronix/ install MSIs
+  win_package:
+    arguments: "{{ item.args }}"
+    path: "{{ ansible_env.TEMP }}\\{{ item.url|basename }}"
+  with_items: "{{ winphoronix_msis }}"
+
+- include: virtio.yml
+  tags: virtio
+
+- include: xen.yml
+  tags: xen

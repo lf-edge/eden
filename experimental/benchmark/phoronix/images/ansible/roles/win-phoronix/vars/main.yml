@@ -1,0 +1,23 @@
+winphoronix_msis:
+  - url: https://cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi
+    args:
+      -
+
+winphoronix_virtio_msis:
+  - url: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.185-1/virtio-win-gt-x64.msi
+    args:
+      - ADDLOCAL=FE_network_driver,FE_pvpanic_driver,FE_qemufwcfg_driver,FE_qemupciserial_driver,FE_vioinput_driver,FE_viorng_driver,FE_vioscsi_driver,FE_vioserial_driver,FE_viostor_driver
+
+winphoronix_xen_url: https://xenbits.xenproject.org/pvdrivers/win
+winphoronix_xen_version: 9.0.0
+winphoronix_xen:
+  - xenvkbd
+  - xenhid
+  - xencons
+  - xenvbd
+  - xennet
+  - xenvif
+  - xeniface
+  - xenbus
+
+winphoronix_x509: "[System.Security.Cryptography.X509Certificates.X509ContentType]::Cert"

@@ -1,0 +1,15 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>openssl</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>openssl</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>windows/openssl-1.9.2</Test>
+  </Execute>
+</PhoronixTestSuite>
+

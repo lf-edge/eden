@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--Phoronix Test Suite v9.6.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>compress-7zip</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>compress-7zip</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/compress-7zip-1.7.1</Test>
+    <Arguments></Arguments>
+    <Description></Description>
+    <OverrideTestOptions></OverrideTestOptions>
+  </Execute>
+</PhoronixTestSuite>

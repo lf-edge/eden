@@ -1,0 +1,17 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->     
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>sqlite</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>        
+    <Description>sqlite</Description> 
+    <Maintainer>srn</Maintainer>      
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/sqlite-2.1.0</Test>
+    <Arguments>1</Arguments>
+    <Description>Threads / Copies: 1</Description>
+    <OverrideTestOptions></OverrideTestOptions>
+  </Execute>
+</PhoronixTestSuite>

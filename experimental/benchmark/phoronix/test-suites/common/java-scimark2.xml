@@ -1,0 +1,42 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>java-scimark2</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>java-scimark2</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/java-scimark2-1.1.2</Test>
+    <Arguments>TEST_COMPOSITE</Arguments>
+    <Description>Computational Test: Composite</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/java-scimark2-1.1.2</Test>
+    <Arguments>TEST_FFT</Arguments>
+    <Description>Computational Test: Fast Fourier Transform</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/java-scimark2-1.1.2</Test>
+    <Arguments>TEST_SOR</Arguments>
+    <Description>Computational Test: Jacobi Successive Over-Relaxation</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/java-scimark2-1.1.2</Test>
+    <Arguments>TEST_MONTE</Arguments>
+    <Description>Computational Test: Monte Carlo</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/java-scimark2-1.1.2</Test>
+    <Arguments>TEST_SPARSE</Arguments>
+    <Description>Computational Test: Sparse Matrix Multiply</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/java-scimark2-1.1.2</Test>
+    <Arguments>TEST_DENSE</Arguments>
+    <Description>Computational Test: Dense LU Matrix Factorization</Description>
+  </Execute>
+</PhoronixTestSuite>
+

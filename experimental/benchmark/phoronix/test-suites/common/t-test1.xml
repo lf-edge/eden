@@ -1,0 +1,16 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>t-test1</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>suite</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/t-test1-1.0.1</Test>
+    <Arguments>1</Arguments>
+    <Description>Threads: 1</Description>
+  </Execute>
+</PhoronixTestSuite>

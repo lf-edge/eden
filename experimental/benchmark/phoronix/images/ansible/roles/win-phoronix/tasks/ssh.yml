@@ -1,0 +1,44 @@
+- name: /win-phoronix/ open ssh server port
+  win_firewall_rule:
+    name: Win32-OpenSSH inbound
+    protocol: tcp
+    localport: 22
+    direction: in
+    action: allow
+    state: present
+    enabled: true
+    profiles: public,private
+
+- name: /win-phoronix/ remove custom admin authorized keys
+  win_lineinfile:
+    path: "{{ ansible_env.ALLUSERSPROFILE }}/ssh/sshd_config"
+    regex: "{{ item }}"
+    state: absent
+  with_items:
+    - "Match Group administrators"
+    - "AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys"
+
+- name: /win-phoronix/ create .ssh directory
+  win_file:
+    path: "{{ ansible_env.USERPROFILE }}/.ssh"
+    state: directory
+
+- name: /win-phoronix/ copy authorized_keys
+  win_copy:
+    dest: '{{ ansible_env.USERPROFILE }}/.ssh/authorized_keys'
+    src: phoronix.pub
+
+- name: /win-phoronix/ use powershell for ssh
+  win_regedit:
+    path: HKLM:\SOFTWARE\OpenSSH
+    name: DefaultShell
+    data: '{{ ansible_env.SystemRoot }}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+    type: string
+
+- name: /win-phoronix/ start sshd
+  win_service:
+    name: sshd
+    state: started
+    start_mode: auto
+    force: true
+    force_dependent_services: true

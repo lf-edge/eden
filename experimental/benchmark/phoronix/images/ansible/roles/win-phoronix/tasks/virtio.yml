@@ -1,0 +1,17 @@
+# This doesn't appear to entirely work, but adds RedHats certificate.
+- name: /win-phoronix/ install choco virtio drivers
+  win_chocolatey:
+    name: virtio-drivers
+    state: present
+
+- name: /win-phoronix/ fetch virtio MSIs
+  win_get_url:
+    dest: "{{ ansible_env.TEMP }}\\{{ item.url|basename }}"
+    url: "{{ item.url }}"
+  with_items: "{{ winphoronix_virtio_msis }}"
+
+- name: /win-phoronix/ install virtio MSIs
+  win_package:
+    arguments: "{{ item.args }}"
+    path: "{{ ansible_env.TEMP }}\\{{ item.url|basename }}"
+  with_items: "{{ winphoronix_virtio_msis }}"

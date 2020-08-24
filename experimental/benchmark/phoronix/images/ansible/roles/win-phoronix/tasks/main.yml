@@ -1,0 +1,58 @@
+- include: cleanup.yml
+
+- include: ssh.yml
+
+- include: dependencies.yml
+
+- include: phoronix.yml
+
+- name: /win-phoronix/ disable automatic updates
+  script: windows-update.ps1 1
+
+- name: /win-phoronix/ disable memory compression
+  win_shell:
+    Disable-MMAgent -mc
+
+- name: /win-phoronix/ disable search
+  win_service:
+    name: WSearch
+    state: stopped
+    start_mode: disabled
+    force: true
+    force_dependent_services: true
+
+- name: /win-phoronix/ disable real-time antimalware
+  win_shell:
+    Set-MpPreference -DisableRealtimeMonitoring $true
+
+- name: /win-phoronix/ copy cloudbase-init files
+  win_copy:
+    dest: "{{ ansible_env.ProgramW6432 }}\\Cloudbase Solutions\\Cloudbase-Init\\conf\\{{ item }}"
+    src: "cloudbase-init/{{ item }}"
+  with_items:
+    - cloudbase-init.conf
+    - cloudbase-init-unattend.conf
+
+- name: /win-phoronix/ test pending reboot
+  win_shell: Test-PendingReboot
+  register: result
+  when: "winphoronix_sysprep is defined and winphoronix_sysprep"
+
+- name: /win-phoronix/ reboot if needed
+  win_reboot:
+  when: "(not result is skipped) and ('True' in result.stdout)"
+
+- name: /win-phoronix/ sysprep system
+  win_shell:
+    '{{ ansible_env.SystemRoot }}\\system32\\Sysprep\\sysprep.exe
+    /generalize
+    /quiet
+    /unattend:"{{ ansible_env.ProgramW6432 }}\\Cloudbase Solutions\\Cloudbase-Init\\conf\\unattend.xml"
+    /oobe'
+  when: "winphoronix_sysprep is defined and winphoronix_sysprep"
+
+- name: /win-phoronix/ shutdown system
+  win_shell: shutdown /s /f
+  when:
+    (winphoronix_sysprep is defined and winphoronix_sysprep)
+    or (winphoronix_shutdown is defined and winphoronix_shutdown)

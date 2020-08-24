@@ -1,0 +1,22 @@
+- name: /win-phoronix/ remove by product id
+  win_package:
+    product_id: "{{ item }}"
+    state: absent
+  with_items:
+    - "{C132DF61-207E-4C59-90B8-1DA9E2E1A754}" # puppet
+
+- name: /win-phoronix/ remove onedrive
+  win_shell:
+    "{{ ansible_env.SystemRoot }}\\SysWOW64\\OneDriveSetup.exe /uninstall"
+
+- name: /win-phoronix/ remove packages
+  win_shell:
+    Get-AppxPackage -name {{ item }} | Remove-AppxPackage
+  with_items:
+    - Microsoft.Office.Sway
+    - Microsoft.OfficeLens
+    - Microsoft.RemoteDesktop
+    - Microsoft.Whiteboard
+    - Microsoft.BingNews
+    - Microsoft.Todos
+    - Microsoft.NetworkSpeedTest

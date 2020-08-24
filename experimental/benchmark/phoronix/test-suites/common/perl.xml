@@ -1,0 +1,22 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>perl</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>perl</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/perl-benchmark-1.0.1</Test>
+    <Arguments>benchmarks/app/podhtml.b</Arguments>
+    <Description>Test: Pod2html</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/perl-benchmark-1.0.1</Test>
+    <Arguments>benchmarks/startup/noprog.b</Arguments>
+    <Description>Test: Interpreter</Description> 
+  </Execute>
+</PhoronixTestSuite>
+

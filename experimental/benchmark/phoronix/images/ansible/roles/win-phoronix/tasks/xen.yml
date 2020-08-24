@@ -1,0 +1,29 @@
+- name: /win-phoronix/ Fetch Xen PV Drivers
+  win_get_url:
+    dest: "{{ ansible_env.TEMP }}\\{{ item }}.tar"
+    url: "{{ winphoronix_xen_url }}/{{ winphoronix_xen_version }}/{{ item }}.tar"
+  with_items: "{{ winphoronix_xen }}"
+
+- name: /win-phoronix/ Extract Xen PV Drivers
+  win_shell:
+    tar xf "{{ ansible_env.TEMP }}\\{{ item }}.tar" -C "{{ ansible_env.TEMP }}"
+  args:
+    creates: "{{ ansible_env.TEMP }}\\{{ item }}\\x64"
+  with_items: "{{ winphoronix_xen }}"
+
+- name: /win-phoronix/ Extract Linux Foundation Certificate
+  win_shell:
+    '[IO.File]::WriteAllBytes("{{ ansible_env.TEMP }}\\lf.cert", (Get-AuthenticodeSignature {{ ansible_env.TEMP }}\\{{ winphoronix_xen|first }}\\x64\\{{ winphoronix_xen|first }}.cat).SignerCertificate.Export({{ winphoronix_x509 }}))'
+  args:
+    creates: "{{ ansible_env.TEMP }}\\lf.cert"
+
+- name: /win-phoronix/ Add Linux Foundation Certificate
+  win_certificate_store:
+    key_storage: "machine"
+    path: "{{ ansible_env.TEMP }}\\lf.cert"
+    store_name: "TrustedPublisher"
+
+- name: /win-phoronix/ Install Xen PV Drivers
+  win_shell:
+    "{{ ansible_env.TEMP }}\\{{ item }}\\x64\\dpinst.exe /Q /F /SE /C"
+  with_items: "{{ winphoronix_xen }}"

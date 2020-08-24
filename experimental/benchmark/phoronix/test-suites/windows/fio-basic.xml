@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--Phoronix Test Suite v9.6.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>basic-fio</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>basic-fio</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/fio-1.13.2</Test>
+    <Arguments>randread windowsaio 0 1 4k</Arguments>
+    <Description>Type: Random Read - Engine: Windows AIO - Buffered: No - Direct: Yes - Block Size: 4KB - Disk Target: Default Test Directory</Description>
+    <OverrideTestOptions></OverrideTestOptions>
+  </Execute>
+  <Execute>
+    <Test>pts/fio-1.13.2</Test>
+    <Arguments>randwrite windowsaio 0 1 4k</Arguments>
+    <Description>Type: Random Write - Engine: Windows AIO - Buffered: No - Direct: Yes - Block Size: 4KB - Disk Target: Default Test Directory</Description>
+    <OverrideTestOptions></OverrideTestOptions>
+  </Execute>
+  <Execute>
+    <Test>pts/fio-1.13.2</Test>
+    <Arguments>read windowsaio 0 1 128k</Arguments>
+    <Description>Type: Sequential Read - Engine: Windows AIO - Buffered: No - Direct: Yes - Block Size: 128KB - Disk Target: Default Test Directory</Description>
+    <OverrideTestOptions></OverrideTestOptions>
+  </Execute>
+  <Execute>
+    <Test>pts/fio-1.13.2</Test>
+    <Arguments>write windowsaio 0 1 128k</Arguments>
+    <Description>Type: Sequential Write - Engine: Windows AIO - Buffered: No - Direct: Yes - Block Size: 128KB - Disk Target: Default Test Directory</Description>
+    <OverrideTestOptions></OverrideTestOptions>
+  </Execute>
+</PhoronixTestSuite>

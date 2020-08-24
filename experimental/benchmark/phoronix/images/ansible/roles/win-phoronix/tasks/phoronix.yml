@@ -1,0 +1,49 @@
+- name: /win-phoronix/ fetch phoronix test suite
+  win_get_url:
+    dest: "{{ ansible_env.TEMP }}\\phoronix-test-suite-{{ phoronix_version }}.zip"
+    url: "https://github.com/phoronix-test-suite/phoronix-test-suite/archive/v{{ phoronix_version }}.zip"
+
+- name: /win-phoronix/ unzip phoronix
+  win_unzip:
+    dest: "{{ ansible_env.SystemDrive }}\\"
+    src: "{{ ansible_env.TEMP }}\\phoronix-test-suite-{{ phoronix_version }}.zip"
+    creates: "{{ ansible_env.SystemDrive }}\\phoronix-test-suite"
+
+- name: /win-phoronix/ move to version-independent path
+  win_shell: \
+    Move-Item
+    -Path "{{ ansible_env.SystemDrive }}\\phoronix-test-suite-{{ phoronix_version }}"
+    -Destination "{{ ansible_env.SystemDrive }}\\phoronix-test-suite"
+  args:
+    creates: "{{ ansible_env.SystemDrive }}\\phoronix-test-suite"
+
+- name: /win-phoronix/ check for phoronix config
+  win_stat:
+    path: "{{ ansible_env.USERPROFILE }}\\.phoronix-test-suite\\user-config.xml"
+  register: phoronix_info
+
+- name: /win-phoronix/ initialize phoronix
+  win_shell: >
+    Start-Process
+    -FilePath {{ ansible_env.SystemDrive }}\\phoronix-test-suite\\phoronix-test-suite.bat
+    -ArgumentList help; sleep 10
+  failed_when: false
+  when: not phoronix_info.stat.exists
+
+- name: /win-phoronix/ copy config file
+  win_copy:
+    dest: "{{ ansible_env.USERPROFILE }}\\.phoronix-test-suite\\user-config.xml"
+    src: user-config.xml
+
+- name: /win-phoronix/ copy core file
+  win_copy:
+    dest: "{{ ansible_env.USERPROFILE }}\\.phoronix-test-suite\\core.pt2so"
+    src: core.pt2so
+
+- name: /win-phoronix/ create suite directory
+  win_file:
+    path: "{{ ansible_env.USERPROFILE }}\\.phoronix-test-suite\\test-suites\\local\\suite"
+    state: directory
+
+- name: /win-phoronix/ test phoronix
+  win_shell: "{{ ansible_env.SystemDrive }}\\phoronix-test-suite\\phoronix-test-suite.bat help"

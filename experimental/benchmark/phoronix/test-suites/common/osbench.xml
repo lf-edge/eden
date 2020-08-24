@@ -1,0 +1,37 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>osbench</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>osbench</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/osbench-1.0.1</Test>
+    <Arguments>create_files.exe target</Arguments>
+    <Description>Test: Create Files</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/osbench-1.0.1</Test>
+    <Arguments>create_processes.exe</Arguments>
+    <Description>Test: Create Processes</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/osbench-1.0.1</Test>
+    <Arguments>create_threads.exe</Arguments>
+    <Description>Test: Create Threads</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/osbench-1.0.1</Test>
+    <Arguments>launch_programs.exe</Arguments>
+    <Description>Test: Launch Programs</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/osbench-1.0.1</Test>
+    <Arguments>mem_alloc.exe</Arguments>
+    <Description>Test: Memory Allocations</Description>
+  </Execute>
+</PhoronixTestSuite>
+

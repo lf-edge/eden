@@ -1,0 +1,31 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>go</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>go</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute>
+    <Test>pts/go-benchmark-1.1.4</Test>
+    <Arguments>build</Arguments>
+    <Description>Test: build</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/go-benchmark-1.1.4</Test>
+    <Arguments>http</Arguments>
+    <Description>Test: http</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/go-benchmark-1.1.4</Test>
+    <Arguments>json</Arguments>
+    <Description>Test: json</Description>
+  </Execute>
+  <Execute>
+    <Test>pts/go-benchmark-1.1.4</Test>
+    <Arguments>garbage</Arguments>
+    <Description>Test: garbage</Description>
+  </Execute>
+</PhoronixTestSuite>

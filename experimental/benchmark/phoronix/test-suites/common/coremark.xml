@@ -1,0 +1,15 @@
+<?xml version="1.0"?> 
+<!--Phoronix Test Suite v9.8.0-->
+<PhoronixTestSuite>
+  <SuiteInformation>
+    <Title>coremark</Title>
+    <Version>1.0.0</Version>
+    <TestType>Other</TestType>
+    <Description>coremark</Description>
+    <Maintainer>srn</Maintainer>
+  </SuiteInformation>
+  <Execute> 
+    <Test>pts/coremark-1.0.0</Test>
+  </Execute>
+</PhoronixTestSuite>
+
