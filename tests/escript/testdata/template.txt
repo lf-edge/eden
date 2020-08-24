@@ -12,12 +12,12 @@ cmp stdout out
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 
 ROOT=`$EDEN config get --key eden.root`
-DIST=`$EDEN config get --key eden.images.dist`
+DIST=`$EDEN config get --key adam.ca`
 echo eden.root = $ROOT > out
-echo eden.images.dist = $DIST '->' $ROOT/$DIST >> out
-echo eden.images.dist = $DIST '->' $ROOT/$DIST >> out
+echo adam.ca = $DIST '->' $ROOT/$DIST >> out
+echo adam.ca = $DIST '->' $ROOT/$DIST >> out
 
 -- template.text --
 eden.root = {{EdenConfig "eden.root"}}
-eden.images.dist = {{EdenConfig "eden.images.dist"}} -> {{EdenConfigPath "eden.images.dist"}}
-{{$i := EdenConfig "eden.images.dist"}}eden.images.dist = {{$i}} -> {{EdenPath $i }}
+adam.ca = {{EdenConfig "adam.ca"}} -> {{EdenConfigPath "adam.ca"}}
+{{$i := EdenConfig "adam.ca"}}adam.ca = {{$i}} -> {{EdenPath $i }}

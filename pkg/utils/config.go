@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"text/template"
 )
 
@@ -285,6 +286,8 @@ redis:
     dist: "{{ .DefaultRedisDist }}"
 `
 
+var configMutex = sync.RWMutex{}
+
 //DefaultEdenDir returns path to default directory
 func DefaultEdenDir() (string, error) {
 	usr, err := user.Current()
@@ -314,6 +317,8 @@ func CurrentDirConfigPath() (string, error) {
 
 //LoadConfigFile load config from file with viper
 func LoadConfigFile(config string) (loaded bool, err error) {
+	configMutex.Lock()
+	defer configMutex.Unlock()
 	if config == "" {
 		config, err = DefaultConfigPath()
 		if err != nil {
