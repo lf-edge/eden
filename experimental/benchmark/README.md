@@ -49,6 +49,10 @@ whether they run on Linux, Windows, or on both. Preference was given to
 suites that run on both platforms if multiple options covering a given criteria
 were available.
 
+No network test is included right now because most of them require a third-party
+component. An ideal situation would be running an iperf3 server either on the
+same system or on the same local area network.
+
 ## Scripts
 
 There is a simple proof of concept of copying over, running, and fetching the
