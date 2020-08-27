@@ -33,9 +33,15 @@ var (
 )
 
 func configCheck() {
-	sconf := utils.ResolveAbsPath(defaults.DefaultConfigSaved)
 
-	abs, err := filepath.Abs(sconf)
+	context, err := utils.ContextLoad()
+	if err != nil {
+		log.Fatalf("Load context error: %s", err)
+	}
+
+	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", context.Current, defaults.DefaultConfigSaved))
+
+	abs, err := filepath.Abs(configSaved)
 	if err != nil {
 		log.Fatalf("fail in reading filepath: %s\n", err.Error())
 		os.Exit(-2)
@@ -65,7 +71,7 @@ func configCheck() {
 			confCur := viper.AllSettings()
 
 			if reflect.DeepEqual(confOld, confCur) {
-				log.Infof("Config file %s is the same as %s\n", configFile, sconf)
+				log.Infof("Config file %s is the same as %s\n", configFile, configSaved)
 			} else {
 				log.Fatalf("The current configuration file %s is different from the saved %s. You can fix this with the commands 'eden config clean' and 'eden config add/set/edit'.\n", configFile, abs)
 				os.Exit(-1)
@@ -234,7 +240,7 @@ func setupInit() {
 		log.Fatal(err)
 	}
 
-	setupCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
+	setupCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", "", "directory with certs")
 	setupCmd.Flags().StringVarP(&certsDomain, "domain", "d", defaults.DefaultDomain, "FQDN for certificates")
 	setupCmd.Flags().StringVarP(&certsIP, "ip", "i", defaults.DefaultIP, "IP address to use")
 	setupCmd.Flags().StringVarP(&certsEVEIP, "eve-ip", "", defaults.DefaultEVEIP, "IP address to use for EVE")
@@ -248,13 +254,13 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", "", "path for config drive")
 	setupCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
 	setupCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path for image drive (required)")
-	setupCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist), "directory to save EVE")
+	setupCmd.Flags().StringVarP(&eveDist, "eve-dist", "", "", "directory to save EVE")
 	setupCmd.Flags().StringVarP(&eveRepo, "eve-repo", "", defaults.DefaultEveRepo, "EVE repo")
 	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "EVE tag")
 	setupCmd.Flags().StringVarP(&eveUefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "EVE UEFI tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
 	setupCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
-	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "file to save qemu config")
+	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", "", "file to save qemu config")
 	setupCmd.Flags().BoolVarP(&download, "download", "", true, "download EVE or build")
 	setupCmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
 

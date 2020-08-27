@@ -37,6 +37,23 @@ var configCmd = &cobra.Command{
 	Long:  `Work with config.`,
 }
 
+func reloadConfigDetails() {
+	viperLoaded, err := utils.LoadConfigFile(configFile)
+	if err != nil {
+		log.Fatalf("error reading config: %s", err)
+	}
+	if viperLoaded {
+		qemuFirmware = viper.GetStringSlice("eve.firmware")
+		qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
+		qemuDTBPath = utils.ResolveAbsPath(viper.GetString("eve.dtb-part"))
+		eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+		qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
+		qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+		devModel = viper.GetString("eve.devmodel")
+		eveRemote = viper.GetBool("eve.remote")
+	}
+}
+
 var configAddCmd = &cobra.Command{
 	Use:   "add <name>",
 	Short: "generate config context for eden with defined name",
@@ -70,20 +87,7 @@ var configAddCmd = &cobra.Command{
 				log.Infof("Config file generated: %s", configFile)
 			}
 		}
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			log.Fatalf("error reading config: %s", err)
-		}
-		if viperLoaded {
-			qemuFirmware = viper.GetStringSlice("eve.firmware")
-			qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
-			qemuDTBPath = utils.ResolveAbsPath(viper.GetString("eve.dtb-part"))
-			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
-			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
-			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
-			devModel = viper.GetString("eve.devmodel")
-			eveRemote = viper.GetBool("eve.remote")
-		}
+		reloadConfigDetails()
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -102,7 +106,7 @@ var configAddCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Stat(configFile); os.IsNotExist(err) {
-				if err = utils.GenerateConfigFileDiff(configFile); err != nil {
+				if err = utils.GenerateConfigFileDiff(configFile, context); err != nil {
 					log.Fatalf("error generate config: %s", err)
 				} else {
 					log.Infof("Context file generated: %s", configFile)
@@ -111,10 +115,7 @@ var configAddCmd = &cobra.Command{
 				log.Debugf("Config file already exists %s", configFile)
 			}
 		}
-		_, err = utils.LoadConfigFile(configFile)
-		if err != nil {
-			log.Fatalf("error reading config: %s", err)
-		}
+		reloadConfigDetails()
 		if devModel == defaults.DefaultRPIModel { //modify default settings according to RPI4 params
 			eveRemote = true
 			viper.Set("eve.hostfwd", map[string]string{})
@@ -441,9 +442,15 @@ var configDeleteCmd = &cobra.Command{
 			log.Infof("Move to %s context", defaults.DefaultContext)
 		}
 		context.Current = contextNameDel
-		currentContextFile := context.GetCurrentConfig()
-		log.Infof("currentContextFile %s", currentContextFile)
-		if err := os.Remove(currentContextFile); err != nil {
+		configFile = context.GetCurrentConfig()
+		reloadConfigDetails()
+		if _, err := os.Stat(qemuFileToSave); !os.IsNotExist(err) {
+			if err := os.Remove(qemuFileToSave); err == nil {
+				log.Infof("deleted qemu config %s", qemuFileToSave)
+			}
+		}
+		log.Infof("currentContextFile %s", configFile)
+		if err := os.Remove(configFile); err != nil {
 			log.Fatalf("Cannot delete context %s: %s", contextNameDel, err)
 		}
 	},

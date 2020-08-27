@@ -203,7 +203,7 @@ eve:
     dist: {{ .DefaultEVEDist }}
 
     #file to save qemu config
-    qemu-config: {{ .EdenDir }}/qemu.conf
+    qemu-config: {{ .DefaultQemuFileToSave }}
 
     #uuid of EVE to use in cert
     uuid: {{ .UUID }}
@@ -317,8 +317,6 @@ func CurrentDirConfigPath() (string, error) {
 
 //LoadConfigFile load config from file with viper
 func LoadConfigFile(config string) (loaded bool, err error) {
-	configMutex.Lock()
-	defer configMutex.Unlock()
 	if config == "" {
 		config, err = DefaultConfigPath()
 		if err != nil {
@@ -373,15 +371,15 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 
 //GenerateConfigFile is a function to generate default yml
 func GenerateConfigFile(filePath string) error {
-	return generateConfigFileFromTemplate(filePath, defaultEnvConfig)
-}
-
-func generateConfigFileFromTemplate(filePath string, templateString string) error {
 	context, err := ContextInit()
 	if err != nil {
 		return err
 	}
 	context.Save()
+	return generateConfigFileFromTemplate(filePath, defaultEnvConfig, context)
+}
+
+func generateConfigFileFromTemplate(filePath string, templateString string, context *Context) error {
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -462,11 +460,13 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultRedisContainerName string
 
 			DefaultEServerTag string
+
+			DefaultQemuFileToSave string
 		}{
 			DefaultAdamDist:     defaults.DefaultAdamDist,
 			DefaultAdamPort:     defaults.DefaultAdamPort,
 			DefaultAdamTag:      defaults.DefaultAdamTag,
-			DefaultImageDist:    defaults.DefaultImageDist,
+			DefaultImageDist:    fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist),
 			DefaultEserverDist:  defaults.DefaultEserverDist,
 			Root:                filepath.Join(currentPath, defaults.DefaultDist),
 			IP:                  ip,
@@ -479,21 +479,21 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultDomain:       defaults.DefaultDomain,
 			DefaultRedisPort:    defaults.DefaultRedisPort,
 			DefaultRedisTag:     defaults.DefaultRedisTag,
-			DefaultEVEDist:      defaults.DefaultEVEDist,
+			DefaultEVEDist:      fmt.Sprintf("%s-%s", context.Current, defaults.DefaultEVEDist),
 			DefaultEserverPort:  defaults.DefaultEserverPort,
 			DefaultEVESerial:    defaults.DefaultEVESerial,
 			DefaultRedisDist:    defaults.DefaultRedisDist,
-			DefaultCertsDist:    defaults.DefaultCertsDist,
+			DefaultCertsDist:    fmt.Sprintf("%s-%s", context.Current, defaults.DefaultCertsDist),
 			DefaultBinDist:      defaults.DefaultBinDist,
 			DefaultEVEHV:        defaults.DefaultEVEHV,
 			DefaultSSHPort:      defaults.DefaultSSHPort,
 			DefaultTestScenario: defaults.DefaultTestScenario,
 			DefaultTestProg:     defaults.DefaultTestProg,
-			DefaultSSHKey:       defaults.DefaultSSHKey,
+			DefaultSSHKey:       fmt.Sprintf("%s-%s", context.Current, defaults.DefaultSSHKey),
 			DefaultEveRepo:      defaults.DefaultEveRepo,
 
 			DefaultEVEModel: defaults.DefaultEVEModel,
-			DefaultEVEName:  defaults.DefaultEVEName,
+			DefaultEVEName:  strings.ToLower(context.Current),
 
 			DefaultEVERemote:     defaults.DefaultEVERemote,
 			DefaultEVERemoteAddr: defaults.DefaultEVEHost,
@@ -501,6 +501,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string) erro
 			DefaultRedisContainerName: defaults.DefaultRedisContainerName,
 
 			DefaultEServerTag: defaults.DefaultEServerTag,
+
+			DefaultQemuFileToSave: filepath.Join(edenDir, fmt.Sprintf("%s-%s", context.Current, defaults.DefaultQemuFileToSave)),
 		})
 	if err != nil {
 		return err

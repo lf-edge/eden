@@ -37,7 +37,7 @@ eve:
     devmodel: ZedVirtual-4G
 
     #file to save qemu config
-    qemu-config: {{ .EdenDir }}/qemu.conf
+    qemu-config: {{ .DefaultQemuFileToSave }}
 
     #EVE arch (amd64/arm64)
     arch: {{ .Arch }}
@@ -89,6 +89,9 @@ eden:
         #port for eserver
         port: {{ .DefaultEserverPort }}
 
+    #directory to save certs
+    certs-dist: {{ .DefaultCertsDist }}
+
     #ssh-key to put into EVE
     ssh-key: {{ .DefaultSSHKey }}
 
@@ -111,6 +114,6 @@ redis:
 `
 
 //GenerateConfigFileDiff is a function to generate diff yml for new context
-func GenerateConfigFileDiff(filePath string) error {
-	return generateConfigFileFromTemplate(filePath, defaultEnvDiffConfig)
+func GenerateConfigFileDiff(filePath string, context *Context) error {
+	return generateConfigFileFromTemplate(filePath, defaultEnvDiffConfig, context)
 }
