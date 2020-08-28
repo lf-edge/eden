@@ -416,14 +416,33 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 	return os.Remove(imageConfigTmp)
 }
 
-//PrepareQEMUConfig create config file for QEMU
-func PrepareQEMUConfig(commandPath string, qemuConfigFile string, firmwareFile []string, configPart string, dtbPath string, eveHostFWD string) (err error) {
-	firmwares := strings.Join(firmwareFile, ",")
-	commandArgsString := fmt.Sprintf("eve qemuconf --qemu-config=%s --eve-firmware=%s --config-part=%s --eve-hostfwd=\"%s\" --dtb-part=%s -v %s",
-		qemuConfigFile, firmwares, configPart, eveHostFWD, dtbPath, log.GetLevel())
-	log.Infof("PrepareQEMUConfig run: %s %s", commandPath, commandArgsString)
-	if err = RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-		return fmt.Errorf("error in qemuconf: %s", err)
+//CleanContext cleanup only context data
+func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID string, configSaved string) (err error) {
+	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=false --redis-rm=false --eserver-rm=false", evePID)
+	log.Infof("CleanContext run: %s %s", commandPath, commandArgsString)
+	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
+	if err != nil {
+		return fmt.Errorf("error in eden stop: %s", err)
+	}
+	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(eveDist); err != nil {
+			return fmt.Errorf("error in %s delete: %s", eveDist, err)
+		}
+	}
+	if _, err = os.Stat(certsDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(certsDist); err != nil {
+			return fmt.Errorf("error in %s delete: %s", certsDist, err)
+		}
+	}
+	if _, err = os.Stat(imagesDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(imagesDist); err != nil {
+			return fmt.Errorf("error in %s delete: %s", imagesDist, err)
+		}
+	}
+	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
+		if err = os.RemoveAll(configSaved); err != nil {
+			return fmt.Errorf("error in %s delete: %s", configSaved, err)
+		}
 	}
 	return nil
 }
@@ -474,11 +493,6 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDis
 	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configSaved); err != nil {
 			return fmt.Errorf("error in %s delete: %s", configSaved, err)
-		}
-	}
-	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
-		if err = os.RemoveAll(configDir); err != nil {
-			return fmt.Errorf("error in %s delete: %s", configDir, err)
 		}
 	}
 	if err = RemoveGeneratedVolumeOfContainer(defaults.DefaultEServerContainerName); err != nil {

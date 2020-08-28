@@ -110,13 +110,11 @@ This allows you to use not only hardcoded parameters in test scenarios, eden-con
 Specific arguments for testing binary files may be passed by two ways:
 
 * placing them in the local eden-config.tmpl for this test, for ex.:
-https://github.com/lf-edge/eden/blob/master/tests/reboot/eden-config.tmpl
-then you must generate eden-config.yaml for this test:
-```
-utils template eden-config.tmpl>eden-config.yml
-```
+[tests/reboot/eden-config.tmpl](../tests/reboot/eden-config.tmpl)
+then you must generate eden-config.yaml for this test (it is included into `build` target of Makefiles of tests for simplicity):
+`utils template eden-config.tmpl>eden-config.yml`. You must regenerate config of tests if they use templates (or run `make build`) after switching context to properly rendering of templates with data from new context if you choose first variant (with eden-config.tmpl).
 * use of test arguments in test scripts or a selected test from an executable binary test for ex.:
-https://github.com/lf-edge/eden/blob/master/tests/integration/eden.integration.tests.txt
+[tests/integration/eden.integration.tests.txt](../tests/integration/eden.integration.tests.txt)
 
 The second option is more flexible, because we can run the same test several times with different parameters in the same scenario.
 
@@ -125,9 +123,10 @@ The most commonly used `eden-config` parameters for setting up a test are:
 * `eden.escript.test-scenario` -- name of file with a default test scenario. This file should be placed in the test's directory or in the `eden.root` directory.
 * `eden.escript.test-bin`-- name of default test binary. Can be used with the `eden test -run` command to run the selected test from this binary. This file should be placed in the test's directory or in the `eden.root/eden.bin-dist` directory.
 
-## Test sceanrios
 
-Test sceanrios are plain text files with one line per command structure. The most commonly used commands are just test binaries with arguments. In sceanrios you can use inline comments in the Shell (#) and Go (//) styles. Comment blocks from Go templates {{/* */}} can also be used. Example of scenario: [workflow/eden.workflow.tests.txt](workflow/eden.workflow.tests.txt).
+## Test scenarios
+
+Test scenarios are plain text files with one line per command structure. The most commonly used commands are just test binaries with arguments. In sceanrios you can use inline comments in the Shell (#) and Go (//) styles. Comment blocks from Go templates {{/* */}} can also be used. Example of scenario: [workflow/eden.workflow.tests.txt](workflow/eden.workflow.tests.txt).
 
 ## Test scripting
 

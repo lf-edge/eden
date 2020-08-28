@@ -70,7 +70,10 @@ func RunCommandNohup(name string, logFile string, pidFile string, args ...string
 	}
 	if pidFile != "" {
 		if _, err := os.Stat(pidFile); !os.IsNotExist(err) {
-			return fmt.Errorf("pid file already exists")
+			if status, _ := StatusCommandWithPid(pidFile); strings.Contains(status, "running with pid") {
+				// check if process with defined pid running
+				return fmt.Errorf("pid file already exists")
+			}
 		}
 	}
 	if err := cmd.Start(); err != nil {

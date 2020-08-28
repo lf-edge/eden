@@ -41,7 +41,7 @@ export ZARCH
 
 clean: config stop
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
-	$(LOCALBIN) clean
+	$(LOCALBIN) clean --current-context=false
 	rm -rf $(LOCALBIN) $(BINDIR)/$(BIN) $(LOCALTESTBIN) $(WORKDIR)
 
 $(WORKDIR):

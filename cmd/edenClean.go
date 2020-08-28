@@ -14,6 +14,8 @@ import (
 var (
 	configDir   string
 	configSaved string
+
+	currentContext bool
 )
 
 var cleanCmd = &cobra.Command{
@@ -35,7 +37,11 @@ var cleanCmd = &cobra.Command{
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
-			configSaved = utils.ResolveAbsPath(defaults.DefaultConfigSaved)
+			context, err := utils.ContextLoad()
+			if err != nil {
+				log.Fatalf("Load context error: %s", err)
+			}
+			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", context.Current, defaults.DefaultConfigSaved))
 		}
 		return nil
 	},
@@ -44,10 +50,17 @@ var cleanCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
-			eserverImageDist, redisDist, configDir, evePidFile,
-			configSaved); err != nil {
-			log.Fatalf("cannot CleanEden: %s", err)
+		if currentContext {
+			log.Info("Cleanup current context")
+			if err := utils.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, configSaved); err != nil {
+				log.Fatalf("cannot CleanContext: %s", err)
+			}
+		} else {
+			if err := utils.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
+				eserverImageDist, redisDist, configDir, evePidFile,
+				configSaved); err != nil {
+				log.Fatalf("cannot CleanEden: %s", err)
+			}
 		}
 		log.Infof("CleanEden done")
 	},
@@ -65,10 +78,11 @@ func cleanInit() {
 	cleanCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	cleanCmd.Flags().StringVarP(&eveDist, "eve-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultEVEDist), "directory to save EVE")
 	cleanCmd.Flags().StringVarP(&redisDist, "redis-dist", "", "", "redis dist")
-	cleanCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "file to save qemu config")
+	cleanCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", "", "file to save qemu config")
 	cleanCmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start (required)")
 	cleanCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
 
 	cleanCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
 	cleanCmd.Flags().StringVarP(&configDir, "config-dist", "", configDist, "directory for config")
+	cleanCmd.Flags().BoolVar(&currentContext, "current-context", true, "clean only current context")
 }
