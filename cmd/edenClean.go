@@ -14,6 +14,8 @@ import (
 var (
 	configDir   string
 	configSaved string
+
+	currentContext bool
 )
 
 var cleanCmd = &cobra.Command{
@@ -48,10 +50,17 @@ var cleanCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
-			eserverImageDist, redisDist, configDir, evePidFile,
-			configSaved); err != nil {
-			log.Fatalf("cannot CleanEden: %s", err)
+		if currentContext {
+			log.Info("Cleanup current context")
+			if err := utils.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, configSaved); err != nil {
+				log.Fatalf("cannot CleanContext: %s", err)
+			}
+		} else {
+			if err := utils.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
+				eserverImageDist, redisDist, configDir, evePidFile,
+				configSaved); err != nil {
+				log.Fatalf("cannot CleanEden: %s", err)
+			}
 		}
 		log.Infof("CleanEden done")
 	},
@@ -75,4 +84,5 @@ func cleanInit() {
 
 	cleanCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
 	cleanCmd.Flags().StringVarP(&configDir, "config-dist", "", configDist, "directory for config")
+	cleanCmd.Flags().BoolVar(&currentContext, "current-context", true, "clean only current context")
 }
