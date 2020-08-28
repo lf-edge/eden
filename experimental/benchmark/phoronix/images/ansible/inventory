@@ -1,0 +1,2 @@
+[windows]
+msedge-win10 ansible_user=IEUser ansible_password='Passw0rd!' ansible_connection=winrm ansible_winrm_transport=basic ansible_host=127.0.0.1 ansible_port=5985

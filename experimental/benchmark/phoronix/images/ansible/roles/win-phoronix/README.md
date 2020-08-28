@@ -45,8 +45,15 @@ tar xaf MSEdge-Win10.tar
 # Convert to QCOW2
 qemu-img convert "MSEdge - Win10-disk001.vmdk" -O qcow2 -S 4k -c MSEdge-Win10-disk001.qcow2
 
+# Create dummy virtio disk
+truncate -s 32M dummy.raw
+
 # Start under KVM with port redirection
-qemu-system-x86_64 -enable-kvm -smp cpus=2 -m 2048M -net nic -net user,hostfwd=tcp::5985-:5985,hostfwd=tcp::8022-:22  MSEdge-Win10-disk001.qcow2
+qemu-system-x86_64 -enable-kvm -smp cpus=2 -m 2048M -net nic \
+  -net user,hostfwd=tcp::5985-:5985,hostfwd=tcp::8022-:22 \
+  -drive file=MSEdge-Win10-disk001.qcow2 \
+  -drive file=dummy.raw,format=raw,if=virtio \
+  -monitor stdio
 ```
 
 ### Ubuntu Focal Packages
@@ -62,8 +69,8 @@ qemu-system-x86_64 -enable-kvm -smp cpus=2 -m 2048M -net nic -net user,hostfwd=t
   * Click on "change connection properties"
   * Select "private" not "public"
 
-### Sample Ansible Inventory
+# Example Invocation
 
 ```
-msedge-win10 ansible_user=IEUser ansible_password='Passw0rd!' ansible_connection=winrm ansible_winrm_tranport=basic ansible_host=127.0.0.1 ansible_port=5985
+ansible-playbook -i inventory phoronix.yml --extra-vars=winphoronix_sysprep=true
 ```
