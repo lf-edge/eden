@@ -58,6 +58,8 @@ $(EMPTY_DRIVE):
 	qemu-img create -f qcow2 $(EMPTY_DRIVE) 100M
 
 build: bin testbin
+install: build
+	CGO_ENABLED=0 go install .
 
 bin: $(BIN) $(EMPTY_DRIVE)
 ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
