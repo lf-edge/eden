@@ -7,7 +7,7 @@
 * redis as a backing store for adam
 * eserver to serve up files to eve
 
-Each of these can have their own config, and each can have multipe instances, running in their own ways.
+Each of these can have their own config, and each can have multiple instances, running in their own ways.
 
 eden maintains a configuration for running, that combines the setup of adam, eve devices, redis and the eserver. Each such
 combination is called a "context" and is given a unique name.
@@ -28,6 +28,12 @@ by adding the file or using `eden config add <context>`.
 
 You also can set the current context by editing `~/.eden/context.yml` or running `eden config set <context>`, and you can
 list all known contexts with `eden config list`.
+
+Every context you add creates the new instance of EVE with dedicated certificates 
+according to generated context file inside `~/.eden/contexts/` directory.
+You can modify settings before running `eden setup`. Only one EVE instance can be run locally (in qemu). You need to stop it before starting another one.
+
+Please see [Test configuring](../tests/README.md#Test configuring) section for details about tests config options with switching context.
 
 ### Example
 

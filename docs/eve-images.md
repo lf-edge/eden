@@ -16,14 +16,14 @@ The normal EVE flow for `eden setup` is as follows.
 
 1. If you do not have a context, get the latest tag for the image `lfedge/eve` from the docker hub, e.g. `0.0.51`, and save that tag in your context
 1. Pull the image `lfedge/eve:<tag>`
-1. Generate a config directory with:
+1. Generate a config directory (inside `$PWD/dist/<name>-certs/`, where `<name>` the current context name) with:
    * server certificate for adam
    * `server` file pointing to the local running adam address
    * device certificate
 1. Run the docker image with the config partition mounted to:
    1. Generate a disk image - raw for RPi, qcow2 for everything else - overriding the config partition with the mounted config directory
    1. Extract the disk image from the docker image, e.g. `live.qcow2`
-1. Save the extracted disk image to a local cache, normally `$PWD/dist/images/eve/`
+1. Save the extracted disk image to a local cache, normally `$PWD/dist/<name>-images/eve/` (where `<name>` is the current context name).
 
 You now have a disk image, e.g. `live.qcow2` ready to run, with the appropriate embedded config partition.
 

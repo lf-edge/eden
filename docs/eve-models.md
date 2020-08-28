@@ -3,7 +3,7 @@ Eden has different ways of Eve deployment:
 # Qemu deployment
 This is default deployment
 Once you run `eden config add default` eden generates config with this type of deployment. 
-Also it generates qemu.conf in ~/.eden/ with qemu setings 
+Also, it generates <name>-qemu.conf in ~/.eden/ with qemu settings (where `<name>` is your context name).
 
 This installation type requires qemu package installed. Eve runs in qemu on the same machine. 
 This is useful for debugging and getting started, but not that useful in production 
