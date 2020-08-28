@@ -1,7 +1,8 @@
 # Overview
 
-The eventual goal is to be able to
-automatically run and compare benchmarks between different versions of EVE.
+The eventual goal is to be able to run benchmarks as applications on EVE and
+compare the results of those benchmarks, so that the performance impact to
+applications resulting from changes to EVE can be measured.
 
 [Phoronix test suite](https://www.phoronix-test-suite.com/) is a framework for
 running benchmarks natively on both Linux and Windows. Primarily it is
@@ -52,6 +53,9 @@ were available.
 No network test is included right now because most of them require a third-party
 component. An ideal situation would be running an iperf3 server either on the
 same system or on the same local area network.
+
+Adding to the supported benchmarks may require manually adding dependencies to
+the Windows image to be able to run non-interactively.
 
 ## Scripts
 
