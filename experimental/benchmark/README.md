@@ -33,14 +33,25 @@ are worse than some threshold, this is flagged.
 For Windows, a win-phoronix role was created
 (see `images/ansible/roles/win-phoronix/README.md`) which should be fit for
 purpose as-is. This has a dependency on the
-Microsoft Developer Virtual Machines and the license expires for it after 90 days.
-It may need to be regenerated every 90 days.
+Microsoft Developer Virtual Machines.
 
 For Linux, phoronix test suite is already released as a
 [docker image](https://hub.docker.com/r/phoronix/pts).
 It is probably not suitable for running non-interactively out of the box and
 needs a `core.pt2so` and `user-config.xml` file added. There may or may not
 already be a suitable base image with docker and cloud-init installed.
+
+Regenerating `core.pts2so` requires running `phoronix-test-suite batch-setup`
+with:
+
+
+    Save test results when in batch mode (Y/n): y
+    Open the web browser automatically when in batch mode (y/N): n
+    Auto upload the results to OpenBenchmarking.org (Y/n): n
+    Prompt for test identifier (Y/n): n
+    Prompt for test description (Y/n): n
+    Prompt for saved results file-name (Y/n): n
+    Run all test options (Y/n): n
 
 ## Suites
 
@@ -50,9 +61,25 @@ whether they run on Linux, Windows, or on both. Preference was given to
 suites that run on both platforms if multiple options covering a given criteria
 were available.
 
-No network test is included right now because most of them require a third-party
-component. An ideal situation would be running an iperf3 server either on the
-same system or on the same local area network.
+Overall, there are two categories of tests included: some that measure core
+peripherals and components, and others that benchmark applications similar to
+what users may be interested in, such as specific languages like go or python.
+
+Core benchmarks, ones run for every version of EVE, should likely include
+openssl, fio, a network test, and osbench.
+
+osbench and openssl are primarily to measure performance impacts from new
+Linux/KVM and qemu versions.
+
+fio measures disk performance and may be impacted by changes to the underlying
+storage layer.
+
+Network performance could be impacted by changes to the host configuration and
+the network setup.
+
+Any network test should use either a server on the same virtualization instance
+or on the local network, to remove noise from general network traffic. Either
+iperf(3) or ethr should work.
 
 Adding to the supported benchmarks may require manually adding dependencies to
 the Windows image to be able to run non-interactively.
