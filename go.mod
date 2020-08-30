@@ -8,6 +8,7 @@ require (
 	github.com/docker/docker v1.4.2-0.20190924003213-a8608b5b67c7
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
+	github.com/fatih/color v1.7.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-redis/redis/v7 v7.2.0
 	github.com/golang/protobuf v1.4.0-rc.4.0.20200313231945-b860323f09d0
