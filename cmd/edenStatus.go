@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -15,13 +16,19 @@ import (
 	"time"
 )
 
+const (
+	warnmark = "?" // because some OSes are missing the code for the warnmark ⚠
+	okmark   = "✔"
+	xmark    = "✘"
+)
+
 func eveStatusRemote() {
 	log.Debugf("Will try to obtain info from ADAM")
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
 		log.Debugf("getControllerAndDev: %s", err)
-		fmt.Println("EVE status: undefined (no onboarded EVE)")
+		fmt.Printf("%s EVE status: undefined (no onboarded EVE)\n", statusWarn())
 	} else {
 		var lastDInfo *info.ZInfoMsg
 		var lastTime time.Time
@@ -42,10 +49,10 @@ func eveStatusRemote() {
 					ips = append(ips, addr)
 				}
 			}
-			fmt.Printf("EVE REMOTE IPs: %s\n", strings.Join(ips, "; "))
+			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
 			fmt.Printf("\tLast info received time: %s\n", lastTime)
 		} else {
-			fmt.Printf("EVE REMOTE IPs: %s\n", "waiting for info...")
+			fmt.Printf("%s EVE REMOTE IPs: %s\n", "waiting for info...", statusWarn())
 		}
 	}
 }
@@ -53,9 +60,9 @@ func eveStatusRemote() {
 func eveStatusQEMU() {
 	statusEVE, err := utils.StatusEVEQemu(evePidFile)
 	if err != nil {
-		log.Errorf("cannot obtain status of EVE Qemu process: %s", err)
+		log.Errorf("%s cannot obtain status of EVE Qemu process: %s", statusWarn(), err)
 	} else {
-		fmt.Printf("EVE on Qemu status: %s\n", statusEVE)
+		fmt.Printf("%s EVE on Qemu status: %s\n", representProcessStatus(statusEVE), statusEVE)
 		fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath("eve.log"))
 	}
 }
@@ -96,25 +103,25 @@ var statusCmd = &cobra.Command{
 		fmt.Println()
 		statusAdam, err := utils.StatusAdam()
 		if err != nil {
-			log.Errorf("cannot obtain status of adam: %s", err)
+			log.Errorf("%s cannot obtain status of adam: %s", statusWarn(), err)
 		} else {
-			fmt.Printf("Adam status: %s\n", statusAdam)
+			fmt.Printf("%s Adam status: %s\n", representContainerStatus(lastWord(statusAdam)), statusAdam)
 			fmt.Printf("\tAdam is expected at https://%s:%d\n", viper.GetString("adam.ip"), viper.GetInt("adam.port"))
 			fmt.Printf("\tFor local Adam you can run 'docker logs %s' to see logs\n", defaults.DefaultAdamContainerName)
 		}
 		statusRedis, err := utils.StatusRedis()
 		if err != nil {
-			log.Errorf("cannot obtain status of redis: %s", err)
+			log.Errorf("%s cannot obtain status of redis: %s", statusWarn(), err)
 		} else {
-			fmt.Printf("Redis status: %s\n", statusRedis)
+			fmt.Printf("%s Redis status: %s\n", representContainerStatus(lastWord(statusRedis)), statusRedis)
 			fmt.Printf("\tRedis is expected at %s\n", viper.GetString("adam.redis.eden"))
 			fmt.Printf("\tFor local Redis you can run 'docker logs %s' to see logs\n", defaults.DefaultRedisContainerName)
 		}
 		statusEServer, err := utils.StatusEServer()
 		if err != nil {
-			log.Errorf("cannot obtain status of EServer process: %s", err)
+			log.Errorf("%s cannot obtain status of EServer process: %s", statusWarn(), err)
 		} else {
-			fmt.Printf("EServer process status: %s\n", statusEServer)
+			fmt.Printf("%s EServer process status: %s\n", representContainerStatus(lastWord(statusEServer)), statusEServer)
 			fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", viper.GetString("eden.eserver.ip"), viper.GetInt("eden.eserver.port"))
 			fmt.Printf("\tFor local EServer you can run 'docker logs %s' to see logs\n", defaults.DefaultEServerContainerName)
 		}
@@ -133,4 +140,51 @@ func statusInit() {
 		log.Fatal(err)
 	}
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
+}
+
+// lastWord get last work in string
+func lastWord(in string) string {
+	ss := strings.Fields(in)
+	if len(ss) > 0 {
+		return ss[len(ss)-1]
+	}
+	return ""
+}
+
+// representContainerStatus convert one of the known container states into a colorized character
+func representContainerStatus(status string) string {
+	switch status {
+	case "created":
+		return statusWarn()
+	case "restarting":
+		return statusWarn()
+	case "running":
+		return statusOK()
+	case "paused":
+		return statusWarn()
+	case "exited":
+		return statusBad()
+	case "dead":
+		return statusBad()
+	default:
+		return statusWarn()
+	}
+}
+
+// representProcessStatus convert one of the response messages from utils.StatusCommandWithPid into a colorized character
+func representProcessStatus(status string) string {
+	if strings.HasPrefix(status, "running") {
+		return statusOK()
+	}
+	return statusBad()
+}
+
+func statusWarn() string {
+	return color.YellowString(warnmark)
+}
+func statusOK() string {
+	return color.GreenString(okmark)
+}
+func statusBad() string {
+	return color.RedString(xmark)
 }
