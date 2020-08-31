@@ -55,7 +55,7 @@ test: build
 
 # create empty drive in qcow2 format to use as additional volumes
 $(EMPTY_DRIVE):
-	qemu-img create -f qcow2 $(EMPTY_DRIVE) 100M
+	qemu-img create -f qcow2 $(EMPTY_DRIVE) 1G
 
 build: bin testbin
 install: build
