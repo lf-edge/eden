@@ -52,7 +52,7 @@ func eveStatusRemote() {
 			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
 			fmt.Printf("\tLast info received time: %s\n", lastTime)
 		} else {
-			fmt.Printf("%s EVE REMOTE IPs: %s\n", "waiting for info...", statusWarn())
+			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...", )
 		}
 	}
 }
