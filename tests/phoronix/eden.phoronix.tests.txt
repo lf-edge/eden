@@ -1,0 +1,1 @@
+eden.escript.test -test.run TestEdenScripts/test_phoronix -test.timeout 60m -args="benchmark=pts/coremark-1.0.0"
