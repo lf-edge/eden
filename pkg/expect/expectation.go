@@ -127,7 +127,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 				for _, qv := range qemuPorts {
 					if qv == strconv.Itoa(extPort) {
 						ni.ports[extPort] = intPort
-						break exit
+						continue exit
 					}
 				}
 				log.Fatalf("Cannot use external port %d. Not in Qemu %s", extPort, qemuPorts)
