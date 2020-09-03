@@ -1,15 +1,14 @@
 package expect
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"strings"
 
-	"github.com/docker/distribution/context"
-	"github.com/docker/docker/client"
+	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
@@ -71,38 +70,20 @@ func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 
 //obtainVolumeInfo try to parse docker manifest of defined image and return array of mount points
 func obtainVolumeInfo(image *config.Image) ([]string, error) {
-	var err error
-	ref, err := name.ParseReference(image.Name)
+	config, err := crane.Config(image.Name)
 	if err != nil {
-		return nil, fmt.Errorf("parsing reference %q: %v", image.Name, err)
+		return nil, fmt.Errorf("error getting config %s: %v", image.Name, err)
 	}
-	var dockerImage v1.Image
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	// parse the config file
+	configFile, err := v1.ParseConfigFile(bytes.NewReader(config))
 	if err != nil {
-		return nil, err
-	}
-	cli.NegotiateAPIVersion(ctx)
-	options := daemon.WithClient(cli)
-	if err := utils.PullImage(image.Name); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse config file: %v", err)
 	}
 
-	//get docker image by ref
-	dockerImage, err = daemon.Image(ref, options)
-	if err != nil {
-		return nil, err
-	}
-
-	//obtain config file for docker image
-	ic, err := dockerImage.ConfigFile()
-	if err != nil {
-		return nil, err
-	}
 	var mountPoints []string
 
 	//read docker image config
-	for key := range ic.Config.Volumes {
+	for key := range configFile.Config.Volumes {
 		log.Infof("volumes MountDir: %s", key)
 		mountPoints = append(mountPoints, key)
 	}
