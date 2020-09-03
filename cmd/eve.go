@@ -86,9 +86,9 @@ var startEveCmd = &cobra.Command{
 			qemuCommand = "qemu-system-x86_64"
 			if qemuAccel {
 				if qemuOS == "darwin" {
-					qemuOptions += "-M accel=hvf --cpu host "
+					qemuOptions += defaults.DefaultQemuAccelDarwin
 				} else {
-					qemuOptions += "-enable-kvm --cpu host "
+					qemuOptions += defaults.DefaultQemuAccelLinux
 				}
 			} else {
 				qemuOptions += "--cpu SandyBridge "
