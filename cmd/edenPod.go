@@ -29,6 +29,7 @@ var (
 	portPublish []string
 	podNetworks []string
 	aclOnlyHost bool
+	noHyper     bool
 	qemuPorts   map[string]string
 	vncDisplay  uint32
 	vncPassword string
@@ -97,6 +98,9 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		opts = append(opts, expect.WithAcl(aclOnlyHost))
+		if noHyper {
+			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
+		}
 		expectation := expect.AppExpectationFromUrl(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
@@ -598,6 +602,7 @@ func podInit() {
 	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
 	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podDeployCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
+	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
