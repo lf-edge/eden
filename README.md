@@ -68,17 +68,79 @@ hostfwd:
          8028: 8028
 ```
 
+### Deploy Applications
+
+You can deploy images from different sources. In addition, eden deploys its own http server and docker registry.
+Each source has its default format, but you can override it with the `--format` flag. The defaults are:
+
+* `docker://` - OCI image
+* `http://` - VM qcow2
+* `https://` - VM qcow2 image
+* `file://` - VM qcow2 image
+
+#### Docker Image
+
 Deploy nginx server from dockerhub. Expose port 80 of the container to port 8028 of eve.
 
 ```
 eden pod deploy -p 8028:80 docker://nginx
 ```
 
+#### Docker Image from Local Registry
+
+eden starts a local registry image, running on the localhost at port `5000` (configurable). You can start a docker image
+from that registry by passing it the `--registry=local` option. The default for `--registry` is the hostname given
+by the registry. For example, `docker://docker.io/library/nginx` defaults to `docker.io`. But if you pass it
+the `--registry=local` option, it will try to get it from the local, eden-managed registry.
+
+```console
+eden pod deploy --registry=local docker://nginx
+```
+
+If the image is not available in the local registry, it will fail. You either can load it up (see the next section),
+or ask it to load and deploy:
+
+```console
+eden pod deploy --registry=local --load=true docker://nginx
+```
+
+#### Loading Local Registry
+
+You can load the local registry with images.
+
+```console
+eden registry load docker://docker.io/library/nginx
+```
+
+eden will do the following:
+
+1. Check if the image is in your local docker image cache, i.e. `docker image ls`. If it is, load it into the local registry and done.
+1. If it is not, try to pull it from the remote registry via `docker pull`. Once that is done, it will load it into the local registry.
+
+#### VM Image
+
 Deploy a VM from Openstack. Initialize root user with password - 'passw0rd'  Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
 
 ```
 eden pod deploy -p 8027:22 http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-amd64.qcow2 -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
 ```
+
+Deploy a VM from a local file. This will cause the local file to be uploaded to the eden-deployed `eserver`, which, in turn, will deploy it to eve:
+
+```
+eden pod deploy file:///path/to/some.img
+```
+
+#### VM Image from Docker Registry
+
+Deploy a VM that is in a docker image, whether in OCI Artifacts format, or wrapped in a container. All formats from
+[edge-containers](https://github.com/lf-edge/edge-containers) are supported.
+
+```
+eden pod deploy docker://some/image:container-tag --format=qcow2
+```
+
+### List Applications
 
 List running applications and their ip/ports
 

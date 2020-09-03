@@ -34,7 +34,7 @@ func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV
 				return fmt.Errorf("ImagePull (%s): %s", efiImage, err)
 			}
 		}
-		if err := SaveImage(efiImage, filepath.Dir(outputFile), ""); err != nil {
+		if err := SaveImageAndExtract(efiImage, filepath.Dir(outputFile), ""); err != nil {
 			return fmt.Errorf("SaveImage: %s", err)
 		}
 	}

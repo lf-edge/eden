@@ -3,10 +3,6 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/satori/go.uuid"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -14,6 +10,11 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 //ConfigVars struct with parameters from config file
@@ -133,7 +134,7 @@ adam:
     ca: {{ .DefaultCertsDist }}/root-certificate.pem
 
     #use remote adam
-    remote: 
+    remote:
         enabled: true
 
         #load logs and info from redis instead of http stream
@@ -147,7 +148,7 @@ adam:
 
         #caching logs and info to redis instead of local
         redis: false
-        
+
         #prefix for directory/redis stream
         prefix: cache
 
@@ -284,6 +285,19 @@ redis:
 
     #directory to use for redis persistence
     dist: "{{ .DefaultRedisDist }}"
+
+registry:
+    #port for registry access
+    port: {{ .DefaultRegistryPort }}
+
+    #tag for registry image
+    tag: {{ .DefaultRegistryTag }}
+
+    #ip of registry for EDEN access
+    ip: {{ .IP }}
+
+    # dist path to store registry data
+    dist: "{{ .DefaultRegistryDist }}"
 `
 
 var configMutex = sync.RWMutex{}
@@ -423,6 +437,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			DefaultAdamDist      string
 			DefaultAdamTag       string
 			DefaultAdamPort      int
+			DefaultRegistryTag   string
+			DefaultRegistryPort  int
+			DefaultRegistryDist  string
 			DefaultImageDist     string
 			DefaultEserverDist   string
 			Root                 string
@@ -466,6 +483,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			DefaultAdamDist:     defaults.DefaultAdamDist,
 			DefaultAdamPort:     defaults.DefaultAdamPort,
 			DefaultAdamTag:      defaults.DefaultAdamTag,
+			DefaultRegistryTag:  defaults.DefaultRegistryTag,
+			DefaultRegistryPort: defaults.DefaultRegistryPort,
+			DefaultRegistryDist: defaults.DefaultRegistryDist,
 			DefaultImageDist:    fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist),
 			DefaultEserverDist:  defaults.DefaultEserverDist,
 			Root:                filepath.Join(currentPath, defaults.DefaultDist),

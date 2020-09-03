@@ -2,6 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/fatih/color"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -10,10 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 const (
@@ -52,7 +53,7 @@ func eveStatusRemote() {
 			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
 			fmt.Printf("\tLast info received time: %s\n", lastTime)
 		} else {
-			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...", )
+			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...")
 		}
 	}
 }
@@ -108,6 +109,14 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("%s Adam status: %s\n", representContainerStatus(lastWord(statusAdam)), statusAdam)
 			fmt.Printf("\tAdam is expected at https://%s:%d\n", viper.GetString("adam.ip"), viper.GetInt("adam.port"))
 			fmt.Printf("\tFor local Adam you can run 'docker logs %s' to see logs\n", defaults.DefaultAdamContainerName)
+		}
+		statusRegistry, err := utils.StatusRegistry()
+		if err != nil {
+			log.Errorf("%s cannot obtain status of registry: %s", statusWarn(), err)
+		} else {
+			fmt.Printf("%s Registry status: %s\n", representContainerStatus(lastWord(statusRegistry)), statusRegistry)
+			fmt.Printf("\tRegistry is expected at https://%s:%d\n", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
+			fmt.Printf("\tFor local registry you can run 'docker logs %s' to see logs\n", defaults.DefaultRegistryContainerName)
 		}
 		statusRedis, err := utils.StatusRedis()
 		if err != nil {
