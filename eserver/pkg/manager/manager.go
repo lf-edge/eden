@@ -1,10 +1,11 @@
 package manager
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"github.com/lf-edge/eden/eserver/api"
-	"github.com/lf-edge/eden/pkg/utils"
 	"io"
 	"io/ioutil"
 	"log"
@@ -41,6 +42,37 @@ func (mgr *EServerManager) ListFileNames() (result []string) {
 	return
 }
 
+//getFileSize returns file size
+func getFileSize(filePath string) int64 {
+	fi, err := os.Stat(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return fi.Size()
+}
+
+//downloadFile downloads a url to a local file.
+func downloadFile(filePath, url string) error {
+	out, err := os.Create(filePath + ".tmp")
+	if err != nil {
+		return err
+	}
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if _, err = io.Copy(out, resp.Body); err != nil {
+		out.Close()
+		return err
+	}
+	fmt.Printf("\n")
+	if err = os.Rename(filePath+".tmp", filePath); err != nil {
+		return err
+	}
+	return out.Close()
+}
+
 //AddFile starts file download and return name of file for fileinfo requests
 func (mgr *EServerManager) AddFile(url string) (string, error) {
 	log.Println("Starting download of image from ", url)
@@ -50,7 +82,7 @@ func (mgr *EServerManager) AddFile(url string) (string, error) {
 	} else {
 		go func() {
 			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-			if err := utils.DownloadFile(filePath, url); err != nil {
+			if err := downloadFile(filePath, url); err != nil {
 				log.Fatal(err)
 			}
 			log.Println("Download done for ", url)
@@ -59,36 +91,37 @@ func (mgr *EServerManager) AddFile(url string) (string, error) {
 	return path.Base(url), nil
 }
 
-//AddFileFromMultipart adds file from multipart.File and returns information
-func (mgr *EServerManager) AddFileFromMultipart(file multipart.File, fileHeader *multipart.FileHeader) *api.FileInfo {
+//AddFileFromMultipart adds file from multipart.Part and returns information
+func (mgr *EServerManager) AddFileFromMultipart(part *multipart.Part) *api.FileInfo {
 	result := &api.FileInfo{ISReady: false}
-	log.Println("Starting copy image from ", fileHeader.Filename)
-	filePath := filepath.Join(mgr.Dir, fileHeader.Filename)
+	log.Println("Starting copy image from ", part.FileName())
+	filePath := filepath.Join(mgr.Dir, part.FileName())
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		log.Println("file already exists ", filePath)
-	} else {
-		filePathTemp := filepath.Join(mgr.Dir, fmt.Sprintf("%s.tmp", fileHeader.Filename))
-		out, err := os.Create(filePathTemp)
-		if err != nil {
-			result.Error = err.Error()
-			return result
-		}
-		defer out.Close()
-		_, err = io.Copy(out, file)
-		if err != nil {
-			result.Error = err.Error()
-			return result
-		}
-		if utils.GetFileSize(filePathTemp) != fileHeader.Size {
-			result.Error = "file sizes doesn't match"
-			return result
-		}
-		if err = os.Rename(filePathTemp, filePath); err != nil {
-			result.Error = err.Error()
-			return result
-		}
+		return mgr.GetFileInfo(part.FileName())
 	}
-	return mgr.GetFileInfo(fileHeader.Filename)
+	filePathTemp := filepath.Join(mgr.Dir, fmt.Sprintf("%s.tmp", part.FileName()))
+	out, err := os.Create(filePathTemp)
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+	defer out.Close()
+	hash := sha256.New()
+	_, err = io.Copy(hash, io.TeeReader(part, out))
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+	if err = os.Rename(filePathTemp, filePath); err != nil {
+		result.Error = err.Error()
+		return result
+	}
+	if err = ioutil.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
+		result.Error = err.Error()
+		return result
+	}
+	return mgr.GetFileInfo(part.FileName())
 }
 
 //GetFileInfo checks status of file and returns information
@@ -101,21 +134,21 @@ func (mgr *EServerManager) GetFileInfo(name string) *api.FileInfo {
 			result.Error = err.Error()
 			return result
 		} else {
-			fileSize := utils.GetFileSize(filePathTMP)
+			fileSize := getFileSize(filePathTMP)
 			return &api.FileInfo{
 				Size:    fileSize,
 				ISReady: false,
 			}
 		}
 	} else {
-		fileSize := utils.GetFileSize(filePath)
-		sha256, err := utils.SHA256SUM(filePath)
+		fileSize := getFileSize(filePath)
+		sha, err := ioutil.ReadFile(fmt.Sprintf("%s.sha256", filePath))
 		if err != nil {
 			result.Error = err.Error()
 			return result
 		}
 		return &api.FileInfo{
-			Sha256:   sha256,
+			Sha256:   string(sha),
 			Size:     fileSize,
 			FileName: path.Join("eserver", name),
 			ISReady:  true,

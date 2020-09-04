@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/eserver/pkg/manager"
@@ -46,13 +47,22 @@ func (h *adminHandler) addFromUrl(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *adminHandler) addFromFile(w http.ResponseWriter, r *http.Request) {
-	file, header, err := r.FormFile("file")
+	reader, err := r.MultipartReader()
 	if err != nil {
 		wrapError(err, w)
 		return
 	}
-	defer file.Close()
-	fileInfo := h.manager.AddFileFromMultipart(file, header)
+	part, err := reader.NextPart()
+	if err != nil {
+		wrapError(err, w)
+		return
+	}
+	if part.FormName() != "file" {
+		wrapError(fmt.Errorf("wrong form"), w)
+		return
+	}
+	defer part.Close()
+	fileInfo := h.manager.AddFileFromMultipart(part)
 	if fileInfo.Error != "" {
 		log.Error(fileInfo.Error)
 	}

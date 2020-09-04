@@ -3,7 +3,9 @@ module github.com/lf-edge/eden
 go 1.12
 
 require (
+	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/amitbet/vncproxy v0.0.0-20200118084310-ea8f9b510913
+	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v1.4.2-0.20190924003213-a8608b5b67c7
 	github.com/docker/go-connections v0.4.0
@@ -19,6 +21,7 @@ require (
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200513230334-5988786b5617
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
+	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/rn/iso9660wrap v0.0.0-20180101235755-3a04f8ca150a
 	github.com/rogpeppe/go-internal v1.6.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
