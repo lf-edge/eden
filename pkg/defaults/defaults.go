@@ -88,6 +88,9 @@ const (
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
 	DefaultMetricsRedisPrefix    = "METRICS_EVE_"
 
+	DefaultQemuAccelDarwin = "-machine q35,accel=hvf,usb=off -cpu host,kvmclock=off "
+	DefaultQemuAccelLinux  = "-machine q35,accel=kvm,usb=off,dump-guest-core=off -cpu host,invtsc=on,kvmclock=off -machine kernel-irqchip=split -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
+
 	DefaultAppSubnet = "10.1.0.0/24"
 
 	DefaultEVEModel = "ZedVirtual-4G"
