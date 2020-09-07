@@ -1,0 +1,1 @@
+eden pod deploy {{EdenGetEnv "external_port"}} --metadata='BENCHMARK={{EdenGetEnv "benchmark"}}' --name='{{EdenGetEnv "name"}}' docker://itmoeve/phoronix-test:1.0 -v debug
