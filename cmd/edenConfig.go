@@ -22,6 +22,8 @@ var (
 	qemuDTBPath     string
 	qemuHostFwd     map[string]string
 	qemuSocketPath  string
+	qemuUsbSerials  int
+	qemuUsbTablets  int
 	contextFile     string
 	contextKeySet   string
 	contextValueSet string
@@ -471,6 +473,8 @@ func configInit() {
 	configAddCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
 	configAddCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaults.DefaultQemuCpus, "cpus")
 	configAddCmd.Flags().IntVarP(&qemuMemory, "memory", "", defaults.DefaultQemuMemory, "memory (MB)")
+	configAddCmd.Flags().IntVarP(&qemuUsbSerials, "usbserials", "", 0, "number of USB serial adapters")
+	configAddCmd.Flags().IntVarP(&qemuUsbTablets, "usbtablets", "", 0, "number of USB tablet controllers")
 	configAddCmd.Flags().StringSliceVarP(&qemuFirmware, "eve-firmware", "", nil, "firmware path")
 	configAddCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", "", "path for config drive")
 	configAddCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
