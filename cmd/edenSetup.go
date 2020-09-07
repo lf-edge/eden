@@ -30,6 +30,8 @@ var (
 	apiV1    bool
 
 	devModel string
+
+	eveImageSizeMB int
 )
 
 func configCheck() {
@@ -216,7 +218,7 @@ var setupCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveLive(certsDir, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, imageFormat); err != nil {
+				if err := utils.DownloadEveLive(certsDir, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, imageFormat, eveImageSizeMB); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Infof("download EVE done: %s", eveImageFile)
@@ -269,4 +271,6 @@ func setupInit() {
 	setupCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "")
 	setupCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
+
+	setupCmd.Flags().IntVar(&eveImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
 }

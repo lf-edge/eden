@@ -7,12 +7,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 )
 
 //DownloadEveLive pulls EVE live image from docker
-func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV string, eveTag, eveUefiTag string, format string) (err error) {
+func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV string, eveTag, eveUefiTag string, format string, imageSizeMB int) (err error) {
 	efiImage := fmt.Sprintf("lfedge/eve-uefi:%s-%s", eveUefiTag, eveArch) //download OVMF
 	image := fmt.Sprintf("lfedge/eve:%s-%s-%s", eveTag, eveHV, eveArch)
 	log.Debugf("Try ImagePull with (%s)", image)
@@ -26,7 +25,7 @@ func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV
 	}
 	size := 0
 	if format == "qcow2" {
-		size = defaults.DefaultEVEImageSize
+		size = imageSizeMB
 		if err := PullImage(efiImage); err != nil {
 			log.Infof("cannot pull %s", efiImage)
 			efiImage = fmt.Sprintf("lfedge/eve-uefi") //try with latest version of OVMF
@@ -40,7 +39,7 @@ func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV
 		}
 	}
 	if format == "gcp" {
-		size = defaults.DefaultEVEImageSize
+		size = imageSizeMB
 	}
 	if fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), format, configPath, size); err != nil {
 		return fmt.Errorf("genEVEImage: %s", err)

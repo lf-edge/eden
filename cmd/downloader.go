@@ -51,7 +51,7 @@ var downloadEVECmd = &cobra.Command{
 		if devModel == defaults.DefaultGCPModel {
 			format = "gcp"
 		}
-		if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, format); err != nil {
+		if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, format, eveImageSizeMB); err != nil {
 			log.Fatal(err)
 		} else {
 			switch devModel {
@@ -101,6 +101,7 @@ func downloaderInit() {
 	downloadEVECmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "HV of EVE (kvm or xen)")
 	downloadEVECmd.Flags().StringVarP(&eveImageFile, "image-file", "i", "", "path for image drive")
 	downloadEVECmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start")
+	downloadEVECmd.Flags().IntVar(&eveImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
 	downloaderCmd.AddCommand(downloadEVERootFSCmd)
 	downloadEVERootFSCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
 	downloadEVERootFSCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
