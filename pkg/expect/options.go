@@ -54,6 +54,14 @@ func WithMetadata(metadata string) ExpectationOption {
 	}
 }
 
+//WithAppAdapters assigns adapters for created apps
+func WithAppAdapters(appadapters []string) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.appAdapters = appadapters
+	}
+}
+
+
 //AddNetInstanceNameAndPortPublish adds NetInstance with defined name and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
 func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []string) ExpectationOption {
 	return func(expectation *appExpectation) {
