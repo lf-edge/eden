@@ -34,6 +34,7 @@ type appExpectation struct {
 	appVersion  string
 	appName     string
 	appLink     string
+	appAdapters []string
 	imageFormat string
 	cpu         uint32
 	mem         uint32

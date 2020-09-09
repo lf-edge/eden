@@ -3,6 +3,7 @@ package expect
 import (
 	"fmt"
 	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve/api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -93,6 +94,14 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 		bundle.appInstanceConfig.Fixedresources.VncDisplay = exp.vncDisplay
 		bundle.appInstanceConfig.Fixedresources.VncPasswd = exp.vncPassword
 	}
+	var adapters []*config.Adapter
+	for _, adapterName := range exp.appAdapters {
+		adapters = append(adapters, &config.Adapter {
+				Type: evecommon.PhyIoType_PhyIoUSB,
+				Name: adapterName,
+				})
+	}
+	bundle.appInstanceConfig.Adapters = adapters
 	return bundle, nil
 }
 
