@@ -4,14 +4,15 @@
 package cmd
 
 import (
+	"io"
+	"log"
+	"os"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io"
-	"log"
-	"os"
 )
 
 var verbosity string
@@ -58,6 +59,8 @@ func init() {
 	eveInit()
 	rootCmd.AddCommand(adamCmd)
 	adamInit()
+	rootCmd.AddCommand(registryCmd)
+	registryInit()
 	rootCmd.AddCommand(redisCmd)
 	redisInit()
 	rootCmd.AddCommand(eserverCmd)

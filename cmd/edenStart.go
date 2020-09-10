@@ -44,6 +44,8 @@ var startCmd = &cobra.Command{
 			adamForce = viper.GetBool("adam.force")
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
+			registryTag = viper.GetString("registry.tag")
+			registryPort = viper.GetInt("registry.port")
 			redisTag = viper.GetString("redis.tag")
 			redisPort = viper.GetInt("redis.port")
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
@@ -82,6 +84,11 @@ var startCmd = &cobra.Command{
 		} else {
 			log.Infof("Adam is running and accesible on port %d", adamPort)
 		}
+		if err := utils.StartRegistry(registryPort, registryTag, registryDist); err != nil {
+			log.Errorf("cannot start registry: %s", err)
+		} else {
+			log.Infof("registry is running and accesible on port %d", registryPort)
+		}
 		if err := utils.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
@@ -109,6 +116,9 @@ func startInit() {
 	startCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	startCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
 	startCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
+	startCmd.Flags().StringVarP(&adamTag, "registry-tag", "", defaults.DefaultRegistryTag, "tag on registry container to pull")
+	startCmd.Flags().IntVarP(&registryPort, "registry-port", "", defaults.DefaultRegistryPort, "registry port to start")
+	startCmd.Flags().StringVarP(&registryDist, "registry-dist", "", "", "registry dist path to store (required)")
 	startCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag on redis container to pull")
 	startCmd.Flags().StringVarP(&redisDist, "redis-dist", "", "", "redis dist to start (required)")
 	startCmd.Flags().IntVarP(&redisPort, "redis-port", "", defaults.DefaultRedisPort, "redis dist to start")

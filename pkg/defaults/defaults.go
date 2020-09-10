@@ -13,6 +13,7 @@ const (
 	DefaultImageDist        = "images"           //directory for images inside dist
 	DefaultEserverDist      = ""                 //directory to mount eserver images
 	DefaultRedisDist        = ""                 //directory for volume of redis inside dist
+	DefaultRegistryDist     = ""                 //directory for volume of registry inside dist
 	DefaultAdamDist         = ""                 //directory for volume of adam inside dist
 	DefaultEVEDist          = "eve"              //directory for build EVE inside dist
 	DefaultCertsDist        = "certs"            //directory for certs inside dist
@@ -29,28 +30,31 @@ const (
 	DefaultContext = "default" //default context name
 
 	//domains, ips, ports
-	DefaultDomain      = "mydomain.adam"
-	DefaultIP          = "192.168.0.1"
-	DefaultEVEIP       = "192.168.1.2"
-	DefaultEserverPort = 8888
-	DefaultTelnetPort  = 7777
-	DefaultSSHPort     = 2222
-	DefaultEVEHost     = "127.0.0.1"
-	DefaultRedisHost   = "localhost"
-	DefaultRedisPort   = 6379
-	DefaultAdamPort    = 3333
+	DefaultDomain       = "mydomain.adam"
+	DefaultIP           = "192.168.0.1"
+	DefaultEVEIP        = "192.168.1.2"
+	DefaultEserverPort  = 8888
+	DefaultTelnetPort   = 7777
+	DefaultSSHPort      = 2222
+	DefaultEVEHost      = "127.0.0.1"
+	DefaultRedisHost    = "localhost"
+	DefaultRedisPort    = 6379
+	DefaultAdamPort     = 3333
+	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag            = "0.0.0-snapshot-master-d7206d73" //DefaultEVETag tag for EVE image
-	DefaultAdamTag           = "0.0.53"
-	DefaultRedisTag          = "6"
-	DefaultLinuxKitVersion   = "v0.7"
-	DefaultImage             = "library/alpine"
-	DefaultAdamContainerRef  = "lfedge/adam"
-	DefaultRedisContainerRef = "redis"
-	DefaultImageTag          = "eden-alpine"
-	DefaultEveRepo           = "https://github.com/lf-edge/eve.git"
-	DefaultRegistry          = "docker.io"
+	DefaultEVETag               = "0.0.0-snapshot-master-d7206d73" //DefaultEVETag tag for EVE image
+	DefaultAdamTag              = "0.0.53"
+	DefaultRedisTag             = "6"
+	DefaultRegistryTag          = "2.7"
+	DefaultLinuxKitVersion      = "v0.7"
+	DefaultImage                = "library/alpine"
+	DefaultAdamContainerRef     = "lfedge/adam"
+	DefaultRedisContainerRef    = "redis"
+	DefaultRegistryContainerRef = "library/registry"
+	DefaultImageTag             = "eden-alpine"
+	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
+	DefaultRegistry             = "docker.io"
 
 	DefaultEServerTag          = "1.1"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
@@ -79,6 +83,7 @@ const (
 	DefaultPodLinkPattern        = `^(?P<TYPE>(oci|docker|http[s]{0,1}|file)):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
 	DefaultRedisContainerName    = "eden_redis"
 	DefaultAdamContainerName     = "eden_adam"
+	DefaultRegistryContainerName = "eden_registry"
 	DefaultEServerContainerName  = "eden_eserver"
 	DefaultDockerNetworkName     = "eden_network"
 	DefaultLogLevelToPrint       = log.InfoLevel
@@ -88,7 +93,7 @@ const (
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
 	DefaultMetricsRedisPrefix    = "METRICS_EVE_"
 
-	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu host,kvmclock=off "
+	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelLinux  = "-machine q35,accel=kvm,dump-guest-core=off -cpu host,invtsc=on,kvmclock=off -machine kernel-irqchip=split -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
 
 	DefaultAppSubnet = "10.1.0.0/24"
@@ -142,6 +147,10 @@ var (
 		"adam.v1":           "api-v1",
 		"adam.redis.adam":   "adam-redis-url",
 		"adam.remote.redis": "adam-redis",
+
+		"registry.tag":  "registry-tag",
+		"registry.port": "registry-port",
+		"registry.dist": "registry-dist",
 
 		"eve.arch":         "eve-arch",
 		"eve.os":           "eve-os",

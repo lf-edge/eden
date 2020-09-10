@@ -7,16 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/docker/distribution/context"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/idtools"
-	"github.com/docker/go-connections/nat"
-	"github.com/lf-edge/eden/pkg/defaults"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net"
@@ -27,6 +17,18 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/docker/distribution/context"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/idtools"
+	"github.com/docker/go-connections/nat"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/lf-edge/eden/pkg/defaults"
+	log "github.com/sirupsen/logrus"
 )
 
 //CreateDockerNetwork create network for docker`s containers
@@ -193,14 +195,66 @@ func PullImage(image string) error {
 	return nil
 }
 
-//SaveImage from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
-func SaveImage(image, outputDir, defaultEvePrefixInTar string) error {
+//HasImage see if the image is local
+func HasImage(image string) (bool, error) {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return false, fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
+	_, _, err = cli.ImageInspectWithRaw(ctx, image)
+	if err == nil { // has the image
+		return true, nil
+	}
+	// theoretically, this should distinguishe
+	return false, nil
+}
+
+// PushImage from docker while optionally changing to a different remote registry
+func PushImage(image, remote string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return fmt.Errorf("client.NewClientWithOpts: %s", err)
 	}
+	remoteName := image
+	if remote != "" {
+		ref, err := name.ParseReference(image)
+		if err != nil {
+			return fmt.Errorf("error parsing name %s: %v", image, err)
+		}
+		remoteName = strings.Replace(ref.Name(), ref.Context().Registry.Name(), remote, 1)
+	}
+	if err := cli.ImageTag(ctx, image, remoteName); err != nil {
+		return fmt.Errorf("unable to tag %s to %s", image, remoteName)
+	}
+	resp, err := cli.ImagePush(ctx, remoteName, types.ImagePushOptions{})
+	if err != nil {
+		return fmt.Errorf("imagePush: %v", err)
+	}
+	if err = writeToLog(resp); err != nil {
+		return fmt.Errorf("imagePush LOG: %s", err)
+	}
+	return nil
+}
+
+// SaveImage get a reader to save an image
+func SaveImage(image string) (io.ReadCloser, error) {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
 	reader, err := cli.ImageSave(ctx, []string{image})
+	if err != nil {
+		return nil, err
+	}
+	return reader, err
+}
+
+//SaveImage from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
+func SaveImageAndExtract(image, outputDir, defaultEvePrefixInTar string) error {
+	reader, err := SaveImage(image)
 	if err != nil {
 		return err
 	}
@@ -208,6 +262,23 @@ func SaveImage(image, outputDir, defaultEvePrefixInTar string) error {
 	if err = ExtractFilesFromDocker(reader, outputDir, defaultEvePrefixInTar); err != nil {
 		return err
 	}
+	return nil
+}
+
+// SaveImageToTar
+func SaveImageToTar(image, tarFile string) error {
+	reader, err := SaveImage(image)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	f, err := os.Create(tarFile)
+	if err != nil {
+		return fmt.Errorf("unable to create tar file %s: %v", tarFile, err)
+	}
+	defer f.Close()
+	io.Copy(f, reader)
 	return nil
 }
 
