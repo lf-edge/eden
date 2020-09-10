@@ -8,25 +8,25 @@ eden -t 1s pod ps
 ! test eden.reboot.test {{$test_opts}} -reboot=0 -count=2 &
 
 # Run by docker's actor
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t1 -externalPort 8027
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t1 -externalPort 8027 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t3 
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t3 -externalPort 0 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t4 
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t4 -externalPort 0 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t5 
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t5 -externalPort 0 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t6 
-stdout '--- PASS: TestDockerStart
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t7
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t6 -externalPort 0 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t8 
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t7 -externalPort 0 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t9 
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t8 -externalPort 0 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t10
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t9 -externalPort 0 -memory 100M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t2 -externalPort 8028
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t10 -externalPort 0 -memory 100M
+stdout '--- PASS: TestDockerStart'
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t2 -externalPort 8028 -memory 100M
 stdout '--- PASS: TestDockerStart'
 
 # Dockers detecting
