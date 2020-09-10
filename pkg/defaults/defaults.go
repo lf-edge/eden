@@ -88,7 +88,7 @@ const (
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
 	DefaultMetricsRedisPrefix    = "METRICS_EVE_"
 
-	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu host,kvmclock=off "
+	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelLinux  = "-machine q35,accel=kvm,dump-guest-core=off -cpu host,invtsc=on,kvmclock=off -machine kernel-irqchip=split -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
 
 	DefaultAppSubnet = "10.1.0.0/24"
