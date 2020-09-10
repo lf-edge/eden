@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/projects"
@@ -25,9 +26,11 @@ import (
 var (
 	timewait     = flag.Int("timewait", 600, "Timewait for items waiting in seconds")
 	name         = flag.String("name", "", "Name of app, random if empty")
-	externalPort = flag.Int("externalPort", 8028, "Port for access app from outside of EVE")
+	externalPort = flag.Int("externalPort", 8028, "Port for access app from outside of EVE. Not publish if equals with 0.")
 	internalPort = flag.Int("internalPort", 80, "Port for access app inside EVE")
 	appLink      = flag.String("appLink", "docker://nginx", "Link to get app")
+	cpus         = flag.Uint("cpus", 1, "Cpu number for app")
+	memory       = flag.String("memory", "1G", "Memory for app")
 	nohyper      = flag.Bool("nohyper", false, "Do not use a hypervisor")
 	tc           *projects.TestContext
 	externalIP   string
@@ -148,11 +151,22 @@ func TestDockerStart(t *testing.T) {
 		appName = *name
 	}
 
-	portPublish = []string{fmt.Sprintf("%d:%d", *externalPort, *internalPort)}
-
 	var opts []expect.ExpectationOption
 
-	opts = append(opts, expect.WithPortsPublish(portPublish))
+	if *externalPort != 0 {
+
+		portPublish = []string{fmt.Sprintf("%d:%d", *externalPort, *internalPort)}
+
+		opts = append(opts, expect.WithPortsPublish(portPublish))
+
+	}
+
+	appMemoryParsed, err := humanize.ParseBytes(*memory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts = append(opts, expect.WithResources(uint32(*cpus), uint32(appMemoryParsed/1000)))
 
 	if *nohyper {
 		t.Log("will not use hypervisor")
@@ -183,7 +197,11 @@ func TestDockerStart(t *testing.T) {
 
 	t.Log("Add trying to access app via http")
 
-	tc.AddProcTimer(edgeNode, checkAppAccess())
+	if *externalPort != 0 {
+
+		tc.AddProcTimer(edgeNode, checkAppAccess())
+
+	}
 
 	tc.WaitForProc(*timewait)
 }
