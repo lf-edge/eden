@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -152,7 +153,7 @@ var setupCmd = &cobra.Command{
 				wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
 				fmt.Println()
 			}
-			if err := utils.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, ssid, wifiPSK); err != nil {
+			if err := eden.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, ssid, wifiPSK); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")
@@ -160,7 +161,7 @@ var setupCmd = &cobra.Command{
 		} else {
 			log.Infof("Certs already exists in certs dir: %s", certsDir)
 		}
-		if err := utils.GenerateEVEConfig(certsDir, certsDomain, certsEVEIP, adamPort, apiV1); err != nil {
+		if err := eden.GenerateEVEConfig(certsDir, certsDomain, certsEVEIP, adamPort, apiV1); err != nil {
 			log.Errorf("cannot GenerateEVEConfig: %s", err)
 		} else {
 			log.Info("GenerateEVEConfig done")
@@ -182,14 +183,14 @@ var setupCmd = &cobra.Command{
 		}
 		if !download {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.CloneFromGit(eveDist, eveRepo, eveTag); err != nil {
+				if err := eden.CloneFromGit(eveDist, eveRepo, eveTag); err != nil {
 					log.Errorf("cannot clone EVE: %s", err)
 				} else {
 					log.Info("clone EVE done")
 				}
 				builedImage := ""
 				builedAdditional := ""
-				if builedImage, builedAdditional, err = utils.MakeEveInRepo(eveDist, certsDir, eveArch, eveHV, imageFormat, false); err != nil {
+				if builedImage, builedAdditional, err = eden.MakeEveInRepo(eveDist, certsDir, eveArch, eveHV, imageFormat, false); err != nil {
 					log.Errorf("cannot MakeEveInRepo: %s", err)
 				} else {
 					log.Info("MakeEveInRepo done")

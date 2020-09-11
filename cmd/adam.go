@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -49,7 +50,7 @@ var startAdamCmd = &cobra.Command{
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}
-		if err := utils.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)
@@ -73,7 +74,7 @@ var stopAdamCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := utils.StopAdam(adamRm); err != nil {
+		if err := eden.StopAdam(adamRm); err != nil {
 			log.Errorf("cannot stop adam: %s", err)
 		}
 	},
@@ -94,7 +95,7 @@ var statusAdamCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusAdam, err := utils.StatusAdam()
+		statusAdam, err := eden.StatusAdam()
 		if err != nil {
 			log.Errorf("cannot obtain status of adam: %s", err)
 		} else {

@@ -23,7 +23,10 @@ type Controller interface {
 	MetricLastCallback(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc) (err error)
 	DeviceList(types.DeviceStateFilter) (out []string, err error)
 	DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err error)
+	DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, err error)
 	DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error)
+	OnboardRemove(onboardUUID string) (err error)
+	DeviceRemove(devUUID uuid.UUID) (err error)
 	Register(device *device.Ctx) error
 	GetDir() (dir string)
 	InitWithVars(vars *utils.ConfigVars) error

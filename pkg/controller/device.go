@@ -229,12 +229,16 @@ func (cloud *CloudCtx) GetDeviceUUID(devUUID uuid.UUID) (dev *device.Ctx, err er
 	return nil, errors.New("no device found")
 }
 
-//GetDeviceFirst return first device object
-func (cloud *CloudCtx) GetDeviceFirst() (dev *device.Ctx, err error) {
+//GetDeviceCurrent return current device object
+func (cloud *CloudCtx) GetDeviceCurrent() (dev *device.Ctx, err error) {
+	id, err := cloud.DeviceGetByOnboardUUID(cloud.vars.EveUUID)
+	if err != nil {
+		return nil, err
+	}
 	if len(cloud.devices) == 0 {
 		return nil, errors.New("no device found")
 	}
-	return cloud.devices[0], nil
+	return cloud.GetDeviceUUID(id)
 }
 
 func (cloud *CloudCtx) processDev(id uuid.UUID, state device.EdgeNodeState) {
@@ -284,7 +288,7 @@ func (cloud *CloudCtx) GetAllNodes() {
 //GetEdgeNode by name
 func (cloud *CloudCtx) GetEdgeNode(name string) *device.Ctx {
 	if name == "" {
-		node, _ := cloud.GetDeviceFirst()
+		node, _ := cloud.GetDeviceCurrent()
 		if node != nil {
 			return node
 		} else {

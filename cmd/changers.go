@@ -104,9 +104,9 @@ func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("getController error: %s", err)
 	}
-	devFirst, err := ctrl.GetDeviceFirst()
+	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetDeviceFirst error: %s", err)
+		return nil, nil, fmt.Errorf("GetDeviceCurrent error: %s", err)
 	}
 	return ctrl, devFirst, nil
 }

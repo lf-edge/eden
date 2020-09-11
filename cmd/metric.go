@@ -37,9 +37,9 @@ Scans the ADAM metrics for correspondence with regular expressions requests to j
 		if err != nil {
 			log.Fatalf("CloudPrepare: %s", err)
 		}
-		devFirst, err := ctrl.GetDeviceFirst()
+		devFirst, err := ctrl.GetDeviceCurrent()
 		if err != nil {
-			log.Fatalf("GetDeviceFirst error: %s", err)
+			log.Fatalf("GetDeviceCurrent error: %s", err)
 		}
 		devUUID := devFirst.GetID()
 		follow, err := cmd.Flags().GetBool("follow")

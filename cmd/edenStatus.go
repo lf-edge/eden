@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,7 +60,7 @@ func eveStatusRemote() {
 }
 
 func eveStatusQEMU() {
-	statusEVE, err := utils.StatusEVEQemu(evePidFile)
+	statusEVE, err := eden.StatusEVEQemu(evePidFile)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of EVE Qemu process: %s", statusWarn(), err)
 	} else {
@@ -102,7 +103,7 @@ var statusCmd = &cobra.Command{
 			}
 		}
 		fmt.Println()
-		statusAdam, err := utils.StatusAdam()
+		statusAdam, err := eden.StatusAdam()
 		if err != nil {
 			log.Errorf("%s cannot obtain status of adam: %s", statusWarn(), err)
 		} else {
@@ -110,7 +111,7 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tAdam is expected at https://%s:%d\n", viper.GetString("adam.ip"), viper.GetInt("adam.port"))
 			fmt.Printf("\tFor local Adam you can run 'docker logs %s' to see logs\n", defaults.DefaultAdamContainerName)
 		}
-		statusRegistry, err := utils.StatusRegistry()
+		statusRegistry, err := eden.StatusRegistry()
 		if err != nil {
 			log.Errorf("%s cannot obtain status of registry: %s", statusWarn(), err)
 		} else {
@@ -118,7 +119,7 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tRegistry is expected at https://%s:%d\n", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
 			fmt.Printf("\tFor local registry you can run 'docker logs %s' to see logs\n", defaults.DefaultRegistryContainerName)
 		}
-		statusRedis, err := utils.StatusRedis()
+		statusRedis, err := eden.StatusRedis()
 		if err != nil {
 			log.Errorf("%s cannot obtain status of redis: %s", statusWarn(), err)
 		} else {
@@ -126,7 +127,7 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tRedis is expected at %s\n", viper.GetString("adam.redis.eden"))
 			fmt.Printf("\tFor local Redis you can run 'docker logs %s' to see logs\n", defaults.DefaultRedisContainerName)
 		}
-		statusEServer, err := utils.StatusEServer()
+		statusEServer, err := eden.StatusEServer()
 		if err != nil {
 			log.Errorf("%s cannot obtain status of EServer process: %s", statusWarn(), err)
 		} else {

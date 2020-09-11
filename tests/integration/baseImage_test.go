@@ -3,6 +3,7 @@ package integration
 import (
 	"flag"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -77,7 +78,7 @@ func TestBaseImage(t *testing.T) {
 			if err != nil {
 				t.Fatal("Fail in prepare base image from local file: ", err)
 			}
-			deviceCtx, err := ctx.GetDeviceFirst()
+			deviceCtx, err := ctx.GetDeviceCurrent()
 			if err != nil {
 				t.Fatal("Fail in get first device: ", err)
 			}
@@ -156,12 +157,12 @@ func SetupBaseImage(t *testing.T) (fileToUse string) {
 	eveBaseDist := utils.ResolveAbsPath(*eveBaseDistRelative)
 	if !*download {
 		if _, err := os.Stat(eveBaseDist); os.IsNotExist(err) {
-			if err := utils.CloneFromGit(eveBaseDist, eveRepo, *eveBaseTag); err != nil {
+			if err := eden.CloneFromGit(eveBaseDist, eveRepo, *eveBaseTag); err != nil {
 				t.Fatalf("cannot clone BASE EVE: %s", err)
 			} else {
 				t.Log("clone BASE EVE done")
 			}
-			if _, _, err = utils.MakeEveInRepo(eveBaseDist, adamDist, eveArch, eveHV, "raw", true); err != nil {
+			if _, _, err = eden.MakeEveInRepo(eveBaseDist, adamDist, eveArch, eveHV, "raw", true); err != nil {
 				t.Fatalf("cannot MakeEveInRepo base: %s", err)
 			} else {
 				t.Log("MakeEveInRepo base done")

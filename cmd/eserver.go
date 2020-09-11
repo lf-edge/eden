@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -39,7 +40,7 @@ var startEserverCmd = &cobra.Command{
 		}
 		log.Infof("Executable path: %s", command)
 
-		if err := utils.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
+		if err := eden.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
 			log.Infof("Eserver is running and accesible on port %d", eserverPort)
@@ -60,7 +61,7 @@ var stopEserverCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := utils.StopEServer(eserverRm); err != nil {
+		if err := eden.StopEServer(eserverRm); err != nil {
 			log.Errorf("cannot stop eserver: %s", err)
 		}
 	},
@@ -79,7 +80,7 @@ var statusEserverCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusEServer, err := utils.StatusEServer()
+		statusEServer, err := eden.StatusEServer()
 		if err != nil {
 			log.Errorf("cannot obtain status of eserver: %s", err)
 		} else {

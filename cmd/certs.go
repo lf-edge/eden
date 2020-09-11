@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ var certsCmd = &cobra.Command{
 		log.Debug("generating CA")
 		rootCert, rootKey := utils.GenCARoot()
 		log.Debug("start Adam and get root-certificate.pem")
-		rootCertObtained, err := utils.StartAdamAndGetRootCert(certsIP, adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL, certsDomain, certsEVEIP)
+		rootCertObtained, err := eden.StartAdamAndGetRootCert(certsIP, adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL, certsDomain, certsEVEIP)
 		if err != nil {
 			log.Fatal(err)
 		}

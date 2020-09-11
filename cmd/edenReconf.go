@@ -37,9 +37,9 @@ var reconfCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("CloudPrepare: %s", err)
 		}
-		devFirst, err := ctrl.GetDeviceFirst()
+		devFirst, err := ctrl.GetDeviceCurrent()
 		if err != nil {
-			log.Fatalf("GetDeviceFirst error: %s", err)
+			log.Fatalf("GetDeviceCurrent error: %s", err)
 		}
 		devUUID := devFirst.GetID()
 		if getConfig {

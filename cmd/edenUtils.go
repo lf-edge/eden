@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/eden"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -25,7 +25,7 @@ var sdInfoEveCmd = &cobra.Command{
 	Short: "get info from SD card",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		eveInfo, err := utils.GetInfoFromSDCard(args[0])
+		eveInfo, err := eden.GetInfoFromSDCard(args[0])
 		if err != nil {
 			log.Info("Check is EVE on SD and your access to read SD")
 			log.Fatalf("Problem with access to EVE partitions: %v", err)

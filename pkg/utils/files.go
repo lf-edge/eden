@@ -98,7 +98,7 @@ func TouchFile(src string) (err error) {
 	return nil
 }
 
-func fileNameWithoutExtension(fileName string) string {
+func FileNameWithoutExtension(fileName string) string {
 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
 }
 

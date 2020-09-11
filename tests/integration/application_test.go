@@ -3,6 +3,7 @@ package integration
 import (
 	"flag"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,7 +54,7 @@ func TestApplication(t *testing.T) {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
 
-	deviceCtx, err := ctx.GetDeviceFirst()
+	deviceCtx, err := ctx.GetDeviceCurrent()
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
@@ -381,7 +382,7 @@ func SetupApplication(t *testing.T, format config.Format, ymlPath string) {
 		}
 		vmImageFile := filepath.Join(eserverImageDist, "vm", fmt.Sprintf("%s.qcow2", imageFile))
 		if _, err := os.Stat(vmImageFile); os.IsNotExist(err) {
-			if err = utils.BuildVM(linuxKitSymlinkPath, ymlPath, vmImageFile); err != nil {
+			if err = eden.BuildVM(linuxKitSymlinkPath, ymlPath, vmImageFile); err != nil {
 				t.Fatalf("Cannot build VM image: %s", err)
 			} else {
 				t.Log("VM image build done")

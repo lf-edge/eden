@@ -21,4 +21,4 @@ tests/*/eden-config.yml
 
 dist
 Config.in
-eden
+./eden

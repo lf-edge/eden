@@ -298,6 +298,16 @@ func (adam *Ctx) MetricLastCallback(devUUID uuid.UUID, q map[string]string, hand
 	return emetric.MetricLast(loader, q, handler)
 }
 
+//OnboardRemove remove onboard by onboardUUID
+func (adam *Ctx) OnboardRemove(onboardUUID string) (err error) {
+	return adam.deleteObj(path.Join("/admin/onboard", onboardUUID))
+}
+
+//DeviceRemove remove device by devUUID
+func (adam *Ctx) DeviceRemove(devUUID uuid.UUID) (err error) {
+	return adam.deleteObj(path.Join("/admin/device", devUUID.String()))
+}
+
 //DeviceGetOnboard get device onboardUUID for devUUID
 func (adam *Ctx) DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error) {
 	var devCert server.DeviceCert
@@ -335,6 +345,11 @@ func (adam *Ctx) DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err erro
 	if err != nil {
 		return uuid.Nil, err
 	}
+	return adam.DeviceGetByOnboardUUID(uuidToFound.String())
+}
+
+//DeviceGetByOnboardUUID try to get device by onboard uuid
+func (adam *Ctx) DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, err error) {
 	devIDs, err := adam.DeviceList(types.RegisteredDeviceFilter)
 	if err != nil {
 		return uuid.Nil, err
@@ -344,8 +359,8 @@ func (adam *Ctx) DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err erro
 		if err != nil {
 			return uuid.Nil, err
 		}
-		if onboardUUID, err := adam.DeviceGetOnboard(devUUID); err == nil {
-			if onboardUUID.String() == uuidToFound.String() {
+		if id, err := adam.DeviceGetOnboard(devUUID); err == nil {
+			if id.String() == onboardUUID {
 				return devUUID, nil
 			}
 		} else {

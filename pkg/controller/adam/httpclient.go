@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -36,6 +37,28 @@ func (adam *Ctx) getHTTPClient() *http.Client {
 		},
 	}
 	return client
+}
+
+func (adam *Ctx) deleteObj(path string) (err error) {
+	u, err := utils.ResolveURL(adam.url, path)
+	if err != nil {
+		log.Printf("error constructing URL: %v", err)
+		return err
+	}
+	client := adam.getHTTPClient()
+	req, err := http.NewRequest("DELETE", u, nil)
+	if err != nil {
+		log.Fatalf("unable to create new http request: %v", err)
+	}
+
+	response, err := utils.RepeatableAttempt(client, req)
+	if err != nil {
+		log.Fatalf("unable to send request: %v", err)
+	}
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("status code: %d", response.StatusCode)
+	}
+	return nil
 }
 
 func (adam *Ctx) getObj(path string) (out string, err error) {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -71,7 +72,7 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if err := utils.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
+		if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
 			log.Errorf("cannot start redis: %s", err)
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
@@ -79,17 +80,17 @@ var startCmd = &cobra.Command{
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}
-		if err := utils.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accesible on port %d", adamPort)
 		}
-		if err := utils.StartRegistry(registryPort, registryTag, registryDist); err != nil {
+		if err := eden.StartRegistry(registryPort, registryTag, registryDist); err != nil {
 			log.Errorf("cannot start registry: %s", err)
 		} else {
 			log.Infof("registry is running and accesible on port %d", registryPort)
 		}
-		if err := utils.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
+		if err := eden.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
 			log.Errorf("cannot start eserver: %s", err)
 		} else {
 			log.Infof("Eserver is running and accesible on port %d", eserverPort)
@@ -97,7 +98,7 @@ var startCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := utils.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
+		if err := eden.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
 			log.Infof("EVE is starting")
@@ -116,7 +117,7 @@ func startInit() {
 	startCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	startCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
 	startCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
-	startCmd.Flags().StringVarP(&adamTag, "registry-tag", "", defaults.DefaultRegistryTag, "tag on registry container to pull")
+	startCmd.Flags().StringVarP(&registryTag, "registry-tag", "", defaults.DefaultRegistryTag, "tag on registry container to pull")
 	startCmd.Flags().IntVarP(&registryPort, "registry-port", "", defaults.DefaultRegistryPort, "registry port to start")
 	startCmd.Flags().StringVarP(&registryDist, "registry-dist", "", "", "registry dist path to store (required)")
 	startCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag on redis container to pull")

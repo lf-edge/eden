@@ -33,6 +33,7 @@ type ConfigVars struct {
 	AdamRedisUrlAdam  string
 	EveHV             string
 	EveSSID           string
+	EveUUID           string
 	EveName           string
 	EveRemote         bool
 	EveRemoteAddr     string
@@ -80,6 +81,7 @@ func InitVars() (*ConfigVars, error) {
 			EveHV:             viper.GetString("eve.hv"),
 			DevModel:          viper.GetString("eve.devmodel"),
 			EveName:           viper.GetString("eve.name"),
+			EveUUID:           viper.GetString("eve.uuid"),
 			EveRemote:         viper.GetBool("eve.remote"),
 			EveRemoteAddr:     viper.GetString("eve.remote-addr"),
 			EveQemuPorts:      viper.GetStringMapString("eve.hostfwd"),

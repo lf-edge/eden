@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -52,11 +53,12 @@ var cleanCmd = &cobra.Command{
 		}
 		if currentContext {
 			log.Info("Cleanup current context")
-			if err := utils.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, configSaved); err != nil {
+			eveUUID := viper.GetString("eve.uuid")
+			if err := eden.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, configSaved); err != nil {
 				log.Fatalf("cannot CleanContext: %s", err)
 			}
 		} else {
-			if err := utils.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
+			if err := eden.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
 				eserverImageDist, redisDist, configDir, evePidFile,
 				configSaved); err != nil {
 				log.Fatalf("cannot CleanEden: %s", err)
