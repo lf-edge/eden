@@ -53,7 +53,8 @@ var cleanCmd = &cobra.Command{
 		}
 		if currentContext {
 			log.Info("Cleanup current context")
-			if err := eden.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, configSaved); err != nil {
+			eveUUID := viper.GetString("eve.uuid")
+			if err := eden.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, configSaved); err != nil {
 				log.Fatalf("cannot CleanContext: %s", err)
 			}
 		} else {

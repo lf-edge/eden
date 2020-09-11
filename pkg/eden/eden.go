@@ -5,7 +5,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -490,7 +492,48 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 }
 
 //CleanContext cleanup only context data
-func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID string, configSaved string) (err error) {
+func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID, eveUUID string, configSaved string) (err error) {
+	edenDir, err := utils.DefaultEdenDir()
+	if err != nil {
+		return err
+	}
+	eveStatusFile := filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))
+	if _, err = os.Stat(eveStatusFile); !os.IsNotExist(err) {
+		// we need to delete information about EVE from adam
+		_ = utils.StartContainer(defaults.DefaultAdamContainerName)
+		ctrl, err := controller.CloudPrepare()
+		if err != nil {
+			return fmt.Errorf("error in CloudPrepare: %s", err)
+		}
+		log.Debugf("Get devUUID for onboardUUID %s", eveUUID)
+		devUUID, err := ctrl.DeviceGetByOnboardUUID(eveUUID)
+		if err != nil {
+			return err
+		}
+		log.Debugf("Deleting devUUID %s", devUUID)
+		if err := ctrl.DeviceRemove(devUUID); err != nil {
+			return err
+		}
+		log.Debugf("Deleting onboardUUID %s", eveUUID)
+		if err := ctrl.OnboardRemove(eveUUID); err != nil {
+			return err
+		}
+		localViper := viper.New()
+		localViper.SetConfigFile(eveStatusFile)
+		if err := localViper.ReadInConfig(); err != nil {
+			log.Debug(err)
+		} else {
+			eveConfigFile := localViper.GetString("eve-config")
+			if _, err = os.Stat(eveConfigFile); !os.IsNotExist(err) {
+				if err := os.Remove(eveConfigFile); err != nil {
+					log.Debug(err)
+				}
+			}
+		}
+		if err = os.RemoveAll(eveStatusFile); err != nil {
+			return fmt.Errorf("error in %s delete: %s", eveStatusFile, err)
+		}
+	}
 	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=false --redis-rm=false --eserver-rm=false", evePID)
 	log.Infof("CleanContext run: %s %s", commandPath, commandArgsString)
 	_, _, err = utils.RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)

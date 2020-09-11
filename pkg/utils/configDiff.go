@@ -34,7 +34,7 @@ eve:
     image-file: {{ .DefaultImageDist }}/eve/live.img
 
     #devmodel
-    devmodel: ZedVirtual-4G
+    devmodel: {{ .DefaultEVEModel }}
 
     #file to save qemu config
     qemu-config: {{ .DefaultQemuFileToSave }}
@@ -44,6 +44,9 @@ eve:
 
     #EVE acceleration (set to false if you have problems with qemu)
     accel: true
+
+    #variant of hypervisor of EVE (kvm/xen)
+    hv: {{ .DefaultEVEHV }}
 
     #uuid of EVE to use in cert
     uuid: {{ .UUID }}
@@ -56,6 +59,9 @@ eve:
 
     #EVE firmware
     firmware: [{{ .DefaultImageDist }}/eve/OVMF_CODE.fd,{{ .DefaultImageDist }}/eve/OVMF_VARS.fd]
+
+    #eve tag
+    tag: {{ .DefaultEVETag }}
 
     #forward of ports in qemu [(HOST:EVE)]
     hostfwd:

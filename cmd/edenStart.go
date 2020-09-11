@@ -117,7 +117,7 @@ func startInit() {
 	startCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
 	startCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
 	startCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
-	startCmd.Flags().StringVarP(&adamTag, "registry-tag", "", defaults.DefaultRegistryTag, "tag on registry container to pull")
+	startCmd.Flags().StringVarP(&registryTag, "registry-tag", "", defaults.DefaultRegistryTag, "tag on registry container to pull")
 	startCmd.Flags().IntVarP(&registryPort, "registry-port", "", defaults.DefaultRegistryPort, "registry port to start")
 	startCmd.Flags().StringVarP(&registryDist, "registry-dist", "", "", "registry dist path to store (required)")
 	startCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag on redis container to pull")
