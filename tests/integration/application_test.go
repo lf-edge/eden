@@ -54,7 +54,7 @@ func TestApplication(t *testing.T) {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
 
-	deviceCtx, err := ctx.GetDeviceFirst()
+	deviceCtx, err := ctx.GetDeviceCurrent()
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}

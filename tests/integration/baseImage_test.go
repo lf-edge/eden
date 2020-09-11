@@ -78,7 +78,7 @@ func TestBaseImage(t *testing.T) {
 			if err != nil {
 				t.Fatal("Fail in prepare base image from local file: ", err)
 			}
-			deviceCtx, err := ctx.GetDeviceFirst()
+			deviceCtx, err := ctx.GetDeviceCurrent()
 			if err != nil {
 				t.Fatal("Fail in get first device: ", err)
 			}

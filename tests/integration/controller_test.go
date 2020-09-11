@@ -33,7 +33,7 @@ func TestControllerSetConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
-	deviceCtx, err := ctx.GetDeviceFirst()
+	deviceCtx, err := ctx.GetDeviceCurrent()
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
@@ -49,7 +49,7 @@ func TestControllerGetConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
-	devUUID, err := ctx.GetDeviceFirst()
+	devUUID, err := ctx.GetDeviceCurrent()
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
@@ -66,7 +66,7 @@ func TestControllerLogs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
-	devUUID, err := ctx.GetDeviceFirst()
+	devUUID, err := ctx.GetDeviceCurrent()
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}
@@ -83,7 +83,7 @@ func TestControllerInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CloudPrepare: %s", err)
 	}
-	devUUID, err := ctx.GetDeviceFirst()
+	devUUID, err := ctx.GetDeviceCurrent()
 	if err != nil {
 		t.Fatal("Fail in get first device: ", err)
 	}

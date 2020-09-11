@@ -56,7 +56,7 @@ type Cloud interface {
 	RemoveVolume(id string) error
 	ListVolume() []*config.Volume
 	GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error)
-	GetDeviceFirst() (dev *device.Ctx, err error)
+	GetDeviceCurrent() (dev *device.Ctx, err error)
 	ConfigSync(dev *device.Ctx) (err error)
 	ConfigParse(config *config.EdgeDevConfig) (dev *device.Ctx, err error)
 	GetNetworkConfig(id string) (networkConfig *config.NetworkConfig, err error)
