@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -45,7 +46,7 @@ var startRegistryCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
-		if err := utils.StartRegistry(registryPort, registryTag, registryDist); err != nil {
+		if err := eden.StartRegistry(registryPort, registryTag, registryDist); err != nil {
 			log.Errorf("cannot start registry: %s", err)
 		} else {
 			log.Infof("registry is running and accessible on port %d", adamPort)
@@ -62,7 +63,7 @@ var stopRegistryCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := utils.StopRegistry(registryRm); err != nil {
+		if err := eden.StopRegistry(registryRm); err != nil {
 			log.Errorf("cannot stop registry: %s", err)
 		}
 	},
@@ -77,7 +78,7 @@ var statusRegistryCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusRegistry, err := utils.StatusRegistry()
+		statusRegistry, err := eden.StatusRegistry()
 		if err != nil {
 			log.Errorf("cannot obtain status of registry: %s", err)
 		} else {

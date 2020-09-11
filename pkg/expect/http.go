@@ -2,12 +2,12 @@ package expect
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"path"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -16,7 +16,7 @@ import (
 //createImageHttp downloads image into EServer directory from http/https endpoint and calculates size and sha256 of image
 func (exp *appExpectation) createImageHttp(id uuid.UUID, dsId string) *config.Image {
 	log.Infof("Starting download of image from %s", exp.appLink)
-	server := &utils.EServer{
+	server := &eden.EServer{
 		EServerIP:   exp.ctrl.GetVars().EServerIp,
 		EserverPort: exp.ctrl.GetVars().EServerPort,
 	}

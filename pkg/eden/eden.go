@@ -1,10 +1,11 @@
-package utils
+package eden
 
 import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/lf-edge/eden/pkg/utils"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -34,21 +35,21 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 		}
 	}
 	if redisForce {
-		_ = StopContainer(defaults.DefaultRedisContainerName, true)
-		if err := CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+		_ = utils.StopContainer(defaults.DefaultRedisContainerName, true)
+		if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
 			return fmt.Errorf("error in create redis container: %s", err)
 		}
 	} else {
-		state, err := StateContainer(defaults.DefaultRedisContainerName)
+		state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 		if err != nil {
 			return fmt.Errorf("error in get state of redis container: %s", err)
 		}
 		if state == "" {
-			if err := CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+			if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
 				return fmt.Errorf("error in create redis container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
-			if err := StartContainer(defaults.DefaultRedisContainerName); err != nil {
+			if err := utils.StartContainer(defaults.DefaultRedisContainerName); err != nil {
 				return fmt.Errorf("error in restart redis container: %s", err)
 			}
 		}
@@ -58,13 +59,13 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 
 //StopRedis function stop redis container
 func StopRedis(redisRm bool) (err error) {
-	state, err := StateContainer(defaults.DefaultRedisContainerName)
+	state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
 		return fmt.Errorf("error in get state of redis container: %s", err)
 	}
 	if !strings.Contains(state, "running") {
 		if redisRm {
-			if err := StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
+			if err := utils.StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
 				return fmt.Errorf("error in rm redis container: %s", err)
 			}
 		}
@@ -72,11 +73,11 @@ func StopRedis(redisRm bool) (err error) {
 		return nil
 	} else {
 		if redisRm {
-			if err := StopContainer(defaults.DefaultRedisContainerName, false); err != nil {
+			if err := utils.StopContainer(defaults.DefaultRedisContainerName, false); err != nil {
 				return fmt.Errorf("error in rm redis container: %s", err)
 			}
 		} else {
-			if err := StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
+			if err := utils.StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
 				return fmt.Errorf("error in rm redis container: %s", err)
 			}
 		}
@@ -86,7 +87,7 @@ func StopRedis(redisRm bool) (err error) {
 
 //StatusRedis function return status of redis
 func StatusRedis() (status string, err error) {
-	state, err := StateContainer(defaults.DefaultRedisContainerName)
+	state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
 		return "", fmt.Errorf("error in get state of redis container: %s", err)
 	}
@@ -109,7 +110,7 @@ func StartAdamAndGetRootCert(adamIP string, adamPort int, adamPath string, adamF
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
-	resp, err := RepeatableAttempt(client, req)
+	resp, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -137,21 +138,21 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 		adamServerCommand = append(adamServerCommand, el)
 	}
 	if adamForce {
-		_ = StopContainer(defaults.DefaultAdamContainerName, true)
-		if err := CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
+		_ = utils.StopContainer(defaults.DefaultAdamContainerName, true)
+		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}
 	} else {
-		state, err := StateContainer(defaults.DefaultAdamContainerName)
+		state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 		if err != nil {
 			return fmt.Errorf("error in get state of adam container: %s", err)
 		}
 		if state == "" {
-			if err := CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
+			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
 				return fmt.Errorf("error in create adam container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
-			if err := StartContainer(defaults.DefaultAdamContainerName); err != nil {
+			if err := utils.StartContainer(defaults.DefaultAdamContainerName); err != nil {
 				return fmt.Errorf("error in restart adam container: %s", err)
 			}
 		}
@@ -161,13 +162,13 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 
 //StopAdam function stop adam container
 func StopAdam(adamRm bool) (err error) {
-	state, err := StateContainer(defaults.DefaultAdamContainerName)
+	state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
 		return fmt.Errorf("error in get state of adam container: %s", err)
 	}
 	if !strings.Contains(state, "running") {
 		if adamRm {
-			if err := StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
+			if err := utils.StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		}
@@ -175,11 +176,11 @@ func StopAdam(adamRm bool) (err error) {
 		return nil
 	} else {
 		if adamRm {
-			if err := StopContainer(defaults.DefaultAdamContainerName, false); err != nil {
+			if err := utils.StopContainer(defaults.DefaultAdamContainerName, false); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		} else {
-			if err := StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
+			if err := utils.StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
 				return fmt.Errorf("error in rm adam container: %s", err)
 			}
 		}
@@ -189,7 +190,7 @@ func StopAdam(adamRm bool) (err error) {
 
 //StatusAdam function return status of adam
 func StatusAdam() (status string, err error) {
-	state, err := StateContainer(defaults.DefaultAdamContainerName)
+	state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
 		return "", fmt.Errorf("error in get state of adam container: %s", err)
 	}
@@ -210,16 +211,16 @@ func StartRegistry(port int, tag, registryPath string, opts ...string) (err erro
 		cmd = append(cmd, el)
 	}
 	volumeMap := map[string]string{"/var/lib/registry": registryPath}
-	state, err := StateContainer(containerName)
+	state, err := utils.StateContainer(containerName)
 	if err != nil {
 		return fmt.Errorf("error in get state of %s container: %s", serviceName, err)
 	}
 	if state == "" {
-		if err := CreateAndRunContainer(containerName, ref+":"+tag, portMap, volumeMap, cmd); err != nil {
+		if err := utils.CreateAndRunContainer(containerName, ref+":"+tag, portMap, volumeMap, cmd); err != nil {
 			return fmt.Errorf("error in create %s container: %s", serviceName, err)
 		}
 	} else if !strings.Contains(state, "running") {
-		if err := StartContainer(containerName); err != nil {
+		if err := utils.StartContainer(containerName); err != nil {
 			return fmt.Errorf("error in restart %s container: %s", serviceName, err)
 		}
 	}
@@ -230,13 +231,13 @@ func StartRegistry(port int, tag, registryPath string, opts ...string) (err erro
 func StopRegistry(rm bool) (err error) {
 	containerName := defaults.DefaultRegistryContainerName
 	serviceName := "registry"
-	state, err := StateContainer(containerName)
+	state, err := utils.StateContainer(containerName)
 	if err != nil {
 		return fmt.Errorf("error in get state of %s container: %s", serviceName, err)
 	}
 	if !strings.Contains(state, "running") {
 		if rm {
-			if err := StopContainer(containerName, true); err != nil {
+			if err := utils.StopContainer(containerName, true); err != nil {
 				return fmt.Errorf("error in rm %s container: %s", serviceName, err)
 			}
 		}
@@ -244,11 +245,11 @@ func StopRegistry(rm bool) (err error) {
 		return nil
 	} else {
 		if rm {
-			if err := StopContainer(containerName, false); err != nil {
+			if err := utils.StopContainer(containerName, false); err != nil {
 				return fmt.Errorf("error in rm %s container: %s", serviceName, err)
 			}
 		} else {
-			if err := StopContainer(containerName, true); err != nil {
+			if err := utils.StopContainer(containerName, true); err != nil {
 				return fmt.Errorf("error in rm %s container: %s", serviceName, err)
 			}
 		}
@@ -260,7 +261,7 @@ func StopRegistry(rm bool) (err error) {
 func StatusRegistry() (status string, err error) {
 	containerName := defaults.DefaultRegistryContainerName
 	serviceName := "registry"
-	state, err := StateContainer(containerName)
+	state, err := utils.StateContainer(containerName)
 	if err != nil {
 		return "", fmt.Errorf("error in get state of %s container: %s", serviceName, err)
 	}
@@ -281,21 +282,21 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 		log.Fatalf("%s does not exist and can not be created", imageDist)
 	}
 	if eserverForce {
-		_ = StopContainer(defaults.DefaultEServerContainerName, true)
-		if err := CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
+		_ = utils.StopContainer(defaults.DefaultEServerContainerName, true)
+		if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
 			return fmt.Errorf("error in create eserver container: %s", err)
 		}
 	} else {
-		state, err := StateContainer(defaults.DefaultEServerContainerName)
+		state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 		if err != nil {
 			return fmt.Errorf("error in get state of eserver container: %s", err)
 		}
 		if state == "" {
-			if err := CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
+			if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
 				return fmt.Errorf("error in create eserver container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
-			if err := StartContainer(defaults.DefaultEServerContainerName); err != nil {
+			if err := utils.StartContainer(defaults.DefaultEServerContainerName); err != nil {
 				return fmt.Errorf("error in restart eserver container: %s", err)
 			}
 		}
@@ -305,13 +306,13 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 
 //StopEServer function stop eserver container
 func StopEServer(eserverRm bool) (err error) {
-	state, err := StateContainer(defaults.DefaultEServerContainerName)
+	state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 	if err != nil {
 		return fmt.Errorf("error in get state of eserver container: %s", err)
 	}
 	if !strings.Contains(state, "running") {
 		if eserverRm {
-			if err := StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
+			if err := utils.StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
 				return fmt.Errorf("error in rm eserver container: %s", err)
 			}
 		}
@@ -319,11 +320,11 @@ func StopEServer(eserverRm bool) (err error) {
 		return nil
 	} else {
 		if eserverRm {
-			if err := StopContainer(defaults.DefaultEServerContainerName, false); err != nil {
+			if err := utils.StopContainer(defaults.DefaultEServerContainerName, false); err != nil {
 				return fmt.Errorf("error in rm eserver container: %s", err)
 			}
 		} else {
-			if err := StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
+			if err := utils.StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
 				return fmt.Errorf("error in rm eserver container: %s", err)
 			}
 		}
@@ -333,7 +334,7 @@ func StopEServer(eserverRm bool) (err error) {
 
 //StatusEServer function return eserver of adam
 func StatusEServer() (status string, err error) {
-	state, err := StateContainer(defaults.DefaultEServerContainerName)
+	state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 	if err != nil {
 		return "", fmt.Errorf("error in get eserver of adam container: %s", err)
 	}
@@ -348,17 +349,17 @@ func StartEVEQemu(commandPath string, qemuARCH string, qemuOS string, eveImageFi
 	commandArgsString := fmt.Sprintf("eve start --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s -v %s",
 		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile, log.GetLevel())
 	log.Infof("StartEVEQemu run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+	return utils.RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //StopEVEQemu function stop EVE
 func StopEVEQemu(pidFile string) (err error) {
-	return StopCommandWithPid(pidFile)
+	return utils.StopCommandWithPid(pidFile)
 }
 
 //StatusEVEQemu function get status of EVE
 func StatusEVEQemu(pidFile string) (status string, err error) {
-	return StatusCommandWithPid(pidFile)
+	return utils.StatusCommandWithPid(pidFile)
 }
 
 //GenerateEveCerts function generates certs for EVE
@@ -372,7 +373,7 @@ func GenerateEveCerts(commandPath string, certsDir string, domain string, ip str
 		"utils certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s --ssid=%s --password=%s -v %s",
 		certsDir, domain, ip, eveIP, uuid, ssid, password, log.GetLevel())
 	log.Infof("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
-	return RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+	return utils.RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //GenerateEVEConfig function copy certs to EVE config folder
@@ -389,7 +390,7 @@ func GenerateEVEConfig(eveConfig string, domain string, ip string, port int, api
 	}
 	if apiV1 {
 		if _, err = os.Stat(filepath.Join(eveConfig, "Force-API-V1")); os.IsNotExist(err) {
-			if err := TouchFile(filepath.Join(eveConfig, "Force-API-V1")); err != nil {
+			if err := utils.TouchFile(filepath.Join(eveConfig, "Force-API-V1")); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -412,7 +413,7 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	}
 	commandArgsString := fmt.Sprintf("clone --branch %s --single-branch %s %s", tag, gitRepo, dist)
 	log.Infof("CloneFromGit run: %s %s", "git", commandArgsString)
-	return RunCommandWithLogAndWait("git", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+	return utils.RunCommandWithLogAndWait("git", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
 //MakeEveInRepo build live image of EVE
@@ -429,7 +430,7 @@ func MakeEveInRepo(distEve string, configPath string, arch string, hv string, im
 		commandArgsString := fmt.Sprintf("-C %s ZARCH=%s HV=%s CONF_DIR=%s rootfs",
 			distEve, arch, hv, configPath)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+		err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 		image = filepath.Join(distEve, "dist", arch, "installer", fmt.Sprintf("live.%s", imageFormat))
 	} else {
 		image = filepath.Join(distEve, "dist", arch, fmt.Sprintf("live.%s", imageFormat))
@@ -439,7 +440,7 @@ func MakeEveInRepo(distEve string, configPath string, arch string, hv string, im
 		commandArgsString := fmt.Sprintf("-C %s ZARCH=%s HV=%s CONF_DIR=%s IMG_FORMAT=%s live",
 			distEve, arch, hv, configPath, imageFormat)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+		err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 		switch arch {
 		case "amd64":
 			biosPath1 := filepath.Join(distEve, "dist", arch, "OVMF.fd")
@@ -448,14 +449,14 @@ func MakeEveInRepo(distEve string, configPath string, arch string, hv string, im
 			commandArgsString = fmt.Sprintf("-C %s ZARCH=%s HV=%s %s %s %s",
 				distEve, arch, hv, biosPath1, biosPath2, biosPath3)
 			log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-			err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+			err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 			additional = strings.Join([]string{biosPath1, biosPath2, biosPath3}, ",")
 		case "arm64":
 			dtbPath := filepath.Join(distEve, "dist", arch, "dtb", "eve.dtb")
 			commandArgsString = fmt.Sprintf("-C %s ZARCH=%s HV=%s %s",
 				distEve, arch, hv, dtbPath)
 			log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-			err = RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+			err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 			additional = dtbPath
 		default:
 			return "", "", fmt.Errorf("unsupported arch %s", arch)
@@ -472,17 +473,17 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 			return err
 		}
 	}
-	imageConfigTmp := filepath.Join(distImageDir, fmt.Sprintf("%s-bios.img", fileNameWithoutExtension(filepath.Base(distImage))))
+	imageConfigTmp := filepath.Join(distImageDir, fmt.Sprintf("%s-bios.img", utils.FileNameWithoutExtension(filepath.Base(distImage))))
 	commandArgsString := fmt.Sprintf("build -format raw-bios -dir %s %s",
 		distImageDir, imageConfig)
 	log.Infof("BuildVM run: %s %s", linuxKitPath, commandArgsString)
-	if err = RunCommandWithLogAndWait(linuxKitPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+	if err = utils.RunCommandWithLogAndWait(linuxKitPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in linuxkit: %s", err)
 	}
 	commandArgsString = fmt.Sprintf("convert -c -f raw -O qcow2 %s %s",
 		imageConfigTmp, distImage)
 	log.Infof("BuildVM run: %s %s", "qemu-img", commandArgsString)
-	if err = RunCommandWithLogAndWait("qemu-img", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+	if err = utils.RunCommandWithLogAndWait("qemu-img", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		return fmt.Errorf("error in qemu-img: %s", err)
 	}
 	return os.Remove(imageConfigTmp)
@@ -492,7 +493,7 @@ func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err err
 func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID string, configSaved string) (err error) {
 	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=false --redis-rm=false --eserver-rm=false", evePID)
 	log.Infof("CleanContext run: %s %s", commandPath, commandArgsString)
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
+	_, _, err = utils.RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
 	if err != nil {
 		return fmt.Errorf("error in eden stop: %s", err)
 	}
@@ -523,7 +524,7 @@ func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID string, co
 func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, configDir, evePID string, configSaved string) (err error) {
 	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=true --redis-rm=true --eserver-rm=true", evePID)
 	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
-	_, _, err = RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
+	_, _, err = utils.RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
 	if err != nil {
 		return fmt.Errorf("error in eden stop: %s", err)
 	}
@@ -567,13 +568,13 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDis
 			return fmt.Errorf("error in %s delete: %s", configSaved, err)
 		}
 	}
-	if err = RemoveGeneratedVolumeOfContainer(defaults.DefaultEServerContainerName); err != nil {
+	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultEServerContainerName); err != nil {
 		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultEServerContainerName, err)
 	}
-	if err = RemoveGeneratedVolumeOfContainer(defaults.DefaultRedisContainerName); err != nil {
+	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultRedisContainerName); err != nil {
 		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultRedisContainerName, err)
 	}
-	if err = RemoveGeneratedVolumeOfContainer(defaults.DefaultAdamContainerName); err != nil {
+	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultAdamContainerName); err != nil {
 		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultAdamContainerName, err)
 	}
 	return nil
@@ -596,7 +597,7 @@ func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
 
 //EServerAddFileUrl send url to download image into eserver
 func (server *EServer) EServerAddFileUrl(url string) (name string) {
-	u, err := ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-url")
+	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-url")
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
@@ -613,7 +614,7 @@ func (server *EServer) EServerAddFileUrl(url string) (name string) {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
 
-	response, err := RepeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -626,7 +627,7 @@ func (server *EServer) EServerAddFileUrl(url string) (name string) {
 
 //EServerCheckStatus checks status of image in eserver
 func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) {
-	u, err := ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), fmt.Sprintf("admin/status/%s", name))
+	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), fmt.Sprintf("admin/status/%s", name))
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
@@ -636,7 +637,7 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 		log.Fatalf("unable to create new http request: %v", err)
 	}
 
-	response, err := RepeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -652,12 +653,12 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 
 //EServerAddFile send file with image into eserver
 func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) {
-	u, err := ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-file")
+	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-file")
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
 	client := server.getHTTPClient(0)
-	response, err := UploadFile(client, u, filepath)
+	response, err := utils.UploadFile(client, u, filepath)
 	if err != nil {
 		log.Fatal(err)
 	}

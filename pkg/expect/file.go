@@ -2,6 +2,7 @@ package expect
 
 import (
 	"github.com/dustin/go-humanize"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -11,7 +12,7 @@ import (
 
 //createImageFile uploads image into EServer from file and calculates size and sha256 of image
 func (exp *appExpectation) createImageFile(id uuid.UUID, dsId string) *config.Image {
-	server := &utils.EServer{
+	server := &eden.EServer{
 		EServerIP:   exp.ctrl.GetVars().EServerIp,
 		EserverPort: exp.ctrl.GetVars().EServerPort,
 	}

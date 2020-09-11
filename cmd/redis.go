@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -46,7 +47,7 @@ var startRedisCmd = &cobra.Command{
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
 		log.Infof("Executable path: %s", command)
-		if err := utils.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
+		if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
 			log.Errorf("cannot start redis: %s", err)
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
@@ -70,7 +71,7 @@ var stopRedisCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := utils.StopRedis(redisRm); err != nil {
+		if err := eden.StopRedis(redisRm); err != nil {
 			log.Errorf("cannot stop redis: %s", err)
 		}
 	},
@@ -91,7 +92,7 @@ var statusRedisCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusRedis, err := utils.StatusRedis()
+		statusRedis, err := eden.StatusRedis()
 		if err != nil {
 			log.Errorf("cannot obtain status of redis: %s", err)
 		} else {

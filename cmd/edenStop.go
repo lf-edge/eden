@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"path/filepath"
 
@@ -34,22 +35,22 @@ var stopCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := utils.StopAdam(adamRm); err != nil {
+		if err := eden.StopAdam(adamRm); err != nil {
 			log.Infof("cannot stop adam: %s", err)
 		} else {
 			log.Infof("adam stopped")
 		}
-		if err := utils.StopRedis(redisRm); err != nil {
+		if err := eden.StopRedis(redisRm); err != nil {
 			log.Infof("cannot stop redis: %s", err)
 		} else {
 			log.Infof("redis stopped")
 		}
-		if err := utils.StopRegistry(registryRm); err != nil {
+		if err := eden.StopRegistry(registryRm); err != nil {
 			log.Infof("cannot stop registry: %s", err)
 		} else {
 			log.Infof("registry stopped")
 		}
-		if err := utils.StopEServer(eserverRm); err != nil {
+		if err := eden.StopEServer(eserverRm); err != nil {
 			log.Infof("cannot stop eserver: %s", err)
 		} else {
 			log.Infof("eserver stopped")
@@ -57,7 +58,7 @@ var stopCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := utils.StopEVEQemu(evePidFile); err != nil {
+		if err := eden.StopEVEQemu(evePidFile); err != nil {
 			log.Infof("cannot stop EVE: %s", err)
 		} else {
 			log.Infof("EVE stopped")

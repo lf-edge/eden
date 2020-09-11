@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/eden"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -138,7 +139,7 @@ var stopEveCmd = &cobra.Command{
 			log.Debug("Cannot stop remote EVE")
 			return
 		}
-		if err := utils.StopEVEQemu(evePidFile); err != nil {
+		if err := eden.StopEVEQemu(evePidFile); err != nil {
 			log.Errorf("cannot stop EVE: %s", err)
 		}
 	},
@@ -204,7 +205,7 @@ var statusEveCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusAdam, err := utils.StatusAdam()
+		statusAdam, err := eden.StatusAdam()
 		if err == nil && statusAdam != "container doesn't exist" {
 			eveStatusRemote()
 		}
