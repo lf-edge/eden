@@ -1,0 +1,36 @@
+{{$test_opts := "-test.v -timewait 1200"}}
+
+[!exec:curl] stop
+
+eden -t 1s pod ps
+
+# Starting of reboot detector with a 2 reboots limit
+! test eden.reboot.test {{$test_opts}} -reboot=0 -count=2 &
+
+# Run by docker's actor
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t1 -externalPort 8027 -appLink http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-amd64.qcow2
+stdout '--- PASS: TestDockerStart'
+'
+
+# VM detecting
+eden -t 1m pod ps
+stdout 't1	*	.*:80	127.0.0.1:8027	IN_CONFIG	RUNNING'
+
+# Stop by VM actor
+test eden.docker.test {{$test_opts}} -test.run TestDockerDelete -name t1
+stdout '--- PASS: TestDockerDelete'
+
+
+# VM detecting
+eden -t 1m pod ps
+! stdout '^t[12]'
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
