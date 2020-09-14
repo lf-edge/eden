@@ -39,6 +39,7 @@ var (
 	diskSize    string
 	imageFormat string
 	volumeType  string
+	oomScore    int32
 
 	outputTail   uint
 	outputFields []string
@@ -75,6 +76,7 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithVnc(vncDisplay))
 		opts = append(opts, expect.WithVncPassword(vncPassword))
 		opts = append(opts, expect.WithAppAdapters(appAdapters))
+		opts = append(opts, expect.WithOomScore(oomScore))
 		if len(podNetworks) > 0 {
 			for i, el := range podNetworks {
 				if i == 0 {
@@ -602,6 +604,7 @@ func podInit() {
 	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	podDeployCmd.Flags().StringVar(&volumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2 or oci)")
 	podDeployCmd.Flags().StringSliceVar(&appAdapters, "adapters", nil, "adapters to assign to the application instance")
+	podDeployCmd.Flags().Int32Var(&oomScore, "oomscore", 0, "OOM score to set to the application instance")
 	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
 	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podDeployCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")

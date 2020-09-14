@@ -2,11 +2,12 @@ package expect
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 //appBundle type for aggregate objects, needed for application
@@ -96,12 +97,13 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	}
 	var adapters []*config.Adapter
 	for _, adapterName := range exp.appAdapters {
-		adapters = append(adapters, &config.Adapter {
-				Type: evecommon.PhyIoType_PhyIoUSB,
-				Name: adapterName,
-				})
+		adapters = append(adapters, &config.Adapter{
+			Type: evecommon.PhyIoType_PhyIoUSB,
+			Name: adapterName,
+		})
 	}
 	bundle.appInstanceConfig.Adapters = adapters
+	bundle.appInstanceConfig.OomScore = exp.oomScore
 	return bundle, nil
 }
 

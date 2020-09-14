@@ -61,6 +61,12 @@ func WithAppAdapters(appadapters []string) ExpectationOption {
 	}
 }
 
+//WithOomScore assigns OOM score to the created apps
+func WithOomScore(oomscore int32) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.oomScore = oomscore
+	}
+}
 
 //AddNetInstanceNameAndPortPublish adds NetInstance with defined name and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
 func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []string) ExpectationOption {

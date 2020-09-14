@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
+
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
-	"log"
-	"strconv"
 )
 
 //StateUpdate refresh state file
@@ -517,7 +518,6 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		Apps:              applicationInstances,
 		Networks:          networkConfigs,
 		Datastores:        dataStores,
-		LispInfo:          nil,
 		Base:              baseOS,
 		Reboot:            rebootCmd,
 		Backup:            nil,

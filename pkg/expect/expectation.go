@@ -39,6 +39,7 @@ type appExpectation struct {
 	cpu         uint32
 	mem         uint32
 	metadata    string
+	oomScore    int32
 
 	vncDisplay  uint32
 	vncPassword string
