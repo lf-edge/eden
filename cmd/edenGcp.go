@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 var (
@@ -18,6 +19,9 @@ var (
 	gcpBucketName  string
 	gcpZone        string
 	gcpMachineType string
+
+	gcpFirewallRuleName    string
+	gcpFirewallRuleSources []string
 )
 
 var gcpCmd = &cobra.Command{
@@ -149,7 +153,7 @@ var gcpRun = &cobra.Command{
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
 		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, nil, nil, true, true); err != nil {
-			log.Fatalf("")
+			log.Fatal(err)
 		}
 	},
 }
@@ -182,6 +186,46 @@ var gcpConsole = &cobra.Command{
 	},
 }
 
+var gcpGetIP = &cobra.Command{
+	Use:   "get-ip",
+	Short: "print IP of VM ",
+	Run: func(cmd *cobra.Command, args []string) {
+		gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
+		if err != nil {
+			log.Fatalf("Unable to connect to GCP: %v", err)
+		}
+		if natIP, err := gcpClient.GetInstanceNatIP(gcpVMName, gcpZone); err != nil {
+			log.Fatal(err)
+		} else {
+			fmt.Println(natIP)
+		}
+	},
+}
+
+var gcpAddFirewallRule = &cobra.Command{
+	Use:   "firewall",
+	Short: "add firewall rule for access",
+	Run: func(cmd *cobra.Command, args []string) {
+		if gcpFirewallRuleSources == nil {
+			log.Fatal("Please define source-range")
+		}
+		for ind, el := range gcpFirewallRuleSources {
+			if !strings.Contains(el, "/") {
+				gcpFirewallRuleSources[ind] = fmt.Sprintf("%s/32", el)
+			}
+		}
+		gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
+		if err != nil {
+			log.Fatalf("Unable to connect to GCP: %v", err)
+		}
+		if err := gcpClient.SetFirewallAllowRule(gcpFirewallRuleName, gcpFirewallRuleSources); err != nil {
+			log.Fatal(err)
+		} else {
+			log.Info("Rules added")
+		}
+	},
+}
+
 func gcpInit() {
 	gcpCmd.AddCommand(gcpImageCmd)
 	gcpCmd.AddCommand(gcpVMCmd)
@@ -206,4 +250,10 @@ func gcpInit() {
 	gcpVMCmd.AddCommand(gcpConsole)
 	gcpConsole.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpConsole.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
+	gcpVMCmd.AddCommand(gcpGetIP)
+	gcpGetIP.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
+	gcpGetIP.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
+	gcpCmd.AddCommand(gcpAddFirewallRule)
+	gcpAddFirewallRule.Flags().StringVar(&gcpFirewallRuleName, "name", fmt.Sprintf("%s-rule", defaults.DefaultGcpImageName), "firewall rule name")
+	gcpAddFirewallRule.Flags().StringSliceVar(&gcpFirewallRuleSources, "source-range", nil, "source ranges to allow")
 }

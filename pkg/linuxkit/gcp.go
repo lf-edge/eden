@@ -539,3 +539,71 @@ func (g *GCPClient) pollZoneOperationStatus(operationName, zone string) error {
 	}
 	return fmt.Errorf("timeout waiting for operation to finish")
 }
+
+// GetInstanceNatIP returns NatIP of an instance
+func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
+	log.Infof("Getting NatIP for instance %s", instance)
+	for {
+		res, err := g.compute.Instances.Get(g.projectName, zone, instance).Do()
+		if err != nil {
+			if err.(*googleapi.Error).Code == 400 {
+				// Instance may not be ready yet...
+				time.Sleep(pollingInterval)
+				continue
+			}
+			if err.(*googleapi.Error).Code == 503 {
+				// Timeout received when the instance has terminated
+				break
+			}
+			return "", err
+		}
+		for _, networkInterface := range res.NetworkInterfaces {
+			for _, accessConfig := range networkInterface.AccessConfigs {
+				if accessConfig.NatIP != "" {
+					return accessConfig.NatIP, nil
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("not found NatIP for %s", instance)
+}
+
+// SetFirewallAllowRule runs gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges
+func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string) error {
+	log.Infof("setting firewall %s for %s", ruleName, sourceRanges)
+	for {
+		firewall := &compute.Firewall{
+			Name:         ruleName,
+			SourceRanges: sourceRanges,
+			Allowed: []*compute.FirewallAllowed{
+				{
+					IPProtocol: "icmp",
+				}, {
+					IPProtocol: "tcp",
+				}, {
+					IPProtocol: "udp",
+				},
+			},
+		}
+		operation, err := g.compute.Firewalls.Insert(g.projectName, firewall).Do()
+		if err != nil {
+			if err.(*googleapi.Error).Code == 400 {
+				// Instance may not be ready yet...
+				time.Sleep(pollingInterval)
+				continue
+			}
+			if err.(*googleapi.Error).Code == 503 {
+				// Timeout received when the instance has terminated
+				break
+			}
+			return err
+		}
+		if operation.Error != nil {
+			return fmt.Errorf("error running operation: %v", operation.Error)
+		}
+		if operation.Status == "DONE" {
+			return nil
+		}
+	}
+	return fmt.Errorf("timeout waiting for operation to finish")
+}
