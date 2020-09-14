@@ -44,7 +44,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "0.0.0-snapshot-master-d7206d73" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.53"
+	DefaultAdamTag              = "0.0.59"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultLinuxKitVersion      = "v0.7"
@@ -92,6 +92,7 @@ const (
 	DefaultLogsRedisPrefix       = "LOGS_EVE_"
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
 	DefaultMetricsRedisPrefix    = "METRICS_EVE_"
+	DefaultRequestsRedisPrefix   = "REQUESTS_EVE_"
 
 	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelLinux  = "-machine q35,accel=kvm,dump-guest-core=off -cpu host,invtsc=on,kvmclock=off -machine kernel-irqchip=split -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "

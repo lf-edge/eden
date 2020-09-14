@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v7"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -12,36 +13,30 @@ import (
 	"time"
 )
 
-type getStream = func(devUUID uuid.UUID) (stream string)
-
 type redisLoader struct {
 	lastID        string
 	addr          string
 	password      string
 	databaseID    int
-	streamLogs    getStream
-	streamInfo    getStream
-	streamMetrics getStream
+	streamGetters types.StreamGetters
 	client        *redis.Client
-	cache         cachers.Cacher
+	cache         cachers.CacheProcessor
 	devUUID       uuid.UUID
 }
 
 //RedisLoader return loader from redis
-func RedisLoader(addr string, password string, databaseID int, streamLogs getStream, streamInfo getStream, streamMetrics getStream) *redisLoader {
+func RedisLoader(addr string, password string, databaseID int, streamGetters types.StreamGetters) *redisLoader {
 	log.Debugf("RedisLoader init")
 	return &redisLoader{
 		addr:          addr,
 		password:      password,
 		databaseID:    databaseID,
-		streamLogs:    streamLogs,
-		streamInfo:    streamInfo,
-		streamMetrics: streamMetrics,
+		streamGetters: streamGetters,
 	}
 }
 
 //SetRemoteCache add cache layer
-func (loader *redisLoader) SetRemoteCache(cache cachers.Cacher) {
+func (loader *redisLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
@@ -51,23 +46,23 @@ func (loader *redisLoader) Clone() Loader {
 		addr:          loader.addr,
 		password:      loader.password,
 		databaseID:    loader.databaseID,
-		streamLogs:    loader.streamLogs,
-		streamInfo:    loader.streamInfo,
-		streamMetrics: loader.streamMetrics,
+		streamGetters: loader.streamGetters,
 		lastID:        "",
 		cache:         loader.cache,
 		devUUID:       loader.devUUID,
 	}
 }
 
-func (loader *redisLoader) getStream(typeToProcess infoOrLogs) string {
+func (loader *redisLoader) getStream(typeToProcess types.LoaderObjectType) string {
 	switch typeToProcess {
-	case LogsType:
-		return loader.streamLogs(loader.devUUID)
-	case InfoType:
-		return loader.streamInfo(loader.devUUID)
-	case MetricsType:
-		return loader.streamMetrics(loader.devUUID)
+	case types.LogsType:
+		return loader.streamGetters.StreamLogs(loader.devUUID)
+	case types.InfoType:
+		return loader.streamGetters.StreamInfo(loader.devUUID)
+	case types.MetricsType:
+		return loader.streamGetters.StreamMetrics(loader.devUUID)
+	case types.RequestType:
+		return loader.streamGetters.StreamRequest(loader.devUUID)
 	default:
 		return ""
 	}
@@ -78,7 +73,7 @@ func (loader *redisLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOrLogs, stream bool) (processed, found bool, err error) {
+func (loader *redisLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
 	OrderStream := loader.getStream(typeToProcess)
 	if !stream {
 		start := "-"
@@ -101,7 +96,7 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 					return false, false, fmt.Errorf("process: %s", err)
 				}
 				if loader.cache != nil {
-					if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+					if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, data); err != nil {
 						log.Errorf("error in cache: %s", err)
 					}
 				}
@@ -134,7 +129,7 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 				return false, false, fmt.Errorf("process first: %s", err)
 			}
 			if loader.cache != nil {
-				if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+				if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, data); err != nil {
 					log.Errorf("error in cache: %s", err)
 				}
 			}
@@ -160,7 +155,7 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 					return false, false, fmt.Errorf("process: %s", err)
 				}
 				if loader.cache != nil {
-					if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+					if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, data); err != nil {
 						log.Errorf("error in cache: %s", err)
 					}
 				}
@@ -176,7 +171,7 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess infoOr
 	}
 }
 
-func (loader *redisLoader) repeatableConnection(process ProcessFunction, typeToProcess infoOrLogs, stream bool) error {
+func (loader *redisLoader) repeatableConnection(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) error {
 	if _, _, err := loader.process(process, typeToProcess, stream); err == nil {
 		return nil
 	} else {
@@ -201,7 +196,7 @@ func (loader *redisLoader) getOrCreateClient() (*redis.Client, error) {
 }
 
 //ProcessExisting for observe existing files
-func (loader *redisLoader) ProcessExisting(process ProcessFunction, typeToProcess infoOrLogs) error {
+func (loader *redisLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	if _, err := loader.getOrCreateClient(); err != nil {
 		return err
 	}
@@ -209,7 +204,7 @@ func (loader *redisLoader) ProcessExisting(process ProcessFunction, typeToProces
 }
 
 //ProcessExisting for observe new files
-func (loader *redisLoader) ProcessStream(process ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) (err error) {
+func (loader *redisLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	if _, err := loader.getOrCreateClient(); err != nil {
 		return err
 	}

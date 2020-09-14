@@ -2,6 +2,7 @@ package loaders
 
 import (
 	"github.com/lf-edge/eden/pkg/controller/cachers"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	uuid "github.com/satori/go.uuid"
 	"time"
 )
@@ -9,22 +10,11 @@ import (
 //Loader interface fo controller
 type Loader interface {
 	SetUUID(devUUID uuid.UUID)
-	ProcessStream(process ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) error
-	ProcessExisting(process ProcessFunction, typeToProcess infoOrLogs) error
-	SetRemoteCache(cache cachers.Cacher)
+	ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) error
+	ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error
+	SetRemoteCache(cache cachers.CacheProcessor)
 	Clone() Loader
 }
-
-type infoOrLogs int
-
-//LogsType for observe logs
-var LogsType infoOrLogs = 1
-
-//InfoType for observe info
-var InfoType infoOrLogs = 2
-
-//MetricsType for observe metrics
-var MetricsType infoOrLogs = 3
 
 //ProcessFunction is prototype of processing function
 type ProcessFunction func(bytes []byte) (bool, error)

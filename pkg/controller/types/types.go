@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	uuid "github.com/satori/go.uuid"
 )
 
 //DeviceStateFilter for filter device by state
@@ -51,3 +52,48 @@ func (pr *PrintResult) Print() {
 		fmt.Println()
 	}
 }
+
+type getDir = func(devUUID uuid.UUID) (dir string)
+
+// DirGetters provides information about directories to obtain objects from for loaders
+type DirGetters struct {
+	LogsGetter    getDir
+	InfoGetter    getDir
+	MetricsGetter getDir
+	RequestGetter getDir
+}
+
+type getStream = func(devUUID uuid.UUID) (stream string)
+
+// StreamGetters provides information about redis streams to obtain objects from for loaders
+type StreamGetters struct {
+	StreamLogs    getStream
+	StreamInfo    getStream
+	StreamMetrics getStream
+	StreamRequest getStream
+}
+
+type getUrl = func(devUUID uuid.UUID) (url string)
+
+// UrlGetters provides information about urls to obtain objects from for loaders
+type UrlGetters struct {
+	UrlLogs    getUrl
+	UrlInfo    getUrl
+	UrlMetrics getUrl
+	UrlRequest getUrl
+}
+
+//LoaderObjectType for determinate object for loaders
+type LoaderObjectType int
+
+//LogsType for observe logs
+var LogsType LoaderObjectType = 1
+
+//InfoType for observe info
+var InfoType LoaderObjectType = 2
+
+//MetricsType for observe metrics
+var MetricsType LoaderObjectType = 3
+
+//RequestType for observe requests
+var RequestType LoaderObjectType = 4

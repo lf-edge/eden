@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
@@ -23,7 +24,6 @@ const (
 )
 
 type getClient = func() *http.Client
-type getUrl = func(devUUID uuid.UUID) (url string)
 
 type remoteLoader struct {
 	curCount     uint64
@@ -31,21 +31,17 @@ type remoteLoader struct {
 	lastTimesamp *timestamp.Timestamp
 	firstLoad    bool
 	devUUID      uuid.UUID
-	urlLogs      getUrl
-	urlInfo      getUrl
-	urlMetrics   getUrl
+	urlGetters   types.UrlGetters
 	getClient    getClient
 	client       *http.Client
-	cache        cachers.Cacher
+	cache        cachers.CacheProcessor
 }
 
 //RemoteLoader return loader from files
-func RemoteLoader(getClient getClient, urlLogs getUrl, urlInfo getUrl, urlMetrics getUrl) *remoteLoader {
+func RemoteLoader(getClient getClient, urlGetters types.UrlGetters) *remoteLoader {
 	log.Debugf("HTTP RemoteLoader init")
 	return &remoteLoader{
-		urlLogs:      urlLogs,
-		urlInfo:      urlInfo,
-		urlMetrics:   urlMetrics,
+		urlGetters:   urlGetters,
 		getClient:    getClient,
 		firstLoad:    true,
 		lastTimesamp: nil,
@@ -54,16 +50,14 @@ func RemoteLoader(getClient getClient, urlLogs getUrl, urlInfo getUrl, urlMetric
 }
 
 //SetRemoteCache add cache layer
-func (loader *remoteLoader) SetRemoteCache(cache cachers.Cacher) {
+func (loader *remoteLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
 //Clone create copy
 func (loader *remoteLoader) Clone() Loader {
 	return &remoteLoader{
-		urlLogs:      loader.urlLogs,
-		urlInfo:      loader.urlInfo,
-		urlMetrics:   loader.urlMetrics,
+		urlGetters:   loader.urlGetters,
 		getClient:    loader.getClient,
 		firstLoad:    true,
 		lastTimesamp: nil,
@@ -73,14 +67,16 @@ func (loader *remoteLoader) Clone() Loader {
 	}
 }
 
-func (loader *remoteLoader) getUrl(typeToProcess infoOrLogs) string {
+func (loader *remoteLoader) getUrl(typeToProcess types.LoaderObjectType) string {
 	switch typeToProcess {
-	case LogsType:
-		return loader.urlLogs(loader.devUUID)
-	case InfoType:
-		return loader.urlInfo(loader.devUUID)
-	case MetricsType:
-		return loader.urlMetrics(loader.devUUID)
+	case types.LogsType:
+		return loader.urlGetters.UrlLogs(loader.devUUID)
+	case types.InfoType:
+		return loader.urlGetters.UrlInfo(loader.devUUID)
+	case types.MetricsType:
+		return loader.urlGetters.UrlMetrics(loader.devUUID)
+	case types.RequestType:
+		return loader.urlGetters.UrlRequest(loader.devUUID)
 	default:
 		return ""
 	}
@@ -91,48 +87,34 @@ func (loader *remoteLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess infoOrLogs, stream bool) (processed, tocontinue bool, err error) {
+func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, tocontinue bool, err error) {
 	var buf bytes.Buffer
 	switch typeToProcess {
-	case LogsType:
+	case types.LogsType:
 		var emp logs.LogBundle
 		if err := jsonpb.UnmarshalNext(decoder, &emp); err == io.EOF {
 			return false, false, nil
 		} else if err != nil {
 			return false, false, err
 		}
-		/*if emp.Timestamp == nil {
-			log.Warning("empty timestamp")
-		} else if loader.lastTimesamp == nil || emp.Timestamp.Seconds > loader.lastTimesamp.Seconds {
-			loader.lastTimesamp = emp.Timestamp
-		} else {
-			return false, true, nil
-		}*/
 		mler := jsonpb.Marshaler{}
 		if err := mler.Marshal(&buf, &emp); err != nil {
 			return false, false, err
 		}
-	case InfoType:
+	case types.InfoType:
 		var emp info.ZInfoMsg
 		if err := jsonpb.UnmarshalNext(decoder, &emp); err == io.EOF {
 			return false, false, nil
 		} else if err != nil {
 			return false, false, err
 		}
-		/*if emp.AtTimeStamp == nil {
-			log.Warning("empty timestamp")
-		} else if loader.lastTimesamp == nil || emp.AtTimeStamp.Seconds > loader.lastTimesamp.Seconds {
-			loader.lastTimesamp = emp.AtTimeStamp
-		} else {
-			return false, true, nil
-		}*/
 		mler := jsonpb.Marshaler{}
 		if err := mler.Marshal(&buf, &emp); err != nil {
 			return false, false, err
 		}
 	}
 	if loader.cache != nil {
-		if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), buf.Bytes()); err != nil {
+		if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, buf.Bytes()); err != nil {
 			log.Errorf("error in cache: %s", err)
 		}
 	}
@@ -149,7 +131,7 @@ func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFu
 	return true, tocontinue, err
 }
 
-func (loader *remoteLoader) process(process ProcessFunction, typeToProcess infoOrLogs, stream bool) (processed, found bool, err error) {
+func (loader *remoteLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
 	u := loader.getUrl(typeToProcess)
 	log.Debugf("remote controller request %s", u)
 	req, err := http.NewRequest("GET", u, nil)
@@ -176,7 +158,7 @@ func infoProcessInit(bytes []byte) (bool, error) {
 	return true, nil
 }
 
-func (loader *remoteLoader) repeatableConnection(process ProcessFunction, typeToProcess infoOrLogs, stream bool) error {
+func (loader *remoteLoader) repeatableConnection(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) error {
 	if !stream {
 		loader.client.Timeout = time.Second * 10
 	} else {
@@ -224,12 +206,12 @@ repeatLoop:
 }
 
 //ProcessExisting for observe existing files
-func (loader *remoteLoader) ProcessExisting(process ProcessFunction, typeToProcess infoOrLogs) error {
+func (loader *remoteLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	return loader.repeatableConnection(process, typeToProcess, false)
 }
 
 //ProcessExisting for observe new files
-func (loader *remoteLoader) ProcessStream(process ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) (err error) {
+func (loader *remoteLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	done := make(chan error)
 	if timeoutSeconds == 0 {
 		timeoutSeconds = -1

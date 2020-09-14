@@ -1,20 +1,11 @@
 package cachers
 
 import (
+	"github.com/lf-edge/eden/pkg/controller/types"
 	uuid "github.com/satori/go.uuid"
 )
 
-type Cacher interface {
-	CheckAndSave(uuid.UUID, int, []byte) error
+//CacheProcessor for processing objects and save into cache
+type CacheProcessor interface {
+	CheckAndSave(uuid.UUID, types.LoaderObjectType, []byte) error
 }
-
-type infoOrLogs int
-
-//LogsType for observe logs
-var LogsType infoOrLogs = 1
-
-//InfoType for observe info
-var InfoType infoOrLogs = 2
-
-//MetricsType for observe metrics
-var MetricsType infoOrLogs = 3

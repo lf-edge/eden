@@ -167,13 +167,13 @@ func metricProcess(query map[string]string, handler HandlerFunc) loaders.Process
 //MetricWatch monitors the change of Metric files in the 'filepath' directory
 //according to the 'query' reqexps and processing using the 'handler' function.
 func MetricWatch(loader loaders.Loader, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
-	return loader.ProcessStream(metricProcess(query, handler), loaders.MetricsType, timeoutSeconds)
+	return loader.ProcessStream(metricProcess(query, handler), types.MetricsType, timeoutSeconds)
 }
 
 //MetricLast function process Metric files in the 'filepath' directory
 //according to the 'query' reqexps and return last founded item
 func MetricLast(loader loaders.Loader, query map[string]string, handler HandlerFunc) error {
-	return loader.ProcessExisting(metricProcess(query, handler), loaders.MetricsType)
+	return loader.ProcessExisting(metricProcess(query, handler), types.MetricsType)
 }
 
 //MetricChecker check metrics by pattern from existence files with HandlerFunc with timeout for observe new files

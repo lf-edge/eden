@@ -187,12 +187,12 @@ func infoProcess(query map[string]string, qhandler QHandlerFunc, handler Handler
 
 //InfoLast search Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent process using the 'handler' function.
 func InfoLast(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc) error {
-	return loader.ProcessExisting(infoProcess(query, qhandler, handler), loaders.InfoType)
+	return loader.ProcessExisting(infoProcess(query, qhandler, handler), types.InfoType)
 }
 
 //InfoWatch monitors the change of Info files in the 'filepath' directory according to the 'query' parameters accepted by the 'qhandler' function and subsequent processing using the 'handler' function with 'timeoutSeconds'.
 func InfoWatch(loader loaders.Loader, query map[string]string, qhandler QHandlerFunc, handler HandlerFunc, timeoutSeconds time.Duration) error {
-	return loader.ProcessStream(infoProcess(query, qhandler, handler), loaders.InfoType, timeoutSeconds)
+	return loader.ProcessStream(infoProcess(query, qhandler, handler), types.InfoType, timeoutSeconds)
 }
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=InfoExist), new files (mode=InfoNew) or any of them (mode=InfoAny) with timeout (0 for infinite).
