@@ -57,13 +57,13 @@ test: build
 $(EMPTY_DRIVE):
 	qemu-img create -f qcow2 $(EMPTY_DRIVE) 1G
 
-build: bin testbin
+build-tests: build testbin
 install: build
 	CGO_ENABLED=0 go install .
 
-bin: $(BIN) $(EMPTY_DRIVE)
+build: $(BIN) $(EMPTY_DRIVE)
 ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
-bin: $(BIN) $(EMPTY_DRIVE) eserver
+build: $(BIN) $(EMPTY_DRIVE) eserver
 endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
@@ -74,17 +74,17 @@ $(BIN): $(LOCALBIN)
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
-config: bin
+config: build
 	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
 
 setup: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
 	$(LOCALBIN) setup -v $(DEBUG)
 
-run: bin setup
+run: build setup
 	$(LOCALBIN) start -v $(DEBUG)
 
-stop: bin
+stop: build
 	$(LOCALBIN) stop -v $(DEBUG)
 
 .PHONY: eserver

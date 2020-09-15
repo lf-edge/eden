@@ -25,6 +25,7 @@ make build
 eden setup
 eden start
 eden status
+make build-tests
 eden test
 ```
 
@@ -158,7 +159,7 @@ To work with custom EVE images, see [docs/eve-images.md](./docs/eve-images.md).
 
 ## Tests
 
-To run tests make sure you called `make build`.
+To run tests make sure you called `make build-tests`.
 
 The easy way to run tests is to call `eden test <test folder>`
 
@@ -181,19 +182,29 @@ Eden is enough to deploy Eve on Google Cloud. We are going to make it one comman
 
 Step 1 : Make an image. You need to specify IP of Adam, by defalut Adam is a container inside machine with Eden, so put there an IP that is accessible from gcp
 ```
-make CONFIG='--devmodel GCP' build
+make build
+./eden config add default --devmodel GCP
 ./eden config set default --key adam.eve-ip --value <IP of Adam/Eden>  
 ./eden setup
 ```
 Step 2 : Upload image to gcp and run it. You will need a google service key json. https://cloud.google.com/iam/docs/creating-managing-service-account-keys 
 ```
-./eden utils gcp image -k  <PATH TO SERVICE KEY FILE>  upload <PATH TO EVE IMAGE>
-./eden utils gcp vm -k <PATH TO SERVICE KEY FILE> 
+./eden utils gcp image -k  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> upload <PATH TO EVE IMAGE>
+./eden utils gcp vm  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> --vm-name=<NAME OF VM ON GCP> run
 ```
-vm is named eden-gcp-test
-`eden utils gcp` supports vm-name image-name and bucket-name  parameters
+`eden utils gcp` also supports  
+ * --bucket-name  for images
+ * --machine-type for vm
 
-Step 3 : Start eden and onboard Eve
+Step 3 : Configure the firewall and make sure ADAM is exposed in the network
+Note that the firewall may be active on GCP. Allow connections (create rules)
+```
+extIP=$(gcloud compute instances describe <GCP VM NAME> --format='get(networkInterfaces[0].accessConfigs[0].natIP)' --zone=us-west1-a)
+gcloud compute firewall-rules create <RULE NAME> --allow all --source-ranges=$extIP
+```
+ADAM should be publicly available from GCP machine. 
+
+Step 4 : Start eden and onboard Eve
 ```
 ./eden start
 ./eden eve onboard
