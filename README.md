@@ -30,6 +30,12 @@ eden status
 make build-tests
 eden test
 ```
+Note: Don't forget to call clean if you want to try the  installation again.
+Call either `make clean` or 
+```
+./eden stop
+./eden clean --current-context=false
+```
 
 Note for cloud and VM users: eden and eve use virtualization. To run in VM-based environments, see [the cloud document](./docs/cloud.md).
 
