@@ -30,6 +30,12 @@ eden status
 make build-tests
 eden test
 ```
+Note: Don't forget to call clean if you want to try the  installation again.
+Call either `make clean` or 
+```
+./eden stop
+./eden clean --current-context=false
+```
 
 Note for cloud and VM users: eden and eve use virtualization. To run in VM-based environments, see [the cloud document](./docs/cloud.md).
 
@@ -359,6 +365,7 @@ The current sub-commands are:
    * `setup` --  get all components that are specified in the config and ensure they are ready for startup;
    * `start` -- start all components
    * `stop` -- stop all components;
+   * `clean` -- cleanup EDEN artifacts (images and certificates) for current context. If you want to clean artifacts of all contexts, you should to run `clean --current-context=false`;
    * `test` -- run tests;
    * `info` -- displays Info records, accepts regular expression as a filter;
    * `log` -- displays Log records, accepts regular expression as a filter;
