@@ -22,8 +22,10 @@ You need to be able to run docker commands and able to access virtualization acc
 git clone https://github.com/lf-edge/eden.git
 cd eden
 make build
+eden config add default
 eden setup
 eden start
+eden eve onboard
 eden status
 make build-tests
 eden test
@@ -222,6 +224,7 @@ Prepare Raspberry image
 ```
 git clone https://github.com/lf-edge/eden.git
 cd eden
+make build
 eden config add default --devmodel RPi4
 eden setup
 eden start
@@ -328,14 +331,14 @@ Run `eden help` to see sub-commands.
 
 To build `eden`:
 ```
-make bin
+make build
 ```
 
 To build `eden` and tests inside eden
 It's better to call `eden config add` first, so the build command can build tests for the desired architecture
 
 ```
-make build
+make build-tests
 ```
 
 
