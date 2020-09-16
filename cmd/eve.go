@@ -212,6 +212,7 @@ var statusEveCmd = &cobra.Command{
 		if !eveRemote {
 			eveStatusQEMU()
 		}
+		eveRequestsAdam()
 	},
 }
 

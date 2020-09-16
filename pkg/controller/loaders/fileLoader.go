@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -12,46 +13,42 @@ import (
 	"time"
 )
 
-type getDir = func(devUUID uuid.UUID) (dir string)
-
 type fileLoader struct {
-	devUUID       uuid.UUID
-	logsGetter    getDir
-	infoGetter    getDir
-	metricsGetter getDir
-	cache         cachers.Cacher
+	devUUID uuid.UUID
+	getters types.DirGetters
+	cache   cachers.CacheProcessor
 }
 
 //FileLoader return loader from files
-func FileLoader(logsGetter getDir, infoGetter getDir, metricsGetter getDir) *fileLoader {
+func FileLoader(getters types.DirGetters) *fileLoader {
 	log.Debugf("FileLoader init")
-	return &fileLoader{logsGetter: logsGetter, infoGetter: infoGetter, metricsGetter: metricsGetter}
+	return &fileLoader{getters: getters}
 }
 
 //SetRemoteCache add cache layer
-func (loader *fileLoader) SetRemoteCache(cache cachers.Cacher) {
+func (loader *fileLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
 //Clone create copy
 func (loader *fileLoader) Clone() Loader {
 	return &fileLoader{
-		logsGetter:    loader.logsGetter,
-		infoGetter:    loader.infoGetter,
-		metricsGetter: loader.metricsGetter,
-		devUUID:       loader.devUUID,
-		cache:         loader.cache,
+		getters: loader.getters,
+		devUUID: loader.devUUID,
+		cache:   loader.cache,
 	}
 }
 
-func (loader *fileLoader) getFilePath(typeToProcess infoOrLogs) string {
+func (loader *fileLoader) getFilePath(typeToProcess types.LoaderObjectType) string {
 	switch typeToProcess {
-	case LogsType:
-		return loader.logsGetter(loader.devUUID)
-	case InfoType:
-		return loader.infoGetter(loader.devUUID)
-	case MetricsType:
-		return loader.metricsGetter(loader.devUUID)
+	case types.LogsType:
+		return loader.getters.LogsGetter(loader.devUUID)
+	case types.InfoType:
+		return loader.getters.InfoGetter(loader.devUUID)
+	case types.MetricsType:
+		return loader.getters.MetricsGetter(loader.devUUID)
+	case types.RequestType:
+		return loader.getters.RequestGetter(loader.devUUID)
 	default:
 		return ""
 	}
@@ -63,7 +60,7 @@ func (loader *fileLoader) SetUUID(devUUID uuid.UUID) {
 }
 
 //ProcessExisting for observe existing files
-func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess infoOrLogs) error {
+func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	files, err := ioutil.ReadDir(loader.getFilePath(typeToProcess))
 	if err != nil {
 		return err
@@ -84,7 +81,7 @@ func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess
 			continue
 		}
 		if loader.cache != nil {
-			if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+			if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, data); err != nil {
 				log.Errorf("error in cache: %s", err)
 			}
 		}
@@ -100,7 +97,7 @@ func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess
 }
 
 //ProcessExisting for observe new files
-func (loader *fileLoader) ProcessStream(process ProcessFunction, typeToProcess infoOrLogs, timeoutSeconds time.Duration) error {
+func (loader *fileLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -133,7 +130,7 @@ func (loader *fileLoader) ProcessStream(process ProcessFunction, typeToProcess i
 					}
 					log.Debugf("local controller parse %s", event.Name)
 					if loader.cache != nil {
-						if err = loader.cache.CheckAndSave(loader.devUUID, int(typeToProcess), data); err != nil {
+						if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, data); err != nil {
 							log.Errorf("error in cache: %s", err)
 						}
 					}

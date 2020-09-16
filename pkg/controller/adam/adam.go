@@ -3,19 +3,6 @@ package adam
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/lf-edge/adam/pkg/server"
-	"github.com/lf-edge/adam/pkg/x509"
-	"github.com/lf-edge/eden/pkg/controller/cachers"
-	"github.com/lf-edge/eden/pkg/controller/einfo"
-	"github.com/lf-edge/eden/pkg/controller/elog"
-	"github.com/lf-edge/eden/pkg/controller/emetric"
-	"github.com/lf-edge/eden/pkg/controller/loaders"
-	"github.com/lf-edge/eden/pkg/controller/types"
-	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/utils"
-	uuid "github.com/satori/go.uuid"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -23,6 +10,21 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lf-edge/adam/pkg/server"
+	"github.com/lf-edge/adam/pkg/x509"
+	"github.com/lf-edge/eden/pkg/controller/cachers"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
+	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/emetric"
+	"github.com/lf-edge/eden/pkg/controller/erequest"
+	"github.com/lf-edge/eden/pkg/controller/loaders"
+	"github.com/lf-edge/eden/pkg/controller/types"
+	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/utils"
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type Ctx struct {
@@ -70,24 +72,54 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 			if err != nil {
 				log.Fatalf("Cannot parse adam redis url: %s", err)
 			}
-			loader = loaders.RedisLoader(addr, password, databaseID, adam.getLogsRedisStream, adam.getInfoRedisStream, adam.getMetricsRedisStream)
+			streamGetters := types.StreamGetters{
+				StreamLogs:    adam.getLogsRedisStream,
+				StreamInfo:    adam.getInfoRedisStream,
+				StreamMetrics: adam.getMetricsRedisStream,
+				StreamRequest: adam.getRequestRedisStream,
+			}
+			loader = loaders.RedisLoader(addr, password, databaseID, streamGetters)
 		} else {
-			loader = loaders.RemoteLoader(adam.getHTTPClient, adam.getLogsUrl, adam.getInfoUrl, adam.getMetricsUrl)
+			urlGetters := types.UrlGetters{
+				UrlLogs:    adam.getLogsUrl,
+				UrlInfo:    adam.getInfoUrl,
+				UrlMetrics: adam.getMetricsUrl,
+				UrlRequest: adam.getRequestUrl,
+			}
+			loader = loaders.RemoteLoader(adam.getHTTPClient, urlGetters)
 		}
 	} else {
 		log.Debug("will use local adam loader")
-		loader = loaders.FileLoader(adam.getLogsDir, adam.getInfoDir, adam.getMetricsDir)
+		dirGetters := types.DirGetters{
+			LogsGetter:    adam.getLogsDir,
+			InfoGetter:    adam.getInfoDir,
+			MetricsGetter: adam.getMetricsDir,
+			RequestGetter: adam.getRequestDir,
+		}
+		loader = loaders.FileLoader(dirGetters)
 	}
 	if adam.AdamCaching {
-		var cache cachers.Cacher
+		var cache cachers.CacheProcessor
 		if adam.AdamCachingRedis {
 			addr, password, databaseID, err := parseRedisUrl(adam.AdamRedisUrlEden)
 			if err != nil {
 				log.Fatalf("Cannot parse adam redis url: %s", err)
 			}
-			cache = cachers.RedisCache(addr, password, databaseID, adam.getLogsRedisStreamCache, adam.getInfoRedisStreamCache, adam.getMetricsRedisStreamCache)
+			streamGetters := types.StreamGetters{
+				StreamLogs:    adam.getLogsRedisStreamCache,
+				StreamInfo:    adam.getInfoRedisStreamCache,
+				StreamMetrics: adam.getMetricsRedisStreamCache,
+				StreamRequest: adam.getRequestRedisStreamCache,
+			}
+			cache = cachers.RedisCache(addr, password, databaseID, streamGetters)
 		} else {
-			cache = cachers.FileCache(adam.getLogsDirCache, adam.getInfoDirCache, adam.getMetricsDirCache)
+			dirGetters := types.DirGetters{
+				LogsGetter:    adam.getLogsDirCache,
+				InfoGetter:    adam.getInfoDirCache,
+				MetricsGetter: adam.getMetricsDirCache,
+				RequestGetter: adam.getRequestDirCache,
+			}
+			cache = cachers.FileCache(dirGetters)
 		}
 		loader.SetRemoteCache(cache)
 	}
@@ -112,111 +144,6 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 //GetDir return dir
 func (adam *Ctx) GetDir() (dir string) {
 	return adam.dir
-}
-
-//getLogsRedisStream return info stream for devUUID for load from redis
-func (adam *Ctx) getLogsRedisStream(devUUID uuid.UUID) (dir string) {
-	return fmt.Sprintf("%s%s", defaults.DefaultLogsRedisPrefix, devUUID.String())
-}
-
-//getInfoRedisStream return info stream for devUUID for load from redis
-func (adam *Ctx) getInfoRedisStream(devUUID uuid.UUID) (dir string) {
-	return fmt.Sprintf("%s%s", defaults.DefaultInfoRedisPrefix, devUUID.String())
-}
-
-//getMetricsRedisStream return metrics stream for devUUID for load from redis
-func (adam *Ctx) getMetricsRedisStream(devUUID uuid.UUID) (dir string) {
-	return fmt.Sprintf("%s%s", defaults.DefaultMetricsRedisPrefix, devUUID.String())
-}
-
-//getLogsRedisStreamCache return logs stream for devUUID for caching in redis
-func (adam *Ctx) getLogsRedisStreamCache(devUUID uuid.UUID) (dir string) {
-	if adam.AdamCachingPrefix == "" {
-		return adam.getLogsRedisStream(devUUID)
-	}
-	return fmt.Sprintf("LOGS_EVE_%s_%s", adam.AdamCachingPrefix, devUUID.String())
-}
-
-//getInfoRedisStreamCache return info stream for devUUID for caching in redis
-func (adam *Ctx) getInfoRedisStreamCache(devUUID uuid.UUID) (dir string) {
-	if adam.AdamCachingPrefix == "" {
-		return adam.getInfoRedisStream(devUUID)
-	}
-	return fmt.Sprintf("INFO_EVE_%s_%s", adam.AdamCachingPrefix, devUUID.String())
-}
-
-//getMetricsRedisStreamCache return metrics stream for devUUID for caching in redis
-func (adam *Ctx) getMetricsRedisStreamCache(devUUID uuid.UUID) (dir string) {
-	if adam.AdamCachingPrefix == "" {
-		return adam.getMetricsRedisStream(devUUID)
-	}
-	return fmt.Sprintf("METRICS_EVE_%s_%s", adam.AdamCachingPrefix, devUUID.String())
-}
-
-//getRedisStreamCache return logs stream for devUUID for caching in redis
-func (adam *Ctx) getLogsDirCache(devUUID uuid.UUID) (dir string) {
-	if adam.AdamCachingPrefix == "" {
-		return adam.getLogsDir(devUUID)
-	}
-	return path.Join(adam.dir, adam.AdamCachingPrefix, devUUID.String(), "logs")
-}
-
-//getInfoDirCache return info directory for devUUID for caching
-func (adam *Ctx) getInfoDirCache(devUUID uuid.UUID) (dir string) {
-	if adam.AdamCachingPrefix == "" {
-		return adam.getInfoDir(devUUID)
-	}
-	return path.Join(adam.dir, adam.AdamCachingPrefix, devUUID.String(), "info")
-}
-
-//getMetricsDirCache return metrics directory for devUUID for caching
-func (adam *Ctx) getMetricsDirCache(devUUID uuid.UUID) (dir string) {
-	if adam.AdamCachingPrefix == "" {
-		return adam.getMetricsDir(devUUID)
-	}
-	return path.Join(adam.dir, adam.AdamCachingPrefix, devUUID.String(), "metrics")
-}
-
-//getLogsDir return logs directory for devUUID
-func (adam *Ctx) getLogsDir(devUUID uuid.UUID) (dir string) {
-	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "logs")
-}
-
-//getInfoDir return info directory for devUUID
-func (adam *Ctx) getInfoDir(devUUID uuid.UUID) (dir string) {
-	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "info")
-}
-
-//getMetricsDir return metrics directory for devUUID
-func (adam *Ctx) getMetricsDir(devUUID uuid.UUID) (dir string) {
-	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "metrics")
-}
-
-//getLogsUrl return logs url for devUUID
-func (adam *Ctx) getLogsUrl(devUUID uuid.UUID) string {
-	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "logs"))
-	if err != nil {
-		log.Fatalf("ResolveURL: %s", err)
-	}
-	return resUrl
-}
-
-//getLogsUrl return info url for devUUID
-func (adam *Ctx) getInfoUrl(devUUID uuid.UUID) string {
-	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "info"))
-	if err != nil {
-		log.Fatalf("ResolveURL: %s", err)
-	}
-	return resUrl
-}
-
-//getMetricsUrl return metrics url for devUUID
-func (adam *Ctx) getMetricsUrl(devUUID uuid.UUID) string {
-	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "metrics"))
-	if err != nil {
-		log.Fatalf("ResolveURL: %s", err)
-	}
-	return resUrl
 }
 
 //Register device in adam
@@ -260,6 +187,13 @@ func (adam *Ctx) ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error) {
 //ConfigGet get config for devID
 func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 	return adam.getObj(path.Join("/admin/device", devUUID.String(), "config"))
+}
+
+//RequestLastCallback check request by pattern from existence files with callback
+func (adam *Ctx) RequestLastCallback(devUUID uuid.UUID, q map[string]string, handler erequest.HandlerFunc) (err error) {
+	var loader = adam.getLoader()
+	loader.SetUUID(devUUID)
+	return erequest.RequestLast(loader, q, handler)
 }
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files

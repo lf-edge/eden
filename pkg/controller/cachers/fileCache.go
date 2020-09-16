@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
 	"github.com/lf-edge/eve/api/go/metrics"
@@ -14,44 +15,38 @@ import (
 	"path/filepath"
 )
 
-type getDir = func(devUUID uuid.UUID) (dir string)
-
 type fileCache struct {
-	dirLogs    getDir
-	dirInfo    getDir
-	dirMetrics getDir
+	dirGetters types.DirGetters
 }
 
-func FileCache(dirLogs getDir, dirInfo getDir, dirMetrics getDir) *fileCache {
+func FileCache(dirGetters types.DirGetters) *fileCache {
 	return &fileCache{
-		dirLogs:    dirLogs,
-		dirInfo:    dirInfo,
-		dirMetrics: dirMetrics,
+		dirGetters: dirGetters,
 	}
 }
 
-func (cacher *fileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess int, data []byte) error {
+func (cacher *fileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) error {
 	var pathToCheck string
 	var itemTimeStamp *timestamp.Timestamp
 	var buf bytes.Buffer
 	buf.Write(data)
 	switch typeToProcess {
-	case int(LogsType):
-		pathToCheck = cacher.dirLogs(devUUID)
+	case types.LogsType:
+		pathToCheck = cacher.dirGetters.LogsGetter(devUUID)
 		var emp logs.LogBundle
 		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.Timestamp
-	case int(InfoType):
-		pathToCheck = cacher.dirInfo(devUUID)
+	case types.InfoType:
+		pathToCheck = cacher.dirGetters.InfoGetter(devUUID)
 		var emp info.ZInfoMsg
 		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.AtTimeStamp
-	case int(MetricsType):
-		pathToCheck = cacher.dirMetrics(devUUID)
+	case types.MetricsType:
+		pathToCheck = cacher.dirGetters.MetricsGetter(devUUID)
 		var emp metrics.ZMetricMsg
 		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
 			return err

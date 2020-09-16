@@ -202,13 +202,13 @@ func logProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFun
 //LogWatch monitors the change of Log files in the 'filepath' directory
 //according to the 'query' reqexps and processing using the 'handler' function.
 func LogWatch(loader loaders.Loader, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
-	return loader.ProcessStream(logProcess(query, handler), loaders.LogsType, timeoutSeconds)
+	return loader.ProcessStream(logProcess(query, handler), types.LogsType, timeoutSeconds)
 }
 
 //LogLast function process Log files in the 'filepath' directory
 //according to the 'query' reqexps and return last founded item
 func LogLast(loader loaders.Loader, query map[string]string, handler HandlerFunc) error {
-	return loader.ProcessExisting(logProcess(query, handler), loaders.LogsType)
+	return loader.ProcessExisting(logProcess(query, handler), types.LogsType)
 }
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files

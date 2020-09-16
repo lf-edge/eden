@@ -4,6 +4,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
+	"github.com/lf-edge/eden/pkg/controller/erequest"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -21,6 +22,7 @@ type Controller interface {
 	InfoLastCallback(devUUID uuid.UUID, q map[string]string, handler einfo.HandlerFunc) (err error)
 	MetricChecker(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc, mode emetric.MetricCheckerMode, timeout time.Duration) (err error)
 	MetricLastCallback(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc) (err error)
+	RequestLastCallback(devUUID uuid.UUID, q map[string]string, handler erequest.HandlerFunc) (err error)
 	DeviceList(types.DeviceStateFilter) (out []string, err error)
 	DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err error)
 	DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, err error)
