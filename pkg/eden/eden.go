@@ -101,6 +101,7 @@ func StatusRedis() (status string, err error) {
 
 //StartAdamAndGetRootCert function runs adam in docker and obtain its certificate
 func StartAdamAndGetRootCert(adamIP string, adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, certsDomain string, certsEVEIP string) (rootCert []byte, err error) {
+	defer StopAdam(false) // stop Adam after bootstrap
 	if err = StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL, "--auto-cert=true", fmt.Sprintf("--cert-cn=%s", certsDomain), fmt.Sprintf("--cert-hosts=%s,%s,127.0.0.1,%s", certsDomain, certsEVEIP, adamIP)); err != nil {
 		return nil, err
 	}
