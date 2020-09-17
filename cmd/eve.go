@@ -212,7 +212,9 @@ var statusEveCmd = &cobra.Command{
 		if !eveRemote {
 			eveStatusQEMU()
 		}
-		eveRequestsAdam()
+		if err == nil && statusAdam != "container doesn't exist" {
+			eveRequestsAdam()
+		}
 	},
 }
 
