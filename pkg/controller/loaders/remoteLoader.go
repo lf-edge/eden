@@ -31,6 +31,7 @@ type remoteLoader struct {
 	lastTimesamp *timestamp.Timestamp
 	firstLoad    bool
 	devUUID      uuid.UUID
+	appUUID      uuid.UUID
 	urlGetters   types.UrlGetters
 	getClient    getClient
 	client       *http.Client
@@ -62,6 +63,7 @@ func (loader *remoteLoader) Clone() Loader {
 		firstLoad:    true,
 		lastTimesamp: nil,
 		devUUID:      loader.devUUID,
+		appUUID:      loader.appUUID,
 		client:       loader.getClient(),
 		cache:        loader.cache,
 	}
@@ -77,6 +79,8 @@ func (loader *remoteLoader) getUrl(typeToProcess types.LoaderObjectType) string 
 		return loader.urlGetters.UrlMetrics(loader.devUUID)
 	case types.RequestType:
 		return loader.urlGetters.UrlRequest(loader.devUUID)
+	case types.AppsType:
+		return loader.urlGetters.UrlApps(loader.devUUID, loader.appUUID)
 	default:
 		return ""
 	}
@@ -85,6 +89,11 @@ func (loader *remoteLoader) getUrl(typeToProcess types.LoaderObjectType) string 
 //SetUUID set device UUID
 func (loader *remoteLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
+}
+
+//SetUUID set app UUID
+func (loader *remoteLoader) SetAppUUID(appUUID uuid.UUID) {
+	loader.appUUID = appUUID
 }
 
 func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, tocontinue bool, err error) {

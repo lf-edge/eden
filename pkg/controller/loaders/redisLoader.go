@@ -22,6 +22,7 @@ type redisLoader struct {
 	client        *redis.Client
 	cache         cachers.CacheProcessor
 	devUUID       uuid.UUID
+	appUUID       uuid.UUID
 }
 
 //RedisLoader return loader from redis
@@ -50,6 +51,7 @@ func (loader *redisLoader) Clone() Loader {
 		lastID:        "",
 		cache:         loader.cache,
 		devUUID:       loader.devUUID,
+		appUUID:       loader.appUUID,
 	}
 }
 
@@ -63,6 +65,8 @@ func (loader *redisLoader) getStream(typeToProcess types.LoaderObjectType) strin
 		return loader.streamGetters.StreamMetrics(loader.devUUID)
 	case types.RequestType:
 		return loader.streamGetters.StreamRequest(loader.devUUID)
+	case types.AppsType:
+		return loader.streamGetters.StreamApps(loader.devUUID, loader.appUUID)
 	default:
 		return ""
 	}
@@ -71,6 +75,11 @@ func (loader *redisLoader) getStream(typeToProcess types.LoaderObjectType) strin
 //SetUUID set device UUID
 func (loader *redisLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
+}
+
+//SetUUID set app UUID
+func (loader *redisLoader) SetAppUUID(appUUID uuid.UUID) {
+	loader.appUUID = appUUID
 }
 
 func (loader *redisLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {

@@ -15,6 +15,11 @@ func (adam *Ctx) getLogsRedisStream(devUUID uuid.UUID) (dir string) {
 	return fmt.Sprintf("%s%s", defaults.DefaultLogsRedisPrefix, devUUID.String())
 }
 
+//getAppsLogsRedisStream return app logs stream for devUUID for load from redis
+func (adam *Ctx) getAppsLogsRedisStream(devUUID uuid.UUID, appUUID uuid.UUID) (dir string) {
+	return fmt.Sprintf("%s%s_%s", defaults.DefaultAppsLogsRedisPrefix, devUUID.String(), appUUID.String())
+}
+
 //getInfoRedisStream return info stream for devUUID for load from redis
 func (adam *Ctx) getInfoRedisStream(devUUID uuid.UUID) (dir string) {
 	return fmt.Sprintf("%s%s", defaults.DefaultInfoRedisPrefix, devUUID.String())

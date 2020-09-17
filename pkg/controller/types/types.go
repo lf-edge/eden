@@ -55,15 +55,20 @@ func (pr *PrintResult) Print() {
 
 type getDir = func(devUUID uuid.UUID) (dir string)
 
+type getDirApps = func(devUUID uuid.UUID, appUUID uuid.UUID) (dir string)
+
 // DirGetters provides information about directories to obtain objects from for loaders
 type DirGetters struct {
 	LogsGetter    getDir
 	InfoGetter    getDir
 	MetricsGetter getDir
 	RequestGetter getDir
+	AppsGetter    getDirApps
 }
 
 type getStream = func(devUUID uuid.UUID) (stream string)
+
+type getStreamApps = func(devUUID uuid.UUID, appUUID uuid.UUID) (stream string)
 
 // StreamGetters provides information about redis streams to obtain objects from for loaders
 type StreamGetters struct {
@@ -71,9 +76,12 @@ type StreamGetters struct {
 	StreamInfo    getStream
 	StreamMetrics getStream
 	StreamRequest getStream
+	StreamApps    getStreamApps
 }
 
 type getUrl = func(devUUID uuid.UUID) (url string)
+
+type getUrlApps = func(devUUID uuid.UUID, appUUID uuid.UUID) (url string)
 
 // UrlGetters provides information about urls to obtain objects from for loaders
 type UrlGetters struct {
@@ -81,6 +89,7 @@ type UrlGetters struct {
 	UrlInfo    getUrl
 	UrlMetrics getUrl
 	UrlRequest getUrl
+	UrlApps    getUrlApps
 }
 
 //LoaderObjectType for determinate object for loaders
@@ -97,3 +106,6 @@ var MetricsType LoaderObjectType = 3
 
 //RequestType for observe requests
 var RequestType LoaderObjectType = 4
+
+//RequestType for observe logs of apps
+var AppsType LoaderObjectType = 5

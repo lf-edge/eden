@@ -9,6 +9,7 @@ import (
 
 //Loader interface fo controller
 type Loader interface {
+	SetAppUUID(devUUID uuid.UUID)
 	SetUUID(devUUID uuid.UUID)
 	ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) error
 	ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error

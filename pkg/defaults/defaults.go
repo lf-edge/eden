@@ -44,7 +44,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "0.0.0-snapshot-master-d7206d73" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.59"
+	DefaultAdamTag              = "0.0.61"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultLinuxKitVersion      = "v0.7"
@@ -89,6 +89,7 @@ const (
 	DefaultLogLevelToPrint       = log.InfoLevel
 	DefaultX509Country           = "RU"
 	DefaultX509Company           = "Itmo"
+	DefaultAppsLogsRedisPrefix   = "APPS_EVE_"
 	DefaultLogsRedisPrefix       = "LOGS_EVE_"
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
 	DefaultMetricsRedisPrefix    = "METRICS_EVE_"

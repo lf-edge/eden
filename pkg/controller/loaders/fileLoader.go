@@ -14,6 +14,7 @@ import (
 )
 
 type fileLoader struct {
+	appUUID uuid.UUID
 	devUUID uuid.UUID
 	getters types.DirGetters
 	cache   cachers.CacheProcessor
@@ -35,6 +36,7 @@ func (loader *fileLoader) Clone() Loader {
 	return &fileLoader{
 		getters: loader.getters,
 		devUUID: loader.devUUID,
+		appUUID: loader.appUUID,
 		cache:   loader.cache,
 	}
 }
@@ -49,6 +51,8 @@ func (loader *fileLoader) getFilePath(typeToProcess types.LoaderObjectType) stri
 		return loader.getters.MetricsGetter(loader.devUUID)
 	case types.RequestType:
 		return loader.getters.RequestGetter(loader.devUUID)
+	case types.AppsType:
+		return loader.getters.AppsGetter(loader.devUUID, loader.appUUID)
 	default:
 		return ""
 	}
@@ -57,6 +61,11 @@ func (loader *fileLoader) getFilePath(typeToProcess types.LoaderObjectType) stri
 //SetUUID set device UUID
 func (loader *fileLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
+}
+
+//SetUUID set app UUID
+func (loader *fileLoader) SetAppUUID(appUUID uuid.UUID) {
+	loader.appUUID = appUUID
 }
 
 //ProcessExisting for observe existing files
