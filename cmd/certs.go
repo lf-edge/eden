@@ -1,18 +1,21 @@
 package cmd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"net"
+	"os"
+	"path/filepath"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"math/big"
-	"os"
-	"path/filepath"
 )
 
 var (
@@ -54,17 +57,44 @@ var certsCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
+		if _, err := os.Stat(utils.ResolveAbsPath(defaults.DefaultCertsDist)); os.IsNotExist(err) {
+			if err = os.MkdirAll(utils.ResolveAbsPath(defaults.DefaultCertsDist), 0755); err != nil {
+				log.Fatal(err)
+			}
+		}
 		log.Debug("generating CA")
+		caCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "root-certificate.pem")
+		caKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "root-certificate-key.pem")
 		rootCert, rootKey := utils.GenCARoot()
-		log.Debug("start Adam and get root-certificate.pem")
-		rootCertObtained, err := eden.StartAdamAndGetRootCert(certsIP, adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL, certsDomain, certsEVEIP)
-		if err != nil {
+		cert, err := tls.LoadX509KeyPair(caCertPath, caKeyPath)
+		if err == nil {
+			rootCert = cert.Leaf
+			key, err := ioutil.ReadFile(caKeyPath)
+			if err != nil {
+				log.Fatal("cannot load key from %s: %s", caKeyPath, err)
+			}
+			rootKey, err = x509.ParsePKCS1PrivateKey(key)
+			if err != nil {
+				log.Fatal("cannot parse key from %s: %s", caKeyPath, err)
+			}
+		}
+		if err := utils.WriteToFiles(rootCert, rootKey, caCertPath, caKeyPath); err != nil {
 			log.Fatal(err)
 		}
-		if err = ioutil.WriteFile(filepath.Join(certsDir, "root-certificate.pem"), rootCertObtained, 0666); err != nil {
-			log.Fatal(err)
+		serverCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server.pem")
+		serverKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server-key.pem")
+		if _, err = tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
+			log.Debug("generating Adam cert and key")
+			ips := []net.IP{net.ParseIP(certsIP), net.ParseIP(certsEVEIP), net.ParseIP("127.0.0.1")}
+			ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), ips, []string{certsDomain}, certsDomain)
+			if err := utils.WriteToFiles(ServerCert, ServerKey, serverCertPath, serverKeyPath); err != nil {
+				log.Fatal(err)
+			}
 		}
 		log.Debug("generating EVE cert and key")
+		if err = utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
+			log.Fatal(err)
+		}
 		ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, certsUUID)
 		log.Debug("saving files")
 		if err := utils.WriteToFiles(ClientCert, ClientKey, filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(certsDir, "onboard.key.pem")); err != nil {
