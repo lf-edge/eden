@@ -244,7 +244,7 @@ var consoleEveCmd = &cobra.Command{
 }
 
 var sshEveCmd = &cobra.Command{
-	Use:   "ssh",
+	Use:   "ssh [command]",
 	Short: "ssh into eve",
 	Long:  `SSH into eve.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -313,8 +313,12 @@ var sshEveCmd = &cobra.Command{
 			} else {
 				eveHost = eveRemoteAddr
 			}
+			commandToRun := ""
+			if len(args) > 0 {
+				commandToRun = strings.Join(args, " ")
+			}
 			log.Infof("Try to ssh %s:%d with key %s", eveHost, eveSSHPort, eveSSHKey)
-			if err := utils.RunCommandForeground("ssh", strings.Fields(fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s", eveSSHKey, eveSSHPort, eveHost))...); err != nil {
+			if err := utils.RunCommandForeground("ssh", strings.Fields(fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveHost, commandToRun))...); err != nil {
 				log.Fatalf("ssh error: %s", err)
 			}
 		} else {
