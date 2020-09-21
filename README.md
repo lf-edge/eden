@@ -58,6 +58,12 @@ The main way to get a shell, especially once the device is fully registered to i
 eden eve ssh
 ```
 
+You can run a certain command remotely by passing it as argument:
+
+```
+eden eve ssh "ls -la"
+```
+
 If you need access to the actual device console, run:
 
 ```
