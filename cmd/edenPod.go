@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/dustin/go-humanize"
+	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
@@ -18,6 +19,7 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -42,6 +44,8 @@ var (
 
 	outputTail   uint
 	outputFields []string
+
+	logAppsFormat eapps.LogFormat
 )
 
 var podCmd = &cobra.Command{
@@ -501,6 +505,16 @@ var podLogsCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
+		switch logFormatName {
+		case "json":
+			logFormat = elog.LogJson
+			logAppsFormat = eapps.LogJson
+		case "lines":
+			logFormat = elog.LogLines
+			logAppsFormat = eapps.LogLines
+		default:
+			return fmt.Errorf("unknown log format: %s", logFormatName)
+		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -580,7 +594,25 @@ var podLogsCmd = &cobra.Command{
 						if err = ctrl.MetricChecker(dev.GetID(), metricsQ, handleMetric, metricType, 0); err != nil {
 							log.Fatalf("MetricChecker: %s", err)
 						}
+					case "app":
+						//block for process app logs
+						fmt.Printf("App logs list for app %s:\n", app.Uuidandversion.Uuid)
 
+						//process only existing elements
+						appLogType := eapps.LogExist
+
+						if outputTail > 0 {
+							//process only outputTail elements from end
+							appLogType = eapps.LogTail(outputTail)
+						}
+
+						appID, err := uuid.FromString(app.Uuidandversion.Uuid)
+						if err != nil {
+							log.Fatal(err)
+						}
+						if err = ctrl.LogAppsChecker(dev.GetID(), appID, nil, eapps.HandleFactory(logAppsFormat, false), appLogType, 0); err != nil {
+							log.Fatalf("MetricChecker: %s", err)
+						}
 					}
 				}
 				return
@@ -612,5 +644,6 @@ func podInit() {
 	podCmd.AddCommand(podDeleteCmd)
 	podCmd.AddCommand(podLogsCmd)
 	podLogsCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
-	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric"}, "Show defined elements")
+	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "app"}, "Show defined elements")
+	podLogsCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
 }

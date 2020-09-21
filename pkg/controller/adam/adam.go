@@ -14,6 +14,7 @@ import (
 	"github.com/lf-edge/adam/pkg/server"
 	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
+	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
@@ -77,6 +78,7 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 				StreamInfo:    adam.getInfoRedisStream,
 				StreamMetrics: adam.getMetricsRedisStream,
 				StreamRequest: adam.getRequestRedisStream,
+				StreamApps:    adam.getAppsLogsRedisStream,
 			}
 			loader = loaders.RedisLoader(addr, password, databaseID, streamGetters)
 		} else {
@@ -194,6 +196,19 @@ func (adam *Ctx) RequestLastCallback(devUUID uuid.UUID, q map[string]string, han
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return erequest.RequestLast(loader, q, handler)
+}
+
+//LogChecker check app logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
+func (adam *Ctx) LogAppsChecker(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc, mode eapps.LogCheckerMode, timeout time.Duration) (err error) {
+	return eapps.LogChecker(adam.getLoader(), devUUID, appUUID, q, handler, mode, timeout)
+}
+
+//LogLastCallback check app logs by pattern from existence files with callback
+func (adam *Ctx) LogAppsLastCallback(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc) (err error) {
+	var loader = adam.getLoader()
+	loader.SetUUID(devUUID)
+	loader.SetAppUUID(appUUID)
+	return eapps.LogLast(loader, q, handler)
 }
 
 //LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files

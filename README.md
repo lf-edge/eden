@@ -157,6 +157,22 @@ List running applications and their ip/ports
 eden pod ps
 ```
 
+### View Logs of Applications
+
+To see logs of app you should get name (`app_name` in the example bellow) of it and run
+
+```
+eden pod logs app_name
+```
+
+You can choose information to display by providing `--fields` flag from the list (or define multiple fields separated by the comma):
+ * `log` - to view log objects
+ * `info` - to view info objects
+ * `metric` - to view metric objects
+ * `app` - to view console output
+ 
+ You can show only N last lines by setting of `--tail` flag.
+
 ## Different EVE Builds
 
 eden runs EVE using a `live.img` file with an embedded config partition, which eve configures. In a normal
