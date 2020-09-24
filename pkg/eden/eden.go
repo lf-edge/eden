@@ -2,12 +2,8 @@ package eden
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -18,11 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/eserver/api"
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/nerd2/gexto"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 //StartRedis function run redis in docker with mounted redisPath:/data
@@ -38,7 +36,7 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 	}
 	if redisForce {
 		_ = utils.StopContainer(defaults.DefaultRedisContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+		if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
 			return fmt.Errorf("error in create redis container: %s", err)
 		}
 	} else {
@@ -47,7 +45,7 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 			return fmt.Errorf("error in get state of redis container: %s", err)
 		}
 		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand); err != nil {
+			if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
 				return fmt.Errorf("error in create redis container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
@@ -99,33 +97,23 @@ func StatusRedis() (status string, err error) {
 	return state, nil
 }
 
-//StartAdamAndGetRootCert function runs adam in docker and obtain its certificate
-func StartAdamAndGetRootCert(adamIP string, adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, certsDomain string, certsEVEIP string) (rootCert []byte, err error) {
-	if err = StartAdam(adamPort, adamPath, adamForce, adamTag, adamRemoteRedisURL, "--auto-cert=true", fmt.Sprintf("--cert-cn=%s", certsDomain), fmt.Sprintf("--cert-hosts=%s,%s,127.0.0.1,%s", certsDomain, certsEVEIP, adamIP)); err != nil {
-		return nil, err
-	}
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}}
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s:%d", adamIP, adamPort), nil)
-	if err != nil {
-		log.Fatalf("unable to create new http request: %v", err)
-	}
-	resp, err := utils.RepeatableAttempt(client, req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		for _, cert := range resp.TLS.PeerCertificates {
-			return x509.PemEncodeCert(cert.Raw), nil
-		}
-	}
-	return nil, fmt.Errorf("no cetrtificate found")
-}
-
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
 func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, opts ...string) (err error) {
+	serverCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server.pem")
+	serverKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server-key.pem")
+	cert, err := ioutil.ReadFile(serverCertPath)
+	if err != nil {
+		return fmt.Errorf("cannot load %s: %s", serverCertPath, err)
+	}
+	key, err := ioutil.ReadFile(serverKeyPath)
+	if err != nil {
+		return fmt.Errorf("cannot load %s: %s", serverKeyPath, err)
+	}
+	envs := []string{
+		fmt.Sprintf("SERVER_CERT=%s", cert),
+		fmt.Sprintf("SERVER_KEY=%s", key),
+	}
 	portMap := map[string]string{"8080": strconv.Itoa(adamPort)}
 	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
 	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
@@ -141,7 +129,7 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	}
 	if adamForce {
 		_ = utils.StopContainer(defaults.DefaultAdamContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
+		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
 			return fmt.Errorf("error in create adam container: %s", err)
 		}
 	} else {
@@ -150,7 +138,7 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 			return fmt.Errorf("error in get state of adam container: %s", err)
 		}
 		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand); err != nil {
+			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
 				return fmt.Errorf("error in create adam container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
@@ -218,7 +206,7 @@ func StartRegistry(port int, tag, registryPath string, opts ...string) (err erro
 		return fmt.Errorf("error in get state of %s container: %s", serviceName, err)
 	}
 	if state == "" {
-		if err := utils.CreateAndRunContainer(containerName, ref+":"+tag, portMap, volumeMap, cmd); err != nil {
+		if err := utils.CreateAndRunContainer(containerName, ref+":"+tag, portMap, volumeMap, cmd, nil); err != nil {
 			return fmt.Errorf("error in create %s container: %s", serviceName, err)
 		}
 	} else if !strings.Contains(state, "running") {
@@ -285,7 +273,7 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 	}
 	if eserverForce {
 		_ = utils.StopContainer(defaults.DefaultEServerContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
+		if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand, nil); err != nil {
 			return fmt.Errorf("error in create eserver container: %s", err)
 		}
 	} else {
@@ -294,7 +282,7 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 			return fmt.Errorf("error in get state of eserver container: %s", err)
 		}
 		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand); err != nil {
+			if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand, nil); err != nil {
 				return fmt.Errorf("error in create eserver container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {

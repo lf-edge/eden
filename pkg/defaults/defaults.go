@@ -44,7 +44,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "0.0.0-snapshot-master-d7206d73" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.61"
+	DefaultAdamTag              = "0.0.63"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultLinuxKitVersion      = "v0.7"

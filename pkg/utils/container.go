@@ -73,7 +73,7 @@ func RemoveGeneratedVolumeOfContainer(containerName string) error {
 }
 
 //CreateAndRunContainer run container with defined name from image with port and volume mapping and defined command
-func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string, volumeMap map[string]string, command []string) error {
+func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string, volumeMap map[string]string, command []string, envs []string) error {
 	log.Debugf("Try to start container from image %s with command %s", imageName, command)
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -137,6 +137,7 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 		Cmd:          command,
 		ExposedPorts: portExposed,
 		User:         user,
+		Env:          envs,
 	}, hostConfig, nil, containerName)
 	if err != nil {
 		return fmt.Errorf("ContainerCreate: %s", err)
