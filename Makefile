@@ -5,7 +5,7 @@ TESTS ?= $(shell find tests/ -maxdepth 1 -mindepth 1 -type d  -exec basename {} 
 # ESERVER_TAG is the tag for eserver image to build
 ESERVER_TAG ?= "lfedge/eden-http-server"
 # ESERVER_VERSION is the version of eserver image to build
-ESERVER_VERSION ?= "1.1"
+ESERVER_VERSION ?= "1.2"
 # ESERVER_DIR is the directory with eserver Dockerfile to build
 ESERVER_DIR=$(CURDIR)/eserver
 # check if eserver image already exists in local docker and get its IMAGE_ID
