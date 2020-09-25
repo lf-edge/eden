@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -66,16 +65,15 @@ var certsCmd = &cobra.Command{
 		caCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "root-certificate.pem")
 		caKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "root-certificate-key.pem")
 		rootCert, rootKey := utils.GenCARoot()
-		cert, err := tls.LoadX509KeyPair(caCertPath, caKeyPath)
-		if err == nil {
-			rootCert = cert.Leaf
-			key, err := ioutil.ReadFile(caKeyPath)
+		if _, err := tls.LoadX509KeyPair(caCertPath, caKeyPath); err == nil { //existing certs looks ok
+			log.Info("Use existing certs")
+			rootCert, err = utils.ParseCertificate(caCertPath)
 			if err != nil {
-				log.Fatal("cannot load key from %s: %s", caKeyPath, err)
+				log.Fatalf("cannot parse certificate from %s: %s", caCertPath, err)
 			}
-			rootKey, err = x509.ParsePKCS1PrivateKey(key)
+			rootKey, err = utils.ParsePrivateKey(caKeyPath)
 			if err != nil {
-				log.Fatal("cannot parse key from %s: %s", caKeyPath, err)
+				log.Fatalf("cannot parse key from %s: %s", caKeyPath, err)
 			}
 		}
 		if err := utils.WriteToFiles(rootCert, rootKey, caCertPath, caKeyPath); err != nil {
@@ -83,7 +81,7 @@ var certsCmd = &cobra.Command{
 		}
 		serverCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server.pem")
 		serverKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server-key.pem")
-		if _, err = tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
+		if _, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
 			log.Debug("generating Adam cert and key")
 			ips := []net.IP{net.ParseIP(certsIP), net.ParseIP(certsEVEIP), net.ParseIP("127.0.0.1")}
 			ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), ips, []string{certsDomain}, certsDomain)
@@ -92,7 +90,7 @@ var certsCmd = &cobra.Command{
 			}
 		}
 		log.Debug("generating EVE cert and key")
-		if err = utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
+		if err := utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
 			log.Fatal(err)
 		}
 		ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, certsUUID)

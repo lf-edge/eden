@@ -487,8 +487,6 @@ func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID, eveUUID s
 	}
 	eveStatusFile := filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))
 	if _, err = os.Stat(eveStatusFile); !os.IsNotExist(err) {
-		// we need to delete information about EVE from adam
-		_ = utils.StartContainer(defaults.DefaultAdamContainerName)
 		ctrl, err := controller.CloudPrepare()
 		if err != nil {
 			return fmt.Errorf("error in CloudPrepare: %s", err)
