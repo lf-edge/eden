@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
-	"github.com/lf-edge/eden/eserver/api"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,6 +13,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/lf-edge/eden/eserver/api"
 )
 
 //EServerManager for process files
@@ -62,11 +63,14 @@ func downloadFile(filePath, url string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if _, err = io.Copy(out, resp.Body); err != nil {
-		out.Close()
+	hash := sha256.New()
+	_, err = io.Copy(hash, io.TeeReader(resp.Body, out))
+	if err != nil {
 		return err
 	}
-	fmt.Printf("\n")
+	if err = ioutil.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
+		return err
+	}
 	if err = os.Rename(filePath+".tmp", filePath); err != nil {
 		return err
 	}
@@ -113,11 +117,11 @@ func (mgr *EServerManager) AddFileFromMultipart(part *multipart.Part) *api.FileI
 		result.Error = err.Error()
 		return result
 	}
-	if err = os.Rename(filePathTemp, filePath); err != nil {
+	if err = ioutil.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
 		result.Error = err.Error()
 		return result
 	}
-	if err = ioutil.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
+	if err = os.Rename(filePathTemp, filePath); err != nil {
 		result.Error = err.Error()
 		return result
 	}
