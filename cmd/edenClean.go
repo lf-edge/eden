@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
 )
 
 var (
@@ -30,6 +31,14 @@ var cleanCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			adamTag = viper.GetString("adam.tag")
+			adamPort = viper.GetInt("adam.port")
+			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
+			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
+			adamRemoteRedis = viper.GetBool("adam.remote.redis")
+			redisTag = viper.GetString("redis.tag")
+			redisPort = viper.GetInt("redis.port")
+			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
@@ -53,6 +62,17 @@ var cleanCmd = &cobra.Command{
 		}
 		if currentContext {
 			log.Info("Cleanup current context")
+			// we need to delete information about EVE from adam
+			if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
+				log.Errorf("cannot start redis: %s", err)
+			} else {
+				log.Infof("Redis is running and accessible on port %d", redisPort)
+			}
+			if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+				log.Errorf("cannot start adam: %s", err)
+			} else {
+				log.Infof("Adam is running and accessible on port %d", adamPort)
+			}
 			eveUUID := viper.GetString("eve.uuid")
 			if err := eden.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, configSaved); err != nil {
 				log.Fatalf("cannot CleanContext: %s", err)

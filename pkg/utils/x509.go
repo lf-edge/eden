@@ -11,11 +11,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
 	"time"
+
+	"github.com/lf-edge/eden/pkg/defaults"
 )
 
 func genCertECDSA(template, parent *x509.Certificate, publicKey *ecdsa.PublicKey, privateKey *rsa.PrivateKey) *x509.Certificate {
@@ -195,4 +197,32 @@ func WriteToFiles(crt *x509.Certificate, key interface{}, certFile string, keyFi
 		return err
 	}
 	return nil
+}
+
+// ParseCertificate from file
+func ParseCertificate(certFile string) (*x509.Certificate, error) {
+	cert, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read file with certificate: %s", err)
+	}
+	pemBlock, _ := pem.Decode(cert)
+	return x509.ParseCertificate(pemBlock.Bytes)
+}
+
+// ParsePrivateKey from file
+func ParsePrivateKey(keyFile string) (*rsa.PrivateKey, error) {
+	key, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read file with private key: %s", err)
+	}
+	pemBlock, _ := pem.Decode(key)
+	var parsedKey interface{}
+	if parsedKey, err = x509.ParsePKCS8PrivateKey(pemBlock.Bytes); err != nil {
+		return nil, fmt.Errorf("cannot parse private key: %s", err)
+	}
+	privateKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("cannot parse private key: wrong type")
+	}
+	return privateKey, nil
 }
