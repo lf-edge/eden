@@ -5,7 +5,6 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
-	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"path"
 	"path/filepath"
@@ -37,13 +36,9 @@ func (exp *appExpectation) checkBaseOSConfig(baseOS *config.BaseOSConfig) bool {
 
 //createBaseOSConfig creates BaseOSConfig with provided img
 func (exp *appExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOSConfig, error) {
-	id, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
 	baseOSConfig := &config.BaseOSConfig{
 		Uuidandversion: &config.UUIDandVersion{
-			Uuid:    id.String(),
+			Uuid:    img.Uuidandversion.Uuid,
 			Version: "4",
 		},
 		Drives: []*config.Drive{{
