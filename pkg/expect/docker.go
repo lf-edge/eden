@@ -30,7 +30,6 @@ func (exp *appExpectation) createImageDocker(id uuid.UUID, dsId string) *config.
 		Name:    fmt.Sprintf("%s:%s", ref.Context().RepositoryStr(), exp.appVersion),
 		Iformat: exp.imageFormatEnum(),
 		DsId:    dsId,
-		Siginfo: &config.SignatureInfo{},
 	}
 }
 

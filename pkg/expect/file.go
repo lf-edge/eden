@@ -42,7 +42,6 @@ func (exp *appExpectation) createImageFile(id uuid.UUID, dsId string) *config.Im
 		Name:      filePath,
 		Iformat:   exp.imageFormatEnum(),
 		DsId:      dsId,
-		Siginfo:   &config.SignatureInfo{},
 		SizeBytes: fileSize,
 		Sha256:    sha256,
 	}
