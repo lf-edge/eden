@@ -30,6 +30,8 @@ var (
 	dryRun   bool
 	apiV1    bool
 
+	eveRegistry string
+
 	devModel string
 
 	eveImageSizeMB int
@@ -124,6 +126,7 @@ var setupCmd = &cobra.Command{
 			certsUUID = viper.GetString("eve.uuid")
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
 			eveRepo = viper.GetString("eve.repo")
+			eveRegistry = viper.GetString("eve.registry")
 			eveTag = viper.GetString("eve.tag")
 			eveUefiTag = viper.GetString("eve.uefi-tag")
 			eveHV = viper.GetString("eve.hv")
@@ -219,7 +222,21 @@ var setupCmd = &cobra.Command{
 			}
 		} else {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveLive(certsDir, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, imageFormat, eveImageSizeMB); err != nil {
+				eveDesc := utils.EVEDescription{
+					ConfigPath:  certsDir,
+					Arch:        eveArch,
+					HV:          eveHV,
+					Registry:    eveRegistry,
+					Tag:         eveTag,
+					Format:      imageFormat,
+					ImageSizeMB: eveImageSizeMB,
+				}
+				uefiDesc := utils.UEFIDescription{
+					Registry: eveRegistry,
+					Tag:      eveUefiTag,
+					Arch:     eveArch,
+				}
+				if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Infof("download EVE done: %s", eveImageFile)
@@ -259,6 +276,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path for image drive (required)")
 	setupCmd.Flags().StringVarP(&eveDist, "eve-dist", "", "", "directory to save EVE")
 	setupCmd.Flags().StringVarP(&eveRepo, "eve-repo", "", defaults.DefaultEveRepo, "EVE repo")
+	setupCmd.Flags().StringVarP(&eveRegistry, "eve-registry", "", defaults.DefaultEveRegistry, "EVE registry")
 	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "EVE tag")
 	setupCmd.Flags().StringVarP(&eveUefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "EVE UEFI tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")

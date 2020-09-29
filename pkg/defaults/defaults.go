@@ -54,6 +54,7 @@ const (
 	DefaultRegistryContainerRef = "library/registry"
 	DefaultImageTag             = "eden-alpine"
 	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
+	DefaultEveRegistry          = "lfedge"
 	DefaultRegistry             = "docker.io"
 
 	DefaultEServerTag          = "1.2"
@@ -163,6 +164,7 @@ var (
 		"eve.log":          "eve-log",
 		"eve.firmware":     "eve-firmware",
 		"eve.repo":         "eve-repo",
+		"eve.registry":     "eve-registry",
 		"eve.tag":          "eve-tag",
 		"eve.uefi-tag":     "eve-uefi-tag",
 		"eve.hostfwd":      "eve-hostfwd",
