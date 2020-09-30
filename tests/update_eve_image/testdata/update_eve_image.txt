@@ -1,5 +1,5 @@
 # Default EVE version to update
-{{$eve_ver := "5.7.1"}}
+{{$eve_ver := "5.12.4"}}
 
 # Obtain EVE version from environment variable EVE_VERSION
 {{$env := EdenGetEnv "EVE_VERSION"}}

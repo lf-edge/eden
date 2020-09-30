@@ -164,11 +164,6 @@ func prepareImageLocal(ctx controller.Cloud, dataStoreID string, imageID string,
 		Iformat:   imageFormat,
 		DsId:      dataStoreID,
 		SizeBytes: size,
-		Siginfo: &config.SignatureInfo{
-			Intercertsurl: "",
-			Signercerturl: "",
-			Signature:     nil,
-		},
 	}
 	if ds, _ := ctx.GetDataStore(dataStoreID); ds == nil {
 		err = ctx.AddDataStore(dataStore)

@@ -25,7 +25,6 @@ func (exp *appExpectation) imageToContentTree(image *config.Image, displayName s
 		Iformat:         image.Iformat,
 		Sha256:          image.Sha256,
 		MaxSizeBytes:    uint64(image.SizeBytes),
-		Siginfo:         image.Siginfo,
 		DisplayName:     displayName,
 		GenerationCount: 0,
 	}

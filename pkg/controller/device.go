@@ -517,7 +517,6 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		Apps:              applicationInstances,
 		Networks:          networkConfigs,
 		Datastores:        dataStores,
-		LispInfo:          nil,
 		Base:              baseOS,
 		Reboot:            rebootCmd,
 		Backup:            nil,
