@@ -33,6 +33,7 @@ var downloadEVECmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			eveRegistry = viper.GetString("eve.registry")
 			eveTag = viper.GetString("eve.tag")
 			eveUefiTag = viper.GetString("eve.uefi-tag")
 			eveArch = viper.GetString("eve.arch")
@@ -51,7 +52,21 @@ var downloadEVECmd = &cobra.Command{
 		if devModel == defaults.DefaultGCPModel {
 			format = "gcp"
 		}
-		if err := utils.DownloadEveLive(adamDist, eveImageFile, eveArch, eveHV, eveTag, eveUefiTag, format, eveImageSizeMB); err != nil {
+		eveDesc := utils.EVEDescription{
+			ConfigPath:  adamDist,
+			Arch:        eveArch,
+			HV:          eveHV,
+			Registry:    eveRegistry,
+			Tag:         eveTag,
+			Format:      format,
+			ImageSizeMB: eveImageSizeMB,
+		}
+		uefiDesc := utils.UEFIDescription{
+			Registry: eveRegistry,
+			Tag:      eveUefiTag,
+			Arch:     eveArch,
+		}
+		if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
 			log.Fatal(err)
 		} else {
 			switch devModel {
@@ -78,6 +93,7 @@ var downloadEVERootFSCmd = &cobra.Command{
 			eveTag = viper.GetString("eve.tag")
 			eveArch = viper.GetString("eve.arch")
 			eveHV = viper.GetString("eve.hv")
+			eveRegistry = viper.GetString("eve.registry")
 			if outputDir == "" {
 				outputDir = filepath.Dir(utils.ResolveAbsPath(viper.GetString("eve.image-file")))
 			}
@@ -85,7 +101,16 @@ var downloadEVERootFSCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if image, err := utils.DownloadEveRootFS(outputDir, eveArch, eveHV, eveTag); err != nil {
+		eveDesc := utils.EVEDescription{
+			ConfigPath:  certsDir,
+			Arch:        eveArch,
+			HV:          eveHV,
+			Registry:    eveRegistry,
+			Tag:         eveTag,
+			Format:      imageFormat,
+			ImageSizeMB: eveImageSizeMB,
+		}
+		if image, err := utils.DownloadEveRootFS(eveDesc, outputDir); err != nil {
 			log.Fatal(err)
 		} else {
 			fmt.Println(image)

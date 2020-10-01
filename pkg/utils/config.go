@@ -191,6 +191,9 @@ eve:
     #eve repo used in clone mode (eden.download = false)
     repo: {{ .DefaultEveRepo }}
 
+    #eve registry to use
+    registry: {{ .DefaultEveRegistry }}
+
     #eve tag
     tag: {{ .DefaultEVETag }}
 
@@ -469,6 +472,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			DefaultTestProg      string
 			DefaultSSHKey        string
 			DefaultEveRepo       string
+			DefaultEveRegistry   string
 
 			DefaultEVEModel string
 			DefaultEVEName  string
@@ -513,6 +517,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			DefaultTestProg:     defaults.DefaultTestProg,
 			DefaultSSHKey:       fmt.Sprintf("%s-%s", context.Current, defaults.DefaultSSHKey),
 			DefaultEveRepo:      defaults.DefaultEveRepo,
+			DefaultEveRegistry:  defaults.DefaultEveRegistry,
 
 			DefaultEVEModel: defaults.DefaultEVEModel,
 			DefaultEVEName:  strings.ToLower(context.Current),

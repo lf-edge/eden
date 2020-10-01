@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,25 +11,86 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// EVEDescription provides information about EVE to download
+type EVEDescription struct {
+	ConfigPath  string
+	Arch        string
+	HV          string
+	Registry    string
+	Tag         string
+	Format      string
+	ImageSizeMB int
+}
+
+// image extracts image tag from EVEDescription
+func (desc EVEDescription) image() (string, error) {
+	if desc.Registry == "" {
+		desc.Registry = defaults.DefaultEveRegistry
+	}
+	if desc.Tag == "" {
+		return "", fmt.Errorf("tag not present")
+	}
+	if desc.Arch == "" {
+		return "", fmt.Errorf("arch not present")
+	}
+	if desc.HV == "" {
+		return "", fmt.Errorf("hv not present")
+	}
+	return fmt.Sprintf("%s/eve:%s-%s-%s", desc.Registry, desc.Tag, desc.HV, desc.Arch), nil
+}
+
+// UEFIDescription provides information about UEFI to download
+type UEFIDescription struct {
+	Registry string
+	Tag      string
+	Arch     string
+}
+
+// image extracts image tag from UEFIDescription
+func (desc UEFIDescription) image(latest bool) (string, error) {
+	if desc.Registry == "" {
+		desc.Registry = defaults.DefaultEveRegistry
+	}
+	if latest {
+		return fmt.Sprintf("%s/eve-uefi", desc.Registry), nil
+	}
+	if desc.Tag == "" {
+		return "", fmt.Errorf("tag not present")
+	}
+	if desc.Arch == "" {
+		return "", fmt.Errorf("arch not present")
+	}
+	return fmt.Sprintf("%s/eve-uefi:%s-%s", desc.Registry, desc.Tag, desc.Arch), nil
+}
+
 //DownloadEveLive pulls EVE live image from docker
-func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV string, eveTag, eveUefiTag string, format string, imageSizeMB int) (err error) {
-	efiImage := fmt.Sprintf("lfedge/eve-uefi:%s-%s", eveUefiTag, eveArch) //download OVMF
-	image := fmt.Sprintf("lfedge/eve:%s-%s-%s", eveTag, eveHV, eveArch)
+func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string) (err error) {
+	efiImage, err := uefi.image(false) //download OVMF
+	if err != nil {
+		return err
+	}
+	image, err := eve.image()
+	if err != nil {
+		return err
+	}
 	log.Debugf("Try ImagePull with (%s)", image)
 	if err := PullImage(image); err != nil {
 		return fmt.Errorf("ImagePull (%s): %s", image, err)
 	}
-	if configPath != "" {
-		if _, err := os.Stat(configPath); os.IsNotExist(err) {
-			return fmt.Errorf("directory not exists: %s", configPath)
+	if eve.ConfigPath != "" {
+		if _, err := os.Stat(eve.ConfigPath); os.IsNotExist(err) {
+			return fmt.Errorf("directory not exists: %s", eve.ConfigPath)
 		}
 	}
 	size := 0
-	if format == "qcow2" {
-		size = imageSizeMB
+	if eve.Format == "qcow2" {
+		size = eve.ImageSizeMB
 		if err := PullImage(efiImage); err != nil {
 			log.Infof("cannot pull %s", efiImage)
-			efiImage = fmt.Sprintf("lfedge/eve-uefi") //try with latest version of OVMF
+			efiImage, err = uefi.image(true) //try with latest version of OVMF
+			if err != nil {
+				return err
+			}
 			log.Infof("will retry with %s", efiImage)
 			if err := PullImage(efiImage); err != nil {
 				return fmt.Errorf("ImagePull (%s): %s", efiImage, err)
@@ -38,10 +100,10 @@ func DownloadEveLive(configPath string, outputFile string, eveArch string, eveHV
 			return fmt.Errorf("SaveImage: %s", err)
 		}
 	}
-	if format == "gcp" {
-		size = imageSizeMB
+	if eve.Format == "gcp" {
+		size = eve.ImageSizeMB
 	}
-	if fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), format, configPath, size); err != nil {
+	if fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size); err != nil {
 		return fmt.Errorf("genEVEImage: %s", err)
 	} else {
 		if err = CopyFile(fileName, outputFile); err != nil {
@@ -80,8 +142,8 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 }
 
 //DownloadEveRootFS pulls EVE rootfs image from docker
-func DownloadEveRootFS(outputDir string, eveArch string, eveHV string, eveTag string) (filePath string, err error) {
-	image := fmt.Sprintf("lfedge/eve:%s-%s-%s", eveTag, eveHV, eveArch)
+func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, err error) {
+	image, err := eve.image()
 	log.Debugf("Try ImagePull with (%s)", image)
 	if err := PullImage(image); err != nil {
 		return "", fmt.Errorf("ImagePull (%s): %s", image, err)

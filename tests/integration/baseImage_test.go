@@ -172,7 +172,13 @@ func SetupBaseImage(t *testing.T) (fileToUse string) {
 		}
 	} else {
 		if _, err := os.Stat(eveBaseDist); os.IsNotExist(err) {
-			if image, err := utils.DownloadEveRootFS(eveBaseDist, eveArch, eveHV, *eveBaseTag); err != nil {
+			eveDesc := utils.EVEDescription{
+				Arch:     eveArch,
+				HV:       eveHV,
+				Registry: defaults.DefaultEveRegistry,
+				Tag:      *eveBaseTag,
+			}
+			if image, err := utils.DownloadEveRootFS(eveDesc, eveBaseDist); err != nil {
 				t.Fatalf("cannot download Base EVE: %s", err)
 			} else {
 				t.Logf("download Base EVE done: %s", image)
