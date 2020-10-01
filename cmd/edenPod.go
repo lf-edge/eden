@@ -125,6 +125,7 @@ type appState struct {
 	eveState  string
 	intIp     []string
 	macs      []string
+	volumes   map[string]uint32
 	extIp     string
 	intPort   string
 	extPort   string
@@ -233,6 +234,10 @@ var podPsCmd = &cobra.Command{
 				imageName = app.Drives[0].Image.Name
 			}
 			intPort, extPort := getPortMapping(app, qemuPorts)
+			volumes := make(map[string]uint32)
+			for _, el := range app.GetVolumeRefList() {
+				volumes[el.Uuid] = 0
+			}
 			appStateObj := &appState{
 				name:      app.Displayname,
 				image:     imageName,
@@ -242,12 +247,30 @@ var podPsCmd = &cobra.Command{
 				extIp:     "-",
 				intPort:   intPort,
 				extPort:   extPort,
+				volumes:   volumes,
 				uuid:      app.Uuidandversion.Uuid,
 			}
 			appStates[app.Uuidandversion.Uuid] = appStateObj
 		}
 		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 			switch im.GetZtype() {
+			case info.ZInfoTypes_ZiVolume:
+				for _, app := range appStates {
+					if len(app.volumes) == 0 {
+						continue
+					}
+					var percent uint32 = 0
+					for vol := range app.volumes {
+						percent += app.volumes[vol] //we sum all percents of all volumes and will divide them by count
+						if im.GetVinfo().Uuid == vol {
+							app.volumes[vol] = im.GetVinfo().ProgressPercentage
+							break
+						}
+					}
+					if strings.HasPrefix(app.eveState, info.ZSwState_DOWNLOAD_STARTED.String()) {
+						app.eveState = fmt.Sprintf("%s (%d%%)", info.ZSwState_DOWNLOAD_STARTED.String(), int(percent)/len(app.volumes))
+					}
+				}
 			case info.ZInfoTypes_ZiApp:
 				appStateObj, ok := appStates[im.GetAinfo().AppID]
 				if !ok {
