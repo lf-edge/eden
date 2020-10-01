@@ -3,6 +3,10 @@ package reboot
 import (
 	"flag"
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -10,9 +14,6 @@ import (
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"testing"
-	"time"
 )
 
 // This context holds all the configuration items in the same
@@ -30,7 +31,7 @@ tc *TestContext // TestContext is at least {
 */
 
 var (
-	timewait = flag.Int("timewait", 60, "Timewait for reboot waiting in seconds")
+	timewait = flag.Int("timewait", 600, "Timewait for reboot waiting in seconds")
 	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
 	count    = flag.Int("count", 1, "Number of reboots")
 
