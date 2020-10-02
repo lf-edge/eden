@@ -11,6 +11,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/edge-containers/pkg/registry"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -67,14 +68,57 @@ func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 	}
 }
 
+//applyRootFSType try to parse manifest to get Annotations provided in https://github.com/lf-edge/edge-containers/blob/master/docs/annotations.md
+func applyRootFSType(image *config.Image) error {
+	manifest, err := crane.Manifest(image.Name)
+	if err != nil {
+		return err
+	}
+	manifestFile, err := v1.ParseManifest(bytes.NewReader(manifest))
+	if err != nil {
+		return err
+	}
+	for _, el := range manifestFile.Layers {
+		if val, ok := el.Annotations[registry.AnnotationRole]; !ok || val != registry.RoleRootDisk {
+			continue
+		}
+		if mediaType, ok := el.Annotations[registry.AnnotationMediaType]; ok {
+			switch mediaType {
+			case registry.MimeTypeECIDiskRaw:
+				image.Iformat = config.Format_RAW
+				break
+			case registry.MimeTypeECIDiskQcow:
+				image.Iformat = config.Format_QCOW
+				break
+			case registry.MimeTypeECIDiskQcow2:
+				image.Iformat = config.Format_QCOW2
+				break
+			case registry.MimeTypeECIDiskVhd:
+				image.Iformat = config.Format_VHD
+				break
+			case registry.MimeTypeECIDiskVmdk:
+				image.Iformat = config.Format_VMDK
+				break
+			case registry.MimeTypeECIDiskOva:
+				image.Iformat = config.Format_OVA
+				break
+			case registry.MimeTypeECIDiskVhdx:
+				image.Iformat = config.Format_VHDX
+				break
+			}
+		}
+	}
+	return nil
+}
+
 //obtainVolumeInfo try to parse docker manifest of defined image and return array of mount points
 func obtainVolumeInfo(image *config.Image) ([]string, error) {
-	config, err := crane.Config(image.Name)
+	cfg, err := crane.Config(image.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting config %s: %v", image.Name, err)
 	}
 	// parse the config file
-	configFile, err := v1.ParseConfigFile(bytes.NewReader(config))
+	configFile, err := v1.ParseConfigFile(bytes.NewReader(cfg))
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse config file: %v", err)
 	}
@@ -111,6 +155,11 @@ func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 	if err != nil {
 		//if something wrong with info about image, just print information
 		log.Errorf("cannot obtain info about volumes: %v", err)
+	}
+	log.Infof("Try to obtain info about disks, please wait")
+	if err := applyRootFSType(img); err != nil {
+		//if something wrong with info about disks, just print information
+		log.Errorf("cannot obtain info about disks: %v", err)
 	}
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
