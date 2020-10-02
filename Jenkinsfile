@@ -18,7 +18,17 @@ make build
 ./eden config add default
 ./eden config set default --key=eve.accel --value=false
 ./eden config set default --key=eve.tag --value=$result2
-./eden test ./tests/workflow'''
+#./eden test ./tests/workflow
+./eden setup
+./eden start
+./eden eve onboard
+evebuildname=$(find ../dist/amd64 | grep kvm-amd64)
+./eden controller edge-node eveimage-update file://$evebuildname -m adam://
+./eden test tests/reboot
+./eden test tests/networking
+./eden test tests/lim
+./eden test tests/docker
+'''
       }
     }
 
