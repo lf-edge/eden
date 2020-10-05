@@ -288,6 +288,14 @@ eden pod ps
 ```
 to get the status of the deployment
 
+You can try to boot the Windows 10 ARM64 image on RPi (you need not less than 32GB SD card):
+```
+eden pod deploy docker://itmoeve/eci-windows:2004-compressed-arm64 --vnc-display=1 --memory=2GB --cpus=2
+```
+You also can use RDP by adding the port forwarding (`-p 3389:3389`) to the command above.
+
+With running status in `eden pod ps` you can try to connect via VNC on public EVE IP at port 5901 with credentials `IEUser:Passw0rd!`.
+
 ### Obtain information about EVE on SD card
 
 To get information from SD card about previously flashed instance of EVE you should:
