@@ -44,6 +44,8 @@ To generate the docker container with your image:
 1. Configure your code as desired
 1. Run `make eve`, optionally setting the desired hypervisor, e.g. `make eve HV=kvm` (recommended with eden)
 
+Note: If you build EVE with xen hypervisor (`make eve`), you should run `eden config set default --key eve.hv --value xen` before `eden setup`.
+
 When done, you will be provided with output telling you the docker image name and tag, e.g.
 
 ```
@@ -61,13 +63,13 @@ eden setup --eve-tag <tag>
 Continuing the above example:
 
 ```sh
-eden setup --eve-tag 0.0.0-testbranch-b6a6d6fd-kvm
+eden setup --eve-tag 0.0.0-testbranch-b6a6d6fd
 ```
 
 Or you can save it, by setting it in the file:
 
 ```console
-eden config set default --key eve.tag --value 0.0.0-testbranch-b6a6d6fd-kvm
+eden config set default --key eve.tag --value 0.0.0-testbranch-b6a6d6fd
 eden setup
 ```
 
@@ -93,7 +95,7 @@ Continuing the above example:
 
 ```sh
 eden setup --eve-uefi-tag eve-uefi-special
-eden setup --eve-tag 0.0.0-testbranch-b6a6d6fd-kvm --eve-uefi-tag eve-uefi-special
+eden setup --eve-tag 0.0.0-testbranch-b6a6d6fd --eve-uefi-tag eve-uefi-special
 ```
 
 Or you can save it, by setting it in the file:
