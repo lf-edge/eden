@@ -56,6 +56,8 @@ type appExpectation struct {
 	volumesType VolumeType
 
 	onlyHostAcl bool
+
+	registry string
 }
 
 //AppExpectationFromUrl init appExpectation with defined:

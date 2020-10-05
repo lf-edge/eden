@@ -61,7 +61,6 @@ func WithAppAdapters(appadapters []string) ExpectationOption {
 	}
 }
 
-
 //AddNetInstanceNameAndPortPublish adds NetInstance with defined name and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
 func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []string) ExpectationOption {
 	return func(expectation *appExpectation) {
@@ -138,5 +137,12 @@ func WithVolumeType(volumesType VolumeType) ExpectationOption {
 func WithAcl(onlyHost bool) ExpectationOption {
 	return func(expectation *appExpectation) {
 		expectation.onlyHostAcl = onlyHost
+	}
+}
+
+//WithRegistry sets registry to use (remote/local)
+func WithRegistry(registry string) ExpectationOption {
+	return func(expectation *appExpectation) {
+		expectation.registry = registry
 	}
 }

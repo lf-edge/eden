@@ -396,6 +396,7 @@ The current sub-commands are:
    * `controller` -- sub-commands to update EVE.
    * `pod` -- work with applications running on EVE (containers and VMs)
    * `network` -- sub-commands to work with networks running on EVE
+   * `registry` -- sub-commands to work with [registry](docs/registry.md)
 
 ## Eden EVE commands
 

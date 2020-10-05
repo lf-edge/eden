@@ -42,9 +42,27 @@ func (exp *appExpectation) checkImageDocker(img *config.Image, dsId string) bool
 	return false
 }
 
+//getDataStoreFQDN return fqdn info for datastore based on provided ref of image and registry
+func (exp *appExpectation) getDataStoreFQDN(withProto bool) string {
+	var fqdn string
+	if exp.registry != "" {
+		fqdn = exp.registry
+	} else {
+		ref, err := name.ParseReference(exp.appUrl)
+		if err != nil {
+			return ""
+		}
+		fqdn = ref.Context().Registry.Name()
+	}
+	if withProto {
+		fqdn = fmt.Sprintf("docker://%s", fqdn)
+	}
+	return fqdn
+}
+
 //checkDataStoreDocker checks if provided ds match expectation
 func (exp *appExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool {
-	if ds.DType == config.DsType_DsContainerRegistry && ds.Fqdn == "docker://docker.io" {
+	if ds.DType == config.DsType_DsContainerRegistry && ds.Fqdn == exp.getDataStoreFQDN(true) {
 		return true
 	}
 	return false
@@ -52,14 +70,10 @@ func (exp *appExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 
 //createDataStoreDocker creates DatastoreConfig for docker.io with provided id
 func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
-	ref, err := name.ParseReference(exp.appUrl)
-	if err != nil {
-		return nil
-	}
 	return &config.DatastoreConfig{
 		Id:         id.String(),
 		DType:      config.DsType_DsContainerRegistry,
-		Fqdn:       fmt.Sprintf("docker://%s", ref.Context().Registry.Name()),
+		Fqdn:       exp.getDataStoreFQDN(true),
 		ApiKey:     "",
 		Password:   "",
 		Dpath:      "",
@@ -69,8 +83,9 @@ func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 }
 
 //applyRootFSType try to parse manifest to get Annotations provided in https://github.com/lf-edge/edge-containers/blob/master/docs/annotations.md
-func applyRootFSType(image *config.Image) error {
-	manifest, err := crane.Manifest(image.Name)
+func (exp *appExpectation) applyRootFSType(image *config.Image) error {
+	ref := fmt.Sprintf("%s/%s", exp.getDataStoreFQDN(false), image.Name)
+	manifest, err := crane.Manifest(ref)
 	if err != nil {
 		return err
 	}
@@ -112,8 +127,9 @@ func applyRootFSType(image *config.Image) error {
 }
 
 //obtainVolumeInfo try to parse docker manifest of defined image and return array of mount points
-func obtainVolumeInfo(image *config.Image) ([]string, error) {
-	cfg, err := crane.Config(image.Name)
+func (exp *appExpectation) obtainVolumeInfo(image *config.Image) ([]string, error) {
+	ref := fmt.Sprintf("%s/%s", exp.getDataStoreFQDN(false), image.Name)
+	cfg, err := crane.Config(ref)
 	if err != nil {
 		return nil, fmt.Errorf("error getting config %s: %v", image.Name, err)
 	}
@@ -151,13 +167,13 @@ func (exp *appExpectation) prepareImage() *config.Image {
 //  it uses name of app and cpu/mem params from appExpectation
 func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) *appBundle {
 	log.Infof("Try to obtain info about volumes, please wait")
-	mountPointsList, err := obtainVolumeInfo(img)
+	mountPointsList, err := exp.obtainVolumeInfo(img)
 	if err != nil {
 		//if something wrong with info about image, just print information
 		log.Errorf("cannot obtain info about volumes: %v", err)
 	}
 	log.Infof("Try to obtain info about disks, please wait")
-	if err := applyRootFSType(img); err != nil {
+	if err := exp.applyRootFSType(img); err != nil {
 		//if something wrong with info about disks, just print information
 		log.Errorf("cannot obtain info about disks: %v", err)
 	}

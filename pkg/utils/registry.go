@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/containerd/containerd/remotes"
+	auth "github.com/deislabs/oras/pkg/auth/docker"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -81,4 +84,31 @@ func LoadRegistry(image, remote string) (string, error) {
 	}
 	hash = fmt.Sprintf("sha256:%x", sha256.Sum256(manifest))
 	return hash, nil
+}
+
+//RegistryHttp for http access to local registry
+type RegistryHttp struct {
+	remotes.Resolver
+	ctx context.Context
+}
+
+//NewRegistryHttp creates new RegistryHttp with plainHTTP resolver
+func NewRegistryHttp(ctx context.Context) (context.Context, *RegistryHttp, error) {
+	cli, err := auth.NewClient()
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to get authenticating client to registry: %v", err)
+	}
+	resolver, err := cli.Resolver(ctx, nil, true)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to get resolver for registry: %v", err)
+	}
+	return ctx, &RegistryHttp{Resolver: resolver, ctx: ctx}, nil
+}
+
+func (r *RegistryHttp) Finalize(ctx context.Context) error {
+	return nil
+}
+
+func (r *RegistryHttp) Context() context.Context {
+	return r.ctx
 }

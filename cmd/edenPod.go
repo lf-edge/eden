@@ -104,6 +104,14 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		opts = append(opts, expect.WithAcl(aclOnlyHost))
+		registryToUse := registry
+		switch registry {
+		case "local":
+			registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
+		case "remote":
+			registryToUse = ""
+		}
+		opts = append(opts, expect.WithRegistry(registryToUse))
 		if noHyper {
 			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 		}
@@ -661,6 +669,7 @@ func podInit() {
 	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podDeployCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
+	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
