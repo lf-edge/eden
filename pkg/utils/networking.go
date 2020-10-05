@@ -162,6 +162,7 @@ func GetFileSizeUrl(url string) int64 {
 	return int64(size)
 }
 
+//RepeatableAttempt do request several times waiting for nil error and expected status code
 func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.Response, err error) {
 	maxRepeat := defaults.DefaultRepeatCount
 	delayTime := defaults.DefaultRepeatTimeout
@@ -172,7 +173,11 @@ func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.R
 		})
 		resp, err := client.Do(req)
 		if err == nil {
-			return resp, nil
+			// we should check the status code of the response and try again if needed
+			if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusAccepted {
+				return resp, nil
+			}
+			log.Debugf("bad status: %s", resp.Status)
 		}
 		log.Debugf("error %s URL %s: %v", req.Method, req.RequestURI, err)
 		timer.Stop()
