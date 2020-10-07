@@ -418,4 +418,6 @@ The current sub-commands are:
     `eden utils download eve-rootfs` - download EVE rootfs image from docker hub
     `eden utils sd` - get information about EVE from provided SD card
     `eden utils gcp` - sub-commands to work with Google Cloud Platform
+    `eden utils export` - sub-command to save certs and configs into tar.gz
+    `eden utils import` - sub-commands to load certs and configs into tar.gz
    

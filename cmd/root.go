@@ -84,6 +84,7 @@ func init() {
 	eciInit()
 	rootCmd.AddCommand(networkCmd)
 	networkInit()
+	exportImportInit()
 }
 
 // Execute primary function for cobra

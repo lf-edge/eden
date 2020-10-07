@@ -402,6 +402,7 @@ var resetEveCmd = &cobra.Command{
 		vars := ctrl.GetVars()
 		dev.SetApplicationInstanceConfig(nil)
 		dev.SetBaseOSConfig(nil)
+		dev.SetNetworkInstanceConfig(nil)
 		dev.SetSerial(vars.EveSerial)
 		dev.SetOnboardKey(vars.EveCert)
 		dev.SetDevModel(vars.DevModel)
