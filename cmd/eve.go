@@ -317,7 +317,7 @@ var sshEveCmd = &cobra.Command{
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			log.Infof("Try to ssh %s:%d with key %s", eveHost, eveSSHPort, eveSSHKey)
+			log.Debugf("Try to ssh %s:%d with key %s", eveHost, eveSSHPort, eveSSHKey)
 			if err := utils.RunCommandForeground("ssh", strings.Fields(fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveHost, commandToRun))...); err != nil {
 				log.Fatalf("ssh error: %s", err)
 			}
