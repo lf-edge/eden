@@ -2,6 +2,7 @@
 [!exec:grep] stop
 [!exec:sed] stop
 [!exec:curl] stop
+[!exec:sleep] stop
 
 # This test deploys two apps into EVE and checks access between them trough network
 # Inside apps there are nginx and curl services.
@@ -68,6 +69,8 @@ exec -t 15m bash wait_app3.sh
 eden pod delete app1
 eden pod delete app2
 eden pod delete app3
+
+exec -t 5m bash wait_apps_teardown.sh
 
 # Test's config file
 -- eden-config.yml --
@@ -152,3 +155,16 @@ sleep 10
 
 address=http://$($EDEN pod ps|grep app3|grep -o -E '([0-9]{1,3}[\.]){3}[0-9]{1,3}:8028')/received-data.html
 until curl $address; do sleep 3; done
+
+-- wait_apps_teardown.sh --
+#!/bin/sh
+
+echo "waiting for apps removed state"
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+while $EDEN pod ps | grep app | grep RUNNING; do sleep 3; done
+
+echo "apps removed"
+
+echo "sleep for 5 seconds"
+sleep 5
