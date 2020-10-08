@@ -8,9 +8,9 @@ eden -t 1s pod ps
 ! test eden.reboot.test {{$test_opts}} -reboot=0 -count=2 &
 
 # Run by docker's actor
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t1 -externalPort 8027
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t1 -externalPort 8027 -memory 300M
 stdout '--- PASS: TestDockerStart'
-test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t2 -externalPort 8028
+test eden.docker.test {{$test_opts}} -test.run TestDockerStart -name t2 -externalPort 8028 -memory 300M
 stdout '--- PASS: TestDockerStart'
 
 # Dockers detecting
