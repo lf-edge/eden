@@ -20,8 +20,8 @@ import (
 	"google.golang.org/api/storage/v1"
 )
 
-const pollingInterval = 500 * time.Millisecond
-const timeout = 300
+const pollingInterval = time.Second
+const timeout = 60
 
 // GCPClient contains state required for communication with GCP
 type GCPClient struct {
@@ -543,7 +543,7 @@ func (g *GCPClient) pollZoneOperationStatus(operationName, zone string) error {
 // GetInstanceNatIP returns NatIP of an instance
 func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 	log.Infof("Getting NatIP for instance %s", instance)
-	for {
+	for i := 0; i < timeout; i++ {
 		res, err := g.compute.Instances.Get(g.projectName, zone, instance).Do()
 		if err != nil {
 			if err.(*googleapi.Error).Code == 400 {
@@ -571,7 +571,7 @@ func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 // SetFirewallAllowRule runs gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges
 func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string) error {
 	log.Infof("setting firewall %s for %s", ruleName, sourceRanges)
-	for {
+	for i := 0; i < timeout; i++ {
 		firewall := &compute.Firewall{
 			Name:         ruleName,
 			SourceRanges: sourceRanges,
@@ -588,12 +588,12 @@ func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string) 
 		operation, err := g.compute.Firewalls.Insert(g.projectName, firewall).Do()
 		if err != nil {
 			if err.(*googleapi.Error).Code == 400 {
-				// Instance may not be ready yet...
+				// Firewall may not be ready yet...
 				time.Sleep(pollingInterval)
 				continue
 			}
 			if err.(*googleapi.Error).Code == 503 {
-				// Timeout received when the instance has terminated
+				// Timeout received when waiting for rule modification
 				break
 			}
 			return err
