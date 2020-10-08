@@ -81,6 +81,7 @@ func init() {
 	controllerInit()
 	rootCmd.AddCommand(podCmd)
 	podInit()
+	eciInit()
 	rootCmd.AddCommand(networkCmd)
 	networkInit()
 }

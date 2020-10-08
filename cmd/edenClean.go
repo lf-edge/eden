@@ -47,6 +47,7 @@ var cleanCmd = &cobra.Command{
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
+			registryDist = utils.ResolveAbsPath(viper.GetString("registry.dist"))
 			context, err := utils.ContextLoad()
 			if err != nil {
 				log.Fatalf("Load context error: %s", err)
@@ -79,7 +80,7 @@ var cleanCmd = &cobra.Command{
 			}
 		} else {
 			if err := eden.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
-				eserverImageDist, redisDist, configDir, evePidFile,
+				eserverImageDist, redisDist, registryDist, configDir, evePidFile,
 				configSaved); err != nil {
 				log.Fatalf("cannot CleanEden: %s", err)
 			}

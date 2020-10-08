@@ -550,8 +550,8 @@ func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID, eveUUID s
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, configDir, evePID string, configSaved string) (err error) {
-	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=true --redis-rm=true --eserver-rm=true", evePID)
+func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID string, configSaved string) (err error) {
+	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=true --redis-rm=true --eserver-rm=true --registry-rm=true", evePID)
 	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
 	_, _, err = utils.RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
 	if err != nil {
@@ -587,6 +587,11 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDis
 			return fmt.Errorf("error in %s delete: %s", redisDist, err)
 		}
 	}
+	if _, err = os.Stat(registryDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(registryDist); err != nil {
+			return fmt.Errorf("error in %s delete: %s", registryDist, err)
+		}
+	}
 	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configDir); err != nil {
 			return fmt.Errorf("error in %s delete: %s", configDir, err)
@@ -605,6 +610,9 @@ func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDis
 	}
 	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultAdamContainerName); err != nil {
 		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultAdamContainerName, err)
+	}
+	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultRegistryContainerName); err != nil {
+		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultRegistryContainerName, err)
 	}
 	return nil
 }
