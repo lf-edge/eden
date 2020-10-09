@@ -340,6 +340,8 @@ github.com/lf-edge/eve/api/go v0.0.0-20200805060635-507771c7f963 h1:CA+l2dG+902g
 github.com/lf-edge/eve/api/go v0.0.0-20200805060635-507771c7f963/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lf-edge/eve/api/go v0.0.0-20200929132246-e32375a3e2ab h1:aw8k4teoqZY+oUDIqUdEG1wsNo/5atP8KISpo6iFuNM=
 github.com/lf-edge/eve/api/go v0.0.0-20200929132246-e32375a3e2ab/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
+github.com/lf-edge/eve/api/go v0.0.0-20201009050143-0ca6703afd1e h1:Hko8LmBuTV2kXClvVp0wfEIqCDMjRWu5gXho4ke9LjY=
+github.com/lf-edge/eve/api/go v0.0.0-20201009050143-0ca6703afd1e/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 h1:EnfXoSqDfSNJv0VBNqY/88RNnhSGYkrHaO0mmFGbVsc=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40/go.mod h1:vy1vK6wD6j7xX6O6hXe621WabdtNkou2h7uRtTfRMyg=
