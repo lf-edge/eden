@@ -11,33 +11,25 @@
     <Execute>
         <Test>pts/fio-1.13.2</Test>
         <Arguments>randread sync 0 1 4k</Arguments>
-        <Description>Type: Random Read - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 4KB - Disk Target:
-            Default Test Directory
-        </Description>
+        <Description>Type: Random Read - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 4KB - Disk Target: /data</Description>
         <OverrideTestOptions></OverrideTestOptions>
     </Execute>
     <Execute>
         <Test>pts/fio-1.13.2</Test>
         <Arguments>randwrite sync 0 1 4k</Arguments>
-        <Description>Type: Random Write - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 4KB - Disk Target:
-            Default Test Directory
-        </Description>
+        <Description>Type: Random Write - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 4KB - Disk Target: /data</Description>
         <OverrideTestOptions></OverrideTestOptions>
     </Execute>
     <Execute>
         <Test>pts/fio-1.13.2</Test>
         <Arguments>read sync 0 1 128k</Arguments>
-        <Description>Type: Sequential Read - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 128KB - Disk
-            Target: Default Test Directory
-        </Description>
+        <Description>Type: Sequential Read - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 128KB - Disk Target: /data</Description>
         <OverrideTestOptions></OverrideTestOptions>
     </Execute>
     <Execute>
         <Test>pts/fio-1.13.2</Test>
         <Arguments>write sync 0 1 128k</Arguments>
-        <Description>Type: Sequential Write - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 128KB - Disk
-            Target: Default Test Directory
-        </Description>
+        <Description>Type: Sequential Write - Engine: Sync - Buffered: No - Direct: Yes - Block Size: 128KB - Disk Target: /data</Description>
         <OverrideTestOptions></OverrideTestOptions>
     </Execute>
 </PhoronixTestSuite>

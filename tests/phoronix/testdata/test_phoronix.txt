@@ -15,7 +15,7 @@ source .env
 # deploy the third application by nested escript
 test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/phoronix/testdata/
 
-exec -t 40m bash wait_app.sh
+exec -t 80m bash wait_app.sh
 exec cat result
 # expect in stdout
 stdout 'Average'
@@ -46,10 +46,10 @@ echo "waiting for app running state"
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 until $EDEN pod ps | grep app1 | grep RUNNING; do sleep 5; done
 
-echo "sleep for 20 seconds"
-sleep 20
+echo "sleep for 60 seconds"
+sleep 60
 
 echo "waiting for the test results"
 
 address=http://$($EDEN pod ps|grep app1|grep -o -E '([0-9]{1,3}[\.]){3}[0-9]{1,3}:8027')
-until curl $address -o result; do sleep 30; done
+until curl -s $address -o result; do sleep 30; done

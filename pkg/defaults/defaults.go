@@ -118,7 +118,7 @@ const (
 
 	DefaultDummyExpect = "docker://image"
 
-	DefaultVolumeSize = 1024 * 1024 * 1024
+	DefaultVolumeSize = 2 * 1024 * 1024 * 1024
 
 	DefaultEmptyVolumeLinkDocker = "docker://hello-world"
 	DefaultEmptyVolumeLinkQcow2  = "empty.qcow2"
