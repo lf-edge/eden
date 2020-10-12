@@ -109,7 +109,7 @@ func (adam *Ctx) getList(path string) (out []string, err error) {
 	return strings.Fields(string(buf)), nil
 }
 
-func (adam *Ctx) postObj(path string, obj []byte) (err error) {
+func (adam *Ctx) postObj(path string, obj []byte, mimeType string) (err error) {
 	u, err := utils.ResolveURL(adam.url, path)
 	if err != nil {
 		log.Printf("error constructing URL: %v", err)
@@ -120,7 +120,7 @@ func (adam *Ctx) postObj(path string, obj []byte) (err error) {
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", mimeType)
 
 	_, err = utils.RepeatableAttempt(client, req)
 	if err != nil {

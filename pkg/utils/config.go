@@ -41,6 +41,7 @@ type ConfigVars struct {
 	SshKey            string
 	CheckLogs         bool
 	EveCert           string
+	EveDeviceCert     string
 	EveSerial         string
 	ZArch             string
 	DevModel          string
@@ -75,6 +76,7 @@ func InitVars() (*ConfigVars, error) {
 			SshKey:            ResolveAbsPath(viper.GetString("eden.ssh-key")),
 			CheckLogs:         viper.GetBool("eden.logs"),
 			EveCert:           ResolveAbsPath(viper.GetString("eve.cert")),
+			EveDeviceCert:     ResolveAbsPath(viper.GetString("eve.device-cert")),
 			EveSerial:         viper.GetString("eve.serial"),
 			ZArch:             viper.GetString("eve.arch"),
 			EveSSID:           viper.GetString("eve.ssid"),
@@ -178,6 +180,9 @@ eve:
 
     #onboarding certificate of EVE to put into adam
     cert: {{ .DefaultCertsDist }}/onboard.cert.pem
+
+    #device certificate of EVE to put into adam
+    device-cert: {{ .DefaultCertsDist }}/device.cert.pem
 
     #EVE pid file
     pid: eve.pid

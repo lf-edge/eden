@@ -226,12 +226,12 @@ func (cfg *Ctx) SetSerial(serial string) {
 	cfg.serial = serial
 }
 
-//GetOnboardKey setter
+//GetOnboardKey getter
 func (cfg *Ctx) GetOnboardKey() string {
 	return cfg.onboardKey
 }
 
-//GetOnboardKey getter
+//GetOnboardKey setter
 func (cfg *Ctx) SetOnboardKey(key string) {
 	cfg.onboardKey = key
 }

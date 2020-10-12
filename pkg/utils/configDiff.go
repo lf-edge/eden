@@ -57,6 +57,9 @@ eve:
     #onboarding certificate of EVE to put into adam
     cert: {{ .DefaultCertsDist }}/onboard.cert.pem
 
+    #device certificate of EVE to put into adam
+    device-cert: {{ .DefaultCertsDist }}/device.cert.pem
+
     #EVE firmware
     firmware: [{{ .DefaultImageDist }}/eve/OVMF_CODE.fd,{{ .DefaultImageDist }}/eve/OVMF_VARS.fd]
 
