@@ -1,0 +1,59 @@
+[!exec:curl] stop
+[!exec:sleep] stop
+
+eden -t 5s pod ps
+
+# Starting of reboot detector with a 3 reboots limit
+! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=1 &
+
+# Run t1 docker
+eden -t 1m pod deploy -p 8027:80 docker://nginx -v debug -n t1
+stdout 'deploy pod t1 with docker://nginx request sent'
+# Wait for run
+#test eden.app.test -test.v -timewait 10m RUNNING t1
+
+# Run t1 docker
+eden -t 1m pod deploy -p 8028:80 docker://nginx -v debug -n t2
+stdout 'deploy pod t2 with docker://nginx request sent'
+# Wait for run
+test eden.app.test -test.v -timewait 10m RUNNING t1 t2
+
+# Dockers detecting
+eden -t 1m pod ps
+stdout 't1	.*nginx:latest	[-0-9a-f]*	.*:80	127.0.0.1:8027	IN_CONFIG	RUNNING'
+stdout 't2	.*nginx:latest	[-0-9a-f]*	.*:80	127.0.0.1:8028	IN_CONFIG	RUNNING'
+
+# Wait 5 min
+exec sleep 5m
+
+# Ngnix detecting
+exec -t 1m curl localhost:8027
+stdout 'Welcome to nginx'
+exec -t 1m curl localhost:8028
+stdout 'Welcome to nginx'
+
+# Stop by docker's actor
+eden -t 1m pod delete t1
+stdout 'app t1 delete done'
+eden -t 1m pod delete t2
+stdout 'app t2 delete done'
+
+# Wait for delete
+test eden.app.test -test.v -timewait 20m - t1 t2 
+stdout 'no app with t1 found'
+stdout 'no app with t2 found'
+
+# Dockers detecting
+eden -t 1m pod ps
+! stdout '^t[12]'
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
