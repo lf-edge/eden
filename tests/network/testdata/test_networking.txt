@@ -70,7 +70,7 @@ eden pod delete app1
 eden pod delete app2
 eden pod delete app3
 
-exec -t 5m bash wait_apps_teardown.sh
+exec -t 15m bash wait_apps_teardown.sh
 
 # Test's config file
 -- eden-config.yml --
@@ -162,7 +162,7 @@ until curl $address; do sleep 3; done
 echo "waiting for apps removed state"
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-while $EDEN pod ps | grep app | grep RUNNING; do sleep 3; done
+while $EDEN pod ps | grep app | grep RUNNING; do sleep 10; done
 
 echo "apps removed"
 

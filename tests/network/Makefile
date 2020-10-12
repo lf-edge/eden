@@ -17,7 +17,7 @@ OS ?= $(HOSTOS)
 # IMAGE_TAG is the tag for image to build
 IMAGE_TAG ?= itmoeve/docker-test
 # IMAGE_VERSION is the version of image to build
-IMAGE_VERSION ?= 1.1
+IMAGE_VERSION ?= 1.2
 # IMAGE_DIR is the directory with image Dockerfile to build
 IMAGE_DIR=$(CURDIR)/image
 
