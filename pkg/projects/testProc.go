@@ -144,7 +144,7 @@ func (lb *processingBus) initCheckers(dev *device.Ctx) {
 	}()
 	go func() {
 		for {
-			timer := time.NewTimer(defaults.DefaultRepeatTimeout)
+			timer := time.NewTimer(defaults.DefaultRepeatTimeout * 2)
 			<-timer.C
 			lb.processTimers(dev)
 		}

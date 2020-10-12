@@ -3,6 +3,13 @@ package lim
 import (
 	"flag"
 	"fmt"
+	"math/rand"
+	"net"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
@@ -11,25 +18,21 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
-	"net"
-	"os"
-	"strings"
-	"testing"
-	"time"
+	"golang.org/x/crypto/ssh"
 )
 
-// This test deploys the VM with image http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-ARCH.qcow2
+// This test deploys the VM with image https://cloud-images.ubuntu.com/releases/focal/release-20200921.1/ubuntu-20.04-server-cloudimg-ARCH.img
 // with ARCH from config and vncDisplay into EVE
-// waits for the RUNNING state and checks access to VNC console
+// waits for the RUNNING state and checks access to VNC and SSH console
 // and removes app from EVE
 
 var (
 	timewait     = flag.Int("timewait", 300, "Timewait for items waiting in seconds")
 	name         = flag.String("name", "", "Name of app, random if empty")
 	vncDisplay   = flag.Int("vncDisplay", 1, "VNC display number")
+	sshPort      = flag.Int("sshPort", 8027, "Port to publish ssh")
 	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
-	appLink      = flag.String("applink", "http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-%s.qcow2", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
+	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/focal/release-20200921.1/ubuntu-20.04-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	tc           *projects.TestContext
 	externalIP   string
 	externalPort int
@@ -104,8 +107,8 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	}
 }
 
-//checkAppAccess try to access APP via VNC with timer
-func checkAppAccess() projects.ProcTimerFunc {
+//checkVNCAccess try to access APP via VNC with timer
+func checkVNCAccess() projects.ProcTimerFunc {
 	return func() error {
 		if externalIP == "" {
 			return nil
@@ -115,6 +118,28 @@ func checkAppAccess() projects.ProcTimerFunc {
 			return nil
 		}
 		return fmt.Errorf("VNC DesktopName: %s. You can access it via VNC on %s:%d", desktopName, externalIP, externalPort)
+	}
+}
+
+//checkSSHAccess try to access SSH with timer
+func checkSSHAccess() projects.ProcTimerFunc {
+	return func() error {
+		if externalIP == "" {
+			return nil
+		}
+		config := &ssh.ClientConfig{
+			User: "ubuntu",
+			Auth: []ssh.AuthMethod{
+				ssh.Password("passw0rd"),
+			},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Timeout:         defaults.DefaultRepeatTimeout,
+		}
+		_, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", externalIP, *sshPort), config)
+		if err != nil {
+			return nil
+		}
+		return fmt.Errorf("SSH success. You can access it via SSH on %s:%d", externalIP, *sshPort)
 	}
 }
 
@@ -135,7 +160,7 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 
 //TestVNCVMStart gets EdgeNode and deploys app, defined in appLink with VncDisplay
 //it generates random appName and adds processing functions
-//it checks if app processed by EVE, app in RUNNING state, VNC of app is accessible
+//it checks if app processed by EVE, app in RUNNING state, VNC and SSH of app is accessible
 //it uses timewait for processing all events
 func TestVNCVMStart(t *testing.T) {
 
@@ -155,7 +180,21 @@ func TestVNCVMStart(t *testing.T) {
 		return *appLink
 	}
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, expect.WithMetadata(*metadata), expect.WithVnc(uint32(*vncDisplay)))
+	var opts []expect.ExpectationOption
+
+	opts = append(opts, expect.WithMetadata(*metadata))
+
+	opts = append(opts, expect.WithVnc(uint32(*vncDisplay)))
+
+	if *sshPort != 0 {
+
+		portPublish := []string{fmt.Sprintf("%d:%d", *sshPort, 22)}
+
+		opts = append(opts, expect.WithPortsPublish(portPublish))
+
+	}
+
+	expectation := expect.AppExpectationFromUrl(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, opts...)
 
 	appInstanceConfig := expectation.Application()
 
@@ -177,7 +216,15 @@ func TestVNCVMStart(t *testing.T) {
 
 	t.Log("Add trying to access VNC of app")
 
-	tc.AddProcTimer(edgeNode, checkAppAccess())
+	tc.AddProcTimer(edgeNode, checkVNCAccess())
+
+	if *sshPort != 0 {
+
+		t.Log("Add trying to access SSH of app")
+
+		tc.AddProcTimer(edgeNode, checkSSHAccess())
+
+	}
 
 	tc.WaitForProc(*timewait)
 }
