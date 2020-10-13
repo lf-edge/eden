@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
@@ -27,10 +28,12 @@ import (
 // and removes app from EVE
 
 var (
-	timewait     = flag.Int("timewait", 300, "Timewait for items waiting in seconds")
+	timewait     = flag.Int("timewait", 1000, "Timewait for items waiting in seconds")
 	name         = flag.String("name", "", "Name of app, random if empty")
 	vncDisplay   = flag.Int("vncDisplay", 1, "VNC display number")
 	sshPort      = flag.Int("sshPort", 8027, "Port to publish ssh")
+	cpus         = flag.Uint("cpus", 2, "Cpu number for app")
+	memory       = flag.String("memory", "1G", "Memory for app")
 	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
 	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/focal/release-20200921.1/ubuntu-20.04-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	tc           *projects.TestContext
@@ -93,7 +96,7 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 			if eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]"); err != nil {
 				return nil
 			} else {
-				if ip, _, err := net.ParseCIDR(eveIPCIDR.String()); err != nil {
+				if ip := net.ParseIP(eveIPCIDR.String()); ip == nil || ip.To4() == nil {
 					return nil
 				} else {
 					externalIP = ip.To4().String()
@@ -181,6 +184,13 @@ func TestVNCVMStart(t *testing.T) {
 	}
 
 	var opts []expect.ExpectationOption
+
+	appMemoryParsed, err := humanize.ParseBytes(*memory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts = append(opts, expect.WithResources(uint32(*cpus), uint32(appMemoryParsed/1000)))
 
 	opts = append(opts, expect.WithMetadata(*metadata))
 
