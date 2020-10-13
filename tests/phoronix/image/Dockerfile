@@ -14,5 +14,6 @@ ADD entrypoint.sh /entrypoint.sh
 RUN chmod a+x /entrypoint.sh
 COPY defs/ /var/lib/phoronix-test-suite/test-suites/local/
 EXPOSE 80
+VOLUME ["/data"]
 ENTRYPOINT ["/bin/bash"]
 CMD ["/entrypoint.sh"]
