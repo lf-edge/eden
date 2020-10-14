@@ -206,15 +206,15 @@ func (ctx *TestContext) ConfigSync(edgeNode *device.Ctx) {
 
 //ExpandOnSuccess adds additional time to global timeout on every success check
 func (tc *TestContext) ExpandOnSuccess(secs int) {
-	tc.addTime = time.Duration(secs)
+	tc.addTime = time.Duration(secs) * time.Second
 }
 
 //WaitForProc blocking execution until the time elapses or all Procs gone
 //returns error on timeout
 func (tc *TestContext) WaitForProc(secs int) {
 	defer func() { tc.addTime = 0 }() //reset addTime on exit
-	timeout := time.Duration(secs)
-	tc.stopTime = time.Now().Add(timeout * time.Second)
+	timeout := time.Duration(secs) * time.Second
+	tc.stopTime = time.Now().Add(timeout)
 	ticker := time.NewTicker(defaults.DefaultRepeatTimeout)
 	defer ticker.Stop()
 	waitChan := make(chan struct{})
