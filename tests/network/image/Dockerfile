@@ -8,6 +8,4 @@ RUN chmod a+x /entrypoint.sh
 
 EXPOSE 80
 
-STOPSIGNAL SIGTERM
-
-CMD ["/bin/sh", "entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
