@@ -32,12 +32,14 @@ func GetControllerMode(controllerMode string) (modeType, modeURL string, err err
 
 //TestContext is main structure for running tests
 type TestContext struct {
-	cloud   controller.Cloud
-	project *Project
-	nodes   []*device.Ctx
-	procBus *processingBus
-	tests   map[*device.Ctx]*testing.T
-	states  map[*device.Ctx]*state
+	cloud    controller.Cloud
+	project  *Project
+	nodes    []*device.Ctx
+	procBus  *processingBus
+	tests    map[*device.Ctx]*testing.T
+	states   map[*device.Ctx]*state
+	stopTime time.Time
+	addTime  time.Duration
 }
 
 //NewTestContext creates new TestContext
@@ -202,30 +204,43 @@ func (ctx *TestContext) ConfigSync(edgeNode *device.Ctx) {
 	}
 }
 
+//ExpandOnSuccess adds additional time to global timeout on every success check
+func (tc *TestContext) ExpandOnSuccess(secs int) {
+	tc.addTime = time.Duration(secs)
+}
+
 //WaitForProc blocking execution until the time elapses or all Procs gone
 //returns error on timeout
 func (tc *TestContext) WaitForProc(secs int) {
-	timeout := time.Duration(secs) * time.Second
+	defer func() { tc.addTime = 0 }() //reset addTime on exit
+	timeout := time.Duration(secs)
+	tc.stopTime = time.Now().Add(timeout * time.Second)
+	ticker := time.NewTicker(defaults.DefaultRepeatTimeout)
+	defer ticker.Stop()
 	waitChan := make(chan struct{})
 	go func() {
 		tc.procBus.wg.Wait()
 		close(waitChan)
 	}()
-	select {
-	case <-waitChan:
-		for node, el := range tc.tests {
-			el.Logf("done for device %s", node.GetName())
+	for {
+		select {
+		case <-waitChan:
+			for node, el := range tc.tests {
+				el.Logf("done for device %s", node.GetName())
+			}
+			return
+		case <-ticker.C:
+			if time.Now().After(tc.stopTime) {
+				tc.procBus.clean()
+				if len(tc.tests) == 0 {
+					log.Fatalf("WaitForProc terminated by timeout %s", timeout)
+				}
+				for _, el := range tc.tests {
+					el.Errorf("WaitForProc terminated by timeout %s", timeout)
+				}
+				return
+			}
 		}
-		return
-	case <-time.After(timeout):
-		tc.procBus.clean()
-		if len(tc.tests) == 0 {
-			log.Fatalf("WaitForProc terminated by timeout %s", timeout)
-		}
-		for _, el := range tc.tests {
-			el.Errorf("WaitForProc terminated by timeout %s", timeout)
-		}
-		return
 	}
 }
 
