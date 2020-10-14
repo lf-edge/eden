@@ -49,6 +49,10 @@ func (lb *processingBus) clean() {
 
 func (lb *processingBus) processReturn(edgeNode *device.Ctx, procFunc *absFunc, result error) {
 	if result != nil {
+		if lb.tc.addTime != 0 {
+			log.Infof("Expand timewait by %s", lb.tc.addTime)
+			lb.tc.stopTime.Add(lb.tc.addTime)
+		}
 		procFunc.disabled = true
 		lb.wg.Done()
 		toRet := fmt.Sprintf("%T done with return: \"%s\"", procFunc.proc, result)

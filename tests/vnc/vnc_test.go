@@ -28,11 +28,12 @@ import (
 // and removes app from EVE
 
 var (
-	timewait     = flag.Int("timewait", 1000, "Timewait for items waiting in seconds")
+	timewait     = flag.Int("timewait", 600, "Timewait for items waiting in seconds")
+	expand       = flag.Int("expand", 300, "Expand timewait on success of step in seconds")
 	name         = flag.String("name", "", "Name of app, random if empty")
 	vncDisplay   = flag.Int("vncDisplay", 1, "VNC display number")
 	sshPort      = flag.Int("sshPort", 8027, "Port to publish ssh")
-	cpus         = flag.Uint("cpus", 2, "Cpu number for app")
+	cpus         = flag.Uint("cpus", 1, "Cpu number for app")
 	memory       = flag.String("memory", "1G", "Memory for app")
 	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
 	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/focal/release-20200921.1/ubuntu-20.04-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
@@ -235,6 +236,8 @@ func TestVNCVMStart(t *testing.T) {
 		tc.AddProcTimer(edgeNode, checkSSHAccess())
 
 	}
+
+	tc.ExpandOnSuccess(*expand)
 
 	tc.WaitForProc(*timewait)
 }
