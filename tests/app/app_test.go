@@ -3,21 +3,20 @@ package lim
 import (
 	"flag"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/projects"
-	"github.com/lf-edge/eve/api/go/info"
 	"os"
-	"sort"
 	"testing"
 	"time"
+
+	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/info"
 )
 
 // This test wait for the app's state with a timewait.
 var (
-	timewait    = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
-	tc          *projects.TestContext
-	externalIP  string
-	portPublish []string
-	found       []string
+	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
+	tc       *projects.TestContext
+	found    []string
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -46,12 +45,10 @@ func TestMain(m *testing.M) {
 func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		out := "\n"
-		//fmt.Println("msg: ", msg)
 		if state == "-" {
 			if msg.Ztype == info.ZInfoTypes_ZiDevice {
-				//fmt.Println("msg.GetDinfo().AppInstances: ", msg.GetDinfo().AppInstances)
 				for _, app := range msg.GetDinfo().AppInstances {
-					if sort.SearchStrings(appNames, app.Name) != len(appNames) {
+					if _, inSlice := utils.FindEleInSlice(appNames, app.Name); inSlice {
 						return nil
 					}
 				}
@@ -64,18 +61,19 @@ func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 			}
 		} else {
 			if msg.Ztype == info.ZInfoTypes_ZiApp {
-				//fmt.Println("msg: ", msg)
 				app := msg.GetAinfo()
-				if sort.SearchStrings(appNames, app.AppName) != len(appNames) {
+				if _, inSlice := utils.FindEleInSlice(appNames, app.AppName); inSlice {
 					astate := app.State.String()
 					if state == astate {
-						found = append(found, app.AppName)
+						if _, inFoundSlice := utils.FindEleInSlice(found, app.AppName); !inFoundSlice {
+							found = append(found, app.AppName)
+						}
 					}
 				}
 			}
 			if len(found) == len(appNames) {
 				for _, appName := range appNames {
-					if sort.SearchStrings(found, appName) != len(found) {
+					if _, inFoundSlice := utils.FindEleInSlice(found, appName); inFoundSlice {
 						out += fmt.Sprintf(
 							"app %s state %s\n",
 							appName, state)
@@ -89,9 +87,9 @@ func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 	}
 }
 
-//TestAppSatus wait for application reaching the selected state
+//TestAppStatus wait for application reaching the selected state
 //with a timewait
-func TestAppSatus(t *testing.T) {
+func TestAppStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	args := flag.Args()
@@ -105,7 +103,6 @@ func TestAppSatus(t *testing.T) {
 			args, state, secs)
 
 		apps := args[1:]
-		sort.Strings(apps)
 		tc.AddProcInfo(edgeNode, checkApp(state, apps))
 
 		tc.WaitForProc(secs)
