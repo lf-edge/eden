@@ -1,0 +1,14 @@
+---
+name: golint
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    branches: [master]
+
+jobs:
+  golint:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: get eden
+        uses: actions/checkout@v2
+      - name: golint
+        uses: Jerome1337/golint-action@v1.0.2
