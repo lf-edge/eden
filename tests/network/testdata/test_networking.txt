@@ -38,6 +38,9 @@ source .env
 test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/network/testdata/
 
 # execute the script for waiting RUNNING state and obtain internal IP
+message 'waiting for app1 running state'
+test eden.app.test -test.v -timewait 10m RUNNING app1
+eden pod ps
 exec -t 15m bash wait_and_get_ip.sh
 
 # read the result of parsing
@@ -47,6 +50,9 @@ source .env
 test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/network/testdata/
 
 # execute the script for waiting RUNNING state and obtain the testing sequence from the second app
+message 'waiting for app2 running state'
+test eden.app.test -test.v -timewait 10m RUNNING app2
+eden pod ps
 exec -t 15m bash wait_app2.sh
 
 # expect the testing sequence in stdout
@@ -61,6 +67,9 @@ source .env
 # deploy the third application by nested escript
 test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/network/testdata/
 
+message 'waiting for app3 running state'
+test eden.app.test -test.v -timewait 10m RUNNING app3
+eden pod ps
 exec -t 15m bash wait_app3.sh
 # expect no testing sequence in stdout
 ! stdout '{{$test_data}}'
@@ -70,17 +79,12 @@ eden pod delete app1
 eden pod delete app2
 eden pod delete app3
 
-exec -t 15m bash wait_apps_teardown.sh
+message 'waiting for apps removed state'
+test eden.app.test -test.v -timewait 20m - app1 app2 app3
+stdout 'no app with app1 found'
+stdout 'no app with app2 found'
+stdout 'no app with app3 found'
 
-# Test's config file
--- eden-config.yml --
-test:
-    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
-    eve:
-      {{EdenConfig "eve.name"}}:
-        onboard-cert: {{EdenConfigPath "eve.cert"}}
-        serial: "{{EdenConfig "eve.serial"}}"
-        model: {{EdenConfig "eve.devmodel"}}
 
 -- networks_process.sh --
 #!/bin/sh
@@ -97,10 +101,7 @@ echo firewall=false>>.env
 -- wait_and_get_ip.sh --
 #!/bin/sh
 
-echo "waiting for app1 running state"
-
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-until $EDEN pod ps | grep app1 | grep RUNNING; do sleep 3; done
 $EDEN pod ps>pod_ps
 
 echo "defining of environment variables for the second app"
@@ -115,10 +116,7 @@ echo firewall=false>>.env
 -- wait_app2.sh --
 #!/bin/sh
 
-echo "waiting for app2 running state"
-
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-until $EDEN pod ps | grep app2 | grep RUNNING; do sleep 3; done
 
 echo "waiting for the second app response"
 
@@ -140,10 +138,7 @@ echo firewall=true>>.env
 -- wait_app3.sh --
 #!/bin/sh
 
-echo "waiting for app3 running state"
-
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-until $EDEN pod ps | grep app3 | grep RUNNING; do sleep 3; done
 
 echo "waiting for the third app response"
 
@@ -156,15 +151,12 @@ sleep 10
 address=http://$($EDEN pod ps|grep app3|grep -o -E '([0-9]{1,3}[\.]){3}[0-9]{1,3}:8028')/received-data.html
 until curl $address; do sleep 3; done
 
--- wait_apps_teardown.sh --
-#!/bin/sh
-
-echo "waiting for apps removed state"
-
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-while $EDEN pod ps | grep app | grep RUNNING; do sleep 10; done
-
-echo "apps removed"
-
-echo "sleep for 5 seconds"
-sleep 5
+-- eden-config.yml --
+{{/* Test's config file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
