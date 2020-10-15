@@ -39,8 +39,10 @@ type LogCheckerMode int
 type LogFormat byte
 
 const (
+	//LogLines returns log line by line
 	LogLines LogFormat = iota
-	LogJson
+	//LogJSON returns log in JSON format
+	LogJSON
 )
 
 //LogTail returns LogCheckerMode for process only defined count of last messages
@@ -115,6 +117,7 @@ func LogItemFind(le LogItem, query map[string]string) bool {
 	return matched
 }
 
+//HandleFactory implements HandlerFunc which prints log in the provided format
 func HandleFactory(format LogFormat, once bool) HandlerFunc {
 	return func(le *LogItem) bool {
 		LogPrn(le, format)
@@ -125,7 +128,7 @@ func HandleFactory(format LogFormat, once bool) HandlerFunc {
 //LogPrn print Log data
 func LogPrn(le *LogItem, format LogFormat) {
 	switch format {
-	case LogJson:
+	case LogJSON:
 		enc := json.NewEncoder(os.Stdout)
 		enc.Encode(le)
 	case LogLines:

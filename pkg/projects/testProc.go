@@ -14,9 +14,16 @@ import (
 	"time"
 )
 
+//ProcInfoFunc provides callback to process info
 type ProcInfoFunc func(info *info.ZInfoMsg) error
+
+//ProcLogFunc provides callback to process log
 type ProcLogFunc func(log *elog.LogItem) error
+
+//ProcMetricFunc provides callback to process metric
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
+
+//ProcTimerFunc provides callback to process on timer event
 type ProcTimerFunc func() error
 
 type absFunc struct {

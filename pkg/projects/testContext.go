@@ -37,7 +37,7 @@ type TestContext struct {
 	nodes    []*device.Ctx
 	procBus  *processingBus
 	tests    map[*device.Ctx]*testing.T
-	states   map[*device.Ctx]*state
+	states   map[*device.Ctx]*State
 	stopTime time.Time
 	addTime  time.Duration
 }
@@ -91,7 +91,7 @@ func NewTestContext() *TestContext {
 }
 
 //GetNodeDescriptions returns list of nodes from config
-func (ctx *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
+func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	eveList := viper.GetStringMap("test.eve")
 	for name := range eveList {
 		eveKey := viper.GetString(fmt.Sprintf("test.eve.%s.onboard-cert", name))
@@ -103,57 +103,58 @@ func (ctx *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 }
 
 //GetController returns current controller
-func (ctx *TestContext) GetController() controller.Cloud {
-	if ctx.cloud == nil {
+func (tc *TestContext) GetController() controller.Cloud {
+	if tc.cloud == nil {
 		log.Fatal("Controller not initialized")
 	}
-	return ctx.cloud
+	return tc.cloud
 }
 
 //InitProject init project object with defined name
-func (ctx *TestContext) InitProject(name string) {
-	ctx.project = &Project{name: name}
+func (tc *TestContext) InitProject(name string) {
+	tc.project = &Project{name: name}
 }
 
 //AddEdgeNodesFromDescription adds EdgeNodes from description in test.eve param
-func (ctx *TestContext) AddEdgeNodesFromDescription() {
-	for _, node := range ctx.GetNodeDescriptions() {
-		edgeNode := ctx.GetController().GetEdgeNode(node.Name)
+func (tc *TestContext) AddEdgeNodesFromDescription() {
+	for _, node := range tc.GetNodeDescriptions() {
+		edgeNode := tc.GetController().GetEdgeNode(node.Name)
 		if edgeNode == nil {
-			edgeNode = ctx.NewEdgeNode(ctx.WithNodeDescription(node), ctx.WithCurrentProject())
+			edgeNode = tc.NewEdgeNode(tc.WithNodeDescription(node), tc.WithCurrentProject())
 		} else {
-			ctx.UpdateEdgeNode(edgeNode, ctx.WithCurrentProject(), ctx.WithDeviceModel(node.Model))
+			tc.UpdateEdgeNode(edgeNode, tc.WithCurrentProject(), tc.WithDeviceModel(node.Model))
 		}
 
 		if edgeNode.GetState() == device.NotOnboarded {
 			log.Fatal("Node is not onboarded now")
 		}
 
-		ctx.AddNode(edgeNode)
+		tc.AddNode(edgeNode)
 	}
 }
 
+//GetEdgeNodeOpts pattern to pass device modifications
 type GetEdgeNodeOpts func(*device.Ctx) bool
 
 //FilterByName check EdgeNode name
-func (ctx *TestContext) FilterByName(name string) GetEdgeNodeOpts {
+func (tc *TestContext) FilterByName(name string) GetEdgeNodeOpts {
 	return func(d *device.Ctx) bool {
 		return d.GetName() == name
 	}
 }
 
 //WithTest assign *testing.T for device
-func (ctx *TestContext) WithTest(t *testing.T) GetEdgeNodeOpts {
+func (tc *TestContext) WithTest(t *testing.T) GetEdgeNodeOpts {
 	return func(d *device.Ctx) bool {
-		ctx.tests[d] = t
+		tc.tests[d] = t
 		return true
 	}
 }
 
 //GetEdgeNode return node from context
-func (ctx *TestContext) GetEdgeNode(opts ...GetEdgeNodeOpts) *device.Ctx {
+func (tc *TestContext) GetEdgeNode(opts ...GetEdgeNodeOpts) *device.Ctx {
 Node:
-	for _, el := range ctx.nodes {
+	for _, el := range tc.nodes {
 		for _, opt := range opts {
 			if !opt(el) {
 				continue Node
@@ -165,41 +166,41 @@ Node:
 }
 
 //AddNode add node to test context
-func (ctx *TestContext) AddNode(node *device.Ctx) {
-	ctx.nodes = append(ctx.nodes, node)
+func (tc *TestContext) AddNode(node *device.Ctx) {
+	tc.nodes = append(tc.nodes, node)
 }
 
 //UpdateEdgeNode update edge node
-func (ctx *TestContext) UpdateEdgeNode(edgeNode *device.Ctx, opts ...EdgeNodeOption) {
+func (tc *TestContext) UpdateEdgeNode(edgeNode *device.Ctx, opts ...EdgeNodeOption) {
 	for _, opt := range opts {
 		opt(edgeNode)
 	}
-	ctx.ConfigSync(edgeNode)
+	tc.ConfigSync(edgeNode)
 }
 
 //NewEdgeNode creates edge node
-func (ctx *TestContext) NewEdgeNode(opts ...EdgeNodeOption) *device.Ctx {
+func (tc *TestContext) NewEdgeNode(opts ...EdgeNodeOption) *device.Ctx {
 	d := device.CreateEdgeNode()
 	for _, opt := range opts {
 		opt(d)
 	}
-	if ctx.project == nil {
+	if tc.project == nil {
 		log.Fatal("You must setup project before add node")
 	}
-	ctx.ConfigSync(d)
+	tc.ConfigSync(d)
 	return d
 }
 
 //ConfigSync send config to controller
-func (ctx *TestContext) ConfigSync(edgeNode *device.Ctx) {
+func (tc *TestContext) ConfigSync(edgeNode *device.Ctx) {
 	if edgeNode.GetState() == device.NotOnboarded {
-		if err := ctx.GetController().OnBoardDev(edgeNode); err != nil {
+		if err := tc.GetController().OnBoardDev(edgeNode); err != nil {
 			log.Fatalf("OnBoardDev %s", err)
 		}
 	} else {
 		log.Debug("Device %s onboarded", edgeNode.GetID().String())
 	}
-	if err := ctx.GetController().ConfigSync(edgeNode); err != nil {
+	if err := tc.GetController().ConfigSync(edgeNode); err != nil {
 		log.Fatalf("Cannot send config of %s", edgeNode.GetName())
 	}
 }
@@ -264,10 +265,10 @@ func (tc *TestContext) AddProcTimer(edgeNode *device.Ctx, processFunction ProcTi
 	tc.procBus.addProc(edgeNode, processFunction)
 }
 
-//StartTrackingState init function for state monitoring
+//StartTrackingState init function for State monitoring
 //if onlyNewElements set no use old information from controller
 func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
-	tc.states = map[*device.Ctx]*state{}
+	tc.states = map[*device.Ctx]*State{}
 	for _, dev := range tc.nodes {
 		curState := InitState(dev)
 		tc.states[dev] = curState
@@ -284,7 +285,7 @@ func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 	}
 }
 
-//WaitForState wait for state initialization from controller
+//WaitForState wait for State initialization from controller
 func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 	state, isOk := tc.states[edgeNode]
 	if !isOk {
@@ -297,17 +298,16 @@ func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 			if state.CheckReady() {
 				close(waitChan)
 				return
-			} else {
-				time.Sleep(defaults.DefaultRepeatTimeout)
 			}
+			time.Sleep(defaults.DefaultRepeatTimeout)
 		}
 	}()
 	select {
 	case <-waitChan:
 		if el, isOk := tc.tests[edgeNode]; !isOk {
-			log.Println("done waiting for state")
+			log.Println("done waiting for State")
 		} else {
-			el.Logf("done waiting for state")
+			el.Logf("done waiting for State")
 		}
 		return
 	case <-time.After(timeout):
@@ -321,7 +321,7 @@ func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 	}
 }
 
-//GetState returns state object for edgeNode
-func (tc *TestContext) GetState(edgeNode *device.Ctx) *state {
+//GetState returns State object for edgeNode
+func (tc *TestContext) GetState(edgeNode *device.Ctx) *State {
 	return tc.states[edgeNode]
 }

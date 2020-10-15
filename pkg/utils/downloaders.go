@@ -103,14 +103,14 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 	if eve.Format == "gcp" {
 		size = eve.ImageSizeMB
 	}
-	if fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size); err != nil {
+	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size)
+	if err != nil {
 		return fmt.Errorf("genEVEImage: %s", err)
-	} else {
-		if err = CopyFile(fileName, outputFile); err != nil {
-			return fmt.Errorf("cannot copy image %s", err)
-		}
-		return nil
 	}
+	if err = CopyFile(fileName, outputFile); err != nil {
+		return fmt.Errorf("cannot copy image %s", err)
+	}
+	return nil
 }
 
 //genEVELiveImage downloads EVE live image from docker to outputDir with configDir (if defined)
@@ -149,11 +149,11 @@ func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, e
 		return "", fmt.Errorf("ImagePull (%s): %s", image, err)
 	}
 	var size int
-	if fileName, err := genEVERootFSImage(image, outputDir, size); err != nil {
+	fileName, err := genEVERootFSImage(image, outputDir, size)
+	if err != nil {
 		return "", fmt.Errorf("genEVEImage: %s", err)
-	} else {
-		return filepath.Join(outputDir, filepath.Base(fileName)), nil
 	}
+	return filepath.Join(outputDir, filepath.Base(fileName)), nil
 }
 
 //genEVERootFSImage downloads EVE rootfs image from docker to outputDir

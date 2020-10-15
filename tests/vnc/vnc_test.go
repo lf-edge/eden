@@ -71,9 +71,8 @@ func TestMain(m *testing.M) {
 func getVNCPort(edgeNode *device.Ctx, vncDisplay int) int {
 	if edgeNode.GetDevModel() == defaults.DefaultRPIModel || edgeNode.GetDevModel() == defaults.DefaultGCPModel {
 		return 5900 + vncDisplay
-	} else {
-		return 5910 + vncDisplay //forwarded by qemu ports
 	}
+	return 5910 + vncDisplay //forwarded by qemu ports
 }
 
 //checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
@@ -94,20 +93,19 @@ func checkAppRunning(appName string) projects.ProcInfoFunc {
 func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
-			if eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]"); err != nil {
+			eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]")
+			if err != nil {
 				return nil
-			} else {
-				if ip := net.ParseIP(eveIPCIDR.String()); ip == nil || ip.To4() == nil {
-					return nil
-				} else {
-					externalIP = ip.To4().String()
-					return fmt.Errorf("external ip is: %s", externalIP)
-				}
 			}
+			ip := net.ParseIP(eveIPCIDR.String())
+			if ip == nil || ip.To4() == nil {
+				return nil
+			}
+			externalIP = ip.To4().String()
 		} else {
 			externalIP = edgeNode.GetRemoteAddr()
-			return fmt.Errorf("external ip is: %s", externalIP)
 		}
+		return fmt.Errorf("external ip is: %s", externalIP)
 	}
 }
 
@@ -205,7 +203,7 @@ func TestVNCVMStart(t *testing.T) {
 
 	}
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, opts...)
+	expectation := expect.AppExpectationFromURL(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, opts...)
 
 	appInstanceConfig := expectation.Application()
 

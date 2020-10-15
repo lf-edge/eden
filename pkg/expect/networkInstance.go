@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-//netInstanceExpectation stores options for create NetworkInstanceConfigs for apps
-type netInstanceExpectation struct {
+//NetInstanceExpectation stores options for create NetworkInstanceConfigs for apps
+type NetInstanceExpectation struct {
 	name          string
 	subnet        string
 	portsReceived []string
@@ -20,7 +20,7 @@ type netInstanceExpectation struct {
 }
 
 //checkNetworkInstance checks if provided netInst match expectation
-func (exp *appExpectation) checkNetworkInstance(netInst *config.NetworkInstanceConfig, instanceExpect *netInstanceExpectation) bool {
+func (exp *AppExpectation) checkNetworkInstance(netInst *config.NetworkInstanceConfig, instanceExpect *NetInstanceExpectation) bool {
 	if netInst == nil {
 		return false
 	}
@@ -32,8 +32,8 @@ func (exp *appExpectation) checkNetworkInstance(netInst *config.NetworkInstanceC
 	return false
 }
 
-//createNetworkInstance creates NetworkInstanceConfig for appExpectation
-func (exp *appExpectation) createNetworkInstance(instanceExpect *netInstanceExpectation) (*config.NetworkInstanceConfig, error) {
+//createNetworkInstance creates NetworkInstanceConfig for AppExpectation
+func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpectation) (*config.NetworkInstanceConfig, error) {
 	var netInst *config.NetworkInstanceConfig
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -77,8 +77,8 @@ func (exp *appExpectation) createNetworkInstance(instanceExpect *netInstanceExpe
 
 //NetworkInstances expects network instances in cloud
 //it iterates over NetworkInstanceConfigs from exp.netInstances, gets or creates new one, if not exists
-func (exp *appExpectation) NetworkInstances() (networkInstances map[*netInstanceExpectation]*config.NetworkInstanceConfig) {
-	networkInstances = make(map[*netInstanceExpectation]*config.NetworkInstanceConfig)
+func (exp *AppExpectation) NetworkInstances() (networkInstances map[*NetInstanceExpectation]*config.NetworkInstanceConfig) {
+	networkInstances = make(map[*NetInstanceExpectation]*config.NetworkInstanceConfig)
 	for _, ni := range exp.netInstances {
 		var err error
 		var networkInstance *config.NetworkInstanceConfig

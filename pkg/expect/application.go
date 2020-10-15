@@ -17,7 +17,7 @@ type appBundle struct {
 }
 
 //checkAppInstanceConfig checks if provided app match expectation
-func (exp *appExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig) bool {
+func (exp *AppExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig) bool {
 	if app == nil {
 		return false
 	}
@@ -28,8 +28,8 @@ func (exp *appExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig)
 }
 
 //createAppInstanceConfig creates AppInstanceConfig with provided img and netInstances
-//  it uses published ports info from appExpectation to create ACE
-func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstances map[*netInstanceExpectation]*config.NetworkInstanceConfig) (*appBundle, error) {
+//  it uses published ports info from AppExpectation to create ACE
+func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstances map[*NetInstanceExpectation]*config.NetworkInstanceConfig) (*appBundle, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 
 	for k, ni := range netInstances {
 		var acls []*config.ACE
-		if exp.onlyHostAcl {
+		if exp.onlyHostACL {
 			acls = append(acls, &config.ACE{
 				Matches: []*config.ACEMatch{{
 					Type: "host",
@@ -96,10 +96,10 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	}
 	var adapters []*config.Adapter
 	for _, adapterName := range exp.appAdapters {
-		adapters = append(adapters, &config.Adapter {
-				Type: evecommon.PhyIoType_PhyIoUSB,
-				Name: adapterName,
-				})
+		adapters = append(adapters, &config.Adapter{
+			Type: evecommon.PhyIoType_PhyIoUSB,
+			Name: adapterName,
+		})
 	}
 	bundle.appInstanceConfig.Adapters = adapters
 	return bundle, nil
@@ -107,7 +107,7 @@ func (exp *appExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 
 //Application expectation gets or creates Image definition, gets or create NetworkInstance definition,
 //gets AppInstanceConfig and returns it or creates AppInstanceConfig, adds it into internal controller and returns it
-func (exp *appExpectation) Application() *config.AppInstanceConfig {
+func (exp *AppExpectation) Application() *config.AppInstanceConfig {
 	image := exp.Image()
 	networkInstances := exp.NetworkInstances()
 	for _, app := range exp.ctrl.ListApplicationInstanceConfig() {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+//EServer stores info about settings
 type EServer struct {
 	Port    string
 	Address string
@@ -46,7 +47,7 @@ func (s *EServer) Start() {
 	router.Use(logRequest)
 
 	ad.HandleFunc("/list", admin.list).Methods("GET")
-	ad.HandleFunc("/add-from-url", admin.addFromUrl).Methods("POST")
+	ad.HandleFunc("/add-from-url", admin.addFromURL).Methods("POST")
 	ad.HandleFunc("/add-from-file", admin.addFromFile).Methods("POST")
 	ad.HandleFunc("/status/{filename}", admin.getFileStatus).Methods("GET")
 

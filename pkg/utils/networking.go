@@ -151,8 +151,8 @@ func inc(ip net.IP) {
 	}
 }
 
-//GetFileSizeUrl returns file size for url
-func GetFileSizeUrl(url string) int64 {
+//GetFileSizeURL returns file size for url
+func GetFileSizeURL(url string) int64 {
 	resp, err := http.Head(url)
 	if err != nil {
 		log.Fatal(err)

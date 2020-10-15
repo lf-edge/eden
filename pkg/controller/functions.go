@@ -36,10 +36,12 @@ func CloudPrepare() (Cloud, error) {
 	return ctx, nil
 }
 
+//GetVars returns variables of controller
 func (cloud *CloudCtx) GetVars() *utils.ConfigVars {
 	return cloud.vars
 }
 
+//SetVars sets variables of controller
 func (cloud *CloudCtx) SetVars(vars *utils.ConfigVars) {
 	cloud.vars = vars
 }
@@ -114,13 +116,13 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 					fmt.Println()
 					deviceModel.SetWiFiParams(cloud.vars.EveSSID, wifiPSK)
 				}
-				if cloud.vars.SshKey != "" {
-					b, err := ioutil.ReadFile(cloud.vars.SshKey)
+				if cloud.vars.SSHKey != "" {
+					b, err := ioutil.ReadFile(cloud.vars.SSHKey)
 					switch {
 					case err != nil && os.IsNotExist(err):
-						return fmt.Errorf("sshKey file %s does not exist", cloud.vars.SshKey)
+						return fmt.Errorf("sshKey file %s does not exist", cloud.vars.SSHKey)
 					case err != nil:
-						return fmt.Errorf("error reading sshKey file %s: %v", cloud.vars.SshKey, err)
+						return fmt.Errorf("error reading sshKey file %s: %v", cloud.vars.SSHKey, err)
 					}
 					node.SetConfigItem("debug.enable.ssh", string(b))
 				}
@@ -143,25 +145,25 @@ func VersionIncrement(configOld []byte) ([]byte, error) {
 	if err := json.Unmarshal(configOld, &deviceConfig); err != nil {
 		return nil, fmt.Errorf("unmarshal error: %s", err)
 	}
-	existingId := deviceConfig.Id
+	existingID := deviceConfig.Id
 	oldVersion := 0
-	newVersion, versionError := strconv.Atoi(existingId.Version)
+	newVersion, versionError := strconv.Atoi(existingID.Version)
 	if versionError == nil {
 		oldVersion = newVersion
 		newVersion++
 	}
 	if deviceConfig.Id == nil {
 		if versionError != nil {
-			return nil, fmt.Errorf("cannot automatically non-number bump version %s", existingId.Version)
+			return nil, fmt.Errorf("cannot automatically non-number bump version %s", existingID.Version)
 		}
 		deviceConfig.Id = &config.UUIDandVersion{
-			Uuid:    existingId.Uuid,
+			Uuid:    existingID.Uuid,
 			Version: strconv.Itoa(newVersion),
 		}
 	} else {
 		if deviceConfig.Id.Version == "" {
 			if versionError != nil {
-				return nil, fmt.Errorf("cannot automatically non-number bump version %s", existingId.Version)
+				return nil, fmt.Errorf("cannot automatically non-number bump version %s", existingID.Version)
 			}
 			deviceConfig.Id.Version = strconv.Itoa(newVersion)
 		} else {

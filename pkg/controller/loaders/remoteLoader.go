@@ -19,29 +19,32 @@ import (
 )
 
 const (
+	//StreamHeader to pass for observe stream via http
 	StreamHeader = "X-Stream"
-	StreamValue  = "true"
+	//StreamValue enable stream
+	StreamValue = "true"
 )
 
 type getClient = func() *http.Client
 
-type remoteLoader struct {
+//RemoteLoader implements loader from http backend of controller
+type RemoteLoader struct {
 	curCount     uint64
 	lastCount    uint64
 	lastTimesamp *timestamp.Timestamp
 	firstLoad    bool
 	devUUID      uuid.UUID
 	appUUID      uuid.UUID
-	urlGetters   types.UrlGetters
+	urlGetters   types.URLGetters
 	getClient    getClient
 	client       *http.Client
 	cache        cachers.CacheProcessor
 }
 
-//RemoteLoader return loader from files
-func RemoteLoader(getClient getClient, urlGetters types.UrlGetters) *remoteLoader {
-	log.Debugf("HTTP RemoteLoader init")
-	return &remoteLoader{
+//NewRemoteLoader return loader from files
+func NewRemoteLoader(getClient getClient, urlGetters types.URLGetters) *RemoteLoader {
+	log.Debugf("HTTP NewRemoteLoader init")
+	return &RemoteLoader{
 		urlGetters:   urlGetters,
 		getClient:    getClient,
 		firstLoad:    true,
@@ -51,13 +54,13 @@ func RemoteLoader(getClient getClient, urlGetters types.UrlGetters) *remoteLoade
 }
 
 //SetRemoteCache add cache layer
-func (loader *remoteLoader) SetRemoteCache(cache cachers.CacheProcessor) {
+func (loader *RemoteLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
 //Clone create copy
-func (loader *remoteLoader) Clone() Loader {
-	return &remoteLoader{
+func (loader *RemoteLoader) Clone() Loader {
+	return &RemoteLoader{
 		urlGetters:   loader.urlGetters,
 		getClient:    loader.getClient,
 		firstLoad:    true,
@@ -69,34 +72,34 @@ func (loader *remoteLoader) Clone() Loader {
 	}
 }
 
-func (loader *remoteLoader) getUrl(typeToProcess types.LoaderObjectType) string {
+func (loader *RemoteLoader) getURL(typeToProcess types.LoaderObjectType) string {
 	switch typeToProcess {
 	case types.LogsType:
-		return loader.urlGetters.UrlLogs(loader.devUUID)
+		return loader.urlGetters.URLLogs(loader.devUUID)
 	case types.InfoType:
-		return loader.urlGetters.UrlInfo(loader.devUUID)
+		return loader.urlGetters.URLInfo(loader.devUUID)
 	case types.MetricsType:
-		return loader.urlGetters.UrlMetrics(loader.devUUID)
+		return loader.urlGetters.URLMetrics(loader.devUUID)
 	case types.RequestType:
-		return loader.urlGetters.UrlRequest(loader.devUUID)
+		return loader.urlGetters.URLRequest(loader.devUUID)
 	case types.AppsType:
-		return loader.urlGetters.UrlApps(loader.devUUID, loader.appUUID)
+		return loader.urlGetters.URLApps(loader.devUUID, loader.appUUID)
 	default:
 		return ""
 	}
 }
 
 //SetUUID set device UUID
-func (loader *remoteLoader) SetUUID(devUUID uuid.UUID) {
+func (loader *RemoteLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-//SetUUID set app UUID
-func (loader *remoteLoader) SetAppUUID(appUUID uuid.UUID) {
+//SetAppUUID set app UUID
+func (loader *RemoteLoader) SetAppUUID(appUUID uuid.UUID) {
 	loader.appUUID = appUUID
 }
 
-func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, tocontinue bool, err error) {
+func (loader *RemoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, tocontinue bool, err error) {
 	var buf bytes.Buffer
 	switch typeToProcess {
 	case types.LogsType:
@@ -140,8 +143,8 @@ func (loader *remoteLoader) processNext(decoder *json.Decoder, process ProcessFu
 	return true, tocontinue, err
 }
 
-func (loader *remoteLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
-	u := loader.getUrl(typeToProcess)
+func (loader *RemoteLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
+	u := loader.getURL(typeToProcess)
 	log.Debugf("remote controller request %s", u)
 	req, err := http.NewRequest("GET", u, nil)
 	if stream {
@@ -167,7 +170,7 @@ func infoProcessInit(bytes []byte) (bool, error) {
 	return true, nil
 }
 
-func (loader *remoteLoader) repeatableConnection(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) error {
+func (loader *RemoteLoader) repeatableConnection(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) error {
 	if !stream {
 		loader.client.Timeout = time.Second * 10
 	} else {
@@ -200,10 +203,10 @@ repeatLoop:
 						}
 					}
 				}
-				if _, _, err := loader.process(process, typeToProcess, stream); err == nil {
-					return nil
-				} else {
+				if _, _, err := loader.process(process, typeToProcess, stream); err != nil {
 					log.Debugf("error in controller request", err)
+				} else {
+					return nil
 				}
 			}
 		}
@@ -215,12 +218,12 @@ repeatLoop:
 }
 
 //ProcessExisting for observe existing files
-func (loader *remoteLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
+func (loader *RemoteLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	return loader.repeatableConnection(process, typeToProcess, false)
 }
 
-//ProcessExisting for observe new files
-func (loader *remoteLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
+//ProcessStream for observe new files
+func (loader *RemoteLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	done := make(chan error)
 	if timeoutSeconds == 0 {
 		timeoutSeconds = -1

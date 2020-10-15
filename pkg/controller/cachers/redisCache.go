@@ -14,7 +14,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type redisCache struct {
+//RedisCache object provides caching objects from controller into redis
+type RedisCache struct {
 	addr          string
 	password      string
 	databaseID    int
@@ -22,8 +23,9 @@ type redisCache struct {
 	client        *redis.Client
 }
 
-func RedisCache(addr string, password string, databaseID int, streamGetters types.StreamGetters) *redisCache {
-	return &redisCache{
+//NewRedisCache creates new RedisCache with provided settings
+func NewRedisCache(addr string, password string, databaseID int, streamGetters types.StreamGetters) *RedisCache {
+	return &RedisCache{
 		addr:          addr,
 		password:      password,
 		databaseID:    databaseID,
@@ -31,7 +33,7 @@ func RedisCache(addr string, password string, databaseID int, streamGetters type
 	}
 }
 
-func (cacher *redisCache) newRedisClient() (*redis.Client, error) {
+func (cacher *RedisCache) newRedisClient() (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cacher.addr,
 		Password: cacher.password,
@@ -41,7 +43,8 @@ func (cacher *redisCache) newRedisClient() (*redis.Client, error) {
 	return client, err
 }
 
-func (cacher *redisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) (err error) {
+//CheckAndSave process LoaderObjectType from data
+func (cacher *RedisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) (err error) {
 	if cacher.client == nil {
 		if cacher.client, err = cacher.newRedisClient(); err != nil {
 			return err
@@ -116,7 +119,7 @@ func (cacher *redisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.Lo
 	})
 	var key string
 	if key, err = strCMD.Result(); err != nil {
-		return fmt.Errorf("XAdd error:%v\n", err)
+		return fmt.Errorf("error in XAdd:%v", err)
 	}
 	log.Debugf("ready with write to redis %s: %s", key, data)
 	return nil

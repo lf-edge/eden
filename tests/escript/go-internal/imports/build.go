@@ -195,7 +195,10 @@ func MatchFile(name string, tags map[string]bool) bool {
 	return true
 }
 
+//KnownOS stores os
 var KnownOS = make(map[string]bool)
+
+//KnownArch stores arch
 var KnownArch = make(map[string]bool)
 
 func init() {

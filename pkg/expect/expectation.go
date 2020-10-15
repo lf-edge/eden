@@ -26,11 +26,11 @@ var (
 	fileApp   appType = 4 //for application with image from file path
 )
 
-//appExpectation is description of app, expected to run on EVE
-type appExpectation struct {
+//AppExpectation is description of app, expected to run on EVE
+type AppExpectation struct {
 	ctrl        controller.Cloud
 	appType     appType
-	appUrl      string
+	appURL      string
 	appVersion  string
 	appName     string
 	appLink     string
@@ -43,7 +43,7 @@ type appExpectation struct {
 	vncDisplay  uint32
 	vncPassword string
 
-	netInstances []*netInstanceExpectation
+	netInstances []*NetInstanceExpectation
 
 	diskSize int64
 
@@ -55,17 +55,17 @@ type appExpectation struct {
 
 	volumesType VolumeType
 
-	onlyHostAcl bool
+	onlyHostACL bool
 
 	registry string
 }
 
-//AppExpectationFromUrl init appExpectation with defined:
+//AppExpectationFromURL init AppExpectation with defined:
 //   appLink - docker url to pull or link to qcow2 image or path to qcow2 image file
 //   podName - name of app
 //   device - device to set updates in volumes and content trees
 //   opts can be used to modify parameters of expectation
-func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink string, podName string, opts ...ExpectationOption) (expectation *appExpectation) {
+func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink string, podName string, opts ...ExpectationOption) (expectation *AppExpectation) {
 	var adapter = &config.Adapter{
 		Name: "eth0",
 		Type: evecommon.PhyIoType_PhyIoNetEth,
@@ -80,16 +80,16 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 	if ctrl.GetVars().EveQemuPorts != nil {
 		qemuPorts = ctrl.GetVars().EveQemuPorts
 	}
-	expectation = &appExpectation{
+	expectation = &AppExpectation{
 		ctrl:    ctrl,
 		appLink: appLink,
-		cpu:     defaults.DefaultAppCpu,
+		cpu:     defaults.DefaultAppCPU,
 		mem:     defaults.DefaultAppMem,
 
 		uplinkAdapter: adapter,
 		device:        device,
 		volumesType:   VolumeQcow2,
-		onlyHostAcl:   false,
+		onlyHostACL:   false,
 	}
 	switch expectation.ctrl.GetVars().ZArch {
 	case "amd64":
@@ -103,7 +103,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 		opt(expectation)
 	}
 	if expectation.netInstances == nil {
-		expectation.netInstances = []*netInstanceExpectation{{
+		expectation.netInstances = []*NetInstanceExpectation{{
 			subnet: defaults.DefaultAppSubnet,
 		}}
 	}
@@ -170,7 +170,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 		log.Fatalf("fail to parse (oci|docker|http(s)|file)://(<TAG>[:<VERSION>] | <URL> | <PATH>) from argument (%s)", appLink)
 	}
 	expectation.appType = 0
-	expectation.appUrl = ""
+	expectation.appURL = ""
 	expectation.appVersion = ""
 	ok := false
 	appType := ""
@@ -191,7 +191,7 @@ func AppExpectationFromUrl(ctrl controller.Cloud, device *device.Ctx, appLink st
 	default:
 		log.Fatalf("format not supported %s", appType)
 	}
-	if expectation.appUrl, ok = params["TAG"]; !ok || expectation.appUrl == "" {
+	if expectation.appURL, ok = params["TAG"]; !ok || expectation.appURL == "" {
 		log.Fatalf("cannot parse appTag: %s", appLink)
 	}
 	if expectation.appVersion, ok = params["VERSION"]; expectation.appType == dockerApp && (!ok || expectation.appVersion == "") {

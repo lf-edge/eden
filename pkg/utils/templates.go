@@ -54,7 +54,6 @@ func RenderTemplate(configFile string, tmpl string) (string, error) {
 			return "", err
 		}
 		return buf.String(), err
-	} else {
-		return tmpl, err
 	}
+	return tmpl, err
 }

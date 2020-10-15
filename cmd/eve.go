@@ -269,10 +269,10 @@ var sshEveCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("Cannot get controller or dev, please start them and onboard: %s", err)
 			}
-			b, err := ioutil.ReadFile(ctrl.GetVars().SshKey)
+			b, err := ioutil.ReadFile(ctrl.GetVars().SSHKey)
 			switch {
 			case err != nil:
-				log.Fatalf("error reading sshKey file %s: %v", ctrl.GetVars().SshKey, err)
+				log.Fatalf("error reading sshKey file %s: %v", ctrl.GetVars().SSHKey, err)
 			}
 			dev.SetConfigItem("debug.enable.ssh", string(b))
 			if err = ctrl.ConfigSync(dev); err != nil {
@@ -317,8 +317,9 @@ var sshEveCmd = &cobra.Command{
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			log.Debugf("Try to ssh %s:%d with key %s", eveHost, eveSSHPort, eveSSHKey)
-			if err := utils.RunCommandForeground("ssh", strings.Fields(fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveHost, commandToRun))...); err != nil {
+			arguments := fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveHost, commandToRun)
+			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
+			if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
 				log.Fatalf("ssh error: %s", err)
 			}
 		} else {

@@ -13,17 +13,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//createImageHttp downloads image into EServer directory from http/https endpoint and calculates size and sha256 of image
-func (exp *appExpectation) createImageHttp(id uuid.UUID, dsId string) *config.Image {
+//createImageHTTP downloads image into EServer directory from http/https endpoint and calculates size and sha256 of image
+func (exp *AppExpectation) createImageHTTP(id uuid.UUID, dsID string) *config.Image {
 	log.Infof("Starting download of image from %s", exp.appLink)
 	server := &eden.EServer{
-		EServerIP:   exp.ctrl.GetVars().EServerIp,
+		EServerIP:   exp.ctrl.GetVars().EServerIP,
 		EserverPort: exp.ctrl.GetVars().EServerPort,
 	}
 	var fileSize int64
 	sha256 := ""
 	filePath := ""
-	name := server.EServerAddFileUrl(exp.appLink)
+	name := server.EServerAddFileURL(exp.appLink)
 	log.Infof("Start download into eserver of %s", name)
 
 	delayTime := defaults.DefaultRepeatTimeout
@@ -51,30 +51,30 @@ func (exp *appExpectation) createImageHttp(id uuid.UUID, dsId string) *config.Im
 		},
 		Name:      filePath,
 		Iformat:   exp.imageFormatEnum(),
-		DsId:      dsId,
+		DsId:      dsID,
 		SizeBytes: fileSize,
 		Sha256:    sha256,
 	}
 }
 
-//checkImageHttp checks if provided img match expectation
-func (exp *appExpectation) checkImageHttp(img *config.Image, dsId string) bool {
-	if img.DsId == dsId && img.Name == path.Join("eserver", path.Base(exp.appUrl)) && img.Iformat == config.Format_QCOW2 {
+//checkImageHTTP checks if provided img match expectation
+func (exp *AppExpectation) checkImageHTTP(img *config.Image, dsID string) bool {
+	if img.DsId == dsID && img.Name == path.Join("eserver", path.Base(exp.appURL)) && img.Iformat == config.Format_QCOW2 {
 		return true
 	}
 	return false
 }
 
-//checkDataStoreHttp checks if provided ds match expectation
-func (exp *appExpectation) checkDataStoreHttp(ds *config.DatastoreConfig) bool {
+//checkDataStoreHTTP checks if provided ds match expectation
+func (exp *AppExpectation) checkDataStoreHTTP(ds *config.DatastoreConfig) bool {
 	if ds.DType == config.DsType_DsHttp && ds.Fqdn == fmt.Sprintf("http://%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort) {
 		return true
 	}
 	return false
 }
 
-//createDataStoreHttp creates datastore, pointed onto EServer http endpoint
-func (exp *appExpectation) createDataStoreHttp(id uuid.UUID) *config.DatastoreConfig {
+//createDataStoreHTTP creates datastore, pointed onto EServer http endpoint
+func (exp *AppExpectation) createDataStoreHTTP(id uuid.UUID) *config.DatastoreConfig {
 	return &config.DatastoreConfig{
 		Id:         id.String(),
 		DType:      config.DsType_DsHttp,

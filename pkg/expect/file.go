@@ -11,18 +11,18 @@ import (
 )
 
 //createImageFile uploads image into EServer from file and calculates size and sha256 of image
-func (exp *appExpectation) createImageFile(id uuid.UUID, dsId string) *config.Image {
+func (exp *AppExpectation) createImageFile(id uuid.UUID, dsID string) *config.Image {
 	server := &eden.EServer{
-		EServerIP:   exp.ctrl.GetVars().EServerIp,
+		EServerIP:   exp.ctrl.GetVars().EServerIP,
 		EserverPort: exp.ctrl.GetVars().EServerPort,
 	}
 	var fileSize int64
 	sha256 := ""
 	filePath := ""
-	status := server.EServerCheckStatus(filepath.Base(exp.appUrl))
-	if !status.ISReady || status.Size != utils.GetFileSize(exp.appUrl) {
+	status := server.EServerCheckStatus(filepath.Base(exp.appURL))
+	if !status.ISReady || status.Size != utils.GetFileSize(exp.appURL) {
 		log.Infof("Start uploading into eserver of %s", exp.appLink)
-		status = server.EServerAddFile(exp.appUrl)
+		status = server.EServerAddFile(exp.appURL)
 		if status.Error != "" {
 			log.Error(status.Error)
 		}
@@ -41,7 +41,7 @@ func (exp *appExpectation) createImageFile(id uuid.UUID, dsId string) *config.Im
 		},
 		Name:      filePath,
 		Iformat:   exp.imageFormatEnum(),
-		DsId:      dsId,
+		DsId:      dsID,
 		SizeBytes: fileSize,
 		Sha256:    sha256,
 	}

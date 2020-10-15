@@ -28,15 +28,15 @@ func (h *adminHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *adminHandler) addFromUrl(w http.ResponseWriter, r *http.Request) {
+func (h *adminHandler) addFromURL(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var data api.UrlArg
+	var data api.URLArg
 	err := decoder.Decode(&data)
 	if err != nil {
 		wrapError(err, w)
 		return
 	}
-	name, err := h.manager.AddFile(data.Url)
+	name, err := h.manager.AddFile(data.URL)
 	if err != nil {
 		wrapError(err, w)
 		return

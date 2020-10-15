@@ -15,17 +15,20 @@ import (
 	"path/filepath"
 )
 
-type fileCache struct {
+//FileCache object provides caching objects from controller into directory
+type FileCache struct {
 	dirGetters types.DirGetters
 }
 
-func FileCache(dirGetters types.DirGetters) *fileCache {
-	return &fileCache{
+//NewFileCache creates new FileCache with provided directories
+func NewFileCache(dirGetters types.DirGetters) *FileCache {
+	return &FileCache{
 		dirGetters: dirGetters,
 	}
 }
 
-func (cacher *fileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) error {
+//CheckAndSave process LoaderObjectType from data
+func (cacher *FileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) error {
 	var pathToCheck string
 	var itemTimeStamp *timestamp.Timestamp
 	var buf bytes.Buffer

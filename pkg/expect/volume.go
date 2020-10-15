@@ -8,7 +8,7 @@ import (
 )
 
 //driveToVolume converts information about drive, its number and content tree into volume representation
-func (exp *appExpectation) driveToVolume(dr *config.Drive, numberOfDrive int, contentTree *config.ContentTree) *config.Volume {
+func (exp *AppExpectation) driveToVolume(dr *config.Drive, numberOfDrive int, contentTree *config.ContentTree) *config.Volume {
 	for _, el := range exp.ctrl.ListVolume() {
 		if el.DisplayName == fmt.Sprintf("%s_%d_m_0", contentTree.DisplayName, numberOfDrive) {
 			// we already have this one in controller

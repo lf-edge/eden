@@ -1,6 +1,0 @@
-eden:
-    #test binary
-    test-bin: "eden.integration.test"
-
-    #test scenario
-    test-scenario: "eden.integration.tests.txt"

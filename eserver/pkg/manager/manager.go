@@ -137,26 +137,24 @@ func (mgr *EServerManager) GetFileInfo(name string) *api.FileInfo {
 		if _, err := os.Stat(filePathTMP); os.IsNotExist(err) {
 			result.Error = err.Error()
 			return result
-		} else {
-			fileSize := getFileSize(filePathTMP)
-			return &api.FileInfo{
-				Size:    fileSize,
-				ISReady: false,
-			}
 		}
-	} else {
-		fileSize := getFileSize(filePath)
-		sha, err := ioutil.ReadFile(fmt.Sprintf("%s.sha256", filePath))
-		if err != nil {
-			result.Error = err.Error()
-			return result
-		}
+		fileSize := getFileSize(filePathTMP)
 		return &api.FileInfo{
-			Sha256:   string(sha),
-			Size:     fileSize,
-			FileName: path.Join("eserver", name),
-			ISReady:  true,
+			Size:    fileSize,
+			ISReady: false,
 		}
+	}
+	fileSize := getFileSize(filePath)
+	sha, err := ioutil.ReadFile(fmt.Sprintf("%s.sha256", filePath))
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+	return &api.FileInfo{
+		Sha256:   string(sha),
+		Size:     fileSize,
+		FileName: path.Join("eserver", name),
+		ISReady:  true,
 	}
 }
 
@@ -165,7 +163,6 @@ func (mgr *EServerManager) GetFilePath(name string) (string, error) {
 	filePath := filepath.Join(mgr.Dir, name)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return "", err
-	} else {
-		return filePath, nil
 	}
+	return filePath, nil
 }

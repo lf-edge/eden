@@ -7,8 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//directories and files
 const (
-	//directories and files
 	DefaultDist             = "dist"             //root directory
 	DefaultImageDist        = "images"           //directory for images inside dist
 	DefaultEserverDist      = ""                 //directory to mount eserver images
@@ -28,8 +28,10 @@ const (
 	DefaultConfigSaved      = "config_saved.yml" //file to save config during 'eden setup'
 
 	DefaultContext = "default" //default context name
+)
 
-	//domains, ips, ports
+//domains, ips, ports
+const (
 	DefaultDomain       = "mydomain.adam"
 	DefaultIP           = "192.168.0.1"
 	DefaultEVEIP        = "192.168.1.2"
@@ -114,7 +116,7 @@ const (
 	DefaultEVEImageSize = 8192
 
 	DefaultAppMem = 1024000
-	DefaultAppCpu = 1
+	DefaultAppCPU = 1
 
 	DefaultDummyExpect = "docker://image"
 
@@ -133,7 +135,9 @@ const (
 )
 
 var (
-	DefaultQemuHostFwd  = map[string]string{strconv.Itoa(DefaultSSHPort): "22"}
+	//DefaultQemuHostFwd represents port forward for ssh
+	DefaultQemuHostFwd = map[string]string{strconv.Itoa(DefaultSSHPort): "22"}
+	//DefaultCobraToViper represents mapping values between cobra (cli) and viper (yml)
 	DefaultCobraToViper = map[string]string{
 		"redis.dist":  "redis-dist",
 		"redis.tag":   "redis-tag",

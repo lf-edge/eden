@@ -28,6 +28,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//Ctx stores controller settings
 type Ctx struct {
 	dir               string
 	url               string
@@ -35,14 +36,14 @@ type Ctx struct {
 	insecureTLS       bool
 	AdamRemote        bool
 	AdamRemoteRedis   bool   //use redis for obtain logs and info
-	AdamRedisUrlEden  string //string with redis url for obtain logs and info
+	AdamRedisURLEden  string //string with redis url for obtain logs and info
 	AdamCaching       bool   //enable caching of adam`s logs/info
 	AdamCachingRedis  bool   //caching to redis instead of files
 	AdamCachingPrefix string //custom prefix for file or stream naming for cache
 }
 
-//parseRedisUrl try to use string from config to obtain redis url
-func parseRedisUrl(s string) (addr, password string, databaseID int, err error) {
+//parseRedisURL try to use string from config to obtain redis url
+func parseRedisURL(s string) (addr, password string, databaseID int, err error) {
 	URL, err := url.Parse(s)
 	if err != nil || URL.Scheme != "redis" {
 		return "", "", 0, err
@@ -69,7 +70,7 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 	if adam.AdamRemote {
 		log.Debug("will use remote adam loader")
 		if adam.AdamRemoteRedis {
-			addr, password, databaseID, err := parseRedisUrl(adam.AdamRedisUrlEden)
+			addr, password, databaseID, err := parseRedisURL(adam.AdamRedisURLEden)
 			if err != nil {
 				log.Fatalf("Cannot parse adam redis url: %s", err)
 			}
@@ -80,15 +81,15 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 				StreamRequest: adam.getRequestRedisStream,
 				StreamApps:    adam.getAppsLogsRedisStream,
 			}
-			loader = loaders.RedisLoader(addr, password, databaseID, streamGetters)
+			loader = loaders.NewRedisLoader(addr, password, databaseID, streamGetters)
 		} else {
-			urlGetters := types.UrlGetters{
-				UrlLogs:    adam.getLogsUrl,
-				UrlInfo:    adam.getInfoUrl,
-				UrlMetrics: adam.getMetricsUrl,
-				UrlRequest: adam.getRequestUrl,
+			urlGetters := types.URLGetters{
+				URLLogs:    adam.getLogsURL,
+				URLInfo:    adam.getInfoURL,
+				URLMetrics: adam.getMetricsURL,
+				URLRequest: adam.getRequestURL,
 			}
-			loader = loaders.RemoteLoader(adam.getHTTPClient, urlGetters)
+			loader = loaders.NewRemoteLoader(adam.getHTTPClient, urlGetters)
 		}
 	} else {
 		log.Debug("will use local adam loader")
@@ -98,12 +99,12 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 			MetricsGetter: adam.getMetricsDir,
 			RequestGetter: adam.getRequestDir,
 		}
-		loader = loaders.FileLoader(dirGetters)
+		loader = loaders.NewFileLoader(dirGetters)
 	}
 	if adam.AdamCaching {
 		var cache cachers.CacheProcessor
 		if adam.AdamCachingRedis {
-			addr, password, databaseID, err := parseRedisUrl(adam.AdamRedisUrlEden)
+			addr, password, databaseID, err := parseRedisURL(adam.AdamRedisURLEden)
 			if err != nil {
 				log.Fatalf("Cannot parse adam redis url: %s", err)
 			}
@@ -113,7 +114,7 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 				StreamMetrics: adam.getMetricsRedisStreamCache,
 				StreamRequest: adam.getRequestRedisStreamCache,
 			}
-			cache = cachers.RedisCache(addr, password, databaseID, streamGetters)
+			cache = cachers.NewRedisCache(addr, password, databaseID, streamGetters)
 		} else {
 			dirGetters := types.DirGetters{
 				LogsGetter:    adam.getLogsDirCache,
@@ -121,14 +122,14 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 				MetricsGetter: adam.getMetricsDirCache,
 				RequestGetter: adam.getRequestDirCache,
 			}
-			cache = cachers.FileCache(dirGetters)
+			cache = cachers.NewFileCache(dirGetters)
 		}
 		loader.SetRemoteCache(cache)
 	}
 	return
 }
 
-//EnvRead use variables from viper for init controller
+//InitWithVars use variables from viper for init controller
 func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.dir = vars.AdamDir
 	adam.url = fmt.Sprintf("https://%s:%s", vars.AdamIP, vars.AdamPort)
@@ -139,7 +140,7 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.AdamCaching = vars.AdamCaching
 	adam.AdamCachingRedis = vars.AdamCachingRedis
 	adam.AdamCachingPrefix = vars.AdamCachingPrefix
-	adam.AdamRedisUrlEden = vars.AdamRedisUrlEden
+	adam.AdamRedisURLEden = vars.AdamRedisURLEden
 	return nil
 }
 
@@ -176,9 +177,8 @@ func (adam *Ctx) Register(device *device.Ctx) error {
 func (adam *Ctx) DeviceList(filter types.DeviceStateFilter) (out []string, err error) {
 	if filter == types.RegisteredDeviceFilter || filter == types.AllDevicesFilter {
 		return adam.getList("/admin/device")
-	} else {
-		return []string{}, nil
 	}
+	return []string{}, nil
 }
 
 //ConfigSet set config for devID
@@ -198,12 +198,12 @@ func (adam *Ctx) RequestLastCallback(devUUID uuid.UUID, q map[string]string, han
 	return erequest.RequestLast(loader, q, handler)
 }
 
-//LogChecker check app logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
+//LogAppsChecker check app logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func (adam *Ctx) LogAppsChecker(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc, mode eapps.LogCheckerMode, timeout time.Duration) (err error) {
 	return eapps.LogChecker(adam.getLoader(), devUUID, appUUID, q, handler, mode, timeout)
 }
 
-//LogLastCallback check app logs by pattern from existence files with callback
+//LogAppsLastCallback check app logs by pattern from existence files with callback
 func (adam *Ctx) LogAppsLastCallback(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)

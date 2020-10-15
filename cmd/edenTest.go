@@ -41,11 +41,10 @@ func runTest(testApp string, args []string, testArgs string) {
 		if os.IsNotExist(err) {
 			log.Fatalf("Test binary file %s does not exist\n", testApp)
 			return
-		} else {
-			if err != nil {
-				log.Fatalf("Error reading test binary %s\n", testApp, err)
-				return
-			}
+		}
+		if err != nil {
+			log.Fatalf("Error reading test binary %s\n", testApp, err)
+			return
 		}
 
 		path, err = exec.LookPath(testApp)
@@ -83,11 +82,10 @@ func runScenario(testArgs string) {
 		if os.IsNotExist(err) {
 			log.Fatalf("Scenario file %s is not exist\n", testScenario)
 			return
-		} else {
-			if err != nil {
-				log.Fatalf("Scenario file %s error reading: %s\n", testScenario, err)
-				return
-			}
+		}
+		if err != nil {
+			log.Fatalf("Scenario file %s error reading: %s\n", testScenario, err)
+			return
 		}
 	}
 
