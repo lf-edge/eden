@@ -7,9 +7,9 @@ import (
 )
 
 //createAppInstanceConfigVM creates appBundle for VM with provided img, netInstance, id and acls
-//  it uses name of app and cpu/mem params from appExpectation
+//  it uses name of app and cpu/mem params from AppExpectation
 //  it use ZArch param to choose VirtualizationMode
-func (exp *appExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.UUID) *appBundle {
+func (exp *AppExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.UUID) *appBundle {
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    id.String(),

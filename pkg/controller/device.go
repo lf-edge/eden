@@ -84,13 +84,13 @@ func getUUID(uuidAndVersion uuidCheckable) (uuid.UUID, error) {
 
 //ConfigParse load config into cloud
 func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device.Ctx, err error) {
-	devId, err := getID(config)
+	devID, err := getID(config)
 	if err != nil {
 		return nil, fmt.Errorf("problem with uuid field")
 	}
-	dev, err := cloud.GetDeviceUUID(devId)
+	dev, err := cloud.GetDeviceUUID(devID)
 	if err != nil { //not found
-		dev, err = cloud.AddDevice(devId)
+		dev, err = cloud.AddDevice(devID)
 		if err != nil {
 			return nil, fmt.Errorf("cloud.AddDevice: %s", err)
 		}
@@ -260,6 +260,7 @@ func (cloud *CloudCtx) processDev(id uuid.UUID, state device.EdgeNodeState) {
 
 }
 
+//GetAllNodes obtains all devices from controller
 func (cloud *CloudCtx) GetAllNodes() {
 	nodes, err := cloud.DeviceList(types.RegisteredDeviceFilter)
 	if err != nil {
@@ -291,9 +292,8 @@ func (cloud *CloudCtx) GetEdgeNode(name string) *device.Ctx {
 		node, _ := cloud.GetDeviceCurrent()
 		if node != nil {
 			return node
-		} else {
-			return nil
 		}
+		return nil
 	}
 	if len(cloud.devices) == 0 {
 		return nil
@@ -531,7 +531,6 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 	}
 	if pretty {
 		return json.MarshalIndent(devConfig, "", "    ")
-	} else {
-		return json.Marshal(devConfig)
 	}
+	return json.Marshal(devConfig)
 }

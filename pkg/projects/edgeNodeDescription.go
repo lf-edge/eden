@@ -13,7 +13,8 @@ type EdgeNodeDescription struct {
 //EdgeNodeOption is type to use for creation of device.Ctx
 type EdgeNodeOption func(description *device.Ctx)
 
-func (ctx *TestContext) WithNodeDescription(nodeDescription *EdgeNodeDescription) EdgeNodeOption {
+//WithNodeDescription sets device info
+func (tc *TestContext) WithNodeDescription(nodeDescription *EdgeNodeDescription) EdgeNodeOption {
 	return func(d *device.Ctx) {
 		d.SetName(nodeDescription.Name)
 		d.SetDevModel(nodeDescription.Model)
@@ -22,13 +23,15 @@ func (ctx *TestContext) WithNodeDescription(nodeDescription *EdgeNodeDescription
 	}
 }
 
-func (ctx *TestContext) WithCurrentProject() EdgeNodeOption {
+//WithCurrentProject sets project info
+func (tc *TestContext) WithCurrentProject() EdgeNodeOption {
 	return func(d *device.Ctx) {
-		d.SetProject(ctx.project.name)
+		d.SetProject(tc.project.name)
 	}
 }
 
-func (ctx *TestContext) WithDeviceModel(devModel string) EdgeNodeOption {
+//WithDeviceModel sets device model info
+func (tc *TestContext) WithDeviceModel(devModel string) EdgeNodeOption {
 	return func(d *device.Ctx) {
 		d.SetDevModel(devModel)
 	}

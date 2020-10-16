@@ -37,7 +37,7 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 		}
 		switch logFormatName {
 		case "json":
-			logFormat = elog.LogJson
+			logFormat = elog.LogJSON
 		case "lines":
 			logFormat = elog.LogLines
 		default:

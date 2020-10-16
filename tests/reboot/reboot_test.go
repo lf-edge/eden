@@ -150,7 +150,7 @@ func TestReboot(t *testing.T) {
 
 		tc.WaitForProc(*timewait)
 
-		number += 1
+		number++
 		t.Logf("Reboot number: %d\n", number)
 	}
 

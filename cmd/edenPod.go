@@ -103,7 +103,7 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithVolumeType(expect.VolumeTypeByName(volumeType)))
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
-		opts = append(opts, expect.WithAcl(aclOnlyHost))
+		opts = append(opts, expect.WithACL(aclOnlyHost))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -115,7 +115,7 @@ var podDeployCmd = &cobra.Command{
 		if noHyper {
 			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 		}
-		expectation := expect.AppExpectationFromUrl(ctrl, dev, appLink, podName, opts...)
+		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
@@ -131,10 +131,10 @@ type appState struct {
 	image     string
 	adamState string
 	eveState  string
-	intIp     []string
+	intIP     []string
 	macs      []string
 	volumes   map[string]uint32
-	extIp     string
+	extIP     string
 	intPort   string
 	extPort   string
 	deleted   bool
@@ -146,15 +146,15 @@ func appStateHeader() string {
 
 func (appStateObj *appState) toString() string {
 	internal := "-"
-	if len(appStateObj.intIp) == 1 {
+	if len(appStateObj.intIP) == 1 {
 		if appStateObj.intPort == "" {
-			internal = appStateObj.intIp[0] //if one internal IP and not forward, display it
+			internal = appStateObj.intIP[0] //if one internal IP and not forward, display it
 		} else {
-			internal = fmt.Sprintf("%s:%s", appStateObj.intIp[0], appStateObj.intPort)
+			internal = fmt.Sprintf("%s:%s", appStateObj.intIP[0], appStateObj.intPort)
 		}
-	} else if len(appStateObj.intIp) > 1 {
+	} else if len(appStateObj.intIP) > 1 {
 		var els []string
-		for i, el := range appStateObj.intIp {
+		for i, el := range appStateObj.intIP {
 			if i == 0 { //forward only on first network
 				if appStateObj.intPort == "" {
 					els = append(els, fmt.Sprintf("%s", el)) //if multiple internal IPs and not forward, display them
@@ -167,7 +167,7 @@ func (appStateObj *appState) toString() string {
 		}
 		internal = strings.Join(els, "; ")
 	}
-	external := fmt.Sprintf("%s:%s", appStateObj.extIp, appStateObj.extPort)
+	external := fmt.Sprintf("%s:%s", appStateObj.extIP, appStateObj.extPort)
 	if appStateObj.extPort == "" {
 		external = "-"
 	}
@@ -251,8 +251,8 @@ var podPsCmd = &cobra.Command{
 				image:     imageName,
 				adamState: "IN_CONFIG",
 				eveState:  "UNKNOWN",
-				intIp:     []string{"-"},
-				extIp:     "-",
+				intIP:     []string{"-"},
+				extIP:     "-",
 				intPort:   intPort,
 				extPort:   extPort,
 				volumes:   volumes,
@@ -297,22 +297,22 @@ var podPsCmd = &cobra.Command{
 				}
 				if len(im.GetAinfo().Network) != 0 && len(im.GetAinfo().Network[0].IPAddrs) != 0 {
 					if len(im.GetAinfo().Network) > 1 {
-						appStateObj.intIp = []string{}
+						appStateObj.intIP = []string{}
 						appStateObj.macs = []string{}
 						for _, el := range im.GetAinfo().Network {
 							if len(im.GetAinfo().Network[0].IPAddrs) != 0 {
-								appStateObj.intIp = append(appStateObj.intIp, el.IPAddrs[0])
+								appStateObj.intIP = append(appStateObj.intIP, el.IPAddrs[0])
 								appStateObj.macs = append(appStateObj.macs, el.MacAddr)
 							}
 						}
 					} else {
 						if len(im.GetAinfo().Network[0].IPAddrs) != 0 {
-							appStateObj.intIp = []string{im.GetAinfo().Network[0].IPAddrs[0]}
+							appStateObj.intIP = []string{im.GetAinfo().Network[0].IPAddrs[0]}
 							appStateObj.macs = []string{im.GetAinfo().Network[0].MacAddr}
 						}
 					}
 				} else {
-					appStateObj.intIp = []string{"-"}
+					appStateObj.intIP = []string{"-"}
 					appStateObj.macs = []string{}
 				}
 			case info.ZInfoTypes_ZiNetworkInstance: //try to find ips from NetworkInstances
@@ -320,7 +320,7 @@ var podPsCmd = &cobra.Command{
 					for _, appStateObj := range appStates {
 						for ind, mac := range appStateObj.macs {
 							if mac == el.MacAddress {
-								appStateObj.intIp[ind] = el.IpAddress[0]
+								appStateObj.intIP[ind] = el.IpAddress[0]
 							}
 						}
 					}
@@ -344,14 +344,14 @@ var podPsCmd = &cobra.Command{
 									s := strings.Split(addr, ";")
 									for _, oneip := range s {
 										if strings.Contains(oneip, ".") {
-											appStateObj.extIp = oneip
+											appStateObj.extIP = oneip
 										}
 									}
 								}
 							}
 						}
 					} else {
-						appStateObj.extIp = "127.0.0.1"
+						appStateObj.extIP = "127.0.0.1"
 					}
 				}
 			}
@@ -538,8 +538,8 @@ var podLogsCmd = &cobra.Command{
 		}
 		switch logFormatName {
 		case "json":
-			logFormat = elog.LogJson
-			logAppsFormat = eapps.LogJson
+			logFormat = elog.LogJSON
+			logAppsFormat = eapps.LogJSON
 		case "lines":
 			logFormat = elog.LogLines
 			logAppsFormat = eapps.LogLines
@@ -612,8 +612,8 @@ var podLogsCmd = &cobra.Command{
 							for i, el := range le.Am {
 								//filter metrics by application
 								if el.AppID == app.Uuidandversion.Uuid {
-									//we print only Am from obtained metric
-									emetric.MetricItemPrint(le, []string{fmt.Sprintf("Am[%d]", i)}).Print()
+									//we print only AppMetrics from obtained metric
+									emetric.MetricItemPrint(le, []string{fmt.Sprintf("AppMetrics[%d]", i)}).Print()
 								}
 							}
 							return false
@@ -621,7 +621,7 @@ var podLogsCmd = &cobra.Command{
 
 						//metricsQ for filtering metrics by app
 						metricsQ := make(map[string]string)
-						metricsQ["Am[].AppID"] = app.Uuidandversion.Uuid
+						metricsQ["AppMetrics[].AppID"] = app.Uuidandversion.Uuid
 						if err = ctrl.MetricChecker(dev.GetID(), metricsQ, handleMetric, metricType, 0); err != nil {
 							log.Fatalf("MetricChecker: %s", err)
 						}
@@ -660,7 +660,7 @@ func podInit() {
 	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
 	podDeployCmd.Flags().Uint32Var(&vncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
 	podDeployCmd.Flags().StringVar(&vncPassword, "vnc-password", "", "VNC password (empty - no password)")
-	podDeployCmd.Flags().Uint32Var(&appCpus, "cpus", defaults.DefaultAppCpu, "cpu number for app")
+	podDeployCmd.Flags().Uint32Var(&appCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
 	podDeployCmd.Flags().StringVar(&appMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
 	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	podDeployCmd.Flags().StringVar(&volumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2 or oci)")

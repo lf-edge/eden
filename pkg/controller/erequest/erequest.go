@@ -20,8 +20,10 @@ import (
 type RequestFormat byte
 
 const (
+	//RequestLines returns requests line by line
 	RequestLines RequestFormat = iota
-	RequestJson
+	//RequestJSON returns requests in JSON format
+	RequestJSON
 )
 
 //ParseRequestItem apply regexp on ApiRequest
@@ -62,7 +64,7 @@ func RequestItemFind(le common.ApiRequest, query map[string]string) bool {
 //RequestPrn print ApiRequest data
 func RequestPrn(le *common.ApiRequest, format RequestFormat) {
 	switch format {
-	case RequestJson:
+	case RequestJSON:
 		enc := json.NewEncoder(os.Stdout)
 		enc.Encode(le)
 	case RequestLines:

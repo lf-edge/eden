@@ -253,7 +253,7 @@ func SaveImage(image string) (io.ReadCloser, error) {
 	return reader, err
 }
 
-//SaveImage from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
+//SaveImageAndExtract from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
 func SaveImageAndExtract(image, outputDir, defaultEvePrefixInTar string) error {
 	reader, err := SaveImage(image)
 	if err != nil {
@@ -266,7 +266,7 @@ func SaveImageAndExtract(image, outputDir, defaultEvePrefixInTar string) error {
 	return nil
 }
 
-// SaveImageToTar
+// SaveImageToTar creates tar from image
 func SaveImageToTar(image, tarFile string) error {
 	reader, err := SaveImage(image)
 	if err != nil {
@@ -662,9 +662,9 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 		return "", err
 	}
 	defer out.Close()
-	if b, err := ioutil.ReadAll(out); err == nil {
+	b, err := ioutil.ReadAll(out)
+	if err == nil {
 		return string(b), nil
-	} else {
-		return "", err
 	}
+	return "", err
 }

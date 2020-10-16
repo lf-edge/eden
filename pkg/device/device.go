@@ -9,8 +9,10 @@ import (
 type EdgeNodeState int
 
 var (
-	NotOnboarded EdgeNodeState = 0 //NotOnboarded EdgeNode
-	Onboarded    EdgeNodeState = 1 //Onboarded EdgeNode
+	//NotOnboarded EdgeNode
+	NotOnboarded EdgeNodeState = 0
+	//Onboarded EdgeNode
+	Onboarded EdgeNodeState = 1
 )
 
 //Ctx is base struct for EdgeNode
@@ -162,7 +164,7 @@ func (cfg *Ctx) SetContentTreeConfig(configIDs []string) *Ctx {
 //GetContentTrees return ContentTrees of device
 func (cfg *Ctx) GetContentTrees() []string { return cfg.contentTrees }
 
-//SetContentTreesConfig set volumes configs by configIDs from cloud
+//SetVolumeConfigs set volumes configs by configIDs from cloud
 func (cfg *Ctx) SetVolumeConfigs(configIDs []string) *Ctx {
 	cfg.volumes = configIDs
 	return cfg
@@ -177,7 +179,7 @@ func (cfg *Ctx) SetRebootCounter(counter uint32, state bool) {
 	cfg.rebootState = state
 }
 
-//SetRebootCounter getter
+//GetRebootCounter getter
 func (cfg *Ctx) GetRebootCounter() (counter uint32, state bool) {
 	return cfg.rebootCounter, cfg.rebootState
 }
@@ -231,7 +233,7 @@ func (cfg *Ctx) GetOnboardKey() string {
 	return cfg.onboardKey
 }
 
-//GetOnboardKey setter
+//SetOnboardKey setter
 func (cfg *Ctx) SetOnboardKey(key string) {
 	cfg.onboardKey = key
 }

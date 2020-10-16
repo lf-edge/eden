@@ -632,15 +632,15 @@ func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
-//EServerAddFileUrl send url to download image into eserver
-func (server *EServer) EServerAddFileUrl(url string) (name string) {
+//EServerAddFileURL send url to download image into eserver
+func (server *EServer) EServerAddFileURL(url string) (name string) {
 	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-url")
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
 	client := server.getHTTPClient(defaults.DefaultRepeatTimeout)
-	objToSend := api.UrlArg{
-		Url: url,
+	objToSend := api.URLArg{
+		URL: url,
 	}
 	body, err := json.Marshal(objToSend)
 	if err != nil {

@@ -18,23 +18,24 @@ type infoState struct {
 	Cinfo  []*info.ZInfoContentTree
 	Binfo  []*info.ZInfoBlob
 
-	Am []*metrics.AppMetric
-	Nm []*metrics.ZMetricNetworkInstance
-	Vm []*metrics.ZMetricVolume
-	Dm *metrics.DeviceMetric
+	AppMetrics             []*metrics.AppMetric
+	NetworkInstanceMetrics []*metrics.ZMetricNetworkInstance
+	VolumeMetrics          []*metrics.ZMetricVolume
+	DeviceMetrics          *metrics.DeviceMetric
 }
 
-type state struct {
+//State aggregates device state
+type State struct {
 	device     *device.Ctx
 	deviceInfo *infoState
 }
 
-//InitState init state object for device
-func InitState(device *device.Ctx) *state {
-	return &state{device: device, deviceInfo: &infoState{}}
+//InitState init State object for device
+func InitState(device *device.Ctx) *State {
+	return &State{device: device, deviceInfo: &infoState{}}
 }
 
-func (state *state) processInfo(infoMsg *info.ZInfoMsg) error {
+func (state *State) processInfo(infoMsg *info.ZInfoMsg) error {
 	if infoMsg.DevId != state.device.GetID().String() {
 		return nil
 	}
@@ -93,7 +94,7 @@ func (state *state) processInfo(infoMsg *info.ZInfoMsg) error {
 	return nil
 }
 
-func (state *state) getProcessorInfo() einfo.HandlerFunc {
+func (state *State) getProcessorInfo() einfo.HandlerFunc {
 	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 		_ = state.processInfo(im)
 		//process all events from controller
@@ -102,24 +103,24 @@ func (state *state) getProcessorInfo() einfo.HandlerFunc {
 }
 
 //GetInfoProcessingFunction returns processing function for ZInfoMsg
-func (state *state) GetInfoProcessingFunction() ProcInfoFunc {
+func (state *State) GetInfoProcessingFunction() ProcInfoFunc {
 	return func(infoMsg *info.ZInfoMsg) error {
 		return state.processInfo(infoMsg)
 	}
 }
 
-func (state *state) processMetric(metricMsg *metrics.ZMetricMsg) error {
+func (state *State) processMetric(metricMsg *metrics.ZMetricMsg) error {
 	if metricMsg.DevID != state.device.GetID().String() {
 		return nil
 	}
-	state.deviceInfo.Am = metricMsg.GetAm()
-	state.deviceInfo.Nm = metricMsg.GetNm()
-	state.deviceInfo.Vm = metricMsg.GetVm()
-	state.deviceInfo.Dm = metricMsg.GetDm()
+	state.deviceInfo.AppMetrics = metricMsg.GetAm()
+	state.deviceInfo.NetworkInstanceMetrics = metricMsg.GetNm()
+	state.deviceInfo.VolumeMetrics = metricMsg.GetVm()
+	state.deviceInfo.DeviceMetrics = metricMsg.GetDm()
 	return nil
 }
 
-func (state *state) getProcessorMetric() emetric.HandlerFunc {
+func (state *State) getProcessorMetric() emetric.HandlerFunc {
 	return func(msg *metrics.ZMetricMsg) bool {
 		_ = state.processMetric(msg)
 		//process all events from controller
@@ -128,63 +129,63 @@ func (state *state) getProcessorMetric() emetric.HandlerFunc {
 }
 
 //GetMetricProcessingFunction returns processing function for ZMetricMsg
-func (state *state) GetMetricProcessingFunction() ProcMetricFunc {
+func (state *State) GetMetricProcessingFunction() ProcMetricFunc {
 	return func(metricMsg *metrics.ZMetricMsg) error {
 		return state.processMetric(metricMsg)
 	}
 }
 
 //GetDinfo get *info.ZInfoDevice from obtained info
-func (state *state) GetDinfo() *info.ZInfoDevice {
+func (state *State) GetDinfo() *info.ZInfoDevice {
 	return state.deviceInfo.Dinfo
 }
 
 //GetAinfoSlice get []*info.ZInfoApp from obtained info
-func (state *state) GetAinfoSlice() []*info.ZInfoApp {
+func (state *State) GetAinfoSlice() []*info.ZInfoApp {
 	return state.deviceInfo.Ainfo
 }
 
 //GetNiinfoSlice get []*info.ZInfoNetworkInstance from obtained info
-func (state *state) GetNiinfoSlice() []*info.ZInfoNetworkInstance {
+func (state *State) GetNiinfoSlice() []*info.ZInfoNetworkInstance {
 	return state.deviceInfo.Niinfo
 }
 
 //GetVinfoSlice get []*info.ZInfoVolume from obtained info
-func (state *state) GetVinfoSlice() []*info.ZInfoVolume {
+func (state *State) GetVinfoSlice() []*info.ZInfoVolume {
 	return state.deviceInfo.Vinfo
 }
 
 //GetCinfoSlice get []*info.ZInfoContentTree from obtained info
-func (state *state) GetCinfoSlice() []*info.ZInfoContentTree {
+func (state *State) GetCinfoSlice() []*info.ZInfoContentTree {
 	return state.deviceInfo.Cinfo
 }
 
 //GetBinfoSlice get []*info.ZInfoBlob from obtained info
-func (state *state) GetBinfoSlice() []*info.ZInfoBlob {
+func (state *State) GetBinfoSlice() []*info.ZInfoBlob {
 	return state.deviceInfo.Binfo
 }
 
-//GetAm get []*metrics.AppMetric from obtained metrics
-func (state *state) GetAm() []*metrics.AppMetric {
-	return state.deviceInfo.Am
+//GetAppMetrics get []*metrics.AppMetric from obtained metrics
+func (state *State) GetAppMetrics() []*metrics.AppMetric {
+	return state.deviceInfo.AppMetrics
 }
 
-//GetNm get []*metrics.ZMetricNetworkInstance from obtained metrics
-func (state *state) GetNm() []*metrics.ZMetricNetworkInstance {
-	return state.deviceInfo.Nm
+//GetNetworkInstanceMetrics get []*metrics.ZMetricNetworkInstance from obtained metrics
+func (state *State) GetNetworkInstanceMetrics() []*metrics.ZMetricNetworkInstance {
+	return state.deviceInfo.NetworkInstanceMetrics
 }
 
-//GetVm get []*metrics.ZMetricVolume from obtained metrics
-func (state *state) GetVm() []*metrics.ZMetricVolume {
-	return state.deviceInfo.Vm
+//GetVolumeMetrics get []*metrics.ZMetricVolume from obtained metrics
+func (state *State) GetVolumeMetrics() []*metrics.ZMetricVolume {
+	return state.deviceInfo.VolumeMetrics
 }
 
-//GetDm get *metrics.DeviceMetric from obtained metrics
-func (state *state) GetDm() *metrics.DeviceMetric {
-	return state.deviceInfo.Dm
+//GetDeviceMetrics get *metrics.DeviceMetric from obtained metrics
+func (state *State) GetDeviceMetrics() *metrics.DeviceMetric {
+	return state.deviceInfo.DeviceMetrics
 }
 
-//LookUp access fields of state objects by path
+//LookUp access fields of State objects by path
 //path contains address to lookup
 //for example: LookUp("Dinfo.Network[0].IPAddrs[0]") will return first IP of first network of EVE
 //All top fields to lookup in:
@@ -195,21 +196,21 @@ func (state *state) GetDm() *metrics.DeviceMetric {
 //Cinfo      []*info.ZInfoContentTree
 //Binfo      []*info.ZInfoBlob
 //Cipherinfo []*info.ZInfoCipher
-//Am []*metrics.AppMetric
-//Nm []*metrics.ZMetricNetworkInstance
-//Vm []*metrics.ZMetricVolume
-//Dm *metrics.DeviceMetric
-func (state *state) LookUp(path string) (value reflect.Value, err error) {
+//AppMetrics []*metrics.AppMetric
+//NetworkInstanceMetrics []*metrics.ZMetricNetworkInstance
+//VolumeMetrics []*metrics.ZMetricVolume
+//DeviceMetrics *metrics.DeviceMetric
+func (state *State) LookUp(path string) (value reflect.Value, err error) {
 	value, err = utils.LookUp(state.deviceInfo, path)
 	return
 }
 
 //CheckReady returns true in all needed information obtained from controller
-func (state *state) CheckReady() bool {
+func (state *State) CheckReady() bool {
 	if state.deviceInfo.Dinfo == nil {
 		return false
 	}
-	if state.deviceInfo.Dm == nil {
+	if state.deviceInfo.DeviceMetrics == nil {
 		return false
 	}
 	return true

@@ -90,20 +90,19 @@ func checkAppRunning(appName string) projects.ProcInfoFunc {
 func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
-			if eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]"); err != nil {
+			eveIP, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]")
+			if err != nil {
 				return nil
-			} else {
-				if ip, _, err := net.ParseCIDR(eveIPCIDR.String()); err != nil {
-					return nil
-				} else {
-					externalIP = ip.To4().String()
-					return fmt.Errorf("external ip is: %s", externalIP)
-				}
 			}
+			ip := net.ParseIP(eveIP.String())
+			if ip == nil || ip.To4() == nil {
+				return nil
+			}
+			externalIP = ip.To4().String()
 		} else {
 			externalIP = edgeNode.GetRemoteAddr()
-			return fmt.Errorf("external ip is: %s", externalIP)
 		}
+		return fmt.Errorf("external ip is: %s", externalIP)
 	}
 }
 
@@ -116,9 +115,8 @@ func checkAppAccess() projects.ProcTimerFunc {
 		res, err := utils.RequestHTTPWithTimeout(fmt.Sprintf("http://%s:%d", externalIP, *externalPort), time.Second)
 		if err != nil {
 			return nil
-		} else {
-			return fmt.Errorf(res)
 		}
+		return fmt.Errorf(res)
 	}
 }
 
@@ -173,7 +171,7 @@ func TestDockerStart(t *testing.T) {
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
 
-	expectation := expect.AppExpectationFromUrl(tc.GetController(), edgeNode, *appLink, appName, opts...)
+	expectation := expect.AppExpectationFromURL(tc.GetController(), edgeNode, *appLink, appName, opts...)
 
 	appInstanceConfig := expectation.Application()
 

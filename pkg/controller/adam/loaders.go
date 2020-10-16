@@ -119,38 +119,38 @@ func (adam *Ctx) getRequestDir(devUUID uuid.UUID) (dir string) {
 	return path.Join(adam.dir, "run", "adam", "device", devUUID.String(), "requests")
 }
 
-//getLogsUrl return logs url for devUUID
-func (adam *Ctx) getLogsUrl(devUUID uuid.UUID) string {
-	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "logs"))
+//getLogsURL return logs url for devUUID
+func (adam *Ctx) getLogsURL(devUUID uuid.UUID) string {
+	resURL, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "logs"))
 	if err != nil {
 		log.Fatalf("ResolveURL: %s", err)
 	}
-	return resUrl
+	return resURL
 }
 
-//getLogsUrl return info url for devUUID
-func (adam *Ctx) getInfoUrl(devUUID uuid.UUID) string {
-	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "info"))
+//getInfoURL return info url for devUUID
+func (adam *Ctx) getInfoURL(devUUID uuid.UUID) string {
+	resURL, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "info"))
 	if err != nil {
 		log.Fatalf("ResolveURL: %s", err)
 	}
-	return resUrl
+	return resURL
 }
 
-//getMetricsUrl return metrics url for devUUID
-func (adam *Ctx) getMetricsUrl(devUUID uuid.UUID) string {
-	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "metrics"))
+//getMetricsURL return metrics url for devUUID
+func (adam *Ctx) getMetricsURL(devUUID uuid.UUID) string {
+	resURL, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "metrics"))
 	if err != nil {
 		log.Fatalf("ResolveURL: %s", err)
 	}
-	return resUrl
+	return resURL
 }
 
-//getRequestUrl return request url for devUUID
-func (adam *Ctx) getRequestUrl(devUUID uuid.UUID) string {
-	resUrl, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "requests"))
+//getRequestURL return request url for devUUID
+func (adam *Ctx) getRequestURL(devUUID uuid.UUID) string {
+	resURL, err := utils.ResolveURL(adam.url, path.Join("/admin/device", devUUID.String(), "requests"))
 	if err != nil {
 		log.Fatalf("ResolveURL: %s", err)
 	}
-	return resUrl
+	return resURL
 }

@@ -47,10 +47,9 @@ func mkquery() error {
 	for _, a := range flag.Args() {
 		s := strings.Split(a, ":")
 		if len(s) == 1 {
-			return fmt.Errorf("Incorrect query: %s\n", a)
-		} else {
-			query[s[0]] = s[1]
+			return fmt.Errorf("incorrect query: %s", a)
 		}
+		query[s[0]] = s[1]
 	}
 
 	return nil
@@ -60,14 +59,12 @@ func count(msg string, node string) string {
 	if found {
 		if *number == 0 {
 			return ""
-		} else {
-			items += 1
-			if items >= *number {
-				return fmt.Sprintf(msg, items, node)
-			} else {
-				return ""
-			}
 		}
+		items++
+		if items >= *number {
+			return fmt.Sprintf(msg, items, node)
+		}
+		return ""
 	}
 	return ""
 }

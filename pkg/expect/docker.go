@@ -17,9 +17,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//createImageDocker creates Image for docker with tag and version from appExpectation and provided id and datastoreId
-func (exp *appExpectation) createImageDocker(id uuid.UUID, dsId string) *config.Image {
-	ref, err := name.ParseReference(exp.appUrl)
+//createImageDocker creates Image for docker with tag and version from AppExpectation and provided id and datastoreId
+func (exp *AppExpectation) createImageDocker(id uuid.UUID, dsID string) *config.Image {
+	ref, err := name.ParseReference(exp.appURL)
 	if err != nil {
 		return nil
 	}
@@ -30,25 +30,25 @@ func (exp *appExpectation) createImageDocker(id uuid.UUID, dsId string) *config.
 		},
 		Name:    fmt.Sprintf("%s:%s", ref.Context().RepositoryStr(), exp.appVersion),
 		Iformat: exp.imageFormatEnum(),
-		DsId:    dsId,
+		DsId:    dsID,
 	}
 }
 
 //checkImageDocker checks if provided img match expectation
-func (exp *appExpectation) checkImageDocker(img *config.Image, dsId string) bool {
-	if img.DsId == dsId && img.Name == fmt.Sprintf("%s:%s", exp.appUrl, exp.appVersion) && img.Iformat == config.Format_CONTAINER {
+func (exp *AppExpectation) checkImageDocker(img *config.Image, dsID string) bool {
+	if img.DsId == dsID && img.Name == fmt.Sprintf("%s:%s", exp.appURL, exp.appVersion) && img.Iformat == config.Format_CONTAINER {
 		return true
 	}
 	return false
 }
 
 //getDataStoreFQDN return fqdn info for datastore based on provided ref of image and registry
-func (exp *appExpectation) getDataStoreFQDN(withProto bool) string {
+func (exp *AppExpectation) getDataStoreFQDN(withProto bool) string {
 	var fqdn string
 	if exp.registry != "" {
 		fqdn = exp.registry
 	} else {
-		ref, err := name.ParseReference(exp.appUrl)
+		ref, err := name.ParseReference(exp.appURL)
 		if err != nil {
 			return ""
 		}
@@ -61,7 +61,7 @@ func (exp *appExpectation) getDataStoreFQDN(withProto bool) string {
 }
 
 //checkDataStoreDocker checks if provided ds match expectation
-func (exp *appExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool {
+func (exp *AppExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool {
 	if ds.DType == config.DsType_DsContainerRegistry && ds.Fqdn == exp.getDataStoreFQDN(true) {
 		return true
 	}
@@ -69,7 +69,7 @@ func (exp *appExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 }
 
 //createDataStoreDocker creates DatastoreConfig for docker.io with provided id
-func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
+func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
 	return &config.DatastoreConfig{
 		Id:         id.String(),
 		DType:      config.DsType_DsContainerRegistry,
@@ -83,7 +83,7 @@ func (exp *appExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 }
 
 //applyRootFSType try to parse manifest to get Annotations provided in https://github.com/lf-edge/edge-containers/blob/master/docs/annotations.md
-func (exp *appExpectation) applyRootFSType(image *config.Image) error {
+func (exp *AppExpectation) applyRootFSType(image *config.Image) error {
 	ref := fmt.Sprintf("%s/%s", exp.getDataStoreFQDN(false), image.Name)
 	manifest, err := crane.Manifest(ref)
 	if err != nil {
@@ -127,7 +127,7 @@ func (exp *appExpectation) applyRootFSType(image *config.Image) error {
 }
 
 //obtainVolumeInfo try to parse docker manifest of defined image and return array of mount points
-func (exp *appExpectation) obtainVolumeInfo(image *config.Image) ([]string, error) {
+func (exp *AppExpectation) obtainVolumeInfo(image *config.Image) ([]string, error) {
 	ref := fmt.Sprintf("%s/%s", exp.getDataStoreFQDN(false), image.Name)
 	cfg, err := crane.Config(ref)
 	if err != nil {
@@ -150,7 +150,7 @@ func (exp *appExpectation) obtainVolumeInfo(image *config.Image) ([]string, erro
 }
 
 //prepareImage generates new image for mountable volume
-func (exp *appExpectation) prepareImage() *config.Image {
+func (exp *AppExpectation) prepareImage() *config.Image {
 	appLink := defaults.DefaultEmptyVolumeLinkQcow2
 	if exp.volumesType == VolumeOCI {
 		appLink = defaults.DefaultEmptyVolumeLinkDocker
@@ -159,13 +159,13 @@ func (exp *appExpectation) prepareImage() *config.Image {
 		//if we use file, we must resolve absolute path
 		appLink = fmt.Sprintf("file://%s", utils.ResolveAbsPath(appLink))
 	}
-	tempExp := AppExpectationFromUrl(exp.ctrl, exp.device, appLink, "")
+	tempExp := AppExpectationFromURL(exp.ctrl, exp.device, appLink, "")
 	return tempExp.Image()
 }
 
 //createAppInstanceConfigDocker creates appBundle for docker with provided img, netInstance, id and acls
-//  it uses name of app and cpu/mem params from appExpectation
-func (exp *appExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) *appBundle {
+//  it uses name of app and cpu/mem params from AppExpectation
+func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) *appBundle {
 	log.Infof("Try to obtain info about volumes, please wait")
 	mountPointsList, err := exp.obtainVolumeInfo(img)
 	if err != nil {

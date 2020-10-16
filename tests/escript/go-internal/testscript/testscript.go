@@ -158,7 +158,7 @@ type Params struct {
 	Flags map[string]string
 }
 
-// RunDir runs the tests in the given directory. All files in dir with a ".txt"
+// Run runs the tests in the given directory. All files in dir with a ".txt"
 // are considered to be test files.
 func Run(t *testing.T, p Params) {
 	RunT(tshim{t}, p)
@@ -660,21 +660,20 @@ func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd,
 
 func (ts *TestScript) buildExecCmd(command string, args ...string) (*exec.Cmd, error) {
 	if filepath.Base(command) == command {
-		if lp, err := execpath.Look(command, ts.Getenv); err != nil {
+		lp, err := execpath.Look(command, ts.Getenv)
+		if err != nil {
 			return nil, err
-		} else {
-			command = lp
 		}
+		command = lp
 	}
 	if timewait == 0 {
 		//ts.ctxt = context.Background()
 		return exec.Command(command, args...), nil
-	} else {
-		//ts.ctxt, _ = context.WithTimeout(context.Background(), timewait)
-		//return exec.CommandContext(ts.ctxt, command, args...), nil
-		ctx, _ := context.WithTimeout(context.Background(), timewait)
-		return exec.CommandContext(ctx, command, args...), nil
 	}
+	//ts.ctxt, _ = context.WithTimeout(context.Background(), timewait)
+	//return exec.CommandContext(ts.ctxt, command, args...), nil
+	ctx, _ := context.WithTimeout(context.Background(), timewait)
+	return exec.CommandContext(ctx, command, args...), nil
 }
 
 // BackgroundCmds returns a slice containing all the commands that have
@@ -739,7 +738,7 @@ func (ts *TestScript) expand(s string) string {
 	})
 }
 
-// fatalf aborts the test with the given failure message.
+//Fatalf aborts the test with the given failure message.
 func (ts *TestScript) Fatalf(format string, args ...interface{}) {
 	fmt.Fprintf(&ts.log, "FAIL: %s:%d: %s\n", ts.file, ts.lineno, fmt.Sprintf(format, args...))
 	ts.t.FailNow()

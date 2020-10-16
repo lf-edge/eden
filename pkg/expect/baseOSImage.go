@@ -13,8 +13,8 @@ import (
 )
 
 //parse file or url name and returns Base OS Version
-func (exp *appExpectation) getBaseOSVersion() string {
-	rootFSName := path.Base(exp.appUrl)
+func (exp *AppExpectation) getBaseOSVersion() string {
+	rootFSName := path.Base(exp.appURL)
 	rootFSName = strings.TrimSuffix(rootFSName, filepath.Ext(rootFSName))
 	rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
 	if re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern); !re.MatchString(rootFSName) {
@@ -24,7 +24,7 @@ func (exp *appExpectation) getBaseOSVersion() string {
 }
 
 //checkBaseOSConfig checks if provided BaseOSConfig match expectation
-func (exp *appExpectation) checkBaseOSConfig(baseOS *config.BaseOSConfig) bool {
+func (exp *AppExpectation) checkBaseOSConfig(baseOS *config.BaseOSConfig) bool {
 	if baseOS == nil {
 		return false
 	}
@@ -35,7 +35,7 @@ func (exp *appExpectation) checkBaseOSConfig(baseOS *config.BaseOSConfig) bool {
 }
 
 //createBaseOSConfig creates BaseOSConfig with provided img
-func (exp *appExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOSConfig, error) {
+func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOSConfig, error) {
 	baseOSConfig := &config.BaseOSConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    img.Uuidandversion.Uuid,
@@ -64,10 +64,10 @@ func (exp *appExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 
 //BaseOSImage expectation gets or creates Image definition,
 //gets BaseOSConfig and returns it or creates BaseOSConfig, adds it into internal controller and returns it
-func (exp *appExpectation) BaseOSImage() (baseOSConfig *config.BaseOSConfig) {
+func (exp *AppExpectation) BaseOSImage() (baseOSConfig *config.BaseOSConfig) {
 	var err error
 	if exp.appType == fileApp {
-		if exp.appUrl, err = utils.GetFileFollowLinks(exp.appUrl); err != nil {
+		if exp.appURL, err = utils.GetFileFollowLinks(exp.appURL); err != nil {
 			log.Fatalf("GetFileFollowLinks: %s", err)
 		}
 	}

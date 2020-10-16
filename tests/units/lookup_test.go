@@ -11,7 +11,7 @@ import (
 // by passing different paths for lookup we expect different objects passed into callback
 
 var (
-	devId       = "test"
+	devID       = "test"
 	macAddress1 = "00:00:00:01"
 	macAddress2 = "00:00:00:02"
 	ipAddress1  = "192.168.0.1/24"
@@ -29,7 +29,7 @@ var (
 	}}
 	infoTest = &info.ZInfoMsg{
 		Ztype:       info.ZInfoTypes_ZiNetworkInstance,
-		DevId:       devId,
+		DevId:       devID,
 		InfoContent: nii,
 		AtTimeStamp: nil,
 	}
@@ -69,8 +69,8 @@ func TestLookupBase(t *testing.T) {
 	q := "DevId"
 	var callback = func(inp reflect.Value) {
 		t.Log(inp)
-		if inp.String() != devId {
-			t.Errorf("expected: %s, received: %s", devId, inp.String())
+		if inp.String() != devID {
+			t.Errorf("expected: %s, received: %s", devID, inp.String())
 		}
 	}
 	utils.LookupWithCallback(infoTest, q, callback)

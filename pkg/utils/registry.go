@@ -17,6 +17,7 @@ import (
 	v1tarball "github.com/google/go-containerregistry/pkg/v1/tarball"
 )
 
+//LoadRegistry push image into registry
 func LoadRegistry(image, remote string) (string, error) {
 	localImage, err := HasImage(image)
 	if err != nil {
@@ -86,14 +87,14 @@ func LoadRegistry(image, remote string) (string, error) {
 	return hash, nil
 }
 
-//RegistryHttp for http access to local registry
-type RegistryHttp struct {
+//RegistryHTTP for http access to local registry
+type RegistryHTTP struct {
 	remotes.Resolver
 	ctx context.Context
 }
 
-//NewRegistryHttp creates new RegistryHttp with plainHTTP resolver
-func NewRegistryHttp(ctx context.Context) (context.Context, *RegistryHttp, error) {
+//NewRegistryHTTP creates new RegistryHTTP with plainHTTP resolver
+func NewRegistryHTTP(ctx context.Context) (context.Context, *RegistryHTTP, error) {
 	cli, err := auth.NewClient()
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get authenticating client to registry: %v", err)
@@ -102,13 +103,15 @@ func NewRegistryHttp(ctx context.Context) (context.Context, *RegistryHttp, error
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get resolver for registry: %v", err)
 	}
-	return ctx, &RegistryHttp{Resolver: resolver, ctx: ctx}, nil
+	return ctx, &RegistryHTTP{Resolver: resolver, ctx: ctx}, nil
 }
 
-func (r *RegistryHttp) Finalize(ctx context.Context) error {
+//Finalize wrapper
+func (r *RegistryHTTP) Finalize(ctx context.Context) error {
 	return nil
 }
 
-func (r *RegistryHttp) Context() context.Context {
+//Context wrapper
+func (r *RegistryHTTP) Context() context.Context {
 	return r.ctx
 }

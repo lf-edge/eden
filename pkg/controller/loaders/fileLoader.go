@@ -13,27 +13,28 @@ import (
 	"time"
 )
 
-type fileLoader struct {
+//FileLoader implements loader from file backend of controller
+type FileLoader struct {
 	appUUID uuid.UUID
 	devUUID uuid.UUID
 	getters types.DirGetters
 	cache   cachers.CacheProcessor
 }
 
-//FileLoader return loader from files
-func FileLoader(getters types.DirGetters) *fileLoader {
-	log.Debugf("FileLoader init")
-	return &fileLoader{getters: getters}
+//NewFileLoader return loader from files
+func NewFileLoader(getters types.DirGetters) *FileLoader {
+	log.Debugf("NewFileLoader init")
+	return &FileLoader{getters: getters}
 }
 
 //SetRemoteCache add cache layer
-func (loader *fileLoader) SetRemoteCache(cache cachers.CacheProcessor) {
+func (loader *FileLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
 //Clone create copy
-func (loader *fileLoader) Clone() Loader {
-	return &fileLoader{
+func (loader *FileLoader) Clone() Loader {
+	return &FileLoader{
 		getters: loader.getters,
 		devUUID: loader.devUUID,
 		appUUID: loader.appUUID,
@@ -41,7 +42,7 @@ func (loader *fileLoader) Clone() Loader {
 	}
 }
 
-func (loader *fileLoader) getFilePath(typeToProcess types.LoaderObjectType) string {
+func (loader *FileLoader) getFilePath(typeToProcess types.LoaderObjectType) string {
 	switch typeToProcess {
 	case types.LogsType:
 		return loader.getters.LogsGetter(loader.devUUID)
@@ -59,17 +60,17 @@ func (loader *fileLoader) getFilePath(typeToProcess types.LoaderObjectType) stri
 }
 
 //SetUUID set device UUID
-func (loader *fileLoader) SetUUID(devUUID uuid.UUID) {
+func (loader *FileLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-//SetUUID set app UUID
-func (loader *fileLoader) SetAppUUID(appUUID uuid.UUID) {
+//SetAppUUID set app UUID
+func (loader *FileLoader) SetAppUUID(appUUID uuid.UUID) {
 	loader.appUUID = appUUID
 }
 
 //ProcessExisting for observe existing files
-func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
+func (loader *FileLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	files, err := ioutil.ReadDir(loader.getFilePath(typeToProcess))
 	if err != nil {
 		return err
@@ -105,8 +106,8 @@ func (loader *fileLoader) ProcessExisting(process ProcessFunction, typeToProcess
 	return nil
 }
 
-//ProcessExisting for observe new files
-func (loader *fileLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) error {
+//ProcessStream for observe new files
+func (loader *FileLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err

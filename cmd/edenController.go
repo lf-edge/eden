@@ -63,7 +63,7 @@ var edgeNodeReboot = &cobra.Command{
 		case "file":
 			changer = &fileChanger{fileConfig: modeURL}
 		case "adam":
-			changer = &adamChanger{adamUrl: modeURL}
+			changer = &adamChanger{adamURL: modeURL}
 
 		default:
 			log.Fatalf("Not implemented type: %s", modeType)
@@ -82,7 +82,7 @@ var edgeNodeReboot = &cobra.Command{
 	},
 }
 
-func checkIsFileOrUrl(pathToCheck string) (isFile bool, pathToRet string, err error) {
+func checkIsFileOrURL(pathToCheck string) (isFile bool, pathToRet string, err error) {
 	res, err := url.Parse(pathToCheck)
 	if err != nil {
 		return false, "", err
@@ -137,7 +137,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		case "file":
 			changer = &fileChanger{fileConfig: modeURL}
 		case "adam":
-			changer = &adamChanger{adamUrl: modeURL}
+			changer = &adamChanger{adamURL: modeURL}
 		default:
 			log.Fatalf("Not implemented type: %s", modeType)
 		}
@@ -145,7 +145,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
-		expectation := expect.AppExpectationFromUrl(ctrl, dev, baseOSImage, "")
+		expectation := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "")
 		if len(qemuPorts) == 0 {
 			qemuPorts = nil
 		}
@@ -177,9 +177,9 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		baseOSImage := args[0]
-		isFile, baseOSImage, err := checkIsFileOrUrl(baseOSImage)
+		isFile, baseOSImage, err := checkIsFileOrURL(baseOSImage)
 		if err != nil {
-			log.Fatalf("checkIsFileOrUrl: %s", err)
+			log.Fatalf("checkIsFileOrURL: %s", err)
 		}
 		var rootFsPath string
 		if isFile {
@@ -209,7 +209,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		case "file":
 			changer = &fileChanger{fileConfig: modeURL}
 		case "adam":
-			changer = &adamChanger{adamUrl: modeURL}
+			changer = &adamChanger{adamURL: modeURL}
 
 		default:
 			log.Fatalf("Not implemented type: %s", modeType)
@@ -225,7 +225,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		}
 
 		if getFromFileName {
-			rootFSName := strings.TrimSuffix(filepath.Base(rootFsPath), filepath.Ext(rootFsPath))
+			rootFSName := utils.FileNameWithoutExtension(rootFsPath)
 			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
 			re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
 			if !re.MatchString(rootFSName) {
@@ -292,7 +292,7 @@ var edgeNodeUpdate = &cobra.Command{
 		case "file":
 			changer = &fileChanger{fileConfig: modeURL}
 		case "adam":
-			changer = &adamChanger{adamUrl: modeURL}
+			changer = &adamChanger{adamURL: modeURL}
 
 		default:
 			log.Fatalf("Not implemented type: %s", modeType)
@@ -336,7 +336,7 @@ var edgeNodeGetConfig = &cobra.Command{
 		case "file":
 			changer = &fileChanger{fileConfig: modeURL}
 		case "adam":
-			changer = &adamChanger{adamUrl: modeURL}
+			changer = &adamChanger{adamURL: modeURL}
 
 		default:
 			log.Fatalf("Not implemented type: %s", modeType)

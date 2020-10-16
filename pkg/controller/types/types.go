@@ -9,9 +9,12 @@ import (
 type DeviceStateFilter int
 
 var (
-	AllDevicesFilter          DeviceStateFilter = 0 //return all devices
-	RegisteredDeviceFilter    DeviceStateFilter = 1 //return registered devices
-	NotRegisteredDeviceFilter DeviceStateFilter = 2 //return not registered devices
+	// AllDevicesFilter returns all devices
+	AllDevicesFilter DeviceStateFilter
+	// RegisteredDeviceFilter returns registered devices
+	RegisteredDeviceFilter DeviceStateFilter = 1
+	// NotRegisteredDeviceFilter returns not registered devices
+	NotRegisteredDeviceFilter DeviceStateFilter = 2
 )
 
 //PrintResult for representation of printing info/log/metric
@@ -79,17 +82,17 @@ type StreamGetters struct {
 	StreamApps    getStreamApps
 }
 
-type getUrl = func(devUUID uuid.UUID) (url string)
+type getURL = func(devUUID uuid.UUID) (url string)
 
-type getUrlApps = func(devUUID uuid.UUID, appUUID uuid.UUID) (url string)
+type getURLApps = func(devUUID uuid.UUID, appUUID uuid.UUID) (url string)
 
-// UrlGetters provides information about urls to obtain objects from for loaders
-type UrlGetters struct {
-	UrlLogs    getUrl
-	UrlInfo    getUrl
-	UrlMetrics getUrl
-	UrlRequest getUrl
-	UrlApps    getUrlApps
+// URLGetters provides information about urls to obtain objects from for loaders
+type URLGetters struct {
+	URLLogs    getURL
+	URLInfo    getURL
+	URLMetrics getURL
+	URLRequest getURL
+	URLApps    getURLApps
 }
 
 //LoaderObjectType for determinate object for loaders
@@ -107,5 +110,5 @@ var MetricsType LoaderObjectType = 3
 //RequestType for observe requests
 var RequestType LoaderObjectType = 4
 
-//RequestType for observe logs of apps
+//AppsType for observe logs of apps
 var AppsType LoaderObjectType = 5

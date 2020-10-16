@@ -13,7 +13,8 @@ import (
 	"time"
 )
 
-type redisLoader struct {
+//RedisLoader implements loader from redis backend of controller
+type RedisLoader struct {
 	lastID        string
 	addr          string
 	password      string
@@ -25,10 +26,10 @@ type redisLoader struct {
 	appUUID       uuid.UUID
 }
 
-//RedisLoader return loader from redis
-func RedisLoader(addr string, password string, databaseID int, streamGetters types.StreamGetters) *redisLoader {
-	log.Debugf("RedisLoader init")
-	return &redisLoader{
+//NewRedisLoader return loader from redis
+func NewRedisLoader(addr string, password string, databaseID int, streamGetters types.StreamGetters) *RedisLoader {
+	log.Debugf("NewRedisLoader init")
+	return &RedisLoader{
 		addr:          addr,
 		password:      password,
 		databaseID:    databaseID,
@@ -37,13 +38,13 @@ func RedisLoader(addr string, password string, databaseID int, streamGetters typ
 }
 
 //SetRemoteCache add cache layer
-func (loader *redisLoader) SetRemoteCache(cache cachers.CacheProcessor) {
+func (loader *RedisLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
 //Clone create copy
-func (loader *redisLoader) Clone() Loader {
-	return &redisLoader{
+func (loader *RedisLoader) Clone() Loader {
+	return &RedisLoader{
 		addr:          loader.addr,
 		password:      loader.password,
 		databaseID:    loader.databaseID,
@@ -55,7 +56,7 @@ func (loader *redisLoader) Clone() Loader {
 	}
 }
 
-func (loader *redisLoader) getStream(typeToProcess types.LoaderObjectType) string {
+func (loader *RedisLoader) getStream(typeToProcess types.LoaderObjectType) string {
 	switch typeToProcess {
 	case types.LogsType:
 		return loader.streamGetters.StreamLogs(loader.devUUID)
@@ -73,16 +74,16 @@ func (loader *redisLoader) getStream(typeToProcess types.LoaderObjectType) strin
 }
 
 //SetUUID set device UUID
-func (loader *redisLoader) SetUUID(devUUID uuid.UUID) {
+func (loader *RedisLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-//SetUUID set app UUID
-func (loader *redisLoader) SetAppUUID(appUUID uuid.UUID) {
+//SetAppUUID set app UUID
+func (loader *RedisLoader) SetAppUUID(appUUID uuid.UUID) {
 	loader.appUUID = appUUID
 }
 
-func (loader *redisLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
+func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
 	OrderStream := loader.getStream(typeToProcess)
 	if !stream {
 		start := "-"
@@ -180,16 +181,14 @@ func (loader *redisLoader) process(process ProcessFunction, typeToProcess types.
 	}
 }
 
-func (loader *redisLoader) repeatableConnection(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) error {
-	if _, _, err := loader.process(process, typeToProcess, stream); err == nil {
-		return nil
-	} else {
-		log.Errorf("redisLoader repeatableConnection error: %s", err)
+func (loader *RedisLoader) repeatableConnection(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) error {
+	if _, _, err := loader.process(process, typeToProcess, stream); err != nil {
+		log.Errorf("RedisLoader repeatableConnection error: %s", err)
 	}
-	return fmt.Errorf("all connection attempts failed")
+	return nil
 }
 
-func (loader *redisLoader) getOrCreateClient() (*redis.Client, error) {
+func (loader *RedisLoader) getOrCreateClient() (*redis.Client, error) {
 	if loader.client == nil {
 		loader.client = redis.NewClient(&redis.Options{
 			Addr:            loader.addr,
@@ -205,15 +204,15 @@ func (loader *redisLoader) getOrCreateClient() (*redis.Client, error) {
 }
 
 //ProcessExisting for observe existing files
-func (loader *redisLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
+func (loader *RedisLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	if _, err := loader.getOrCreateClient(); err != nil {
 		return err
 	}
 	return loader.repeatableConnection(process, typeToProcess, false)
 }
 
-//ProcessExisting for observe new files
-func (loader *redisLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
+//ProcessStream for observe new files
+func (loader *RedisLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	if _, err := loader.getOrCreateClient(); err != nil {
 		return err
 	}

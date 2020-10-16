@@ -43,7 +43,7 @@ func mergeCoverProfile(cover *testing.Cover, r io.Reader) error {
 	// out file-by-file, with all blocks for a file in sequence.
 	var (
 		filename string
-		blockId  uint32
+		blockID  uint32
 		counters []uint32
 		blocks   []testing.CoverBlock
 	)
@@ -60,20 +60,20 @@ func mergeCoverProfile(cover *testing.Cover, r io.Reader) error {
 			filename = scanner.Filename()
 			counters = cover.Counters[filename]
 			blocks = cover.Blocks[filename]
-			blockId = 0
+			blockID = 0
 		} else {
-			blockId++
+			blockID++
 		}
-		if int(blockId) >= len(counters) {
+		if int(blockID) >= len(counters) {
 			counters = append(counters, block.Count)
 			blocks = append(blocks, block.CoverBlock)
 			continue
 		}
-		// TODO check that block.CoverBlock == blocks[blockId] ?
+		// TODO check that block.CoverBlock == blocks[blockID] ?
 		if isCount {
-			counters[blockId] += block.Count
+			counters[blockID] += block.Count
 		} else {
-			counters[blockId] |= block.Count
+			counters[blockID] |= block.Count
 		}
 	}
 	flush()

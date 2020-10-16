@@ -8,7 +8,7 @@ import (
 )
 
 //checkDataStore checks if provided ds match expectation
-func (exp *appExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
+func (exp *AppExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 	if ds == nil {
 		return false
 	}
@@ -16,13 +16,13 @@ func (exp *appExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 	case dockerApp:
 		return exp.checkDataStoreDocker(ds)
 	case httpApp, httpsApp, fileApp:
-		return exp.checkDataStoreHttp(ds)
+		return exp.checkDataStoreHTTP(ds)
 	}
 	return false
 }
 
-//createDataStore creates DatastoreConfig for appExpectation
-func (exp *appExpectation) createDataStore() (*config.DatastoreConfig, error) {
+//createDataStore creates DatastoreConfig for AppExpectation
+func (exp *AppExpectation) createDataStore() (*config.DatastoreConfig, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -31,15 +31,15 @@ func (exp *appExpectation) createDataStore() (*config.DatastoreConfig, error) {
 	case dockerApp:
 		return exp.createDataStoreDocker(id), nil
 	case httpApp, httpsApp, fileApp:
-		return exp.createDataStoreHttp(id), nil
+		return exp.createDataStoreHTTP(id), nil
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
 }
 
 //DataStore expects datastore in controller
-//it gets DatastoreConfig with defined in appExpectation params, or creates new one, if not exists
-func (exp *appExpectation) DataStore() (datastore *config.DatastoreConfig) {
+//it gets DatastoreConfig with defined in AppExpectation params, or creates new one, if not exists
+func (exp *AppExpectation) DataStore() (datastore *config.DatastoreConfig) {
 	var err error
 	for _, ds := range exp.ctrl.ListDataStore() {
 		if exp.checkDataStore(ds) {

@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-var profileId int32 = 0
+var profileID int32
 
 // TestingM is implemented by *testing.M. It's defined as an interface
 // to allow testscript to co-exist with other testing frameworks
@@ -66,7 +66,7 @@ func RunMain(m TestingM, commands map[string]func() int) (exitCode int) {
 				if err != nil {
 					ts.Fatalf("cannot determine path to test binary: %v", err)
 				}
-				id := atomic.AddInt32(&profileId, 1) - 1
+				id := atomic.AddInt32(&profileID, 1) - 1
 				oldEnvLen := len(ts.env)
 				cprof := coverFilename(id)
 				ts.env = append(ts.env,

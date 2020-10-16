@@ -30,41 +30,41 @@ func VolumeTypeByName(name string) VolumeType {
 	return VolumeQcow2
 }
 
-//ExpectationOption is type to use for creation of appExpectation
-type ExpectationOption func(expectation *appExpectation)
+//ExpectationOption is type to use for creation of AppExpectation
+type ExpectationOption func(expectation *AppExpectation)
 
 //WithVnc enables VNC and sets VNC display number
 func WithVnc(vncDisplay uint32) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.vncDisplay = vncDisplay
 	}
 }
 
 //WithVncPassword sets VNC password
 func WithVncPassword(password string) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.vncPassword = password
 	}
 }
 
 //WithMetadata sets metadata for created apps
 func WithMetadata(metadata string) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.metadata = strings.Replace(metadata, `\n`, "\n", -1)
 	}
 }
 
 //WithAppAdapters assigns adapters for created apps
 func WithAppAdapters(appadapters []string) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.appAdapters = appadapters
 	}
 }
 
 //AddNetInstanceNameAndPortPublish adds NetInstance with defined name and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
 func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []string) ExpectationOption {
-	return func(expectation *appExpectation) {
-		expectation.netInstances = append(expectation.netInstances, &netInstanceExpectation{
+	return func(expectation *AppExpectation) {
+		expectation.netInstances = append(expectation.netInstances, &NetInstanceExpectation{
 			name:          netInstanceName,
 			portsReceived: portPublish,
 			ports:         make(map[int]int),
@@ -74,8 +74,8 @@ func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []stri
 
 //AddNetInstanceAndPortPublish adds NetInstance with defined subnet cidr, networkType and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
 func AddNetInstanceAndPortPublish(subnetCidr string, networkType string, portPublish []string) ExpectationOption {
-	return func(expectation *appExpectation) {
-		expectation.netInstances = append(expectation.netInstances, &netInstanceExpectation{
+	return func(expectation *AppExpectation) {
+		expectation.netInstances = append(expectation.netInstances, &NetInstanceExpectation{
 			subnet:        subnetCidr,
 			portsReceived: portPublish,
 			ports:         make(map[int]int),
@@ -86,9 +86,9 @@ func AddNetInstanceAndPortPublish(subnetCidr string, networkType string, portPub
 
 //WithPortsPublish sets ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
 func WithPortsPublish(portPublish []string) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		if len(expectation.netInstances) == 0 {
-			expectation.netInstances = []*netInstanceExpectation{{
+			expectation.netInstances = []*NetInstanceExpectation{{
 				subnet: defaults.DefaultAppSubnet,
 				ports:  make(map[int]int),
 			}}
@@ -99,14 +99,14 @@ func WithPortsPublish(portPublish []string) ExpectationOption {
 
 //WithDiskSize set disk size for created app (equals with image size if not defined)
 func WithDiskSize(diskSizeBytes int64) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.diskSize = diskSizeBytes
 	}
 }
 
 //WithResources sets cpu count and memory for app
 func WithResources(cpus uint32, memory uint32) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.cpu = cpus
 		expectation.mem = memory
 	}
@@ -114,35 +114,35 @@ func WithResources(cpus uint32, memory uint32) ExpectationOption {
 
 //WithVirtualizationMode sets virtualizationMode for app
 func WithVirtualizationMode(virtualizationMode config.VmMode) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.virtualizationMode = virtualizationMode
 	}
 }
 
 // WithImageFormat sets app format
 func WithImageFormat(format string) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.imageFormat = format
 	}
 }
 
 //WithVolumeType sets empty volumes type for app
 func WithVolumeType(volumesType VolumeType) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.volumesType = volumesType
 	}
 }
 
-//WithAcl sets access for app only to external networks if onlyHost sets
-func WithAcl(onlyHost bool) ExpectationOption {
-	return func(expectation *appExpectation) {
-		expectation.onlyHostAcl = onlyHost
+//WithACL sets access for app only to external networks if onlyHost sets
+func WithACL(onlyHost bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.onlyHostACL = onlyHost
 	}
 }
 
 //WithRegistry sets registry to use (remote/local)
 func WithRegistry(registry string) ExpectationOption {
-	return func(expectation *appExpectation) {
+	return func(expectation *AppExpectation) {
 		expectation.registry = registry
 	}
 }

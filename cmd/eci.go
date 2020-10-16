@@ -64,7 +64,7 @@ var podPublishCmd = &cobra.Command{
 		)
 		ctx := context.TODO()
 		if local {
-			_, remoteTarget, err = utils.NewRegistryHttp(ctx)
+			_, remoteTarget, err = utils.NewRegistryHTTP(ctx)
 			if err != nil {
 				log.Fatalf("unexpected error when created NewRegistry resolver: %v", err)
 			}

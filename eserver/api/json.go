@@ -1,9 +1,9 @@
 package api
 
-//UrlArg is packet to send into eserver for downloading of external file
-type UrlArg struct {
-	//Url contains link to file
-	Url string `json:"url,omitempty"`
+//URLArg is packet to send into eserver for downloading of external file
+type URLArg struct {
+	//URL contains link to file
+	URL string `json:"url,omitempty"`
 }
 
 //FileInfo contains information about downloading or downloaded file

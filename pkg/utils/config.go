@@ -29,8 +29,8 @@ type ConfigVars struct {
 	AdamCachingRedis  bool
 	AdamCachingPrefix string
 	AdamRemoteRedis   bool
-	AdamRedisUrlEden  string
-	AdamRedisUrlAdam  string
+	AdamRedisURLEden  string
+	AdamRedisURLAdam  string
 	EveHV             string
 	EveSSID           string
 	EveUUID           string
@@ -38,7 +38,7 @@ type ConfigVars struct {
 	EveRemote         bool
 	EveRemoteAddr     string
 	EveQemuPorts      map[string]string
-	SshKey            string
+	SSHKey            string
 	CheckLogs         bool
 	EveCert           string
 	EveDeviceCert     string
@@ -51,7 +51,7 @@ type ConfigVars struct {
 	TestScenario      string
 	EServerImageDist  string
 	EServerPort       string
-	EServerIp         string
+	EServerIP         string
 }
 
 //InitVars loads vars from viper
@@ -71,9 +71,9 @@ func InitVars() (*ConfigVars, error) {
 			AdamDomain:        viper.GetString("adam.domain"),
 			AdamDir:           ResolveAbsPath(viper.GetString("adam.dist")),
 			AdamCA:            ResolveAbsPath(viper.GetString("adam.ca")),
-			AdamRedisUrlEden:  viper.GetString("adam.redis.eden"),
-			AdamRedisUrlAdam:  viper.GetString("adam.redis.adam"),
-			SshKey:            ResolveAbsPath(viper.GetString("eden.ssh-key")),
+			AdamRedisURLEden:  viper.GetString("adam.redis.eden"),
+			AdamRedisURLAdam:  viper.GetString("adam.redis.adam"),
+			SSHKey:            ResolveAbsPath(viper.GetString("eden.ssh-key")),
 			CheckLogs:         viper.GetBool("eden.logs"),
 			EveCert:           ResolveAbsPath(viper.GetString("eve.cert")),
 			EveDeviceCert:     ResolveAbsPath(viper.GetString("eve.device-cert")),
@@ -98,7 +98,7 @@ func InitVars() (*ConfigVars, error) {
 			TestScenario:      viper.GetString("eden.test-scenario"),
 			EServerImageDist:  ResolveAbsPath(viper.GetString("eden.images.dist")),
 			EServerPort:       viper.GetString("eden.eserver.port"),
-			EServerIp:         viper.GetString("eden.eserver.ip"),
+			EServerIP:         viper.GetString("eden.eserver.ip"),
 		}
 		return vars, nil
 	}

@@ -75,15 +75,15 @@ func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.C
 }
 
 type adamChanger struct {
-	adamUrl string
+	adamURL string
 }
 
 func (ctx *adamChanger) getController() (controller.Cloud, error) {
-	if ctx.adamUrl != "" { //overwrite config only if url defined
-		ipPort := strings.Split(ctx.adamUrl, ":")
+	if ctx.adamURL != "" { //overwrite config only if url defined
+		ipPort := strings.Split(ctx.adamURL, ":")
 		ip := ipPort[0]
 		if ip == "" {
-			return nil, fmt.Errorf("cannot get ip/hostname from %s", ctx.adamUrl)
+			return nil, fmt.Errorf("cannot get ip/hostname from %s", ctx.adamURL)
 		}
 		port := "80"
 		if len(ipPort) > 1 {
