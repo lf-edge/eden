@@ -12,10 +12,10 @@ arg benchmark benchmark
 # read the environment variables
 source .env
 
-# deploy the third application by nested escript
+# deploy the application by nested escript
 test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/phoronix/testdata/
 
-exec -t 80m bash wait_app.sh
+exec -t 180m bash wait_app.sh
 exec cat result
 # expect in stdout
 stdout 'Average'

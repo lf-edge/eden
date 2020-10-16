@@ -1,2 +1,1 @@
-eden.escript.test -test.run TestEdenScripts/test_phoronix -test.timeout 90m -args="benchmark=pts/coremark-1.0.0"
-eden.escript.test -test.run TestEdenScripts/test_phoronix -test.timeout 90m -args="benchmark=fio-basic"
+eden.escript.test -test.run TestEdenScripts/test_phoronix -args="benchmark=fio-basic"
