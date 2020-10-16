@@ -22,3 +22,8 @@ tests/*/eden-config.yml
 dist
 Config.in
 ./eden
+
+# workflow flavours
+tests/workflow/workflow.default.txt
+tests/workflow/workflow.small.txt
+tests/workflow/workflow.large.txt
