@@ -32,7 +32,7 @@ require (
 	github.com/lf-edge/adam v0.0.0-20200910222414-5a4c90bf19c2
 	github.com/lf-edge/eden/eserver v0.0.0-00010101000000-000000000000
 	github.com/lf-edge/edge-containers v0.0.0-20200921124327-cb84b924624b
-	github.com/lf-edge/eve/api/go v0.0.0-20201009050143-0ca6703afd1e
+	github.com/lf-edge/eve/api/go v0.0.0-20201019011810-f8c60fefb83f
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200513230334-5988786b5617
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
