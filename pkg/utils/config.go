@@ -170,10 +170,10 @@ eve:
     os: {{ .OS }}
 
     #EVE acceleration (set to false if you have problems with qemu)
-    accel: true
+    accel: false
 
     #variant of hypervisor of EVE (kvm/xen)
-    hv: {{ .DefaultEVEHV }}
+    hv: xen
 
     #serial number in SMBIOS
     serial: "{{ .DefaultEVESerial }}"

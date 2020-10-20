@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/pkg/controller/adam"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
@@ -85,8 +86,8 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 		return fmt.Errorf("register: %s", err)
 	}
 
-	maxRepeat := 20
-	delayTime := 20 * time.Second
+	maxRepeat := defaults.DefaultRepeatCount
+	delayTime := 10 * defaults.DefaultRepeatTimeout
 
 	for i := 0; i < maxRepeat; i++ {
 		dev, err := cloud.DeviceGetByOnboard(node.GetOnboardKey())

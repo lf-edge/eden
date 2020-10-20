@@ -5,7 +5,7 @@
 eden.escript.test -test.run TestEdenScripts/eden_setup
 {{end}}
 /bin/echo Eden start (2/{{$tests}})
-eden.escript.test -test.run TestEdenScripts/eden_start  
+eden.escript.test -test.run TestEdenScripts/eden_start
 {{ if ne $workflow "small" }}
 /bin/echo Eden onboard (3/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_onboard

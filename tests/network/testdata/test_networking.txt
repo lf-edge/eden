@@ -39,7 +39,7 @@ test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {
 
 # execute the script for waiting RUNNING state and obtain internal IP
 message 'waiting for app1 running state'
-test eden.app.test -test.v -timewait 10m RUNNING app1
+test eden.app.test -test.v -timewait 20m RUNNING app1
 eden pod ps
 exec -t 15m bash wait_and_get_ip.sh
 

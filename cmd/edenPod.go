@@ -33,6 +33,7 @@ var (
 	appAdapters []string
 	aclOnlyHost bool
 	noHyper     bool
+	pv          bool
 	qemuPorts   map[string]string
 	vncDisplay  uint32
 	vncPassword string
@@ -114,6 +115,9 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithRegistry(registryToUse))
 		if noHyper {
 			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
+		}
+		if pv {
+			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_PV))
 		}
 		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
@@ -669,6 +673,7 @@ func podInit() {
 	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podDeployCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
+	podDeployCmd.Flags().BoolVar(&pv, "pv", false, "Run pod in PV mode")
 	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
