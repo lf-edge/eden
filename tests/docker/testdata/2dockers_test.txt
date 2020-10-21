@@ -1,8 +1,10 @@
 {{$test_opts := "-test.v -timewait 1200"}}
 
 [!exec:curl] stop
+[!exec:cut] stop
+[!exec:grep] stop
 
-eden -t 1s pod ps
+# eden -t 1s pod ps
 
 # Starting of reboot detector with a 2 reboots limit
 ! test eden.reboot.test {{$test_opts}} -reboot=0 -count=2 &
@@ -15,13 +17,14 @@ stdout '--- PASS: TestDockerStart'
 
 # Dockers detecting
 eden -t 1m pod ps
-stdout 't1	library/nginx:latest	.*:80	127.0.0.1:8027	IN_CONFIG	RUNNING'
-stdout 't2	library/nginx:latest	.*:80	127.0.0.1:8028	IN_CONFIG	RUNNING'
+cp stdout pod_ps
+grep '^t1\s*' pod_ps
+grep '^t2\s*' pod_ps
 
 # Ngnix detecting
-exec -t 1m curl localhost:8027
+exec -t 1m bash get.sh t1
 stdout 'Welcome to nginx'
-exec -t 1m curl localhost:8028
+exec -t 1m bash get.sh t2
 stdout 'Welcome to nginx'
 
 # Stop by docker's actor
@@ -43,3 +46,6 @@ test:
         onboard-cert: {{EdenConfigPath "eve.cert"}}
         serial: "{{EdenConfig "eve.serial"}}"
         model: {{EdenConfig "eve.devmodel"}}
+
+-- get.sh --
+curl `grep "^$1"'\s*' pod_ps | cut -f 5`
