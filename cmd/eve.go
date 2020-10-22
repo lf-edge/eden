@@ -50,6 +50,7 @@ var startEveCmd = &cobra.Command{
 		if viperLoaded {
 			qemuARCH = viper.GetString("eve.arch")
 			qemuOS = viper.GetString("eve.os")
+			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
 			qemuAccel = viper.GetBool("eve.accel")
 			qemuSMBIOSSerial = viper.GetString("eve.serial")
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
@@ -68,6 +69,19 @@ var startEveCmd = &cobra.Command{
 		qemuOptions := fmt.Sprintf("-display none -serial telnet:localhost:%d,server,nowait -nodefaults -no-user-config ", eveTelnetPort)
 		if qemuSMBIOSSerial != "" {
 			qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
+		}
+		nets, err := utils.GetSubnetsNotUsed(2)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for ind, net := range nets {
+			qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", ind, net.Subnet, net.FirstAddress)
+			if ind == 0 {
+				for k, v := range qemuHostFwd {
+					qemuOptions += fmt.Sprintf(",hostfwd=tcp::%s-:%s", k, v)
+				}
+			}
+			qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", ind)
 		}
 		if qemuOS == "" {
 			qemuOS = runtime.GOOS

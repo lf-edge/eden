@@ -169,18 +169,11 @@ var configAddCmd = &cobra.Command{
 				}
 				qemuFirmwareParam = append(qemuFirmwareParam, qemuFirmwarePathAbsolute)
 			}
-			//generate netdevs with unused subnets
-			nets, err := utils.GetSubnetsNotUsed(2)
-			if err != nil {
-				log.Fatal(err)
-			}
 			settings := utils.QemuSettings{
 				DTBDrive: qemuDTBPathAbsolute,
 				Firmware: qemuFirmwareParam,
 				MemoryMB: qemuMemory,
 				CPUs:     qemuCpus,
-				HostFWD:  qemuHostFwd,
-				NetDevs:  nets,
 			}
 			conf, err := settings.GenerateQemuConfig()
 			if err != nil {
