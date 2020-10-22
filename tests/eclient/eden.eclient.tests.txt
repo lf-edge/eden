@@ -1,0 +1,2 @@
+./eden+eclient.sh
+eden.escript.test -test.run TestEdenScripts/eclient
