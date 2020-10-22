@@ -7,11 +7,11 @@
 #eden eve onboard
 
 # Trying to find eth0 or eth1 in msg.
-{{$test1}} -out msg 'msg:.*eth[01].*'
+{{$test1}} -out msg 'msg:.*dev eth[01].*'
 stdout 'eth[01]'
 
 # Checking msg for interfaces other than eth0 or eth1.
-! {{$test2}} -out msg msg:'.*eth[^01].*'
+! {{$test2}} -out msg msg:'.*dev eth[^01].*'
 
 # Test's config. file
 -- eden-config.yml --
