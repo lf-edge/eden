@@ -100,7 +100,7 @@ func TestAppStatus(t *testing.T) {
 		var state string
 		state = args[0]
 		fmt.Printf("apps: '%s' state: '%s' secs: %d\n",
-			args, state, secs)
+			args[1:], state, secs)
 
 		apps := args[1:]
 		tc.AddProcInfo(edgeNode, checkApp(state, apps))

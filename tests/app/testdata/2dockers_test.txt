@@ -59,5 +59,6 @@ test:
         serial: "{{EdenConfig "eve.serial"}}"
         model: {{EdenConfig "eve.devmodel"}}
 -- get.sh --
-curl `grep "^$1"'\s*' pod_ps | cut -f 5`
+address=`grep "^$1"'\s*' pod_ps | cut -f 5`
+until curl $address; do sleep 5; done
 

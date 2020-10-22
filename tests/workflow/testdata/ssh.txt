@@ -38,7 +38,11 @@ grep 'device UUID' onboard | sed 's/.*device UUID: \(.*\)"/\1/' > uuid
 
 -- ssh.sh --
 PORT=`cat eve.hostfwd | sed 's/.*[^0-9]\([0-9]*\):22[^0-9].*/\1/'`
+[ -n "$PORT" ] && [ "$PORT" -eq "$PORT" ] 2>/dev/null
+if [ $? -ne 0 ]; then
+   PORT=22
+fi
 CERT=`echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.ssh-key"}} | sed 's/\.pub$//'`
 
-ssh -o ConnectTimeout=3 -oStrictHostKeyChecking=no -i $CERT -p $PORT root@{{EdenConfig "eve.remote-addr"}} cat /config/uuid
+until ssh -o ConnectTimeout=5 -oStrictHostKeyChecking=no -i $CERT -p $PORT root@{{EdenConfig "eve.remote-addr"}} cat /config/uuid; do sleep 10; done
 

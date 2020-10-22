@@ -61,13 +61,13 @@ func (lb *processingBus) processReturn(edgeNode *device.Ctx, procFunc *absFunc, 
 			lb.tc.stopTime.Add(lb.tc.addTime)
 		}
 		procFunc.disabled = true
-		lb.wg.Done()
 		toRet := fmt.Sprintf("%T done with return: \"%s\"", procFunc.proc, result)
 		if t, ok := lb.tc.tests[edgeNode]; ok {
 			t.Log(toRet)
 		} else {
 			log.Println(toRet)
 		}
+		lb.wg.Done()
 	}
 }
 
