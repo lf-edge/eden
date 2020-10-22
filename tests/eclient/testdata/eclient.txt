@@ -1,0 +1,42 @@
+{{$test_opts := "-test.v -timewait 1200"}}
+{{$port := "2223"}}
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:ssh] stop
+
+# Starting of reboot detector with a 2 reboot limit
+! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
+
+eden pod deploy -v debug -n eclient docker://itmoeve/eclient:latest -p {{$port}}:22
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient
+
+#eden -t 20m pod logs eclient
+#stdout 'Executing "/usr/sbin/sshd" "-D"'
+
+exec -t 20m bash ssh.sh
+stdout 'Ubuntu'
+
+eden pod delete eclient
+
+test eden.app.test -test.v -timewait 10m - eclient
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- ssh.sh --
+for i in `seq 10`
+do
+sleep 5
+# Test SSH-access to container
+echo $i\) ssh -o ConnectTimeout=10 -oStrictHostKeyChecking=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa -p {{$port}} root@localhost grep Ubuntu /etc/issue
+ssh -o ConnectTimeout=10 -oStrictHostKeyChecking=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa -p {{$port}} root@localhost grep Ubuntu /etc/issue && break
+done
