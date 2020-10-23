@@ -2,15 +2,6 @@ DEBUG ?= "debug"
 CONFIG ?= 
 TESTS ?= $(shell find tests/ -maxdepth 1 -mindepth 1 -type d  -exec basename {} \;)
 
-# ESERVER_TAG is the tag for eserver image to build
-ESERVER_TAG ?= "lfedge/eden-http-server"
-# ESERVER_VERSION is the version of eserver image to build
-ESERVER_VERSION ?= "1.2"
-# ESERVER_DIR is the directory with eserver Dockerfile to build
-ESERVER_DIR=$(CURDIR)/eserver
-# check if eserver image already exists in local docker and get its IMAGE_ID
-ESERVER_IMAGE_ID ?= $(shell docker images -q $(ESERVER_TAG):$(ESERVER_VERSION))
-
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
 # we need to keep track of them separately
@@ -62,9 +53,6 @@ install: build
 	CGO_ENABLED=0 go install .
 
 build: $(BIN) $(EMPTY_DRIVE)
-ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
-build: $(BIN) $(EMPTY_DRIVE) eserver
-endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
 $(BIN): $(LOCALBIN)
@@ -87,12 +75,6 @@ run: build setup
 stop: build
 	$(LOCALBIN) stop -v $(DEBUG)
 
-.PHONY: eserver
-
-eserver:
-	@echo "Build eserver image"
-	docker build -t $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR)
-
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo
@@ -108,7 +90,6 @@ help:
 	@echo "   stop          stop ADAM and EVE"
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
-	@echo "   eserver       build eserver image"
 	@echo
 	@echo "You can use some parameters:"
 	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""

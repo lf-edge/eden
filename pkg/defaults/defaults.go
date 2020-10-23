@@ -60,7 +60,7 @@ const (
 	DefaultRegistry             = "docker.io"
 
 	DefaultEServerTag          = "1.2"
-	DefaultEServerContainerRef = "lfedge/eden-http-server"
+	DefaultEServerContainerRef = "itmoeve/eden-http-server"
 
 	//DefaultRepeatCount is repeat count for requests
 	DefaultRepeatCount = 20
