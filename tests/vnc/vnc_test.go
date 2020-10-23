@@ -28,8 +28,8 @@ import (
 // and removes app from EVE
 
 var (
-	timewait     = flag.Int("timewait", 600, "Timewait for items waiting in seconds")
-	expand       = flag.Int("expand", 300, "Expand timewait on success of step in seconds")
+	timewait     = flag.Int("timewait", 900, "Timewait for items waiting in seconds")
+	expand       = flag.Int("expand", 400, "Expand timewait on success of step in seconds")
 	name         = flag.String("name", "", "Name of app, random if empty")
 	vncDisplay   = flag.Int("vncDisplay", 1, "VNC display number")
 	sshPort      = flag.Int("sshPort", 8027, "Port to publish ssh")
