@@ -1,0 +1,62 @@
+{{$test_opts := "-test.v -timewait 1200"}}
+{{$server := "ngnix"}}
+{{$test_msg := "Welcome to nginx!"}}
+{{define "port"}}2223{{end}}
+{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa root@localhost -p {{template "port"}}{{end}}
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:ssh] stop
+
+# Starting of reboot detector with a 2 reboot limit
+! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
+
+eden pod deploy -v debug -n eclient docker://itmoeve/eclient:latest -p {{template "port"}}:22
+
+eden pod deploy -v debug -n {{$server}} docker://nginx:latest
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient {{$server}}
+
+exec -t 20m bash wait_ssh.sh
+
+eden pod ps
+cp stdout pod_ps
+exec bash server_ip.sh {{$server}}
+
+exec sleep 10
+exec -t 1m bash run_clent.sh
+stdout '{{$test_msg}}'
+
+eden pod delete eclient
+eden pod delete {{$server}}
+
+test eden.app.test -test.v -timewait 10m - eclient {{$server}}
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- wait_ssh.sh --
+
+for i in `seq 10`
+do
+  sleep 5
+  # Test SSH-access to container
+  echo {{template "ssh"}} grep -q Ubuntu /etc/issue && break
+  {{template "ssh"}} grep -q Ubuntu /etc/issue && break
+done
+
+-- server_ip.sh --
+echo export ESERVER_IP=$(grep "^$1\s" pod_ps | cut -f 4) > env
+
+-- run_clent.sh --
+. ./env
+
+echo {{template "ssh"}} "curl $ESERVER_IP"
+{{template "ssh"}} "curl $ESERVER_IP"

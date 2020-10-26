@@ -1,2 +1,4 @@
 ./eden+eclient.sh
-eden.escript.test -test.run TestEdenScripts/eclient
+#eden.escript.test -test.run TestEdenScripts/eclient
+eden.escript.test -test.run TestEdenScripts/networking_light -test.timeout 40m
+eden.escript.test -test.run TestEdenScripts/ngnix -test.timeout 40m
