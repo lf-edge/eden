@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -60,13 +61,27 @@ func runTest(testApp string, args []string, testArgs string) {
 		if verbosity != "info" {
 			args = append(args, "-test.v")
 		}
-
+		done := make(chan bool, 1)
+		go func() {
+			ticker := time.NewTicker(defaults.DefaultRepeatTimeout * defaults.DefaultRepeatCount)
+			for {
+				select {
+				case tickTime := <-ticker.C:
+					//we need to log periodically to avoid stopping of ci/cd system
+					log.Infof("Test is running: %s", tickTime.Format(time.RFC3339))
+				case <-done:
+					ticker.Stop()
+					return
+				}
+			}
+		}()
 		resultArgs := append(args, strings.Fields(testArgs)...)
 		log.Debugf("Test: %s %s", path, strings.Join(resultArgs, " "))
 		tst := exec.Command(path, resultArgs...)
 		tst.Stdout = os.Stdout
 		tst.Stderr = os.Stderr
 		err = tst.Run()
+		close(done)
 		if err != nil {
 			log.Fatalf("Test running failed with %s\n", err)
 		}
