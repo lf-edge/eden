@@ -18,9 +18,9 @@ type FileToSave struct {
 
 // CreateTarGz generates tar.gz file in dstFile by putting files and directories described in paths
 func CreateTarGz(dstFile string, paths []FileToSave) error {
-	tarFile, err := os.Create(dstFile)
-	if err != nil {
-		return err
+	tarFile, err1 := os.Create(dstFile)
+	if err1 != nil {
+		return err1
 	}
 	defer tarFile.Close()
 	gz := gzip.NewWriter(tarFile)
@@ -29,6 +29,9 @@ func CreateTarGz(dstFile string, paths []FileToSave) error {
 	defer tw.Close()
 	for _, path := range paths {
 		walker := func(f string, fi os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 			hdr, err := tar.FileInfoHeader(fi, fi.Name())
 			if err != nil {
 				return err
@@ -48,6 +51,9 @@ func CreateTarGz(dstFile string, paths []FileToSave) error {
 				return nil
 			}
 			srcFile, err := os.Open(f)
+			if err != nil {
+				return err
+			}
 			defer srcFile.Close()
 			_, err = io.Copy(tw, srcFile)
 			if err != nil {

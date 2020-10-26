@@ -217,9 +217,7 @@ func (loader *RedisLoader) ProcessStream(process ProcessFunction, typeToProcess 
 		return err
 	}
 	done := make(chan error)
-	if timeoutSeconds == 0 {
-		timeoutSeconds = -1
-	} else {
+	if timeoutSeconds != 0 {
 		time.AfterFunc(timeoutSeconds*time.Second, func() {
 			done <- fmt.Errorf("timeout")
 		})

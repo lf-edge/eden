@@ -28,10 +28,7 @@ func GenerateSSHKeyPair(privateKeyFile string, publicKeyFile string) error {
 	if err = ioutil.WriteFile(privateKeyFile, privateKeyBytes, 0600); err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(publicKeyFile, publicKeyBytes, 0600); err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(publicKeyFile, publicKeyBytes, 0600)
 }
 
 // generatePrivateKey creates a RSA Private Key of specified byte size

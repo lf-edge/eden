@@ -35,7 +35,7 @@ LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
 
 .DEFAULT_GOAL := help
 
-clean: 
+clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
 $(WORKDIR):
@@ -57,6 +57,8 @@ setup:
 image:
 	@echo "Build image"
 	docker build -t $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
+
+.PHONY: test build setup clean all
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"

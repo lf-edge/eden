@@ -85,9 +85,8 @@ var configAddCmd = &cobra.Command{
 		if _, err = os.Stat(configFile); os.IsNotExist(err) {
 			if err = utils.GenerateConfigFile(configFile); err != nil {
 				log.Fatalf("fail in generate yaml: %s", err.Error())
-			} else {
-				log.Infof("Config file generated: %s", configFile)
 			}
+			log.Infof("Config file generated: %s", configFile)
 		}
 		reloadConfigDetails()
 		return nil
@@ -103,16 +102,14 @@ var configAddCmd = &cobra.Command{
 		if contextFile != "" {
 			if err := utils.CopyFile(contextFile, configFile); err != nil {
 				log.Fatalf("Cannot copy file: %s", err)
-			} else {
-				log.Infof("Context file generated: %s", contextFile)
 			}
+			log.Infof("Context file generated: %s", contextFile)
 		} else {
 			if _, err := os.Stat(configFile); os.IsNotExist(err) {
 				if err = utils.GenerateConfigFileDiff(configFile, context); err != nil {
 					log.Fatalf("error generate config: %s", err)
-				} else {
-					log.Infof("Context file generated: %s", configFile)
 				}
+				log.Infof("Context file generated: %s", configFile)
 			} else {
 				log.Debugf("Config file already exists %s", configFile)
 			}

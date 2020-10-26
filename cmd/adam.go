@@ -86,11 +86,9 @@ var statusAdamCmd = &cobra.Command{
 	Long:  `Status of adam.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
+		_, err := utils.LoadConfigFile(configFile)
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
 		}
 		return nil
 	},

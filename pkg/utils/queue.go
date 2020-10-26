@@ -23,7 +23,7 @@ func (queue *QueueWithCapacity) Enqueue(item interface{}) error {
 		ok = false
 	}
 	if !ok {
-		_ = <-queue.channel
+		<-queue.channel
 		return queue.Enqueue(item)
 	}
 	return nil

@@ -1,5 +1,5 @@
 DEBUG ?= "debug"
-CONFIG ?= 
+CONFIG ?=
 TESTS ?= $(shell find tests/ -maxdepth 1 -mindepth 1 -type d  -exec basename {} \;)
 
 # ESERVER_TAG is the tag for eserver image to build
@@ -87,7 +87,7 @@ run: build setup
 stop: build
 	$(LOCALBIN) stop -v $(DEBUG)
 
-.PHONY: eserver
+.PHONY: eserver all clean test build
 
 eserver:
 	@echo "Build eserver image"

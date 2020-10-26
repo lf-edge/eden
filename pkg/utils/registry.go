@@ -107,7 +107,7 @@ func NewRegistryHTTP(ctx context.Context) (context.Context, *RegistryHTTP, error
 }
 
 //Finalize wrapper
-func (r *RegistryHTTP) Finalize(ctx context.Context) error {
+func (r *RegistryHTTP) Finalize(_ context.Context) error {
 	return nil
 }
 

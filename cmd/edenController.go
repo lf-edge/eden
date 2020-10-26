@@ -21,7 +21,6 @@ var (
 	controllerMode      string
 	baseOSImageActivate bool
 	configItems         map[string]string
-	eserverIP           string
 	baseOSVersion       string
 	getFromFileName     bool
 	edenDist            string
@@ -118,7 +117,6 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 			return fmt.Errorf("error reading configFile: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverIP = viper.GetString("eden.eserver.ip")
 			eserverPort = viper.GetInt("eden.eserver.port")
 			edenDist = viper.GetString("eden.dist")
 		}
@@ -169,7 +167,6 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 			return fmt.Errorf("error reading configFile: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverIP = viper.GetString("eden.eserver.ip")
 			eserverPort = viper.GetInt("eden.eserver.port")
 			edenDist = viper.GetString("eden.dist")
 		}
@@ -275,7 +272,6 @@ var edgeNodeUpdate = &cobra.Command{
 			return fmt.Errorf("error reading configFile: %s", err.Error())
 		}
 		if viperLoaded {
-			eserverIP = viper.GetString("eden.eserver.ip")
 			eserverPort = viper.GetInt("eden.eserver.port")
 		}
 		return nil
@@ -373,7 +369,7 @@ func controllerInit() {
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
-	configUsage := `set of key=value items. 
+	configUsage := `set of key=value items.
 Supported keys are defined in https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md`
 	edgeNodeUpdateFlags.StringToStringVar(&configItems, "config", make(map[string]string), configUsage)
 }

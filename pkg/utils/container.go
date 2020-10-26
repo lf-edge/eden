@@ -56,7 +56,7 @@ func CreateDockerNetwork(name string) error {
 func dockerVolumeName(containerName string) string {
 	distPath := ResolveAbsPath(".")
 	hasher := md5.New()
-	hasher.Write([]byte(distPath))
+	_,_ = hasher.Write([]byte(distPath))
 	hashMD5 := hasher.Sum(nil)
 	return fmt.Sprintf("%s_%s", containerName, hex.EncodeToString(hashMD5))
 }
@@ -260,10 +260,7 @@ func SaveImageAndExtract(image, outputDir, defaultEvePrefixInTar string) error {
 		return err
 	}
 	defer reader.Close()
-	if err = ExtractFilesFromDocker(reader, outputDir, defaultEvePrefixInTar); err != nil {
-		return err
-	}
-	return nil
+	return ExtractFilesFromDocker(reader, outputDir, defaultEvePrefixInTar)
 }
 
 // SaveImageToTar creates tar from image
@@ -279,7 +276,7 @@ func SaveImageToTar(image, tarFile string) error {
 		return fmt.Errorf("unable to create tar file %s: %v", tarFile, err)
 	}
 	defer f.Close()
-	io.Copy(f, reader)
+	_,_ = io.Copy(f, reader)
 	return nil
 }
 
@@ -452,7 +449,7 @@ func ExtractFilesFromDocker(u io.ReadCloser, directory string, prefixDirectory s
 		return fmt.Errorf("ExtractFilesFromDocker: MkdirAll() failed: %s", err.Error())
 	}
 	tarReader := tar.NewReader(u)
-	for true {
+	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
 			break
@@ -479,7 +476,7 @@ func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory stri
 		return path.Join(directory, strings.TrimPrefix(oldPath, prefixDirectory))
 	}
 	tarReader := tar.NewReader(u)
-	for true {
+	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
 			break

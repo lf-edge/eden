@@ -307,11 +307,11 @@ func TestBadDir(t *testing.T) {
 	}
 }
 
-func setSpecialVal(ts *TestScript, neg bool, args []string) {
+func setSpecialVal(ts *TestScript, _ bool, _ []string) {
 	ts.Setenv("SPECIALVAL", "42")
 }
 
-func ensureSpecialVal(ts *TestScript, neg bool, args []string) {
+func ensureSpecialVal(ts *TestScript, _ bool, _ []string) {
 	want := "42"
 	if got := ts.Getenv("SPECIALVAL"); got != want {
 		ts.Fatalf("expected SPECIALVAL to be %q; got %q", want, got)
@@ -331,7 +331,7 @@ func interrupt(ts *TestScript, neg bool, args []string) {
 	if got, want := len(bg), 1; got != want {
 		ts.Fatalf("unexpected background cmd count; got %d want %d", got, want)
 	}
-	bg[0].Process.Signal(os.Interrupt)
+	_ = bg[0].Process.Signal(os.Interrupt)
 }
 
 func waitFile(ts *TestScript, neg bool, args []string) {
@@ -362,7 +362,7 @@ type fakeT struct {
 
 var errAbort = errors.New("abort test")
 
-func (t *fakeT) Skip(args ...interface{}) {
+func (t *fakeT) Skip(_ ...interface{}) {
 	panic(errAbort)
 }
 
@@ -381,7 +381,7 @@ func (t *fakeT) FailNow() {
 	t.Fatal("failed")
 }
 
-func (t *fakeT) Run(name string, f func(T)) {
+func (t *fakeT) Run(_ string, f func(T)) {
 	f(t)
 }
 

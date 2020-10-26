@@ -19,7 +19,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -32,7 +31,6 @@ import (
 )
 
 var execCache par.Cache
-var envMapMutex = sync.RWMutex{}
 
 // If -testwork is specified, the test prints the name of the temp directory
 // and does not remove it when done, so that a programmer can
@@ -241,11 +239,11 @@ func RunT(t T, p Params) {
 				if p.TestWork || *testWork {
 					return
 				}
-				removeAll(ts.workdir)
+				_ = removeAll(ts.workdir)
 				if atomic.AddInt32(&refCount, -1) == 0 {
 					// This is the last subtest to finish. Remove the
 					// parent directory too.
-					os.Remove(testTempDir)
+					_ = os.Remove(testTempDir)
 				}
 			}()
 			ts.run()
@@ -624,7 +622,7 @@ func (ts *TestScript) Logf(format string, args ...interface{}) {
 // exec runs the given command line (an actual subprocess, not simulated)
 // in ts.cd with environment ts.env and then returns collected standard output and standard error.
 func (ts *TestScript) exec(command string, args ...string) (stdout, stderr string, err error) {
-	cmd, err := ts.buildExecCmd(command, args...)
+	cmd, _, err := ts.buildExecCmd(command, args...)
 	if err != nil {
 		return "", "", err
 	}
@@ -643,10 +641,10 @@ func (ts *TestScript) exec(command string, args ...string) (stdout, stderr strin
 
 // execBackground starts the given command line (an actual subprocess, not simulated)
 // in ts.cd with environment ts.env.
-func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd, error) {
-	cmd, err := ts.buildExecCmd(command, args...)
+func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd, context.CancelFunc, error) {
+	cmd, cancelFunc, err := ts.buildExecCmd(command, args...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cmd.Dir = ts.cd
 	cmd.Env = append(ts.env, "PWD="+ts.cd)
@@ -655,25 +653,25 @@ func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd,
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	ts.stdin = ""
-	return cmd, cmd.Start()
+	return cmd, cancelFunc, cmd.Start()
 }
 
-func (ts *TestScript) buildExecCmd(command string, args ...string) (*exec.Cmd, error) {
+func (ts *TestScript) buildExecCmd(command string, args ...string) (*exec.Cmd, context.CancelFunc, error) {
 	if filepath.Base(command) == command {
 		lp, err := execpath.Look(command, ts.Getenv)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		command = lp
 	}
 	if timewait == 0 {
 		//ts.ctxt = context.Background()
-		return exec.Command(command, args...), nil
+		return exec.Command(command, args...), nil, nil
 	}
 	//ts.ctxt, _ = context.WithTimeout(context.Background(), timewait)
 	//return exec.CommandContext(ts.ctxt, command, args...), nil
-	ctx, _ := context.WithTimeout(context.Background(), timewait)
-	return exec.CommandContext(ctx, command, args...), nil
+	ctx, cancelFunc := context.WithTimeout(context.Background(), timewait)
+	return exec.CommandContext(ctx, command, args...), cancelFunc, nil
 }
 
 // BackgroundCmds returns a slice containing all the commands that have
@@ -710,7 +708,7 @@ func interruptProcess(p *os.Process) {
 		// Per https://golang.org/pkg/os/#Signal, “Interrupt is not implemented on
 		// Windows; using it with os.Process.Signal will return an error.”
 		// Fall back to Kill instead.
-		p.Kill()
+		_ = p.Kill()
 	}
 }
 
@@ -849,12 +847,12 @@ func (ts *TestScript) parse(line string) []string {
 func removeAll(dir string) error {
 	// module cache has 0444 directories;
 	// make them writable in order to remove content.
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // ignore errors walking in file system
 		}
 		if info.IsDir() {
-			os.Chmod(path, 0777)
+			_ = os.Chmod(path, 0777)
 		}
 		return nil
 	})

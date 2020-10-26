@@ -15,7 +15,7 @@ type adminHandler struct {
 	manager *manager.EServerManager
 }
 
-func (h *adminHandler) list(w http.ResponseWriter, r *http.Request) {
+func (h *adminHandler) list(w http.ResponseWriter, _ *http.Request) {
 	files := h.manager.ListFileNames()
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusOK)
@@ -43,7 +43,7 @@ func (h *adminHandler) addFromURL(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(name))
+	_,_ = w.Write([]byte(name))
 }
 
 func (h *adminHandler) addFromFile(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +73,7 @@ func (h *adminHandler) addFromFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusOK)
-	w.Write(out)
+	_,_ = w.Write(out)
 }
 
 func (h *adminHandler) getFileStatus(w http.ResponseWriter, r *http.Request) {
@@ -89,5 +89,5 @@ func (h *adminHandler) getFileStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusOK)
-	w.Write(out)
+	_,_ = w.Write(out)
 }

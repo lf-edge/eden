@@ -10,7 +10,7 @@ package execpath
 // environment variables. If getenv is nil, os.Getenv will be used. If file
 // contains a slash, it is tried directly and getenv will not be called.  The
 // result may be an absolute path or a path relative to the current directory.
-func Look(file string, getenv func(string) string) (string, error) {
+func Look(file string, _ func(string) string) (string, error) {
 	// Wasm can not execute processes, so act as if there are no executables at all.
 	return "", &Error{file, ErrNotFound}
 }

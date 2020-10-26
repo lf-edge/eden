@@ -41,7 +41,7 @@ func Look(file string, getenv func(string) string) (string, error) {
 		if err == nil {
 			return file, nil
 		}
-		return "", &Error{file, err}
+		return "", &Error{Name: file, Err: err}
 	}
 	path := getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {
@@ -54,5 +54,5 @@ func Look(file string, getenv func(string) string) (string, error) {
 			return path, nil
 		}
 	}
-	return "", &Error{file, ErrNotFound}
+	return "", &Error{Name: file, Err:ErrNotFound}
 }

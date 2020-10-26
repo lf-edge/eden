@@ -18,10 +18,7 @@ import (
 var verbosity string
 var configFile string
 var rootCmd = &cobra.Command{Use: "eden", PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-	if err := setUpLogs(os.Stdout, verbosity); err != nil {
-		return err
-	}
-	return nil
+	return setUpLogs(os.Stdout, verbosity)
 }}
 
 func setUpLogs(out io.Writer, level string) error {

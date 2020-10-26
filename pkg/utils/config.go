@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"text/template"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -304,8 +303,6 @@ registry:
     # dist path to store registry data
     dist: "{{ .DefaultRegistryDist }}"
 `
-
-var configMutex = sync.RWMutex{}
 
 //DefaultEdenDir returns path to default directory
 func DefaultEdenDir() (string, error) {

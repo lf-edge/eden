@@ -28,7 +28,7 @@ LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
 
 .DEFAULT_GOAL := help
 
-clean: 
+clean:
 	rm -f $(WORKDIR)/$(TESTSCN)
 	rm -f workflow.default.txt workflow.small.txt workflow.large.txt
 
@@ -40,12 +40,14 @@ test:
 
 build: setup
 
-setup: 
-	cp $(TESTSCN) $(WORKDIR) 
+setup:
+	cp $(TESTSCN) $(WORKDIR)
 	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 	$(LOCALBIN) utils template eden.workflow.tests.txt > workflow.default.txt
 	EDEN_TEST=small $(LOCALBIN) utils template eden.workflow.tests.txt > workflow.small.txt
 	EDEN_TEST=large $(LOCALBIN) utils template eden.workflow.tests.txt > workflow.large.txt
+
+.PHONY: test build setup clean all
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"

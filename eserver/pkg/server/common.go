@@ -14,5 +14,5 @@ func wrapError(err error, w http.ResponseWriter) {
 	log.Error(err)
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(err.Error()))
+	_, _ = w.Write([]byte(err.Error()))
 }

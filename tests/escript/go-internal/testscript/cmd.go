@@ -232,12 +232,11 @@ func (ts *TestScript) cmdEden(neg bool, args []string) {
 	fmt.Printf("edenProg: %s timewait: %s\n", edenProg, timewait)
 
 	if len(args) > 0 && args[len(args)-1] == "&" {
-		var cmd *exec.Cmd
-		cmd, err = ts.execBackground(edenProg, args...)
+		cmd, _, err := ts.execBackground(edenProg, args...)
 		if err == nil {
 			wait := make(chan struct{})
 			go func() {
-				ctxWait(ts.ctxt, cmd)
+				_ = ctxWait(ts.ctxt, cmd)
 				close(wait)
 			}()
 			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
@@ -301,12 +300,11 @@ func (ts *TestScript) cmdTest(neg bool, args []string) {
 	}
 
 	if len(args) > 0 && args[len(args)-1] == "&" {
-		var cmd *exec.Cmd
-		cmd, err = ts.execBackground(testProg, args...)
+		cmd, _, err := ts.execBackground(testProg, args...)
 		if err == nil {
 			wait := make(chan struct{})
 			go func() {
-				ctxWait(ts.ctxt, cmd)
+				_ = ctxWait(ts.ctxt, cmd)
 				close(wait)
 			}()
 			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
@@ -421,12 +419,11 @@ func (ts *TestScript) cmdExec(neg bool, args []string) {
 	fmt.Printf("exec timewait: %s\n", timewait)
 
 	if len(args) > 0 && args[len(args)-1] == "&" {
-		var cmd *exec.Cmd
-		cmd, err = ts.execBackground(args[0], args[1:len(args)-1]...)
+		cmd, _, err := ts.execBackground(args[0], args[1:len(args)-1]...)
 		if err == nil {
 			wait := make(chan struct{})
 			go func() {
-				ctxWait(ts.ctxt, cmd)
+				_ = ctxWait(ts.ctxt, cmd)
 				close(wait)
 			}()
 			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
@@ -541,7 +538,7 @@ func (ts *TestScript) cmdRm(neg bool, args []string) {
 	}
 	for _, arg := range args {
 		file := ts.MkAbs(arg)
-		removeAll(file)              // does chmod and then attempts rm
+		_ = removeAll(file)          // does chmod and then attempts rm
 		ts.Check(os.RemoveAll(file)) // report error
 	}
 }

@@ -74,9 +74,7 @@ func eveStatusRemote() {
 		if lastDInfo != nil {
 			var ips []string
 			for _, nw := range lastDInfo.GetDinfo().Network {
-				for _, addr := range nw.IPAddrs {
-					ips = append(ips, addr)
-				}
+				ips = append(ips, nw.IPAddrs...)
 			}
 			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
 			fmt.Printf("\tLast info received time: %s\n", lastTime)

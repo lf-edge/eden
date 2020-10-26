@@ -3,18 +3,17 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 
 	"github.com/lf-edge/eden/pkg/utils"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var templateCmd = &cobra.Command{
 	Use:   "template <file>",
 	Short: "Render template",
-	Long: ``,
-	Args: cobra.ExactArgs(1),
+	Long:  ``,
+	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return nil
 	},
@@ -23,14 +22,10 @@ var templateCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		
 		out, err := utils.RenderTemplate(configFile, string(tmpl))
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println(out)
 	},
-}
-
-func templateInit() {
 }

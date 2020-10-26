@@ -28,7 +28,7 @@ LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
 
 .DEFAULT_GOAL := help
 
-clean: 
+clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
 $(WORKDIR):
@@ -51,9 +51,11 @@ $(TESTBIN): $(LOCALTESTBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN); fi
 
 setup: testbin
-	cp $(TESTSCN) $(WORKDIR) 
+	cp $(TESTSCN) $(WORKDIR)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(CURDIR)/$(TESTBIN) $(BINDIR)/; fi
 	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
+
+.PHONY: test build setup clean all testbin
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"

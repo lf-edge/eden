@@ -157,7 +157,7 @@ func (appStateObj *appState) toString() string {
 		for i, el := range appStateObj.intIP {
 			if i == 0 { //forward only on first network
 				if appStateObj.intPort == "" {
-					els = append(els, fmt.Sprintf("%s", el)) //if multiple internal IPs and not forward, display them
+					els = append(els, el) //if multiple internal IPs and not forward, display them
 				} else {
 					els = append(els, fmt.Sprintf("%s:%s", el, appStateObj.intPort))
 				}
@@ -195,7 +195,7 @@ func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]st
 				}
 			}
 			if fromPort != "" && toPort != "" {
-				if qemuPorts != nil && len(qemuPorts) > 0 {
+				if len(qemuPorts) > 0 {
 					for p1, p2 := range qemuPorts {
 						if p2 == fromPort {
 							fromPort = p1
@@ -397,7 +397,7 @@ var podPsCmd = &cobra.Command{
 			return appStatesSlice[i].name < appStatesSlice[j].name
 		})
 		for _, el := range appStatesSlice {
-			if el.deleted == false {
+			if !el.deleted {
 				if _, err = fmt.Fprintln(w, el.toString()); err != nil {
 					log.Fatal(err)
 				}

@@ -55,7 +55,7 @@ setup:
 	chmod 700 image/cert/
 	chmod 600 image/cert/id_rsa*
 
-.PHONY: image
+.PHONY: test build setup clean all image testbin
 
 image:
 	@echo "Build image"

@@ -3,8 +3,9 @@ package cachers
 import (
 	"bytes"
 	"fmt"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/go-redis/redis/v7"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eve/api/go/info"
@@ -59,21 +60,21 @@ func (cacher *RedisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.Lo
 	case types.LogsType:
 		streamToWrite = cacher.streamGetters.StreamLogs(devUUID)
 		var emp logs.LogBundle
-		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+		if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.Timestamp
 	case types.InfoType:
 		streamToWrite = cacher.streamGetters.StreamInfo(devUUID)
 		var emp info.ZInfoMsg
-		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+		if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.AtTimeStamp
 	case types.MetricsType:
 		streamToWrite = cacher.streamGetters.StreamMetrics(devUUID)
 		var emp metrics.ZMetricMsg
-		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+		if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.AtTimeStamp
@@ -90,7 +91,7 @@ func (cacher *RedisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.Lo
 			var buf bytes.Buffer
 			buf.Write([]byte(r.Values["object"].(string)))
 			var emp logs.LogBundle
-			if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+			if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 				return err
 			}
 			if emp.Timestamp.GetSeconds() == itemTimeStamp.GetSeconds() && emp.Timestamp.GetNanos() == itemTimeStamp.GetNanos() {
@@ -100,7 +101,7 @@ func (cacher *RedisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.Lo
 			var buf bytes.Buffer
 			buf.Write([]byte(r.Values["object"].(string)))
 			var emp info.ZInfoMsg
-			if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+			if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 				return err
 			}
 			if emp.AtTimeStamp.GetSeconds() == itemTimeStamp.GetSeconds() && emp.AtTimeStamp.GetNanos() == itemTimeStamp.GetNanos() {

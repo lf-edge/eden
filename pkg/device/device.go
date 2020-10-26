@@ -10,7 +10,7 @@ type EdgeNodeState int
 
 var (
 	//NotOnboarded EdgeNode
-	NotOnboarded EdgeNodeState = 0
+	NotOnboarded EdgeNodeState
 	//Onboarded EdgeNode
 	Onboarded EdgeNodeState = 1
 )

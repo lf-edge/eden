@@ -68,15 +68,14 @@ var downloadEVECmd = &cobra.Command{
 		}
 		if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
 			log.Fatal(err)
-		} else {
-			switch devModel {
-			case defaults.DefaultRPIModel:
-				log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
-			case defaults.DefaultGCPModel:
-				log.Infof("Upload %s to gcp and run", eveImageFile)
-			}
-			fmt.Println(eveImageFile)
 		}
+		switch devModel {
+		case defaults.DefaultRPIModel:
+			log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
+		case defaults.DefaultGCPModel:
+			log.Infof("Upload %s to gcp and run", eveImageFile)
+		}
+		fmt.Println(eveImageFile)
 	},
 }
 var downloadEVERootFSCmd = &cobra.Command{
@@ -110,11 +109,11 @@ var downloadEVERootFSCmd = &cobra.Command{
 			Format:      imageFormat,
 			ImageSizeMB: eveImageSizeMB,
 		}
-		if image, err := utils.DownloadEveRootFS(eveDesc, outputDir); err != nil {
+		image, err := utils.DownloadEveRootFS(eveDesc, outputDir)
+		if err != nil {
 			log.Fatal(err)
-		} else {
-			fmt.Println(image)
 		}
+		fmt.Println(image)
 	},
 }
 

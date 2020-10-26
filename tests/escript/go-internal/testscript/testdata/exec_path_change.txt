@@ -24,5 +24,5 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("This is not go")
+ fmt.Println("This is not go")
 }

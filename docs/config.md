@@ -29,7 +29,7 @@ by adding the file or using `eden config add <context>`.
 You also can set the current context by editing `~/.eden/context.yml` or running `eden config set <context>`, and you can
 list all known contexts with `eden config list`.
 
-Every context you add creates the new instance of EVE with dedicated certificates 
+Every context you add creates the new instance of EVE with dedicated certificates
 according to generated context file inside `~/.eden/contexts/` directory.
 You can modify settings before running `eden setup`. Only one EVE instance can be run locally (in qemu). You need to stop it before starting another one.
 
@@ -39,7 +39,7 @@ Please see [Test configuring](../tests/README.md#Test configuring) section for d
 
 To create a new config named `new1` and change the system to a new config
 
-```
+```console
 export EDITOR=vim     # sets your default editor
 eden stop             # stop anything else running
 eden clean            # remove any old artifacts
@@ -52,7 +52,7 @@ eden start            # start everything up
 
 To get the current config in json format:
 
-```sh
+```console
 eden controller -m adam:// edge-node get-config
 ```
 
@@ -60,6 +60,6 @@ The above uses the adam mode to get the config for the edge-node, i.e. eve devic
 
 To update the running eve os base image to another one, for example one stored in `dist/amd64/installer/rootfs.img`:
 
+```console
+eden controller -m adam:// edge-node eveimage-update dist/amd64/installer/rootfs.img
 ```
- eden controller -m adam:// edge-node eveimage-update dist/amd64/installer/rootfs.img
-``

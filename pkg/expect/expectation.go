@@ -126,7 +126,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 			if err != nil {
 				log.Fatalf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT: %s", el, err)
 			}
-			if qemuPorts != nil && len(qemuPorts) > 0 { //not empty forwarding rules, need to check for existing
+			if len(qemuPorts) > 0 { //not empty forwarding rules, need to check for existing
 				for _, qv := range qemuPorts {
 					if qv == strconv.Itoa(extPort) {
 						ni.ports[extPort] = intPort
@@ -134,9 +134,8 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 					}
 				}
 				log.Fatalf("Cannot use external port %d. Not in Qemu %s", extPort, qemuPorts)
-			} else {
-				ni.ports[extPort] = intPort
 			}
+			ni.ports[extPort] = intPort
 		}
 	}
 	//check used ports
