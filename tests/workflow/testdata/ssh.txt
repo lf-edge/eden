@@ -38,7 +38,7 @@ grep 'device UUID' onboard | sed 's/.*device UUID: \(.*\)"/\1/' > uuid
 
 -- ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-PORT=`cat eve.hostfwd | sed 's/.*[^0-9]\([0-9]*\):22[^0-9].*/\1/'`
+PORT=`cat eve.hostfwd | sed 's/.*[^0-9]\([0-9]*\)":"22[^0-9].*/\1/'`
 [ -n "$PORT" ] && [ "$PORT" -eq "$PORT" ] 2>/dev/null
 if [ $? -ne 0 ]; then
    PORT=22
