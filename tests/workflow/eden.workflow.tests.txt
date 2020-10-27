@@ -1,4 +1,4 @@
-{{$tests := 12}}
+{{$tests := 16}}
 {{$workflow := EdenGetEnv "EDEN_TEST"}}
 {{ if and (ne $workflow "small") (ne $workflow "large")  }}
 /bin/echo Eden setup (1/{{$tests}})
@@ -26,12 +26,19 @@ eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testd
 {{ if eq $workflow "large" }}
 /bin/echo Eden VNC (9.5/{{$tests}})
 eden.vnc.test
+./eden+ports.sh 2223:2223
+/bin/echo Eden Network light (11/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/networking_light -testdata ../eclient/testdata/
+/bin/echo Eden Nginx (12/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/ngnix -testdata ../eclient/testdata/
+/bin/echo Eden Mariadb (13/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/maridb -testdata ../eclient/testdata/
 {{end}}
-/bin/echo Eden Reboot test (10/{{$tests}})
+/bin/echo Eden Reboot test (14/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
 {{ if ne $workflow "small" }}
-/bin/echo Eden base OS update (11/{{$tests}})
+/bin/echo Eden base OS update (15/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/
 {{end}}
-/bin/echo Eden stop (12/{{$tests}})
+/bin/echo Eden stop (16/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop

@@ -1,4 +1,1 @@
-.*Makefile.*
-.*\.go
-.*\.md
 tests/eclient/testdata/maridb\.txt

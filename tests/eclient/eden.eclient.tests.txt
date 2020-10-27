@@ -1,4 +1,6 @@
-./eden+eclient.sh
+./eden+ports.sh 2223:2223
 #eden.escript.test -test.run TestEdenScripts/eclient
 eden.escript.test -test.run TestEdenScripts/networking_light -test.timeout 40m
 eden.escript.test -test.run TestEdenScripts/ngnix -test.timeout 40m
+eden.escript.test -test.run TestEdenScripts/maridb -test.timeout 40m
+./eden-ports.sh 2223:2223
