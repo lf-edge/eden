@@ -67,7 +67,7 @@ eve:
     tag: {{ .DefaultEVETag }}
 
     #forward of ports in qemu [(HOST:EVE)]
-    hostfwd: {"{{ .DefaultSSHPort }}":"22","5912":"5902","5911":"5901","8027":"8027","8028":"8028"}
+    hostfwd: '{"{{ .DefaultSSHPort }}":"22","5912":"5902","5911":"5901","8027":"8027","8028":"8028"}'
 
     #is EVE remote or local
     remote: {{ .DefaultEVERemote }}
