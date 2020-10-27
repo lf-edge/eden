@@ -24,8 +24,11 @@ RUN sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid
 ENV NOTVISIBLE="in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
+RUN mkdir -p /root/.ssh/
+COPY cert/id_rsa* /root/.ssh/
 COPY cert/id_rsa.pub /root/.ssh/authorized_keys
-RUN chown root:root /root/.ssh/authorized_keys
+RUN chown root:root /root/.ssh/
+RUN chmod 600 /root/.ssh/id_rsa*
 
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]
