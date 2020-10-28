@@ -1,0 +1,67 @@
+{{$test_opts := "-test.v -timewait 1200"}}
+{{$test_msg := "This is a test"}}
+{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa root@localhost{{end}}
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:ssh] stop
+
+# Starting of reboot detector with a 2 reboot limit
+! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
+
+eden pod deploy -v debug -n ping-nw docker://itmoeve/eclient:latest -p 2223:22
+eden pod deploy -v debug -n ping-fw docker://itmoeve/eclient:latest -p 2224:22 --only-host=true
+eden pod deploy -v debug -n pong docker://itmoeve/eclient:latest
+
+test eden.app.test -test.v -timewait 20m RUNNING ping-nw ping-fw pong
+
+exec -t 5m bash wait_ssh.sh 2223 2224
+
+eden pod ps
+cp stdout pod_ps
+exec bash pong_ip.sh
+
+exec sleep 10
+exec -t 1m bash ping.sh 2223
+stdout '0% packet loss'
+! exec -t 1m bash ping.sh 2224
+stdout '100% packet loss'
+
+eden pod delete ping-nw
+eden pod delete ping-fw
+eden pod delete pong
+
+test eden.app.test -test.v -timewait 10m - ping-nw ping-fw pong
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- wait_ssh.sh --
+
+for p in $*
+do
+  for i in `seq 10`
+  do
+    sleep 5
+    # Test SSH-access to container
+    echo {{template "ssh"}} -p $p grep -q Ubuntu /etc/issue && break
+    {{template "ssh"}} grep -p $p -q Ubuntu /etc/issue && break
+  done
+done
+
+-- pong_ip.sh --
+echo export PONG_IP=$(grep '^ *pong\s' pod_ps | cut -f 4) > env
+cat env
+-- ping.sh --
+. ./env
+
+echo {{template "ssh"}} -p $1 ping -c 5 "$PONG_IP"
+{{template "ssh"}} -p $1 ping -c 5 "$PONG_IP"
+
