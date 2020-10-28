@@ -45,16 +45,14 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "5.12.6" //DefaultEVETag tag for EVE image
+	DefaultEVETag               = "5.14.0" //DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "0.0.63"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
-	DefaultLinuxKitVersion      = "v0.7"
 	DefaultImage                = "library/alpine"
 	DefaultAdamContainerRef     = "lfedge/adam"
 	DefaultRedisContainerRef    = "redis"
 	DefaultRegistryContainerRef = "library/registry"
-	DefaultImageTag             = "eden-alpine"
 	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
 	DefaultEveRegistry          = "lfedge"
 	DefaultRegistry             = "docker.io"
@@ -73,9 +71,6 @@ const (
 	DefaultQemuCpus              = 4
 	DefaultQemuMemory            = 4096
 	DefaultEVESerial             = "31415926"
-	DefaultImageID               = "1ab8761b-5f89-4e0b-b757-4b87a9fa93ec"
-	DefaultDataStoreID           = "eab8761b-5f89-4e0b-b757-4b87a9fa93ec"
-	DefaultBaseID                = "22b8761b-5f89-4e0b-b757-4b87a9fa93ec"
 	NetDHCPID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
 	NetNoDHCPID                  = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
 	NetWiFiID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf3"
@@ -108,8 +103,6 @@ const (
 	DefaultRPIModel = "RPi4"
 
 	DefaultGCPModel = "GCP"
-
-	DefaultEVEName = "node1"
 
 	DefaultEVERemote = false
 
