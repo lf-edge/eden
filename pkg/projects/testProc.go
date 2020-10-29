@@ -75,7 +75,7 @@ func (lb *processingBus) process(edgeNode *device.Ctx, inp interface{}) bool {
 	for node, functions := range lb.proc {
 		if node == edgeNode {
 			for _, procFunc := range functions {
-				if procFunc.disabled == false {
+				if !procFunc.disabled {
 					switch pf := procFunc.proc.(type) {
 					case ProcInfoFunc:
 						el, match := inp.(*info.ZInfoMsg)
@@ -104,7 +104,7 @@ func (lb *processingBus) processTimers(edgeNode *device.Ctx) bool {
 	for node, functions := range lb.proc {
 		if node == edgeNode {
 			for _, procFunc := range functions {
-				if procFunc.disabled == false {
+				if !procFunc.disabled {
 					switch pf := procFunc.proc.(type) {
 					case ProcTimerFunc:
 						lb.processReturn(edgeNode, procFunc, pf())

@@ -54,7 +54,7 @@ func RequestItemFind(le common.ApiRequest, query map[string]string) bool {
 		}
 		matched = false
 		utils.LookupWithCallback(reflect.ValueOf(le).Interface(), strings.Join(n, "."), clb)
-		if matched == false {
+		if !matched {
 			return matched
 		}
 	}
@@ -66,7 +66,7 @@ func RequestPrn(le *common.ApiRequest, format RequestFormat) {
 	switch format {
 	case RequestJSON:
 		enc := json.NewEncoder(os.Stdout)
-		enc.Encode(le)
+		_ = enc.Encode(le)
 	case RequestLines:
 		fmt.Println("uuid:", le.UUID)
 		fmt.Println("client-ip:", le.ClientIP)
@@ -76,7 +76,7 @@ func RequestPrn(le *common.ApiRequest, format RequestFormat) {
 		fmt.Println("timestamp:", le.Timestamp)
 		fmt.Println()
 	default:
-		fmt.Fprintf(os.Stderr, "unknown RequestFormat requested")
+		_, _ = fmt.Fprintf(os.Stderr, "unknown RequestFormat requested")
 	}
 }
 

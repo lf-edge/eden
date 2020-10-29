@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 //LogItem is the structure for saving log fields
@@ -60,7 +60,7 @@ const (
 //ParseLogBundle unmarshal LogBundle
 func ParseLogBundle(data []byte) (logBundle logs.AppInstanceLogBundle, err error) {
 	var lb logs.AppInstanceLogBundle
-	err = jsonpb.UnmarshalString(string(data), &lb)
+	err = protojson.Unmarshal(data, &lb)
 	return lb, err
 }
 
@@ -69,24 +69,6 @@ func ParseLogItem(data string) (logItem LogItem, err error) {
 	var le LogItem
 	err = json.Unmarshal([]byte(data), &le)
 	return le, err
-}
-
-//LogItemPrint find LogItem elements by paths in 'query'
-func LogItemPrint(le *LogItem, format LogFormat, query []string) *types.PrintResult {
-	result := make(types.PrintResult)
-	for _, v := range query {
-		// Uppercase of filed's name first letter
-		var n []string
-		for _, pathElement := range strings.Split(v, ".") {
-			n = append(n, strings.Title(pathElement))
-		}
-		var clb = func(inp reflect.Value) {
-			f := fmt.Sprint(inp)
-			result[v] = append(result[v], f)
-		}
-		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(le)).Interface(), strings.Join(n, "."), clb)
-	}
-	return &result
 }
 
 //LogItemFind find LogItem records by reqexps in 'query' corresponded to LogItem structure.
@@ -110,7 +92,7 @@ func LogItemFind(le LogItem, query map[string]string) bool {
 		}
 		matched = false
 		utils.LookupWithCallback(reflect.ValueOf(le).Interface(), strings.Join(n, "."), clb)
-		if matched == false {
+		if !matched {
 			return matched
 		}
 	}
@@ -130,7 +112,7 @@ func LogPrn(le *LogItem, format LogFormat) {
 	switch format {
 	case LogJSON:
 		enc := json.NewEncoder(os.Stdout)
-		enc.Encode(le)
+		_ = enc.Encode(le)
 	case LogLines:
 		fmt.Println("source:", le.Source)
 		fmt.Println("level:", le.Level)
@@ -142,7 +124,7 @@ func LogPrn(le *LogItem, format LogFormat) {
 		fmt.Println("partition:", le.Partition)
 		fmt.Println()
 	default:
-		fmt.Fprintf(os.Stderr, "unknown log format requested")
+		_, _ = fmt.Fprintf(os.Stderr, "unknown log format requested")
 	}
 }
 

@@ -194,11 +194,11 @@ var gcpGetIP = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
-		if natIP, err := gcpClient.GetInstanceNatIP(gcpVMName, gcpZone); err != nil {
+		natIP, err := gcpClient.GetInstanceNatIP(gcpVMName, gcpZone)
+		if err != nil {
 			log.Fatal(err)
-		} else {
-			fmt.Println(natIP)
 		}
+		fmt.Println(natIP)
 	},
 }
 
@@ -220,9 +220,8 @@ var gcpAddFirewallRule = &cobra.Command{
 		}
 		if err := gcpClient.SetFirewallAllowRule(gcpFirewallRuleName, gcpFirewallRuleSources); err != nil {
 			log.Fatal(err)
-		} else {
-			log.Info("Rules added")
 		}
+		log.Info("Rules added")
 	},
 }
 

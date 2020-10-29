@@ -3,16 +3,17 @@ package cachers
 import (
 	"bytes"
 	"fmt"
-	"github.com/golang/protobuf/jsonpb"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
 	"github.com/lf-edge/eve/api/go/metrics"
 	uuid "github.com/satori/go.uuid"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 //FileCache object provides caching objects from controller into directory
@@ -37,21 +38,21 @@ func (cacher *FileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.Loa
 	case types.LogsType:
 		pathToCheck = cacher.dirGetters.LogsGetter(devUUID)
 		var emp logs.LogBundle
-		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+		if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.Timestamp
 	case types.InfoType:
 		pathToCheck = cacher.dirGetters.InfoGetter(devUUID)
 		var emp info.ZInfoMsg
-		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+		if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.AtTimeStamp
 	case types.MetricsType:
 		pathToCheck = cacher.dirGetters.MetricsGetter(devUUID)
 		var emp metrics.ZMetricMsg
-		if err := jsonpb.Unmarshal(&buf, &emp); err != nil {
+		if err := protojson.Unmarshal(buf.Bytes(), &emp); err != nil {
 			return err
 		}
 		itemTimeStamp = emp.AtTimeStamp

@@ -30,7 +30,6 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 			certsIP = viper.GetString("adam.ip")
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
-			adamCA = utils.ResolveAbsPath(viper.GetString("adam.ca"))
 		}
 		return nil
 	},

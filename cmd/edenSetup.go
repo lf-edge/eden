@@ -49,28 +49,23 @@ func configCheck() {
 	abs, err := filepath.Abs(configSaved)
 	if err != nil {
 		log.Fatalf("fail in reading filepath: %s\n", err.Error())
-		os.Exit(-2)
 	}
 
 	if _, err = os.Lstat(abs); os.IsNotExist(err) {
 		if err = utils.CopyFile(configFile, abs); err != nil {
 			log.Fatalf("copying fail %s\n", err.Error())
-			os.Exit(-3)
 		}
 	} else {
 
 		viperLoaded, err := utils.LoadConfigFile(abs)
 		if err != nil {
 			log.Fatalf("error reading config %s: %s\n", abs, err.Error())
-			os.Exit(-2)
 		}
 		if viperLoaded {
 			confOld := viper.AllSettings()
 
-			viperLoaded, err = utils.LoadConfigFile(configFile)
-			if err != nil {
+			if _, err = utils.LoadConfigFile(configFile); err != nil {
 				log.Fatalf("error reading config %s: %s", configFile, err.Error())
-				os.Exit(-2)
 			}
 
 			confCur := viper.AllSettings()
@@ -79,13 +74,11 @@ func configCheck() {
 				log.Infof("Config file %s is the same as %s\n", configFile, configSaved)
 			} else {
 				log.Fatalf("The current configuration file %s is different from the saved %s. You can fix this with the commands 'eden config clean' and 'eden config add/set/edit'.\n", configFile, abs)
-				os.Exit(-1)
 			}
 		} else {
 			/* Incorrect saved config -- just rewrite by current */
 			if err = utils.CopyFile(configFile, abs); err != nil {
 				log.Fatalf("copying fail %s\n", err.Error())
-				os.Exit(-3)
 			}
 		}
 	}

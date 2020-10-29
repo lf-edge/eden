@@ -144,6 +144,9 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 //DownloadEveRootFS pulls EVE rootfs image from docker
 func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, err error) {
 	image, err := eve.image()
+	if err != nil {
+		return "", err
+	}
 	log.Debugf("Try ImagePull with (%s)", image)
 	if err := PullImage(image); err != nil {
 		return "", fmt.Errorf("ImagePull (%s): %s", image, err)
@@ -162,7 +165,7 @@ func genEVERootFSImage(image, outputDir string, size int) (fileName string, err 
 		return "", err
 	}
 	log.Debug("Try to get version of rootfs")
-	dockerCommand := fmt.Sprintf("-f raw version")
+	dockerCommand := "-f raw version"
 	u, err := RunDockerCommand(image, dockerCommand, nil)
 	if err != nil {
 		return "", err

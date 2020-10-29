@@ -101,25 +101,18 @@ func (exp *AppExpectation) applyRootFSType(image *config.Image) error {
 			switch mediaType {
 			case registry.MimeTypeECIDiskRaw:
 				image.Iformat = config.Format_RAW
-				break
 			case registry.MimeTypeECIDiskQcow:
 				image.Iformat = config.Format_QCOW
-				break
 			case registry.MimeTypeECIDiskQcow2:
 				image.Iformat = config.Format_QCOW2
-				break
 			case registry.MimeTypeECIDiskVhd:
 				image.Iformat = config.Format_VHD
-				break
 			case registry.MimeTypeECIDiskVmdk:
 				image.Iformat = config.Format_VMDK
-				break
 			case registry.MimeTypeECIDiskOva:
 				image.Iformat = config.Format_OVA
-				break
 			case registry.MimeTypeECIDiskVhdx:
 				image.Iformat = config.Format_VHDX
-				break
 			}
 		}
 	}

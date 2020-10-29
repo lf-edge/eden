@@ -8,7 +8,7 @@
 #stdout 'Reboot request has been sent'
 
 # Run of docker's actor
-test eden.docker.test {{$test_opts}} 
+test eden.docker.test {{$test_opts}}
 
 # Passing of docker's actor
 stdout '--- PASS: TestDockerStart'

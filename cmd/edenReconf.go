@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 )
 
-var adamCA string
 var getConfig bool
 
 var reconfCmd = &cobra.Command{
@@ -28,7 +27,6 @@ var reconfCmd = &cobra.Command{
 			certsIP = viper.GetString("adam.ip")
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
-			adamCA = utils.ResolveAbsPath(viper.GetString("adam.ca"))
 		}
 		return nil
 	},
@@ -54,8 +52,7 @@ var reconfCmd = &cobra.Command{
 		} else {
 			data, err := ioutil.ReadFile(args[0])
 			if err != nil {
-				log.Fatalf("File reading error:", err)
-				return
+				log.Fatalf("File reading error: %s", err)
 			}
 			if err = ctrl.ConfigSet(devUUID, data); err != nil {
 				log.Fatalf("ConfigSet: %s", err)

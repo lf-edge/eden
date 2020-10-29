@@ -63,11 +63,11 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 	}
 	if instanceExpect.netInstType == "switch" {
 		netInst.InstType = config.ZNetworkInstType_ZnetInstSwitch
-		if devModel, err := exp.ctrl.GetDevModelByName(exp.ctrl.GetVars().DevModel); err != nil {
+		devModel, err := exp.ctrl.GetDevModelByName(exp.ctrl.GetVars().DevModel)
+		if err != nil {
 			log.Fatal(err)
-		} else {
-			netInst.Port = &config.Adapter{Name: devModel.GetFirstAdapterForSwitches()}
 		}
+		netInst.Port = &config.Adapter{Name: devModel.GetFirstAdapterForSwitches()}
 		netInst.Ip = &config.Ipspec{}
 	}
 	rand.Seed(time.Now().UnixNano())

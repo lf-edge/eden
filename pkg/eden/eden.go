@@ -124,9 +124,7 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	if adamRemoteRedisURL != "" {
 		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--db-url %s", adamRemoteRedisURL))...)
 	}
-	for _, el := range opts {
-		adamServerCommand = append(adamServerCommand, el)
-	}
+	adamServerCommand = append(adamServerCommand, opts...)
 	if adamForce {
 		_ = utils.StopContainer(defaults.DefaultAdamContainerName, true)
 		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
@@ -197,9 +195,7 @@ func StartRegistry(port int, tag, registryPath string, opts ...string) (err erro
 	serviceName := "registry"
 	portMap := map[string]string{"5000": strconv.Itoa(port)}
 	cmd := []string{}
-	for _, el := range opts {
-		cmd = append(cmd, el)
-	}
+	cmd = append(cmd, opts...)
 	volumeMap := map[string]string{"/var/lib/registry": registryPath}
 	state, err := utils.StateContainer(containerName)
 	if err != nil {
@@ -430,7 +426,9 @@ func MakeEveInRepo(distEve string, configPath string, arch string, hv string, im
 		commandArgsString := fmt.Sprintf("-C %s ZARCH=%s HV=%s CONF_DIR=%s IMG_FORMAT=%s live",
 			distEve, arch, hv, configPath, imageFormat)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+		if err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err!=nil{
+			log.Info(err)
+		}
 		switch arch {
 		case "amd64":
 			biosPath1 := filepath.Join(distEve, "dist", arch, "OVMF.fd")

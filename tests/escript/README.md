@@ -4,20 +4,25 @@ Escripts provides support for defining filesystem-based tests by creating
 scripts in a directory.
 
 The `eden.escript.test` test-binary is an adaptation to
-[github.com/lf-edge/eden](https://github.com/lf-edge/eden) of original Go testscript machinery from
+[github.com/lf-edge/eden](https://github.com/lf-edge/eden) of original Go
+testscript machinery from
 [github.com/rogpeppe/go-internal/testscript](https://pkg.go.dev/github.com/rogpeppe/go-internal/testscript).
 
 To invoke the tests from /tmp directory, for example, call the such command:
+
+```console
+    eden test tests/escript/ -a '-testdata /tmp/'
 ```
-    $ eden test tests/escript/ -a '-testdata /tmp/'
-```
+
 A testdata directory ([tests/escript/testdata](testdata) by default) holds test scripts
 *.txt run test-binary. Each script defines a subtest; the exact set of
 allowable commands in a script are defined by the parameters passed to the
 Run function. To run a specific script foo.txt
+
+```console
+    eden test tests/escript/ --run=TestEdenScripts/^foo$
 ```
-    $ eden test tests/escript/ --run=TestEdenScripts/^foo$
-```
+
 where TestEdenScripts is the name of the test that Run is called from.
 
 In general script files should have short names: a few words, not whole
@@ -32,7 +37,8 @@ supporting files to create in the script's temporary file system before it
 starts executing.
 
 As an example:
-```
+
+```console
     # hello world
     exec cat hello.text
     stdout 'hello world\n'
@@ -41,15 +47,18 @@ As an example:
     -- hello.text --
     hello world
 ```
+
 Each script runs in a fresh temporary work directory tree, available to
 scripts as $WORK. Scripts also have access to these other environment
 variables:
-```
+
+```console
     HOME=/no-home
     PATH=<actual PATH>
     TMPDIR=$WORK/tmp
     devnull=<value of os.DevNull>
 ```
+
 The environment variable $exe (lowercase) is an empty string on most
 systems, ".exe" on Windows.
 
@@ -68,7 +77,7 @@ word separators and also disables environment variable expansion. Inside a
 single-quoted block of text, a repeated single quote indicates a literal
 single quote, as in:
 
-    'Don''t communicate by sharing memory.'
+```'Don''t communicate by sharing memory.'```
 
 A line beginning with # is a comment and conventionally explains what is
 being done or tested at the start of a new phase in the script.
@@ -77,7 +86,7 @@ A special form of environment variable syntax can be used to quote regexp
 metacharacters inside environment variables. The "@R" suffix is special, and
 indicates that the variable should be quoted.
 
-    ${VAR@R}
+```${VAR@R}```
 
 The command prefix ! indicates that the command on the rest of the line
 (typically go or a matching predicate) must fail, not succeed. Only certain
@@ -88,11 +97,13 @@ The command prefix [cond] indicates that the command on the rest of the line
 should only run when the condition is satisfied. The predefined conditions
 are:
 
-    - [short] for testing.Short()
-    - [net] for whether the external network can be used
-    - [link] for whether the OS has hard link support
-    - [symlink] for whether the OS has symbolic link support
-    - [exec:prog] for whether prog is available for execution (found by exec.LookPath)
+```console
+- [short] for testing.Short()
+- [net] for whether the external network can be used
+- [link] for whether the OS has hard link support
+- [symlink] for whether the OS has symbolic link support
+- [exec:prog] for whether prog is available for execution (found by exec.LookPath)
+```
 
 A condition can be negated: [!short] means to run the rest of the line when
 testing.Short() is false.
@@ -104,9 +115,12 @@ The predefined commands are:
 
 * arg name env
 
-    Set environment variable (env) with value from argument (name) passed into script    
-    You can define arguments in top tests file: `eden.escript.test -test.run TestEdenScripts/arg -args="test1=123,test2=456"`    
-    You can override provided args by run: `./eden test tests/escript/ -v debug -a="test1=789"`
+    Set environment variable (env) with value from argument (name) passed into script
+    You can define arguments in top tests file:
+    `eden.escript.test -test.run TestEdenScripts/arg -args="test1=123,test2=456"`
+
+    You can override provided args by run:
+    `./eden test tests/escript/ -v debug -a="test1=789"`
 
 * cd dir
 
@@ -188,7 +202,7 @@ The predefined commands are:
     Rewrite each file by replacing any leading ">" characters from
     each line. This enables a file to contain substrings that look like
     txtar file markers.
-    See also https://godoc.org/github.com/rogpeppe/go-internal/txtar#Unquote
+    See also [Unquote](https://godoc.org/github.com/rogpeppe/go-internal/txtar#Unquote).
 
 * rm file...
 
@@ -200,7 +214,8 @@ The predefined commands are:
 
 * stdin file
 
-    Set the standard input for the next exec command to the contents of the given file.
+    Set the standard input for the next exec command
+    to the contents of the given file.
 
 * [!] stderr [-count=N] pattern
 
@@ -227,8 +242,9 @@ The predefined commands are:
 
 * wait
 
-    Wait for all 'exec', 'eden' and 'test' commands started in the background (with the '&'
-    token) to exit, and display success or failure status for them.
+    Wait for all 'exec', 'eden' and 'test' commands started in
+    the background (with the '&' token) to exit, and display success
+    or failure status for them.
     After a call to wait, the 'stderr' and 'stdout' commands will apply to the
     concatenation of the corresponding streams of the background commands,
     in the order in which those commands were started.
@@ -237,7 +253,8 @@ When TestEdenScripts runs a script and the script fails, by default TestEdenScri
 shows the execution of the most recent phase of the script (since the last # comment)
 and only shows the # comments for earlier phases.
 For example, here is a multi-phase script with a bug in it:
-```
+
+```console
     [!exec:cat] stop
 
     cp test.txt TEST.TXT
@@ -249,9 +266,11 @@ For example, here is a multi-phase script with a bug in it:
     -- test.txt --
     text for bug test
 ```
+
 The bug is that the final phase read TOST.TXT instead of TEST.TXT. The test
 failure looks like:
-```
+
+```console
     $ ./eden test tests/escript/ -r TestEdenScripts/bug
     INFO[0000] testData directory: testdata
     --- FAIL: TestEdenScripts (0.00s)
@@ -269,6 +288,7 @@ failure looks like:
     FATA[0000] Test running failed with exit status 1
     $
 ```
+
 Note that the commands in earlier phases have been hidden, so that the
 relevant commands are more easily found, and the elapsed time for a
 completed phase is shown next to the phase heading. To see the entire
@@ -282,7 +302,8 @@ $WORK.
 If Params.TestWork is true, it causes each test to log the name of its $WORK
 directory and other environment variable settings and also to leave that
 directory behind when it exits, for manual debugging of failing tests:
-```
+
+```console
     $ ./eden test tests/escript/ -r TestEdenScripts/bug -v debug -a '-testwork'
     DEBU[0000] DIR: tests/escript/
     DEBU[0000] Will use config from /home/user/.eden/contexts/default.yml

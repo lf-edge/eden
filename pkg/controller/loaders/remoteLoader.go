@@ -1,10 +1,13 @@
 package loaders
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/types"
@@ -13,9 +16,6 @@ import (
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"time"
 )
 
 const (
@@ -100,33 +100,31 @@ func (loader *RemoteLoader) SetAppUUID(appUUID uuid.UUID) {
 }
 
 func (loader *RemoteLoader) processNext(decoder *json.Decoder, process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, tocontinue bool, err error) {
-	var buf bytes.Buffer
+	var buf []byte
 	switch typeToProcess {
 	case types.LogsType:
 		var emp logs.LogBundle
-		if err := jsonpb.UnmarshalNext(decoder, &emp); err == io.EOF {
+		if err := decoder.Decode(&emp); err == io.EOF {
 			return false, false, nil
 		} else if err != nil {
 			return false, false, err
 		}
-		mler := jsonpb.Marshaler{}
-		if err := mler.Marshal(&buf, &emp); err != nil {
+		if buf, err = protojson.Marshal(&emp); err != nil {
 			return false, false, err
 		}
 	case types.InfoType:
 		var emp info.ZInfoMsg
-		if err := jsonpb.UnmarshalNext(decoder, &emp); err == io.EOF {
+		if err := decoder.Decode(&emp); err == io.EOF {
 			return false, false, nil
 		} else if err != nil {
 			return false, false, err
 		}
-		mler := jsonpb.Marshaler{}
-		if err := mler.Marshal(&buf, &emp); err != nil {
+		if buf, err = protojson.Marshal(&emp); err != nil {
 			return false, false, err
 		}
 	}
 	if loader.cache != nil {
-		if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, buf.Bytes()); err != nil {
+		if err = loader.cache.CheckAndSave(loader.devUUID, typeToProcess, buf); err != nil {
 			log.Errorf("error in cache: %s", err)
 		}
 	}
@@ -134,7 +132,7 @@ func (loader *RemoteLoader) processNext(decoder *json.Decoder, process ProcessFu
 		loader.curCount++
 		return false, true, nil
 	}
-	tocontinue, err = process(buf.Bytes())
+	tocontinue, err = process(buf)
 	if stream {
 		time.Sleep(1 * time.Second) //wait for load all data from buffer
 	}
@@ -146,7 +144,7 @@ func (loader *RemoteLoader) processNext(decoder *json.Decoder, process ProcessFu
 func (loader *RemoteLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
 	u := loader.getURL(typeToProcess)
 	log.Debugf("remote controller request %s", u)
-	req, err := http.NewRequest("GET", u, nil)
+	req, _ := http.NewRequest("GET", u, nil)
 	if stream {
 		req.Header.Add(StreamHeader, StreamValue)
 	}
@@ -166,7 +164,7 @@ func (loader *RemoteLoader) process(process ProcessFunction, typeToProcess types
 	}
 }
 
-func infoProcessInit(bytes []byte) (bool, error) {
+func infoProcessInit(_ []byte) (bool, error) {
 	return true, nil
 }
 
@@ -184,7 +182,7 @@ repeatLoop:
 		timer := time.AfterFunc(2*delayTime, func() {
 			i = 0
 		})
-		if stream == false {
+		if !stream {
 			if _, _, err := loader.process(process, typeToProcess, false); err == nil {
 				return nil
 			}
@@ -204,7 +202,7 @@ repeatLoop:
 					}
 				}
 				if _, _, err := loader.process(process, typeToProcess, stream); err != nil {
-					log.Debugf("error in controller request", err)
+					log.Debugf("error in controller request: %s", err)
 				} else {
 					return nil
 				}
@@ -225,9 +223,7 @@ func (loader *RemoteLoader) ProcessExisting(process ProcessFunction, typeToProce
 //ProcessStream for observe new files
 func (loader *RemoteLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	done := make(chan error)
-	if timeoutSeconds == 0 {
-		timeoutSeconds = -1
-	} else {
+	if timeoutSeconds != 0 {
 		time.AfterFunc(timeoutSeconds*time.Second, func() {
 			done <- fmt.Errorf("timeout")
 		})

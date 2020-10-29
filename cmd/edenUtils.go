@@ -35,18 +35,16 @@ var sdInfoEveCmd = &cobra.Command{
 		} else {
 			if err = ioutil.WriteFile(eveReleaseOutput, eveInfo.EVERelease, 0666); err != nil {
 				log.Fatal(err)
-			} else {
-				log.Infof("Your eve-release in %s", eveReleaseOutput)
 			}
+			log.Infof("Your eve-release in %s", eveReleaseOutput)
 		}
 		if eveInfo.Syslog == nil {
 			log.Warning("No syslog found, EVE may not have started yet")
 		} else {
 			if err = ioutil.WriteFile(syslogOutput, eveInfo.Syslog, 0666); err != nil {
 				log.Fatal(err)
-			} else {
-				log.Infof("Your syslog in %s", syslogOutput)
 			}
+			log.Infof("Your syslog in %s", syslogOutput)
 		}
 	},
 }

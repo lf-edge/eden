@@ -132,7 +132,7 @@ var networkLsCmd = &cobra.Command{
 			return netInstStatesSlice[i].name < netInstStatesSlice[j].name
 		})
 		for _, el := range netInstStatesSlice {
-			if el.deleted == false {
+			if ! el.deleted {
 				if _, err = fmt.Fprintln(w, el.toString()); err != nil {
 					log.Fatal(err)
 				}

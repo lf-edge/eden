@@ -338,10 +338,6 @@ github.com/lf-edge/edge-containers v0.0.0-20200921124327-cb84b924624b h1:LVkTzSR
 github.com/lf-edge/edge-containers v0.0.0-20200921124327-cb84b924624b/go.mod h1:WH308e8oM3sEithOMtr3KtwHG8Paj4157NxdNPNDPnM=
 github.com/lf-edge/eve/api/go v0.0.0-20200805060635-507771c7f963 h1:CA+l2dG+902gaFsfAKZOXFvydoa3T//q8OgkeT5k1Lg=
 github.com/lf-edge/eve/api/go v0.0.0-20200805060635-507771c7f963/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
-github.com/lf-edge/eve/api/go v0.0.0-20200929132246-e32375a3e2ab h1:aw8k4teoqZY+oUDIqUdEG1wsNo/5atP8KISpo6iFuNM=
-github.com/lf-edge/eve/api/go v0.0.0-20200929132246-e32375a3e2ab/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
-github.com/lf-edge/eve/api/go v0.0.0-20201009050143-0ca6703afd1e h1:Hko8LmBuTV2kXClvVp0wfEIqCDMjRWu5gXho4ke9LjY=
-github.com/lf-edge/eve/api/go v0.0.0-20201009050143-0ca6703afd1e/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lf-edge/eve/api/go v0.0.0-20201019011810-f8c60fefb83f h1:4/SP1MXR3CNImxJD4XNxTVdf7ctgx906lW42CXPLu1c=
 github.com/lf-edge/eve/api/go v0.0.0-20201019011810-f8c60fefb83f/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
@@ -467,8 +463,6 @@ github.com/prometheus/procfs v0.0.5 h1:3+auTFlqw+ZaQYJARz6ArODtkaIwtvBTx3N2NehQl
 github.com/prometheus/procfs v0.0.5/go.mod h1:4A/X28fw3Fc593LaREMrKMqOKvUAntwMDaekg4FpcdQ=
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446/go.mod h1:uYEyJGbgTkfkS4+E/PavXkNJcbFIpEtjt2B0KDQ5+9M=
-github.com/rn/iso9660wrap v0.0.0-20180101235755-3a04f8ca150a h1:3mgGS/ClPlDE5KBsBW1Cd0uKCtzc2q2NW3PwD0XFCoI=
-github.com/rn/iso9660wrap v0.0.0-20180101235755-3a04f8ca150a/go.mod h1:qrZfINtl+sTGgS3elQWqWsD2Ke4Il5jDzBr2Q+lzuuE=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.5.2/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=

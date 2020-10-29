@@ -13,7 +13,7 @@ exec uname
 #stdout 'Reboot request has been sent'
 
 # Run of VM's actor
-test eden.vnc.test {{$test_opts}} 
+test eden.vnc.test {{$test_opts}}
 
 stdout '--- PASS: TestVNCVMStart'
 stdout '--- PASS: TestVNCVMDelete'

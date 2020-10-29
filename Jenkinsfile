@@ -13,7 +13,7 @@ do
         q=$((q + 1))
 done
 result2=${result%-kvm-amd64}
-echo $result2 
+echo $result2
 make build
 ./eden config add default
 ./eden config set default --key=eve.accel --value=false

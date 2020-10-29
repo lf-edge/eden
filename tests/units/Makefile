@@ -15,6 +15,8 @@ test_scenario:
 test_lookup:
 	go test lookup_test.go -v
 
+.PHONY: test build setup clean all
+
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo

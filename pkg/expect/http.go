@@ -30,7 +30,7 @@ func (exp *AppExpectation) createImageHTTP(id uuid.UUID, dsID string) *config.Im
 
 	for {
 		status := server.EServerCheckStatus(name)
-		if status.ISReady == false {
+		if !status.ISReady {
 			log.Infof("Downloading... Ready %s", humanize.Bytes(uint64(status.Size)))
 		} else {
 			sha256 = status.Sha256

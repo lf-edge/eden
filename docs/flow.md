@@ -2,22 +2,28 @@
 
 What is the flow of launching an entire setup?
 
-How can you do something basic, like launching an edge container or updating the base OS image?
+How can you do something basic, like launching an edge container or updating
+the base OS image?
 
 This document explains how.
 
 ## Launching EVE
 
-The following are the steps to launch eve running the default version of adam with default options. See below for options on modifying the flow.
+The following are the steps to launch eve running the default version of
+adam with default options. See below for options on modifying the flow.
 
-1. Make sure you have prerequisites, like `docker` and `qemu`. See the main [README](../README.md).
-1. Make sure you have `eden` the binary, or, if you prefer, this entire repositor. See the main [README](../README.md).
+1. Make sure you have prerequisites, like `docker` and `qemu`. See
+the main [README](../README.md).
+1. Make sure you have `eden` the binary, or, if you prefer, this entire repositor.
+See the main [README](../README.md).
 1. Create a basic config named `default` with: `eden config add default`
 1. Run the setup with: `eden setup` - this does the following:
    * reads the configuration from your context and validates it
    * generates the certificates for adam and for eve
-   * generates the config directory for eve, which includes the above certificates, as well as a `server` file pointing at the soon-to-be-started adam
-   * gets a live eve image. This can be taken from one of: retrieved from your local docker cache; downloaded from docker hub; built
+   * generates the config directory for eve, which includes the above certificates,
+   as well as a `server` file pointing at the soon-to-be-started adam
+   * gets a live eve image. This can be taken from one of:
+   retrieved from your local docker cache; downloaded from docker hub; build
 1. `eden start` - this does the following:
    * start redis in docker
    * start adam in docker
@@ -40,10 +46,12 @@ eden eve onboard
 
 ### Modifying the Flow
 
-You can modify the flow by passing options to various commands. While the above flow controls everything, you can use only certain parts of it.
+You can modify the flow by passing options to various commands.
+While the above flow controls everything, you can use only certain parts of it.
 Common use cases are:
 
-* Using a different live eve image, e.g. building a custom eve image, but launching and controlling it via eden
+* Using a different live eve image, e.g. building a custom eve image,
+but launching and controlling it via eden
 * Disabling hardware acceleration, e.g. when running in unsupported nested virtualization
 * Running onboarding manually
 
@@ -61,12 +69,15 @@ For example:
 eden setup --eve-tag 0.0.0-worker-rationalize-5a70468d
 ```
 
-Note (this is very important) that eden will append the `HV` variant and `ARCH` to get the platform. So if you pass in `--eve-tag abcdefg`, then
-it will look, first in the local docker engine and then in the registry, for `lfedge/eve:abcdefg-kvm-amd64`.
+Note (this is very important) that eden will append the `HV` variant
+and `ARCH` to get the platform. So if you pass in `--eve-tag abcdefg`,
+then it will look, first in the local docker engine and then in
+the registry, for `lfedge/eve:abcdefg-kvm-amd64`.
 
 #### Disabling hardware acceleration
 
-Sometimes, when running in a virtualized platform, like qemu, on another virtualized platform, like an ec2 instance, you might want to disable
+Sometimes, when running in a virtualized platform, like qemu,
+on another virtualized platform, like an ec2 instance, you might want to disable
 hardware acceleration, as it is not available. In that case, you can pass in:
 
 ```console
@@ -75,11 +86,14 @@ eden start --eve-accel=false
 
 #### Manual Onboarding
 
-To onboard manually, simply skip the `eden eve onboard` step. The eve device already is configured to generate its device certificate
-and attempt to communicate with the controller in `/var/config/server`, i.e. the adam device. You simply skip the `eden eve onboard` step,
+To onboard manually, simply skip the `eden eve onboard` step.
+The eve device already is configured to generate its device certificate
+and attempt to communicate with the controller in `/var/config/server`,
+i.e. the adam device. You simply skip the `eden eve onboard` step,
 and communicate directly with adam.
 
-`adam` can be controlled using the `adam admin` command. If you run `eden status`, it will tell you exactly where it is reachable. If you
+`adam` can be controlled using the `adam admin` command.
+If you run `eden status`, it will tell you exactly where it is reachable. If you
 do not have the `adam` command installed, you can do so via the docker container:
 
 ```sh
@@ -110,12 +124,15 @@ Run:
 eden pod deploy docker://docker.io/library/nginx:latest
 ```
 
-Replace the provided image and tag with the one you want to deploy. 
+Replace the provided image and tag with the one you want to deploy.
 
 Several notes:
 
 * The URL _must_ start with `docker:` as the protocol
-* You must provide the full URL, including hostname and, if relevant, `library`; `eden pod deploy` follows the official OCI rules, and does not automatically insert `docker.io` for no-hostname or `library` for no organization
+* You must provide the full URL, including hostname and,
+if relevant, `library`; `eden pod deploy` follows the official OCI rules,
+and does not automatically insert `docker.io` for no-hostname
+or `library` for no organization
 
 ### VMs from a URL
 
@@ -133,8 +150,10 @@ Run:
 eden pod deploy file:///full/path/to/file.img
 ```
 
-EVE itself obviously doesn't support loading from a file, since your filesystem is not accessible to it. 
-When you deploy a VM from a file, eden loads the file into the `eserver` container, which then acts as an http server to
+EVE itself obviously doesn't support loading from a file,
+since your filesystem is not accessible to it.
+When you deploy a VM from a file, eden loads the file into
+the `eserver` container, which then acts as an http server to
 the running EVE device.
 
 ### VMs from an OCI Image
@@ -145,7 +164,8 @@ Run:
 eden pod deploy docker://docker.io/org/repository:tag --format qcow2
 ```
 
-The image _must_ be structured in the [edge containers](https://github.com/lf-edge/edge-containers) format.
+The image _must_ be structured in
+the [edge containers](https://github.com/lf-edge/edge-containers) format.
 
 ## Updating the Base OS
 
@@ -157,17 +177,21 @@ To update the base OS, you need to take a few steps:
 
 ### Getting a New Base OS Image
 
-If you do not have a ready new base OS image ready, for example, if you are testing a specific commit and build of EVE,
+If you do not have a ready new base OS image ready, for example,
+if you are testing a specific commit and build of EVE,
 you can do the following:
 
 1. Make a minor change to any file in the [eve](github.com/lf-edge/eve) repository
-1. Create a new build with `make rootfs` or, if controlling the hypervisor, `make rootfs HV=kvm`; use whatever options are appropriate for your use case
+1. Create a new build with `make rootfs` or, if controlling the hypervisor,
+`make rootfs HV=kvm`; use whatever options are appropriate for your use case
 1. Track the location of the new image.
 
-Note that you are _not_ building a docker image using `make eve`, or a live image using `make live`, but instead _just_ the root filesystem
+Note that you are _not_ building a docker image using `make eve`, or
+a live image using `make live`, but instead _just_ the root filesystem
 using `make rootfs`.
 
-The image generally will be available in the eve repository under `dist/amd64/installer/`, with a filename `rootfs-<tag>-<hypervisor>-<arch>.squashfs`
+The image generally will be available in the eve repository under
+`dist/amd64/installer/`, with a filename `rootfs-<tag>-<hypervisor>-<arch>.squashfs`
 For example, as of this writing:
 
 ```console
@@ -208,9 +232,11 @@ lrwxrwxrwx 1 ubuntu ubuntu        80 Oct 14 09:57 rootfs-kvm.img -> rootfs-0.0.0
 lrwxrwxrwx 1 ubuntu ubuntu        14 Oct 14 09:57 rootfs.img -> rootfs-kvm.img
 ```
 
-Conversely, if you have a base OS image from somewhere, simply download it and place it in a location.
+Conversely, if you have a base OS image from somewhere, simply download
+it and place it in a location.
 
-Note that the updated image must be distinct from the one that is running. If the hash is identical, nothing will be updated.
+Note that the updated image must be distinct from the one that is running.
+If the hash is identical, nothing will be updated.
 
 ### Update the Image
 
@@ -220,9 +246,11 @@ To update the image, run:
 eden controller edge-node eveimage-update -m adam://<adam_ip>:<port> <path-to-image>
 ```
 
-As with running a VM image from a file, this will load the image up to the `eserver`, and then loaded up to EVE.
+As with running a VM image from a file, this will load the image up to
+the `eserver`, and then loaded up to EVE.
 
-Note that eden requires you to provide the adam IP and port. This is available from running `eden status`, e.g.:
+Note that eden requires you to provide the adam IP and port.
+This is available from running `eden status`, e.g.:
 
 ```console
 $ eden status
@@ -233,7 +261,8 @@ $ eden status
 
 So we would use `-m adam://172.31.15.153:3333`
 
-If your filename does not _precisely_ match the required pattern, you can override it as follows:
+If your filename does not _precisely_ match the required pattern,
+you can override it as follows:
 
 ```console
 eden controller edge-node eveimage-update -m adam://172.31.15.153:3333 --os-version=0.0.0-12345-kvm-amd64  --from-filename=false <path-to-file>
@@ -241,11 +270,11 @@ eden controller edge-node eveimage-update -m adam://172.31.15.153:3333 --os-vers
 
 The options are:
 
-* `--from-filename=false` - do not use the filename to get the precise version tag, but instead get it from `--os-version`
-* `--os-version=<version>` - use the provided version, which must match the pattern of `<semver>-<free-form-text>-<hypervisor>-<arch>`
-
+* `--from-filename=false` - do not use the filename to get
+the precise version tag, but instead get it from `--os-version`
+* `--os-version=<version>` - use the provided version, which
+must match the pattern of `<semver>-<free-form-text>-<hypervisor>-<arch>`
 
 ### Wait
 
 Wait for the update to take. Of course, you can use `eden log` to see the logs.
-

@@ -75,9 +75,8 @@ func Look(file string, getenv func(string) string) (string, error) {
 	if strings.ContainsAny(file, `:\/`) {
 		if f, err := findExecutable(file, exts); err == nil {
 			return f, nil
-		} else {
-			return "", &Error{file, err}
 		}
+		return "", &Error{file, err}
 	}
 	if f, err := findExecutable(filepath.Join(".", file), exts); err == nil {
 		return f, nil

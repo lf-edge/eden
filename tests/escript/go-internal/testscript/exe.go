@@ -179,28 +179,28 @@ func coverProfile() string {
 }
 
 func setCoverProfile(cprof string) {
-	coverProfileFlag().Set(cprof)
+	_ = coverProfileFlag().Set(cprof)
 }
 
 type nopTestDeps struct{}
 
-func (nopTestDeps) MatchString(pat, str string) (result bool, err error) {
+func (nopTestDeps) MatchString(_, _ string) (result bool, err error) {
 	return false, nil
 }
 
-func (nopTestDeps) StartCPUProfile(w io.Writer) error {
+func (nopTestDeps) StartCPUProfile(_ io.Writer) error {
 	return nil
 }
 
 func (nopTestDeps) StopCPUProfile() {}
 
-func (nopTestDeps) WriteProfileTo(name string, w io.Writer, debug int) error {
+func (nopTestDeps) WriteProfileTo(_ string, _ io.Writer, _ int) error {
 	return nil
 }
 func (nopTestDeps) ImportPath() string {
 	return ""
 }
-func (nopTestDeps) StartTestLog(w io.Writer) {}
+func (nopTestDeps) StartTestLog(_ io.Writer) {}
 
 func (nopTestDeps) StopTestLog() error {
 	return nil

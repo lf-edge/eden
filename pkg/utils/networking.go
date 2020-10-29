@@ -12,16 +12,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	log "github.com/sirupsen/logrus"
 )
-
-func dockerSubnetPattern() (cmd string, args []string) {
-	return "docker", strings.Split("network inspect bridge", " ")
-}
 
 //IFInfo stores information about net address and subnet
 type IFInfo struct {

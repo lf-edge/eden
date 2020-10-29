@@ -115,7 +115,6 @@ func LookupWithCallback(inpValue interface{}, inpPath string, callback checkPart
 		}
 		return
 	}
-	return
 }
 
 //LookUp try to resolve values from interface by path

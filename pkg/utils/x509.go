@@ -132,22 +132,6 @@ func GenServerCertElliptic(cert *x509.Certificate, key *rsa.PrivateKey, serial *
 
 }
 
-func verifyLow(root, DCA, child *x509.Certificate) {
-	roots := x509.NewCertPool()
-	inter := x509.NewCertPool()
-	roots.AddCert(root)
-	inter.AddCert(DCA)
-	opts := x509.VerifyOptions{
-		Roots:         roots,
-		Intermediates: inter,
-	}
-
-	if _, err := child.Verify(opts); err != nil {
-		panic("failed to verify certificate: " + err.Error())
-	}
-	fmt.Println("Low Verified")
-}
-
 //WriteToFiles write cert and key
 func WriteToFiles(crt *x509.Certificate, key interface{}, certFile string, keyFile string) (err error) {
 	certOut, err := os.Create(certFile)
@@ -193,10 +177,7 @@ func WriteToFiles(crt *x509.Certificate, key interface{}, certFile string, keyFi
 	default:
 		return errors.New("unknown key format")
 	}
-	if err := keyOut.Close(); err != nil {
-		return err
-	}
-	return nil
+	return keyOut.Close()
 }
 
 // ParseCertificate from file

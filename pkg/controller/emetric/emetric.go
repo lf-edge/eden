@@ -5,7 +5,11 @@ package emetric
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/jsonpb"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
@@ -13,10 +17,7 @@ import (
 	"github.com/lf-edge/eve/api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"reflect"
-	"regexp"
-	"strings"
-	"time"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 //MetricCheckerMode is MetricExist, MetricNew and MetricAny
@@ -37,7 +38,7 @@ const (
 //ParseMetricsBundle unmarshal LogBundle
 func ParseMetricsBundle(data []byte) (logBundle *metrics.ZMetricMsg, err error) {
 	var lb metrics.ZMetricMsg
-	err = jsonpb.UnmarshalString(string(data), &lb)
+	err = protojson.Unmarshal(data, &lb)
 	return &lb, err
 }
 
@@ -111,7 +112,7 @@ func MetricItemFind(mm *metrics.ZMetricMsg, query map[string]string) bool {
 		}
 		matched = false
 		utils.LookupWithCallback(reflect.ValueOf(mm).Interface(), strings.Join(n, "."), clb)
-		if matched == false {
+		if !matched {
 			return matched
 		}
 	}

@@ -52,7 +52,7 @@ func parseRedisURL(s string) (addr, password string, databaseID int, err error) 
 	if URL.Host != "" {
 		addr = URL.Host
 	} else {
-		addr = fmt.Sprintf("%s:%s", defaults.DefaultRedisHost, defaults.DefaultRedisPort)
+		addr = fmt.Sprintf("%s:%d", defaults.DefaultRedisHost, defaults.DefaultRedisPort)
 	}
 	if URL.Path != "" {
 		if databaseID, err = strconv.Atoi(strings.Trim(URL.Path, "/")); err != nil {

@@ -1,5 +1,5 @@
 DEBUG ?= "debug"
-CONFIG ?= 
+CONFIG ?=
 TESTS ?= $(shell find tests/ -maxdepth 1 -mindepth 1 -type d  -exec basename {} \;)
 
 # ESERVER_TAG is the tag for eserver image to build
@@ -87,11 +87,15 @@ run: build setup
 stop: build
 	$(LOCALBIN) stop -v $(DEBUG)
 
-.PHONY: eserver
+.PHONY: eserver all clean test build
 
 eserver:
 	@echo "Build eserver image"
 	docker build -t $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR)
+
+yetus:
+	@echo Running yetus
+	build-tools/src/yetus/test-patch.sh
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
@@ -114,7 +118,7 @@ help:
 	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""
 	@echo "   TESTS         list of tests for 'make test' to run, for ex. make TESTS='lim units' test"
 	@echo "   DEBUG         debug level for 'eden' command ('debug' by default)"
+	@echo "yetus          run Apache Yetus to check the quality of the source tree"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
 	@echo "You need access to docker socket and installed qemu packages."
-

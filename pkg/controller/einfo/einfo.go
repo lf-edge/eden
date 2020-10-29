@@ -4,17 +4,18 @@ package einfo
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/jsonpb"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"reflect"
-	"regexp"
-	"strings"
-	"time"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 //HandlerFunc must process info.ZInfoMsg and return true to exit
@@ -31,7 +32,7 @@ type ZInfoMsgInterface interface{}
 //ParseZInfoMsg unmarshal ZInfoMsg
 func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
 	var zi info.ZInfoMsg
-	err = jsonpb.UnmarshalString(string(data), &zi)
+	err = protojson.Unmarshal(data, &zi)
 	return zi, err
 }
 
@@ -97,7 +98,7 @@ func processElem(value reflect.Value, query map[string]string) bool {
 		}
 		matched = false
 		utils.LookupWithCallback(reflect.Indirect(value).Interface(), strings.Join(n, "."), clb)
-		if matched == false {
+		if !matched {
 			break
 		}
 	}
@@ -147,7 +148,7 @@ func InfoFind(im *info.ZInfoMsg, query map[string]string) int {
 		if err != nil {
 			return -1
 		}
-		if matched == false {
+		if !matched {
 			return 0
 		}
 	}

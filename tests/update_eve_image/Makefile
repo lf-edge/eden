@@ -28,8 +28,8 @@ LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
 
 .DEFAULT_GOAL := help
 
-clean: 
-	rm -rf $(WORKDIR)/$(TESTSCN) 
+clean:
+	rm -rf $(WORKDIR)/$(TESTSCN)
 
 $(WORKDIR):
 	mkdir -p $@
@@ -43,8 +43,10 @@ build: setup
 
 
 setup:
-	cp $(TESTSCN) $(WORKDIR) 
+	cp $(TESTSCN) $(WORKDIR)
 	$(LOCALBIN) utils template eden-config.tmpl > eden-config.yml
+
+.PHONY: test build setup clean all
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"

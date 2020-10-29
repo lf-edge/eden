@@ -97,8 +97,7 @@ func TestAppStatus(t *testing.T) {
 		t.Fatalf("Usage: %s [options] state app_name...\n", os.Args[0])
 	} else {
 		secs := int(timewait.Seconds())
-		var state string
-		state = args[0]
+		state := args[0]
 		fmt.Printf("apps: '%s' state: '%s' secs: %d\n",
 			args[1:], state, secs)
 

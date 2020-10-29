@@ -33,7 +33,7 @@ func runTest(testApp string, args []string, testArgs string) {
 			log.Fatalf("error reading config: %s\n", err)
 			return
 		}
-		path, err := exec.LookPath(testApp)
+		_, err = exec.LookPath(testApp)
 		if err != nil {
 			testApp = utils.ResolveAbsPath(vars.EdenBinDir + "/" + testApp)
 		}
@@ -44,11 +44,11 @@ func runTest(testApp string, args []string, testArgs string) {
 			return
 		}
 		if err != nil {
-			log.Fatalf("Error reading test binary %s\n", testApp, err)
+			log.Fatalf("Error reading test binary %s: %s", testApp, err)
 			return
 		}
 
-		path, err = exec.LookPath(testApp)
+		path, err := exec.LookPath(testApp)
 		if err != nil {
 			log.Fatalf("Cannot find executable %s\n", testApp)
 			return
@@ -210,6 +210,14 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		defer func() {
+			if curDir != "" {
+				err := os.Chdir(curDir)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+		}()
 		switch {
 		case testList != "":
 			runTest(testProg, []string{"-test.list", testList}, "")
@@ -226,13 +234,6 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 		default:
 			runScenario(testArgs)
 			return
-		}
-
-		if curDir != "" {
-			err := os.Chdir(curDir)
-			if err != nil {
-				log.Fatal(err)
-			}
 		}
 	},
 }

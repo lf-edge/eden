@@ -29,7 +29,6 @@ type GCPClient struct {
 	compute     *compute.Service
 	storage     *storage.Service
 	projectName string
-	fileName    string
 	privKey     *rsa.PrivateKey
 }
 
@@ -432,41 +431,25 @@ func (g GCPClient) ConnectToInstanceSerialPort(instance, zone string) error {
 	if err != nil {
 		return fmt.Errorf("Unable to setup stdin for session: %v", err)
 	}
-	go io.Copy(stdin, os.Stdin)
+	go func() {
+		_, _ = io.Copy(stdin, os.Stdin)
+	}()
 
 	stdout, err := session.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("Unable to setup stdout for session: %v", err)
 	}
-	go io.Copy(os.Stdout, stdout)
+	go func() {
+		_, _ = io.Copy(os.Stdout, stdout)
+	}()
 
 	stderr, err := session.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("Unable to setup stderr for session: %v", err)
 	}
-	go io.Copy(os.Stderr, stderr)
-	/*
-		c := make(chan os.Signal, 1)
-		exit := make(chan bool, 1)
-		signal.Notify(c)
-		go func(exit <-chan bool, c <-chan os.Signal) {
-			select {
-			case <-exit:
-				return
-			case s := <-c:
-				switch s {
-				// CTRL+C
-				case os.Interrupt:
-					session.Signal(ssh.SIGINT)
-				// CTRL+\
-				case os.Kill:
-					session.Signal(ssh.SIGQUIT)
-				default:
-					log.Debugf("Received signal %s but not forwarding to ssh", s)
-				}
-			}
-		}(exit, c)
-	*/
+	go func() {
+		_, _ = io.Copy(os.Stderr, stderr)
+	}()
 	var termWidth, termHeight int
 	fd := os.Stdin.Fd()
 
@@ -476,7 +459,9 @@ func (g GCPClient) ConnectToInstanceSerialPort(instance, zone string) error {
 			return err
 		}
 
-		defer term.RestoreTerminal(fd, oldState)
+		defer func() {
+			_ = term.RestoreTerminal(fd, oldState)
+		}()
 
 		winsize, err := term.GetWinsize(fd)
 		if err != nil {

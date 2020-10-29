@@ -35,7 +35,7 @@ LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
 
 .DEFAULT_GOAL := help
 
-clean: 
+clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
 $(WORKDIR):
@@ -52,7 +52,7 @@ setup:
 	cp $(TESTSCN) $(WORKDIR)
 	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 
-.PHONY: image
+.PHONY: test build setup clean all image
 
 image:
 	@echo "Build image"

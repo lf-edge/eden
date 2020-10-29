@@ -23,6 +23,8 @@ build: $(TESTS:=_build)
 setup: $(TESTS:=_setup)
 clean: $(TESTS:=_clean)
 
+.PHONY: test build setup clean all
+
 %_test: % %_build %_setup
 	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
