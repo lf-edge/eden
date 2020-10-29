@@ -678,4 +678,5 @@ func podInit() {
 	podLogsCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
 	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "app"}, "Show defined elements")
 	podLogsCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
+	podModifyInit()
 }

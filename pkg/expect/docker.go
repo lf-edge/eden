@@ -84,6 +84,10 @@ func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 
 //applyRootFSType try to parse manifest to get Annotations provided in https://github.com/lf-edge/edge-containers/blob/master/docs/annotations.md
 func (exp *AppExpectation) applyRootFSType(image *config.Image) error {
+	if exp.appLink == defaults.DefaultDummyExpect {
+		log.Debug("skip applyRootFSType")
+		return nil
+	}
 	ref := fmt.Sprintf("%s/%s", exp.getDataStoreFQDN(false), image.Name)
 	manifest, err := crane.Manifest(ref)
 	if err != nil {
@@ -121,6 +125,10 @@ func (exp *AppExpectation) applyRootFSType(image *config.Image) error {
 
 //obtainVolumeInfo try to parse docker manifest of defined image and return array of mount points
 func (exp *AppExpectation) obtainVolumeInfo(image *config.Image) ([]string, error) {
+	if exp.appLink == defaults.DefaultDummyExpect {
+		log.Debug("skip obtainVolumeInfo")
+		return nil, nil
+	}
 	ref := fmt.Sprintf("%s/%s", exp.getDataStoreFQDN(false), image.Name)
 	cfg, err := crane.Config(ref)
 	if err != nil {
