@@ -22,7 +22,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// This test deploys the VM with image https://cloud-images.ubuntu.com/releases/focal/release-20200921.1/ubuntu-20.04-server-cloudimg-ARCH.img
+// This test deploys the VM with image https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-ARCH.img
 // with ARCH from config and vncDisplay into EVE
 // waits for the RUNNING state and checks access to VNC and SSH console
 // and removes app from EVE
@@ -36,7 +36,7 @@ var (
 	cpus         = flag.Uint("cpus", 1, "Cpu number for app")
 	memory       = flag.String("memory", "1G", "Memory for app")
 	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
-	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/focal/release-20200921.1/ubuntu-20.04-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
+	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	tc           *projects.TestContext
 	externalIP   string
 	externalPort int

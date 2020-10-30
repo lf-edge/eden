@@ -319,7 +319,7 @@ var sshEveCmd = &cobra.Command{
 			if err = ctrl.ConfigSync(dev); err != nil {
 				log.Fatal(err)
 			}
-			if eveRemoteAddr == "" { //obtain IP of EVE from info
+			if eveRemote || eveRemoteAddr == "" { //obtain IP of EVE from info
 				if !cmd.Flags().Changed("eve-ssh-port") {
 					eveSSHPort = 22
 				}

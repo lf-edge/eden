@@ -44,5 +44,5 @@ if [ $? -ne 0 ]; then
    PORT=22
 fi
 CERT=`echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.ssh-key"}} | sed 's/\.pub$//'`
-HOST=`$EDEN eve status|grep 'EVE Request IP'|grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
+HOST=$($EDEN eve ip)
 until ssh -o ConnectTimeout=5 -oStrictHostKeyChecking=no -i $CERT -p $PORT root@$HOST cat /config/uuid; do sleep 10; done
