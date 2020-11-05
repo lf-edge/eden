@@ -8,12 +8,6 @@ import (
 
 //imageToContentTree converts image with displayName into ContentTree representation
 func (exp *AppExpectation) imageToContentTree(image *config.Image, displayName string) *config.ContentTree {
-	for _, el := range exp.ctrl.ListContentTree() {
-		if el.URL == image.Name && el.Sha256 == image.Sha256 && el.DsId == image.DsId {
-			//we already have it in controller
-			return el
-		}
-	}
 	id, err := uuid.NewV4()
 	if err != nil {
 		log.Fatal(err)

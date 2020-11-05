@@ -50,7 +50,6 @@ func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 		}},
 		Activate:      true,
 		BaseOSVersion: exp.getBaseOSVersion(),
-		BaseOSDetails: nil,
 	}
 	switch exp.appType {
 	case dockerApp:

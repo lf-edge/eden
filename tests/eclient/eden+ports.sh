@@ -30,8 +30,9 @@ then
   echo $EDEN config set default --key eve.hostfwd --value \'"$NEW"\'
   $EDEN config set default --key eve.hostfwd --value "$NEW"
   $EDEN config get default --key eve.hostfwd
-  echo $EDEN stop
-  $EDEN stop
-  echo $EDEN start
-  $EDEN start
+  echo $EDEN eve stop
+  $EDEN eve stop
+  sleep 5
+  echo $EDEN eve start
+  $EDEN eve start
 fi

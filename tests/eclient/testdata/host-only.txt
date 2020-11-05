@@ -1,6 +1,6 @@
 {{$test_opts := "-test.v -timewait 1200"}}
 {{$test_msg := "This is a test"}}
-{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa root@localhost{{end}}
+{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa root@{{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop
@@ -9,13 +9,13 @@
 # Starting of reboot detector with a 2 reboot limit
 ! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
 
-eden pod deploy -v debug -n ping-nw docker://itmoeve/eclient:latest -p 2223:22
-eden pod deploy -v debug -n ping-fw docker://itmoeve/eclient:latest -p 2224:22 --only-host=true
-eden pod deploy -v debug -n pong docker://itmoeve/eclient:latest
+eden pod deploy -v debug -n ping-nw --memory=512MB docker://itmoeve/eclient:latest -p 2223:22
+eden pod deploy -v debug -n ping-fw --memory=512MB docker://itmoeve/eclient:latest -p 2224:22 --only-host=true
+eden pod deploy -v debug -n pong --memory=512MB docker://itmoeve/eclient:latest
 
 test eden.app.test -test.v -timewait 20m RUNNING ping-nw ping-fw pong
 
-exec -t 5m bash wait_ssh.sh 2223 2224
+exec -t 20m bash wait_ssh.sh 2223 2224
 
 eden pod ps
 cp stdout pod_ps
@@ -45,14 +45,16 @@ test:
 
 -- wait_ssh.sh --
 
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+HOST=$($EDEN eve ip)
 for p in $*
 do
-  for i in `seq 10`
+  for i in `seq 20`
   do
-    sleep 5
+    sleep 20
     # Test SSH-access to container
-    echo {{template "ssh"}} -p $p grep -q Ubuntu /etc/issue && break
-    {{template "ssh"}} grep -p $p -q Ubuntu /etc/issue && break
+    echo {{template "ssh"}}$HOST -p $p grep -q Ubuntu /etc/issue
+    {{template "ssh"}}$HOST -p $p grep -q Ubuntu /etc/issue && break
   done
 done
 
@@ -62,6 +64,9 @@ cat env
 -- ping.sh --
 . ./env
 
-echo {{template "ssh"}} -p $1 ping -c 5 "$PONG_IP"
-{{template "ssh"}} -p $1 ping -c 5 "$PONG_IP"
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+HOST=$($EDEN eve ip)
+
+echo {{template "ssh"}}$HOST -p $1 ping -c 5 "$PONG_IP"
+{{template "ssh"}}$HOST -p $1 ping -c 5 "$PONG_IP"
 
