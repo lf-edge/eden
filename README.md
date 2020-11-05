@@ -186,10 +186,20 @@ eden pod deploy docker://some/image:container-tag --format=qcow2
 
 ### List Applications
 
-List running applications and their ip/ports
+List running applications, their names, ip/ports
 
 ```console
 eden pod ps
+```
+
+#### Edit forwarded ports of Applications
+
+To modify port forward you can run `eden pod modify <app name> -p <new port forward>` command.
+
+For example for `laughing_maxwell` app name and forwarding of 8028<->80 TCP port you can run:
+
+```console
+eden pod modify laughing_maxwell -p 8028:80
 ```
 
 ### View Logs of Applications

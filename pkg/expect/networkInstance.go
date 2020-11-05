@@ -70,8 +70,11 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		netInst.Port = &config.Adapter{Name: devModel.GetFirstAdapterForSwitches()}
 		netInst.Ip = &config.Ipspec{}
 	}
-	rand.Seed(time.Now().UnixNano())
-	netInst.Displayname = namesgenerator.GetRandomName(0)
+	if instanceExpect.name == "" {
+		rand.Seed(time.Now().UnixNano())
+		instanceExpect.name = namesgenerator.GetRandomName(0)
+	}
+	netInst.Displayname = instanceExpect.name
 	return netInst, nil
 }
 

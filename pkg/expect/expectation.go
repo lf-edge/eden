@@ -58,6 +58,8 @@ type AppExpectation struct {
 	onlyHostACL bool
 
 	registry string
+
+	oldAppName string
 }
 
 //AppExpectationFromURL init AppExpectation with defined:
@@ -142,6 +144,10 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	for _, ni := range expectation.netInstances {
 		if len(ni.ports) > 0 {
 			for _, app := range ctrl.ListApplicationInstanceConfig() {
+				if app.Displayname == expectation.oldAppName {
+					//if we try to modify the app, we skip this check
+					continue
+				}
 				for _, iface := range app.Interfaces {
 					for _, acl := range iface.Acls {
 						for _, match := range acl.Matches {

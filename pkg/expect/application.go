@@ -21,7 +21,7 @@ func (exp *AppExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig)
 	if app == nil {
 		return false
 	}
-	if app.Displayname == exp.appName {
+	if app.Displayname == exp.appName && app.Displayname != exp.oldAppName {
 		return true
 	}
 	return false
@@ -130,6 +130,5 @@ func (exp *AppExpectation) Application() *config.AppInstanceConfig {
 		_ = exp.ctrl.AddVolume(el)
 		exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), el.Uuid))
 	}
-	log.Infof("new app created %s", bundle.appInstanceConfig.Uuidandversion.Uuid)
 	return bundle.appInstanceConfig
 }
