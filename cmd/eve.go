@@ -232,6 +232,33 @@ var statusEveCmd = &cobra.Command{
 	},
 }
 
+var ipEveCmd = &cobra.Command{
+	Use:   "ip",
+	Short: "ip of eve",
+	Long:  `Get IP of eve.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		if viperLoaded {
+			eveRemote = viper.GetBool("eve.remote")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		statusAdam, err := eden.StatusAdam()
+		if err == nil && statusAdam != "container doesn't exist" {
+			if ip, err := eveLastRequests(); err == nil && ip != "" {
+				fmt.Println(ip)
+				return
+			}
+		}
+		log.Fatal("not found")
+	},
+}
+
 var consoleEveCmd = &cobra.Command{
 	Use:   "console",
 	Short: "telnet into eve",
@@ -438,6 +465,7 @@ func eveInit() {
 	eveCmd.AddCommand(startEveCmd)
 	eveCmd.AddCommand(stopEveCmd)
 	eveCmd.AddCommand(statusEveCmd)
+	eveCmd.AddCommand(ipEveCmd)
 	eveCmd.AddCommand(sshEveCmd)
 	eveCmd.AddCommand(consoleEveCmd)
 	eveCmd.AddCommand(onboardEveCmd)

@@ -25,29 +25,36 @@ const (
 	xmark    = "✘"
 )
 
-func eveRequestsAdam() {
+func eveLastRequests() (string, error) {
 	log.Debugf("Will try to obtain info from ADAM")
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		log.Debugf("getControllerAndDev: %s", err)
-		fmt.Printf("%s EVE status: undefined (no onboarded EVE)\n", statusWarn())
+		return "", err
+	}
+	var lastRequest *common.ApiRequest
+	var handleRequest = func(request *common.ApiRequest) bool {
+		if request.ClientIP != "" {
+			lastRequest = request
+		}
+		return false
+	}
+	if err := ctrl.RequestLastCallback(dev.GetID(), map[string]string{"UUID": dev.GetID().String()}, handleRequest); err != nil {
+		return "", err
+	}
+	if lastRequest == nil {
+		return "", nil
+	}
+	return strings.Split(lastRequest.ClientIP, ":")[0], nil
+}
+func eveRequestsAdam() {
+	if ip, err := eveLastRequests(); err != nil {
+		fmt.Printf("%s EVE Request IP: error: %s\n", statusBad(), err)
 	} else {
-		var lastRequest *common.ApiRequest
-		var handleRequest = func(request *common.ApiRequest) bool {
-			if request.ClientIP != "" {
-				lastRequest = request
-			}
-			return false
-		}
-		if err := ctrl.RequestLastCallback(dev.GetID(), map[string]string{"UUID": dev.GetID().String()}, handleRequest); err != nil {
-			fmt.Printf("%s EVE Request IP: error: %s\n", statusBad(), err)
-		}
-		if lastRequest == nil {
+		if ip == "" {
 			fmt.Printf("%s EVE Request IP: not found\n", statusWarn())
-		} else {
-			fmt.Printf("%s EVE Request IP: %s\n", statusOK(), strings.Split(lastRequest.ClientIP, ":")[0])
 		}
+		fmt.Printf("%s EVE Request IP: %s\n", statusOK(), ip)
 	}
 }
 
