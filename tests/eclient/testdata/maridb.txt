@@ -1,3 +1,5 @@
+# Simple test of standard `mariadb` image
+
 {{$test_opts := "-test.v -timewait 1200"}}
 {{$server := "mariadb"}}
 {{$test_msg := "MariaDB [(none)]> "}}
@@ -32,16 +34,6 @@ eden pod delete eclient
 eden pod delete {{$server}}
 
 test eden.app.test -test.v -timewait 10m - eclient {{$server}}
-
--- eden-config.yml --
-{{/* Test's config. file */}}
-test:
-    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
-    eve:
-      {{EdenConfig "eve.name"}}:
-        onboard-cert: {{EdenConfigPath "eve.cert"}}
-        serial: "{{EdenConfig "eve.serial"}}"
-        model: {{EdenConfig "eve.devmodel"}}
 
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
@@ -165,3 +157,12 @@ The Metamorphosis
 The Trial
 America
 The Castle
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
