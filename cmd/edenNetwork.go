@@ -2,18 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/controller/einfo"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"sort"
-	"text/tabwriter"
 )
 
 var (
@@ -60,86 +56,7 @@ var networkLsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		changer := &adamChanger{}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev: %s", err)
-		}
-		netInstStates := make(map[string]*netInstState)
-		for _, el := range dev.GetNetworkInstances() {
-			ni, err := ctrl.GetNetworkInstanceConfig(el)
-			if err != nil {
-				log.Fatalf("no netInst in cloud %s: %s", el, err)
-			}
-			netInstStateObj := &netInstState{
-				name:      ni.GetDisplayname(),
-				uuid:      ni.Uuidandversion.Uuid,
-				adamState: "IN_CONFIG",
-				eveState:  "UNKNOWN",
-				cidr:      ni.Ip.Subnet,
-				netType:   ni.InstType,
-			}
-			netInstStates[ni.Displayname] = netInstStateObj
-		}
-		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
-			switch im.GetZtype() {
-			case info.ZInfoTypes_ZiNetworkInstance:
-				netInstStateObj, ok := netInstStates[im.GetNiinfo().GetDisplayname()]
-				if !ok {
-					netInstStateObj = &netInstState{
-						name:      im.GetNiinfo().GetDisplayname(),
-						uuid:      im.GetNiinfo().GetNetworkID(),
-						adamState: "NOT_IN_CONFIG",
-						eveState:  "IN_CONFIG",
-						netType:   (config.ZNetworkInstType)(int32(im.GetNiinfo().InstType)),
-					}
-					netInstStates[im.GetNiinfo().GetDisplayname()] = netInstStateObj
-				}
-				if !im.GetNiinfo().Activated {
-					if netInstStateObj.activated {
-						//if previously Activated==true and now Activated==false then deleted
-						netInstStateObj.deleted = true
-					} else {
-						netInstStateObj.deleted = false
-					}
-					netInstStateObj.eveState = "NOT_ACTIVATED"
-				} else {
-					netInstStateObj.eveState = "ACTIVATED"
-				}
-				netInstStateObj.activated = im.GetNiinfo().Activated
-				//if errors, show them if in adam`s config
-				if len(im.GetNiinfo().GetNetworkErr()) > 0 {
-					netInstStateObj.eveState = fmt.Sprintf("ERRORS: %s", im.GetNiinfo().GetNetworkErr())
-					if netInstStateObj.adamState == "NOT_IN_CONFIG" {
-						netInstStateObj.deleted = true
-					}
-				}
-			}
-			return false
-		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
-			log.Fatalf("Fail in get InfoLastCallback: %s", err)
-		}
-		w := new(tabwriter.Writer)
-		w.Init(os.Stdout, 0, 8, 1, '\t', 0)
-		if _, err = fmt.Fprintln(w, netInstStateHeader()); err != nil {
-			log.Fatal(err)
-		}
-		netInstStatesSlice := make([]*netInstState, 0, len(netInstStates))
-		for _, k := range netInstStates {
-			netInstStatesSlice = append(netInstStatesSlice, k)
-		}
-		sort.SliceStable(netInstStatesSlice, func(i, j int) bool {
-			return netInstStatesSlice[i].name < netInstStatesSlice[j].name
-		})
-		for _, el := range netInstStatesSlice {
-			if ! el.deleted {
-				if _, err = fmt.Fprintln(w, el.toString()); err != nil {
-					log.Fatal(err)
-				}
-			}
-		}
-		if err = w.Flush(); err != nil {
+		if err := netList(log.GetLevel()); err != nil {
 			log.Fatal(err)
 		}
 	},

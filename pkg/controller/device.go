@@ -5,19 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"log"
-	"strconv"
 )
 
 //StateUpdate refresh state file
 func (cloud *CloudCtx) StateUpdate(dev *device.Ctx) (err error) {
-	devConfig, err := cloud.GetConfigBytes(dev, false)
+	devConfig, err := cloud.GetConfigBytes(dev, true)
 	if err != nil {
 		return err
 	}
@@ -203,6 +205,7 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	if err != nil {
 		return err
 	}
+	log.Debug(string(devConfig))
 	hash := sha256.Sum256(devConfig)
 	if dev.CheckHash(hash) {
 		if devConfig, err = VersionIncrement(devConfig); err != nil {
@@ -211,6 +214,7 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 		if err = cloud.ConfigSet(dev.GetID(), devConfig); err != nil {
 			return err
 		}
+		time.Sleep(time.Second)
 		return cloud.StateUpdate(dev)
 	}
 	return nil

@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,6 +10,8 @@ import (
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -24,6 +24,17 @@ var (
 	testScenario string
 	curDir       string
 )
+
+func printDebug(){
+	log.Info("Pod list")
+	if err := podsList(log.InfoLevel); err != nil {
+		log.Warn(err)
+	}
+	log.Info("Net list")
+	if err := netList(log.InfoLevel); err != nil {
+		log.Warn(err)
+	}
+}
 
 func runTest(testApp string, args []string, testArgs string) {
 	if testApp != "" {
@@ -69,6 +80,7 @@ func runTest(testApp string, args []string, testArgs string) {
 				case tickTime := <-ticker.C:
 					//we need to log periodically to avoid stopping of ci/cd system
 					log.Infof("Test is running: %s", tickTime.Format(time.RFC3339))
+					printDebug()
 				case <-done:
 					ticker.Stop()
 					return
@@ -83,6 +95,7 @@ func runTest(testApp string, args []string, testArgs string) {
 		err = tst.Run()
 		close(done)
 		if err != nil {
+			printDebug()
 			log.Fatalf("Test running failed with %s\n", err)
 		}
 	}
