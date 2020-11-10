@@ -26,7 +26,8 @@ Also, you need to install `telnet` and `squashfs-tools` (`squashfs` for Mac OS X
 You need to be able to run docker commands and able to access virtualization accelerators
 (KVM on Linux or machyve on Mac OS X)
 
-Linux on Parallels ([use nested virtualization feature](#parallels))
+If you want to be able to launch VMs or containers-in-VMs on Mac
+You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 
 ## Quickstart
 
@@ -500,9 +501,3 @@ If you want to clean artifacts of all contexts, you should to run `clean --curre
 * `eden utils gcp` - sub-commands to work with Google Cloud Platform
 * `eden utils export` - sub-command to save certs and configs into tar.gz
 * `eden utils import` - sub-commands to load certs and configs into tar.gz
-
-## Parallels
-
-0. Shut down the virtual machine before changing the hypervisor type.
-1. Open virtual machine configuration > **Hardware > CPU & Memory > Advanced Settings**, and set Hypervisor type to **Parallels**.
-2. Click the **Enable Nested Virtualization** checkbox.
