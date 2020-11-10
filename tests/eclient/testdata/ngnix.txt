@@ -1,3 +1,5 @@
+# Simple test of standard `nginx` image
+
 {{$test_opts := "-test.v -timewait 1200"}}
 {{$server := "ngnix"}}
 {{$test_msg := "Welcome to nginx!"}}
@@ -32,16 +34,6 @@ eden pod delete {{$server}}
 
 test eden.app.test -test.v -timewait 10m - eclient {{$server}}
 
--- eden-config.yml --
-{{/* Test's config. file */}}
-test:
-    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
-    eve:
-      {{EdenConfig "eve.name"}}:
-        onboard-cert: {{EdenConfigPath "eve.cert"}}
-        serial: "{{EdenConfig "eve.serial"}}"
-        model: {{EdenConfig "eve.devmodel"}}
-
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 HOST=$($EDEN eve ip)
@@ -64,3 +56,13 @@ echo export HOST=$($EDEN eve ip) >> env
 
 echo {{template "ssh"}}$HOST "curl $ESERVER_IP"
 until {{template "ssh"}}$HOST "curl $ESERVER_IP" | grep Welcome; do sleep 3; done
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

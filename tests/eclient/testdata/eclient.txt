@@ -1,3 +1,5 @@
+# Simple test of `eclient` image functionality
+
 {{$test_opts := "-test.v -timewait 1200"}}
 {{$port := "2223"}}
 

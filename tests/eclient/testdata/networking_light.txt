@@ -1,3 +1,5 @@
+# Test for internal TCP clien/server interconnection
+
 {{$test_opts := "-test.v -timewait 1200"}}
 {{$test_msg := "This is a test"}}
 {{define "port"}}2223{{end}}
@@ -40,16 +42,6 @@ eden pod delete eserver
 
 test eden.app.test -test.v -timewait 10m - eclient eserver
 
--- eden-config.yml --
-{{/* Test's config. file */}}
-test:
-    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
-    eve:
-      {{EdenConfig "eve.name"}}:
-        onboard-cert: {{EdenConfigPath "eve.cert"}}
-        serial: "{{EdenConfig "eve.serial"}}"
-        model: {{EdenConfig "eve.devmodel"}}
-
 -- wait_ssh.sh --
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
@@ -90,3 +82,13 @@ echo {{template "ssh"}}$HOST "echo {{$test_msg}} | nc -N $ESERVER_IP 1234"
 
 echo {{template "ssh"}}$HOST 'cat /tmp/out'
 {{template "ssh"}}$HOST 'cat /tmp/out'
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
