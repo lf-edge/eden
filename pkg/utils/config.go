@@ -51,6 +51,8 @@ type ConfigVars struct {
 	EServerImageDist  string
 	EServerPort       string
 	EServerIP         string
+	LogLevel          string
+	AdamLogLevel      string
 }
 
 //InitVars loads vars from viper
@@ -98,6 +100,8 @@ func InitVars() (*ConfigVars, error) {
 			EServerImageDist:  ResolveAbsPath(viper.GetString("eden.images.dist")),
 			EServerPort:       viper.GetString("eden.eserver.port"),
 			EServerIP:         viper.GetString("eden.eserver.ip"),
+			LogLevel:          viper.GetString("eve.log-level"),
+			AdamLogLevel:      viper.GetString("eve.adam-log-level"),
 		}
 		return vars, nil
 	}
@@ -227,6 +231,12 @@ eve:
 
     #EVE address for access from Eden
     remote-addr: {{ .DefaultEVERemoteAddr }}
+
+    #min level of logs saved in files on device
+    log-level: {{ .DefaultEveLogLevel }}
+
+    #min level of logs sent to controller
+    adam-log-level: {{ .DefaultAdamLogLevel }}
 
 eden:
     #root directory of eden
@@ -482,6 +492,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			DefaultEServerTag string
 
 			DefaultQemuFileToSave string
+
+			DefaultEveLogLevel  string
+			DefaultAdamLogLevel string
 		}{
 			DefaultAdamDist:     defaults.DefaultAdamDist,
 			DefaultAdamPort:     defaults.DefaultAdamPort,
@@ -527,6 +540,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			DefaultEServerTag: defaults.DefaultEServerTag,
 
 			DefaultQemuFileToSave: filepath.Join(edenDir, fmt.Sprintf("%s-%s", context.Current, defaults.DefaultQemuFileToSave)),
+
+			DefaultEveLogLevel:  defaults.DefaultEveLogLevel,
+			DefaultAdamLogLevel: defaults.DefaultAdamLogLevel,
 		})
 	if err != nil {
 		return err

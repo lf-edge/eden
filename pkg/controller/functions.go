@@ -116,6 +116,12 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 					fmt.Println()
 					deviceModel.SetWiFiParams(cloud.vars.EveSSID, wifiPSK)
 				}
+				if cloud.vars.AdamLogLevel != "" {
+					node.SetConfigItem("debug.default.remote.loglevel", cloud.vars.AdamLogLevel)
+				}
+				if cloud.vars.LogLevel != "" {
+					node.SetConfigItem("debug.default.loglevel", cloud.vars.LogLevel)
+				}
 				if cloud.vars.SSHKey != "" {
 					b, err := ioutil.ReadFile(cloud.vars.SSHKey)
 					switch {

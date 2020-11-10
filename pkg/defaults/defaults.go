@@ -93,6 +93,9 @@ const (
 	DefaultMetricsRedisPrefix    = "METRICS_EVE_"
 	DefaultRequestsRedisPrefix   = "REQUESTS_EVE_"
 
+	DefaultEveLogLevel  = "info"    //min level of logs saved in files on EVE device
+	DefaultAdamLogLevel = "warning" //min level of logs sent from EVE to Adam
+
 	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelLinux  = "-machine q35,accel=kvm,dump-guest-core=off -cpu host,invtsc=on,kvmclock=off -machine kernel-irqchip=split -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
 
