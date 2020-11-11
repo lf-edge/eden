@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -97,6 +98,7 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	version, _ := strconv.Atoi(config.Id.Version)
 	dev.SetName(config.Name)
 	dev.SetConfigVersion(version)
+	dev.SetDevModel(config.ProductName)
 	for _, el := range config.ConfigItems {
 		dev.SetConfigItem(el.GetKey(), el.GetValue())
 	}
@@ -205,9 +207,9 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	if err != nil {
 		return err
 	}
-	log.Debug(string(devConfig))
 	hash := sha256.Sum256(devConfig)
 	if dev.CheckHash(hash) {
+		fmt.Println(string(devConfig)) //print config only if changed
 		if devConfig, err = VersionIncrement(devConfig); err != nil {
 			return fmt.Errorf("VersionIncrement error: %s", err)
 		}
@@ -498,11 +500,19 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		}
 		systemAdapterConfigs = append(systemAdapterConfigs, systemAdapterConfig)
 	}
+	//we need to sort to keep sha of config persist
 	var configItems []*config.ConfigItem
-	for k, v := range dev.GetConfigItems() {
+	keys := make([]string, len(dev.GetConfigItems()))
+	i := 0
+	for k := range dev.GetConfigItems() {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
 		configItems = append(configItems, &config.ConfigItem{
 			Key:   k,
-			Value: v,
+			Value: dev.GetConfigItems()[k],
 		})
 	}
 

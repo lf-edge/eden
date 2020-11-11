@@ -12,11 +12,11 @@
 # Starting of reboot detector with a 2 reboot limit
 ! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
 
-eden pod deploy -v debug -n eclient --memory=512MB docker://itmoeve/eclient:latest -p {{template "port"}}:22
+eden pod deploy -n eclient --memory=512MB docker://itmoeve/eclient:latest -p {{template "port"}}:22
 #eden -t 20m pod logs eclient
 #stdout 'Executing "/usr/sbin/sshd" "-D"'
 
-eden pod deploy -v debug -n eserver --memory=512MB docker://itmoeve/eclient:latest
+eden pod deploy -v warning -n eserver --memory=512MB docker://itmoeve/eclient:latest
 
 test eden.app.test -test.v -timewait 20m RUNNING eclient eserver
 

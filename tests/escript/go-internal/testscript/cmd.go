@@ -260,7 +260,7 @@ func (ts *TestScript) cmdEden(neg bool, args []string) {
 		if ts.ctxt.Err() != nil {
 			ts.Fatalf("test timed out while running command")
 		} else if !neg {
-			ts.Fatalf("unexpected command failure")
+			ts.Fatalf("command failure")
 		}
 	}
 }
@@ -328,7 +328,7 @@ func (ts *TestScript) cmdTest(neg bool, args []string) {
 		if ts.ctxt.Err() != nil {
 			ts.Fatalf("test timed out while running command")
 		} else if !neg {
-			ts.Fatalf("unexpected command failure")
+			ts.Fatalf("command failure")
 		}
 	}
 }
@@ -451,7 +451,7 @@ func (ts *TestScript) cmdExec(neg bool, args []string) {
 			if t != nil {
 				ts.Logf("exec timewait: %v\n", t)
 			} else {
-				ts.Fatalf("unexpected command failure")
+				ts.Fatalf("command failure")
 			}
 		}
 	}
@@ -658,7 +658,7 @@ func (ts *TestScript) cmdWait(neg bool, args []string) {
 			if ts.ctxt.Err() != nil {
 				ts.Fatalf("test timed out while running command")
 			} else if !bg.neg {
-				ts.Fatalf("unexpected command failure")
+				ts.Fatalf("command failure")
 			}
 		}
 	}

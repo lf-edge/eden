@@ -99,7 +99,6 @@ func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.
 
 			for _, r := range rr {
 				loader.lastID = r.ID
-				log.Debugf("lastID: %s", loader.lastID)
 				data := []byte(r.Values["object"].(string))
 				tocontinue, err := process(data)
 				if err != nil {
@@ -132,7 +131,6 @@ func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.
 
 		for _, r := range rr[0].Messages {
 			loader.lastID = r.ID
-			log.Debugf("XRead lastID: %s", loader.lastID)
 			data := []byte(r.Values["object"].(string))
 			tocontinue, err := process(data)
 			if err != nil {
@@ -158,7 +156,6 @@ func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.
 
 			for _, r := range rr {
 				loader.lastID = r.ID
-				log.Debugf("XRangeN lastID: %s", loader.lastID)
 				data := []byte(r.Values["object"].(string))
 				tocontinue, err := process(data)
 				if err != nil {

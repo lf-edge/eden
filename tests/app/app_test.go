@@ -16,7 +16,7 @@ import (
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
 	tc       *projects.TestContext
-	found    []string
+	found    map[string]string
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -47,10 +47,15 @@ func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 		out := "\n"
 		if state == "-" {
 			if msg.Ztype == info.ZInfoTypes_ZiDevice {
+				foundAny := false
 				for _, app := range msg.GetDinfo().AppInstances {
 					if _, inSlice := utils.FindEleInSlice(appNames, app.Name); inSlice {
-						return nil
+						found[app.Name] = "EXISTS"
+						foundAny = true
 					}
+				}
+				if foundAny {
+					return nil
 				}
 				for _, appName := range appNames {
 					out += fmt.Sprintf(
@@ -63,20 +68,17 @@ func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 			if msg.Ztype == info.ZInfoTypes_ZiApp {
 				app := msg.GetAinfo()
 				if _, inSlice := utils.FindEleInSlice(appNames, app.AppName); inSlice {
-					astate := app.State.String()
-					if state == astate {
-						if _, inFoundSlice := utils.FindEleInSlice(found, app.AppName); !inFoundSlice {
-							found = append(found, app.AppName)
-						}
-					}
+					found[app.AppName] = app.State.String()
 				}
 			}
 			if len(found) == len(appNames) {
 				for _, appName := range appNames {
-					if _, inFoundSlice := utils.FindEleInSlice(found, appName); inFoundSlice {
+					if astate, inFoundSlice := found[appName]; inFoundSlice && astate == state {
 						out += fmt.Sprintf(
 							"app %s state %s\n",
 							appName, state)
+					} else {
+						return nil
 					}
 				}
 				return fmt.Errorf(out)
@@ -102,8 +104,20 @@ func TestAppStatus(t *testing.T) {
 			args[1:], state, secs)
 
 		apps := args[1:]
+		found = make(map[string]string)
+		for _, el := range apps {
+			found[el] = "no info from controller"
+		}
+
 		tc.AddProcInfo(edgeNode, checkApp(state, apps))
 
-		tc.WaitForProc(secs)
+		callback := func() {
+			t.Errorf("ASSERTION FAILED: expected apps %s in %s state", apps, state)
+			for k, v := range found {
+				t.Errorf("\tactual app %s: %s", k, v)
+			}
+		}
+
+		tc.WaitForProcWithErrorCallback(secs, callback)
 	}
 }

@@ -23,6 +23,9 @@ type ProcLogFunc func(log *elog.LogItem) error
 //ProcMetricFunc provides callback to process metric
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
 
+//TimeoutCallback provides callback to process timeout
+type TimeoutCallback func()
+
 //ProcTimerFunc provides callback to process on timer event
 type ProcTimerFunc func() error
 
