@@ -26,6 +26,9 @@ Also, you need to install `telnet` and `squashfs-tools` (`squashfs` for Mac OS X
 You need to be able to run docker commands and able to access virtualization accelerators
 (KVM on Linux or machyve on Mac OS X)
 
+If you want to be able to launch VMs or containers-in-VMs on Mac
+You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
+
 ## Quickstart
 
 ```console
