@@ -25,15 +25,17 @@ var (
 	curDir       string
 )
 
-func printDebug(){
-	log.Info("Pod list")
+func printDebug() {
+	fmt.Println("POD LIST")
 	if err := podsList(log.InfoLevel); err != nil {
 		log.Warn(err)
 	}
-	log.Info("Net list")
+	fmt.Println()
+	fmt.Println("NET LIST")
 	if err := netList(log.InfoLevel); err != nil {
 		log.Warn(err)
 	}
+	fmt.Println()
 }
 
 func runTest(testApp string, args []string, testArgs string) {
@@ -96,7 +98,7 @@ func runTest(testApp string, args []string, testArgs string) {
 		close(done)
 		if err != nil {
 			printDebug()
-			log.Fatalf("Test running failed with %s\n", err)
+			os.Exit(1)
 		}
 	}
 }

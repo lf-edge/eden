@@ -13,9 +13,9 @@
 # Starting of reboot detector with a 2 reboot limit
 ! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
 
-eden pod deploy -v debug -n eclient --memory=512MB docker://itmoeve/eclient:latest -p {{template "port"}}:22
+eden pod deploy -n eclient --memory=512MB docker://itmoeve/eclient:latest -p {{template "port"}}:22
 
-eden pod deploy -v debug -n {{$server}} --memory=512MB docker://nginx:latest
+eden pod deploy -n {{$server}} --memory=512MB docker://nginx:latest
 
 test eden.app.test -test.v -timewait 20m RUNNING eclient {{$server}}
 

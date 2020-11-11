@@ -71,8 +71,8 @@ func GenerateStateFile(dirToSave string, state StateObject) error {
 			log.Fatal(err)
 		}
 		defer configFile.Close()
-		log.Infof("config updated %s", state.DeviceUUID)
+		log.Debugf("config updated %s", state.DeviceUUID)
 	}
-	log.Infof("state updated %s", filePath)
+	log.Debugf("state updated %s", filePath)
 	return nil
 }

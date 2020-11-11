@@ -11,9 +11,9 @@
 # Starting of reboot detector with a 2 reboot limit
 ! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
 
-eden pod deploy -v debug -n ping-nw --memory=512MB docker://itmoeve/eclient:latest -p 2223:22
-eden pod deploy -v debug -n ping-fw --memory=512MB docker://itmoeve/eclient:latest -p 2224:22 --only-host=true
-eden pod deploy -v debug -n pong --memory=512MB docker://itmoeve/eclient:latest
+eden pod deploy -n ping-nw --memory=512MB docker://itmoeve/eclient:latest -p 2223:22
+eden pod deploy -n ping-fw --memory=512MB docker://itmoeve/eclient:latest -p 2224:22 --only-host=true
+eden pod deploy -n pong --memory=512MB docker://itmoeve/eclient:latest
 
 test eden.app.test -test.v -timewait 20m RUNNING ping-nw ping-fw pong
 

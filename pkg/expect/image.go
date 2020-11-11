@@ -80,7 +80,7 @@ func (exp *AppExpectation) Image() (image *config.Image) {
 		if err = exp.ctrl.AddImage(image); err != nil {
 			log.Fatalf("AddImage: %s", err)
 		}
-		log.Infof("new image created %s", image.Uuidandversion.Uuid)
+		log.Debugf("new image created %s", image.Uuidandversion.Uuid)
 	}
 	return
 }

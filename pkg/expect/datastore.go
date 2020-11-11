@@ -54,7 +54,7 @@ func (exp *AppExpectation) DataStore() (datastore *config.DatastoreConfig) {
 		if err = exp.ctrl.AddDataStore(datastore); err != nil {
 			log.Fatalf("AddDataStore: %s", err)
 		}
-		log.Infof("new datastore created %s", datastore.Id)
+		log.Debugf("new datastore created %s", datastore.Id)
 	}
 	return
 }

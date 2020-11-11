@@ -5,7 +5,7 @@
 # Fail if reboot
 ! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=1 &
 
-eden pod deploy -p 8028:80 docker://nginx -v debug
+eden pod deploy -p 8028:80 docker://nginx
 stdout 'deploy pod .* with docker://nginx request sent'
 
 exec bash wait4running.sh

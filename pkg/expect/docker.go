@@ -167,13 +167,13 @@ func (exp *AppExpectation) prepareImage() *config.Image {
 //createAppInstanceConfigDocker creates appBundle for docker with provided img, netInstance, id and acls
 //  it uses name of app and cpu/mem params from AppExpectation
 func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) *appBundle {
-	log.Infof("Try to obtain info about volumes, please wait")
+	log.Debugf("Try to obtain info about volumes, please wait")
 	mountPointsList, err := exp.obtainVolumeInfo(img)
 	if err != nil {
 		//if something wrong with info about image, just print information
 		log.Errorf("cannot obtain info about volumes: %v", err)
 	}
-	log.Infof("Try to obtain info about disks, please wait")
+	log.Debugf("Try to obtain info about disks, please wait")
 	if err := exp.applyRootFSType(img); err != nil {
 		//if something wrong with info about disks, just print information
 		log.Errorf("cannot obtain info about disks: %v", err)

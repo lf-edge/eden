@@ -210,9 +210,9 @@ func (tc *TestContext) ExpandOnSuccess(secs int) {
 	tc.addTime = time.Duration(secs) * time.Second
 }
 
-//WaitForProc blocking execution until the time elapses or all Procs gone
-//returns error on timeout
-func (tc *TestContext) WaitForProc(secs int) {
+//WaitForProcWithErrorCallback blocking execution until the time elapses or all Procs gone
+//and fires callback in case of timeout
+func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback TimeoutCallback) {
 	defer func() { tc.addTime = 0 }() //reset addTime on exit
 	timeout := time.Duration(secs) * time.Second
 	tc.stopTime = time.Now().Add(timeout)
@@ -232,17 +232,27 @@ func (tc *TestContext) WaitForProc(secs int) {
 			return
 		case <-ticker.C:
 			if time.Now().After(tc.stopTime) {
-				tc.procBus.clean()
-				if len(tc.tests) == 0 {
-					log.Fatalf("WaitForProc terminated by timeout %s", timeout)
-				}
-				for _, el := range tc.tests {
-					el.Errorf("WaitForProc terminated by timeout %s", timeout)
-				}
+				callback()
 				return
 			}
 		}
 	}
+}
+
+//WaitForProc blocking execution until the time elapses or all Procs gone
+//returns error on timeout
+func (tc *TestContext) WaitForProc(secs int) {
+	timeout := time.Duration(secs) * time.Second
+	callback := func() {
+		tc.procBus.clean()
+		if len(tc.tests) == 0 {
+			log.Fatalf("WaitForProc terminated by timeout %s", timeout)
+		}
+		for _, el := range tc.tests {
+			el.Errorf("WaitForProc terminated by timeout %s", timeout)
+		}
+	}
+	tc.WaitForProcWithErrorCallback(secs, callback)
 }
 
 //AddProcLog add processFunction, that will get all logs for edgeNode
