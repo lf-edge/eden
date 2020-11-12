@@ -308,6 +308,9 @@ eden eve onboard
 
 Eden is the only thing you need to work with Raspberry and deploy containers there:
 
+Step 0: If you already have EVE on your SD and want to try the new version, please format SD card
+with zeroes (at least first 700 MB).
+
 Step 1: Install EVE on Raspberry instead of any other OS.
 
 Prepare Raspberry image
@@ -321,7 +324,7 @@ eden setup
 eden start
 ```
 
-Then you will have an .img that can be transfered to SD card:
+Then you will have an .img that can be transferred to SD card:
 [installing-images](https://www.raspberrypi.org/documentation/installation/installing-images/).
 
 For example for MacOS:
