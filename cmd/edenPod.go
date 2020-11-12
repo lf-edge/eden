@@ -210,7 +210,7 @@ func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]st
 //podPsCmd is a command to list deployed apps
 var podPsCmd = &cobra.Command{
 	Use:   "ps",
-	Short: "List podsList",
+	Short: "List pods",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assignCobraToViper(cmd)
 		_, err := utils.LoadConfigFile(configFile)
