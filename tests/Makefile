@@ -17,7 +17,9 @@ OS ?= $(HOSTOS)
 
 WORKDIR ?= $(CURDIR)/../dist
 
-test: $(TESTS:=_test)
+#test: $(TESTS:=_test)
+test:
+	gotestsum --jsonfile $(WORKDIR)/results.json --junitfile $(WORKDIR)/results.xml --raw-command -- go tool test2json -t ../eden test workflow -v debug
 
 build: $(TESTS:=_build)
 setup: $(TESTS:=_setup)
@@ -26,7 +28,7 @@ clean: $(TESTS:=_clean)
 .PHONY: test build setup clean all
 
 %_test: % %_build %_setup
-	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
+	#make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
 %_build: %
 	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
