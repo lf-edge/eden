@@ -1,6 +1,6 @@
 [!exec:bash] stop
 [!exec:grep] stop
-[!exec:sed] stop
+[!exec:cut] stop
 [!exec:curl] stop
 [!exec:sleep] stop
 
@@ -91,7 +91,7 @@ stdout 'no app with app3 found'
 
 echo "defining of environment variables for the first app"
 
-echo net=$(grep '10.2.0.0/24' network_ls | sed '$s/\(^[^\t]*\).*$/\1/')>.env
+echo net=$(grep '10.2.0.0/24' network_ls | cut -f1)>.env
 echo external_port=''>>.env
 echo metadata={{$test_data}}>>.env
 echo name=app1>>.env
@@ -106,7 +106,7 @@ $EDEN pod ps>pod_ps
 
 echo "defining of environment variables for the second app"
 
-echo net=$(grep '10.1.0.0/24' network_ls | sed '$s/\(^[^\t]*\).*$/\1/'),$(grep '10.2.0.0/24' network_ls | sed '$s/\(^[^\t]*\).*$/\1/')>.env
+echo net=$(grep '10.1.0.0/24' network_ls | cut -f1),$(grep '10.2.0.0/24' network_ls | cut -f1)>.env
 echo external_port=-p 8027:80>>.env
 echo metadata=http://$(grep '10.2.0.' pod_ps | grep -o -E '10.2.0.[0-9]{1,3}')/user-data.html>>.env
 echo name=app2>>.env
@@ -128,7 +128,7 @@ until curl $address | grep {{$test_data}}; do sleep 3; done
 
 echo "defining of environment variables for the third app"
 
-echo net=$(grep '10.1.0.0/24' network_ls | sed '$s/\(^[^\t]*\).*$/\1/'),$(grep '10.2.0.0/24' network_ls | sed '$s/\(^[^\t]*\).*$/\1/')>.env
+echo net=$(grep '10.1.0.0/24' network_ls | cut -f1),$(grep '10.2.0.0/24' network_ls | cut -f1)>.env
 echo external_port=-p 8028:80>>.env
 echo metadata=http://$(grep '10.2.0.' pod_ps |grep app1| grep -o -E '10.2.0.[0-9]{1,3}')/user-data.html>>.env
 echo name=app3>>.env
