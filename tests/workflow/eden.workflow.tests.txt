@@ -20,11 +20,11 @@ eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
 eden.escript.test -test.run TestEdenScripts/metric_test -testdata ../lim/testdata/
 /bin/echo Eden Network test (8/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/test_networking -testdata ../network/testdata/
-{{ if eq $workflow "large" }}
 /bin/echo Eden 2 dockers test (9/{{$tests}})
 #eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
 eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testdata/
 
+{{ if eq $workflow "large" }}
 /bin/echo Eden VNC (9.5/{{$tests}})
 eden.vnc.test
 ./eden+ports.sh 2223:2223 2224:2224
