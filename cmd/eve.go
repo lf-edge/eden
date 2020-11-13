@@ -248,14 +248,14 @@ var ipEveCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		statusAdam, err := eden.StatusAdam()
-		if err == nil && statusAdam != "container doesn't exist" {
-			if ip, err := eveLastRequests(); err == nil && ip != "" {
-				fmt.Println(ip)
-				return
-			}
+		if !eveRemote && runtime.GOOS == "darwin" {
+			fmt.Println("127.0.0.1")
+			return
 		}
-		log.Fatal("not found")
+		if ip, err := eveLastRequests(); err == nil && ip != "" {
+			fmt.Println(ip)
+			return
+		}
 	},
 }
 
