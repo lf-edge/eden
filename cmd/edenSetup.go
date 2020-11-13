@@ -155,6 +155,7 @@ var setupCmd = &cobra.Command{
 				log.Info("GenerateEveCerts done")
 			}
 		} else {
+			log.Info("GenerateEveCerts done")
 			log.Infof("Certs already exists in certs dir: %s", certsDir)
 		}
 		if err := eden.GenerateEVEConfig(certsDir, certsDomain, certsEVEIP, adamPort, apiV1); err != nil {
@@ -211,7 +212,6 @@ var setupCmd = &cobra.Command{
 				}
 			} else {
 				log.Infof("EVE already exists in dir: %s", eveDist)
-
 			}
 		} else {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
@@ -241,6 +241,7 @@ var setupCmd = &cobra.Command{
 					}
 				}
 			} else {
+				log.Infof("download EVE done: %s", eveImageFile)
 				log.Infof("EVE already exists in dir: %s", filepath.Dir(eveImageFile))
 			}
 		}
