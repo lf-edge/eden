@@ -2,10 +2,10 @@
 ioengine=libaio
 size=1G
 direct=1
-runtime=120
+runtime=60
 time_based=1
-directory=/
-filename=fio.test.file
+group_reporting
+filename=/data/fio.test.file
 
 #SEQ READ 4k
 [read-4k-1]
@@ -110,14 +110,14 @@ numjobs=8
 stonewall
 
 [write-4k-3]
-rw=read
+rw=write
 bs=4k
 iodepth=32
 numjobs=8
 stonewall
 
 [write-4k-4]
-rw=read
+rw=write
 bs=4k
 iodepth=32
 numjobs=1

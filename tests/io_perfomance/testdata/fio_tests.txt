@@ -1,0 +1,29 @@
+[!exec:bash] stop
+[!exec:grep] stop
+[!exec:sleep] stop
+
+# This test deploys FIO util into EVE, performs the test, and push the results on GitHub.
+
+# Deploy the application by nested escript
+test eden.escript.test -test.run TestEdenScripts/deploy_app
+
+# Wait results
+exec -t 40m bash wait_app.sh
+
+# Teardown applications
+eden pod delete fio_test
+
+-- wait_app.sh --
+#!/bin/sh
+
+echo "Waiting for fio_test running state"
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+until "$EDEN" pod ps | grep fio_test | grep RUNNING; do sleep 5; done
+
+echo "Sleep for 60 seconds"
+sleep 60
+
+echo "Waiting for the test results"
+
+until "$EDEN" pod logs fio_test | grep 'FIO tests are end'; do sleep 30; done
