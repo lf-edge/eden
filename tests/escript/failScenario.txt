@@ -1,0 +1,8 @@
+/bin/echo Default test fail scenario
+
+/bin/echo eden status
+eden status
+/bin/echo eden pod ps
+eden pod ps
+/bin/echo eden network ls
+eden network ls

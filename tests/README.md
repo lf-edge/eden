@@ -45,14 +45,15 @@ Usage:
   eden test [test_dir] [flags]
 
 Flags:
-  -a, --args string       Arguments for test binary
-  -h, --help              help for test
-  -l, --list string       list tests matching the regular expression
-  -o, --opts              Options description for test binary which may be used in test scenarious and '-a|--args' option
-  -p, --prog string       program binary to run tests
-  -r, --run string        run only those tests matching the regular expression
-  -s, --scenario string   scenario for tests bunch running
-  -t, --timeout string    panic if test exceded the timeout
+  -a, --args string            Arguments for test binary
+  -f, --fail_scenario string   scenario for test failing (default "failScenario.txt")
+  -h, --help                   help for test
+  -l, --list string            list tests matching the regular expression
+  -o, --opts                   Options description for test binary which may be used in test scenarious and '-a|--args' option
+  -p, --prog string            program binary to run tests
+  -r, --run string             run only those tests matching the regular expression
+  -s, --scenario string        scenario for tests bunch running
+  -t, --timeout string         panic if test exceded the timeout
 
 Global Flags:
       --config-file string   path to config file (default "~/.eden/contexts/default.yml")
@@ -185,6 +186,11 @@ The most commonly used commands are just test binaries with arguments.
 In scenarios, you can use inline comments in the Shell (#) and Go (//) styles.
 Comment blocks from Go templates {{/*comment*/}} can also be used.
 Example of scenario: [workflow/eden.workflow.tests.txt](workflow/eden.workflow.tests.txt).
+
+Scenarios to run after a fail:
+
+* for eden test: `-f, --fail_scenario string` (default dist/failScenario.txt)
+* for eden.escript.test: `-fail_scenario string`
 
 ## Test scripting
 
