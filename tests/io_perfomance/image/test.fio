@@ -110,14 +110,14 @@ numjobs=8
 stonewall
 
 [write-4k-3]
-rw=read
+rw=write
 bs=4k
 iodepth=32
 numjobs=8
 stonewall
 
 [write-4k-4]
-rw=read
+rw=write
 bs=4k
 iodepth=32
 numjobs=1
