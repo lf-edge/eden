@@ -41,7 +41,7 @@ eden start
 eden eve onboard
 eden status
 make build-tests
-eden test
+eden test /tests/workflow
 ```
 
 Note: Don't forget to call clean if you want to try the  installation again.
