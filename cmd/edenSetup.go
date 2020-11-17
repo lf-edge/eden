@@ -166,10 +166,6 @@ var setupCmd = &cobra.Command{
 		var imageFormat string
 		switch devModel {
 		case defaults.DefaultRPIModel:
-			// don't second guess explicit rpi- setting
-			if !strings.HasPrefix(eveHV, "rpi-") {
-				eveHV = fmt.Sprintf("rpi-%s", eveHV)
-			}
 			imageFormat = "raw"
 		case defaults.DefaultGCPModel:
 			imageFormat = "gcp"
