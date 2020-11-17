@@ -51,7 +51,7 @@ $(TESTBIN): $(LOCALTESTBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN); fi
 
 setup: testbin
-	cp $(TESTSCN) $(WORKDIR)
+	cp custom.fail.scenario.txt failScenario.txt $(TESTSCN) $(WORKDIR)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(CURDIR)/$(TESTBIN) $(BINDIR)/; fi
 	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 
