@@ -57,7 +57,7 @@ test: build
 $(EMPTY_DRIVE):
 	qemu-img create -f qcow2 $(EMPTY_DRIVE) 1G
 
-build-tests: build testbin
+build-tests: build testbin gotestsum
 install: build
 	CGO_ENABLED=0 go install .
 
@@ -73,6 +73,9 @@ $(BIN): $(LOCALBIN)
 
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
+
+gotestsum:
+	go get gotest.tools/gotestsum
 
 config: build
 	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
