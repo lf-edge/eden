@@ -192,6 +192,12 @@ Scenarios to run after a fail:
 * for eden test: `-f, --fail_scenario string` (default dist/failScenario.txt)
 * for eden.escript.test: `-fail_scenario string`
 
+For automatic reset after the test's FAIL in default dist/failScenario.txt you need to set EDEN_FAIL_RESET env. var.:
+
+```console
+EDEN_FAIL_RESET=y ./eden test tests/escript/ -p eden.escript.test -r TestEdenScripts/fail_test
+```
+
 ## Test scripting
 
 Escript test binary `eden.escript.test` provides support for defining
