@@ -29,7 +29,7 @@ OS ?= $(HOSTOS)
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
 WORKDIR=$(CURDIR)/dist
-BINDIR := $(WORKDIR)/bin
+BINDIR := dist/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 EMPTY_DRIVE := $(WORKDIR)/empty.qcow2
@@ -68,7 +68,7 @@ endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
 $(BIN): $(LOCALBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $(BINDIR)/$@; fi
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@; fi
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $@; fi
 
 testbin: config
