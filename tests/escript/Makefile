@@ -25,6 +25,7 @@ TESTNAME := eden.escript
 TESTBIN := $(TESTNAME).test
 TESTSCN := $(TESTNAME).tests.txt
 LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
+LINKDIR := ../../tests/escript
 
 .DEFAULT_GOAL := help
 
@@ -52,7 +53,7 @@ $(TESTBIN): $(LOCALTESTBIN)
 
 setup: testbin
 	cp custom.fail.scenario.txt failScenario.txt $(TESTSCN) $(WORKDIR)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(CURDIR)/$(TESTBIN) $(BINDIR)/; fi
+	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LINKDIR)/$(TESTBIN) $(BINDIR)/; fi
 	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 
 .PHONY: test build setup clean all testbin
