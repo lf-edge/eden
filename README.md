@@ -34,6 +34,7 @@ You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 ```console
 git clone https://github.com/lf-edge/eden.git
 cd eden
+make clean
 make build
 eden config add default
 eden setup
@@ -41,7 +42,7 @@ eden start
 eden eve onboard
 eden status
 make build-tests
-eden test /tests/workflow
+eden test ./tests/docker
 ```
 
 Note: Don't forget to call clean if you want to try the  installation again.
