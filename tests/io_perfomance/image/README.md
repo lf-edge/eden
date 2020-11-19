@@ -4,9 +4,9 @@ This container runs 36 FIO tests of different types and loads in turn. You can f
 
 ## How to
 
-Before starting the container, you need to [get a token on GitHub.com](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token). 
+Before starting the container, you need to [get a token on GitHub.com](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token).
 
-### To deploy:
+### To deploy
 
 ```console
 ./eden pod deploy --metadata="GITREPO=eve-performance\nLOGIN=itmo-eve\nTOKEN=1111111111111111111111111aaaaaaaaaaaaaaa" -p 8029:80 docker://vken/fio_tests --no-hyper
@@ -31,5 +31,3 @@ At the moment, the test results will be posted to the GitHub repository in a new
     - config.fio
     - tets-result
       - fio-result
-
-
