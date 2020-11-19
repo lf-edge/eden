@@ -12,10 +12,10 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 ```
 
 3 required parameters must be specified in the --metadata parameter:
-**GITREPO** - is the name of the repository without .git. For example "eve-performance".
-**LOGIN** - username on GitHub, where the repository specified in GITREPO is located
-> **Attention!** if your login contains **_**, in this case, it is necessary to specify instead of _ **-**
-**TOKEN** - GitHub token for authorization and adding a branch with results to your repository
+1. **GITREPO** - is the name of the repository without .git. For example "eve-performance".
+2. **LOGIN** - username on GitHub, where the repository specified in GITREPO is located
+    > **Attention!** if your login contains **_**, in this case, it is necessary to specify instead of _ **-**
+3. **TOKEN** - GitHub token for authorization and adding a branch with results to your repository
 
 ## About results
 
