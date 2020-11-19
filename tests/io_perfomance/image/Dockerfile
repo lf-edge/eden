@@ -1,11 +1,18 @@
 FROM ubuntu:focal
 
-RUN apt-get update && apt-get install -y fio=3.16-1 --no-install-recommends \
-    && mkdir /fio
+RUN apt-get update \ 
+    && apt-get install -y --no-install-recommends \
+    fio=3.16-1 \
+    git=1:2.25.1-1ubuntu3 \
+    lshw=02.18.85-0.3ubuntu2 
 
-COPY test.fio /fio
-WORKDIR /fio
+WORKDIR /
+COPY run-test.sh /run-test.sh
+RUN chmod a+x /run-test.sh
+COPY config.fio /config.fio
+COPY README.md /README.md
 
-CMD ["fio", "test.fio"]
+ENTRYPOINT ["/bin/bash"]
+CMD ["/run-test.sh"]
 
 

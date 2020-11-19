@@ -4,6 +4,7 @@ size=1G
 direct=1
 runtime=120
 time_based=1
+group_reporting
 directory=/
 filename=fio.test.file
 
