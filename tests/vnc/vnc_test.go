@@ -32,6 +32,7 @@ var (
 	expand       = flag.Int("expand", 400, "Expand timewait on success of step in seconds")
 	name         = flag.String("name", "", "Name of app, random if empty")
 	vncDisplay   = flag.Int("vncDisplay", 1, "VNC display number")
+	vncPassword  = flag.String("vncPassword", "12345678", "Password for VNC")
 	sshPort      = flag.Int("sshPort", 8027, "Port to publish ssh")
 	cpus         = flag.Uint("cpus", 1, "Cpu number for app")
 	memory       = flag.String("memory", "1G", "Memory for app")
@@ -115,11 +116,11 @@ func checkVNCAccess() projects.ProcTimerFunc {
 		if externalIP == "" {
 			return nil
 		}
-		desktopName, err := utils.GetDesktopName(fmt.Sprintf("%s:%d", externalIP, externalPort), "")
+		desktopName, err := utils.GetDesktopName(fmt.Sprintf("%s:%d", externalIP, externalPort), *vncPassword)
 		if err != nil {
 			return nil
 		}
-		return fmt.Errorf("VNC DesktopName: %s. You can access it via VNC on %s:%d", desktopName, externalIP, externalPort)
+		return fmt.Errorf("VNC DesktopName: %s. You can access it via VNC on %s:%d with password %s", desktopName, externalIP, externalPort, *vncPassword)
 	}
 }
 
@@ -194,6 +195,8 @@ func TestVNCVMStart(t *testing.T) {
 	opts = append(opts, expect.WithMetadata(*metadata))
 
 	opts = append(opts, expect.WithVnc(uint32(*vncDisplay)))
+
+	opts = append(opts, expect.WithVncPassword(*vncPassword))
 
 	if *sshPort != 0 {
 
