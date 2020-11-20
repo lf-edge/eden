@@ -9,7 +9,7 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 ### To deploy
 
 ```console
-./eden pod deploy --metadata="GITREPO=eve-performance\nLOGIN=itmo-eve\nTOKEN=1111111111111111111111111aaaaaaaaaaaaaaa" -p 8029:80 docker://vken/fio_tests --no-hyper
+./eden pod deploy --metadata="GITREPO=eve-performance\nLOGIN=itmo-eve\nTOKEN=1111111111111111111111111aaaaaaaaaaaaaaa" -p 8029:80 docker://itmoeve/fio_tests --no-hyper
 ```
 
 3 required parameters must be specified in the --metadata parameter:
@@ -27,7 +27,7 @@ At the moment, the test results will be posted to the GitHub repository in a new
   - README.md
   - HARDWARE.cfg
   - SUMMARY.csv
-  - configs
+  - Configs
     - config.fio
-    - tets-result
-      - fio-result
+    - Tets-results
+      - fio-results

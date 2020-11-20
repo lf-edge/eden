@@ -1,5 +1,5 @@
 DEBUG ?= "debug"
-  
+
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
 # we need to keep track of them separately
@@ -15,7 +15,7 @@ ARCH ?= $(HOSTARCH)
 OS ?= $(HOSTOS)
 
 # IMAGE_TAG is the tag for image to build
-IMAGE_TAG ?= vken/fio_tests
+IMAGE_TAG ?= itmoeve/fio_tests
 # IMAGE_VERSION is the version of image to build
 IMAGE_VERSION ?= latest
 # IMAGE_DIR is the directory with image Dockerfile to build
