@@ -29,5 +29,5 @@ At the moment, the test results will be posted to the GitHub repository in a new
   - SUMMARY.csv
   - Configs
     - config.fio
-    - Tets-results
+    - Test-results
       - fio-results
