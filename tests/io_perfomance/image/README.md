@@ -21,6 +21,16 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
     > **Attention!** if your login contains **_**, in this case, it is necessary to specify instead of _ **-**
 3. **TOKEN** - GitHub token for authorization and adding a branch with results to your repository
 
+### How to run tests
+
+This test creates a virtual machine and starts testing.
+
+```console
+./eden test ./tests/io_perfomance
+```
+
+>Before running the test, you need to add environmental variables: gitrepo, login, token.
+
 ## About results
 
 At the moment, the test results will be posted to the GitHub repository in a new branch and will have the following tree:
