@@ -6,9 +6,7 @@ then
   exit
 fi
 
-cd ../..
-
-EDEN=./eden
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 
 OLD=$($EDEN config get --key eve.hostfwd)
 NEW=$OLD
@@ -18,10 +16,10 @@ do
   echo "$port" | grep '[0-9]\+:[0-9]\+' || continue
   port=$(echo "$port" | sed 's/^/"/;s/:/":"/g;s/$/"/')
   shift
-  if echo "$OLD" | grep "$port"
+  if echo "$OLD" | grep -v "$port"
   then
-    echo Removing "$port" port redirection to EDEN config
-    NEW=$(echo "$NEW" | sed "s/{\(.*\)$port\(.*\)}/{\1,\2}/;s/\(,\)\1/\1/g;s/,*}/}/")
+    echo Adding "$port" port redirection to EDEN config
+    NEW=$(echo "$NEW" | sed "s/{\(.*\)}/{\1,$port}/")
   fi
 done
 
