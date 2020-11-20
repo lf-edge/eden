@@ -1,0 +1,1 @@
+eden.escript.test -test.run TestEdenScripts/test_fio -args="gitrepo=eve-performance login=itmo-eve token=tocken"
