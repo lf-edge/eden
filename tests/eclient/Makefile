@@ -32,6 +32,7 @@ TESTNAME := eden.eclient
 TESTBIN := $(TESTNAME).test
 TESTSCN := $(TESTNAME).tests.txt
 LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
+LINKDIR := ../../tests/eclient
 
 .DEFAULT_GOAL := help
 
@@ -51,7 +52,8 @@ build: setup
 setup:
 	$(LOCALBIN) utils template eden+ports.sh.tmpl > eden+ports.sh
 	$(LOCALBIN) utils template eden-ports.sh.tmpl > eden-ports.sh
-	cp eden+ports.sh eden-ports.sh $(BINDIR)/
+	chmod a+x eden+ports.sh eden-ports.sh
+	ln -sf $(LINKDIR)/eden+ports.sh $(LINKDIR)/eden-ports.sh $(BINDIR)/
 	cp $(TESTSCN) $(WORKDIR)
 	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 	chmod 700 image/cert/
