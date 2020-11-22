@@ -39,7 +39,7 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 
 		path, err := exec.LookPath(testApp)
 		if err != nil {
-			log.Fatalf("Cannot find executable %s\n", testApp)
+			log.Fatalf("Cannot find executable %s", testApp)
 			return
 		}
 
