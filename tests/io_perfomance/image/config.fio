@@ -2,7 +2,7 @@
 ioengine=libaio
 size=1G
 direct=1
-runtime=120
+runtime=60
 time_based=1
 group_reporting
 directory=/

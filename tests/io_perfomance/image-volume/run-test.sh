@@ -1,5 +1,6 @@
 #!/bin/bash
-foldername=FIO-tests-$(date +%H-%M-%d-%m-%Y)
+foldername=FIO-tests-$(date +%H-%M-%d-%m-%Y)-EVE-"$EVE_VER"
+export foldername
 
 #Git configurate
 git config --global http.sslverify false
@@ -11,12 +12,16 @@ git config --global user.name "FIO"
 mkdir ~/"$GITREPO"/"$foldername"
 mkdir ~/"$GITREPO"/"$foldername"/Configs
 mkdir ~/"$GITREPO"/"$foldername"/Configs/Test-results
+mkdir ~/"$GITREPO"/"$foldername"/Configs/Test-results/Iostat
 touch ~/"$GITREPO"/"$foldername"/SUMMARY.csv
 cp README.md ~/"$GITREPO"/"$foldername"/
 cp config.fio ~/"$GITREPO"/"$foldername"/Configs/
 
 #Create a snapshot of the hardware
 lshw -short > ~/"$GITREPO"/"$foldername"/HARDWARE.cfg
+
+#Running IOSTAT
+./run-iostat.sh &
 
 #Running FIO
 fio config.fio > ~/"$GITREPO"/"$foldername"/Configs/Test-results/fio-results
