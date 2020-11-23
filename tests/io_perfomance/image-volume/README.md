@@ -9,17 +9,18 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 ### To deploy
 
 ```console
-./eden pod deploy --metadata="GITREPO=eve-performance\nLOGIN=itmo-eve\nTOKEN=1111111111111111111111111aaaaaaaaaaaaaaa" -p 8029:80 docker://itmoeve/fio_tests --no-hyper
+./eden pod deploy --metadata="EVE_VERSION=5.14\nGIT_REPO=eve-performance\nGIT_LOGIN=itmo-eve\nGIT_TOKEN=1111111111111111111111111aaaaaaaaaaaaaaa" -p 8029:80 docker://itmoeve/fio_tests --no-hyper
 ```
 
 > If you want to start a container with the **VOLUME** parameter, you need to specify the tag **volume** in the container. For example: docker://itmoeve/fio_tests:volume
 
 3 required parameters must be specified in the --metadata parameter:
 
-1. **GITREPO** - is the name of the repository without .git. For example "eve-performance".
-2. **LOGIN** - username on GitHub, where the repository specified in GITREPO is located
+1. **GIT_REPO** - is the name of the repository without .git. For example "eve-performance".
+2. **GIT_LOGIN** - username on GitHub, where the repository specified in GIT_REPO is located.
     > **Attention!** if your login contains **_**, in this case, it is necessary to specify instead of _ **-**
-3. **TOKEN** - GitHub token for authorization and adding a branch with results to your repository
+3. **GIT_TOKEN** - GitHub token for authorization and adding a branch with results to your repository.
+4. **EVE_VERSION** - EVE version. This parameter is required for naming a branch in GitHub.
 
 ### How to run tests
 
@@ -29,7 +30,7 @@ This test creates a virtual machine and starts testing.
 ./eden test ./tests/io_perfomance
 ```
 
->Before running the test, you need to add environmental variables: gitrepo, login, token.
+>Before running the test, you need to add environmental variables: GIT_REPO, GIT_LOGIN, GIT_TOKEN.
 
 ## About results
 

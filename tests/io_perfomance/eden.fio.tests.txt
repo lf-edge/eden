@@ -1,1 +1,1 @@
-eden.escript.test -test.run TestEdenScripts/deploy_app  -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/io_perfomance/testdata/
+eden.escript.test -test.run TestEdenScripts/fio_tests
