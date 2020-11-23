@@ -5,7 +5,7 @@
 # This test deploys FIO util into EVE, performs the test, and push the results on GitHub.
 
 # Deploy the application by nested escript
-test eden.escript.test -test.run TestEdenScripts/deploy_app
+test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v -testdata {{EdenConfig "eden.root"}}/../tests/io_perfomance/testdata/
 
 # Wait results
 exec -t 40m bash wait_app.sh
