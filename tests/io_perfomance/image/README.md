@@ -44,4 +44,3 @@ At the moment, the test results will be posted to the GitHub repository in a new
     - Test-results
       - fio-results
       - Iostat
-        -iostat-fio-group-n
