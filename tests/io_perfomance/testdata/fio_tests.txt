@@ -26,4 +26,4 @@ sleep 60
 
 echo "Waiting for the test results"
 
-until "$EDEN" pod logs fio_test | grep 'FIO tests are end'; do sleep 30; done 
+until "$EDEN" pod logs fio_test | grep 'FIO tests are end'; do sleep 30; done
