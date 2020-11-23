@@ -18,7 +18,7 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 
 1. **GIT_REPO** - is the name of the repository without .git. For example "eve-performance".
 2. **GIT_LOGIN** - username on GitHub, where the repository specified in GIT_REPO is located.
-    > **Attention!** if your login contains _, in this case, it is necessary to specify instead of _ -
+    > **Attention!** if your login contains **_**, in this case, it is necessary to specify instead of **_** **-**
 3. **GIT_TOKEN** - GitHub token for authorization and adding a branch with results to your repository.
 4. **EVE_VERSION** - EVE version. This parameter is required for naming a branch in GitHub.
 
