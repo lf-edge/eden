@@ -19,12 +19,24 @@ nomenclature and be available for test runs using standard go test framework.
 
 ## Install Prerequisites
 
-Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies)
+Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies).
+Eden requires QEMU version 4.x+.
 
 Also, you need to install `telnet` and `squashfs-tools` (`squashfs` for Mac OS X).
 
+If you want to use Eden with RPI on Linux, you also need to install
+`binfmt-support` and `qemu-user-static`.
+
 You need to be able to run docker commands and able to access virtualization accelerators
-(KVM on Linux or machyve on Mac OS X)
+(KVM on Linux or machyve on Mac OS X).
+For Linux, you need to add current user into docker and kvm groups:
+
+```console
+sudo usermod -aG docker $USER
+newgrp docker
+sudo usermod -aG kvm $USER
+newgrp kvm
+```
 
 If you want to be able to launch VMs or containers-in-VMs on Mac
 You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
@@ -139,14 +151,9 @@ eden pod deploy --registry=local docker://nginx
 ```
 
 If the image is not available in the local registry, it will fail.
-You either can load it up (see the next section),
-or ask it to load and deploy:
+You can load it up (see the next section).
 
-```console
-eden pod deploy --registry=local --load=true docker://nginx
-```
-
-#### Loading Local Registry
+#### Loading Image into Local Registry
 
 You can load the local registry with images.
 
@@ -163,11 +170,11 @@ Once that is done, it will load it into the local registry.
 
 #### VM Image
 
-Deploy a VM from Openstack. Initialize root user with password - 'passw0rd'.
+Deploy a VM for Openstack. Initialize `ubuntu` user with password `passw0rd`.
 Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
 
 ```console
-eden pod deploy -p 8027:22 http://cdimage.debian.org/cdimage/openstack/current/debian-10.4.3-20200610-openstack-amd64.qcow2 -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
+eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-amd64.img -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
 ```
 
 Deploy a VM from a local file. This will cause the local file
