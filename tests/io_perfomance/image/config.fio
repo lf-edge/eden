@@ -5,8 +5,7 @@ direct=1
 runtime=60
 time_based=1
 group_reporting
-directory=/
-filename=fio.test.file
+filename=/data/fio.test.file
 
 #SEQ READ 4k
 [read-4k-1]

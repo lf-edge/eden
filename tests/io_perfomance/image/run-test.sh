@@ -1,5 +1,5 @@
 #!/bin/bash
-FOLDERNAME=FIO-tests-$(date +%H-%M-%d-%m-%Y)-EVE-"$EVE_VERSION"
+FOLDERNAME=FIO-tests-$(date +%H-%M-%d-%m-%Y)-"$EVE_VERSION"
 export FOLDERNAME
 
 #Git configurate
@@ -35,5 +35,5 @@ fio config.fio > ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results
 #Create a new branch in the GIT repository and push the changes
 echo "Create a branch and start posting results to GIT"
 (cd ~/"$GIT_REPO"/ && git checkout -b "$FOLDERNAME" && git add ~/"$GIT_REPO"/"$FOLDERNAME" && git commit -m "fio-results" && git push --set-upstream origin "$FOLDERNAME")
-echo "FIO tests are end"
+echo "FIO tests are end branch:""$FOLDERNAME"
 sleep 30m

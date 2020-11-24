@@ -15,6 +15,7 @@ COPY README.md /README.md
 COPY run-iostat.sh /run-iostat.sh
 RUN chmod a+x /run-iostat.sh
 
+VOLUME ["/data"]
 ENTRYPOINT ["/bin/bash"]
 CMD ["/run-test.sh"]
 

@@ -1,1 +1,0 @@
-eden pod deploy {{EdenGetEnv "external_port"}} --metadata='EVE_VER={{$env := EdenGetEnv "EVE_VERSION"}}\nGITREPO={{EdenGetEnv "GIT_REPO"}}\nLOGIN={{EdenGetEnv "GIT_LOGIN"}}\nTOKEN={{EdenGetEnv "GIT_TOKEN"}}' --name='fio_test' --memory=2GB --cpus=2 -p 8034:80 docker://itmoeve/fio_tests:volume

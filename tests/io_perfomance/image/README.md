@@ -6,20 +6,18 @@ This container runs 36 FIO tests of different types and loads in turn. You can f
 
 Before starting the container, you need to [get a token on GitHub.com](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token).
 
-### To deploy
+### How to deploy
 
 ```console
-./eden pod deploy --metadata="EVE_VERSION=5.14\nGIT_REPO=eve-performance\nGIT_LOGIN=itmo-eve\nGIT_TOKEN=1111111111111111111111111aaaaaaaaaaaaaaa" -p 8029:80 docker://itmoeve/fio_tests --no-hyper
+./eden pod deploy --metadata="EVE_VERSION=$(./eden config get --key=eve.tag)\nGIT_REPO=<git repository name>\nGIT_LOGIN=<your git login>\nGIT_TOKEN=<your git token>" -p 8029:80 docker://itmoeve/fio_tests --no-hyper
 ```
 
-> If you want to start a container with the **VOLUME** parameter, you need to specify the tag **volume** in the container. For example: docker://itmoeve/fio_tests:volume
-
-3 required parameters must be specified in the --metadata parameter:
+4 required parameters must be specified in the --metadata parameter:
 
 1. **GIT_REPO** - is the name of the repository without .git. For example "eve-performance".
 2. **GIT_LOGIN** - username on GitHub, where the repository specified in GIT_REPO is located
 3. **GIT_TOKEN** - GitHub token for authorization and adding a branch with results to your repository
-4. **EVE_VERSION** - EVE version. This parameter is required for naming a branch in GitHub.
+4. **EVE_VERSION** - EVE version. This parameter is required for naming a branch in GitHub. 
 
 ### How to run tests
 
@@ -33,9 +31,9 @@ This test creates a virtual machine and starts testing.
 
 ## About results
 
-At the moment, the test results will be posted to the GitHub repository in a new branch and will have the following tree:
+At the moment, the test results will be posted to the GitHub repository (based on the specified parameters for the environment variables GIT_REPO, GIT_LOGIN, GIT_TOKEN) in a new branch of the specified repository. The new branch will have the following name: "FIO-tests-%date-eve-eve.tag" (Example FIO-tests-11-31-24-11-2020-EVE-0.0.0-st_storage-2dd213ca-new). The directory with the result will be located at the root. The directory name will have the same name as the branch. The results directory has the following structure:
 
-- FIO-tests-%date
+- FIO-tests-%date-eve-version
   - README.md
   - HARDWARE.cfg
   - SUMMARY.csv
