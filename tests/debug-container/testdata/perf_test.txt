@@ -1,0 +1,40 @@
+# perf test for 10 seconds on EVE
+# output of test is located inside {{EdenConfig "eden.root"}}/perf.data
+
+{{$test_opts := "-test.v -timewait 120"}}
+
+[!exec:ssh] stop
+[!exec:bash] stop
+[!exec:rm] stop
+
+# Set kernel parameters
+eden eve ssh 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
+eden eve ssh 'echo 0 >/proc/sys/kernel/kptr_restrict'
+
+# Run perf for 10 seconds
+eden eve ssh 'perf record -F 99 -a -g -o /persist/perf.data sleep 10'
+
+# Obtain perf results
+exec -t 1m bash get.sh
+
+! stdout 'file is empty'
+
+exists {{EdenConfig "eden.root"}}/perf.data
+
+message 'Please see output in {{EdenConfig "eden.root"}}/perf.data'
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- get.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+rm -rf {{EdenConfig "eden.root"}}/perf.data
+$EDEN eve ssh 'cat /persist/perf.data' >{{EdenConfig "eden.root"}}/perf.data
+[ -s {{EdenConfig "eden.root"}}/perf.data ] || echo "file is empty"

@@ -2,3 +2,4 @@
 .*\.go
 .*\.md
 tests/eclient/testdata/maridb\.txt
+tests/debug-container/image/abuild/.*

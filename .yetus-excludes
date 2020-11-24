@@ -2,3 +2,4 @@
 .*go.sum
 tests/escript/go-internal/internal/syscall/windows/.*
 tests/eclient/testdata/maridb\.txt
+tests/debug-container/image/abuild/.*
