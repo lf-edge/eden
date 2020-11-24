@@ -29,6 +29,7 @@ COPY cert/id_rsa* /root/.ssh/
 COPY cert/id_rsa.pub /root/.ssh/authorized_keys
 RUN chown root:root /root/.ssh/
 RUN chmod 600 /root/.ssh/id_rsa*
+COPY entrypoint.sh /entrypoint.sh
 
 EXPOSE 22
-CMD ["/usr/sbin/sshd", "-D"]
+CMD ["/entrypoint.sh"]
