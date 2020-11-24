@@ -1,0 +1,97 @@
+# This file must be used with "source bin/activate" *from bash*
+# you cannot run it directly
+
+if [ "${BASH_SOURCE-}" = "$0" ]; then
+    echo "You must source this script: \$ source $0" >&2
+    exit 33
+fi
+
+eden_deactivate () {
+    # reset old environment variables
+    # ! [ -z ${VAR+_} ] returns true if VAR is declared at all
+    if ! [ -z "${_OLD_EDEN_PATH:+_}" ] ; then
+        PATH="$_OLD_EDEN_PATH"
+        export PATH
+        unset _OLD_EDEN_PATH
+    fi
+
+    # This should detect bash and zsh, which have a hash command that must
+    # be called to get it to forget past commands.  Without forgetting
+    # past commands the $PATH changes we made may not be respected
+    if [ -n "${BASH-}" ] || [ -n "${ZSH_VERSION-}" ] ; then
+        hash -r 2>/dev/null
+    fi
+
+    if ! [ -z "${_OLD_EDEN_PS1+_}" ] ; then
+        PS1="$_OLD_EDEN_PS1"
+        export PS1
+        unset _OLD_EDEN_PS1
+    fi
+
+    unset EDEN_HOME
+    if [ ! "${1-}" = "nondestructive" ] ; then
+    # Self destruct!
+        unset -f eden_deactivate
+        unset -f eden_config
+        unset -f eden-config
+        unset -f eden+config
+    fi
+}
+
+eden_config () {
+    if [ $# -eq 0 ]
+    then
+        echo Usage: eden_config config
+        return
+    fi
+
+    eden config set $1
+    PS1="EDEN-`eden config get`_${_OLD_EDEN_PS1-}"
+}
+
+eden+config () {
+    if [ $# -eq 0 ]
+    then
+        echo Usage: eden+config config
+        return
+    fi
+
+    cd `eden config get --key eden.root`/..
+    eden config add $1
+    cd -
+}
+
+eden-config () {
+    if [ $# -eq 0 ]
+    then
+        echo Usage: eden-config config
+        return
+    fi
+
+    eden config delete $1
+    eden_config default
+}
+
+# unset irrelevant variables
+eden_deactivate nondestructive
+
+EDEN_HOME={{EdenConfig "eden.root"}}
+EDEN_BIN="$EDEN_HOME/{{EdenConfig "eden.bin-dist"}}"
+export EDEN_HOME
+
+_OLD_EDEN_PATH="$PATH"
+PATH="$EDEN_BIN:$PATH"
+export PATH
+
+if [ -z "${EDEN_HOME_DISABLE_PROMPT-}" ] ; then
+    _OLD_EDEN_PS1="${PS1-}"
+    PS1="EDEN-`eden config get`_${PS1-}"
+    export PS1
+fi
+
+# This should detect bash and zsh, which have a hash command that must
+# be called to get it to forget past commands.  Without forgetting
+# past commands the $PATH changes we made may not be respected
+if [ -n "${BASH-}" ] || [ -n "${ZSH_VERSION-}" ] ; then
+    hash -r 2>/dev/null
+fi

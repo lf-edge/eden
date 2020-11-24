@@ -244,7 +244,7 @@ var configSetCmd = &cobra.Command{
 			if el == args[0] {
 				context.SetContext(el)
 				if contextKeySet != "" {
-					_, err := utils.LoadConfigFile(context.GetCurrentConfig())
+					_, err := utils.LoadConfigFileContext(context.GetCurrentConfig())
 					if err != nil {
 						log.Fatalf("error reading config: %s", err.Error())
 					}

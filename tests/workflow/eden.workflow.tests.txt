@@ -18,16 +18,15 @@ eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
 {{end}}
 /bin/echo Eden Metric test (7/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/metric_test -testdata ../lim/testdata/
+eden+ports.sh 2223:2223 2224:2224
 /bin/echo Eden Network test (8/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/test_networking -testdata ../network/testdata/
 /bin/echo Eden 2 dockers test (9/{{$tests}})
 #eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
 eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testdata/
-
 {{ if eq $workflow "large" }}
 /bin/echo Eden VNC (9.5/{{$tests}})
 eden.vnc.test
-./eden+ports.sh 2223:2223 2224:2224
 /bin/echo Eden Host only ACL (11/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/host-only -testdata ../eclient/testdata/
 /bin/echo Eden Network light (12/{{$tests}})

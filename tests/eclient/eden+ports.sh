@@ -6,9 +6,10 @@ then
   exit
 fi
 
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+EDEN=eden
+CFG=$($EDEN config get)
 
-OLD=$($EDEN config get --key eve.hostfwd)
+OLD=$($EDEN config get "$CFG" --key eve.hostfwd)
 NEW=$OLD
 
 for port in "$@"
@@ -25,9 +26,10 @@ done
 
 if [ "$OLD" != "$NEW" ]
 then
-  echo $EDEN config set default --key eve.hostfwd --value \'"$NEW"\'
-  $EDEN config set default --key eve.hostfwd --value "$NEW"
-  $EDEN config get default --key eve.hostfwd
+  echo $EDEN config set "$CFG" --key eve.hostfwd --value \'"$NEW"\'
+  $EDEN config set "$CFG" --key eve.hostfwd --value "$NEW"
+  echo $EDEN config get "$CFG" --key eve.hostfwd
+  $EDEN config get "$CFG" --key eve.hostfwd
   echo $EDEN eve stop
   $EDEN eve stop
   sleep 5
