@@ -26,9 +26,9 @@ stdout '^n1\s'
 stdout '^n2\s'
 
 message 'Starting applications'
-eden pod deploy -v debug -n ping1 docker://itmoeve/eclient:latest -p 2223:22 --networks=n1 --memory=512MB
-eden pod deploy -v debug -n ping2 docker://itmoeve/eclient:latest -p 2224:22 --networks=n2 --memory=512MB
-eden pod deploy -v debug -n pong docker://itmoeve/eclient:latest --networks=n1 --memory=512MB
+eden pod deploy -v debug -n ping1 docker://itmoeve/eclient:0.3 -p 2223:22 --networks=n1 --memory=512MB
+eden pod deploy -v debug -n ping2 docker://itmoeve/eclient:0.3 -p 2224:22 --networks=n2 --memory=512MB
+eden pod deploy -v debug -n pong docker://itmoeve/eclient:0.3 --networks=n1 --memory=512MB
 
 message 'Waiting of running'
 test eden.app.test -test.v -timewait 20m RUNNING ping1 ping2 pong
