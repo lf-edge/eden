@@ -1,0 +1,45 @@
+[!exec:bash] stop
+[!exec:grep] stop
+[!exec:cat] stop
+[!exec:curl] stop
+
+# This test deploys fledge docker image into EVE to test Flir Camera data
+
+# read the environment variables
+source .env
+
+# deploy the application by nested escript
+test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/flir/testdata/
+
+exec -t 10m bash wait_app.sh
+
+# teardown applications
+eden pod delete fledge
+
+# Test's config file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- .env --
+name=fledge
+external_port=-p 8027:80 -p 8028:8081
+
+-- wait_app.sh --
+#!/bin/sh
+
+echo "waiting for app running state"
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+until $EDEN pod ps | grep fledge | grep RUNNING; do sleep 5; done
+
+echo "Docker with fledgeeveflirdemo is running"
+
+# Test workload request
+# from step 4 v
+# https://wiki.akraino.org/display/AK/IIoT+Predictive+Maintenance+Installation+Guide

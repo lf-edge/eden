@@ -1,0 +1,54 @@
+FROM ubuntu:18.04
+
+ARG ARCHITECTURE="x86_64"
+ARG FLEDGEVERSION="1.8.2"
+ARG OPERATINGSYSTEM="ubuntu1804"
+ARG FLEDGELINK="http://archives.fledge-iot.org/${FLEDGEVERSION}/${OPERATINGSYSTEM}/${ARCHITECTURE}/"
+
+RUN apt update && \
+    apt-get install -y rsyslog curl wget jq procps && \
+    wget ${FLEDGELINK}/fledge-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-gui-${FLEDGEVERSION}.deb && \
+    wget ${FLEDGELINK}/fledge-south-modbus-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-south-flirax8-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-south-sinusoid-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-south-opcua-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-south-http-south-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-filter-flirvalidity-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-filter-asset-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-service-notification-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-rule-average-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-rule-outofbound-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-rule-simple-expression-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-notify-asset-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-notify-email-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-north-gcp-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    wget ${FLEDGELINK}/fledge-north-httpc-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    echo '==============================================' && \
+    dpkg-deb -R fledge-${FLEDGEVERSION}-${ARCHITECTURE}.deb fledge-${FLEDGEVERSION}-${ARCHITECTURE} && \
+    sed -i 's/systemctl/echo/g' ./fledge-${FLEDGEVERSION}-${ARCHITECTURE}/DEBIAN/postinst && \
+    dpkg-deb -b fledge-${FLEDGEVERSION}-${ARCHITECTURE} fledge-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
+    dpkg-deb -R fledge-gui-${FLEDGEVERSION}.deb fledge-gui-${FLEDGEVERSION} && \
+    sed -i 's/service/echo/g' ./fledge-gui-${FLEDGEVERSION}/DEBIAN/preinst && \
+    sed -i 's/service/echo/g' ./fledge-gui-${FLEDGEVERSION}/DEBIAN/postinst && \
+    sed -i 's/grep/echo/g' ./fledge-gui-${FLEDGEVERSION}/DEBIAN/postinst && \
+    sed -i 's/service/echo/g' ./fledge-gui-${FLEDGEVERSION}/DEBIAN/postrm && \
+    dpkg-deb -b fledge-gui-${FLEDGEVERSION} fledge-gui-${FLEDGEVERSION}.deb
+RUN echo "=" && \
+    echo '==============================================' && \
+    DEBIAN_FRONTEND=noninteractive apt install -y ./*.deb
+
+RUN echo "service rsyslog start" > start.sh && \
+    echo "/etc/init.d/nginx start" >> start.sh && \
+    echo "/usr/local/fledge/bin/fledge start" >> start.sh && \
+    echo "tail -f /dev/null" >> start.sh && \
+    chmod +x start.sh
+
+ENV FLEDGE_ROOT=/usr/local/fledge
+
+# Fledge API and Fledge GUI ports
+EXPOSE 8081 1995 80 6683
+
+
+CMD ["bash", "./start.sh"]
+
