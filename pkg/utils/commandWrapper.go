@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,6 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	log "github.com/sirupsen/logrus"
 )
 
 //RunCommandBackground command run in goroutine
@@ -91,7 +94,18 @@ func RunCommandNohup(name string, logFile string, pidFile string, args ...string
 			return err
 		}
 	}
-	return nil
+	waiting := make(chan error)
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			waiting <- err
+		}
+	}()
+	select {
+	case err := <-waiting:
+		return fmt.Errorf("command %s failed with %s", name, err)
+	case <-time.After(defaults.DefaultRepeatTimeout):
+		return nil
+	}
 }
 
 //StopCommandWithPid sends kill to pid from pidFile
