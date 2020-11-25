@@ -24,7 +24,7 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 This test creates a virtual machine and starts testing.
 
 ```console
-./eden test ./tests/io_perfomance
+GIT_REPO=<git repository name> GIT_LOGIN=<your git login> GIT_TOKEN=<your git token> ./eden test ./tests/io_perfomance
 ```
 
 >Before running the test, you need to add environmental variables: GIT_REPO, GIT_LOGIN, GIT_TOKEN.
