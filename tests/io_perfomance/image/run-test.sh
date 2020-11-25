@@ -16,6 +16,7 @@ mkdir ~/"$GIT_REPO"/"$FOLDERNAME"
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/Iostat
+mkdir ~/check_branch
 touch ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
 cp README.md ~/"$GIT_REPO"/"$FOLDERNAME"/
 cp config.fio ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/
