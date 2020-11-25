@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ -z ${GIT_BRANCH} ]; then FOLDER=FIO-tests-$(date +%H-%M-%d-%m-%Y)-"$EVE_VERSION"; else FOLDER="$GIT_BRANCH"; fi
+if [ -z "$GIT_BRANCH" ]; then FOLDER=FIO-tests-$(date +%H-%M-%d-%m-%Y)-"$EVE_VERSION"; else FOLDER="$GIT_BRANCH"; fi
 export FOLDERNAME="$FOLDER"
 
 #Git configurate

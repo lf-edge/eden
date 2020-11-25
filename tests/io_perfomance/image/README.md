@@ -18,7 +18,7 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 2. **GIT_LOGIN** - Username on GitHub, where the repository specified in GIT_REPO is located.
 3. **GIT_TOKEN** - GitHub token for authorization and adding a branch with results to your repository.
 4. **EVE_VERSION** - EVE version. This parameter is required for naming a branch in GitHub.
-5. **GIT_BRANCH** - Branch name for results pushing. Optional parameter. 
+5. **GIT_BRANCH** - Branch name for results pushing. Optional parameter.
 
 ### How to run tests
 
