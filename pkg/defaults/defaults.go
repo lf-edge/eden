@@ -45,7 +45,7 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-d4574c69" //DefaultEVETag tag for EVE image
+	DefaultEVETag               = "0.0.0-master-2053a0b1" //DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "0.0.63"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
@@ -128,6 +128,9 @@ const (
 	DefaultGcpProjectName = "lf-edge-eve"
 	DefaultGcpZone        = "us-west1-a"
 	DefaultGcpMachineType = "n1-standard-1"
+
+	DefaultPerfEVELocation       = "/persist/perf.data"
+	DefaultPerfScriptEVELocation = "/persist/perf.script.out"
 )
 
 var (

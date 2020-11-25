@@ -5,12 +5,11 @@ package cmd
 
 import (
 	"io"
-	"log"
 	"os"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -22,12 +21,12 @@ var rootCmd = &cobra.Command{Use: "eden", PersistentPreRunE: func(cmd *cobra.Com
 }}
 
 func setUpLogs(out io.Writer, level string) error {
-	logrus.SetOutput(out)
-	lvl, err := logrus.ParseLevel(level)
+	log.SetOutput(out)
+	lvl, err := log.ParseLevel(level)
 	if err != nil {
 		return err
 	}
-	logrus.SetLevel(lvl)
+	log.SetLevel(lvl)
 	return nil
 }
 
@@ -91,6 +90,6 @@ func Execute() {
 		log.Fatal(err)
 	}
 	rootCmd.PersistentFlags().StringVar(&configFile, "config-file", configPath, "path to config file")
-	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", logrus.InfoLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
+	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", log.InfoLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
 	_ = rootCmd.Execute()
 }

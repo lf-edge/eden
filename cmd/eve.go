@@ -232,6 +232,16 @@ var statusEveCmd = &cobra.Command{
 	},
 }
 
+func getEVEIP() string {
+	if !eveRemote && runtime.GOOS == "darwin" {
+		return "127.0.0.1"
+	}
+	if ip, err := eveLastRequests(); err == nil && ip != "" {
+		return ip
+	}
+	return ""
+}
+
 var ipEveCmd = &cobra.Command{
 	Use:   "ip",
 	Short: "ip of eve",
@@ -248,14 +258,7 @@ var ipEveCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if !eveRemote && runtime.GOOS == "darwin" {
-			fmt.Println("127.0.0.1")
-			return
-		}
-		if ip, err := eveLastRequests(); err == nil && ip != "" {
-			fmt.Println(ip)
-			return
-		}
+		fmt.Println(getEVEIP())
 	},
 }
 
@@ -319,46 +322,16 @@ var sshEveCmd = &cobra.Command{
 			if err = ctrl.ConfigSync(dev); err != nil {
 				log.Fatal(err)
 			}
-			if eveRemote || eveRemoteAddr == "" { //obtain IP of EVE from info
-				if !cmd.Flags().Changed("eve-ssh-port") {
-					eveSSHPort = 22
-				}
-				if !cmd.Flags().Changed("eve-host") {
-					var lastDInfo *info.ZInfoMsg
-					var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
-						if im.GetZtype() == info.ZInfoTypes_ZiDevice {
-							lastDInfo = im
-						}
-						return false
-					}
-					if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
-						log.Fatalf("Fail in get InfoLastCallback: %s", err)
-					}
-					if lastDInfo == nil {
-						log.Info("No info message obtained from EVE, please try again")
-						return
-					}
-					for _, nw := range lastDInfo.GetDinfo().Network {
-						for _, addr := range nw.IPAddrs {
-							if addr != "" {
-								s := strings.Split(addr, ";")
-								for _, oneip := range s {
-									if strings.Contains(oneip, ".") {
-										eveHost = oneip
-									}
-								}
-							}
-						}
-					}
-				}
-			} else {
-				eveHost = eveRemoteAddr
-			}
 			commandToRun := ""
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			arguments := fmt.Sprintf("-o ConnectTimeout=3 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveHost, commandToRun)
+			if eveRemote || eveRemoteAddr == "" {
+				if !cmd.Flags().Changed("eve-ssh-port") {
+					eveSSHPort = 22
+				}
+			}
+			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, getEVEIP(), commandToRun)
 			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
 			if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
 				log.Fatalf("ssh error: %s", err)
