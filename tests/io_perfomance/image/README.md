@@ -14,17 +14,18 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 
 4 required parameters must be specified in the --metadata parameter:
 
-1. **GIT_REPO** - is the name of the repository without .git. For example "eve-performance".
-2. **GIT_LOGIN** - username on GitHub, where the repository specified in GIT_REPO is located.
+1. **GIT_REPO** - Is the name of the repository without .git. For example "eve-performance".
+2. **GIT_LOGIN** - Username on GitHub, where the repository specified in GIT_REPO is located.
 3. **GIT_TOKEN** - GitHub token for authorization and adding a branch with results to your repository.
 4. **EVE_VERSION** - EVE version. This parameter is required for naming a branch in GitHub.
+5. **GIT_BRANCH** - Branch name for results pushing. Optional parameter.
 
 ### How to run tests
 
 This test creates a virtual machine and starts testing.
 
 ```console
-./eden test ./tests/io_perfomance
+GIT_REPO=<git repository name> GIT_LOGIN=<your git login> GIT_TOKEN=<your git token> ./eden test ./tests/io_perfomance
 ```
 
 >Before running the test, you need to add environmental variables: GIT_REPO, GIT_LOGIN, GIT_TOKEN.

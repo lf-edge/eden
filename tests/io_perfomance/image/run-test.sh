@@ -1,6 +1,6 @@
 #!/bin/bash
-FOLDERNAME=FIO-tests-$(date +%H-%M-%d-%m-%Y)-"$EVE_VERSION"
-export FOLDERNAME
+if [ -z "$GIT_BRANCH" ]; then FOLDER=FIO-tests-$(date +%H-%M-%d-%m-%Y)-"$EVE_VERSION"; else FOLDER="$GIT_BRANCH"; fi
+export FOLDERNAME="$FOLDER"
 
 #Git configurate
 echo "Started configuring GitHub"
@@ -16,6 +16,7 @@ mkdir ~/"$GIT_REPO"/"$FOLDERNAME"
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/Iostat
+mkdir ~/check_branch
 touch ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
 cp README.md ~/"$GIT_REPO"/"$FOLDERNAME"/
 cp config.fio ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/
@@ -36,4 +37,8 @@ fio config.fio > ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results
 echo "Create a branch and start posting results to GIT"
 (cd ~/"$GIT_REPO"/ && git checkout -b "$FOLDERNAME" && git add ~/"$GIT_REPO"/"$FOLDERNAME" && git commit -m "fio-results" && git push --set-upstream origin "$FOLDERNAME")
 echo "FIO tests are end branch:""$FOLDERNAME"
+
+echo "Started check repositoriy"
+(cd ~/check_branch/ && git clone https://"$GIT_LOGIN":"$GIT_TOKEN"@github.com/"$GIT_LOGIN"/"$GIT_REPO" -b "$FOLDERNAME")
+echo "Ended check repositoriy"
 sleep 30m

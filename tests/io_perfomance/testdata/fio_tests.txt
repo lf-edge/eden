@@ -5,7 +5,7 @@
 # This test deploys FIO util into EVE, performs the test, and push the results on GitHub.
 
 # Deploy the application
-eden pod deploy --metadata='EVE_VERSION={{EdenConfig "eve.tag"}}\nGIT_REPO={{EdenGetEnv "GIT_REPO"}}\nGIT_LOGIN={{EdenGetEnv "GIT_LOGIN"}}\nGIT_TOKEN={{EdenGetEnv "GIT_TOKEN"}}' --name=fio_test --memory=2GB --cpus=2 docker://itmoeve/fio_tests
+eden pod deploy --metadata='EVE_VERSION={{EdenConfig "eve.tag"}}\nGIT_BRANCH={{EdenGetEnv "GIT_BRANCH"}}\nGIT_REPO={{EdenGetEnv "GIT_REPO"}}\nGIT_LOGIN={{EdenGetEnv "GIT_LOGIN"}}\nGIT_TOKEN={{EdenGetEnv "GIT_TOKEN"}}' --name=fio_test --memory=2GB --cpus=2 docker://itmoeve/fio_tests:v.1.0
 
 test eden.app.test -test.v -timewait 5m RUNNING fio_test
 
@@ -13,7 +13,7 @@ test eden.app.test -test.v -timewait 5m RUNNING fio_test
 exec sleep 5m
 
 # Wait results
-exec -t 40m bash wait_app.sh
+exec -t 50m bash wait_app.sh
 
 # Teardown applications
 eden pod delete fio_test
@@ -36,3 +36,5 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 
 echo "Waiting for the test results"
 until "$EDEN" pod logs --fields=app --format=json fio_test | grep 'FIO tests are end'; do sleep 30; done
+
+if "$EDEN" pod logs --fields=app --format=json fio_test | grep 'not found in upstream origin'; then echo "Test finished is fail"; else echo "Test finished is success"; fi
