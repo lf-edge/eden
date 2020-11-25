@@ -5,8 +5,16 @@ ARG FLEDGEVERSION="1.8.2"
 ARG OPERATINGSYSTEM="ubuntu1804"
 ARG FLEDGELINK="http://archives.fledge-iot.org/${FLEDGEVERSION}/${OPERATINGSYSTEM}/${ARCHITECTURE}/"
 
-RUN apt update && \
-    apt-get install -y rsyslog curl wget jq procps && \
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y \
+    rsyslog=8.32.0-1ubuntu4 \
+    curl=7.58.0-2ubuntu3.10 \
+    wget=1.19.4-1ubuntu2.2 \
+    jq=1.5+dfsg-2 \
+    procps=2:3.3.12-3ubuntu1.2 \
+    python3-wheel=0.30.0-0.2 \
+    automake=1:1.15.1-3ubuntu2 \
+    make=4.1-9.1ubuntu1 && \
     wget ${FLEDGELINK}/fledge-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
     wget ${FLEDGELINK}/fledge-gui-${FLEDGEVERSION}.deb && \
     wget ${FLEDGELINK}/fledge-south-modbus-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
@@ -33,10 +41,10 @@ RUN apt update && \
     sed -i 's/service/echo/g' ./fledge-gui-${FLEDGEVERSION}/DEBIAN/postinst && \
     sed -i 's/grep/echo/g' ./fledge-gui-${FLEDGEVERSION}/DEBIAN/postinst && \
     sed -i 's/service/echo/g' ./fledge-gui-${FLEDGEVERSION}/DEBIAN/postrm && \
-    dpkg-deb -b fledge-gui-${FLEDGEVERSION} fledge-gui-${FLEDGEVERSION}.deb
-RUN echo "=" && \
+    dpkg-deb -b fledge-gui-${FLEDGEVERSION} fledge-gui-${FLEDGEVERSION}.deb && \
     echo '==============================================' && \
-    DEBIAN_FRONTEND=noninteractive apt install -y ./*.deb
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y ./*.deb && \
+    rm -rf ./*deb
 
 RUN echo "service rsyslog start" > start.sh && \
     echo "/etc/init.d/nginx start" >> start.sh && \
