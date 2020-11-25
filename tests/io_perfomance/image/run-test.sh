@@ -1,6 +1,6 @@
 #!/bin/bash
-if [ -z ${GIT_BRANCH} ]; then FOLDER=FIO-tests-$(date +%H-%M-%d-%m-%Y); else FOLDER=$GIT_BRANCH; fi
-export FOLDERNAME=$FOLDER
+if [ -z ${GIT_BRANCH} ]; then FOLDER=FIO-tests-$(date +%H-%M-%d-%m-%Y)-"$EVE_VERSION"; else FOLDER="$GIT_BRANCH"; fi
+export FOLDERNAME="$FOLDER"
 
 #Git configurate
 echo "Started configuring GitHub"
