@@ -56,7 +56,7 @@ func CreateDockerNetwork(name string) error {
 func dockerVolumeName(containerName string) string {
 	distPath := ResolveAbsPath(".")
 	hasher := md5.New()
-	_,_ = hasher.Write([]byte(distPath))
+	_, _ = hasher.Write([]byte(distPath))
 	hashMD5 := hasher.Sum(nil)
 	return fmt.Sprintf("%s_%s", containerName, hex.EncodeToString(hashMD5))
 }
@@ -276,7 +276,7 @@ func SaveImageToTar(image, tarFile string) error {
 		return fmt.Errorf("unable to create tar file %s: %v", tarFile, err)
 	}
 	defer f.Close()
-	_,_ = io.Copy(f, reader)
+	_, _ = io.Copy(f, reader)
 	return nil
 }
 
@@ -423,7 +423,7 @@ func writeToLog(reader io.ReadCloser) error {
 		} else if err != nil {
 			return err
 		}
-		log.Infoln(string(n))
+		fmt.Println(string(n))
 	}
 	return nil
 }
@@ -635,7 +635,8 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 		Cmd:   strings.Fields(command),
 		Tty:   false,
 	}, &container.HostConfig{
-		Mounts: mounts},
+		Mounts: mounts,
+	},
 		nil,
 		"")
 	if err != nil {

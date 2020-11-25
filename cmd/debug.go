@@ -101,7 +101,7 @@ var debugStopEveCmd = &cobra.Command{
 
 var debugSaveEveCmd = &cobra.Command{
 	Use:   "save <file>",
-	Short: "start/stop perf in EVE",
+	Short: "save file with perf script output from EVE, create svg and save to provided file",
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assignCobraToViper(cmd)
@@ -119,6 +119,11 @@ var debugSaveEveCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		absPath, err := filepath.Abs(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+		tmpFile := fmt.Sprintf("%s.tmp", absPath)
 		eveIP := getEVEIP()
 		if eveIP == "" {
 			log.Fatal("Np EVE IP")
@@ -135,12 +140,19 @@ var debugSaveEveCmd = &cobra.Command{
 			if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
 				log.Fatalf("ssh error for command %s: %s", commandToRun, err)
 			}
-			commandToRun = fmt.Sprintf("%s %s", defaults.DefaultPerfScriptEVELocation, args[0])
+			commandToRun = fmt.Sprintf("%s %s", defaults.DefaultPerfScriptEVELocation, tmpFile)
 			arguments = fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -P %d root@%s:%s", eveSSHKey, eveSSHPort, eveIP, commandToRun)
 			log.Debugf("Try to scp %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
 			if err := utils.RunCommandForeground("scp", strings.Fields(arguments)...); err != nil {
 				log.Fatalf("scp error for command %s: %s", commandToRun, err)
 			}
+			image := fmt.Sprintf("%s:%s", defaults.DefaultProcContainerRef, defaults.DefaultProcTag)
+			commandToRun = fmt.Sprintf("-i /in/%s -o /out/%s svg", filepath.Base(tmpFile), filepath.Base(absPath))
+			volumeMap := map[string]string{"/in": filepath.Dir(tmpFile), "/out": filepath.Dir(absPath)}
+			if _, err := utils.RunDockerCommand(image, commandToRun, volumeMap); err != nil {
+				log.Fatal(err)
+			}
+			log.Infof("Please see output inside %s", absPath)
 		} else {
 			log.Fatalf("SSH key problem: %s", err)
 		}
