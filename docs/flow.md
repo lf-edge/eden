@@ -243,13 +243,14 @@ If the hash is identical, nothing will be updated.
 To update the image, run:
 
 ```console
-eden controller edge-node eveimage-update -m adam://<adam_ip>:<port> <path-to-image>
+eden controller edge-node eveimage-update -m adam://[adam_ip:adam_port] <path-to-image>
 ```
 
 As with running a VM image from a file, this will load the image up to
 the `eserver`, and then loaded up to EVE.
 
-Note that eden requires you to provide the adam IP and port.
+Note that eden sets default adam IP and port if you omit them in command,
+but you can provide the adam IP and port.
 This is available from running `eden status`, e.g.:
 
 ```console
@@ -265,7 +266,7 @@ If your filename does not _precisely_ match the required pattern,
 you can override it as follows:
 
 ```console
-eden controller edge-node eveimage-update -m adam://172.31.15.153:3333 --os-version=0.0.0-12345-kvm-amd64  --from-filename=false <path-to-file>
+eden controller edge-node eveimage-update -m adam:// --os-version=0.0.0-12345-kvm-amd64  --from-filename=false <path-to-file>
 ```
 
 The options are:
@@ -277,4 +278,4 @@ must match the pattern of `<semver>-<free-form-text>-<hypervisor>-<arch>`
 
 ### Wait
 
-Wait for the update to take. Of course, you can use `eden log` to see the logs.
+Wait for the update to take. Of course, you can use `eden log -f` to see the logs.

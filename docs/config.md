@@ -63,3 +63,10 @@ To update the running eve os base image to another one, for example one stored i
 ```console
 eden controller -m adam:// edge-node eveimage-update dist/amd64/installer/rootfs.img
 ```
+
+To set config property of EVE from [list](https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md) you
+can use the following command:
+
+```console
+eden controller -m adam:// edge-node update --config timer.config.interval=5
+```

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
-	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -51,23 +50,10 @@ var edgeNodeReboot = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
+		changer, err := changerByControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Debugf("Mode type: %s", modeType)
-		log.Debugf("Mode url: %s", modeURL)
-		var changer configChanger
-		switch modeType {
-		case "file":
-			changer = &fileChanger{fileConfig: modeURL}
-		case "adam":
-			changer = &adamChanger{adamURL: modeURL}
-
-		default:
-			log.Fatalf("Not implemented type: %s", modeType)
-		}
-
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
@@ -124,20 +110,9 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		baseOSImage := args[0]
-		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
+		changer, err := changerByControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
-		}
-		log.Debugf("Mode type: %s", modeType)
-		log.Debugf("Mode url: %s", modeURL)
-		var changer configChanger
-		switch modeType {
-		case "file":
-			changer = &fileChanger{fileConfig: modeURL}
-		case "adam":
-			changer = &adamChanger{adamURL: modeURL}
-		default:
-			log.Fatalf("Not implemented type: %s", modeType)
 		}
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {
@@ -195,21 +170,9 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 				log.Fatalf("DownloadFile error: %s", err)
 			}
 		}
-		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
+		changer, err := changerByControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
-		}
-		log.Debugf("Mode type: %s", modeType)
-		log.Debugf("Mode url: %s", modeURL)
-		var changer configChanger
-		switch modeType {
-		case "file":
-			changer = &fileChanger{fileConfig: modeURL}
-		case "adam":
-			changer = &adamChanger{adamURL: modeURL}
-
-		default:
-			log.Fatalf("Not implemented type: %s", modeType)
 		}
 
 		ctrl, dev, err := changer.getControllerAndDev()
@@ -277,21 +240,9 @@ var edgeNodeUpdate = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
+		changer, err := changerByControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
-		}
-		log.Debugf("Mode type: %s", modeType)
-		log.Debugf("Mode url: %s", modeURL)
-		var changer configChanger
-		switch modeType {
-		case "file":
-			changer = &fileChanger{fileConfig: modeURL}
-		case "adam":
-			changer = &adamChanger{adamURL: modeURL}
-
-		default:
-			log.Fatalf("Not implemented type: %s", modeType)
 		}
 
 		ctrl, dev, err := changer.getControllerAndDev()
@@ -321,21 +272,9 @@ var edgeNodeGetConfig = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		modeType, modeURL, err := projects.GetControllerMode(controllerMode)
+		changer, err := changerByControllerMode(controllerMode)
 		if err != nil {
 			log.Fatal(err)
-		}
-		log.Debugf("Mode type: %s", modeType)
-		log.Debugf("Mode url: %s", modeURL)
-		var changer configChanger
-		switch modeType {
-		case "file":
-			changer = &fileChanger{fileConfig: modeURL}
-		case "adam":
-			changer = &adamChanger{adamURL: modeURL}
-
-		default:
-			log.Fatalf("Not implemented type: %s", modeType)
 		}
 
 		ctrl, dev, err := changer.getControllerAndDev()
@@ -360,10 +299,7 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeUpdate)
 	edgeNode.AddCommand(edgeNodeGetConfig)
 	pf := controllerCmd.PersistentFlags()
-	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (required)")
-	if err := cobra.MarkFlagRequired(pf, "mode"); err != nil {
-		log.Fatal(err)
-	}
+	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
 	edgeNodeEVEImageUpdateFlags := edgeNodeEVEImageUpdate.Flags()
 	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
