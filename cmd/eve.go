@@ -303,6 +303,11 @@ var sshEveCmd = &cobra.Command{
 			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
 			eveRemote = viper.GetBool("eve.remote")
 			eveRemoteAddr = viper.GetString("eve.remote-addr")
+			if eveRemote || eveRemoteAddr == "" {
+				if !cmd.Flags().Changed("eve-ssh-port") {
+					eveSSHPort = 22
+				}
+			}
 		}
 		return nil
 	},
@@ -325,11 +330,6 @@ var sshEveCmd = &cobra.Command{
 			commandToRun := ""
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
-			}
-			if eveRemote || eveRemoteAddr == "" {
-				if !cmd.Flags().Changed("eve-ssh-port") {
-					eveSSHPort = 22
-				}
 			}
 			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, getEVEIP(), commandToRun)
 			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)

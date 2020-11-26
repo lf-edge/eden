@@ -6,8 +6,10 @@ exec 1>&2
 
 do_help() {
 cat <<__EOT__
-Usage: docker run itmoeve/processing -i file -o file svg - to process output of perf script into svg
-Usage: docker run itmoeve/processing -i file -o https://GIT_LOGIN:GIT_TOKEN@github.com/GIT_REPO -b branch git
+Usage for process perf script into svg:
+    docker run itmoeve/processing -i file -o file svg - to process output of perf script into svg
+Usage for upload to git:
+    docker run itmoeve/processing -i file -o https://GIT_LOGIN:GIT_TOKEN@GIT_REPO -b branch [-d directory] git
 __EOT__
   exit 0
 }
@@ -19,8 +21,10 @@ do_svg() {
 
 do_git() {
   git clone -b "$BRANCH" "$OUTPUT_DATA" ./repo
-  cd ./repo/"$BRANCH"
-  cp "$INPUT_DATA" .
+  if [ -z "$DIRECTORY_ON_GIT" ]; then DIRECTORY_ON_GIT="$BRANCH"; fi
+  mkdir -p ./repo/"$DIRECTORY_ON_GIT"
+  cd ./repo/"$DIRECTORY_ON_GIT"
+  cp -rf "$INPUT_DATA" .
   git config --global user.email "eden_processing@example.com"
   git config --global user.name "PROCESSING"
   git add .
@@ -51,6 +55,14 @@ while true; do
     BRANCH="${1/-b/}"
     if [ -z "$BRANCH" ]; then
       BRANCH="$2"
+      shift
+    fi
+    shift
+    ;;
+  -d*) #shellcheck disable=SC2039
+    DIRECTORY_ON_GIT="${1/-d/}"
+    if [ -z "$DIRECTORY_ON_GIT" ]; then
+      DIRECTORY_ON_GIT="$2"
       shift
     fi
     shift

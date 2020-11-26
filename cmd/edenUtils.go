@@ -1,12 +1,16 @@
 package cmd
 
 import (
-	"github.com/lf-edge/eden/pkg/eden"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/utils"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -49,6 +53,36 @@ var sdInfoEveCmd = &cobra.Command{
 	},
 }
 
+var uploadGitCmd = &cobra.Command{
+	Use: "gitupload <file or directory> " +
+		"<git repo in notation https://GIT_LOGIN:GIT_TOKEN@GIT_REPO> <branch> [directory in git]",
+	Long: "Upload file or directory to provided git branch into directory with the same name as branch " +
+		"or into provided directory",
+	Args: cobra.RangeArgs(3, 4),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, err := os.Stat(args[0]); os.IsNotExist(err) {
+			log.Fatal(err)
+		}
+		absPath, err := filepath.Abs(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+		image := fmt.Sprintf("%s:%s", defaults.DefaultProcContainerRef, defaults.DefaultProcTag)
+		directoryToSaveOnGit := args[2]
+		if len(args) == 4 {
+			directoryToSaveOnGit = args[3]
+		}
+		commandToRun := fmt.Sprintf("-i /in/%s -o %s -b %s -d %s git",
+			filepath.Base(absPath), args[1], args[2], directoryToSaveOnGit)
+		volumeMap := map[string]string{"/in": filepath.Dir(absPath)}
+		var result string
+		if result, err = utils.RunDockerCommand(image, commandToRun, volumeMap); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(result)
+	},
+}
+
 func utilsInit() {
 	currentPath, err := os.Getwd()
 	if err != nil {
@@ -66,6 +100,7 @@ func utilsInit() {
 	utilsCmd.AddCommand(sdInfoEveCmd)
 	debugInit()
 	utilsCmd.AddCommand(debugCmd)
+	utilsCmd.AddCommand(uploadGitCmd)
 	sdInfoEveCmd.Flags().StringVar(&syslogOutput, "syslog-out", filepath.Join(currentPath, "syslog.txt"), "File to save syslog.txt")
 	sdInfoEveCmd.Flags().StringVar(&eveReleaseOutput, "everelease-out", filepath.Join(currentPath, "eve-release"), "File to save eve-release")
 }

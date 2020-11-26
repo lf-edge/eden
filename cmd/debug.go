@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var perfOptions string
+
 var debugCmd = &cobra.Command{
 	Use: "debug",
 }
@@ -32,6 +34,11 @@ var debugStartEveCmd = &cobra.Command{
 			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
 			eveRemote = viper.GetBool("eve.remote")
 			eveRemoteAddr = viper.GetString("eve.remote-addr")
+			if eveRemote || eveRemoteAddr == "" {
+				if !cmd.Flags().Changed("eve-ssh-port") {
+					eveSSHPort = 22
+				}
+			}
 		}
 		return nil
 	},
@@ -40,13 +47,8 @@ var debugStartEveCmd = &cobra.Command{
 		if eveIP == "" {
 			log.Fatal("Np EVE IP")
 		}
-		if eveRemote || eveRemoteAddr == "" {
-			if !cmd.Flags().Changed("eve-ssh-port") {
-				eveSSHPort = 22
-			}
-		}
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
-			commandToRun := fmt.Sprintf("perf record -F 99 -a -g -o %s", defaults.DefaultPerfEVELocation)
+			commandToRun := fmt.Sprintf("perf record %s -o %s", perfOptions, defaults.DefaultPerfEVELocation)
 			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveIP, commandToRun)
 			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
 			if _, err := utils.RunCommandBackground("ssh", nil, strings.Fields(arguments)...); err != nil {
@@ -73,6 +75,11 @@ var debugStopEveCmd = &cobra.Command{
 			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
 			eveRemote = viper.GetBool("eve.remote")
 			eveRemoteAddr = viper.GetString("eve.remote-addr")
+			if eveRemote || eveRemoteAddr == "" {
+				if !cmd.Flags().Changed("eve-ssh-port") {
+					eveSSHPort = 22
+				}
+			}
 		}
 		return nil
 	},
@@ -80,11 +87,6 @@ var debugStopEveCmd = &cobra.Command{
 		eveIP := getEVEIP()
 		if eveIP == "" {
 			log.Fatal("Np EVE IP")
-		}
-		if eveRemote || eveRemoteAddr == "" {
-			if !cmd.Flags().Changed("eve-ssh-port") {
-				eveSSHPort = 22
-			}
 		}
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
 			commandToRun := "killall perf"
@@ -115,6 +117,11 @@ var debugSaveEveCmd = &cobra.Command{
 			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
 			eveRemote = viper.GetBool("eve.remote")
 			eveRemoteAddr = viper.GetString("eve.remote-addr")
+			if eveRemote || eveRemoteAddr == "" {
+				if !cmd.Flags().Changed("eve-ssh-port") {
+					eveSSHPort = 22
+				}
+			}
 		}
 		return nil
 	},
@@ -127,11 +134,6 @@ var debugSaveEveCmd = &cobra.Command{
 		eveIP := getEVEIP()
 		if eveIP == "" {
 			log.Fatal("Np EVE IP")
-		}
-		if eveRemote || eveRemoteAddr == "" {
-			if !cmd.Flags().Changed("eve-ssh-port") {
-				eveSSHPort = 22
-			}
 		}
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
 			commandToRun := fmt.Sprintf("perf script -i %s > %s", defaults.DefaultPerfEVELocation, defaults.DefaultPerfScriptEVELocation)
@@ -149,37 +151,14 @@ var debugSaveEveCmd = &cobra.Command{
 			image := fmt.Sprintf("%s:%s", defaults.DefaultProcContainerRef, defaults.DefaultProcTag)
 			commandToRun = fmt.Sprintf("-i /in/%s -o /out/%s svg", filepath.Base(tmpFile), filepath.Base(absPath))
 			volumeMap := map[string]string{"/in": filepath.Dir(tmpFile), "/out": filepath.Dir(absPath)}
-			if result, err := utils.RunDockerCommand(image, commandToRun, volumeMap); err != nil {
+			var result string
+			if result, err = utils.RunDockerCommand(image, commandToRun, volumeMap); err != nil {
 				log.Fatal(err)
-			} else {
-				fmt.Println(result)
 			}
+			fmt.Println(result)
 			log.Infof("Please see output inside %s", absPath)
 		} else {
 			log.Fatalf("SSH key problem: %s", err)
-		}
-	},
-}
-
-var debugUploadCmd = &cobra.Command{
-	Use:   "upload <file> <git repo in notation https://GIT_LOGIN:GIT_TOKEN@github.com/GIT_REPO> <branch>",
-	Short: "upload file to provided git branch",
-	Args:  cobra.ExactArgs(3),
-	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := os.Stat(args[0]); os.IsNotExist(err) {
-			log.Fatal(err)
-		}
-		absPath, err := filepath.Abs(args[0])
-		if err != nil {
-			log.Fatal(err)
-		}
-		image := fmt.Sprintf("%s:%s", defaults.DefaultProcContainerRef, defaults.DefaultProcTag)
-		commandToRun := fmt.Sprintf("-i /in/%s -o %s -b %s git", filepath.Base(absPath), args[1], args[2])
-		volumeMap := map[string]string{"/in": filepath.Dir(absPath)}
-		if result, err := utils.RunDockerCommand(image, commandToRun, volumeMap); err != nil {
-			log.Fatal(err)
-		} else {
-			fmt.Println(result)
 		}
 	},
 }
@@ -192,10 +171,10 @@ func debugInit() {
 	debugCmd.AddCommand(debugStartEveCmd)
 	debugCmd.AddCommand(debugStopEveCmd)
 	debugCmd.AddCommand(debugSaveEveCmd)
-	debugCmd.AddCommand(debugUploadCmd)
 	debugStartEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	debugStartEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	debugStartEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
+	debugStartEveCmd.Flags().StringVar(&perfOptions, "perf-options", "-F 99 -a -g", "Options for perf record")
 	debugStopEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	debugStopEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	debugStopEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")

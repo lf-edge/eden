@@ -49,7 +49,7 @@ const (
 	DefaultAdamTag              = "0.0.63"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
-	DefaultProcTag              = "1.1"
+	DefaultProcTag              = "1.2"
 	DefaultImage                = "library/alpine"
 	DefaultAdamContainerRef     = "lfedge/adam"
 	DefaultRedisContainerRef    = "redis"
