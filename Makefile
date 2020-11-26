@@ -14,7 +14,7 @@ ESERVER_IMAGE_ID ?= $(shell docker images -q $(ESERVER_TAG):$(ESERVER_VERSION))
 # ESERVER_TAG is the tag for processing image to build
 PROCESSING_TAG ?= "itmoeve/eden-processing"
 # PROCESSING_VERSION is the version of processing image to build
-PROCESSING_VERSION ?= "1.0"
+PROCESSING_VERSION ?= "1.1"
 # PROCESSING_DIR is the directory with processing Dockerfile to build
 PROCESSING_DIR=$(CURDIR)/processing
 
