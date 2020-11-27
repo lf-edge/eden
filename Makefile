@@ -11,6 +11,13 @@ ESERVER_DIR=$(CURDIR)/eserver
 # check if eserver image already exists in local docker and get its IMAGE_ID
 ESERVER_IMAGE_ID ?= $(shell docker images -q $(ESERVER_TAG):$(ESERVER_VERSION))
 
+# ESERVER_TAG is the tag for processing image to build
+PROCESSING_TAG ?= "itmoeve/eden-processing"
+# PROCESSING_VERSION is the version of processing image to build
+PROCESSING_VERSION ?= "1.2"
+# PROCESSING_DIR is the directory with processing Dockerfile to build
+PROCESSING_DIR=$(CURDIR)/processing
+
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
 # we need to keep track of them separately
@@ -93,11 +100,15 @@ run: build setup
 stop: build
 	$(LOCALBIN) stop -v $(DEBUG)
 
-.PHONY: eserver all clean test build
+.PHONY: processing eserver all clean test build
 
 eserver:
 	@echo "Build eserver image"
 	docker build -t $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR)
+
+processing:
+	@echo "Build processing image"
+	docker build -t $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR)
 
 yetus:
 	@echo Running yetus
