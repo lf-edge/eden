@@ -1,17 +1,11 @@
 {{$test1 := "test eden.lim.test -test.v -timewait 600 -test.run TestLog"}}
-{{$test2 := "test eden.lim.test -test.v -test.run TestLog"}}
 
-#eden config add default
-#eden setup
-#eden start
-#eden eve onboard
+# ssh into EVE to force log creation
+exec -t 5m bash ssh.sh &
 
-# Trying to find eth0 or eth1 in msg.
-{{$test1}} -out msg 'msg:.*eth[01].*'
-stdout 'eth[01]'
-
-# Checking msg for interfaces other than eth0 or eth1.
-! {{$test2}} -out msg msg:'.*dev eth[^01].*'
+# Trying to find messages about ssh in log
+{{$test1}} -out msg 'msg:.*Disconnected.*'
+stdout 'Disconnected from user root'
 
 # Test's config. file
 -- eden-config.yml --
@@ -23,3 +17,6 @@ test:
         serial: "{{EdenConfig "eve.serial"}}"
         model: {{EdenConfig "eve.devmodel"}}
 
+-- ssh.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+until $EDEN eve ssh sleep 10; do sleep 10; done
