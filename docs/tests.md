@@ -103,7 +103,7 @@ To run the test use command:
 
 More information on running tests and launch options can be found [here](https://github.com/itmo-eve/eden/blob/master/tests/README.md#test-running).
 
-**Useful links:**
+## Useful links
 
 * [EVE+Integration+Testing](https://wiki.lfedge.org/display/EVE/EVE+Integration+Testing)
 * [Eden testing README](https://github.com/itmo-eve/eden/blob/master/tests/README.md)
