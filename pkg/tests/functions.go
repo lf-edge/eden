@@ -22,34 +22,26 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 			log.Fatalf("error reading config: %s\n", err)
 			return
 		}
-		_, err = exec.LookPath(testApp)
-		if err != nil {
-			testApp = utils.ResolveAbsPath(vars.EdenBinDir + "/" + testApp)
-		}
-
-		_, err = os.Stat(testApp)
-		if os.IsNotExist(err) {
-			log.Fatalf("Test binary file %s does not exist\n", testApp)
-			return
-		}
-		if err != nil {
-			log.Fatalf("Error reading test binary %s: %s", testApp, err)
-			return
-		}
-
 		path, err := exec.LookPath(testApp)
 		if err != nil {
-			log.Fatalf("Cannot find executable %s", testApp)
+			path = utils.ResolveAbsPath(vars.EdenBinDir + "/" + testApp)
+		}
+
+		_, err = os.Stat(path)
+		if err != nil {
+			log.Fatalf("Error reading test binary %s: %s", path, err)
 			return
 		}
 
 		log.Debug("testProg: ", path)
+
 		if testTimeout != "" {
 			args = append(args, "-test.timeout", testTimeout)
 		}
 		if verbosity != "info" {
 			args = append(args, "-test.v")
 		}
+
 		done := make(chan bool, 1)
 		go func() {
 			ticker := time.NewTicker(defaults.DefaultRepeatTimeout * defaults.DefaultRepeatCount)
@@ -65,6 +57,7 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 				}
 			}
 		}()
+
 		resultArgs := append(args, strings.Fields(testArgs)...)
 		log.Debugf("Test: %s %s", path, strings.Join(resultArgs, " "))
 		tst := exec.Command(path, resultArgs...)
@@ -72,6 +65,7 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 		tst.Stderr = os.Stderr
 		err = tst.Run()
 		close(done)
+
 		if err != nil && failScenario != "" {
 			log.Debug("failScenario: ", failScenario)
 			RunScenario("", "", testTimeout, "",

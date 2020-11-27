@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/eden"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -37,8 +38,22 @@ var (
 	eveImageSizeMB int
 )
 
-func configCheck() {
+func generateScripts(in string, out string) {
+	tmpl, err := ioutil.ReadFile(in)
+	if err != nil {
+		log.Fatal(err)
+	}
+	script, err := utils.RenderTemplate(configFile, string(tmpl))
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = ioutil.WriteFile(out, []byte(script), 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
+func configCheck() {
 	context, err := utils.ContextLoad()
 	if err != nil {
 		log.Fatalf("Load context error: %s", err)
@@ -239,6 +254,27 @@ var setupCmd = &cobra.Command{
 			} else {
 				log.Infof("download EVE done: %s", eveImageFile)
 				log.Infof("EVE already exists in dir: %s", filepath.Dir(eveImageFile))
+			}
+
+			home, err := os.UserHomeDir()
+			if err != nil {
+				log.Fatal(err)
+			}
+			cfgDir := home + "/.eden/"
+			_, err = os.Stat(cfgDir)
+			if err != nil {
+				fmt.Printf("Directory %s access error: %s\n",
+					cfgDir, err)
+			} else {
+				shPath := viper.GetString("eden.root") + "/scripts/shell/"
+				generateScripts(shPath+"activate.sh.tmpl",
+					cfgDir+"activate.sh")
+				generateScripts(shPath+"activate.csh.tmpl",
+					cfgDir+"activate.csh")
+				fmt.Println("To activate EDEN settings run:")
+				fmt.Println("* for BASH -- `source ~/.eden/activate.sh`")
+				fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
+				fmt.Println("To deactivate them -- eden_deactivate")
 			}
 		}
 	},

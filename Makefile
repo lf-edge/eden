@@ -67,6 +67,9 @@ build: $(BIN) $(EMPTY_DRIVE) eserver
 endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
+	mkdir -p dist/scripts/shell
+	cp shell-scripts/* dist/scripts/shell/
+
 $(BIN): $(LOCALBIN)
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@; fi
 	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $@; fi
@@ -80,7 +83,7 @@ gotestsum:
 config: build
 	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
 
-setup: config
+setup: config build-tests
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
 	$(LOCALBIN) setup -v $(DEBUG)
 

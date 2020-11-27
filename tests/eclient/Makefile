@@ -50,10 +50,7 @@ test:
 build: setup
 
 setup:
-	$(LOCALBIN) utils template eden+ports.sh.tmpl > eden+ports.sh
-	$(LOCALBIN) utils template eden-ports.sh.tmpl > eden-ports.sh
-	chmod a+x eden+ports.sh eden-ports.sh
-	ln -sf $(LINKDIR)/eden+ports.sh $(LINKDIR)/eden-ports.sh $(BINDIR)/
+	cp eden+ports.sh eden-ports.sh $(BINDIR)/
 	cp $(TESTSCN) $(WORKDIR)
 	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 	chmod 700 image/cert/

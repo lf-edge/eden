@@ -341,8 +341,7 @@ func CurrentDirConfigPath() (string, error) {
 	return filepath.Join(currentPath, defaults.DefaultCurrentDirConfig), nil
 }
 
-//LoadConfigFile load config from file with viper
-func LoadConfigFile(config string) (loaded bool, err error) {
+func loadConfigFile(config string, local bool) (loaded bool, err error) {
 	if config == "" {
 		config, err = DefaultConfigPath()
 		if err != nil {
@@ -373,26 +372,38 @@ func LoadConfigFile(config string) (loaded bool, err error) {
 	if err := viper.MergeInConfig(); err != nil {
 		return false, fmt.Errorf("failed to read config file: %s", err.Error())
 	}
-	currentFolderDir, err := CurrentDirConfigPath()
-	if err != nil {
-		log.Errorf("CurrentDirConfigPath: %s", err)
-	} else {
-		log.Debugf("Try to add config from %s", currentFolderDir)
-		if _, err = os.Stat(currentFolderDir); !os.IsNotExist(err) {
-			abs, err = filepath.Abs(currentFolderDir)
-			if err != nil {
-				log.Errorf("CurrentDirConfigPath absolute: %s", err)
-			} else {
-				viper.SetConfigFile(abs)
-				if err := viper.MergeInConfig(); err != nil {
-					log.Errorf("failed in merge config file: %s", err.Error())
+	if local {
+		currentFolderDir, err := CurrentDirConfigPath()
+		if err != nil {
+			log.Errorf("CurrentDirConfigPath: %s", err)
+		} else {
+			log.Debugf("Try to add config from %s", currentFolderDir)
+			if _, err = os.Stat(currentFolderDir); !os.IsNotExist(err) {
+				abs, err = filepath.Abs(currentFolderDir)
+				if err != nil {
+					log.Errorf("CurrentDirConfigPath absolute: %s", err)
 				} else {
-					log.Debugf("Merged config with %s", abs)
+					viper.SetConfigFile(abs)
+					if err := viper.MergeInConfig(); err != nil {
+						log.Errorf("failed in merge config file: %s", err.Error())
+					} else {
+						log.Debugf("Merged config with %s", abs)
+					}
 				}
 			}
 		}
 	}
 	return true, nil
+}
+
+//LoadConfigFile load config from file with viper
+func LoadConfigFile(config string) (loaded bool, err error) {
+	return loadConfigFile(config, true)
+}
+
+//LoadConfigFileContext load config from context file with viper
+func LoadConfigFileContext(config string) (loaded bool, err error) {
+	return loadConfigFile(config, false)
 }
 
 //GenerateConfigFile is a function to generate default yml

@@ -47,14 +47,14 @@ You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 git clone https://github.com/lf-edge/eden.git
 cd eden
 make clean
-make build
-eden config add default
-eden setup
+make build-tests
+./eden config add default
+./eden setup
+source ~/.eden/activate.sh
 eden start
 eden eve onboard
 eden status
-make build-tests
-eden test ./tests/docker
+eden test tests/workflow
 ```
 
 Note: Don't forget to call clean if you want to try the  installation again.
@@ -73,6 +73,23 @@ To find out what is running and where:
 ```console
 eden status
 ```
+
+## Eden's shell settings
+
+For more ease of use of Eden, you can use the automatically generated setup files for your shell:
+
+* for BASH -- `source ~/.eden/activate.sh`
+* for TCSH -- `source ~/.eden/activate.csh`
+
+These settings add the Eden's binaries directory to the PATH environment variable and add the "EDEN\_<current\_config>\_" label to the command prompt.
+
+In setup files defined some functions (BASH) and aliases (TCSH) for work with configs:
+
+* eden+config <config\_name> -- add new config for Eden
+* eden-config <config\_name> -- remove config from Eden and switch to 'default'
+* eden_config <config\_name> -- switch Eden to config and change prompt
+
+To deactivate this settings call `eden_deactivate` function.
 
 ## Eden Config
 
