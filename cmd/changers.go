@@ -7,6 +7,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -23,6 +24,29 @@ type configChanger interface {
 type fileChanger struct {
 	fileConfig string
 	oldHash    [32]byte
+}
+
+func changerByControllerMode(controllerMode string) (configChanger, error) {
+	if controllerMode == "" {
+		return &adamChanger{}, nil
+	}
+	modeType, modeURL, err := projects.GetControllerMode(controllerMode)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Mode type: %s", modeType)
+	log.Debugf("Mode url: %s", modeURL)
+	var changer configChanger
+	switch modeType {
+	case "file":
+		changer = &fileChanger{fileConfig: modeURL}
+	case "adam":
+		changer = &adamChanger{adamURL: modeURL}
+
+	default:
+		return nil, fmt.Errorf("not implemented type: %s", modeType)
+	}
+	return changer, nil
 }
 
 func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {

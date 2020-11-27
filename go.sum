@@ -338,8 +338,8 @@ github.com/lf-edge/edge-containers v0.0.0-20200921124327-cb84b924624b h1:LVkTzSR
 github.com/lf-edge/edge-containers v0.0.0-20200921124327-cb84b924624b/go.mod h1:WH308e8oM3sEithOMtr3KtwHG8Paj4157NxdNPNDPnM=
 github.com/lf-edge/eve/api/go v0.0.0-20200805060635-507771c7f963 h1:CA+l2dG+902gaFsfAKZOXFvydoa3T//q8OgkeT5k1Lg=
 github.com/lf-edge/eve/api/go v0.0.0-20200805060635-507771c7f963/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
-github.com/lf-edge/eve/api/go v0.0.0-20201117082345-d52734474d51 h1:zmP9VjlPXKUb2a2tVSHfIBRCr2H31FMPBCI1HVFeeMg=
-github.com/lf-edge/eve/api/go v0.0.0-20201117082345-d52734474d51/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
+github.com/lf-edge/eve/api/go v0.0.0-20201126051343-2053a0b13135 h1:t3xeIDxbQEbo9eqSlxZRCFiS6tnHxvZXUCJoHLnhRbA=
+github.com/lf-edge/eve/api/go v0.0.0-20201126051343-2053a0b13135/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 h1:EnfXoSqDfSNJv0VBNqY/88RNnhSGYkrHaO0mmFGbVsc=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40/go.mod h1:vy1vK6wD6j7xX6O6hXe621WabdtNkou2h7uRtTfRMyg=
