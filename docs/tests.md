@@ -81,7 +81,7 @@ eden.escript.test -test.run TestEdenScripts/test-2
 eden.escript.test -test.run TestEdenScripts/test-3
 ```
 
-#### testdata directory
+#### Testdata directory
 
 Contains escript tests (consider as individual tests) They can be also called from another scenario. Note that the environment(template) will be used for calling the test.
 
@@ -103,7 +103,8 @@ To run the test use command:
 
 More information on running tests and launch options can be found [here](https://github.com/itmo-eve/eden/blob/master/tests/README.md#test-running).
 
-Useful links:
-[EVE+Integration+Testing](https://wiki.lfedge.org/display/EVE/EVE+Integration+Testing)
-[Eden testing README](https://github.com/itmo-eve/eden/blob/master/tests/README.md)
-[Description of existing tests](https://wiki.lfedge.org/display/EVE/Tests)
+**Useful links:**
+
+* [EVE+Integration+Testing](https://wiki.lfedge.org/display/EVE/EVE+Integration+Testing)
+* [Eden testing README](https://github.com/itmo-eve/eden/blob/master/tests/README.md)
+* [Description of existing tests](https://wiki.lfedge.org/display/EVE/Tests)
