@@ -5,7 +5,7 @@
 Each test suite or individual test must have:
 
 * A makefile that builds the test
-* A template eden-config.tmpl. A template contains the nessesary information about binaries, config of the environment where the test runs, test scenario.
+* A template eden-config.tmpl. A template contains the necessary information about binaries, config of the environment where the test runs, test scenario.
 * A test scenario file named eden. **testname**.tests.txt A scenario can contain one or more tests. A scenario allows to run bash scripts, escripts and go binaries.
 
 The test can also contain:
