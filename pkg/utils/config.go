@@ -564,3 +564,10 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 	}
 	return nil
 }
+
+
+//GenerateConfigFileDiff is a function to generate diff yml for new context
+func GenerateConfigFileDiff(filePath string, context *Context) error {
+	return generateConfigFileFromTemplate(filePath, defaultEnvConfig, context)
+}
+
