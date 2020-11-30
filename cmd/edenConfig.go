@@ -126,7 +126,7 @@ var configAddCmd = &cobra.Command{
 			if ssid != "" {
 				viper.Set("eve.ssid", ssid)
 			}
-			if err = viper.WriteConfig(); err != nil {
+			if err = utils.GenerateConfigFileFromViper(); err != nil {
 				log.Fatalf("error writing config: %s", err)
 			}
 		}
@@ -137,7 +137,7 @@ var configAddCmd = &cobra.Command{
 			viper.Set("eve.serial", "*")
 			viper.Set("eve.remote", eveRemote)
 			viper.Set("eve.remote-addr", "")
-			if err = viper.WriteConfig(); err != nil {
+			if err = utils.GenerateConfigFileFromViper(); err != nil {
 				log.Fatalf("error writing config: %s", err)
 			}
 		}
@@ -249,7 +249,7 @@ var configSetCmd = &cobra.Command{
 						log.Fatalf("error reading config: %s", err.Error())
 					}
 					viper.Set(contextKeySet, contextValueSet)
-					if err = viper.WriteConfig(); err != nil {
+					if err = utils.GenerateConfigFileFromViper(); err != nil {
 						log.Fatalf("error writing config: %s", err)
 					}
 				}

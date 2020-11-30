@@ -182,6 +182,7 @@ var (
 		"eve.config-part":  "config-part",
 		"eve.base-version": "os-version",
 		"eve.devmodel":     "devmodel",
+		"eve.telnet-port":  "eve-telnet-port",
 
 		"eden.images.dist":   "image-dist",
 		"eden.images.docker": "docker-yml",
