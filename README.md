@@ -71,7 +71,7 @@ To run in VM-based environments, see [the cloud document](./docs/cloud.md).
 To find out what is running and where:
 
 ```console
-eden status
+./eden status
 ```
 
 ## Eden's shell settings
