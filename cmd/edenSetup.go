@@ -258,23 +258,24 @@ var setupCmd = &cobra.Command{
 
 			home, err := os.UserHomeDir()
 			if err != nil {
-				log.Fatal(err)
-			}
-			cfgDir := home + "/.eden/"
-			_, err = os.Stat(cfgDir)
-			if err != nil {
-				fmt.Printf("Directory %s access error: %s\n",
-					cfgDir, err)
+				log.Error(err)
 			} else {
-				shPath := viper.GetString("eden.root") + "/scripts/shell/"
-				generateScripts(shPath+"activate.sh.tmpl",
-					cfgDir+"activate.sh")
-				generateScripts(shPath+"activate.csh.tmpl",
-					cfgDir+"activate.csh")
-				fmt.Println("To activate EDEN settings run:")
-				fmt.Println("* for BASH -- `source ~/.eden/activate.sh`")
-				fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
-				fmt.Println("To deactivate them -- eden_deactivate")
+				cfgDir := home + "/.eden/"
+				_, err = os.Stat(cfgDir)
+				if err != nil {
+					fmt.Printf("Directory %s access error: %s\n",
+						cfgDir, err)
+				} else {
+					shPath := viper.GetString("eden.root") + "/scripts/shell/"
+					generateScripts(shPath+"activate.sh.tmpl",
+						cfgDir+"activate.sh")
+					generateScripts(shPath+"activate.csh.tmpl",
+						cfgDir+"activate.csh")
+					fmt.Println("To activate EDEN settings run:")
+					fmt.Println("* for BASH -- `source ~/.eden/activate.sh`")
+					fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
+					fmt.Println("To deactivate them -- eden_deactivate")
+				}
 			}
 		}
 	},

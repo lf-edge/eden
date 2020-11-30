@@ -58,6 +58,7 @@ var startEveCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
+			eveTelnetPort = viper.GetInt("eve.telnet-port")
 		}
 		return nil
 	},
@@ -273,6 +274,7 @@ var consoleEveCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		eveRemote = viper.GetBool("eve.remote")
+		eveTelnetPort = viper.GetInt("eve.telnet-port")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
