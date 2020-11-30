@@ -51,18 +51,18 @@ make build-tests
 ./eden config add default
 ./eden setup
 source ~/.eden/activate.sh
-eden start
-eden eve onboard
-eden status
-eden test tests/workflow
+./eden start
+./eden eve onboard
+./eden status
+./eden test tests/workflow
 ```
 
 Note: Don't forget to call clean if you want to try the  installation again.
 Call either `make clean` or
 
 ```console
-eden stop
-eden clean --current-context=false
+./eden stop
+./eden clean --current-context=false
 ```
 
 Note for cloud and VM users: eden and eve use virtualization.
@@ -103,19 +103,19 @@ The main way to get a shell, especially once the device is fully registered to
 its `adam` controller, is via ssh:
 
 ```console
-eden eve ssh
+./eden eve ssh
 ```
 
 You can run a certain command remotely by passing it as argument:
 
 ```console
-eden eve ssh "ls -la"
+./eden eve ssh "ls -la"
 ```
 
 If you need access to the actual device console, run:
 
 ```console
-eden eve console
+./eden eve console
 ```
 
 ## Run applications on EVE
@@ -150,7 +150,7 @@ Deploy nginx server from dockerhub. Expose port 80 of the container
 to port 8028 of eve.
 
 ```console
-eden pod deploy -p 8028:80 docker://nginx
+./eden pod deploy -p 8028:80 docker://nginx
 ```
 
 #### Docker Image from Local Registry
@@ -164,7 +164,7 @@ But if you pass it the `--registry=local` option,
 it will try to get it from the local, eden-managed registry.
 
 ```console
-eden pod deploy --registry=local docker://nginx
+./eden pod deploy --registry=local docker://nginx
 ```
 
 If the image is not available in the local registry, it will fail.
@@ -175,7 +175,7 @@ You can load it up (see the next section).
 You can load the local registry with images.
 
 ```console
-eden registry load docker://docker.io/library/nginx
+./eden registry load docker://docker.io/library/nginx
 ```
 
 eden will do the following:
@@ -191,7 +191,7 @@ Deploy a VM for Openstack. Initialize `ubuntu` user with password `passw0rd`.
 Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
 
 ```console
-eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-amd64.img -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
+./eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-amd64.img -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
 ```
 
 Deploy a VM from a local file. This will cause the local file
@@ -199,7 +199,7 @@ to be uploaded to the eden-deployed `eserver`, which, in turn,
 will deploy it to eve:
 
 ```console
-eden pod deploy file:///path/to/some.img
+./eden pod deploy file:///path/to/some.img
 ```
 
 #### VM Image from Docker Registry
@@ -209,7 +209,7 @@ or wrapped in a container. All formats from
 [edge-containers](https://github.com/lf-edge/edge-containers) are supported.
 
 ```console
-eden pod deploy docker://some/image:container-tag --format=qcow2
+./eden pod deploy docker://some/image:container-tag --format=qcow2
 ```
 
 ### List Applications
@@ -217,7 +217,7 @@ eden pod deploy docker://some/image:container-tag --format=qcow2
 List running applications, their names, ip/ports
 
 ```console
-eden pod ps
+./eden pod ps
 ```
 
 #### Edit forwarded ports of Applications
@@ -227,7 +227,7 @@ To modify port forward you can run `eden pod modify <app name> -p <new port forw
 For example for `laughing_maxwell` app name and forwarding of 8028<->80 TCP port you can run:
 
 ```console
-eden pod modify laughing_maxwell -p 8028:80
+./eden pod modify laughing_maxwell -p 8028:80
 ```
 
 ### View Logs of Applications
@@ -236,7 +236,7 @@ To see logs of app you should get name (`app_name` in the example bellow)
 of it and run:
 
 ```console
-eden pod logs app_name
+./eden pod logs app_name
 ```
 
 You can choose information to display by providing `--fields` flag
@@ -267,12 +267,12 @@ The easy way to run tests is to call `eden test <test folder>`
 
 For example -- run reboot test:
 
-`eden test tests/reboot/`
+`./eden test tests/reboot/`
 
 Some tests may accept parameters - run Log/Metrics/Info test
 in debug mode with timeout of 600 seconds and requiring 3 messages of each type
 
-`eden test tests/lim/ -v debug -a '-timewait 600 -number 3'`
+`./eden test tests/lim/ -v debug -a '-timewait 600 -number 3'`
 
 You can find more detailed information about `eden test`
 in [tests/README.md](tests/README.md) and [tests/escript/README.md](tests/escript/README.md)
@@ -293,9 +293,9 @@ so put there an IP that is accessible from gcp
 
 ```console
 make build
-eden config add default --devmodel GCP
-eden config set default --key adam.eve-ip --value <IP of Adam/Eden>
-eden setup
+./eden config add default --devmodel GCP
+./eden config set default --key adam.eve-ip --value <IP of Adam/Eden>
+./eden setup
 ```
 
 Step 2 : Upload image to gcp and run it. You will need
@@ -303,8 +303,8 @@ a google service key json.
 [creating-managing-service-account-keys](https://cloud.google.com/iam/docs/creating-managing-service-account-keys)
 
 ```console
-eden utils gcp image -k  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> upload <PATH TO EVE IMAGE>
-eden utils gcp vm  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> --vm-name=<NAME OF VM ON GCP> run
+./eden utils gcp image -k  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> upload <PATH TO EVE IMAGE>
+./eden utils gcp vm  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> --vm-name=<NAME OF VM ON GCP> run
 ```
 
 `eden utils gcp` also supports:
@@ -325,8 +325,8 @@ ADAM should be publicly available from GCP machine.
 Step 4 : Start eden and onboard Eve
 
 ```console
-eden start
-eden eve onboard
+./eden start
+./eden eve onboard
 ```
 
 ## Raspberry Pi 4 support
@@ -344,9 +344,9 @@ Prepare Raspberry image
 git clone https://github.com/lf-edge/eden.git
 cd eden
 make build
-eden config add default --devmodel RPi4
-eden setup
-eden start
+./eden config add default --devmodel RPi4
+./eden setup
+./eden start
 ```
 
 Then you will have an .img that can be transferred to SD card:
@@ -366,8 +366,8 @@ Put in SD card into Raspberry and power it on
 Step 2: Connect to  Raspberry and run some app.
 
 ```console
-eden eve onboard
-eden pod deploy -p 8028:80 docker://nginx
+./eden eve onboard
+./eden pod deploy -p 8028:80 docker://nginx
 ```
 
 After these lines you will have nginx available on public EVE IP at port 8028
@@ -375,8 +375,8 @@ After these lines you will have nginx available on public EVE IP at port 8028
 Use
 
 ```console
-eden status
-eden pod ps
+./eden status
+./eden pod ps
 ```
 
 to get the status of the deployment
@@ -385,7 +385,7 @@ You can try to boot the Windows 10 ARM64 image on RPi
 (you need not less than 32GB SD card):
 
 ```console
-eden pod deploy docker://itmoeve/eci-windows:2004-compressed-arm64 --vnc-display=1 --memory=2GB --cpus=2
+./eden pod deploy docker://itmoeve/eci-windows:2004-compressed-arm64 --vnc-display=1 --memory=2GB --cpus=2
 ```
 
 You also can use RDP by adding the port forwarding (`-p 3389:3389`)
@@ -517,15 +517,15 @@ If you want to clean artifacts of all contexts, you should to run `clean --curre
 
 ## Eden EVE commands
 
-* `eden eve onboard` - onboard EVE that is the current config
-* `eden eve reset` - put EVE to the initial state (reset to config) removing all changes made by commands or tests
+* `./eden eve onboard` - onboard EVE that is the current config
+* `./eden eve reset` - put EVE to the initial state (reset to config) removing all changes made by commands or tests
 
 ## Eden utils commands
 
-* `eden utils certs` - generate certificates for Adam and EVE
-* `eden utils download eve` - download EVE live image from docker hub
-* `eden utils download eve-rootfs` - download EVE rootfs image from docker hub
-* `eden utils sd` - get information about EVE from provided SD card
-* `eden utils gcp` - sub-commands to work with Google Cloud Platform
-* `eden utils export` - sub-command to save certs and configs into tar.gz
-* `eden utils import` - sub-commands to load certs and configs into tar.gz
+* `./eden utils certs` - generate certificates for Adam and EVE
+* `./eden utils download eve` - download EVE live image from docker hub
+* `./eden utils download eve-rootfs` - download EVE rootfs image from docker hub
+* `./eden utils sd` - get information about EVE from provided SD card
+* `./eden utils gcp` - sub-commands to work with Google Cloud Platform
+* `./eden utils export` - sub-command to save certs and configs into tar.gz
+* `./eden utils import` - sub-commands to load certs and configs into tar.gz
