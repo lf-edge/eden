@@ -162,7 +162,7 @@ func TestLog(t *testing.T) {
      strings.Split(*out, ":")).Print()
    }
 
-   cnt := count("Recieved %d logs from %s", name)
+   cnt := count("Received %d logs from %s", name)
    if cnt != "" {
     return fmt.Errorf(cnt)
    }
