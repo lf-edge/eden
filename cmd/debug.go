@@ -13,7 +13,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-var perfOptions string
+var (
+	perfOptions  string
+	perfLocation string
+)
 
 var debugCmd = &cobra.Command{
 	Use: "debug",
@@ -48,7 +51,7 @@ var debugStartEveCmd = &cobra.Command{
 			log.Fatal("Np EVE IP")
 		}
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
-			commandToRun := fmt.Sprintf("perf record %s -o %s", perfOptions, defaults.DefaultPerfEVELocation)
+			commandToRun := fmt.Sprintf("perf record %s -o %s", perfOptions, perfLocation)
 			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveIP, commandToRun)
 			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
 			if _, err := utils.RunCommandBackground("ssh", nil, strings.Fields(arguments)...); err != nil {
@@ -136,7 +139,7 @@ var debugSaveEveCmd = &cobra.Command{
 			log.Fatal("Np EVE IP")
 		}
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
-			commandToRun := fmt.Sprintf("perf script -i %s > %s", defaults.DefaultPerfEVELocation, defaults.DefaultPerfScriptEVELocation)
+			commandToRun := fmt.Sprintf("perf script -i %s > %s", perfLocation, defaults.DefaultPerfScriptEVELocation)
 			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveIP, commandToRun)
 			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
 			if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
@@ -175,10 +178,12 @@ func debugInit() {
 	debugStartEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	debugStartEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 	debugStartEveCmd.Flags().StringVar(&perfOptions, "perf-options", "-F 99 -a -g", "Options for perf record")
+	debugStartEveCmd.Flags().StringVar(&perfLocation, "perf-location", defaults.DefaultPerfEVELocation, "Perf output location on EVE")
 	debugStopEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	debugStopEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	debugStopEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 	debugSaveEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	debugSaveEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	debugSaveEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
+	debugSaveEveCmd.Flags().StringVar(&perfLocation, "perf-location", defaults.DefaultPerfEVELocation, "Perf output location on EVE")
 }
