@@ -10,6 +10,23 @@ type EdgeNodeDescription struct {
 	Model  string
 }
 
+//GetEdgeNode returns EdgeNode for provided EdgeNodeDescription based on onboarding key (if exists) or name
+func (nodeDescription *EdgeNodeDescription) GetEdgeNode(tc *TestContext) *device.Ctx {
+	ctrl := tc.GetController()
+	if nodeDescription.Key != "" {
+		id, err := ctrl.DeviceGetByOnboard(nodeDescription.Key)
+		if err != nil {
+			return nil
+		}
+		dev, err := ctrl.GetDeviceUUID(id)
+		if err != nil {
+			return nil
+		}
+		return dev
+	}
+	return ctrl.GetEdgeNode(nodeDescription.Name)
+}
+
 //EdgeNodeOption is type to use for creation of device.Ctx
 type EdgeNodeOption func(description *device.Ctx)
 
