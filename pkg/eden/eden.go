@@ -100,8 +100,13 @@ func StatusRedis() (status string, err error) {
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
 func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, opts ...string) (err error) {
-	serverCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server.pem")
-	serverKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server-key.pem")
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		return err
+	}
+	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+	serverCertPath := filepath.Join(globalCertsDir, "server.pem")
+	serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
 	cert, err := ioutil.ReadFile(serverCertPath)
 	if err != nil {
 		return fmt.Errorf("cannot load %s: %s", serverCertPath, err)

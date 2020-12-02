@@ -56,14 +56,19 @@ var certsCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
-		if _, err := os.Stat(utils.ResolveAbsPath(defaults.DefaultCertsDist)); os.IsNotExist(err) {
-			if err = os.MkdirAll(utils.ResolveAbsPath(defaults.DefaultCertsDist), 0755); err != nil {
+		edenHome, err := utils.DefaultEdenDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+		if _, err := os.Stat(globalCertsDir); os.IsNotExist(err) {
+			if err = os.MkdirAll(globalCertsDir, 0755); err != nil {
 				log.Fatal(err)
 			}
 		}
 		log.Debug("generating CA")
-		caCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "root-certificate.pem")
-		caKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "root-certificate-key.pem")
+		caCertPath := filepath.Join(globalCertsDir, "root-certificate.pem")
+		caKeyPath := filepath.Join(globalCertsDir, "root-certificate-key.pem")
 		rootCert, rootKey := utils.GenCARoot()
 		if _, err := tls.LoadX509KeyPair(caCertPath, caKeyPath); err == nil { //existing certs looks ok
 			log.Info("Use existing certs")
@@ -79,8 +84,8 @@ var certsCmd = &cobra.Command{
 		if err := utils.WriteToFiles(rootCert, rootKey, caCertPath, caKeyPath); err != nil {
 			log.Fatal(err)
 		}
-		serverCertPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server.pem")
-		serverKeyPath := filepath.Join(utils.ResolveAbsPath(defaults.DefaultCertsDist), "server-key.pem")
+		serverCertPath := filepath.Join(globalCertsDir, "server.pem")
+		serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
 		if _, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
 			log.Debug("generating Adam cert and key")
 			ips := []net.IP{net.ParseIP(certsIP), net.ParseIP(certsEVEIP), net.ParseIP("127.0.0.1")}

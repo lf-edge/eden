@@ -3,9 +3,7 @@ package utils
 import (
 	"archive/tar"
 	"bufio"
-	"crypto/md5"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -54,11 +52,7 @@ func CreateDockerNetwork(name string) error {
 }
 
 func dockerVolumeName(containerName string) string {
-	distPath := ResolveAbsPath(".")
-	hasher := md5.New()
-	_, _ = hasher.Write([]byte(distPath))
-	hashMD5 := hasher.Sum(nil)
-	return fmt.Sprintf("%s_%s", containerName, hex.EncodeToString(hashMD5))
+	return fmt.Sprintf("%s_volume", containerName)
 }
 
 //RemoveGeneratedVolumeOfContainer remove volumes created by eden
