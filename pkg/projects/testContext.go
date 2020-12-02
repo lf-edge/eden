@@ -118,7 +118,7 @@ func (tc *TestContext) InitProject(name string) {
 //AddEdgeNodesFromDescription adds EdgeNodes from description in test.eve param
 func (tc *TestContext) AddEdgeNodesFromDescription() {
 	for _, node := range tc.GetNodeDescriptions() {
-		edgeNode := tc.GetController().GetEdgeNode(node.Name)
+		edgeNode := node.GetEdgeNode(tc)
 		if edgeNode == nil {
 			edgeNode = tc.NewEdgeNode(tc.WithNodeDescription(node), tc.WithCurrentProject())
 		} else {

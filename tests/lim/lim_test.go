@@ -87,7 +87,7 @@ func TestMain(m *testing.M) {
 	// or UUIDs that were passed in) in the context. This is the first place
 	// where we're using zcli-like API:
 	for _, node := range tc.GetNodeDescriptions() {
-		edgeNode := tc.GetController().GetEdgeNode(node.Name)
+		edgeNode := node.GetEdgeNode(tc)
 		if edgeNode == nil {
 			// Couldn't find existing edgeNode record in the controller.
 			// Need to create it from scratch now:
