@@ -20,10 +20,6 @@ var configName string
 var configFile string
 
 var rootCmd = &cobra.Command{Use: "eden", PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-	configNameEnv := os.Getenv(defaults.DefaultConfigEnv)
-	if configNameEnv != "" {
-		configName = configNameEnv
-	}
 	configFile = utils.GetConfig(configName)
 	if verbosity == "debug" {
 		fmt.Println("configName: ", configName)

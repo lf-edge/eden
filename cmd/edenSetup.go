@@ -54,7 +54,12 @@ func generateScripts(in string, out string) {
 }
 
 func configCheck() {
-	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
+	context, err := utils.ContextLoad()
+	if err != nil {
+		log.Fatalf("Load context error: %s", err)
+	}
+
+	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s-%s", configName, context.Current, defaults.DefaultConfigSaved))
 
 	abs, err := filepath.Abs(configSaved)
 	if err != nil {
@@ -151,47 +156,6 @@ var setupCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
-		if devModel == defaults.DefaultQemuModel {
-			if _, err := os.Stat(qemuFileToSave); os.IsNotExist(err) {
-				f, err := os.Create(qemuFileToSave)
-				if err != nil {
-					log.Fatal(err)
-				}
-				qemuDTBPathAbsolute := ""
-				if qemuDTBPath != "" {
-					qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-				var qemuFirmwareParam []string
-				for _, line := range qemuFirmware {
-					for _, el := range strings.Split(line, " ") {
-						qemuFirmwareParam = append(qemuFirmwareParam, utils.ResolveAbsPath(el))
-					}
-				}
-				settings := utils.QemuSettings{
-					DTBDrive: qemuDTBPathAbsolute,
-					Firmware: qemuFirmwareParam,
-					MemoryMB: qemuMemory,
-					CPUs:     qemuCpus,
-				}
-				conf, err := settings.GenerateQemuConfig()
-				if err != nil {
-					log.Fatal(err)
-				}
-				_, err = f.Write(conf)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if err := f.Close(); err != nil {
-					log.Fatal(err)
-				}
-				log.Infof("QEMU config file generated: %s", qemuFileToSave)
-			} else {
-				log.Debugf("QEMU config already exists: %s", qemuFileToSave)
-			}
-		}
 		if _, err := os.Stat(filepath.Join(certsDir, "root-certificate.pem")); os.IsNotExist(err) {
 			wifiPSK := ""
 			if ssid != "" {
@@ -216,11 +180,11 @@ var setupCmd = &cobra.Command{
 		}
 		var imageFormat string
 		switch devModel {
-		case defaults.DefaultRPIModel, defaults.DefaultGeneralModel:
+		case defaults.DefaultRPIModel:
 			imageFormat = "raw"
 		case defaults.DefaultGCPModel:
 			imageFormat = "gcp"
-		case defaults.DefaultQemuModel:
+		case defaults.DefaultEVEModel:
 			imageFormat = "qcow2"
 		default:
 			log.Fatalf("Unsupported dev model %s", devModel)
@@ -256,48 +220,40 @@ var setupCmd = &cobra.Command{
 					log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
 				case defaults.DefaultGCPModel:
 					log.Infof("Upload %s to gcp and run", eveImageFile)
-				default:
-					log.Infof("EVE image ready: %s", eveImageFile)
 				}
 			} else {
 				log.Infof("EVE already exists in dir: %s", eveDist)
 			}
 		} else {
-			eveDesc := utils.EVEDescription{
-				ConfigPath:  certsDir,
-				Arch:        eveArch,
-				HV:          eveHV,
-				Registry:    eveRegistry,
-				Tag:         eveTag,
-				Format:      imageFormat,
-				ImageSizeMB: eveImageSizeMB,
-			}
-			uefiDesc := utils.UEFIDescription{
-				Registry: eveRegistry,
-				Tag:      eveUefiTag,
-				Arch:     eveArch,
-			}
-			imageTag, err := eveDesc.Image()
-			if err != nil {
-				log.Fatal(err)
-			}
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
+				eveDesc := utils.EVEDescription{
+					ConfigPath:  certsDir,
+					Arch:        eveArch,
+					HV:          eveHV,
+					Registry:    eveRegistry,
+					Tag:         eveTag,
+					Format:      imageFormat,
+					ImageSizeMB: eveImageSizeMB,
+				}
+				uefiDesc := utils.UEFIDescription{
+					Registry: eveRegistry,
+					Tag:      eveUefiTag,
+					Arch:     eveArch,
+				}
 				if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
-					log.Infof("download EVE done: %s", imageTag)
+					log.Infof("download EVE done: %s", eveImageFile)
 					switch devModel {
 					case defaults.DefaultRPIModel:
 						log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
 					case defaults.DefaultGCPModel:
 						log.Infof("Upload %s to gcp and run", eveImageFile)
-					default:
-						log.Infof("EVE image ready: %s", eveImageFile)
 					}
 				}
 			} else {
-				log.Infof("download EVE done: %s", imageTag)
-				log.Infof("EVE already exists: %s", eveImageFile)
+				log.Infof("download EVE done: %s", eveImageFile)
+				log.Infof("EVE already exists in dir: %s", filepath.Dir(eveImageFile))
 			}
 
 			home, err := os.UserHomeDir()
