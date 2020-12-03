@@ -59,7 +59,7 @@ func configCheck() {
 		log.Fatalf("Load context error: %s", err)
 	}
 
-	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", context.Current, defaults.DefaultConfigSaved))
+	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s-%s", configName, context.Current, defaults.DefaultConfigSaved))
 
 	abs, err := filepath.Abs(configSaved)
 	if err != nil {
@@ -164,7 +164,7 @@ var setupCmd = &cobra.Command{
 				wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
 				fmt.Println()
 			}
-			if err := eden.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, ssid, wifiPSK); err != nil {
+			if err := eden.GenerateEveCerts(command, configName, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, ssid, wifiPSK); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")

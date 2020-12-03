@@ -56,13 +56,16 @@ type ConfigVars struct {
 
 //InitVars loads vars from viper
 func InitVars() (*ConfigVars, error) {
-	configPath, err := DefaultConfigPath()
-	if err != nil {
-		return nil, err
-	}
-	loaded, err := LoadConfigFile(configPath)
-	if err != nil {
-		return nil, err
+	loaded := true
+	if viper.ConfigFileUsed() == "" {
+		configPath, err := DefaultConfigPath()
+		if err != nil {
+			return nil, err
+		}
+		loaded, err = LoadConfigFile(configPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if loaded {
 		var vars = &ConfigVars{
@@ -319,6 +322,15 @@ func DefaultEdenDir() (string, error) {
 		return "", err
 	}
 	return filepath.Join(usr.HomeDir, defaults.DefaultEdenHomeDir), nil
+}
+
+//GetConfig return path to config file
+func GetConfig(name string) string {
+	edenDir, err := DefaultEdenDir()
+	if err != nil {
+		log.Fatalf("GetCurrentConfig DefaultEdenDir error: %s", err)
+	}
+	return filepath.Join(edenDir, defaults.DefaultContextDirectory, fmt.Sprintf("%s.yml", name))
 }
 
 //DefaultConfigPath returns path to default config

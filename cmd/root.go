@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -15,8 +16,15 @@ import (
 )
 
 var verbosity string
+var configName string
 var configFile string
+
 var rootCmd = &cobra.Command{Use: "eden", PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	configFile = utils.GetConfig(configName)
+	if verbosity == "debug" {
+		fmt.Println("configName: ", configName)
+		fmt.Println("configFile: ", configFile)
+	}
 	return setUpLogs(os.Stdout, verbosity)
 }}
 
@@ -85,11 +93,7 @@ func init() {
 
 // Execute primary function for cobra
 func Execute() {
-	configPath, err := utils.DefaultConfigPath()
-	if err != nil {
-		log.Fatal(err)
-	}
-	rootCmd.PersistentFlags().StringVar(&configFile, "config-file", configPath, "path to config file")
+	rootCmd.PersistentFlags().StringVar(&configName, "config", defaults.DefaultContext, "Name of config")
 	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", log.InfoLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
 	_ = rootCmd.Execute()
 }

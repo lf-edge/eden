@@ -56,8 +56,8 @@ Flags:
   -t, --timeout string         panic if test exceded the timeout
 
 Global Flags:
-      --config-file string   path to config file (default "~/.eden/contexts/default.yml")
-  -v, --verbosity string     Log level (debug, info, warn, error, fatal, panic (default "info")
+      --config string      Name of config (default "default")
+  -v, --verbosity string   Log level (debug, info, warn, error, fatal, panic (default "info")
 ```
 
 If you have the `eden.test-scene` setting in your EDEN configuration,

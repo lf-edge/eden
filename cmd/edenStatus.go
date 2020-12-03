@@ -97,7 +97,7 @@ func eveStatusQEMU() {
 		log.Errorf("%s cannot obtain status of EVE Qemu process: %s", statusWarn(), err)
 	} else {
 		fmt.Printf("%s EVE on Qemu status: %s\n", representProcessStatus(statusEVE), statusEVE)
-		fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath("eve.log"))
+		fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath(configName+"-"+"eve.log"))
 	}
 }
 
@@ -112,7 +112,7 @@ var statusCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			evePidFile = utils.ResolveAbsPath(configName + "-" + viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil

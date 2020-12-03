@@ -144,7 +144,7 @@ var stopEveCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			evePidFile = utils.ResolveAbsPath(configName + "-" + viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
@@ -171,7 +171,7 @@ var versionEveCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			evePidFile = utils.ResolveAbsPath(configName + "-" + viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
@@ -214,7 +214,7 @@ var statusEveCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
-			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			evePidFile = utils.ResolveAbsPath(configName + "-" + viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
@@ -467,5 +467,4 @@ func eveInit() {
 	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 	consoleEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
-	eveCmd.PersistentFlags().StringVar(&configFile, "config", "", "path to config file")
 }
