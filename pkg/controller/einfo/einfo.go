@@ -30,10 +30,10 @@ type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) []*ZInfoMsgIn
 type ZInfoMsgInterface interface{}
 
 //ParseZInfoMsg unmarshal ZInfoMsg
-func ParseZInfoMsg(data []byte) (ZInfoMsg info.ZInfoMsg, err error) {
+func ParseZInfoMsg(data []byte) (ZInfoMsg *info.ZInfoMsg, err error) {
 	var zi info.ZInfoMsg
 	err = protojson.Unmarshal(data, &zi)
-	return zi, err
+	return &zi, err
 }
 
 //InfoPrn print data from ZInfoMsg structure
@@ -176,9 +176,9 @@ func infoProcess(query map[string]string, qhandler QHandlerFunc, handler Handler
 		if err != nil {
 			return true, nil
 		}
-		ds := qhandler(&im, query)
+		ds := qhandler(im, query)
 		if ds != nil {
-			if handler(&im, ds) {
+			if handler(im, ds) {
 				return false, nil
 			}
 		}

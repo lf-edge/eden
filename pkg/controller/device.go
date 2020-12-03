@@ -16,6 +16,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 //StateUpdate refresh state file
@@ -250,7 +251,7 @@ func (cloud *CloudCtx) processDev(id uuid.UUID, state device.EdgeNodeState) {
 		log.Fatalf("ConfigGet error: %s", err)
 	}
 	var deviceConfig config.EdgeDevConfig
-	err = json.Unmarshal([]byte(configString), &deviceConfig)
+	err = protojson.Unmarshal([]byte(configString), &deviceConfig)
 	if err != nil {
 		log.Fatalf("unmarshal error: %s", err)
 	}

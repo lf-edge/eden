@@ -143,12 +143,12 @@ func TestLog(t *testing.T) {
 	t.Logf("Wait for log of %s number=%d timewait=%d\n", edgeNode.GetName(),
 		*number, *timewait)
 
-	tc.AddProcLog(edgeNode, func(log *elog.LogItem) error {
+	tc.AddProcLog(edgeNode, func(log *elog.FullLogEntry) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
-			log *elog.LogItem) error {
+			log *elog.FullLogEntry) error {
 			name := edgeNode.GetName()
 			if query != nil {
-				if elog.LogItemFind(*log, query) {
+				if elog.LogItemFind(log, query) {
 					found = true
 				} else {
 					return nil

@@ -71,6 +71,7 @@ require (
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
+	gotest.tools/gotestsum v0.6.0 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
 

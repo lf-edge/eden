@@ -85,6 +85,7 @@ func (loader *RedisLoader) SetAppUUID(appUUID uuid.UUID) {
 
 func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.LoaderObjectType, stream bool) (processed, found bool, err error) {
 	OrderStream := loader.getStream(typeToProcess)
+	log.Debugf("XRead from %s", OrderStream)
 	if !stream {
 		start := "-"
 		for {
@@ -118,7 +119,6 @@ func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.
 			start = fmt.Sprintf("%s-%v", splitted[0], counter+1)
 		}
 	} else {
-		log.Debugf("XRead from %s", OrderStream)
 		start := "$"
 		rr, err := loader.client.XRead(&redis.XReadArgs{
 			Streams: []string{OrderStream, start},

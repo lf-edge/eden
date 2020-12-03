@@ -3,7 +3,6 @@
 package emetric
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -40,28 +39,6 @@ func ParseMetricsBundle(data []byte) (logBundle *metrics.ZMetricMsg, err error) 
 	var lb metrics.ZMetricMsg
 	err = protojson.Unmarshal(data, &lb)
 	return &lb, err
-}
-
-//ParseMetricItem apply regexp on logItem
-func ParseMetricItem(data string) (logItem *metrics.ZMetricMsg, err error) {
-	pattern := `(?P<time>[^{]*):\s*(?P<json>{.*})`
-	re := regexp.MustCompile(pattern)
-	parts := re.SubexpNames()
-	result := re.FindAllStringSubmatch(data, -1)
-	m := map[string]string{}
-	if len(result) == 0 {
-		log.Debugf("error in FindAllStringSubmatch for %s and string %s. Will use new api", pattern, data)
-		var le *metrics.ZMetricMsg
-		err = json.Unmarshal([]byte(data), &le)
-		return le, err
-	}
-	for i, n := range result[0] {
-		m[parts[i]] = n
-	}
-	var le *metrics.ZMetricMsg
-	err = json.Unmarshal([]byte(m["json"]), &le)
-
-	return le, err
 }
 
 //MetricItemPrint find ZMetricMsg records by path in 'query'
@@ -111,7 +88,7 @@ func MetricItemFind(mm *metrics.ZMetricMsg, query map[string]string) bool {
 			}
 		}
 		matched = false
-		utils.LookupWithCallback(reflect.ValueOf(mm).Interface(), strings.Join(n, "."), clb)
+		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(mm)).Interface(), strings.Join(n, "."), clb)
 		if !matched {
 			return matched
 		}

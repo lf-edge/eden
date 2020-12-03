@@ -432,7 +432,7 @@ var podLogsCmd = &cobra.Command{
 								//filter metrics by application
 								if el.AppID == app.Uuidandversion.Uuid {
 									//we print only AppMetrics from obtained metric
-									emetric.MetricItemPrint(le, []string{fmt.Sprintf("AppMetrics[%d]", i)}).Print()
+									emetric.MetricItemPrint(le, []string{fmt.Sprintf("am[%d]", i)}).Print()
 								}
 							}
 							return false
@@ -440,7 +440,7 @@ var podLogsCmd = &cobra.Command{
 
 						//metricsQ for filtering metrics by app
 						metricsQ := make(map[string]string)
-						metricsQ["AppMetrics[].AppID"] = app.Uuidandversion.Uuid
+						metricsQ["am[].AppID"] = app.Uuidandversion.Uuid
 						if err = ctrl.MetricChecker(dev.GetID(), metricsQ, handleMetric, metricType, 0); err != nil {
 							log.Fatalf("MetricChecker: %s", err)
 						}
