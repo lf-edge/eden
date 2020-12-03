@@ -512,9 +512,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "eve.device-cert":
 			return filepath.Join(certsDist, "device.cert.pem")
 		case "eve.pid":
-			return "eve.pid"
+			return fmt.Sprintf("%s-eve.pid", strings.ToLower(context.Current))
 		case "eve.log":
-			return "eve.log"
+			return fmt.Sprintf("%s-eve.log", strings.ToLower(context.Current))
 		case "eve.firmware":
 			return fmt.Sprintf("[%s,%s]",
 				filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),

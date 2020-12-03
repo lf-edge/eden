@@ -61,8 +61,8 @@ var startCmd = &cobra.Command{
 			qemuAccel = viper.GetBool("eve.accel")
 			qemuSMBIOSSerial = viper.GetString("eve.serial")
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
-			evePidFile = utils.ResolveAbsPath(configName + "-" + viper.GetString("eve.pid"))
-			eveLogFile = utils.ResolveAbsPath(configName + "-" + viper.GetString("eve.log"))
+			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
