@@ -54,12 +54,7 @@ func generateScripts(in string, out string) {
 }
 
 func configCheck() {
-	context, err := utils.ContextLoad()
-	if err != nil {
-		log.Fatalf("Load context error: %s", err)
-	}
-
-	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s-%s", configName, context.Current, defaults.DefaultConfigSaved))
+	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 
 	abs, err := filepath.Abs(configSaved)
 	if err != nil {

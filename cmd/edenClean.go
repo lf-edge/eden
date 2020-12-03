@@ -48,11 +48,7 @@ var cleanCmd = &cobra.Command{
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			registryDist = utils.ResolveAbsPath(viper.GetString("registry.dist"))
-			context, err := utils.ContextLoad()
-			if err != nil {
-				log.Fatalf("Load context error: %s", err)
-			}
-			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", context.Current, defaults.DefaultConfigSaved))
+			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 		}
 		return nil
 	},
