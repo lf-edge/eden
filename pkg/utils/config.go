@@ -516,7 +516,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "eve.log":
 			return fmt.Sprintf("%s-eve.log", strings.ToLower(context.Current))
 		case "eve.firmware":
-			return fmt.Sprintf("[%s,%s]",
+			return fmt.Sprintf("[%s %s]",
 				filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
 				filepath.Join(imageDist, "eve", "OVMF_VARS.fd"))
 		case "eve.repo":
