@@ -71,7 +71,8 @@ var startCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		command, err := os.Executable()
+		//command, err := os.Executable()
+		_, err := os.Executable()
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
@@ -101,11 +102,11 @@ var startCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := eden.StartEVEQemu(command, configName, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
-			log.Errorf("cannot start eve: %s", err)
-		} else {
-			log.Infof("EVE is starting in QEMU")
-		}
+		//if err := eden.StartEVEQemu(command, configName, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
+		//	log.Errorf("cannot start eve: %s", err)
+		//} else {
+		//	log.Infof("EVE is starting in QEMU")
+		//}
 		if err := eden.StartEVEParallels(vmName, parallelsCpus, parallelsMem); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {

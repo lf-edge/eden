@@ -354,7 +354,8 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 }
 
 const (
-	prlctlPath = "prlctl"
+	prlctlPath    = "prlctl"
+	prlsrvctlPath = "prlsrvctl"
 )
 
 //Run parallels cli tool and catch all errors
@@ -368,6 +369,31 @@ func PrlctlOutput(args ...string) (string, error) {
 	cmd := exec.Command(prlctlPath, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	err := cmd.Run()
+	println(stdout.String())
+	println(stderr.String())
+	stderrString := strings.TrimSpace(stderr.String())
+
+	if _, ok := err.(*exec.ExitError); ok {
+		err = fmt.Errorf("calling prlctl: %s", stderrString)
+	}
+
+	return stdout.String(), err
+}
+
+//Run parallels cli tool and catch all errors
+func PrlsrvctlOutput(args ...string) (string, error) {
+	if runtime.GOOS != "darwin" {
+		return "", fmt.Errorf("parallels works only on \"darwin\" platform")
+	}
+
+	var stdout, stderr bytes.Buffer
+
+	cmd := exec.Command(prlsrvctlPath, args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	println(stdout.String())
+	println(stderr.String())
 	err := cmd.Run()
 
 	stderrString := strings.TrimSpace(stderr.String())
@@ -385,14 +411,20 @@ func Prlctl(args ...string) error {
 	return err
 }
 
+//Parallels run with arguments
+func Prlsrvctl(args ...string) error {
+	_, err := PrlsrvctlOutput(args...)
+	return err
+}
+
 //StartEVEParallels function run EVE in parallels
 func StartEVEParallels(vmName string, parallelsCpus int, parallelsMem int) (err error) {
 	Prlctl("create", vmName, "--distribution", "ubuntu", "--no-hdd")
 	Prlctl("set", vmName, "--device-del", "net0")
 	Prlctl("set", vmName, "--device-add", "hdd", "--image", "dist/default-images/eve/live.parallels", "--cpus", fmt.Sprint(parallelsCpus), "--memsize", fmt.Sprint(parallelsMem))
-	Prlctl("set", vmName, "--device-add", "net", "--type", "shared", "--adapter-type", "virtio", "--ipadd", "192.168.1.0/24", "--dhcp yes")
-	Prlctl("set", vmName, "--device-add", "net", "--type", "shared", "--adapter-type", "virtio", "--ipadd", "192.168.2.0/24", "--dhcp yes")
-	Prlctl("list --all")
+	Prlctl("set", vmName, "--device-add", "net", "--type", "shared", "--adapter-type", "virtio", "--ipadd", "192.168.1.0/24")
+	Prlctl("set", vmName, "--device-add", "net", "--type", "shared", "--adapter-type", "virtio", "--ipadd", "192.168.2.0/24")
+	Prlsrvctl("net", "set", "Shared", "--nat-tcp-add", "2222_22,2222,"+vmName+",22")
 	log.Debugf("Paralles VM created")
 	Prlctl("start", vmName)
 	return err
@@ -400,7 +432,8 @@ func StartEVEParallels(vmName string, parallelsCpus int, parallelsMem int) (err 
 
 //StopEVEQemu function stop EVE
 func StopEVEParallels(vmName string) (err error) {
-	return Prlctl("stop", vmName, "--kill")
+	Prlctl("stop", vmName, "--kill")
+	return Prlctl("delete", vmName)
 }
 
 //GenerateEveCerts function generates certs for EVE
