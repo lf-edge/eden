@@ -74,7 +74,7 @@ const (
 	DefaultEVEHV                 = "kvm"
 	DefaultQemuCpus              = 4
 	DefaultQemuMemory            = 4096
-	DefaultEVESerial             = "31415926"
+	DefaultEVESerial             = "*"
 	NetDHCPID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
 	NetNoDHCPID                  = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
 	NetWiFiID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf3"
@@ -138,6 +138,11 @@ const (
 
 	DefaultPerfEVELocation       = "/persist/perf.data"
 	DefaultPerfScriptEVELocation = "/persist/perf.script.out"
+
+	//defaults for parallels
+	DefaultParallelsVmName = "eve_live"
+	DefaultParallelsCpus   = 2
+	DefaultParallelsMemory = 4096
 )
 
 var (

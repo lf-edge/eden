@@ -63,6 +63,11 @@ var stopCmd = &cobra.Command{
 		} else {
 			log.Infof("EVE stopped")
 		}
+		if err := eden.StopEVEParallels(vmName); err != nil {
+			log.Infof("cannot stop EVE: %s", err)
+		} else {
+			log.Infof("EVE in parallels stopped")
+		}
 	},
 }
 
@@ -76,4 +81,5 @@ func stopInit() {
 	stopCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
 	stopCmd.Flags().BoolVarP(&eserverRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
+	stopCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultParallelsVmName, "parallels vmname required to stop vm")
 }
