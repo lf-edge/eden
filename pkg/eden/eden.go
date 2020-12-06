@@ -353,6 +353,56 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 	return utils.StatusCommandWithPid(pidFile)
 }
 
+const (
+	prlctlPath = "prlctl"
+)
+
+//Run parallels cli tool and catch all errors
+func PrlctlOutput(args ...string) (string, error) {
+	if runtime.GOOS != "darwin" {
+		return "", fmt.Errorf("parallels works only on \"darwin\" platform")
+	}
+
+	var stdout, stderr bytes.Buffer
+
+	cmd := exec.Command(prlctlPath, args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+
+	stderrString := strings.TrimSpace(stderr.String())
+
+	if _, ok := err.(*exec.ExitError); ok {
+		err = fmt.Errorf("calling prlctl: %s", stderrString)
+	}
+
+	return stdout.String(), err
+}
+
+//Parallels run with arguments
+func Prlctl(args ...string) error {
+	_, err := PrlctlOutput(args...)
+	return err
+}
+
+//StartEVEParallels function run EVE in parallels
+func StartEVEParallels(vmName string, parallelsCpus int, parallelsMem int) (err error) {
+	Prlctl("create", vmName, "--distribution", "ubuntu", "--no-hdd")
+	Prlctl("set", vmName, "--device-del", "net0")
+	Prlctl("set", vmName, "--device-add", "hdd", "--image", "dist/default-images/eve/live.parallels", "--cpus", fmt.Sprint(parallelsCpus), "--memsize", fmt.Sprint(parallelsMem))
+	Prlctl("set", vmName, "--device-add", "net", "--type", "shared", "--adapter-type", "virtio", "--ipadd", "192.168.1.0/24", "--dhcp yes")
+	Prlctl("set", vmName, "--device-add", "net", "--type", "shared", "--adapter-type", "virtio", "--ipadd", "192.168.2.0/24", "--dhcp yes")
+	Prlctl("list --all")
+	log.Debugf("Paralles VM created")
+	Prlctl("start", vmName)
+	return err
+}
+
+//StopEVEQemu function stop EVE
+func StopEVEParallels(vmName string) (err error) {
+	return Prlctl("stop", vmName, "--kill")
+}
+
 //GenerateEveCerts function generates certs for EVE
 func GenerateEveCerts(commandPath string, configName string, certsDir string, domain string, ip string, eveIP string, uuid string, ssid string, password string) (err error) {
 	if _, err := os.Stat(certsDir); os.IsNotExist(err) {

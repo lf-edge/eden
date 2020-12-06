@@ -25,6 +25,9 @@ var (
 	evePidFile       string
 	eveLogFile       string
 	eveRemote        bool
+	vmName           string
+	parallelsCpus    int
+	parallelsMem     int
 )
 
 var startCmd = &cobra.Command{
@@ -101,7 +104,12 @@ var startCmd = &cobra.Command{
 		if err := eden.StartEVEQemu(command, configName, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
-			log.Infof("EVE is starting")
+			log.Infof("EVE is starting in QEMU")
+		}
+		if err := eden.StartEVEParallels(vmName, parallelsCpus, parallelsMem); err != nil {
+			log.Errorf("cannot start eve: %s", err)
+		} else {
+			log.Infof("EVE is starting in Parallels")
 		}
 	},
 }
@@ -136,4 +144,8 @@ func startInit() {
 	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path to image drive, overrides default setting")
+	startCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultParallelsVmName, "parallels vmname required to create vm")
+	startCmd.Flags().IntVarP(&parallelsCpus, "cpus", "", defaults.DefaultParallelsCpus, "parallels cpus")
+	startCmd.Flags().IntVarP(&parallelsMem, "memory", "", defaults.DefaultParallelsMemory, "parallels memory size (MB)")
+
 }

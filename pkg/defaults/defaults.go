@@ -138,6 +138,11 @@ const (
 
 	DefaultPerfEVELocation       = "/persist/perf.data"
 	DefaultPerfScriptEVELocation = "/persist/perf.script.out"
+
+	//defaults for parallels
+	DefaultParallelsVmName = "eve_live"
+	DefaultParallelsCpus   = 2
+	DefaultParallelsMemory = 4096
 )
 
 var (
