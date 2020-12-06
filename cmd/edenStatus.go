@@ -124,6 +124,17 @@ func eveStatusVBox() {
 	}
 }
 
+func eveStatusParallels() {
+	commandArgsString := fmt.Sprintf("status %s", vmName)
+	statusEVE, _, err := utils.RunCommandAndWait("prlctl", strings.Fields(commandArgsString)...)
+	if err != nil {
+		log.Errorf("prlctl error for command %s %s", commandArgsString, err)
+	} else {
+		println(statusEVE)
+		fmt.Printf("%s EVE on parallels status: %s\n", representProcessStatus(statusEVE), statusEVE)
+	}
+}
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "status of harness",
@@ -214,7 +225,9 @@ var statusCmd = &cobra.Command{
 				if !eveRemote {
 					if devModel == defaults.DefaultVBoxModel {
 						eveStatusVBox()
-					} else {
+					} else if devModel == defaults.DefaultParallelsModel {
+						eveStatusParallels()
+					} else{
 						eveStatusQEMU()
 					}
 				}

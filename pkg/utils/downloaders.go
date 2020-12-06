@@ -100,7 +100,7 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 			return fmt.Errorf("SaveImage: %s", err)
 		}
 	}
-	if eve.Format == "gcp" || eve.Format == "vdi" {
+	if eve.Format == "gcp" || eve.Format == "vdi" || eve.Format == "parallels"{
 		size = eve.ImageSizeMB
 	}
 	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size)
@@ -131,6 +131,9 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 	}
 	if format == "vdi" {
 		fileName = fileName + "." + format
+	}
+	if format == "parallels" {
+		fileName = fileName + ".parallels"
 	}
 	dockerCommand := fmt.Sprintf("-f %s live %d", format, size)
 	if size == 0 {

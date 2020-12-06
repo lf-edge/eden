@@ -114,6 +114,8 @@ const (
 
 	DefaultVBoxModel = "VBox"
 
+	DefaultParallelsModel = "parallels"
+
 	DefaultGeneralModel = "general"
 
 	DefaultEVERemote = false
@@ -146,6 +148,9 @@ const (
 	//default for VBox
 
 	DefaultVBoxVMName = "eve_live"
+
+	//defaults for parallels
+	DefaultParallelsVMName = "eve_live"
 
 	DefaultPerfEVELocation       = "/persist/perf.data"
 	DefaultPerfScriptEVELocation = "/persist/perf.script.out"

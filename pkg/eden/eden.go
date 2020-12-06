@@ -536,6 +536,46 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 	return utils.StatusCommandWithPid(pidFile)
 }
 
+//StartEVEParallels function run EVE in parallels
+func StartEVEParallels(vmName string, parallelsCpus int, parallelsMem int) (err error) {
+	commandArgsString := fmt.Sprintf("create %s --distribution ubuntu --no-hdd", vmName)
+	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("set %s --device-del net0", vmName)
+	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("set %s --device-add hdd --image dist/default-images/eve/live.parallels --cpus %d --memsize %d", vmName, parallelsCpus, parallelsMem)
+	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("set %s --device-add net --type shared --adapter-type virtio --ipadd 192.168.1.0/24", vmName)
+	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("set %s --device-add net --type shared --adapter-type virtio --ipadd 192.168.2.0/24", vmName)
+	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("net set Shared --nat-tcp-add 2222_22,2222,%s,22", vmName)
+	if err = utils.RunCommandWithLogAndWait("prlsrvctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("prlsrvctl error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("start %s", vmName)
+	return utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+}
+
+//StopEVEParallels function stop EVE and delete parallels VM
+func StopEVEParallels(vmName string) (err error) {
+	commandArgsString := fmt.Sprintf("stop %s --kill", vmName)
+	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("delete %s", vmName)
+	return utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+}
+
 //StatusEVEVBox function get status of EVE
 func StatusEVEVBox(vmName string) (status string, err error) {
 	out, _, err := utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("showvminfo %s --machinereadable", vmName))...)

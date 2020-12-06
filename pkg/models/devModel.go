@@ -42,6 +42,9 @@ func GetDevModel(devModelType devModelType) (DevModel, error) {
 		return createRpi()
 	case devModelTypeVBox:
 		return createVBox()
+	case devModelTypeParallels:
+		return createParallels()
+
 	}
 	return nil, fmt.Errorf("not implemented type: %s", devModelType)
 }

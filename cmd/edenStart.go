@@ -100,7 +100,13 @@ var startCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if devModel == "VBox" {
+		if devModel == "parallels" {
+			if err := eden.StartEVEParallels(vmName, cpus, mem); err != nil {
+				log.Errorf("cannot start eve: %s", err)
+			} else {
+				log.Infof("EVE is starting in Parallels")
+			}
+		} else if devModel == "VBox" {
 			if err := eden.StartEVEVBox(vmName, cpus, mem, hostFwd); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
