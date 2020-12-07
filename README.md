@@ -137,7 +137,7 @@ hostfwd:
 You can deploy images from different sources. In addition, eden deploys
 its own http server and docker registry.
 Each source has its default format, but you can override it with
-the `--format` flag. The defaults are:
+the `--format` flag (`container`,`qcow2` or `raw`). The defaults are:
 
 * `docker://` - OCI image
 * `http://` - VM qcow2
@@ -152,6 +152,14 @@ to port 8028 of eve.
 ```console
 eden pod deploy -p 8028:80 docker://nginx
 ```
+
+#### Docker Image with volume
+
+If Docker image contains `Volume` annotation inside, Eden will add volumes for every of it.
+You can modify behavior with `--volume-type` flag:
+
+* choose type of volume (`qcow2`, `raw` or `oci`)
+* skip this action with `none`
 
 #### Docker Image from Local Registry
 

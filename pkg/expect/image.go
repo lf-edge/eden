@@ -56,6 +56,8 @@ func (exp *AppExpectation) imageFormatEnum() config.Format {
 		actual = config.Format_CONTAINER
 	case "qcow2":
 		actual = config.Format_QCOW2
+	case "raw":
+		actual = config.Format_RAW
 	default:
 		actual = defaultFormat
 	}

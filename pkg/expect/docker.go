@@ -153,8 +153,15 @@ func (exp *AppExpectation) obtainVolumeInfo(image *config.Image) ([]string, erro
 //prepareImage generates new image for mountable volume
 func (exp *AppExpectation) prepareImage() *config.Image {
 	appLink := defaults.DefaultEmptyVolumeLinkQcow2
-	if exp.volumesType == VolumeOCI {
+	switch exp.volumesType {
+	case VolumeQcow2:
+		appLink = defaults.DefaultEmptyVolumeLinkQcow2
+	case VolumeOCI:
 		appLink = defaults.DefaultEmptyVolumeLinkDocker
+	case VolumeRaw:
+		appLink = defaults.DefaultEmptyVolumeLinkRaw
+	case VolumeNone:
+		return nil
 	}
 	if !strings.Contains(appLink, "://") {
 		//if we use file, we must resolve absolute path
@@ -210,15 +217,17 @@ func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 	// we need to add volumes for every mount point
 	for ind, el := range mountPointsList {
 		image := exp.prepareImage()
-		drive := &config.Drive{
-			Image:        image,
-			Maxsizebytes: defaults.DefaultVolumeSize,
+		if image != nil {
+			drive := &config.Drive{
+				Image:        image,
+				Maxsizebytes: defaults.DefaultVolumeSize,
+			}
+			contentTree := exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
+			contentTrees = append(contentTrees, contentTree)
+			volume := exp.driveToVolume(drive, ind+1, contentTree)
+			volumes = append(volumes, volume)
+			app.VolumeRefList = append(app.VolumeRefList, &config.VolumeRef{MountDir: el, Uuid: volume.Uuid})
 		}
-		contentTree := exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
-		contentTrees = append(contentTrees, contentTree)
-		volume := exp.driveToVolume(drive, ind+1, contentTree)
-		volumes = append(volumes, volume)
-		app.VolumeRefList = append(app.VolumeRefList, &config.VolumeRef{MountDir: el, Uuid: volume.Uuid})
 	}
 	app.Fixedresources.VirtualizationMode = exp.virtualizationMode
 	return &appBundle{

@@ -39,7 +39,8 @@ WORKDIR=$(CURDIR)/dist
 BINDIR := dist/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
-EMPTY_DRIVE := $(WORKDIR)/empty.qcow2
+EMPTY_DRIVE_QCOW2 := $(WORKDIR)/empty.qcow2
+EMPTY_DRIVE_RAW := $(WORKDIR)/empty.raw
 
 ZARCH ?= $(HOSTARCH)
 export ZARCH
@@ -61,16 +62,20 @@ test: build
 	make -C tests TESTS="$(TESTS)" DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
 # create empty drive in qcow2 format to use as additional volumes
-$(EMPTY_DRIVE):
-	qemu-img create -f qcow2 $(EMPTY_DRIVE) 1G
+$(EMPTY_DRIVE_QCOW2):
+	qemu-img create -f qcow2 $(EMPTY_DRIVE_QCOW2) 100M
+
+# create empty drive in raw format to use as additional volumes
+$(EMPTY_DRIVE_RAW):
+	qemu-img create -f raw $(EMPTY_DRIVE_RAW) 100M
 
 build-tests: build testbin gotestsum
 install: build
 	CGO_ENABLED=0 go install .
 
-build: $(BIN) $(EMPTY_DRIVE)
+build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2)
 ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
-build: $(BIN) $(EMPTY_DRIVE) eserver
+build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2) eserver
 endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
