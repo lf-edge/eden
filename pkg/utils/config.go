@@ -56,13 +56,16 @@ type ConfigVars struct {
 
 //InitVars loads vars from viper
 func InitVars() (*ConfigVars, error) {
-	configPath, err := DefaultConfigPath()
-	if err != nil {
-		return nil, err
-	}
-	loaded, err := LoadConfigFile(configPath)
-	if err != nil {
-		return nil, err
+	loaded := true
+	if viper.ConfigFileUsed() == "" {
+		configPath, err := DefaultConfigPath()
+		if err != nil {
+			return nil, err
+		}
+		loaded, err = LoadConfigFile(configPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if loaded {
 		var vars = &ConfigVars{
@@ -321,6 +324,15 @@ func DefaultEdenDir() (string, error) {
 	return filepath.Join(usr.HomeDir, defaults.DefaultEdenHomeDir), nil
 }
 
+//GetConfig return path to config file
+func GetConfig(name string) string {
+	edenDir, err := DefaultEdenDir()
+	if err != nil {
+		log.Fatalf("GetCurrentConfig DefaultEdenDir error: %s", err)
+	}
+	return filepath.Join(edenDir, defaults.DefaultContextDirectory, fmt.Sprintf("%s.yml", name))
+}
+
 //DefaultConfigPath returns path to default config
 func DefaultConfigPath() (string, error) {
 	context, err := ContextLoad()
@@ -500,11 +512,11 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "eve.device-cert":
 			return filepath.Join(certsDist, "device.cert.pem")
 		case "eve.pid":
-			return "eve.pid"
+			return fmt.Sprintf("%s-eve.pid", strings.ToLower(context.Current))
 		case "eve.log":
-			return "eve.log"
+			return fmt.Sprintf("%s-eve.log", strings.ToLower(context.Current))
 		case "eve.firmware":
-			return fmt.Sprintf("[%s,%s]",
+			return fmt.Sprintf("[%s %s]",
 				filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
 				filepath.Join(imageDist, "eve", "OVMF_VARS.fd"))
 		case "eve.repo":

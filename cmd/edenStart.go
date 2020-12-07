@@ -98,7 +98,7 @@ var startCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := eden.StartEVEQemu(command, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
+		if err := eden.StartEVEQemu(command, configName, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
 			log.Infof("EVE is starting")

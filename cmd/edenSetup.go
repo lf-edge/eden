@@ -54,12 +54,7 @@ func generateScripts(in string, out string) {
 }
 
 func configCheck() {
-	context, err := utils.ContextLoad()
-	if err != nil {
-		log.Fatalf("Load context error: %s", err)
-	}
-
-	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", context.Current, defaults.DefaultConfigSaved))
+	configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 
 	abs, err := filepath.Abs(configSaved)
 	if err != nil {
@@ -156,6 +151,45 @@ var setupCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
 		}
+		if _, err := os.Stat(qemuFileToSave); os.IsNotExist(err) {
+			f, err := os.Create(qemuFileToSave)
+			if err != nil {
+				log.Fatal(err)
+			}
+			qemuDTBPathAbsolute := ""
+			if qemuDTBPath != "" {
+				qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			var qemuFirmwareParam []string
+			for _, line := range qemuFirmware {
+				for _, el := range strings.Split(line, " ") {
+					qemuFirmwareParam = append(qemuFirmwareParam, utils.ResolveAbsPath(el))
+				}
+			}
+			settings := utils.QemuSettings{
+				DTBDrive: qemuDTBPathAbsolute,
+				Firmware: qemuFirmwareParam,
+				MemoryMB: qemuMemory,
+				CPUs:     qemuCpus,
+			}
+			conf, err := settings.GenerateQemuConfig()
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = f.Write(conf)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if err := f.Close(); err != nil {
+				log.Fatal(err)
+			}
+			log.Infof("QEMU config file generated: %s", qemuFileToSave)
+		} else {
+			log.Debugf("QEMU config already exists: %s", qemuFileToSave)
+		}
 		if _, err := os.Stat(filepath.Join(certsDir, "root-certificate.pem")); os.IsNotExist(err) {
 			wifiPSK := ""
 			if ssid != "" {
@@ -164,7 +198,7 @@ var setupCmd = &cobra.Command{
 				wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
 				fmt.Println()
 			}
-			if err := eden.GenerateEveCerts(command, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, ssid, wifiPSK); err != nil {
+			if err := eden.GenerateEveCerts(command, configName, certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, ssid, wifiPSK); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")

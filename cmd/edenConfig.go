@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 )
 
 var (
@@ -142,50 +141,6 @@ var configAddCmd = &cobra.Command{
 			}
 		}
 		context.SetContext(currentContextName)
-		if eveRemote {
-			return
-		}
-		if _, err := os.Stat(qemuFileToSave); os.IsNotExist(err) {
-			f, err := os.Create(qemuFileToSave)
-			if err != nil {
-				log.Fatal(err)
-			}
-			qemuDTBPathAbsolute := ""
-			if qemuDTBPath != "" {
-				qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-			var qemuFirmwareParam []string
-			for _, el := range qemuFirmware {
-				qemuFirmwarePathAbsolute := utils.ResolveAbsPath(el)
-				if err != nil {
-					log.Fatal(err)
-				}
-				qemuFirmwareParam = append(qemuFirmwareParam, qemuFirmwarePathAbsolute)
-			}
-			settings := utils.QemuSettings{
-				DTBDrive: qemuDTBPathAbsolute,
-				Firmware: qemuFirmwareParam,
-				MemoryMB: qemuMemory,
-				CPUs:     qemuCpus,
-			}
-			conf, err := settings.GenerateQemuConfig()
-			if err != nil {
-				log.Fatal(err)
-			}
-			_, err = f.Write(conf)
-			if err != nil {
-				log.Fatal(err)
-			}
-			if err := f.Close(); err != nil {
-				log.Fatal(err)
-			}
-			log.Infof("QEMU config file generated: %s", qemuFileToSave)
-		} else {
-			log.Debugf("QEMU config already exists: %s", qemuFileToSave)
-		}
 	},
 }
 

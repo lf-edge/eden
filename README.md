@@ -97,6 +97,20 @@ Eden's config is controlled via a yaml file, overriddable using command-line opt
 In most cases, the defaults will work just fine for you.
 For more informaton, see [docs/config.md](./docs/config.md).
 
+You can run multiple instances of EVE with different configurations:
+
+```console
+make build-tests
+./eden config add default
+./eden config add t1
+./eden config set t1 --key eve.hostfwd --value '{"2223":"22"}'
+./eden config set t1 --key eve.telnet-port --value 7778
+./eden setup -v debug # default config
+./eden setup --config t1 -v debug
+./eden start -v debug # start all services and EVE with default config
+./eden eve start --config t1 -v debug # start second EVE with t1 config
+```
+
 ## Remote access to eve
 
 The main way to get a shell, especially once the device is fully registered to

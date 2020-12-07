@@ -40,7 +40,7 @@ var cleanCmd = &cobra.Command{
 			redisPort = viper.GetInt("redis.port")
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
-			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
+			evePidFile = utils.ResolveAbsPath(configName + "-" + viper.GetString("eve.pid"))
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
@@ -48,11 +48,7 @@ var cleanCmd = &cobra.Command{
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			registryDist = utils.ResolveAbsPath(viper.GetString("registry.dist"))
-			context, err := utils.ContextLoad()
-			if err != nil {
-				log.Fatalf("Load context error: %s", err)
-			}
-			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", context.Current, defaults.DefaultConfigSaved))
+			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 		}
 		return nil
 	},

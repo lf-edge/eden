@@ -336,9 +336,9 @@ func StatusEServer() (status string, err error) {
 }
 
 //StartEVEQemu function run EVE in qemu
-func StartEVEQemu(commandPath string, qemuARCH string, qemuOS string, eveImageFile string, qemuSMBIOSSerial string, qemuAccel bool, qemuConfigFilestring, logFile string, pidFile string) (err error) {
-	commandArgsString := fmt.Sprintf("eve start --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s -v %s",
-		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile, log.GetLevel())
+func StartEVEQemu(commandPath string, configName string, qemuARCH string, qemuOS string, eveImageFile string, qemuSMBIOSSerial string, qemuAccel bool, qemuConfigFilestring, logFile string, pidFile string) (err error) {
+	commandArgsString := fmt.Sprintf("eve start --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s -v %s --config %s",
+		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile, log.GetLevel(), configName)
 	log.Infof("StartEVEQemu run: %s %s", commandPath, commandArgsString)
 	return utils.RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
@@ -354,15 +354,15 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 }
 
 //GenerateEveCerts function generates certs for EVE
-func GenerateEveCerts(commandPath string, certsDir string, domain string, ip string, eveIP string, uuid string, ssid string, password string) (err error) {
+func GenerateEveCerts(commandPath string, configName string, certsDir string, domain string, ip string, eveIP string, uuid string, ssid string, password string) (err error) {
 	if _, err := os.Stat(certsDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(certsDir, 0755); err != nil {
 			return err
 		}
 	}
 	commandArgsString := fmt.Sprintf(
-		"utils certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s --ssid=%s --password=%s -v %s",
-		certsDir, domain, ip, eveIP, uuid, ssid, password, log.GetLevel())
+		"utils certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s --ssid=%s --password=%s -v %s --config %s",
+		certsDir, domain, ip, eveIP, uuid, ssid, password, log.GetLevel(), configName)
 	log.Infof("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
 	return utils.RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
@@ -431,7 +431,7 @@ func MakeEveInRepo(distEve string, configPath string, arch string, hv string, im
 		commandArgsString := fmt.Sprintf("-C %s ZARCH=%s HV=%s CONF_DIR=%s IMG_FORMAT=%s live",
 			distEve, arch, hv, configPath, imageFormat)
 		log.Infof("MakeEveInRepo run: %s %s", "make", commandArgsString)
-		if err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err!=nil{
+		if err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 			log.Info(err)
 		}
 		switch arch {

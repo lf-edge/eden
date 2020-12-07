@@ -1,4 +1,5 @@
 eden -t 10m setup
+stdout 'QEMU config file generated:'
 stdout 'GenerateEveCerts done'
 stdout 'GenerateEVEConfig done'
 stdout 'download EVE done:'

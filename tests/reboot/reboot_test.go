@@ -44,6 +44,7 @@ func checkReboot(im *info.ZInfoMsg) error {
 	if im.GetZtype() != info.ZInfoTypes_ZiDevice {
 		return nil
 	}
+	fmt.Println(im)
 	currentLastRebootTime := im.GetDinfo().LastRebootTime
 	if !proto.Equal(lastRebootTime, currentLastRebootTime) {
 		lastRebootTime = currentLastRebootTime

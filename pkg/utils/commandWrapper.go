@@ -97,6 +97,11 @@ func RunCommandNohup(name string, logFile string, pidFile string, args ...string
 	waiting := make(chan error)
 	go func() {
 		if err := cmd.Wait(); err != nil {
+			if logFile != "" {
+				if logFileContent, err := ioutil.ReadFile(logFile); err == nil {
+					log.Errorf("log content: %s", strings.TrimSpace(string(logFileContent)))
+				}
+			}
 			waiting <- err
 		}
 	}()
