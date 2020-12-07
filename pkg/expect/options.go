@@ -14,16 +14,26 @@ type VolumeType string
 //VolumeQcow2 use empty qcow2 image for volumes
 var VolumeQcow2 VolumeType = "qcow2"
 
+//VolumeRaw use empty raw image for volumes
+var VolumeRaw VolumeType = "raw"
+
 //VolumeOCI use empty oci image for volumes
 var VolumeOCI VolumeType = "oci"
+
+//VolumeNone use no volumes
+var VolumeNone VolumeType = "none"
 
 //VolumeTypeByName returns VolumeType by name
 func VolumeTypeByName(name string) VolumeType {
 	switch name {
 	case "qcow2":
 		return VolumeQcow2
+	case "raw":
+		return VolumeRaw
 	case "oci":
 		return VolumeOCI
+	case "none":
+		return VolumeNone
 	default:
 		log.Fatalf("Not supported volume type %s", name)
 	}
