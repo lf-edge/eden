@@ -9,8 +9,9 @@ on:
     tags:
       # Push events to matching v*
       - 'v*'
+
+jobs:
   build:
-    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
