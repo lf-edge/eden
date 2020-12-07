@@ -5,15 +5,16 @@ package erequest
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"reflect"
+	"regexp"
+	"strings"
+
 	"github.com/lf-edge/adam/pkg/driver/common"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"reflect"
-	"regexp"
-	"strings"
 )
 
 // RequestFormat the format to print output Requests
@@ -27,14 +28,14 @@ const (
 )
 
 //ParseRequestItem apply regexp on ApiRequest
-func ParseRequestItem(data []byte) (logItem common.ApiRequest, err error) {
+func ParseRequestItem(data []byte) (logItem *common.ApiRequest, err error) {
 	var le common.ApiRequest
 	err = json.Unmarshal(data, &le)
-	return le, err
+	return &le, err
 }
 
 //RequestItemFind find ApiRequest records by reqexps in 'query' corresponded to ApiRequest structure.
-func RequestItemFind(le common.ApiRequest, query map[string]string) bool {
+func RequestItemFind(le *common.ApiRequest, query map[string]string) bool {
 	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
@@ -53,7 +54,7 @@ func RequestItemFind(le common.ApiRequest, query map[string]string) bool {
 			}
 		}
 		matched = false
-		utils.LookupWithCallback(reflect.ValueOf(le).Interface(), strings.Join(n, "."), clb)
+		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(le)).Interface(), strings.Join(n, "."), clb)
 		if !matched {
 			return matched
 		}
@@ -91,7 +92,7 @@ func requestProcess(query map[string]string, handler HandlerFunc) loaders.Proces
 			log.Debugf("logProcess: %s", err)
 		}
 		if RequestItemFind(le, query) {
-			if handler(&le) {
+			if handler(le) {
 				return false, nil
 			}
 		}

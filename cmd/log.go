@@ -5,12 +5,11 @@ import (
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-
-	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -66,7 +65,7 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 			q[s[0]] = s[1]
 		}
 
-		handleFunc := func(le *elog.LogItem) bool {
+		handleFunc := func(le *elog.FullLogEntry) bool {
 			if printFields == nil {
 				elog.LogPrn(le, logFormat)
 			} else {

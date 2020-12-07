@@ -20,18 +20,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-//LogItem is the structure for saving log fields
-type LogItem struct {
-	Source    string      `json:"source"`
-	Level     string      `json:"level"`
-	Msg       string      `json:"msg"`
-	File      string      `json:"file"`
-	Func      string      `json:"func"`
-	Time      string      `json:"time"`
-	Pid       interface{} `json:"pid"`
-	Partition string      `json:"partition"`
-}
-
 //LogCheckerMode is InfoExist, InfoNew and InfoAny
 type LogCheckerMode int
 
@@ -57,22 +45,15 @@ const (
 	LogAny   LogCheckerMode = -1 // use both mechanisms
 )
 
-//ParseLogBundle unmarshal LogBundle
-func ParseLogBundle(data []byte) (logBundle logs.AppInstanceLogBundle, err error) {
-	var lb logs.AppInstanceLogBundle
-	err = protojson.Unmarshal(data, &lb)
-	return lb, err
-}
-
-//ParseLogItem apply regexp on logItem
-func ParseLogItem(data string) (logItem LogItem, err error) {
-	var le LogItem
-	err = json.Unmarshal([]byte(data), &le)
-	return le, err
+//ParseLogEntry unmarshal LogEntry
+func ParseLogEntry(data []byte) (logEntry *logs.LogEntry, err error) {
+	var le logs.LogEntry
+	err = protojson.Unmarshal(data, &le)
+	return &le, err
 }
 
 //LogItemFind find LogItem records by reqexps in 'query' corresponded to LogItem structure.
-func LogItemFind(le LogItem, query map[string]string) bool {
+func LogItemFind(le *logs.LogEntry, query map[string]string) bool {
 	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
@@ -91,7 +72,7 @@ func LogItemFind(le LogItem, query map[string]string) bool {
 			}
 		}
 		matched = false
-		utils.LookupWithCallback(reflect.ValueOf(le).Interface(), strings.Join(n, "."), clb)
+		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(le)).Interface(), strings.Join(n, "."), clb)
 		if !matched {
 			return matched
 		}
@@ -101,27 +82,26 @@ func LogItemFind(le LogItem, query map[string]string) bool {
 
 //HandleFactory implements HandlerFunc which prints log in the provided format
 func HandleFactory(format LogFormat, once bool) HandlerFunc {
-	return func(le *LogItem) bool {
+	return func(le *logs.LogEntry) bool {
 		LogPrn(le, format)
 		return once
 	}
 }
 
 //LogPrn print Log data
-func LogPrn(le *LogItem, format LogFormat) {
+func LogPrn(le *logs.LogEntry, format LogFormat) {
 	switch format {
 	case LogJSON:
 		enc := json.NewEncoder(os.Stdout)
 		_ = enc.Encode(le)
 	case LogLines:
 		fmt.Println("source:", le.Source)
-		fmt.Println("level:", le.Level)
-		fmt.Println("msg:", le.Msg)
-		fmt.Println("file:", le.File)
-		fmt.Println("func:", le.Func)
-		fmt.Println("time:", le.Time)
-		fmt.Println("pid:", le.Pid)
-		fmt.Println("partition:", le.Partition)
+		fmt.Println("severity:", le.Severity)
+		fmt.Println("content:", strings.TrimSpace(le.Content))
+		fmt.Println("filename:", le.Filename)
+		fmt.Println("function:", le.Function)
+		fmt.Println("timestamp:", le.Timestamp)
+		fmt.Println("iid:", le.Iid)
 		fmt.Println()
 	default:
 		_, _ = fmt.Fprintf(os.Stderr, "unknown log format requested")
@@ -130,25 +110,17 @@ func LogPrn(le *LogItem, format LogFormat) {
 
 //HandlerFunc must process LogItem and return true to exit
 //or false to continue
-type HandlerFunc func(*LogItem) bool
+type HandlerFunc func(*logs.LogEntry) bool
 
 func logProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFunction {
 	return func(bytes []byte) (bool, error) {
-		lb, err := ParseLogBundle(bytes)
+		le, err := ParseLogEntry(bytes)
 		if err != nil {
 			return true, nil
 		}
-		for _, n := range lb.Log {
-			s := n.Content
-			le, err := ParseLogItem(s)
-			if err != nil {
-				log.Debugf("logProcess: %s", err)
-				continue
-			}
-			if LogItemFind(le, query) {
-				if handler(&le) {
-					return false, nil
-				}
+		if LogItemFind(le, query) {
+			if handler(le) {
+				return false, nil
 			}
 		}
 		return true, nil
@@ -182,7 +154,7 @@ func LogChecker(loader loaders.Loader, devUUID uuid.UUID, appUUID uuid.UUID, q m
 	// check info by pattern in existing files
 	if mode == LogExist || mode == LogAny {
 		go func() {
-			handler := func(item *LogItem) (result bool) {
+			handler := func(item *logs.LogEntry) (result bool) {
 				if result = handler(item); result {
 					done <- nil
 				}
@@ -194,7 +166,7 @@ func LogChecker(loader loaders.Loader, devUUID uuid.UUID, appUUID uuid.UUID, q m
 	// use for process only defined count of last messages
 	if mode > 0 {
 		logQueue := utils.InitQueueWithCapacity(int(mode))
-		handlerLocal := func(item *LogItem) (result bool) {
+		handlerLocal := func(item *logs.LogEntry) (result bool) {
 			if err = logQueue.Enqueue(item); err != nil {
 				done <- err
 			}
@@ -205,7 +177,7 @@ func LogChecker(loader loaders.Loader, devUUID uuid.UUID, appUUID uuid.UUID, q m
 		}
 		el, err := logQueue.Dequeue()
 		for err == nil {
-			if result := handler(el.(*LogItem)); result {
+			if result := handler(el.(*logs.LogEntry)); result {
 				return nil
 			}
 			el, err = logQueue.Dequeue()

@@ -2,6 +2,9 @@ package projects
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
@@ -10,15 +13,13 @@ import (
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
-	"sync"
-	"time"
 )
 
 //ProcInfoFunc provides callback to process info
 type ProcInfoFunc func(info *info.ZInfoMsg) error
 
 //ProcLogFunc provides callback to process log
-type ProcLogFunc func(log *elog.LogItem) error
+type ProcLogFunc func(log *elog.FullLogEntry) error
 
 //ProcMetricFunc provides callback to process metric
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
@@ -86,7 +87,7 @@ func (lb *processingBus) process(edgeNode *device.Ctx, inp interface{}) bool {
 							lb.processReturn(edgeNode, procFunc, pf(el))
 						}
 					case ProcLogFunc:
-						el, match := inp.(*elog.LogItem)
+						el, match := inp.(*elog.FullLogEntry)
 						if match {
 							lb.processReturn(edgeNode, procFunc, pf(el))
 						}
@@ -120,7 +121,7 @@ func (lb *processingBus) processTimers(edgeNode *device.Ctx) bool {
 }
 
 func (lb *processingBus) getMainProcessorLog(dev *device.Ctx) elog.HandlerFunc {
-	return func(im *elog.LogItem) bool {
+	return func(im *elog.FullLogEntry) bool {
 		return lb.process(dev, im)
 	}
 }
