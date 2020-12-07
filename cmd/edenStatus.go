@@ -19,6 +19,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	allConfigs bool
+)
+
 const (
 	warnmark = "?" // because some OSes are missing the code for the warnmark ⚠
 	okmark   = "✔"
@@ -118,23 +122,6 @@ var statusCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		eveUUID := viper.GetString("eve.uuid")
-		edenDir, err := utils.DefaultEdenDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		fi, err := os.Stat(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID)))
-		if err != nil {
-			fmt.Printf("EVE state: not onboarded\n")
-		} else {
-			size := fi.Size()
-			if size > 0 {
-				fmt.Printf("EVE state: registered\n")
-			} else {
-				fmt.Printf("EVE state: onboarding\n")
-			}
-		}
-		fmt.Println()
 		statusAdam, err := eden.StatusAdam()
 		if err != nil {
 			log.Errorf("%s cannot obtain status of adam: %s", statusWarn(), err)
@@ -167,14 +154,50 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", viper.GetString("eden.eserver.ip"), viper.GetInt("eden.eserver.port"))
 			fmt.Printf("\tFor local EServer you can run 'docker logs %s' to see logs\n", defaults.DefaultEServerContainerName)
 		}
-		if statusAdam != "container doesn't exist" {
-			eveStatusRemote()
+		fmt.Println()
+		context, err := utils.ContextLoad()
+		if err != nil {
+			log.Fatalf("Load context error: %s", err)
 		}
-		if !eveRemote {
-			eveStatusQEMU()
-		}
-		if statusAdam != "container doesn't exist" {
-			eveRequestsAdam()
+		currentContext := context.Current
+		contexts := context.ListContexts()
+		for _, el := range contexts {
+			if el == currentContext || allConfigs {
+				fmt.Printf("--- context: %s ---\n", el)
+				context.SetContext(el)
+				_, err := utils.LoadConfigFileContext(context.GetCurrentConfig())
+				if err != nil {
+					log.Fatalf("error reading config: %s", err.Error())
+				}
+				eveUUID := viper.GetString("eve.uuid")
+				edenDir, err := utils.DefaultEdenDir()
+				if err != nil {
+					log.Fatal(err)
+				}
+				fi, err := os.Stat(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID)))
+				if err != nil {
+					fmt.Printf("EVE state: not onboarded\n")
+				} else {
+					size := fi.Size()
+					if size > 0 {
+						fmt.Printf("EVE state: registered\n")
+					} else {
+						fmt.Printf("EVE state: onboarding\n")
+					}
+				}
+				fmt.Println()
+				if statusAdam != "container doesn't exist" {
+					eveStatusRemote()
+				}
+				if !eveRemote {
+					eveStatusQEMU()
+				}
+				if statusAdam != "container doesn't exist" {
+					eveRequestsAdam()
+				}
+				fmt.Println("------")
+				context.SetContext(currentContext)
+			}
 		}
 	},
 }
@@ -185,6 +208,7 @@ func statusInit() {
 		log.Fatal(err)
 	}
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
+	statusCmd.Flags().BoolVar(&allConfigs, "all", true, "show status for all configs")
 }
 
 // lastWord get last work in string
