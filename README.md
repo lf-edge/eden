@@ -338,8 +338,8 @@ Step 3 : Configure the firewall and make sure ADAM is exposed in the network
 Note that the firewall may be active on GCP. Allow connections (create rules)
 
 ```console
-extIP=$(gcloud compute instances describe <GCP VM NAME> --format='get(networkInterfaces[0].accessConfigs[0].natIP)' --zone=us-west1-a)
-gcloud compute firewall-rules create <RULE NAME> --allow all --source-ranges=$extIP
+BWD=$(./eden utils gcp vm get-ip --vm-name eve-eden-one -k <google json key path>)
+./eden utils gcp firewall -k <google json key path>  --source-range $BWD --name <firewall_rule_name>           
 ```
 
 ADAM should be publicly available from GCP machine.
