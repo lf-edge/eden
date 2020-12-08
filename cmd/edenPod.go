@@ -219,6 +219,7 @@ var podPsCmd = &cobra.Command{
 		}
 		devModel = viper.GetString("eve.devmodel")
 		qemuPorts = viper.GetStringMapString("eve.hostfwd")
+		eveRemote = viper.GetBool("eve.remote")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
