@@ -22,8 +22,8 @@ type EVEDescription struct {
 	ImageSizeMB int
 }
 
-// image extracts image tag from EVEDescription
-func (desc EVEDescription) image() (string, error) {
+// Image extracts image tag from EVEDescription
+func (desc EVEDescription) Image() (string, error) {
 	if desc.Registry == "" {
 		desc.Registry = defaults.DefaultEveRegistry
 	}
@@ -69,7 +69,7 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 	if err != nil {
 		return err
 	}
-	image, err := eve.image()
+	image, err := eve.Image()
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 
 //DownloadEveRootFS pulls EVE rootfs image from docker
 func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, err error) {
-	image, err := eve.image()
+	image, err := eve.Image()
 	if err != nil {
 		return "", err
 	}

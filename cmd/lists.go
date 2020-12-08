@@ -8,7 +8,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/lf-edge/eden/pkg/controller/einfo"
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
@@ -129,7 +128,7 @@ func podsList(logLevel log.Level) error {
 				if !seen {
 					appStateObj.eveState = "UNKNOWN" //UNKNOWN if not found in recent AppInstances
 				}
-				if devModel == defaults.DefaultRPIModel || devModel == defaults.DefaultGCPModel {
+				if eveRemote {
 					for _, nw := range im.GetDinfo().Network {
 						for _, addr := range nw.IPAddrs {
 							if addr != "" {

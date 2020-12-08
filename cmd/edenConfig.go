@@ -2,13 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"runtime"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"os"
 )
 
 var (
@@ -61,7 +63,10 @@ var configAddCmd = &cobra.Command{
 	Long:  `Generate config context for eden.`,
 	Args:  cobra.ExactValidArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if devModel != defaults.DefaultRPIModel && devModel != defaults.DefaultEVEModel && devModel != defaults.DefaultGCPModel {
+		if devModel != defaults.DefaultRPIModel &&
+			devModel != defaults.DefaultQemuModel &&
+			devModel != defaults.DefaultGCPModel &&
+			devModel != defaults.DefaultGeneralModel {
 			log.Fatal("unsupported model")
 		}
 		var err error
@@ -114,31 +119,31 @@ var configAddCmd = &cobra.Command{
 			}
 		}
 		reloadConfigDetails()
-		if devModel == defaults.DefaultRPIModel { //modify default settings according to RPI4 params
-			eveRemote = true
+		viper.Set("eve.arch", eveArch)
+		markRemote := func() {
+			viper.Set("eve.serial", "*")
+			viper.Set("eve.remote", true)
+			viper.Set("eve.remote-addr", "")
 			viper.Set("eve.hostfwd", map[string]string{})
+		}
+		if devModel == defaults.DefaultRPIModel { //modify default settings according to RPI4 params
+			markRemote()
 			viper.Set("eve.devmodel", defaults.DefaultRPIModel)
 			viper.Set("eve.arch", "arm64")
-			viper.Set("eve.serial", "*")
-			viper.Set("eve.remote", eveRemote)
-			viper.Set("eve.remote-addr", "")
 			if ssid != "" {
 				viper.Set("eve.ssid", ssid)
 			}
-			if err = utils.GenerateConfigFileFromViper(); err != nil {
-				log.Fatalf("error writing config: %s", err)
-			}
 		}
 		if devModel == defaults.DefaultGCPModel { //modify default settings according to GCP params
-			eveRemote = true
-			viper.Set("eve.hostfwd", map[string]string{})
+			markRemote()
 			viper.Set("eve.devmodel", defaults.DefaultGCPModel)
-			viper.Set("eve.serial", "*")
-			viper.Set("eve.remote", eveRemote)
-			viper.Set("eve.remote-addr", "")
-			if err = utils.GenerateConfigFileFromViper(); err != nil {
-				log.Fatalf("error writing config: %s", err)
-			}
+		}
+		if devModel == defaults.DefaultGeneralModel { //modify default settings according to General params
+			markRemote()
+			viper.Set("eve.devmodel", defaults.DefaultGeneralModel)
+		}
+		if err = utils.GenerateConfigFileFromViper(); err != nil {
+			log.Fatalf("error writing config: %s", err)
 		}
 		context.SetContext(currentContextName)
 	},
@@ -412,7 +417,9 @@ func configInit() {
 	configSetCmd.Flags().StringVar(&contextValueSet, "value", "", "will set value of key from current config context")
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configAddCmd)
-	configAddCmd.Flags().StringVar(&devModel, "devmodel", defaults.DefaultEVEModel, fmt.Sprintf("device model (%s or %s)", defaults.DefaultRPIModel, defaults.DefaultEVEModel))
+	configAddCmd.Flags().StringVar(&devModel, "devmodel", defaults.DefaultQemuModel,
+		fmt.Sprintf("device model (%s/%s/%s/%s)",
+			defaults.DefaultQemuModel, defaults.DefaultRPIModel, defaults.DefaultGCPModel, defaults.DefaultGeneralModel))
 	configAddCmd.Flags().StringVar(&contextFile, "file", "", "file with config to add")
 	configAddCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
 	configAddCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaults.DefaultQemuCpus, "cpus")
@@ -425,6 +432,7 @@ func configInit() {
 	configAddCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
 	configAddCmd.Flags().StringVar(&ssid, "ssid", "", "set ssid of wifi for rpi")
+	configAddCmd.Flags().StringVar(&eveArch, "arch", runtime.GOARCH, "arch of EVE (amd64 or arm64)")
 	configCmd.AddCommand(configResetCmd)
 	configCmd.AddCommand(configEditCmd)
 }
