@@ -4,8 +4,6 @@ name: Release
 on:
   push:
     # Sequence of patterns matched against refs/tags
-    branches:
-      - "master"
     tags:
       # Push events to matching v*
       - 'v*'
@@ -16,6 +14,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: setup
+        run: |
+          sudo apt update
+          sudo apt install -y qemu-utils qemu-system-x86
       - name: Build project
         run: |
           make build
