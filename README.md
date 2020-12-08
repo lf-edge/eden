@@ -197,7 +197,7 @@ You can load it up (see the next section).
 You can load the local registry with images.
 
 ```console
-eden registry load docker://docker.io/library/nginx
+eden registry load library/nginx
 ```
 
 eden will do the following:
