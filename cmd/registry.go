@@ -109,7 +109,7 @@ var loadRegistryCmd = &cobra.Command{
 			log.Errorf("failed to load image %s: %v", ref, err)
 			os.Exit(1)
 		}
-		fmt.Printf("image %s loaded with manifest hash %s", ref, hash)
+		fmt.Printf("image %s loaded with manifest hash %s\n", ref, hash)
 	},
 }
 

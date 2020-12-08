@@ -27,6 +27,8 @@ eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testd
 {{ if eq $workflow "large" }}
 /bin/echo Eden VNC (9.5/{{$tests}})
 eden.vnc.test
+/bin/echo Eden registry (10/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/registry_test -testdata ../eclient/registry/
 /bin/echo Eden Host only ACL (11/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/host-only -testdata ../eclient/testdata/
 /bin/echo Eden Network light (12/{{$tests}})
