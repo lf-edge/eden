@@ -339,7 +339,7 @@ Note that the firewall may be active on GCP. Allow connections (create rules)
 
 ```console
 BWD=$(./eden utils gcp vm get-ip --vm-name eve-eden-one -k <google json key path>)
-./eden utils gcp firewall -k <google json key path>  --source-range $BWD --name <firewall_rule_name>           
+./eden utils gcp firewall -k <google json key path>  --source-range $BWD --name <firewall_rule_name>
 ```
 
 ADAM should be publicly available from GCP machine.
