@@ -5,7 +5,7 @@ exec -t 5m bash ssh.sh &
 
 # Trying to find messages about ssh in log
 {{$test1}} -out content 'content:.*Disconnected.*'
-stdout 'Disconnected from user root'
+stdout 'Disconnected from'
 
 # Test's config. file
 -- eden-config.yml --
