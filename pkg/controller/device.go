@@ -15,7 +15,6 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -29,25 +28,14 @@ func (cloud *CloudCtx) StateUpdate(dev *device.Ctx) (err error) {
 	if err != nil {
 		return err
 	}
-	edenConfig, err := utils.DefaultConfigPath()
-	if err != nil {
-		return err
-	}
-	loaded, err := utils.LoadConfigFile(edenConfig)
-	if err != nil {
-		return err
-	}
-	if loaded {
-		return utils.GenerateStateFile(edenDir, utils.StateObject{
-			EveConfig:  string(devConfig),
-			EveDir:     viper.GetString("eve.dist"),
-			AdamDir:    cloud.GetDir(),
-			EveUUID:    viper.GetString("eve.uuid"),
-			DeviceUUID: dev.GetID().String(),
-			QEMUConfig: viper.GetString("eve.qemu-config"),
-		})
-	}
-	return fmt.Errorf("cannot load config %s", edenConfig)
+	return utils.GenerateStateFile(edenDir, utils.StateObject{
+		EveConfig:  string(devConfig),
+		EveDir:     cloud.GetVars().EveDist,
+		AdamDir:    cloud.GetDir(),
+		EveUUID:    cloud.GetVars().EveUUID,
+		DeviceUUID: dev.GetID().String(),
+		QEMUConfig: cloud.GetVars().EveQemuConfig,
+	})
 }
 
 type idCheckable interface {

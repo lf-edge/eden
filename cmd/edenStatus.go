@@ -165,6 +165,8 @@ var statusCmd = &cobra.Command{
 			if el == currentContext || allConfigs {
 				fmt.Printf("--- context: %s ---\n", el)
 				context.SetContext(el)
+				configName = el
+				evePidFile = utils.ResolveAbsPath(fmt.Sprintf("%s-eve.pid", el))
 				_, err := utils.LoadConfigFileContext(context.GetCurrentConfig())
 				if err != nil {
 					log.Fatalf("error reading config: %s", err.Error())
@@ -196,9 +198,9 @@ var statusCmd = &cobra.Command{
 					eveRequestsAdam()
 				}
 				fmt.Println("------")
-				context.SetContext(currentContext)
 			}
 		}
+		context.SetContext(currentContext)
 	},
 }
 

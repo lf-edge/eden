@@ -9,6 +9,7 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -44,7 +45,13 @@ type TestContext struct {
 
 //NewTestContext creates new TestContext
 func NewTestContext() *TestContext {
-	viperLoaded, err := utils.LoadConfigFile("")
+	var err error
+	viperLoaded := false
+	if edenConfigEnv := os.Getenv(defaults.DefaultConfigEnv); edenConfigEnv != "" {
+		viperLoaded, err = utils.LoadConfigFile(utils.GetConfig(edenConfigEnv))
+	} else {
+		viperLoaded, err = utils.LoadConfigFile("")
+	}
 	if err != nil {
 		log.Fatalf("LoadConfigFile %s", err)
 	}

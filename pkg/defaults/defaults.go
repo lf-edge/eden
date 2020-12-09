@@ -28,6 +28,8 @@ const (
 	DefaultConfigSaved      = "config_saved.yml" //file to save config during 'eden setup'
 
 	DefaultContext = "default" //default context name
+
+	DefaultConfigEnv = "EDEN_CONFIG" //default env for set config
 )
 
 //domains, ips, ports
@@ -200,5 +202,7 @@ var (
 		"eden.test-scenario": "scenario",
 
 		"gcp.key": "key",
+
+		"config": "config",
 	}
 )
