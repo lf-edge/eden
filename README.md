@@ -356,7 +356,7 @@ eden eve onboard
 Eden is the only thing you need to work with Raspberry and deploy containers there:
 
 Step 0: If you already have EVE on your SD and want to try the new version, please format SD card
-with zeroes (at least first 700 MB).
+with some zeroes (at least first 700 MB).
 
 Step 1: Install EVE on Raspberry instead of any other OS.
 
