@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -63,6 +64,7 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 		tst := exec.Command(path, resultArgs...)
 		tst.Stdout = os.Stdout
 		tst.Stderr = os.Stderr
+		tst.Env = append(os.Environ(), fmt.Sprintf("%s=%s", defaults.DefaultConfigEnv, viper.Get("eve.name")))
 		err = tst.Run()
 		close(done)
 
