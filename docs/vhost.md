@@ -15,7 +15,7 @@ modprobe vhost_net
 
 ### Create fileIO target
 
-Start FILEIO subsystem plugin objects
+Start FILEIO subsystem plugin objects:
 
 > Here the name for fileio is `fileio`.
 > Each image requires a new directory to be created fileio_0. Example: fileio_0 fileio_1 fileio_2 for 3 image or file.
@@ -43,13 +43,15 @@ Set block_size:
 echo 4096 > /sys/kernel/config/target/core/fileio_0/fileio/attrib/block_size
 ```
 
-Set T10 WWN Unit Serial number. We need to generate this wwn first!
+Set T10 WWN Unit Serial number:
+
+>We need to generate this wwn first
 
 ```console
 echo "<T10 WWN Unit Serial>" > /sys/kernel/config/target/core/fileio_0/fileio/wwn/vpd_unit_serial
 ```
 
-Set udev_path
+Set udev_path:
 
 ```console
 echo -n '<Device>' >/sys/kernel/config/target/core/fileio_0/fileio/udev_path
@@ -108,7 +110,7 @@ ln -s ../../../../../core/fileio_0/fileio/ .
 
 In the next step, we need to adjust the configuration in QEMU for the virtual machine image to fit vHost.
 
-Add parametr for QEMU:
+Add parameter for QEMU:
 
 ```console
 -device vhost-scsi-pci,wwpn=<nna.1111111111111111>,bus=pci.0,addr=0x5
