@@ -81,6 +81,15 @@ func ContextLoad() (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("context Load DefaultEdenDir error: %s", err)
 	}
+	edenConfigEnv := os.Getenv(defaults.DefaultConfigEnv)
+	if edenConfigEnv != "" {
+		ctx, err := ContextInit()
+		if err != nil {
+			return nil, fmt.Errorf("ContextInit error: %s", err)
+		}
+		ctx.Current = edenConfigEnv
+		return ctx, nil
+	}
 	contextFile := filepath.Join(edenDir, defaults.DefaultContextFile)
 	if _, err := os.Stat(contextFile); os.IsNotExist(err) {
 		return ContextInit()

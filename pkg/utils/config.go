@@ -37,6 +37,8 @@ type ConfigVars struct {
 	EveRemote         bool
 	EveRemoteAddr     string
 	EveQemuPorts      map[string]string
+	EveQemuConfig     string
+	EveDist           string
 	SSHKey            string
 	EveCert           string
 	EveDeviceCert     string
@@ -68,18 +70,31 @@ func InitVars() (*ConfigVars, error) {
 		}
 	}
 	if loaded {
+		edenHome, err := DefaultEdenDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+		if _, err := os.Stat(globalCertsDir); os.IsNotExist(err) {
+			if err = os.MkdirAll(globalCertsDir, 0755); err != nil {
+				log.Fatal(err)
+			}
+		}
+		caCertPath := filepath.Join(globalCertsDir, "root-certificate.pem")
 		var vars = &ConfigVars{
 			AdamIP:            viper.GetString("adam.ip"),
 			AdamPort:          viper.GetString("adam.port"),
 			AdamDomain:        viper.GetString("adam.domain"),
 			AdamDir:           ResolveAbsPath(viper.GetString("adam.dist")),
-			AdamCA:            ResolveAbsPath(viper.GetString("adam.ca")),
+			AdamCA:            caCertPath,
 			AdamRedisURLEden:  viper.GetString("adam.redis.eden"),
 			AdamRedisURLAdam:  viper.GetString("adam.redis.adam"),
 			SSHKey:            ResolveAbsPath(viper.GetString("eden.ssh-key")),
 			EveCert:           ResolveAbsPath(viper.GetString("eve.cert")),
 			EveDeviceCert:     ResolveAbsPath(viper.GetString("eve.device-cert")),
 			EveSerial:         viper.GetString("eve.serial"),
+			EveDist:           viper.GetString("eve.dist"),
+			EveQemuConfig:     viper.GetString("eve.qemu-config"),
 			ZArch:             viper.GetString("eve.arch"),
 			EveSSID:           viper.GetString("eve.ssid"),
 			EveHV:             viper.GetString("eve.hv"),

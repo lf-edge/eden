@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/tests/escript/go-internal/imports"
 	"github.com/lf-edge/eden/tests/escript/go-internal/internal/os/execpath"
 	"github.com/lf-edge/eden/tests/escript/go-internal/par"
@@ -305,6 +306,9 @@ func (ts *TestScript) setup() string {
 		Values:  make(map[interface{}]interface{}),
 		Cd:      ts.workdir,
 		ts:      ts,
+	}
+	if configEnv := os.Getenv(defaults.DefaultConfigEnv); configEnv != "" {
+		env.Vars = append(env.Vars, fmt.Sprintf("%s=%s", defaults.DefaultConfigEnv, configEnv))
 	}
 	// MacOS envs set
 	if runtime.GOOS == "darwin" {
