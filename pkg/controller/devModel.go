@@ -123,13 +123,16 @@ func GetPortConfig(devModel string, ssid string, psk string) string {
 const DevModelTypeEmpty DevModelType = "Empty"
 
 //DevModelTypeQemu is model type for qemu
-const DevModelTypeQemu DevModelType = defaults.DefaultEVEModel
+const DevModelTypeQemu DevModelType = defaults.DefaultQemuModel
 
 //DevModelTypeRaspberry is model type for Raspberry
 const DevModelTypeRaspberry DevModelType = defaults.DefaultRPIModel
 
 //DevModelTypeGCP is model type for GCP
 const DevModelTypeGCP DevModelType = defaults.DefaultGCPModel
+
+//DevModelTypeGeneral is model type for general EVE device
+const DevModelTypeGeneral DevModelType = defaults.DefaultGeneralModel
 
 //CreateDevModel create manual DevModel with provided params
 func (cloud *CloudCtx) CreateDevModel(PhysicalIOs []*config.PhysicalIO, Networks []*config.NetworkConfig, Adapters []*config.SystemAdapter, AdapterForSwitches []string, modelType DevModelType) *DevModel {
@@ -151,7 +154,7 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 	switch devModelType {
 	case DevModelTypeEmpty:
 		return cloud.CreateDevModel(nil, nil, nil, nil, DevModelTypeEmpty), nil
-	case DevModelTypeQemu, DevModelTypeGCP:
+	case DevModelTypeQemu, DevModelTypeGCP, DevModelTypeGeneral:
 		return cloud.CreateDevModel(
 				[]*config.PhysicalIO{{
 					Ptype:        evecommon.PhyIoType_PhyIoNetEth,
@@ -181,70 +184,70 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 					Phyaddrs:     map[string]string{"UsbAddr": "1:1"},
 					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
 				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB2:1",
-					Logicallabel: "USB2:1",
-					Assigngrp:    "USB1",
-					Phyaddrs:     map[string]string{"UsbAddr": "2:1"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB3:1",
-					Logicallabel: "USB3:1",
-					Assigngrp:    "USB2",
-					Phyaddrs:     map[string]string{"UsbAddr": "3:1"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB3:2",
-					Logicallabel: "USB3:2",
-					Assigngrp:    "USB3",
-					Phyaddrs:     map[string]string{"UsbAddr": "3:2"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB3:3",
-					Logicallabel: "USB3:3",
-					Assigngrp:    "USB4",
-					Phyaddrs:     map[string]string{"UsbAddr": "3:3"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB3:4",
-					Logicallabel: "USB3:4",
-					Assigngrp:    "USB5",
-					Phyaddrs:     map[string]string{"UsbAddr": "3:4"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB3:5",
-					Logicallabel: "USB3:5",
-					Assigngrp:    "USB6",
-					Phyaddrs:     map[string]string{"UsbAddr": "3:5"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB3:6",
-					Logicallabel: "USB3:6",
-					Assigngrp:    "USB7",
-					Phyaddrs:     map[string]string{"UsbAddr": "3:6"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
-				{
-					Ptype:        evecommon.PhyIoType_PhyIoUSB,
-					Phylabel:     "USB4:1",
-					Logicallabel: "USB4:1",
-					Assigngrp:    "USB8",
-					Phyaddrs:     map[string]string{"UsbAddr": "4:1"},
-					Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-				},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB2:1",
+						Logicallabel: "USB2:1",
+						Assigngrp:    "USB1",
+						Phyaddrs:     map[string]string{"UsbAddr": "2:1"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB3:1",
+						Logicallabel: "USB3:1",
+						Assigngrp:    "USB2",
+						Phyaddrs:     map[string]string{"UsbAddr": "3:1"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB3:2",
+						Logicallabel: "USB3:2",
+						Assigngrp:    "USB3",
+						Phyaddrs:     map[string]string{"UsbAddr": "3:2"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB3:3",
+						Logicallabel: "USB3:3",
+						Assigngrp:    "USB4",
+						Phyaddrs:     map[string]string{"UsbAddr": "3:3"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB3:4",
+						Logicallabel: "USB3:4",
+						Assigngrp:    "USB5",
+						Phyaddrs:     map[string]string{"UsbAddr": "3:4"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB3:5",
+						Logicallabel: "USB3:5",
+						Assigngrp:    "USB6",
+						Phyaddrs:     map[string]string{"UsbAddr": "3:5"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB3:6",
+						Logicallabel: "USB3:6",
+						Assigngrp:    "USB7",
+						Phyaddrs:     map[string]string{"UsbAddr": "3:6"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
+					{
+						Ptype:        evecommon.PhyIoType_PhyIoUSB,
+						Phylabel:     "USB4:1",
+						Logicallabel: "USB4:1",
+						Assigngrp:    "USB8",
+						Phyaddrs:     map[string]string{"UsbAddr": "4:1"},
+						Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+					},
 				},
 				[]*config.NetworkConfig{
 					{
@@ -278,7 +281,7 @@ func (cloud *CloudCtx) GetDevModel(devModelType DevModelType) (*DevModel, error)
 					},
 				},
 				[]string{"eth1"},
-				DevModelTypeQemu),
+				devModelType),
 			nil
 	case DevModelTypeRaspberry:
 		return cloud.CreateDevModel(

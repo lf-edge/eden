@@ -475,6 +475,34 @@ sudo umount /dev/sdN*
 sudo eject /dev/sdN
 ```
 
+## General image
+
+You can use Eden to run EVE on your device. Note, that you must be in the same network.
+
+### Step 1: Make an image
+
+```console
+make build
+eden config add default --devmodel general
+eden setup
+```
+
+You can set the architecture of EVE image with `--arch` flag (amd64 or arm64).
+You will see `EVE image ready` and full path to the image.
+
+### Step 2: deploy the image to your device
+
+You should copy the image to you device. For example, you can use `dd` command from any of bootable USB live image.
+
+### Step 3: onboard
+
+```console
+eden start
+eden eve onboard
+```
+
+You will see log of onboarding the EVE into Adam controller. When this is done, you can launch applications.
+
 ## Help
 
 You can get more information about `make` actions by running `make help`.

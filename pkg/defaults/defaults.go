@@ -105,11 +105,13 @@ const (
 
 	DefaultAppSubnet = "10.1.0.0/24"
 
-	DefaultEVEModel = "ZedVirtual-4G"
+	DefaultQemuModel = "ZedVirtual-4G"
 
 	DefaultRPIModel = "RPi4"
 
 	DefaultGCPModel = "GCP"
+
+	DefaultGeneralModel = "general"
 
 	DefaultEVERemote = false
 

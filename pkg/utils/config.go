@@ -511,7 +511,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "eve.name":
 			return strings.ToLower(context.Current)
 		case "eve.devmodel":
-			return defaults.DefaultEVEModel
+			return defaults.DefaultQemuModel
 		case "eve.arch":
 			return runtime.GOARCH
 		case "eve.os":
