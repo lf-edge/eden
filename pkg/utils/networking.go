@@ -86,7 +86,7 @@ func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
 func GetIPForDockerAccess() (ip string, err error) {
 	networks, err := GetDockerNetworks()
 	if err != nil {
-		return "", fmt.Errorf("GetDockerNetworks: %s", err)
+		log.Errorf("GetDockerNetworks: %s", err)
 	}
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

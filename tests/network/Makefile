@@ -50,7 +50,6 @@ build: setup
 
 setup:
 	cp $(TESTSCN) $(WORKDIR)
-	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 
 .PHONY: test build setup clean all image
 

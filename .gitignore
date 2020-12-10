@@ -16,9 +16,6 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-#rendered eden-config.yml in tests
-tests/*/eden-config.yml
-
 dist
 Config.in
 ./eden

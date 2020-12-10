@@ -52,7 +52,6 @@ build: setup
 setup:
 	cp eden+ports.sh eden-ports.sh $(BINDIR)/
 	cp $(TESTSCN) $(WORKDIR)
-	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
 	chmod 700 image/cert/
 	chmod 600 image/cert/id_rsa*
 
