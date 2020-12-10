@@ -51,10 +51,10 @@ make build-tests
 ./eden config add default
 ./eden setup
 source ~/.eden/activate.sh
-eden start
-eden eve onboard
-eden status
-eden test tests/workflow
+./eden start
+./eden eve onboard
+./eden status
+EDEN_TEST=small ./eden test tests/workflow -v debug
 ```
 
 Note: Don't forget to call clean if you want to try the  installation again.
