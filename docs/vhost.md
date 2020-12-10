@@ -1,6 +1,6 @@
 # LIO in eve
 
-Инструкция по ручной натсройке vHost в EVE на примере target fileio
+Instruction for manually configuring vHost in EVE using target fileio as an example
 
 ## Example
 
