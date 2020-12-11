@@ -86,17 +86,19 @@ $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	cp shell-scripts/* dist/scripts/shell/
 
 $(BIN): $(LOCALBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@; fi
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $@; fi
+	ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@
+	ln -sf $(LOCALBIN) $@
 
 testbin: config
-	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) DO_TEMPLATE=$(DO_TEMPLATE) build
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
 gotestsum:
 	go get gotest.tools/gotestsum
 
 config: build
+ifeq ($(OS), $(HOSTOS))
 	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
+endif
 
 setup: config build-tests
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
