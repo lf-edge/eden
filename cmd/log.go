@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	logTail       uint
 	logFormatName string
 	logFormat     elog.LogFormat
 )
@@ -74,20 +75,27 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 			return false
 		}
 
-		if follow {
-			// Monitoring of new files
-			if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogNew, 0); err != nil {
+		if logTail > 0 {
+			if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogTail(logTail), 0); err != nil {
 				log.Fatalf("LogChecker: %s", err)
 			}
 		} else {
-			if err = ctrl.LogLastCallback(devUUID, q, handleFunc); err != nil {
-				log.Fatalf("LogChecker: %s", err)
+			if follow {
+				// Monitoring of new files
+				if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogNew, 0); err != nil {
+					log.Fatalf("LogChecker: %s", err)
+				}
+			} else {
+				if err = ctrl.LogLastCallback(devUUID, q, handleFunc); err != nil {
+					log.Fatalf("LogChecker: %s", err)
+				}
 			}
 		}
 	},
 }
 
 func logInit() {
+	logCmd.Flags().UintVar(&logTail, "tail", 0, "Show only last N lines")
 	logCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	logCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
 	logCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
