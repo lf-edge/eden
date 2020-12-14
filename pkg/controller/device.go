@@ -402,11 +402,46 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		if err != nil {
 			return nil, err
 		}
+
+	volumeLoopHack:
 		//check drives from baseOSConfigs
 		for _, drive := range baseOSConfig.Drives {
 			dataStores, err = cloud.checkDriveDs(drive, dataStores)
 			if err != nil {
 				return nil, err
+			}
+
+			// FIXME: this is a total hack, we need to pull Volumes and contentTrees
+			// from the only breadcrumb that is left in the drive.Image -- name
+			if drive.Image.Iformat == config.Format_CONTAINER {
+				for _, ctID := range dev.GetContentTrees() {
+					ct, _ := cloud.GetContentTree(ctID)
+					if ct.DisplayName == drive.Image.Name {
+						for _, v := range cloud.volumes {
+							if v.Origin.DownloadContentTreeID == ct.Uuid {
+								volumeConfig, err := cloud.GetVolume(v.Uuid)
+								if err != nil {
+									return nil, err
+								}
+								volumes = append(volumes, volumeConfig)
+								if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
+									for _, contentTree := range contentTrees {
+										if contentTree.Uuid == contentTreeConfig.Uuid {
+											//we already define this contentTree in EdgeDevConfig
+											continue volumeLoopHack
+										}
+									}
+									//add required datastores
+									dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
+									if err != nil {
+										return nil, err
+									}
+									contentTrees = append(contentTrees, contentTreeConfig)
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 		baseOS = append(baseOS, baseOSConfig)

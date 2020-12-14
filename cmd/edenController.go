@@ -87,7 +87,7 @@ func checkIsFileOrURL(pathToCheck string) (isFile bool, pathToRet string, err er
 }
 
 var edgeNodeEVEImageUpdate = &cobra.Command{
-	Use:   "eveimage-update <image file or url (file:// or http(s)://)>",
+	Use:   "eveimage-update <image file or url (oci:// or file:// or http(s)://)>",
 	Short: "update EVE image",
 	Long:  `Update EVE image.`,
 	Args:  cobra.ExactArgs(1),
@@ -131,7 +131,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 }
 
 var edgeNodeEVEImageRemove = &cobra.Command{
-	Use:   "eveimage-remove <image file or url (file:// or http(s)://)>",
+	Use:   "eveimage-remove <image file or url (oci:// or file:// or http(s)://)>",
 	Short: "remove EVE image",
 	Long:  `Remove EVE image.`,
 	Args:  cobra.ExactArgs(1),

@@ -1,7 +1,6 @@
 package expect
 
 import (
-	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
@@ -14,6 +13,9 @@ import (
 
 //parse file or url name and returns Base OS Version
 func (exp *AppExpectation) getBaseOSVersion() string {
+	if exp.appType == dockerApp {
+		return exp.appVersion
+	}
 	rootFSName := path.Base(exp.appURL)
 	rootFSName = strings.TrimSuffix(rootFSName, filepath.Ext(rootFSName))
 	rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
@@ -51,14 +53,7 @@ func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 		Activate:      true,
 		BaseOSVersion: exp.getBaseOSVersion(),
 	}
-	switch exp.appType {
-	case dockerApp:
-		return nil, fmt.Errorf("cannot create base os image from docker")
-	case httpApp, httpsApp, fileApp:
-		return baseOSConfig, nil
-	default:
-		return nil, fmt.Errorf("not supported appType")
-	}
+	return baseOSConfig, nil
 }
 
 //BaseOSImage expectation gets or creates Image definition,
@@ -89,5 +84,17 @@ func (exp *AppExpectation) BaseOSImage() (baseOSConfig *config.BaseOSConfig) {
 		}
 		log.Infof("new base os created %s", baseOSConfig.Uuidandversion.Uuid)
 	}
+
+	// provision content tree and volume in addition to Drive record in config
+	if len(baseOSConfig.Drives) == 1 {
+		contentTree := exp.imageToContentTree(image, image.Name)
+		_ = exp.ctrl.AddContentTree(contentTree)
+		exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), contentTree.Uuid))
+
+		volume := exp.driveToVolume(baseOSConfig.Drives[0], 0, contentTree)
+		_ = exp.ctrl.AddVolume(volume)
+		exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), volume.Uuid))
+	}
+
 	return
 }
