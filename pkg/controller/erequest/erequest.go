@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/lf-edge/adam/pkg/driver/common"
+	"github.com/lf-edge/adam/pkg/server"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -28,14 +28,14 @@ const (
 )
 
 //ParseRequestItem apply regexp on ApiRequest
-func ParseRequestItem(data []byte) (logItem *common.ApiRequest, err error) {
-	var le common.ApiRequest
+func ParseRequestItem(data []byte) (logItem *server.ApiRequest, err error) {
+	var le server.ApiRequest
 	err = json.Unmarshal(data, &le)
 	return &le, err
 }
 
 //RequestItemFind find ApiRequest records by reqexps in 'query' corresponded to ApiRequest structure.
-func RequestItemFind(le *common.ApiRequest, query map[string]string) bool {
+func RequestItemFind(le *server.ApiRequest, query map[string]string) bool {
 	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
@@ -63,7 +63,7 @@ func RequestItemFind(le *common.ApiRequest, query map[string]string) bool {
 }
 
 //RequestPrn print ApiRequest data
-func RequestPrn(le *common.ApiRequest, format RequestFormat) {
+func RequestPrn(le *server.ApiRequest, format RequestFormat) {
 	switch format {
 	case RequestJSON:
 		enc := json.NewEncoder(os.Stdout)
@@ -83,7 +83,7 @@ func RequestPrn(le *common.ApiRequest, format RequestFormat) {
 
 //HandlerFunc must process ApiRequest and return true to exit
 //or false to continue
-type HandlerFunc func(request *common.ApiRequest) bool
+type HandlerFunc func(request *server.ApiRequest) bool
 
 func requestProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFunction {
 	return func(bytes []byte) (bool, error) {

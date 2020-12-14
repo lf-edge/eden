@@ -2,16 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lf-edge/adam/pkg/driver/common"
-	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/lf-edge/adam/pkg/server"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
@@ -36,8 +36,8 @@ func eveLastRequests() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var lastRequest *common.ApiRequest
-	var handleRequest = func(request *common.ApiRequest) bool {
+	var lastRequest *server.ApiRequest
+	var handleRequest = func(request *server.ApiRequest) bool {
 		if request.ClientIP != "" {
 			lastRequest = request
 		}
