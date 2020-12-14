@@ -94,6 +94,8 @@ func (exp *AppExpectation) BaseOSImage() (baseOSConfig *config.BaseOSConfig) {
 		volume := exp.driveToVolume(baseOSConfig.Drives[0], 0, contentTree)
 		_ = exp.ctrl.AddVolume(volume)
 		exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), volume.Uuid))
+
+		baseOSConfig.VolumeID = volume.Uuid
 	}
 
 	return
