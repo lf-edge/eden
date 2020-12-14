@@ -13,7 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var printFields []string
+var (
+	infoTail    uint
+	printFields []string
+)
 
 var infoCmd = &cobra.Command{
 	Use:   "info [field:regexp ...]",
@@ -62,20 +65,26 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 			}
 			return false
 		}
-
-		if follow {
-			if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoNew, 0); err != nil {
+		if infoTail > 0 {
+			if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoTail(infoTail), 0); err != nil {
 				log.Fatalf("InfoChecker: %s", err)
 			}
 		} else {
-			if err = ctrl.InfoLastCallback(devUUID, q, handleInfo); err != nil {
-				log.Fatalf("InfoChecker: %s", err)
+			if follow {
+				if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoNew, 0); err != nil {
+					log.Fatalf("InfoChecker: %s", err)
+				}
+			} else {
+				if err = ctrl.InfoLastCallback(devUUID, q, handleInfo); err != nil {
+					log.Fatalf("InfoChecker: %s", err)
+				}
 			}
 		}
 	},
 }
 
 func infoInit() {
+	infoCmd.Flags().UintVar(&infoTail, "tail", 0, "Show only last N lines")
 	infoCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
 	infoCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 }

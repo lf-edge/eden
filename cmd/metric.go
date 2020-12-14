@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var metricTail uint
+
 var metricCmd = &cobra.Command{
 	Use:   "metric [field:regexp ...]",
 	Short: "Get metrics from a running EVE device",
@@ -62,20 +64,27 @@ Scans the ADAM metrics for correspondence with regular expressions requests to j
 			return false
 		}
 
-		if follow {
-			// Monitoring of new files
-			if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricNew, 0); err != nil {
+		if metricTail > 0 {
+			if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricTail(metricTail), 0); err != nil {
 				log.Fatalf("MetricChecker: %s", err)
 			}
 		} else {
-			if err = ctrl.MetricLastCallback(devUUID, q, handleFunc); err != nil {
-				log.Fatalf("MetricChecker: %s", err)
+			if follow {
+				// Monitoring of new files
+				if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricNew, 0); err != nil {
+					log.Fatalf("MetricChecker: %s", err)
+				}
+			} else {
+				if err = ctrl.MetricLastCallback(devUUID, q, handleFunc); err != nil {
+					log.Fatalf("MetricChecker: %s", err)
+				}
 			}
 		}
 	},
 }
 
 func metricInit() {
+	metricCmd.Flags().UintVar(&metricTail, "tail", 0, "Show only last N lines")
 	metricCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	metricCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected metrics")
 }
