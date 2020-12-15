@@ -8,6 +8,8 @@ eden status
 eden pod ps
 /bin/echo eden network ls
 eden network ls
+/bin/echo eden volume ls
+eden volume ls
 
 {{ if (ne $reset "") }}
 /bin/echo EDEN's reset

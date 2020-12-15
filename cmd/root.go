@@ -93,6 +93,8 @@ func init() {
 	rootCmd.AddCommand(networkCmd)
 	networkInit()
 	exportImportInit()
+	rootCmd.AddCommand(volumeCmd)
+	volumeInit()
 }
 
 // Execute primary function for cobra

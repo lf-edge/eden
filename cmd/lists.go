@@ -7,9 +7,11 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -274,6 +276,133 @@ func netList(logLevel log.Level) error {
 		return netInstStatesSlice[i].name < netInstStatesSlice[j].name
 	})
 	for _, el := range netInstStatesSlice {
+		if !el.deleted {
+			if _, err = fmt.Fprintln(w, el.toString()); err != nil {
+				return err
+			}
+		}
+	}
+	return w.Flush()
+}
+
+func volumeList(logLevel log.Level) error {
+	currentLogLevel := log.GetLevel()
+	log.SetLevel(logLevel)
+	defer log.SetLevel(currentLogLevel)
+	changer := &adamChanger{}
+	ctrl, dev, err := changer.getControllerAndDev()
+	if err != nil {
+		return fmt.Errorf("getControllerAndDev: %s", err)
+	}
+	volInstStates := make(map[string]*volInstState)
+	for _, el := range dev.GetVolumes() {
+		vi, err := ctrl.GetVolume(el)
+		if err != nil {
+			return fmt.Errorf("no Volume in cloud %s: %s", el, err)
+		}
+		contentTreeID := vi.GetOrigin().GetDownloadContentTreeID()
+		ct, err := ctrl.GetContentTree(contentTreeID)
+		if err != nil {
+			return fmt.Errorf("no ContentTree in cloud %s: %s", contentTreeID, err)
+		}
+		volInstStateObj := &volInstState{
+			name:          vi.GetDisplayName(),
+			uuid:          vi.GetUuid(),
+			image:         ct.GetURL(),
+			volType:       ct.Iformat,
+			adamState:     "IN_CONFIG",
+			eveState:      "UNKNOWN",
+			size:          "-",
+			maxSize:       "-",
+			contentTreeID: contentTreeID,
+		}
+		volInstStates[volInstStateObj.name] = volInstStateObj
+	}
+	var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+		switch im.GetZtype() {
+		case info.ZInfoTypes_ZiVolume:
+			infoObject := im.GetVinfo()
+			if infoObject.DisplayName == "" {
+				for _, el := range volInstStates {
+					if infoObject.Uuid == el.uuid {
+						el.deleted = true
+						break
+					}
+				}
+				return false
+			}
+			volInstStateObj, ok := volInstStates[infoObject.GetDisplayName()]
+			if !ok {
+				volInstStateObj = &volInstState{
+					name:      infoObject.GetDisplayName(),
+					uuid:      infoObject.GetUuid(),
+					adamState: "NOT_IN_CONFIG",
+					eveState:  infoObject.State.String(),
+					size:      "-",
+					maxSize:   "-",
+				}
+				volInstStates[infoObject.GetDisplayName()] = volInstStateObj
+			}
+			if volInstStateObj.volType != config.Format_FmtUnknown &&
+				volInstStateObj.volType != config.Format_CONTAINER {
+				//we cannot use limits for container or unknown types
+				if infoObject.GetResources() != nil {
+					//MaxSizeBytes to show in MAX_SIZE column
+					if maxSize := infoObject.GetResources().GetMaxSizeBytes(); maxSize > 0 {
+						volInstStateObj.maxSize = humanize.Bytes(maxSize)
+					}
+				}
+			}
+			if infoObject.GetVolumeErr() != nil {
+				volInstStateObj.eveState = fmt.Sprintf("ERRORS: %s", infoObject.GetVolumeErr().String())
+			}
+		case info.ZInfoTypes_ZiContentTree:
+			infoObject := im.GetCinfo()
+			for _, el := range volInstStates {
+				if infoObject.Uuid == el.contentTreeID {
+					if infoObject.GetErr() != nil {
+						el.eveState = fmt.Sprintf("ERRORS: %s", infoObject.GetErr().String())
+					} else {
+						el.eveState = infoObject.State.String()
+					}
+				}
+			}
+		}
+		return false
+	}
+	var handleMetric = func(msg *metrics.ZMetricMsg) bool {
+		if volumeMetrics := msg.GetVm(); volumeMetrics != nil {
+			for _, volumeMetric := range volumeMetrics {
+				for _, el := range volInstStates {
+					if volumeMetric.Uuid == el.uuid {
+						//UsedBytes to show in SIZE column
+						el.size = humanize.Bytes(volumeMetric.GetUsedBytes())
+						break
+					}
+				}
+			}
+		}
+		return false
+	}
+	if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
+		return fmt.Errorf("fail in get InfoLastCallback: %s", err)
+	}
+	if err = ctrl.MetricLastCallback(dev.GetID(), nil, handleMetric); err != nil {
+		return fmt.Errorf("fail in get MetricLastCallback: %s", err)
+	}
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 1, '\t', 0)
+	if _, err = fmt.Fprintln(w, volInstStateHeader()); err != nil {
+		return err
+	}
+	volInstStatesSlice := make([]*volInstState, 0, len(volInstStates))
+	for _, k := range volInstStates {
+		volInstStatesSlice = append(volInstStatesSlice, k)
+	}
+	sort.SliceStable(volInstStatesSlice, func(i, j int) bool {
+		return volInstStatesSlice[i].name < volInstStatesSlice[j].name
+	})
+	for _, el := range volInstStatesSlice {
 		if !el.deleted {
 			if _, err = fmt.Fprintln(w, el.toString()); err != nil {
 				return err
