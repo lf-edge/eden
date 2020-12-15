@@ -257,6 +257,9 @@ eve:
     #port for telnet (console access)
     telnet-port: {{parse "eve.telnet-port"}}
 
+    #ssid for wifi
+    ssid: '{{parse "eve.ssid"}}'
+
 eden:
     #root directory of eden
     root: '{{parse "eden.root"}}'
@@ -564,6 +567,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultAdamLogLevel
 		case "eve.telnet-port":
 			return defaults.DefaultTelnetPort
+		case "eve.ssid":
+			return ""
 
 		case "eden.root":
 			return filepath.Join(currentPath, defaults.DefaultDist)
