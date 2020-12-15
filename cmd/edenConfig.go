@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -63,12 +64,6 @@ var configAddCmd = &cobra.Command{
 	Long:  `Generate config context for eden.`,
 	Args:  cobra.ExactValidArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if devModel != defaults.DefaultRPIModel &&
-			devModel != defaults.DefaultQemuModel &&
-			devModel != defaults.DefaultGCPModel &&
-			devModel != defaults.DefaultGeneralModel {
-			log.Fatal("unsupported model")
-		}
 		var err error
 		if configFile == "" {
 			configFile, err = utils.DefaultConfigPath()
@@ -96,6 +91,10 @@ var configAddCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		model, err := models.GetDevModelByName(devModel)
+		if err != nil {
+			log.Fatalf("GetDevModelByName: %s", err)
+		}
 		context, err := utils.ContextLoad()
 		if err != nil {
 			log.Fatalf("Load context error: %s", err)
@@ -120,27 +119,11 @@ var configAddCmd = &cobra.Command{
 		}
 		reloadConfigDetails()
 		viper.Set("eve.arch", eveArch)
-		markRemote := func() {
-			viper.Set("eve.serial", "*")
-			viper.Set("eve.remote", true)
-			viper.Set("eve.remote-addr", "")
-			viper.Set("eve.hostfwd", map[string]string{})
+		if ssid != "" {
+			viper.Set("eve.ssid", ssid)
 		}
-		if devModel == defaults.DefaultRPIModel { //modify default settings according to RPI4 params
-			markRemote()
-			viper.Set("eve.devmodel", defaults.DefaultRPIModel)
-			viper.Set("eve.arch", "arm64")
-			if ssid != "" {
-				viper.Set("eve.ssid", ssid)
-			}
-		}
-		if devModel == defaults.DefaultGCPModel { //modify default settings according to GCP params
-			markRemote()
-			viper.Set("eve.devmodel", defaults.DefaultGCPModel)
-		}
-		if devModel == defaults.DefaultGeneralModel { //modify default settings according to General params
-			markRemote()
-			viper.Set("eve.devmodel", defaults.DefaultGeneralModel)
+		for k, v := range model.Config() {
+			viper.Set(k, v)
 		}
 		if err = utils.GenerateConfigFileFromViper(); err != nil {
 			log.Fatalf("error writing config: %s", err)

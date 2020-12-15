@@ -11,6 +11,7 @@ import (
 
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -312,11 +313,11 @@ func (cloud *CloudCtx) AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error)
 }
 
 //ApplyDevModel apply networks, adapters and physicalIOs from DevModel to device
-func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel *DevModel) error {
+func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel models.DevModel) error {
 	var err error
-	dev.SetAdaptersForSwitch(devModel.adapterForSwitches)
+	dev.SetAdaptersForSwitch(devModel.AdapterForSwitches())
 	var adapters []string
-	for _, el := range devModel.adapters {
+	for _, el := range devModel.Adapters() {
 		id, err := uuid.NewV4()
 		if err != nil {
 			return err
@@ -329,7 +330,7 @@ func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel *DevModel) error 
 	}
 	dev.SetSystemAdaptersConfig(adapters)
 	var networks []string
-	for _, el := range devModel.networks {
+	for _, el := range devModel.Networks() {
 		err = cloud.AddNetworkConfig(el)
 		if err != nil {
 			return err
@@ -338,7 +339,7 @@ func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel *DevModel) error 
 	}
 	dev.SetNetworkConfig(networks)
 	var physicalIOs []string
-	for _, el := range devModel.physicalIOs {
+	for _, el := range devModel.PhysicalIOs() {
 		id, err := uuid.NewV4()
 		if err != nil {
 			return err
@@ -350,7 +351,7 @@ func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel *DevModel) error 
 		physicalIOs = append(physicalIOs, id.String())
 	}
 	dev.SetPhysicalIOConfig(physicalIOs)
-	dev.SetDevModel(string(devModel.devModelType))
+	dev.SetDevModel(string(devModel.DevModelType()))
 	return nil
 }
 

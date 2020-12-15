@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -21,7 +22,6 @@ type CloudCtx struct {
 	physicalIOs          map[string]*config.PhysicalIO
 	systemAdapters       map[string]*config.SystemAdapter
 	applicationInstances []*config.AppInstanceConfig
-	devModels            map[DevModelType]*DevModel
 	vars                 *utils.ConfigVars
 }
 
@@ -68,10 +68,7 @@ type Cloud interface {
 	GetSystemAdapter(id string) (systemAdapter *config.SystemAdapter, err error)
 	AddSystemAdapter(id string, systemAdapter *config.SystemAdapter) error
 	RemoveSystemAdapter(id string) error
-	GetDevModel(devModelType DevModelType) (*DevModel, error)
-	GetDevModelByName(devModelType string) (*DevModel, error)
-	CreateDevModel(PhysicalIOs []*config.PhysicalIO, Networks []*config.NetworkConfig, Adapters []*config.SystemAdapter, AdapterForSwitches []string, modelType DevModelType) *DevModel
-	ApplyDevModel(dev *device.Ctx, devModel *DevModel) error
+	ApplyDevModel(dev *device.Ctx, devModel models.DevModel) error
 	GetApplicationInstanceConfig(id string) (applicationInstanceConfig *config.AppInstanceConfig, err error)
 	AddApplicationInstanceConfig(applicationInstanceConfig *config.AppInstanceConfig) error
 	RemoveApplicationInstanceConfig(id string) error

@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -51,6 +51,10 @@ var certsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		model, err := models.GetDevModelByName(devModel)
+		if err != nil {
+			log.Fatalf("GetDevModelByName: %s", err)
+		}
 		if _, err := os.Stat(certsDir); os.IsNotExist(err) {
 			if err = os.MkdirAll(certsDir, 0755); err != nil {
 				log.Fatal(err)
@@ -109,7 +113,7 @@ var certsCmd = &cobra.Command{
 		}
 		if ssid != "" && password != "" {
 			log.Debug("generating DevicePortConfig")
-			if portConfig := controller.GetPortConfig(devModel, ssid, password); portConfig != "" {
+			if portConfig := model.GetPortConfig(ssid, password); portConfig != "" {
 				if _, err := os.Stat(filepath.Join(certsDir, "DevicePortConfig", "override.json")); os.IsNotExist(err) {
 					if err := os.MkdirAll(filepath.Join(certsDir, "DevicePortConfig"), 0755); err != nil {
 						log.Fatal(err)

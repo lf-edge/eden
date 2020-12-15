@@ -2,6 +2,7 @@ package expect
 
 import (
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
@@ -63,7 +64,7 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 	}
 	if instanceExpect.netInstType == "switch" {
 		netInst.InstType = config.ZNetworkInstType_ZnetInstSwitch
-		devModel, err := exp.ctrl.GetDevModelByName(exp.ctrl.GetVars().DevModel)
+		devModel, err := models.GetDevModelByName(exp.ctrl.GetVars().DevModel)
 		if err != nil {
 			log.Fatal(err)
 		}

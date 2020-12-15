@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/eden"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -147,6 +148,10 @@ var setupCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		model, err := models.GetDevModelByName(devModel)
+		if err != nil {
+			log.Fatalf("GetDevModelByName: %s", err)
+		}
 		command, err := os.Executable()
 		if err != nil {
 			log.Fatalf("cannot obtain executable path: %s", err)
@@ -214,17 +219,7 @@ var setupCmd = &cobra.Command{
 		} else {
 			log.Info("GenerateEVEConfig done")
 		}
-		var imageFormat string
-		switch devModel {
-		case defaults.DefaultRPIModel, defaults.DefaultGeneralModel:
-			imageFormat = "raw"
-		case defaults.DefaultGCPModel:
-			imageFormat = "gcp"
-		case defaults.DefaultQemuModel:
-			imageFormat = "qcow2"
-		default:
-			log.Fatalf("Unsupported dev model %s", devModel)
-		}
+		imageFormat := model.DiskFormat()
 		if !download {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
 				if err := eden.CloneFromGit(eveDist, eveRepo, eveTag); err != nil {
@@ -250,15 +245,7 @@ var setupCmd = &cobra.Command{
 						}
 					}
 				}
-
-				switch devModel {
-				case defaults.DefaultRPIModel:
-					log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
-				case defaults.DefaultGCPModel:
-					log.Infof("Upload %s to gcp and run", eveImageFile)
-				default:
-					log.Infof("EVE image ready: %s", eveImageFile)
-				}
+				log.Infof(model.DiskReadyMessage(), eveImageFile)
 			} else {
 				log.Infof("EVE already exists in dir: %s", eveDist)
 			}
@@ -286,14 +273,7 @@ var setupCmd = &cobra.Command{
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
 					log.Infof("download EVE done: %s", imageTag)
-					switch devModel {
-					case defaults.DefaultRPIModel:
-						log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
-					case defaults.DefaultGCPModel:
-						log.Infof("Upload %s to gcp and run", eveImageFile)
-					default:
-						log.Infof("EVE image ready: %s", eveImageFile)
-					}
+					log.Infof(model.DiskReadyMessage(), eveImageFile)
 				}
 			} else {
 				log.Infof("download EVE done: %s", imageTag)
