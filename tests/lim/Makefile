@@ -49,12 +49,11 @@ testbin: $(TESTBIN)
 $(LOCALTESTBIN): $(BINDIR) *.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ *.go
 $(TESTBIN): $(LOCALTESTBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then cp $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN); fi
+	ln -sf $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN)
 
 setup: testbin
 	cp $(TESTSCN) $(WORKDIR)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then cp $(LINKDIR)/$(TESTBIN) $(BINDIR)/; fi
-	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
+	ln -sf $(LINKDIR)/$(TESTBIN) $(BINDIR)
 
 .PHONY: test build setup clean all testbin
 

@@ -42,10 +42,11 @@ build: setup
 
 setup:
 	cp $(TESTSCN) $(WORKDIR)
-	$(LOCALBIN) utils template eden-config.tmpl>eden-config.yml
+ifeq ($(OS), $(HOSTOS))
 	$(LOCALBIN) utils template eden.workflow.tests.txt > workflow.default.txt
 	EDEN_TEST=small $(LOCALBIN) utils template eden.workflow.tests.txt > workflow.small.txt
 	EDEN_TEST=large $(LOCALBIN) utils template eden.workflow.tests.txt > workflow.large.txt
+endif
 
 .PHONY: test build setup clean all
 

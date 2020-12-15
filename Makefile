@@ -1,6 +1,7 @@
 DEBUG ?= "debug"
 CONFIG ?=
 TESTS ?= $(shell find tests/ -maxdepth 1 -mindepth 1 -type d  -exec basename {} \;)
+DO_DOCKER ?= 1
 
 # ESERVER_TAG is the tag for eserver image to build
 ESERVER_TAG ?= "lfedge/eden-http-server"
@@ -9,7 +10,9 @@ ESERVER_VERSION ?= "1.2"
 # ESERVER_DIR is the directory with eserver Dockerfile to build
 ESERVER_DIR=$(CURDIR)/eserver
 # check if eserver image already exists in local docker and get its IMAGE_ID
+ifeq ($(DO_DOCKER), 1) # if we need to build eserver
 ESERVER_IMAGE_ID ?= $(shell docker images -q $(ESERVER_TAG):$(ESERVER_VERSION))
+endif
 
 # ESERVER_TAG is the tag for processing image to build
 PROCESSING_TAG ?= "itmoeve/eden-processing"
@@ -67,7 +70,7 @@ $(EMPTY_DRIVE_QCOW2):
 
 # create empty drive in raw format to use as additional volumes
 $(EMPTY_DRIVE_RAW):
-	qemu-img create -f raw $(EMPTY_DRIVE_RAW) 100M
+	qemu-img create -f raw $(EMPTY_DRIVE_RAW) 10M
 
 build-tests: build testbin gotestsum
 install: build
@@ -83,8 +86,8 @@ $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	cp shell-scripts/* dist/scripts/shell/
 
 $(BIN): $(LOCALBIN)
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@; fi
-	@if [ "$(OS)" = "$(HOSTOS)" -a "$(ARCH)" = "$(HOSTARCH)" ]; then ln -sf $(LOCALBIN) $@; fi
+	ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@
+	ln -sf $(LOCALBIN) $@
 
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
@@ -93,7 +96,9 @@ gotestsum:
 	go get gotest.tools/gotestsum
 
 config: build
+ifeq ($(OS), $(HOSTOS))
 	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
+endif
 
 setup: config build-tests
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) setup
@@ -109,11 +114,11 @@ stop: build
 
 eserver:
 	@echo "Build eserver image"
-	docker build -t $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR)
+	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR); fi
 
 processing:
 	@echo "Build processing image"
-	docker build -t $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR)
+	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR); fi
 
 yetus:
 	@echo Running yetus
