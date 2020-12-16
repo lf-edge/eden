@@ -118,6 +118,7 @@ var configAddCmd = &cobra.Command{
 				log.Debugf("Config file already exists %s", configFile)
 			}
 		}
+		context.SetContext(context.Current)
 		reloadConfigDetails()
 		viper.Set("eve.arch", eveArch)
 		markRemote := func() {

@@ -390,7 +390,7 @@ func loadConfigFile(config string, local bool) (loaded bool, err error) {
 	}
 	log.Debugf("Will use config from %s", config)
 	if _, err = os.Stat(config); os.IsNotExist(err) {
-		log.Fatal("no config, please run 'eden config add default'")
+		log.Fatal("no config, please run 'eden config add'")
 	}
 	abs, err := filepath.Abs(config)
 	if err != nil {
