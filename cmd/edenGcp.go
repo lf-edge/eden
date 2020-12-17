@@ -29,6 +29,9 @@ var gcpCmd = &cobra.Command{
 	Short: `Manage images and VMs in Google Cloud Platform`,
 	Long:  `Manage images and VMs in Google Cloud Platform (you need to provide a key, set it in config in gcp.key or use a gcloud login)`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := rootCmd.PersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
 		assignCobraToViper(cmd)
 
 		viperLoaded, err := utils.LoadConfigFile(configFile)

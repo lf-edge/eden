@@ -58,7 +58,7 @@ func NewTestContext() *TestContext {
 	if viperLoaded {
 		modeType, modeURL, err := GetControllerMode(viper.GetString("test.controller"))
 		if err != nil {
-			log.Fatal(err)
+			log.Debug(err)
 		}
 		if modeType != "" {
 			if modeType != "adam" {
@@ -99,12 +99,21 @@ func NewTestContext() *TestContext {
 
 //GetNodeDescriptions returns list of nodes from config
 func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
-	eveList := viper.GetStringMap("test.eve")
-	for name := range eveList {
-		eveKey := viper.GetString(fmt.Sprintf("test.eve.%s.onboard-cert", name))
-		eveSerial := viper.GetString(fmt.Sprintf("test.eve.%s.serial", name))
-		eveModel := viper.GetString(fmt.Sprintf("test.eve.%s.model", name))
-		nodes = append(nodes, &EdgeNodeDescription{Name: name, Key: eveKey, Serial: eveSerial, Model: eveModel})
+	if eveList := viper.GetStringMap("test.eve"); len(eveList) > 0 {
+		for name := range eveList {
+			eveKey := viper.GetString(fmt.Sprintf("test.eve.%s.onboard-cert", name))
+			eveSerial := viper.GetString(fmt.Sprintf("test.eve.%s.serial", name))
+			eveModel := viper.GetString(fmt.Sprintf("test.eve.%s.model", name))
+			nodes = append(nodes, &EdgeNodeDescription{Name: name, Key: eveKey, Serial: eveSerial, Model: eveModel})
+		}
+	} else {
+		log.Debug("NodeDescriptions not found. Will use default one.")
+		nodes = append(nodes, &EdgeNodeDescription{
+			Name: viper.GetString("eve.name"),
+			Key: utils.ResolveAbsPath(viper.GetString("eve.cert")),
+			Serial: viper.GetString("eve.serial"),
+			Model: viper.GetString("eve.devModel"),
+		})
 	}
 	return
 }
@@ -129,8 +138,10 @@ func (tc *TestContext) AddEdgeNodesFromDescription() {
 		if edgeNode == nil {
 			edgeNode = tc.NewEdgeNode(tc.WithNodeDescription(node), tc.WithCurrentProject())
 		} else {
-			tc.UpdateEdgeNode(edgeNode, tc.WithCurrentProject(), tc.WithDeviceModel(node.Model))
+			edgeNode.SetProject(tc.project.name)
 		}
+
+		tc.ConfigSync(edgeNode)
 
 		if edgeNode.GetState() == device.NotOnboarded {
 			log.Fatal("Node is not onboarded now")

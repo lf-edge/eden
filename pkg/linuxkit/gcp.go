@@ -527,18 +527,24 @@ func (g *GCPClient) pollZoneOperationStatus(operationName, zone string) error {
 
 // GetInstanceNatIP returns NatIP of an instance
 func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
-	log.Infof("Getting NatIP for instance %s", instance)
+	log.Debugf("Getting NatIP for instance %s", instance)
 	for i := 0; i < timeout; i++ {
 		res, err := g.compute.Instances.Get(g.projectName, zone, instance).Do()
 		if err != nil {
-			if err.(*googleapi.Error).Code == 400 {
-				// Instance may not be ready yet...
+			log.Errorf("GetInstanceNatIP: %s", err)
+			if gcpError, ok := err.(*googleapi.Error); ok {
+				if gcpError.Code == 400 {
+					// Instance may not be ready yet...
+					time.Sleep(pollingInterval)
+					continue
+				}
+				if gcpError.Code == 503 {
+					// Timeout received when the instance has terminated
+					break
+				}
+			}else{
 				time.Sleep(pollingInterval)
 				continue
-			}
-			if err.(*googleapi.Error).Code == 503 {
-				// Timeout received when the instance has terminated
-				break
 			}
 			return "", err
 		}
