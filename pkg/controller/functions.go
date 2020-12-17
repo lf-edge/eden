@@ -5,21 +5,23 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/lf-edge/adam/pkg/x509"
-	"github.com/lf-edge/eden/pkg/controller/adam"
-	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
-	uuid "github.com/satori/go.uuid"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lf-edge/adam/pkg/x509"
+	"github.com/lf-edge/eden/pkg/controller/adam"
+	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/models"
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 //CloudPrepare is for init controller connection and obtain device list
@@ -105,7 +107,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 				node.SetConfigItem("app.allow.vnc", "true")
 				node.SetConfigItem("newlog.allow.fastupload", "true")
 				log.Debugf("will apply devModel %s", node.GetDevModel())
-				deviceModel, err := cloud.GetDevModelByName(node.GetDevModel())
+				deviceModel, err := models.GetDevModelByName(node.GetDevModel())
 				if err != nil {
 					log.Fatalf("fail to get dev model %s: %s", node.GetDevModel(), err)
 				}

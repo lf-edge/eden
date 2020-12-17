@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -45,13 +46,11 @@ var downloadEVECmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		format := "qcow2"
-		if devModel == defaults.DefaultRPIModel {
-			format = "raw"
+		model, err := models.GetDevModelByName(devModel)
+		if err != nil {
+			log.Fatalf("GetDevModelByName: %s", err)
 		}
-		if devModel == defaults.DefaultGCPModel {
-			format = "gcp"
-		}
+		format := model.DiskFormat()
 		eveDesc := utils.EVEDescription{
 			ConfigPath:  adamDist,
 			Arch:        eveArch,
@@ -69,12 +68,7 @@ var downloadEVECmd = &cobra.Command{
 		if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
 			log.Fatal(err)
 		}
-		switch devModel {
-		case defaults.DefaultRPIModel:
-			log.Infof("Write file %s to sd (it is in raw format)", eveImageFile)
-		case defaults.DefaultGCPModel:
-			log.Infof("Upload %s to gcp and run", eveImageFile)
-		}
+		log.Infof(model.DiskReadyMessage(), eveImageFile)
 		fmt.Println(eveImageFile)
 	},
 }
