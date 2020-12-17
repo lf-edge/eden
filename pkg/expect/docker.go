@@ -168,6 +168,7 @@ func (exp *AppExpectation) prepareImage() *config.Image {
 		appLink = fmt.Sprintf("file://%s", utils.ResolveAbsPath(appLink))
 	}
 	tempExp := AppExpectationFromURL(exp.ctrl, exp.device, appLink, "")
+	tempExp.imageFormat = string(exp.volumesType)
 	return tempExp.Image()
 }
 
