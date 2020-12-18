@@ -64,14 +64,12 @@ var startCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
+			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
+			eveTelnetPort = viper.GetInt("eve.telnet-port")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		command, err := os.Executable()
-		if err != nil {
-			log.Fatalf("cannot obtain executable path: %s", err)
-		}
 		if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
 			log.Errorf("cannot start redis: %s", err)
 		} else {
@@ -98,7 +96,7 @@ var startCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := eden.StartEVEQemu(command, configName, qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, qemuAccel, qemuConfigFile, eveLogFile, evePidFile); err != nil {
+		if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuHostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
 			log.Infof("EVE is starting")

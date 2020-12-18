@@ -49,14 +49,11 @@ var cleanCmd = &cobra.Command{
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			registryDist = utils.ResolveAbsPath(viper.GetString("registry.dist"))
 			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
+			eveRemote = viper.GetBool("eve.remote")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		command, err := os.Executable()
-		if err != nil {
-			log.Fatalf("cannot obtain executable path: %s", err)
-		}
 		if currentContext {
 			log.Info("Cleanup current context")
 			// we need to delete information about EVE from adam
@@ -71,13 +68,13 @@ var cleanCmd = &cobra.Command{
 				log.Infof("Adam is running and accessible on port %d", adamPort)
 			}
 			eveUUID := viper.GetString("eve.uuid")
-			if err := eden.CleanContext(command, eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, configSaved); err != nil {
+			if err := eden.CleanContext(eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, configSaved, eveRemote); err != nil {
 				log.Fatalf("cannot CleanContext: %s", err)
 			}
 		} else {
-			if err := eden.CleanEden(command, eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
+			if err := eden.CleanEden(eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
 				eserverImageDist, redisDist, registryDist, configDir, evePidFile,
-				configSaved); err != nil {
+				configSaved, eveRemote); err != nil {
 				log.Fatalf("cannot CleanEden: %s", err)
 			}
 		}

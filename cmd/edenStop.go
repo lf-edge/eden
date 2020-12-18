@@ -35,34 +35,7 @@ var stopCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := eden.StopAdam(adamRm); err != nil {
-			log.Infof("cannot stop adam: %s", err)
-		} else {
-			log.Infof("adam stopped")
-		}
-		if err := eden.StopRedis(redisRm); err != nil {
-			log.Infof("cannot stop redis: %s", err)
-		} else {
-			log.Infof("redis stopped")
-		}
-		if err := eden.StopRegistry(registryRm); err != nil {
-			log.Infof("cannot stop registry: %s", err)
-		} else {
-			log.Infof("registry stopped")
-		}
-		if err := eden.StopEServer(eserverRm); err != nil {
-			log.Infof("cannot stop eserver: %s", err)
-		} else {
-			log.Infof("eserver stopped")
-		}
-		if eveRemote {
-			return
-		}
-		if err := eden.StopEVEQemu(evePidFile); err != nil {
-			log.Infof("cannot stop EVE: %s", err)
-		} else {
-			log.Infof("EVE stopped")
-		}
+		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote, evePidFile)
 	},
 }
 

@@ -66,69 +66,10 @@ var startEveCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		qemuCommand := ""
-		qemuOptions := fmt.Sprintf("-display none -serial telnet:localhost:%d,server,nowait -nodefaults -no-user-config ", eveTelnetPort)
-		if qemuSMBIOSSerial != "" {
-			qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
-		}
-		nets, err := utils.GetSubnetsNotUsed(2)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for ind, net := range nets {
-			qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", ind, net.Subnet, net.FirstAddress)
-			if ind == 0 {
-				for k, v := range qemuHostFwd {
-					qemuOptions += fmt.Sprintf(",hostfwd=tcp::%s-:%s", k, v)
-				}
-			}
-			qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", ind)
-		}
-		if qemuOS == "" {
-			qemuOS = runtime.GOOS
+		if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuHostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, qemuForeground); err != nil {
+			log.Errorf("cannot start eve: %s", err)
 		} else {
-			qemuOS = strings.ToLower(qemuOS)
-		}
-		if qemuOS != "linux" && qemuOS != "darwin" {
-			log.Fatalf("OS not supported: %s", qemuOS)
-		}
-		if qemuARCH == "" {
-			qemuARCH = runtime.GOARCH
-		} else {
-			qemuARCH = strings.ToLower(qemuARCH)
-		}
-		switch qemuARCH {
-		case "amd64":
-			qemuCommand = "qemu-system-x86_64"
-			if qemuAccel {
-				if qemuOS == "darwin" {
-					qemuOptions += defaults.DefaultQemuAccelDarwin
-				} else {
-					qemuOptions += defaults.DefaultQemuAccelLinux
-				}
-			} else {
-				qemuOptions += "--cpu SandyBridge "
-			}
-		case "arm64":
-			qemuCommand = "qemu-system-aarch64"
-			qemuOptions += "-machine virt,gic_version=3 -machine virtualization=true -cpu cortex-a57 -machine type=virt "
-		default:
-			log.Fatalf("Arch not supported: %s", runtime.GOARCH)
-		}
-		qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", eveImageFile)
-		if qemuConfigFile != "" {
-			qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
-		}
-		log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
-		if qemuForeground {
-			if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			log.Infof("With pid: %s ; log: %s", evePidFile, eveLogFile)
-			if err := utils.RunCommandNohup(qemuCommand, eveLogFile, evePidFile, strings.Fields(qemuOptions)...); err != nil {
-				log.Fatal(err)
-			}
+			log.Infof("EVE is starting")
 		}
 	},
 }
