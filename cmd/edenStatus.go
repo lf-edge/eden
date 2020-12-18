@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/lf-edge/adam/pkg/server"
-	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,6 +51,7 @@ func eveLastRequests() (string, error) {
 	}
 	return strings.Split(lastRequest.ClientIP, ":")[0], nil
 }
+
 func eveRequestsAdam() {
 	if ip, err := eveLastRequests(); err != nil {
 		fmt.Printf("%s EVE Request IP: error: %s\n", statusBad(), err)
@@ -70,27 +71,36 @@ func eveStatusRemote() {
 		log.Debugf("getControllerAndDev: %s", err)
 		fmt.Printf("%s EVE status: undefined (no onboarded EVE)\n", statusWarn())
 	} else {
-		var lastDInfo *info.ZInfoMsg
-		var lastTime time.Time
-		var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
-			lastTime = time.Unix(im.AtTimeStamp.GetSeconds(), 0)
-			if im.GetZtype() == info.ZInfoTypes_ZiDevice {
-				lastDInfo = im
-			}
-			return false
-		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
+		eveState := eve.Init(ctrl, dev)
+		if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
 			log.Fatalf("Fail in get InfoLastCallback: %s", err)
 		}
-		if lastDInfo != nil {
+		if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
+			log.Fatalf("Fail in get InfoLastCallback: %s", err)
+		}
+		if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
 			var ips []string
-			for _, nw := range lastDInfo.GetDinfo().Network {
+			for _, nw := range lastDInfo.Network {
 				ips = append(ips, nw.IPAddrs...)
 			}
 			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
-			fmt.Printf("\tLast info received time: %s\n", lastTime)
+			fmt.Printf("\tLast info received time: %s\n", time.Unix(eveState.InfoAndMetrics().GetLastInfoTime().GetSeconds(), 0))
 		} else {
 			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...")
+		}
+		if lastDMetric := eveState.InfoAndMetrics().GetDeviceMetrics(); lastDMetric != nil {
+			status := statusOK()
+			if lastDMetric.Memory.GetUsedPercentage() >= 70 {
+				status = statusWarn()
+			}
+			if lastDMetric.Memory.GetUsedPercentage() >= 90 {
+				status = statusBad()
+			}
+			fmt.Printf("%s EVE memory: %s/%s\n", status,
+				humanize.Bytes((uint64)(lastDMetric.Memory.GetUsedMem()*humanize.MByte)),
+				humanize.Bytes((uint64)(lastDMetric.Memory.GetAvailMem()*humanize.MByte)))
+		} else {
+			fmt.Printf("%s EVE memory: %s\n", statusWarn(), "waiting for info...")
 		}
 	}
 }
