@@ -1,3 +1,9 @@
+FROM golang:1.15 as builder
+
+WORKDIR /app
+COPY fioconv.go /app
+RUN go build fioconv.go
+
 FROM ubuntu:focal
 
 RUN apt-get update \
@@ -9,14 +15,12 @@ RUN apt-get update \
 
 WORKDIR /
 COPY run-test.sh /run-test.sh
-RUN chmod a+x /run-test.sh
 COPY config.fio /config.fio
 COPY README.md /README.md
 COPY run-iostat.sh /run-iostat.sh
-RUN chmod a+x /run-iostat.sh
+COPY --from=builder /app/fioconv .
+RUN chmod a+x /run-iostat.sh /run-test.sh
 
 VOLUME ["/data"]
 ENTRYPOINT ["/bin/bash"]
 CMD ["/run-test.sh"]
-
-

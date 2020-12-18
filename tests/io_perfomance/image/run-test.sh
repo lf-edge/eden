@@ -16,7 +16,6 @@ mkdir ~/"$GIT_REPO"/"$FOLDERNAME"
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/Iostat
-touch ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
 cp README.md ~/"$GIT_REPO"/"$FOLDERNAME"/
 cp config.fio ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/
 echo "Setting up directories is end"
@@ -30,10 +29,15 @@ echo "Running IOSTAT"
 
 #Running FIO
 echo "Running FIO"
-fio config.fio > ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results
+fio config.fio --output=~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results --output-format=normal,json
 
 #Create a new branch in the GIT repository and push the changes
 echo "Create a branch and start posting results to GIT"
 (cd ~/"$GIT_REPO"/ && git checkout -b "$FOLDERNAME" && git add ~/"$GIT_REPO"/"$FOLDERNAME" && git commit -m "fio-results" && git push --set-upstream origin "$FOLDERNAME")
 echo "FIO tests are end branch:""$FOLDERNAME"
+
+echo "Result FIO generate start"
+./fioconv ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
+echo "Result FIO generate done"
+
 sleep 30m
