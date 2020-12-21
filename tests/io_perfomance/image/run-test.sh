@@ -31,13 +31,13 @@ echo "Running IOSTAT"
 echo "Running FIO"
 fio config.fio --output=~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results --output-format=normal,json
 
+echo "Result FIO generate start"
+./fioconv ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
+echo "Result FIO generate done"
+
 #Create a new branch in the GIT repository and push the changes
 echo "Create a branch and start posting results to GIT"
 (cd ~/"$GIT_REPO"/ && git checkout -b "$FOLDERNAME" && git add ~/"$GIT_REPO"/"$FOLDERNAME" && git commit -m "fio-results" && git push --set-upstream origin "$FOLDERNAME")
 echo "FIO tests are end branch:""$FOLDERNAME"
-
-echo "Result FIO generate start"
-./fioconv ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
-echo "Result FIO generate done"
 
 sleep 30m
