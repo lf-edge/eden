@@ -1,16 +1,12 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"fmt"
-	"io/ioutil"
-	"math/big"
-	"net"
 	"os"
 	"path/filepath"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/models"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -51,78 +47,10 @@ var certsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		model, err := models.GetDevModelByName(devModel)
-		if err != nil {
-			log.Fatalf("GetDevModelByName: %s", err)
-		}
-		if _, err := os.Stat(certsDir); os.IsNotExist(err) {
-			if err = os.MkdirAll(certsDir, 0755); err != nil {
-				log.Fatal(err)
-			}
-		}
-		edenHome, err := utils.DefaultEdenDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
-		if _, err := os.Stat(globalCertsDir); os.IsNotExist(err) {
-			if err = os.MkdirAll(globalCertsDir, 0755); err != nil {
-				log.Fatal(err)
-			}
-		}
-		log.Debug("generating CA")
-		caCertPath := filepath.Join(globalCertsDir, "root-certificate.pem")
-		caKeyPath := filepath.Join(globalCertsDir, "root-certificate-key.pem")
-		rootCert, rootKey := utils.GenCARoot()
-		if _, err := tls.LoadX509KeyPair(caCertPath, caKeyPath); err == nil { //existing certs looks ok
-			log.Info("Use existing certs")
-			rootCert, err = utils.ParseCertificate(caCertPath)
-			if err != nil {
-				log.Fatalf("cannot parse certificate from %s: %s", caCertPath, err)
-			}
-			rootKey, err = utils.ParsePrivateKey(caKeyPath)
-			if err != nil {
-				log.Fatalf("cannot parse key from %s: %s", caKeyPath, err)
-			}
-		}
-		if err := utils.WriteToFiles(rootCert, rootKey, caCertPath, caKeyPath); err != nil {
-			log.Fatal(err)
-		}
-		serverCertPath := filepath.Join(globalCertsDir, "server.pem")
-		serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
-		if _, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
-			log.Debug("generating Adam cert and key")
-			ips := []net.IP{net.ParseIP(certsIP), net.ParseIP(certsEVEIP), net.ParseIP("127.0.0.1")}
-			ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), ips, []string{certsDomain}, certsDomain)
-			if err := utils.WriteToFiles(ServerCert, ServerKey, serverCertPath, serverKeyPath); err != nil {
-				log.Fatal(err)
-			}
-		}
-		log.Debug("generating EVE cert and key")
-		if err := utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
-			log.Fatal(err)
-		}
-		ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, certsUUID)
-		log.Debug("saving files")
-		if err := utils.WriteToFiles(ClientCert, ClientKey, filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(certsDir, "onboard.key.pem")); err != nil {
-			log.Fatal(err)
-		}
-		log.Debug("generating ssh pair")
-		if err := utils.GenerateSSHKeyPair(filepath.Join(certsDir, "id_rsa"), filepath.Join(certsDir, "id_rsa.pub")); err != nil {
-			log.Fatal(err)
-		}
-		if ssid != "" && password != "" {
-			log.Debug("generating DevicePortConfig")
-			if portConfig := model.GetPortConfig(ssid, password); portConfig != "" {
-				if _, err := os.Stat(filepath.Join(certsDir, "DevicePortConfig", "override.json")); os.IsNotExist(err) {
-					if err := os.MkdirAll(filepath.Join(certsDir, "DevicePortConfig"), 0755); err != nil {
-						log.Fatal(err)
-					}
-					if err := ioutil.WriteFile(filepath.Join(certsDir, "DevicePortConfig", "override.json"), []byte(portConfig), 0666); err != nil {
-						log.Fatal(err)
-					}
-				}
-			}
+		if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, password); err != nil {
+			log.Errorf("cannot GenerateEveCerts: %s", err)
+		} else {
+			log.Info("GenerateEveCerts done")
 		}
 	},
 }

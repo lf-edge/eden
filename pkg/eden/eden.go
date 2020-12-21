@@ -2,9 +2,12 @@ package eden
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,6 +20,7 @@ import (
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/nerd2/gexto"
 	log "github.com/sirupsen/logrus"
@@ -31,26 +35,26 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 	redisServerCommand := strings.Fields("redis-server --appendonly yes")
 	if redisPath != "" {
 		if err = os.MkdirAll(redisPath, 0755); err != nil {
-			log.Fatalf("Cannot create directory for redis (%s): %s", redisPath, err)
+			return fmt.Errorf("StartRedis: Cannot create directory for redis (%s): %s", redisPath, err)
 		}
 	}
 	if redisForce {
 		_ = utils.StopContainer(defaults.DefaultRedisContainerName, true)
 		if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
-			return fmt.Errorf("error in create redis container: %s", err)
+			return fmt.Errorf("StartRedis: error in create redis container: %s", err)
 		}
 	} else {
 		state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 		if err != nil {
-			return fmt.Errorf("error in get state of redis container: %s", err)
+			return fmt.Errorf("StartRedis: error in get state of redis container: %s", err)
 		}
 		if state == "" {
 			if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
-				return fmt.Errorf("error in create redis container: %s", err)
+				return fmt.Errorf("StartRedis: error in create redis container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
 			if err := utils.StartContainer(defaults.DefaultRedisContainerName); err != nil {
-				return fmt.Errorf("error in restart redis container: %s", err)
+				return fmt.Errorf("StartRedis: error in restart redis container: %s", err)
 			}
 		}
 	}
@@ -61,12 +65,12 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 func StopRedis(redisRm bool) (err error) {
 	state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
-		return fmt.Errorf("error in get state of redis container: %s", err)
+		return fmt.Errorf("StopRedis: error in get state of redis container: %s", err)
 	}
 	if !strings.Contains(state, "running") {
 		if redisRm {
 			if err := utils.StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
-				return fmt.Errorf("error in rm redis container: %s", err)
+				return fmt.Errorf("StopRedis: error in rm redis container: %s", err)
 			}
 		}
 	} else if state == "" {
@@ -74,11 +78,11 @@ func StopRedis(redisRm bool) (err error) {
 	} else {
 		if redisRm {
 			if err := utils.StopContainer(defaults.DefaultRedisContainerName, false); err != nil {
-				return fmt.Errorf("error in rm redis container: %s", err)
+				return fmt.Errorf("StopRedis: error in rm redis container: %s", err)
 			}
 		} else {
 			if err := utils.StopContainer(defaults.DefaultRedisContainerName, true); err != nil {
-				return fmt.Errorf("error in rm redis container: %s", err)
+				return fmt.Errorf("StopRedis: error in rm redis container: %s", err)
 			}
 		}
 	}
@@ -89,7 +93,7 @@ func StopRedis(redisRm bool) (err error) {
 func StatusRedis() (status string, err error) {
 	state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
-		return "", fmt.Errorf("error in get state of redis container: %s", err)
+		return "", fmt.Errorf("StatusRedis: error in get state of redis container: %s", err)
 	}
 	if state == "" {
 		return "container doesn't exist", nil
@@ -109,11 +113,11 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
 	cert, err := ioutil.ReadFile(serverCertPath)
 	if err != nil {
-		return fmt.Errorf("cannot load %s: %s", serverCertPath, err)
+		return fmt.Errorf("StartAdam: cannot load %s: %s", serverCertPath, err)
 	}
 	key, err := ioutil.ReadFile(serverKeyPath)
 	if err != nil {
-		return fmt.Errorf("cannot load %s: %s", serverKeyPath, err)
+		return fmt.Errorf("StartAdam: cannot load %s: %s", serverKeyPath, err)
 	}
 	envs := []string{
 		fmt.Sprintf("SERVER_CERT=%s", cert),
@@ -133,20 +137,20 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	if adamForce {
 		_ = utils.StopContainer(defaults.DefaultAdamContainerName, true)
 		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
-			return fmt.Errorf("error in create adam container: %s", err)
+			return fmt.Errorf("StartAdam: error in create adam container: %s", err)
 		}
 	} else {
 		state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 		if err != nil {
-			return fmt.Errorf("error in get state of adam container: %s", err)
+			return fmt.Errorf("StartAdam: error in get state of adam container: %s", err)
 		}
 		if state == "" {
 			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
-				return fmt.Errorf("error in create adam container: %s", err)
+				return fmt.Errorf("StartAdam: error in create adam container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
 			if err := utils.StartContainer(defaults.DefaultAdamContainerName); err != nil {
-				return fmt.Errorf("error in restart adam container: %s", err)
+				return fmt.Errorf("StartAdam: error in restart adam container: %s", err)
 			}
 		}
 	}
@@ -157,12 +161,12 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 func StopAdam(adamRm bool) (err error) {
 	state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
-		return fmt.Errorf("error in get state of adam container: %s", err)
+		return fmt.Errorf("StopAdam: error in get state of adam container: %s", err)
 	}
 	if !strings.Contains(state, "running") {
 		if adamRm {
 			if err := utils.StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
-				return fmt.Errorf("error in rm adam container: %s", err)
+				return fmt.Errorf("StopAdam: error in rm adam container: %s", err)
 			}
 		}
 	} else if state == "" {
@@ -170,11 +174,11 @@ func StopAdam(adamRm bool) (err error) {
 	} else {
 		if adamRm {
 			if err := utils.StopContainer(defaults.DefaultAdamContainerName, false); err != nil {
-				return fmt.Errorf("error in rm adam container: %s", err)
+				return fmt.Errorf("StopAdam: error in rm adam container: %s", err)
 			}
 		} else {
 			if err := utils.StopContainer(defaults.DefaultAdamContainerName, true); err != nil {
-				return fmt.Errorf("error in rm adam container: %s", err)
+				return fmt.Errorf("StopAdam: error in rm adam container: %s", err)
 			}
 		}
 	}
@@ -185,7 +189,7 @@ func StopAdam(adamRm bool) (err error) {
 func StatusAdam() (status string, err error) {
 	state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
-		return "", fmt.Errorf("error in get state of adam container: %s", err)
+		return "", fmt.Errorf("StatusAdam: error in get state of adam container: %s", err)
 	}
 	if state == "" {
 		return "container doesn't exist", nil
@@ -204,15 +208,15 @@ func StartRegistry(port int, tag, registryPath string, opts ...string) (err erro
 	volumeMap := map[string]string{"/var/lib/registry": registryPath}
 	state, err := utils.StateContainer(containerName)
 	if err != nil {
-		return fmt.Errorf("error in get state of %s container: %s", serviceName, err)
+		return fmt.Errorf("StartRegistry: error in get state of %s container: %s", serviceName, err)
 	}
 	if state == "" {
 		if err := utils.CreateAndRunContainer(containerName, ref+":"+tag, portMap, volumeMap, cmd, nil); err != nil {
-			return fmt.Errorf("error in create %s container: %s", serviceName, err)
+			return fmt.Errorf("StartRegistry: error in create %s container: %s", serviceName, err)
 		}
 	} else if !strings.Contains(state, "running") {
 		if err := utils.StartContainer(containerName); err != nil {
-			return fmt.Errorf("error in restart %s container: %s", serviceName, err)
+			return fmt.Errorf("StartRegistry: error in restart %s container: %s", serviceName, err)
 		}
 	}
 	return nil
@@ -224,12 +228,12 @@ func StopRegistry(rm bool) (err error) {
 	serviceName := "registry"
 	state, err := utils.StateContainer(containerName)
 	if err != nil {
-		return fmt.Errorf("error in get state of %s container: %s", serviceName, err)
+		return fmt.Errorf("StopRegistry: error in get state of %s container: %s", serviceName, err)
 	}
 	if !strings.Contains(state, "running") {
 		if rm {
 			if err := utils.StopContainer(containerName, true); err != nil {
-				return fmt.Errorf("error in rm %s container: %s", serviceName, err)
+				return fmt.Errorf("StopRegistry: error in rm %s container: %s", serviceName, err)
 			}
 		}
 	} else if state == "" {
@@ -237,11 +241,11 @@ func StopRegistry(rm bool) (err error) {
 	} else {
 		if rm {
 			if err := utils.StopContainer(containerName, false); err != nil {
-				return fmt.Errorf("error in rm %s container: %s", serviceName, err)
+				return fmt.Errorf("StopRegistry: error in rm %s container: %s", serviceName, err)
 			}
 		} else {
 			if err := utils.StopContainer(containerName, true); err != nil {
-				return fmt.Errorf("error in rm %s container: %s", serviceName, err)
+				return fmt.Errorf("StopRegistry: error in rm %s container: %s", serviceName, err)
 			}
 		}
 	}
@@ -254,7 +258,7 @@ func StatusRegistry() (status string, err error) {
 	serviceName := "registry"
 	state, err := utils.StateContainer(containerName)
 	if err != nil {
-		return "", fmt.Errorf("error in get state of %s container: %s", serviceName, err)
+		return "", fmt.Errorf("StatusRegistry: error in get state of %s container: %s", serviceName, err)
 	}
 	if state == "" {
 		return "container doesn't exist", nil
@@ -270,25 +274,25 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 	eserverServerCommand := strings.Fields("server")
 	// lets make sure eserverImageDist exists
 	if imageDist != "" && os.MkdirAll(imageDist, os.ModePerm) != nil {
-		log.Fatalf("%s does not exist and can not be created", imageDist)
+		return fmt.Errorf("StartEServer: %s does not exist and can not be created", imageDist)
 	}
 	if eserverForce {
 		_ = utils.StopContainer(defaults.DefaultEServerContainerName, true)
 		if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand, nil); err != nil {
-			return fmt.Errorf("error in create eserver container: %s", err)
+			return fmt.Errorf("StartEServer: error in create eserver container: %s", err)
 		}
 	} else {
 		state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 		if err != nil {
-			return fmt.Errorf("error in get state of eserver container: %s", err)
+			return fmt.Errorf("StartEServer: error in get state of eserver container: %s", err)
 		}
 		if state == "" {
 			if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand, nil); err != nil {
-				return fmt.Errorf("error in create eserver container: %s", err)
+				return fmt.Errorf("StartEServer: error in create eserver container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
 			if err := utils.StartContainer(defaults.DefaultEServerContainerName); err != nil {
-				return fmt.Errorf("error in restart eserver container: %s", err)
+				return fmt.Errorf("StartEServer: error in restart eserver container: %s", err)
 			}
 		}
 	}
@@ -299,12 +303,12 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 func StopEServer(eserverRm bool) (err error) {
 	state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 	if err != nil {
-		return fmt.Errorf("error in get state of eserver container: %s", err)
+		return fmt.Errorf("StopEServer: error in get state of eserver container: %s", err)
 	}
 	if !strings.Contains(state, "running") {
 		if eserverRm {
 			if err := utils.StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
-				return fmt.Errorf("error in rm eserver container: %s", err)
+				return fmt.Errorf("StopEServer: error in rm eserver container: %s", err)
 			}
 		}
 	} else if state == "" {
@@ -312,11 +316,11 @@ func StopEServer(eserverRm bool) (err error) {
 	} else {
 		if eserverRm {
 			if err := utils.StopContainer(defaults.DefaultEServerContainerName, false); err != nil {
-				return fmt.Errorf("error in rm eserver container: %s", err)
+				return fmt.Errorf("StopEServer: error in rm eserver container: %s", err)
 			}
 		} else {
 			if err := utils.StopContainer(defaults.DefaultEServerContainerName, true); err != nil {
-				return fmt.Errorf("error in rm eserver container: %s", err)
+				return fmt.Errorf("StopEServer: error in rm eserver container: %s", err)
 			}
 		}
 	}
@@ -327,7 +331,7 @@ func StopEServer(eserverRm bool) (err error) {
 func StatusEServer() (status string, err error) {
 	state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 	if err != nil {
-		return "", fmt.Errorf("error in get eserver of adam container: %s", err)
+		return "", fmt.Errorf("StatusEServer: error in get eserver of adam container: %s", err)
 	}
 	if state == "" {
 		return "container doesn't exist", nil
@@ -336,11 +340,72 @@ func StatusEServer() (status string, err error) {
 }
 
 //StartEVEQemu function run EVE in qemu
-func StartEVEQemu(commandPath string, configName string, qemuARCH string, qemuOS string, eveImageFile string, qemuSMBIOSSerial string, qemuAccel bool, qemuConfigFilestring, logFile string, pidFile string) (err error) {
-	commandArgsString := fmt.Sprintf("eve start --qemu-config=%s --eve-serial=%s --eve-accel=%t --eve-arch=%s --eve-os=%s --eve-log=%s --eve-pid=%s --image-file=%s -v %s --config %s",
-		qemuConfigFilestring, qemuSMBIOSSerial, qemuAccel, qemuARCH, qemuOS, logFile, pidFile, eveImageFile, log.GetLevel(), configName)
-	log.Infof("StartEVEQemu run: %s %s", commandPath, commandArgsString)
-	return utils.RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort int, qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile string, pidFile string, foregroud bool) (err error) {
+	qemuCommand := ""
+	qemuOptions := fmt.Sprintf("-display none -serial telnet:localhost:%d,server,nowait -nodefaults -no-user-config ", eveTelnetPort)
+	if qemuSMBIOSSerial != "" {
+		qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
+	}
+	nets, err := utils.GetSubnetsNotUsed(2)
+	if err != nil {
+		return fmt.Errorf("StartEVEQemu: %s", err)
+	}
+	for ind, n := range nets {
+		qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", ind, n.Subnet, n.FirstAddress)
+		if ind == 0 {
+			for k, v := range qemuHostFwd {
+				qemuOptions += fmt.Sprintf(",hostfwd=tcp::%s-:%s", k, v)
+			}
+		}
+		qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", ind)
+	}
+	if qemuOS == "" {
+		qemuOS = runtime.GOOS
+	} else {
+		qemuOS = strings.ToLower(qemuOS)
+	}
+	if qemuOS != "linux" && qemuOS != "darwin" {
+		return fmt.Errorf("StartEVEQemu: OS not supported: %s", qemuOS)
+	}
+	if qemuARCH == "" {
+		qemuARCH = runtime.GOARCH
+	} else {
+		qemuARCH = strings.ToLower(qemuARCH)
+	}
+	switch qemuARCH {
+	case "amd64":
+		qemuCommand = "qemu-system-x86_64"
+		if qemuAccel {
+			if qemuOS == "darwin" {
+				qemuOptions += defaults.DefaultQemuAccelDarwin
+			} else {
+				qemuOptions += defaults.DefaultQemuAccelLinux
+			}
+		} else {
+			qemuOptions += "--cpu SandyBridge "
+		}
+	case "arm64":
+		qemuCommand = "qemu-system-aarch64"
+		qemuOptions += "-machine virt,gic_version=3 -machine virtualization=true -cpu cortex-a57 -machine type=virt "
+	default:
+		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
+	}
+	qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", eveImageFile)
+	if qemuConfigFile != "" {
+		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
+	}
+	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
+	if foregroud {
+		if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {
+			return fmt.Errorf("StartEVEQemu: %s", err)
+		}
+	} else {
+		log.Infof("With pid: %s ; log: %s", pidFile, logFile)
+		if err := utils.RunCommandNohup(qemuCommand, logFile, pidFile, strings.Fields(qemuOptions)...); err != nil {
+			return fmt.Errorf("StartEVEQemu: %s", err)
+		}
+	}
+	return nil
 }
 
 //StopEVEQemu function stop EVE
@@ -354,41 +419,110 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 }
 
 //GenerateEveCerts function generates certs for EVE
-func GenerateEveCerts(commandPath string, configName string, certsDir string, domain string, ip string, eveIP string, uuid string, ssid string, password string) (err error) {
+func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, password string) (err error) {
+	model, err := models.GetDevModelByName(devModel)
+	if err != nil {
+		return fmt.Errorf("GenerateEveCerts: %s", err)
+	}
+	if _, err := os.Stat(certsDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(certsDir, 0755); err != nil {
+			return fmt.Errorf("GenerateEveCerts: %s", err)
+		}
+	}
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		return fmt.Errorf("GenerateEveCerts: %s", err)
+	}
+	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+	if _, err := os.Stat(globalCertsDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(globalCertsDir, 0755); err != nil {
+			return fmt.Errorf("GenerateEveCerts: %s", err)
+		}
+	}
+	log.Debug("generating CA")
+	caCertPath := filepath.Join(globalCertsDir, "root-certificate.pem")
+	caKeyPath := filepath.Join(globalCertsDir, "root-certificate-key.pem")
+	rootCert, rootKey := utils.GenCARoot()
+	if _, err := tls.LoadX509KeyPair(caCertPath, caKeyPath); err == nil { //existing certs looks ok
+		log.Info("Use existing certs")
+		rootCert, err = utils.ParseCertificate(caCertPath)
+		if err != nil {
+			return fmt.Errorf("GenerateEveCerts: cannot parse certificate from %s: %s", caCertPath, err)
+		}
+		rootKey, err = utils.ParsePrivateKey(caKeyPath)
+		if err != nil {
+			return fmt.Errorf("GenerateEveCerts: cannot parse key from %s: %s", caKeyPath, err)
+		}
+	}
+	if err := utils.WriteToFiles(rootCert, rootKey, caCertPath, caKeyPath); err != nil {
+		return fmt.Errorf("GenerateEveCerts: %s", err)
+	}
+	serverCertPath := filepath.Join(globalCertsDir, "server.pem")
+	serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
+	if _, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
+		log.Debug("generating Adam cert and key")
+		ips := []net.IP{net.ParseIP(ip), net.ParseIP(eveIP), net.ParseIP("127.0.0.1")}
+		ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), ips, []string{domain}, domain)
+		if err := utils.WriteToFiles(ServerCert, ServerKey, serverCertPath, serverKeyPath); err != nil {
+			return fmt.Errorf("GenerateEveCerts: %s", err)
+		}
+	}
+	log.Debug("generating EVE cert and key")
+	if err := utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
+		return fmt.Errorf("GenerateEveCerts: %s", err)
+	}
+	ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, uuid)
+	log.Debug("saving files")
+	if err := utils.WriteToFiles(ClientCert, ClientKey, filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(certsDir, "onboard.key.pem")); err != nil {
+		return fmt.Errorf("GenerateEveCerts: %s", err)
+	}
+	log.Debug("generating ssh pair")
+	if err := utils.GenerateSSHKeyPair(filepath.Join(certsDir, "id_rsa"), filepath.Join(certsDir, "id_rsa.pub")); err != nil {
+		return fmt.Errorf("GenerateEveCerts: %s", err)
+	}
+	if ssid != "" && password != "" {
+		log.Debug("generating DevicePortConfig")
+		if portConfig := model.GetPortConfig(ssid, password); portConfig != "" {
+			if _, err := os.Stat(filepath.Join(certsDir, "DevicePortConfig", "override.json")); os.IsNotExist(err) {
+				if err := os.MkdirAll(filepath.Join(certsDir, "DevicePortConfig"), 0755); err != nil {
+					return fmt.Errorf("GenerateEveCerts: %s", err)
+				}
+				if err := ioutil.WriteFile(filepath.Join(certsDir, "DevicePortConfig", "override.json"), []byte(portConfig), 0666); err != nil {
+					return fmt.Errorf("GenerateEveCerts: %s", err)
+				}
+			}
+		}
+	}
 	if _, err := os.Stat(certsDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(certsDir, 0755); err != nil {
 			return err
 		}
 	}
-	commandArgsString := fmt.Sprintf(
-		"utils certs --certs-dist=%s --domain=%s --ip=%s --eve-ip=%s --uuid=%s --ssid=%s --password=%s -v %s --config %s",
-		certsDir, domain, ip, eveIP, uuid, ssid, password, log.GetLevel(), configName)
-	log.Infof("GenerateEveCerts run: %s %s", commandPath, commandArgsString)
-	return utils.RunCommandWithLogAndWait(commandPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+	return nil
 }
 
 //GenerateEVEConfig function copy certs to EVE config folder
 func GenerateEVEConfig(eveConfig string, domain string, ip string, port int, apiV1 bool) (err error) {
 	if _, err = os.Stat(eveConfig); os.IsNotExist(err) {
 		if err = os.MkdirAll(eveConfig, 0755); err != nil {
-			return err
+			return fmt.Errorf("GenerateEVEConfig: %s", err)
 		}
 	}
 	if _, err = os.Stat(filepath.Join(eveConfig, "hosts")); os.IsNotExist(err) {
 		if err = ioutil.WriteFile(filepath.Join(eveConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
-			return err
+			return fmt.Errorf("GenerateEVEConfig: %s", err)
 		}
 	}
 	if apiV1 {
 		if _, err = os.Stat(filepath.Join(eveConfig, "Force-API-V1")); os.IsNotExist(err) {
 			if err := utils.TouchFile(filepath.Join(eveConfig, "Force-API-V1")); err != nil {
-				log.Fatal(err)
+				return fmt.Errorf("GenerateEVEConfig: %s", err)
 			}
 		}
 	}
 	if _, err = os.Stat(filepath.Join(eveConfig, "server")); os.IsNotExist(err) {
 		if err = ioutil.WriteFile(filepath.Join(eveConfig, "server"), []byte(fmt.Sprintf("%s:%d\n", domain, port)), 0666); err != nil {
-			return err
+			return fmt.Errorf("GenerateEVEConfig: %s", err)
 		}
 	}
 	return nil
@@ -397,7 +531,7 @@ func GenerateEVEConfig(eveConfig string, domain string, ip string, port int, api
 //CloneFromGit function clone from git into dist
 func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	if _, err := os.Stat(dist); !os.IsNotExist(err) {
-		return fmt.Errorf("directory already exists: %s", dist)
+		return fmt.Errorf("CloneFromGit: directory already exists: %s", dist)
 	}
 	if tag == "" {
 		tag = "master"
@@ -410,11 +544,11 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 //MakeEveInRepo build live image of EVE
 func MakeEveInRepo(distEve string, configPath string, arch string, hv string, imageFormat string, rootFSOnly bool) (image, additional string, err error) {
 	if _, err := os.Stat(distEve); os.IsNotExist(err) {
-		return "", "", fmt.Errorf("directory not exists: %s", distEve)
+		return "", "", fmt.Errorf("MakeEveInRepo: directory not exists: %s", distEve)
 	}
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		if err = os.MkdirAll(configPath, 0755); err != nil {
-			return "", "", err
+			return "", "", fmt.Errorf("MakeEveInRepo: %s", err)
 		}
 	}
 	if rootFSOnly {
@@ -452,60 +586,36 @@ func MakeEveInRepo(distEve string, configPath string, arch string, hv string, im
 			err = utils.RunCommandWithLogAndWait("make", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 			additional = dtbPath
 		default:
-			return "", "", fmt.Errorf("unsupported arch %s", arch)
+			return "", "", fmt.Errorf("MakeEveInRepo: unsupported arch %s", arch)
 		}
 	}
 	return
 }
 
-//BuildVM build VM image with linuxkit
-func BuildVM(linuxKitPath string, imageConfig string, distImage string) (err error) {
-	distImageDir := filepath.Dir(distImage)
-	if _, err := os.Stat(distImageDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(distImageDir, 0755); err != nil {
-			return err
-		}
-	}
-	imageConfigTmp := filepath.Join(distImageDir, fmt.Sprintf("%s-bios.img", utils.FileNameWithoutExtension(filepath.Base(distImage))))
-	commandArgsString := fmt.Sprintf("build -format raw-bios -dir %s %s",
-		distImageDir, imageConfig)
-	log.Infof("BuildVM run: %s %s", linuxKitPath, commandArgsString)
-	if err = utils.RunCommandWithLogAndWait(linuxKitPath, defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-		return fmt.Errorf("error in linuxkit: %s", err)
-	}
-	commandArgsString = fmt.Sprintf("convert -c -f raw -O qcow2 %s %s",
-		imageConfigTmp, distImage)
-	log.Infof("BuildVM run: %s %s", "qemu-img", commandArgsString)
-	if err = utils.RunCommandWithLogAndWait("qemu-img", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-		return fmt.Errorf("error in qemu-img: %s", err)
-	}
-	return os.Remove(imageConfigTmp)
-}
-
 //CleanContext cleanup only context data
-func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID, eveUUID string, configSaved string) (err error) {
+func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID string, configSaved string, remote bool) (err error) {
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("CleanContext: %s", err)
 	}
 	eveStatusFile := filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))
 	if _, err = os.Stat(eveStatusFile); !os.IsNotExist(err) {
 		ctrl, err := controller.CloudPrepare()
 		if err != nil {
-			return fmt.Errorf("error in CloudPrepare: %s", err)
+			return fmt.Errorf("CleanContext: error in CloudPrepare: %s", err)
 		}
 		log.Debugf("Get devUUID for onboardUUID %s", eveUUID)
 		devUUID, err := ctrl.DeviceGetByOnboardUUID(eveUUID)
 		if err != nil {
-			return err
+			return fmt.Errorf("CleanContext: %s", err)
 		}
 		log.Debugf("Deleting devUUID %s", devUUID)
 		if err := ctrl.DeviceRemove(devUUID); err != nil {
-			return err
+			return fmt.Errorf("CleanContext: %s", err)
 		}
 		log.Debugf("Deleting onboardUUID %s", eveUUID)
 		if err := ctrl.OnboardRemove(eveUUID); err != nil {
-			return err
+			return fmt.Errorf("CleanContext: %s", err)
 		}
 		localViper := viper.New()
 		localViper.SetConfigFile(eveStatusFile)
@@ -520,102 +630,129 @@ func CleanContext(commandPath, eveDist, certsDist, imagesDist, evePID, eveUUID s
 			}
 		}
 		if err = os.RemoveAll(eveStatusFile); err != nil {
-			return fmt.Errorf("error in %s delete: %s", eveStatusFile, err)
+			return fmt.Errorf("CleanContext: error in %s delete: %s", eveStatusFile, err)
 		}
 	}
-	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=false --redis-rm=false --eserver-rm=false", evePID)
-	log.Infof("CleanContext run: %s %s", commandPath, commandArgsString)
-	_, _, err = utils.RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	if err != nil {
-		return fmt.Errorf("error in eden stop: %s", err)
+	if !remote {
+		if err := StopEVEQemu(evePID); err != nil {
+			log.Infof("cannot stop EVE: %s", err)
+		} else {
+			log.Infof("EVE stopped")
+		}
 	}
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", eveDist, err)
+			return fmt.Errorf("CleanContext: error in %s delete: %s", eveDist, err)
 		}
 	}
 	if _, err = os.Stat(certsDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(certsDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", certsDist, err)
+			return fmt.Errorf("CleanContext: error in %s delete: %s", certsDist, err)
 		}
 	}
 	if _, err = os.Stat(imagesDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(imagesDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", imagesDist, err)
+			return fmt.Errorf("CleanContext: error in %s delete: %s", imagesDist, err)
 		}
 	}
 	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configSaved); err != nil {
-			return fmt.Errorf("error in %s delete: %s", configSaved, err)
+			return fmt.Errorf("CleanContext: error in %s delete: %s", configSaved, err)
 		}
 	}
 	return nil
 }
 
-//CleanEden teardown Eden and cleanup
-func CleanEden(commandPath, eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID string, configSaved string) (err error) {
-	commandArgsString := fmt.Sprintf("stop --eve-pid=%s --adam-rm=true --redis-rm=true --eserver-rm=true --registry-rm=true", evePID)
-	log.Infof("CleanEden run: %s %s", commandPath, commandArgsString)
-	_, _, err = utils.RunCommandAndWait(commandPath, strings.Fields(commandArgsString)...)
-	if err != nil {
-		return fmt.Errorf("error in eden stop: %s", err)
+//StopEden teardown Eden
+func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile string) {
+	if err := StopAdam(adamRm); err != nil {
+		log.Infof("cannot stop adam: %s", err)
+	} else {
+		log.Infof("adam stopped")
 	}
+	if err := StopRedis(redisRm); err != nil {
+		log.Infof("cannot stop redis: %s", err)
+	} else {
+		log.Infof("redis stopped")
+	}
+	if err := StopRegistry(registryRm); err != nil {
+		log.Infof("cannot stop registry: %s", err)
+	} else {
+		log.Infof("registry stopped")
+	}
+	if err := StopEServer(eserverRm); err != nil {
+		log.Infof("cannot stop eserver: %s", err)
+	} else {
+		log.Infof("eserver stopped")
+	}
+	if !eveRemote {
+		if err := StopEVEQemu(evePidFile); err != nil {
+			log.Infof("cannot stop EVE: %s", err)
+		} else {
+			log.Infof("EVE stopped")
+		}
+	}
+}
+
+//CleanEden teardown Eden and cleanup
+func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID string, configSaved string, remote bool) (err error) {
+	StopEden(true, true, true, true, remote, evePID)
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", eveDist, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", eveDist, err)
 		}
 	}
 	if _, err = os.Stat(certsDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(certsDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", certsDist, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", certsDist, err)
 		}
 	}
 	if _, err = os.Stat(imagesDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(imagesDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", imagesDist, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", imagesDist, err)
 		}
 	}
 	if _, err = os.Stat(eserverDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eserverDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", eserverDist, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", eserverDist, err)
 		}
 	}
 	if _, err = os.Stat(adamDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(adamDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", adamDist, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", adamDist, err)
 		}
 	}
 	if _, err = os.Stat(redisDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(redisDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", redisDist, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", redisDist, err)
 		}
 	}
 	if _, err = os.Stat(registryDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(registryDist); err != nil {
-			return fmt.Errorf("error in %s delete: %s", registryDist, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", registryDist, err)
 		}
 	}
 	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configDir); err != nil {
-			return fmt.Errorf("error in %s delete: %s", configDir, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", configDir, err)
 		}
 	}
 	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configSaved); err != nil {
-			return fmt.Errorf("error in %s delete: %s", configSaved, err)
+			return fmt.Errorf("CleanEden: error in %s delete: %s", configSaved, err)
 		}
 	}
 	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultEServerContainerName); err != nil {
-		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultEServerContainerName, err)
+		return fmt.Errorf("CleanEden: RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultEServerContainerName, err)
 	}
 	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultRedisContainerName); err != nil {
-		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultRedisContainerName, err)
+		return fmt.Errorf("CleanEden: RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultRedisContainerName, err)
 	}
 	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultAdamContainerName); err != nil {
-		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultAdamContainerName, err)
+		return fmt.Errorf("CleanEden: RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultAdamContainerName, err)
 	}
 	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultRegistryContainerName); err != nil {
-		return fmt.Errorf("RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultRegistryContainerName, err)
+		return fmt.Errorf("CleanEden: RemoveGeneratedVolumeOfContainer for %s: %s", defaults.DefaultRegistryContainerName, err)
 	}
 	return nil
 }
@@ -647,20 +784,20 @@ func (server *EServer) EServerAddFileURL(url string) (name string) {
 	}
 	body, err := json.Marshal(objToSend)
 	if err != nil {
-		log.Fatalf("error encoding json: %v", err)
+		log.Fatalf("EServerAddFileURL: error encoding json: %v", err)
 	}
 	req, err := http.NewRequest("POST", u, bytes.NewBuffer(body))
 	if err != nil {
-		log.Fatalf("unable to create new http request: %v", err)
+		log.Fatalf("EServerAddFileURL: unable to create new http request: %v", err)
 	}
 
 	response, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
-		log.Fatalf("unable to send request: %v", err)
+		log.Fatalf("EServerAddFileURL: unable to send request: %v", err)
 	}
 	buf, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatalf("unable to read data from URL %s: %v", u, err)
+		log.Fatalf("EServerAddFileURL: unable to read data from URL %s: %v", u, err)
 	}
 	return string(buf)
 }
@@ -669,24 +806,24 @@ func (server *EServer) EServerAddFileURL(url string) (name string) {
 func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) {
 	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), fmt.Sprintf("admin/status/%s", name))
 	if err != nil {
-		log.Fatalf("error constructing URL: %v", err)
+		log.Fatalf("EServerAddFileURL: error constructing URL: %v", err)
 	}
 	client := server.getHTTPClient(defaults.DefaultRepeatTimeout * defaults.DefaultRepeatCount)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		log.Fatalf("unable to create new http request: %v", err)
+		log.Fatalf("EServerAddFileURL: unable to create new http request: %v", err)
 	}
 
 	response, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
-		log.Fatalf("unable to send request: %v", err)
+		log.Fatalf("EServerAddFileURL: unable to send request: %v", err)
 	}
 	buf, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatalf("unable to read data from URL %s: %v", u, err)
+		log.Fatalf("EServerAddFileURL: unable to read data from URL %s: %v", u, err)
 	}
 	if err := json.Unmarshal(buf, &fileInfo); err != nil {
-		log.Fatal(err)
+		log.Fatalf("EServerAddFileURL: %s", err)
 	}
 	return
 }
@@ -695,19 +832,19 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) {
 	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-file")
 	if err != nil {
-		log.Fatalf("error constructing URL: %v", err)
+		log.Fatalf("EServerAddFile: error constructing URL: %v", err)
 	}
 	client := server.getHTTPClient(0)
 	response, err := utils.UploadFile(client, u, filepath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("EServerAddFile: %s", err)
 	}
 	buf, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatalf("unable to read data from URL %s: %v", u, err)
+		log.Fatalf("EServerAddFile: unable to read data from URL %s: %v", u, err)
 	}
 	if err := json.Unmarshal(buf, &fileInfo); err != nil {
-		log.Fatal(err)
+		log.Fatalf("EServerAddFile: %s", err)
 	}
 	return
 }
@@ -716,16 +853,16 @@ func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) 
 func ReadFileInSquashFS(squashFSPath, filePath string) (content []byte, err error) {
 	tmpdir, err := ioutil.TempDir("", "squashfs-unpack")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ReadFileInSquashFS: %s", err)
 	}
 	defer os.RemoveAll(tmpdir)
 	dirToUnpack := filepath.Join(tmpdir, "temp")
 	if output, err := exec.Command("unsquashfs", "-n", "-i", "-d", dirToUnpack, squashFSPath, filePath).CombinedOutput(); err != nil {
-		return nil, fmt.Errorf("unsquashfs (%s): %v", output, err)
+		return nil, fmt.Errorf("ReadFileInSquashFS: unsquashfs (%s): %v", output, err)
 	}
 	content, err = ioutil.ReadFile(filepath.Join(dirToUnpack, filePath))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ReadFileInSquashFS: %s", err)
 	}
 	return content, nil
 }
@@ -749,27 +886,27 @@ func GetInfoFromSDCard(devicePath string) (eveInfo *EVEInfo, err error) {
 		persistDev = fmt.Sprintf("%ss9", devicePath)
 	}
 	if _, err := os.Stat(devicePath); os.IsNotExist(err) {
-		return nil, err
+		return nil, fmt.Errorf("GetInfoFromSDCard: %s", err)
 	}
 	if _, err := os.Stat(rootfsDev); !os.IsNotExist(err) {
 		eveRelease, err := ReadFileInSquashFS(rootfsDev, "/etc/eve-release")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetInfoFromSDCard: %s", err)
 		}
 		eveInfo.EVERelease = eveRelease
 	}
 	if _, err := os.Stat(persistDev); !os.IsNotExist(err) {
 		fsPersist, err := gexto.NewFileSystem(persistDev)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetInfoFromSDCard: %s", err)
 		}
 		g, err := fsPersist.Open("/rsyslog/syslog.txt")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetInfoFromSDCard: %s", err)
 		}
 		syslog, err := ioutil.ReadAll(g)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetInfoFromSDCard: %s", err)
 		}
 		eveInfo.Syslog = syslog
 	}
