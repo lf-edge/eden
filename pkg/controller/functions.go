@@ -21,7 +21,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 //CloudPrepare is for init controller connection and obtain device list
@@ -116,7 +116,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 				if cloud.vars.EveSSID != "" {
 					ssid := cloud.vars.EveSSID
 					fmt.Printf("Enter password for wifi %s: ", ssid)
-					pass, _ := terminal.ReadPassword(0)
+					pass, _ := term.ReadPassword(0)
 					wifiPSK := strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
 					fmt.Println()
 					deviceModel.SetWiFiParams(cloud.vars.EveSSID, wifiPSK)

@@ -325,8 +325,8 @@ a google service key json.
 [creating-managing-service-account-keys](https://cloud.google.com/iam/docs/creating-managing-service-account-keys)
 
 ```console
-eden utils gcp image -k  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> upload <PATH TO EVE IMAGE>
-eden utils gcp vm  <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> --vm-name=<NAME OF VM ON GCP> run
+eden utils gcp image -k <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> upload <PATH TO EVE IMAGE>
+eden utils gcp vm -k <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> --vm-name=<NAME OF VM ON GCP> run
 ```
 
 `eden utils gcp` also supports:
@@ -349,6 +349,12 @@ Step 4 : Start eden and onboard Eve
 ```console
 eden start
 eden eve onboard
+```
+
+Note. You can see logs from gcp console:
+
+```console
+eden utils gcp vm -k <google json key path> -p <PROJECT ON GCP> --vm-name=<NAME OF VM ON GCP> log
 ```
 
 ## Raspberry Pi 4 support

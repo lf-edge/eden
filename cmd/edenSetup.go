@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var (
@@ -197,7 +197,7 @@ var setupCmd = &cobra.Command{
 			wifiPSK := ""
 			if ssid != "" {
 				fmt.Printf("Enter password for wifi %s: ", ssid)
-				pass, _ := terminal.ReadPassword(0)
+				pass, _ := term.ReadPassword(0)
 				wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
 				fmt.Println()
 			}
