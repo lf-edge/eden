@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
@@ -11,6 +9,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
@@ -121,92 +120,6 @@ var podDeployCmd = &cobra.Command{
 	},
 }
 
-type appState struct {
-	name      string
-	uuid      string
-	image     string
-	adamState string
-	eveState  string
-	intIP     []string
-	macs      []string
-	volumes   map[string]uint32
-	extIP     string
-	intPort   string
-	extPort   string
-	deleted   bool
-}
-
-func appStateHeader() string {
-	return "NAME\tIMAGE\tUUID\tINTERNAL\tEXTERNAL\tSTATE(ADAM)\tLAST_STATE(EVE)"
-}
-
-func (appStateObj *appState) toString() string {
-	internal := "-"
-	if len(appStateObj.intIP) == 1 {
-		if appStateObj.intPort == "" {
-			internal = appStateObj.intIP[0] //if one internal IP and not forward, display it
-		} else {
-			internal = fmt.Sprintf("%s:%s", appStateObj.intIP[0], appStateObj.intPort)
-		}
-	} else if len(appStateObj.intIP) > 1 {
-		var els []string
-		for i, el := range appStateObj.intIP {
-			if i == 0 { //forward only on first network
-				if appStateObj.intPort == "" {
-					els = append(els, el) //if multiple internal IPs and not forward, display them
-				} else {
-					els = append(els, fmt.Sprintf("%s:%s", el, appStateObj.intPort))
-				}
-			} else {
-				els = append(els, el)
-			}
-		}
-		internal = strings.Join(els, "; ")
-	}
-	external := fmt.Sprintf("%s:%s", appStateObj.extIP, appStateObj.extPort)
-	if appStateObj.extPort == "" {
-		external = "-"
-	}
-	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s", appStateObj.name, appStateObj.image, appStateObj.uuid,
-		internal,
-		external,
-		appStateObj.adamState, appStateObj.eveState)
-}
-
-func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]string) (intports, extports string) {
-	iports := []string{}
-	eports := []string{}
-	for _, intf := range appConfig.Interfaces {
-		fromPort := ""
-		toPort := ""
-		for _, acl := range intf.Acls {
-			for _, match := range acl.Matches {
-				if match.Type == "lport" {
-					fromPort = match.Value
-				}
-			}
-			for _, action := range acl.Actions {
-				if action.Portmap {
-					toPort = strconv.Itoa(int(action.AppPort))
-				}
-			}
-			if fromPort != "" && toPort != "" {
-				if len(qemuPorts) > 0 {
-					for p1, p2 := range qemuPorts {
-						if p2 == fromPort {
-							fromPort = p1
-							break
-						}
-					}
-				}
-				iports = append(iports, toPort)
-				eports = append(eports, fromPort)
-			}
-		}
-	}
-	return strings.Join(iports, ","), strings.Join(eports, ",")
-}
-
 //podPsCmd is a command to list deployed apps
 var podPsCmd = &cobra.Command{
 	Use:   "ps",
@@ -223,7 +136,16 @@ var podPsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := podsList(log.GetLevel()); err != nil {
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		state := eve.Init(ctrl, dev)
+		if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
+			log.Fatalf("fail in get InfoLastCallback: %s", err)
+		}
+		if err := state.PodsList(); err != nil {
 			log.Fatal(err)
 		}
 	},

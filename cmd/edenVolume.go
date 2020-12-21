@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -12,30 +12,6 @@ import (
 
 var volumeCmd = &cobra.Command{
 	Use: "volume",
-}
-
-type volInstState struct {
-	name          string
-	uuid          string
-	image         string
-	volType       config.Format
-	size          string
-	maxSize       string
-	contentTreeID string
-	adamState     string
-	eveState      string
-	deleted       bool
-}
-
-func volInstStateHeader() string {
-	return "NAME\tUUID\tIMAGE\tTYPE\tSIZE\tMAX_SIZE\tSTATE(ADAM)\tLAST_STATE(EVE)"
-}
-
-func (volInstStateObj *volInstState) toString() string {
-	return fmt.Sprintf("%s\t%s\t%s\t%v\t%s\t%s\t%s\t%s",
-		volInstStateObj.name, volInstStateObj.uuid, volInstStateObj.image,
-		volInstStateObj.volType, volInstStateObj.size, volInstStateObj.maxSize,
-		volInstStateObj.adamState, volInstStateObj.eveState)
 }
 
 //networkLsCmd is a command to list deployed volumes
@@ -53,7 +29,19 @@ var volumeLsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := volumeList(log.GetLevel()); err != nil {
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		state := eve.Init(ctrl, dev)
+		if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
+			log.Fatalf("fail in get InfoLastCallback: %s", err)
+		}
+		if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
+			log.Fatalf("fail in get InfoLastCallback: %s", err)
+		}
+		if err := state.VolumeList(); err != nil {
 			log.Fatal(err)
 		}
 	},

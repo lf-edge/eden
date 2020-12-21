@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
@@ -17,6 +18,7 @@ var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
 	tc       *projects.TestContext
 	states   map[string][]string
+	eveState *eve.State
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -33,6 +35,8 @@ func TestMain(m *testing.M) {
 	tc.InitProject(projectName)
 
 	tc.AddEdgeNodesFromDescription()
+
+	eveState = eve.Init(tc.GetController(), tc.GetEdgeNode())
 
 	tc.StartTrackingState(false)
 
@@ -59,56 +63,55 @@ func checkAndAppendState(appName, state string) {
 	}
 }
 
+func checkState(eveState *eve.State, state string, appNames []string) error {
+	out := "\n"
+	if state == "-" {
+		foundAny := false
+		if eveState.InfoAndMetrics().GetDinfo() == nil {
+			//we need to wait for info
+			return nil
+		}
+		for _, app := range eveState.Applications() {
+			if _, inSlice := utils.FindEleInSlice(appNames, app.Name); inSlice {
+				checkAndAppendState(app.Name, "EXISTS")
+				foundAny = true
+			}
+		}
+		if foundAny {
+			return nil
+		}
+		for _, appName := range appNames {
+			out += fmt.Sprintf(
+				"no app with %s found\n",
+				appName)
+		}
+		return fmt.Errorf(out)
+	}
+	for _, app := range eveState.Applications() {
+		if _, inSlice := utils.FindEleInSlice(appNames, app.Name); inSlice {
+			checkAndAppendState(app.Name, app.EVEState)
+		}
+	}
+	if len(states) == len(appNames) {
+		for _, appName := range appNames {
+			if !checkNewLastState(appName, state) {
+				out += fmt.Sprintf(
+					"app %s state %s\n",
+					appName, state)
+			} else {
+				return nil
+			}
+		}
+		return fmt.Errorf(out)
+	}
+	return nil
+}
+
 //checkApp wait for info of ZInfoApp type with state
 func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
-		out := "\n"
-		if state == "-" {
-			if msg.Ztype == info.ZInfoTypes_ZiDevice {
-				foundAny := false
-				for _, app := range msg.GetDinfo().AppInstances {
-					if _, inSlice := utils.FindEleInSlice(appNames, app.Name); inSlice {
-						checkAndAppendState(app.Name, "EXISTS")
-						foundAny = true
-					}
-				}
-				if foundAny {
-					return nil
-				}
-				for _, appName := range appNames {
-					out += fmt.Sprintf(
-						"no app with %s found\n",
-						appName)
-				}
-				return fmt.Errorf(out)
-			}
-		} else {
-			if msg.Ztype == info.ZInfoTypes_ZiApp {
-				app := msg.GetAinfo()
-				if _, inSlice := utils.FindEleInSlice(appNames, app.AppName); inSlice {
-					if len(app.AppErr) > 0 {
-						//if AppErr, show them
-						checkAndAppendState(app.AppName, fmt.Sprintf("%s: %s", app.State.String(), app.AppErr))
-					} else {
-						checkAndAppendState(app.AppName, app.State.String())
-					}
-				}
-			}
-			if len(states) == len(appNames) {
-				for _, appName := range appNames {
-					if !checkNewLastState(appName, state) {
-						out += fmt.Sprintf(
-							"app %s state %s\n",
-							appName, state)
-					} else {
-						return nil
-					}
-				}
-				return fmt.Errorf(out)
-			}
-			return nil
-		}
-		return nil
+		eveState.InfoCallback()(msg, nil) //feed state with new info
+		return checkState(eveState, state, appNames)
 	}
 }
 

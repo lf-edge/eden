@@ -44,14 +44,13 @@ type Ctx struct {
 
 //CreateEdgeNode generates EdgeNode
 func CreateEdgeNode() *Ctx {
-	configItems := map[string]string{"timer.config.interval": "5"}
 	id, _ := uuid.NewV4()
 	return &Ctx{
 		id:            id,
 		rebootCounter: 1000,
 		rebootState:   false,
-		configItems:   configItems,
 		configVersion: 4,
+		configItems:   map[string]string{},
 		state:         NotOnboarded,
 	}
 }

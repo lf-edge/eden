@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,26 +19,6 @@ var (
 
 var networkCmd = &cobra.Command{
 	Use: "network",
-}
-
-type netInstState struct {
-	name      string
-	uuid      string
-	netType   config.ZNetworkInstType
-	cidr      string
-	adamState string
-	eveState  string
-	activated bool
-	deleted   bool
-}
-
-func netInstStateHeader() string {
-	return "NAME\tUUID\tTYPE\tCIDR\tSTATE(ADAM)\tLAST_STATE(EVE)"
-}
-
-func (netInstStateObj *netInstState) toString() string {
-	return fmt.Sprintf("%s\t%s\t%v\t%s\t%s\t%s", netInstStateObj.name, netInstStateObj.uuid,
-		netInstStateObj.netType, netInstStateObj.cidr, netInstStateObj.adamState, netInstStateObj.eveState)
 }
 
 //networkLsCmd is a command to list deployed network instances
@@ -56,7 +36,16 @@ var networkLsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := netList(log.GetLevel()); err != nil {
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		state := eve.Init(ctrl, dev)
+		if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
+			log.Fatalf("fail in get InfoLastCallback: %s", err)
+		}
+		if err := state.NetList(); err != nil {
 			log.Fatal(err)
 		}
 	},

@@ -1,13 +1,15 @@
 package projects
 
 import (
+	"reflect"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
-	"reflect"
 )
 
 type infoState struct {
@@ -22,6 +24,8 @@ type infoState struct {
 	NetworkInstanceMetrics []*metrics.ZMetricNetworkInstance
 	VolumeMetrics          []*metrics.ZMetricVolume
 	DeviceMetrics          *metrics.DeviceMetric
+
+	LastInfoMessageTime *timestamp.Timestamp
 }
 
 //State aggregates device state
@@ -39,6 +43,7 @@ func (state *State) processInfo(infoMsg *info.ZInfoMsg) error {
 	if infoMsg.DevId != state.device.GetID().String() {
 		return nil
 	}
+	state.deviceInfo.LastInfoMessageTime = infoMsg.AtTimeStamp
 	switch infoMsg.GetZtype() {
 	case info.ZInfoTypes_ZiDevice:
 		state.deviceInfo.Dinfo = infoMsg.GetDinfo()
@@ -183,6 +188,11 @@ func (state *State) GetVolumeMetrics() []*metrics.ZMetricVolume {
 //GetDeviceMetrics get *metrics.DeviceMetric from obtained metrics
 func (state *State) GetDeviceMetrics() *metrics.DeviceMetric {
 	return state.deviceInfo.DeviceMetrics
+}
+
+//GetLastInfoTime get *timestamp.Timestamp for last received info
+func (state *State) GetLastInfoTime() *timestamp.Timestamp {
+	return state.deviceInfo.LastInfoMessageTime
 }
 
 //LookUp access fields of State objects by path
