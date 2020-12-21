@@ -93,6 +93,8 @@ func (ctx *State) InfoCallback() einfo.HandlerFunc {
 func (ctx *State) MetricCallback() emetric.HandlerFunc {
 	return func(msg *metrics.ZMetricMsg) bool {
 		ctx.processVolumesByMetric(msg)
+		ctx.processApplicationsByMetric(msg)
+		ctx.processNetworksByMetric(msg)
 		if err := ctx.infoAndMetrics.GetMetricProcessingFunction()(msg); err != nil {
 			log.Fatalf("EVE State GetMetricProcessingFunction error: %s", err)
 		}

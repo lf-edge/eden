@@ -145,6 +145,9 @@ var podPsCmd = &cobra.Command{
 		if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
 			log.Fatalf("fail in get InfoLastCallback: %s", err)
 		}
+		if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
+			log.Fatalf("fail in get MetricLastCallback: %s", err)
+		}
 		if err := state.PodsList(); err != nil {
 			log.Fatal(err)
 		}
