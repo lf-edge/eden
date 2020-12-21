@@ -3,7 +3,7 @@
 exec uname
 ! stdout Darwin
 
-{{$test_opts := "-test.v -timewait 600"}}
+{{$test_opts := "-test.v -timewait 10m"}}
 
 # Starting of reboot detector with a 1 reboots limit
 ! test eden.reboot.test {{$test_opts}} -reboot=0 -count=1 &

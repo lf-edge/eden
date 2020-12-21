@@ -7,6 +7,7 @@ then
 fi
 
 EDEN=eden
+which $EDEN || EDEN=../../eden
 CFG=$($EDEN config get)
 
 OLD=$($EDEN config get "$CFG" --key eve.hostfwd)

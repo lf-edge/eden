@@ -1,4 +1,4 @@
-test eden.reboot.test -timewait 600 -reboot=0 -test.v &
+test eden.reboot.test -timewait 10m -reboot=0 -test.v &
 
 eden controller edge-node -m adam:// reboot -v debug
 stdout 'Reboot request has been sent'

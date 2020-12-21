@@ -2,12 +2,13 @@ package escript
 
 import (
 	"flag"
-	"github.com/lf-edge/eden/pkg/tests"
-	"github.com/lf-edge/eden/tests/escript/go-internal/testscript"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/lf-edge/eden/pkg/tests"
+	"github.com/lf-edge/eden/tests/escript/go-internal/testscript"
 )
 
 var testData = flag.String("testdata", "testdata", "Test script directory")
@@ -40,7 +41,8 @@ func TestEdenScripts(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.Parse()
+	tests.TestArgsParse()
+
 	result := m.Run()
 	if result != 0 {
 		tests.RunScenario(*failScenario, "", "", "", "", "")

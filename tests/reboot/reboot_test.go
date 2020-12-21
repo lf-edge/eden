@@ -9,11 +9,13 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/tests"
 )
 
 // This context holds all the configuration items in the same
@@ -31,7 +33,7 @@ tc *TestContext // TestContext is at least {
 */
 
 var (
-	timewait = flag.Int("timewait", 600, "Timewait for reboot waiting in seconds")
+	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
 	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
 	count    = flag.Int("count", 1, "Number of reboots")
 
@@ -58,6 +60,8 @@ func checkReboot(im *info.ZInfoMsg) error {
 // is not specified explicitly it is assumed to be the first one in the slice
 func TestMain(m *testing.M) {
 	fmt.Println("Reboot Test")
+
+	tests.TestArgsParse()
 
 	tc = projects.NewTestContext()
 
@@ -123,11 +127,11 @@ func TestReboot(t *testing.T) {
 
 	t.Logf("Wait for state of %s", edgeNode.GetName())
 
-	t.Log("timewait: ", *timewait)
+	t.Log("timewait: ", timewait)
 	t.Log("reboot: ", *reboot)
 	t.Log("count: ", *count)
 
-	tc.WaitForState(edgeNode, *timewait)
+	tc.WaitForState(edgeNode, int(timewait.Seconds()))
 
 	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
 
@@ -148,7 +152,7 @@ func TestReboot(t *testing.T) {
 
 		tc.AddProcInfo(edgeNode, checkReboot)
 
-		tc.WaitForProc(*timewait)
+		tc.WaitForProc(int(timewait.Seconds()))
 
 		number++
 		t.Logf("Reboot number: %d\n", number)

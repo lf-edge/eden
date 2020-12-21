@@ -1,6 +1,5 @@
 # Simple test of `eclient` image functionality
 
-{{$test_opts := "-test.v -timewait 1200"}}
 {{$port := "2223"}}
 
 [!exec:bash] stop
@@ -8,7 +7,7 @@
 [!exec:ssh] stop
 
 # Starting of reboot detector with a 2 reboot limit
-! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
+! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=2 &
 
 eden pod deploy -n eclient --memory=512MB docker://itmoeve/eclient:0.3 -p {{$port}}:22
 

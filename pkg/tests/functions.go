@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"flag"
 	"fmt"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -13,6 +14,15 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
+
+//TestArgsParse -- add options from defaults.DefaultTestArgsEnv (EDEN_TEST_ARGS) env. var. to test options
+//Just replace flag.Parse() by tests.TestArgsParse() in TestMain() function.
+func TestArgsParse() {
+	if targs := os.Getenv(defaults.DefaultTestArgsEnv); targs != "" {
+		os.Args = append(os.Args, strings.Fields(targs)...)
+	}
+	flag.Parse()
+}
 
 //RunTest -- single test runner.
 func RunTest(testApp string, args []string, testArgs string, testTimeout string, failScenario string, configFile string, verbosity string) {
@@ -36,20 +46,14 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 
 		log.Debug("testProg: ", path)
 
-		if testTimeout != "" {
-			args = append(args, "-test.timeout", testTimeout)
-		}
-		if verbosity != "info" {
-			args = append(args, "-test.v")
-		}
-
 		done := make(chan bool, 1)
 		go func() {
 			ticker := time.NewTicker(defaults.DefaultRepeatTimeout * defaults.DefaultRepeatCount)
 			for {
 				select {
 				case tickTime := <-ticker.C:
-					//we need to log periodically to avoid stopping of ci/cd system
+					//we need to log periodically to avoid
+					//stopping of ci/cd system
 					log.Infof("Test is running: %s",
 						tickTime.Format(time.RFC3339))
 				case <-done:
@@ -64,7 +68,25 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 		tst := exec.Command(path, resultArgs...)
 		tst.Stdout = os.Stdout
 		tst.Stderr = os.Stderr
-		tst.Env = append(os.Environ(), fmt.Sprintf("%s=%s", defaults.DefaultConfigEnv, viper.Get("eve.name")))
+		tst.Env = append(os.Environ(), fmt.Sprintf("%s=%s",
+			defaults.DefaultConfigEnv, viper.Get("eve.name")))
+
+		targs := ""
+		if testTimeout != "" {
+			targs = fmt.Sprintf("%s -test.timeout=%s",
+				targs, testTimeout)
+		}
+		if verbosity != "info" {
+			targs = fmt.Sprintf("%s -test.v", targs)
+		}
+
+		if targs != "" {
+			log.Debugf("TestArgsEnv: '%s'", targs)
+			tst.Env = append(os.Environ(),
+				fmt.Sprintf("%s=%s",
+					defaults.DefaultTestArgsEnv, targs))
+		}
+
 		err = tst.Run()
 		close(done)
 
