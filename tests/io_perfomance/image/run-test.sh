@@ -17,7 +17,6 @@ mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/Iostat
 mkdir ~/check_branch
-touch ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
 cp README.md ~/"$GIT_REPO"/"$FOLDERNAME"/
 cp config.fio ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/
 echo "Setting up directories is end"
@@ -31,7 +30,11 @@ echo "Running IOSTAT"
 
 #Running FIO
 echo "Running FIO"
-fio config.fio > ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results
+fio config.fio --output=~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results --output-format=normal,json
+
+echo "Result FIO generate start"
+./fioconv ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/fio-results ~/"$GIT_REPO"/"$FOLDERNAME"/SUMMARY.csv
+echo "Result FIO generate done"
 
 #Create a new branch in the GIT repository and push the changes
 echo "Create a branch and start posting results to GIT"
