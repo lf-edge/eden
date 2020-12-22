@@ -6,7 +6,7 @@
 eden -t 5s pod ps
 
 # Starting of reboot detector with a 3 reboots limit
-! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=1 &
+! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=1 &
 
 # Run t1 docker
 eden -t 1m pod deploy -p 8027:80 docker://nginx -n t1

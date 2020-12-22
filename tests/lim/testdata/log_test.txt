@@ -1,4 +1,4 @@
-{{$test1 := "test eden.lim.test -test.v -timewait 600 -test.run TestLog"}}
+{{$test1 := "test eden.lim.test -test.v -timewait 10m -test.run TestLog"}}
 
 # ssh into EVE to force log creation
 exec -t 5m bash ssh.sh &

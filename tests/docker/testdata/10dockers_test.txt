@@ -1,4 +1,4 @@
-{{$test_opts := "-test.v -timewait 2400"}}
+{{$test_opts := "-test.v -timewait 40m"}}
 
 [!exec:curl] stop
 

@@ -8,19 +8,21 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
 	number   = flag.Int("number", 1, "The number of items (0=unlimited) you need to get")
-	timewait = flag.Int("timewait", 60, "Timewait for items waiting in seconds")
+	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
 	out      = flag.String("out", "", "Paramters for out separated by ':'")
 
 	// This context holds all the configuration items in the same
@@ -76,6 +78,8 @@ func count(msg string, node string) string {
 func TestMain(m *testing.M) {
 	fmt.Println("Log/Info/Metric Test")
 
+	tests.TestArgsParse()
+
 	tc = projects.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestLogInfoMetric", time.Now())
@@ -127,8 +131,8 @@ func TestMain(m *testing.M) {
 	// for the rest of the tests to run. So run them:
 	res := m.Run()
 
-	// Finally, we need to cleanup whatever objects may be in in the project we created
-	// and then we can exit
+	// Finally, we need to cleanup whatever objects may be in in the
+	// project we created and then we can exit
 	os.Exit(res)
 }
 
@@ -140,8 +144,8 @@ func TestLog(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for log of %s number=%d timewait=%d\n", edgeNode.GetName(),
-		*number, *timewait)
+	t.Logf("Wait for log of %s number=%d timewait=%s\n",
+		edgeNode.GetName(), *number, timewait)
 
 	tc.AddProcLog(edgeNode, func(log *elog.FullLogEntry) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
@@ -170,7 +174,7 @@ func TestLog(t *testing.T) {
 		}(t, edgeNode, log)
 	})
 
-	tc.WaitForProc(*timewait)
+	tc.WaitForProc(int(timewait.Seconds()))
 }
 
 func TestInfo(t *testing.T) {
@@ -181,8 +185,8 @@ func TestInfo(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for info of %s number=%d timewait=%d\n",
-		edgeNode.GetName(), *number, *timewait)
+	t.Logf("Wait for info of %s number=%d timewait=%s\n",
+		edgeNode.GetName(), *number, timewait)
 
 	tc.AddProcInfo(edgeNode, func(ei *info.ZInfoMsg) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
@@ -211,7 +215,7 @@ func TestInfo(t *testing.T) {
 		}(t, edgeNode, ei)
 	})
 
-	tc.WaitForProc(*timewait)
+	tc.WaitForProc(int(timewait.Seconds()))
 }
 
 func TestMetrics(t *testing.T) {
@@ -222,8 +226,8 @@ func TestMetrics(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for metric of %s number=%d timewait=%d\n",
-		edgeNode.GetName(), *number, *timewait)
+	t.Logf("Wait for metric of %s number=%d timewait=%s\n",
+		edgeNode.GetName(), *number, timewait)
 
 	tc.AddProcMetric(edgeNode, func(metric *metrics.ZMetricMsg) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
@@ -254,5 +258,5 @@ func TestMetrics(t *testing.T) {
 		}(t, edgeNode, metric)
 	})
 
-	tc.WaitForProc(*timewait)
+	tc.WaitForProc(int(timewait.Seconds()))
 }

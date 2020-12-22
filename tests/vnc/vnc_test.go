@@ -28,8 +28,9 @@ import (
 // and removes app from EVE
 
 var (
-	timewait     = flag.Int("timewait", 900, "Timewait for items waiting in seconds")
-	expand       = flag.Int("expand", 400, "Expand timewait on success of step in seconds")
+	timewait = flag.Duration("timewait", 15*time.Minute, "Timewait for items waiting")
+
+	expand       = flag.Duration("expand", 7*time.Minute, "Expand timewait on success of step")
 	name         = flag.String("name", "", "Name of app, random if empty")
 	vncDisplay   = flag.Int("vncDisplay", 1, "VNC display number")
 	vncPassword  = flag.String("vncPassword", "12345678", "Password for VNC")
@@ -238,9 +239,9 @@ func TestVNCVMStart(t *testing.T) {
 
 	}
 
-	tc.ExpandOnSuccess(*expand)
+	tc.ExpandOnSuccess(int(expand.Seconds()))
 
-	tc.WaitForProc(*timewait)
+	tc.WaitForProc(int(timewait.Seconds()))
 }
 
 //TestVNCVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
@@ -278,5 +279,5 @@ func TestVNCVMDelete(t *testing.T) {
 		}
 	}
 
-	tc.WaitForProc(*timewait)
+	tc.WaitForProc(int(timewait.Seconds()))
 }

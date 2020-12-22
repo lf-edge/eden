@@ -16,8 +16,8 @@
 # Combine variables into $short_version
 {{$short_version := printf "%s-%s-%s" $eve_ver $eve_hv $eve_arch}}
 
-# Use eden.lim.test for access Infos with timewait 1200 seconds
-{{$test := "test eden.lim.test -test.v -timewait 1200 -test.run TestInfo"}}
+# Use eden.lim.test for access Infos with timewait 20m
+{{$test := "test eden.lim.test -test.v -timewait 20m -test.run TestInfo"}}
 
 
 # Download EVE rootfs into eve-dist

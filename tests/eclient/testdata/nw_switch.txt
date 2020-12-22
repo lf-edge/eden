@@ -1,6 +1,5 @@
 # Test for apllications network connectivity switching
 
-{{$test_opts := "-test.v -timewait 1200"}}
 {{$test_msg := "This is a test"}}
 {{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa root@{{end}}
 
@@ -9,7 +8,7 @@
 [!exec:ssh] stop
 
 # Starting of reboot detector with 2 reboots limit
-! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=2 &
+! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=2 &
 
 message 'Resetting of EVE'
 eden eve reset

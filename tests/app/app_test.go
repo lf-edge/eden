@@ -9,13 +9,14 @@ import (
 
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 )
 
 // This test wait for the app's state with a timewait.
 var (
-	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
+	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
 	tc       *projects.TestContext
 	states   map[string][]string
 	eveState *eve.State
@@ -27,6 +28,8 @@ var (
 // is not specified explicitly it is assumed to be the first one in the slice
 func TestMain(m *testing.M) {
 	fmt.Println("Docker app's state test")
+
+	tests.TestArgsParse()
 
 	tc = projects.NewTestContext()
 

@@ -29,7 +29,8 @@ const (
 
 	DefaultContext = "default" //default context name
 
-	DefaultConfigEnv = "EDEN_CONFIG" //default env for set config
+	DefaultConfigEnv   = "EDEN_CONFIG"    //default env for set config
+	DefaultTestArgsEnv = "EDEN_TEST_ARGS" //default env for test arguments
 )
 
 //domains, ips, ports

@@ -24,7 +24,7 @@ import (
 // and removes app from EVE
 // you can replace defaults with flags
 var (
-	timewait     = flag.Int("timewait", 600, "Timewait for items waiting in seconds")
+	timewait     = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
 	name         = flag.String("name", "", "Name of app, random if empty")
 	externalPort = flag.Int("externalPort", 8028, "Port for access app from outside of EVE. Not publish if equals with 0.")
 	internalPort = flag.Int("internalPort", 80, "Port for access app inside EVE")
@@ -201,7 +201,7 @@ func TestDockerStart(t *testing.T) {
 
 	}
 
-	tc.WaitForProc(*timewait)
+	tc.WaitForProc(int(timewait.Seconds()))
 }
 
 //TestDockerDelete gets EdgeNode and deletes previously deployed app, defined in appName
@@ -238,5 +238,5 @@ func TestDockerDelete(t *testing.T) {
 		}
 	}
 
-	tc.WaitForProc(*timewait)
+	tc.WaitForProc(int(timewait.Seconds()))
 }
