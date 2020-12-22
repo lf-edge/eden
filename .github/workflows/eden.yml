@@ -33,5 +33,36 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
-          name: 'eden-report'
+          name: 'eden-report-kvm'
+          path: ${{ github.workspace }}/trace.log
+  integration-xen:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: setup
+        run: |
+          sudo apt update
+          sudo apt install -y qemu-utils qemu-system-x86
+      - name: get eden
+        uses: actions/checkout@v2
+      - name: build eden
+        run: |
+          make clean
+          make build-tests
+      - name: run
+        run: |
+          ./eden config add default
+          ./eden config set default --key=eve.accel --value=false
+          ./eden config set default --key=eve.hv --value=xen
+          echo > tests/workflow/testdata/eden_stop.txt
+          ./eden test ./tests/workflow -v debug
+      - name: Collect logs
+        if: ${{ always() }}
+        run: |
+          ./eden log --format json > trace.log
+          ./eden stop
+      - name: Store raw test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'eden-report-xen'
           path: ${{ github.workspace }}/trace.log

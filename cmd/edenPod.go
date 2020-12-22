@@ -60,6 +60,8 @@ var podDeployCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		ssid = viper.GetString("eve.ssid")
+		qemuAccel = viper.GetBool("eve.accel")
+		eveHV = viper.GetString("eve.hv")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -109,6 +111,10 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithRegistry(registryToUse))
 		if noHyper {
 			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
+		} else {
+			if !qemuAccel && eveHV == "xen" {
+				opts = append(opts, expect.WithVirtualizationMode(config.VmMode_PV))
+			}
 		}
 		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
