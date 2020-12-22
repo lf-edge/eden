@@ -170,7 +170,7 @@ var gcpDelete = &cobra.Command{
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
 		if err := gcpClient.DeleteInstance(gcpVMName, gcpZone, true); err != nil {
-			log.Fatalf("")
+			log.Fatalf("DeleteInstance: %s", err)
 		}
 	},
 }
@@ -184,7 +184,21 @@ var gcpConsole = &cobra.Command{
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
 		if err := gcpClient.ConnectToInstanceSerialPort(gcpVMName, gcpZone); err != nil {
-			log.Fatalf("")
+			log.Fatalf("ConnectToInstanceSerialPort: %s", err)
+		}
+	},
+}
+
+var gcpLog = &cobra.Command{
+	Use:   "log",
+	Short: "show vm console log from gcp",
+	Run: func(cmd *cobra.Command, args []string) {
+		gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
+		if err != nil {
+			log.Fatalf("Unable to connect to GCP: %v", err)
+		}
+		if err := gcpClient.GetInstanceSerialOutput(gcpVMName, gcpZone); err != nil {
+			log.Fatalf("GetInstanceSerialOutput: %s", err)
 		}
 	},
 }
@@ -252,6 +266,9 @@ func gcpInit() {
 	gcpVMCmd.AddCommand(gcpConsole)
 	gcpConsole.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpConsole.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
+	gcpVMCmd.AddCommand(gcpLog)
+	gcpLog.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
+	gcpLog.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
 	gcpVMCmd.AddCommand(gcpGetIP)
 	gcpGetIP.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpGetIP.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")

@@ -17,6 +17,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
 	"google.golang.org/api/storage/v1"
 )
 
@@ -25,7 +26,6 @@ const timeout = 60
 
 // GCPClient contains state required for communication with GCP
 type GCPClient struct {
-	client      *http.Client
 	compute     *compute.Service
 	storage     *storage.Service
 	projectName string
@@ -40,6 +40,7 @@ func NewGCPClient(keys, projectName string) (*GCPClient, error) {
 	if projectName == "" {
 		return nil, fmt.Errorf("the project name is not specified")
 	}
+	var opts []option.ClientOption
 	if keys != "" {
 		log.Debugf("Using Keys %s", keys)
 		f, err := os.Open(keys)
@@ -60,8 +61,9 @@ func NewGCPClient(keys, projectName string) (*GCPClient, error) {
 			return nil, err
 		}
 
+		opts = append(opts, option.WithAPIKey(string(jsonKey)))
+		opts = append(opts, option.WithHTTPClient(config.Client(ctx)))
 		client = &GCPClient{
-			client:      config.Client(ctx),
 			projectName: projectName,
 		}
 	} else {
@@ -74,19 +76,20 @@ func NewGCPClient(keys, projectName string) (*GCPClient, error) {
 		if err != nil {
 			return nil, err
 		}
+		opts = append(opts, option.WithHTTPClient(gc))
 		client = &GCPClient{
-			client:      gc,
 			projectName: projectName,
 		}
 	}
 
 	var err error
-	client.compute, err = compute.New(client.client)
+
+	client.compute, err = compute.NewService(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	client.storage, err = storage.New(client.client)
+	client.storage, err = storage.NewService(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -542,7 +545,7 @@ func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 					// Timeout received when the instance has terminated
 					break
 				}
-			}else{
+			} else {
 				time.Sleep(pollingInterval)
 				continue
 			}

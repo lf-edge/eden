@@ -110,7 +110,7 @@ run: build setup
 stop: build
 	$(LOCALBIN) stop -v $(DEBUG)
 
-.PHONY: processing eserver all clean test build
+.PHONY: processing eserver all clean test build config
 
 eserver:
 	@echo "Build eserver image"
