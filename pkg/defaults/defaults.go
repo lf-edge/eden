@@ -68,7 +68,7 @@ const (
 	//DefaultRepeatCount is repeat count for requests
 	DefaultRepeatCount = 20
 	//DefaultRepeatTimeout is time wait for next attempt
-	DefaultRepeatTimeout         = 10 * time.Second
+	DefaultRepeatTimeout         = 30 * time.Second
 	DefaultUUID                  = "1"
 	DefaultFileToSave            = "./test.tar"
 	DefaultIsLocal               = false
