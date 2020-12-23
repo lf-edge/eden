@@ -1,4 +1,4 @@
-test eden.escript.test -test.run TestEdenScripts/message -test.v -testdata {{EdenConfig "eden.root"}}/../tests/escript/testdata/
+test eden.escript.test -test.run TestEdenScripts/message -test.v -testdata {{EdenConfig "eden.root"}}/tests/escript/testdata/
 cp stdout out
 
 mkdir testdata

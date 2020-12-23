@@ -3,7 +3,7 @@
 {{$server := "mariadb"}}
 {{$test_msg := "MariaDB [(none)]> "}}
 {{define "port"}}2223{{end}}
-{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa -p {{template "port"}} root@{{end}}
+{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p {{template "port"}} root@{{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop

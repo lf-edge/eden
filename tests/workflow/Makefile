@@ -18,7 +18,9 @@ OS ?= $(HOSTOS)
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
 WORKDIR ?= $(CURDIR)/../../dist
+TESTDIR := tests/$(shell basename $(CURDIR))
 BINDIR := $(WORKDIR)/bin
+DATADIR := $(WORKDIR)/$(TESTDIR)/
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 TESTNAME := eden.workflow
@@ -34,19 +36,21 @@ clean:
 
 $(WORKDIR):
 	mkdir -p $@
+$(DATADIR):
+	mkdir -p $@
 
 test:
 	$(LOCALBIN) test $(CURDIR) -v $(DEBUG)
 
 build: setup
 
-setup:
-	cp $(TESTSCN) $(WORKDIR)
+setup: $(BINDIR) $(DATADIR)
 ifeq ($(OS), $(HOSTOS))
 	$(LOCALBIN) utils template eden.workflow.tests.txt > workflow.default.txt
 	EDEN_TEST=small $(LOCALBIN) utils template eden.workflow.tests.txt > workflow.small.txt
 	EDEN_TEST=large $(LOCALBIN) utils template eden.workflow.tests.txt > workflow.large.txt
 endif
+	cp -a *.yml *.txt testdata $(DATADIR)
 
 .PHONY: test build setup clean all
 

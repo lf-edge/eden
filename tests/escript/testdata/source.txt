@@ -3,13 +3,13 @@
 
 # Show current variable value
 env time
-test eden.escript.test -test.run TestEdenScripts/nested_source -test.v -testdata {{EdenConfig "eden.root"}}/../tests/escript/testdata/
+test eden.escript.test -test.run TestEdenScripts/nested_source -test.v -testdata {{EdenConfig "eden.root"}}/tests/escript/testdata/
 ! stdout '05 Aug 2020 12:23:27'
 
 # Source .env file defined below
 source .env
 env time
-test eden.escript.test -test.run TestEdenScripts/nested_source -test.v -testdata {{EdenConfig "eden.root"}}/../tests/escript/testdata/
+test eden.escript.test -test.run TestEdenScripts/nested_source -test.v -testdata {{EdenConfig "eden.root"}}/tests/escript/testdata/
 stdout '05 Aug 2020 12:23:27'
 
 # Override .env by bash script
@@ -18,7 +18,7 @@ exec bash set_from_bash.sh
 # Source .env modified by bash
 source .env
 env time
-test eden.escript.test -test.run TestEdenScripts/nested_source -test.v -testdata {{EdenConfig "eden.root"}}/../tests/escript/testdata/
+test eden.escript.test -test.run TestEdenScripts/nested_source -test.v -testdata {{EdenConfig "eden.root"}}/tests/escript/testdata/
 ! stdout '05 Aug 2020 12:23:27'
 
 -- .env --
