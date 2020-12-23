@@ -121,9 +121,6 @@ func formatCSV(in fioJSON, to io.Writer) error {
 
 	w.Flush()
 
-	if err := w.Error(); err != nil {
-		return err
-	}
 	return nil
 }
 
