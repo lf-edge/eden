@@ -19,7 +19,8 @@ COPY config.fio /config.fio
 COPY README.md /README.md
 COPY run-iostat.sh /run-iostat.sh
 COPY --from=builder /app/fioconv .
-RUN chmod a+x /run-iostat.sh /run-test.sh
+RUN chmod a+x /run-iostat.sh 
+RUN chmod a+x /run-test.sh
 
 VOLUME ["/data"]
 ENTRYPOINT ["/bin/bash"]
