@@ -20,8 +20,9 @@ var (
 	gcpZone        string
 	gcpMachineType string
 
-	gcpFirewallRuleName    string
-	gcpFirewallRuleSources []string
+	gcpFirewallRuleName     string
+	gcpFirewallRuleSources  []string
+	gcpFirewallRulePriority int64
 )
 
 var gcpCmd = &cobra.Command{
@@ -235,7 +236,10 @@ var gcpAddFirewallRule = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
-		if err := gcpClient.SetFirewallAllowRule(gcpFirewallRuleName, gcpFirewallRuleSources); err != nil {
+		if err := gcpClient.DeleteFirewallAllowRule(gcpFirewallRuleName); err != nil {
+			log.Warning(err)
+		}
+		if err := gcpClient.SetFirewallAllowRule(gcpFirewallRuleName, gcpFirewallRulePriority, gcpFirewallRuleSources); err != nil {
 			log.Fatal(err)
 		}
 		log.Info("Rules added")
@@ -275,4 +279,5 @@ func gcpInit() {
 	gcpCmd.AddCommand(gcpAddFirewallRule)
 	gcpAddFirewallRule.Flags().StringVar(&gcpFirewallRuleName, "name", fmt.Sprintf("%s-rule", defaults.DefaultGcpImageName), "firewall rule name")
 	gcpAddFirewallRule.Flags().StringSliceVar(&gcpFirewallRuleSources, "source-range", nil, "source ranges to allow")
+	gcpAddFirewallRule.Flags().Int64Var(&gcpFirewallRulePriority, "priority", defaults.DefaultGcpRulePriority, "priority of firewall rule")
 }
