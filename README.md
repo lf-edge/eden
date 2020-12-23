@@ -326,7 +326,7 @@ a google service key json.
 
 ```console
 eden utils gcp image -k <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> upload <PATH TO EVE IMAGE>
-eden utils gcp vm -k <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> --vm-name=<NAME OF VM ON GCP> run
+eden utils gcp vm -k <PATH TO SERVICE KEY FILE> -p <PROJECT ON GCP> --image-name <NAME OF IMAGE ON GCP> --vm-name=<NAME OF VM ON GCP> --tags=<NETWORK TAG> run
 ```
 
 `eden utils gcp` also supports:
@@ -339,7 +339,8 @@ Note that the firewall may be active on GCP. Allow connections (create rules)
 
 ```console
 BWD=$(./eden utils gcp vm get-ip --vm-name eve-eden-one -k <google json key path>)
-./eden utils gcp firewall -k <google json key path>  --source-range $BWD --name <firewall_rule_name>
+./eden utils gcp firewall -k <google json key path>  --source-range $BWD --target-tags=<NETWORK TAG OF SERVER> --name <firewall_rule_name>
+./eden utils gcp firewall -k <google json key path>  --source-range <CIDR OF SERVER> --target-tags=<NETWORK TAG FROM STEP 2> --name <firewall_rule_name>
 ```
 
 ADAM should be publicly available from GCP machine.

@@ -22,6 +22,7 @@ var (
 
 	gcpFirewallRuleName    string
 	gcpFirewallRuleSources []string
+	gcpTags                []string
 )
 
 var gcpCmd = &cobra.Command{
@@ -155,7 +156,7 @@ var gcpRun = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
-		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, nil, nil, true, true); err != nil {
+		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, nil, nil, true, true, gcpTags); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -235,7 +236,7 @@ var gcpAddFirewallRule = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
-		if err := gcpClient.SetFirewallAllowRule(gcpFirewallRuleName, gcpFirewallRuleSources); err != nil {
+		if err := gcpClient.SetFirewallAllowRule(gcpFirewallRuleName, gcpFirewallRuleSources, gcpTags); err != nil {
 			log.Fatal(err)
 		}
 		log.Info("Rules added")
@@ -260,6 +261,7 @@ func gcpInit() {
 	gcpRun.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpRun.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
 	gcpRun.Flags().StringVar(&gcpMachineType, "machine-type", defaults.DefaultGcpMachineType, "gcp machine type")
+	gcpRun.Flags().StringSliceVar(&gcpTags, "tags", nil, "network tags of instance")
 	gcpVMCmd.AddCommand(gcpDelete)
 	gcpDelete.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpDelete.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
@@ -275,4 +277,5 @@ func gcpInit() {
 	gcpCmd.AddCommand(gcpAddFirewallRule)
 	gcpAddFirewallRule.Flags().StringVar(&gcpFirewallRuleName, "name", fmt.Sprintf("%s-rule", defaults.DefaultGcpImageName), "firewall rule name")
 	gcpAddFirewallRule.Flags().StringSliceVar(&gcpFirewallRuleSources, "source-range", nil, "source ranges to allow")
+	gcpAddFirewallRule.Flags().StringSliceVar(&gcpTags, "target-tags", nil, "target tags to allow")
 }

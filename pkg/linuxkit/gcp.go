@@ -223,7 +223,7 @@ func (g GCPClient) ListImages() ([]string, error) {
 }
 
 // CreateInstance creates and starts an instance on GCP
-func (g GCPClient) CreateInstance(name, image, zone, machineType string, disks Disks, data *string, nested, replace bool) error {
+func (g GCPClient) CreateInstance(name, image, zone, machineType string, disks Disks, data *string, nested, replace bool, tags []string) error {
 	if replace {
 		if err := g.DeleteInstance(name, zone, true); err != nil {
 			return err
@@ -309,6 +309,7 @@ func (g GCPClient) CreateInstance(name, image, zone, machineType string, disks D
 				},
 			},
 		},
+		Tags: &compute.Tags{Items: tags},
 	}
 
 	if nested {
@@ -562,13 +563,15 @@ func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 	return "", fmt.Errorf("not found NatIP for %s", instance)
 }
 
-// SetFirewallAllowRule runs gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges
-func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string) error {
+// SetFirewallAllowRule runs
+//gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges --target-tags=tags
+func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string, tags []string) error {
 	log.Infof("setting firewall %s for %s", ruleName, sourceRanges)
 	for i := 0; i < timeout; i++ {
 		firewall := &compute.Firewall{
 			Name:         ruleName,
 			SourceRanges: sourceRanges,
+			TargetTags:   tags,
 			Allowed: []*compute.FirewallAllowed{
 				{
 					IPProtocol: "icmp",
