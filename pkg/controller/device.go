@@ -411,28 +411,31 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 			}
 		}
 
-		volumeConfig, err := cloud.GetVolume(baseOSConfig.VolumeID)
-		if err != nil {
-			return nil, err
-		}
-
-		volumes = append(volumes, volumeConfig)
 		baseOS = append(baseOS, baseOSConfig)
 
-		if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
-			for _, contentTree := range contentTrees {
-				if contentTree.Uuid == contentTreeConfig.Uuid {
-					contentTreeConfig = nil
-					break
-				}
+		if baseOSConfig.VolumeID != "" {
+			volumeConfig, err := cloud.GetVolume(baseOSConfig.VolumeID)
+			if err != nil {
+				return nil, err
 			}
-			if contentTreeConfig != nil {
-				//add required datastores
-				dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
-				if err != nil {
-					return nil, err
+
+			volumes = append(volumes, volumeConfig)
+
+			if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
+				for _, contentTree := range contentTrees {
+					if contentTree.Uuid == contentTreeConfig.Uuid {
+						contentTreeConfig = nil
+						break
+					}
 				}
-				contentTrees = append(contentTrees, contentTreeConfig)
+				if contentTreeConfig != nil {
+					//add required datastores
+					dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
+					if err != nil {
+						return nil, err
+					}
+					contentTrees = append(contentTrees, contentTreeConfig)
+				}
 			}
 		}
 	}
