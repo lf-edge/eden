@@ -9,9 +9,8 @@ fi
 EDEN=eden
 DIR=$(dirname "$0")
 PATH=$DIR:$DIR/../../bin:$PATH
-CFG=$($EDEN config get)
 
-OLD=$($EDEN config get "$CFG" --key eve.hostfwd)
+OLD=$($EDEN config get "$EDEN_CONFIG" --key eve.hostfwd)
 NEW=$OLD
 
 for port in "$@"
@@ -28,10 +27,10 @@ done
 
 if [ "$OLD" != "$NEW" ]
 then
-  echo $EDEN config set "$CFG" --key eve.hostfwd --value \'"$NEW"\'
-  $EDEN config set "$CFG" --key eve.hostfwd --value "$NEW"
-  echo $EDEN config get "$CFG" --key eve.hostfwd
-  $EDEN config get "$CFG" --key eve.hostfwd
+  echo $EDEN config set "$EDEN_CONFIG" --key eve.hostfwd --value \'"$NEW"\'
+  $EDEN config set "$EDEN_CONFIG" --key eve.hostfwd --value "$NEW"
+  echo $EDEN config get "$EDEN_CONFIG" --key eve.hostfwd
+  $EDEN config get "$EDEN_CONFIG" --key eve.hostfwd
   echo $EDEN eve stop
   $EDEN eve stop
   sleep 5
