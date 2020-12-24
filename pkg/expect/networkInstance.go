@@ -86,7 +86,11 @@ func (exp *AppExpectation) NetworkInstances() (networkInstances map[*NetInstance
 	for _, ni := range exp.netInstances {
 		var err error
 		var networkInstance *config.NetworkInstanceConfig
-		for _, netInst := range exp.ctrl.ListNetworkInstanceConfig() {
+		for _, netInstID := range exp.device.GetNetworkInstances() {
+			netInst, err := exp.ctrl.GetNetworkInstanceConfig(netInstID)
+			if err != nil {
+				log.Fatalf("no baseOS %s found in controller: %s", netInstID, err)
+			}
 			if exp.checkNetworkInstance(netInst, ni) {
 				networkInstance = netInst
 				break

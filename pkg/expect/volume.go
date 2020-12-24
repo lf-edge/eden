@@ -9,7 +9,11 @@ import (
 
 //driveToVolume converts information about drive, its number and content tree into volume representation
 func (exp *AppExpectation) driveToVolume(dr *config.Drive, numberOfDrive int, contentTree *config.ContentTree) *config.Volume {
-	for _, el := range exp.ctrl.ListVolume() {
+	for _, volID := range exp.device.GetVolumes() {
+		el, err := exp.ctrl.GetVolume(volID)
+		if err != nil {
+			log.Fatalf("no volume %s found in controller: %s", volID, err)
+		}
 		if el.DisplayName == fmt.Sprintf("%s_%d_m_0", contentTree.DisplayName, numberOfDrive) {
 			// we already have this one in controller
 			return el

@@ -110,7 +110,11 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 func (exp *AppExpectation) Application() *config.AppInstanceConfig {
 	image := exp.Image()
 	networkInstances := exp.NetworkInstances()
-	for _, app := range exp.ctrl.ListApplicationInstanceConfig() {
+	for _, appID := range exp.device.GetApplicationInstances() {
+		app, err := exp.ctrl.GetApplicationInstanceConfig(appID)
+		if err != nil {
+			log.Fatalf("no app %s found in controller: %s", appID, err)
+		}
 		if exp.checkAppInstanceConfig(app) {
 			return app
 		}
