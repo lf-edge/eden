@@ -1,4 +1,4 @@
-{{$tests := 17}}
+{{$tests := 18}}
 {{$workflow := EdenGetEnv "EDEN_TEST"}}
 {{ if and (ne $workflow "small") (ne $workflow "large")  }}
 /bin/echo Eden setup (1/{{$tests}})
@@ -37,12 +37,14 @@ eden.escript.test -test.run TestEdenScripts/networking_light -testdata ../eclien
 eden.escript.test -test.run TestEdenScripts/ngnix -testdata ../eclient/testdata/
 /bin/echo Eden Mariadb (14/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/maridb -testdata ../eclient/testdata/
+/bin/echo Eden's testing the maximum application limit (15/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eclients -testdata ../eclient/testdata/
 {{end}}
-/bin/echo Eden Reboot test (15/{{$tests}})
+/bin/echo Eden Reboot test (16/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
 {{ if ne $workflow "small" }}
-/bin/echo Eden base OS update (16/{{$tests}})
+/bin/echo Eden base OS update (17/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/
 {{end}}
-/bin/echo Eden stop (17/{{$tests}})
+/bin/echo Eden stop (18/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop
