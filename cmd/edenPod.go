@@ -37,6 +37,8 @@ var (
 	imageFormat string
 	volumeType  string
 
+	deleteVolumes bool
+
 	outputTail   uint
 	outputFields []string
 
@@ -256,6 +258,22 @@ var podDeleteCmd = &cobra.Command{
 				log.Fatalf("no app in cloud %s: %s", el, err)
 			}
 			if app.Displayname == appName {
+				if deleteVolumes {
+					volumeIDs := dev.GetVolumes()
+					utils.DelEleInSliceByFunction(&volumeIDs, func(i interface{}) bool {
+						vol, err := ctrl.GetVolume(i.(string))
+						if err != nil {
+							log.Fatalf("no volume in cloud %s: %s", i.(string), err)
+						}
+						for _, volRef := range app.VolumeRefList {
+							if vol.Uuid == volRef.Uuid {
+								return true
+							}
+						}
+						return false
+					})
+					dev.SetVolumeConfigs(volumeIDs)
+				}
 				configs := dev.GetApplicationInstances()
 				utils.DelEleInSlice(&configs, id)
 				dev.SetApplicationInstanceConfig(configs)
@@ -419,6 +437,7 @@ func podInit() {
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
 	podCmd.AddCommand(podDeleteCmd)
+	podDeleteCmd.Flags().BoolVar(&deleteVolumes, "with-volumes", true, "delete volumes of pod")
 	podCmd.AddCommand(podLogsCmd)
 	podLogsCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
 	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "app"}, "Show defined elements")

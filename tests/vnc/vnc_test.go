@@ -267,6 +267,20 @@ func TestVNCVMDelete(t *testing.T) {
 	for id, appUUID := range edgeNode.GetApplicationInstances() {
 		appConfig, _ := tc.GetController().GetApplicationInstanceConfig(appUUID)
 		if appConfig.Displayname == appName {
+			volumeIDs := edgeNode.GetVolumes()
+			utils.DelEleInSliceByFunction(&volumeIDs, func(i interface{}) bool {
+				vol, err := tc.GetController().GetVolume(i.(string))
+				if err != nil {
+					log.Fatalf("no volume in cloud %s: %s", i.(string), err)
+				}
+				for _, volRef := range appConfig.VolumeRefList {
+					if vol.Uuid == volRef.Uuid {
+						return true
+					}
+				}
+				return false
+			})
+			edgeNode.SetVolumeConfigs(volumeIDs)
 			configs := edgeNode.GetApplicationInstances()
 			t.Log("Remove app from list")
 			utils.DelEleInSlice(&configs, id)
