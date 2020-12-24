@@ -1,0 +1,40 @@
+eden -t 5s volume ls
+
+# Starting of reboot detector with a 3 reboots limit
+! test eden.reboot.test -test.v -timewait 600 -reboot=0 -count=1 &
+
+# Create v1 volume
+eden -t 1m volume create -n v1 docker://itmoeve/eclient:latest
+stdout 'create volume v1 with docker://itmoeve/eclient:latest request sent'
+
+# Wait for run
+test eden.vol.test -test.v -timewait 10m DELIVERED v1
+#test eden.vol.test -test.v -timewait 10m DELIVERED v1
+
+# Volume detecting
+eden -t 1m volume ls
+cp stdout vol_ls
+grep '^v1\s*' vol_ls
+
+# Delete by volume's actor
+eden -t 1m volume delete v1
+stdout 'volume v1 delete done'
+
+# Wait for delete
+test eden.vol.test -test.v -timewait 5m - v1
+#test eden.vol.test -test.v -timewait 5m - v1
+stdout 'no volume with v1 found'
+
+# Dockers detecting
+eden -t 1m volume ls
+! stdout '^v1\s'
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

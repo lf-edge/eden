@@ -411,6 +411,29 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		}
 		baseOS = append(baseOS, baseOSConfig)
 	}
+volumeLoop:
+	//we must add volumes and contentTrees into EdgeDevConfig
+	for _, volumeID := range dev.GetVolumes() {
+		volumeConfig, err := cloud.GetVolume(volumeID)
+		if err != nil {
+			return nil, err
+		}
+		volumes = append(volumes, volumeConfig)
+		if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
+			for _, contentTree := range contentTrees {
+				if contentTree.Uuid == contentTreeConfig.Uuid {
+					//we already define this contentTree in EdgeDevConfig
+					continue volumeLoop
+				}
+			}
+			//add required datastores
+			dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
+			if err != nil {
+				return nil, err
+			}
+			contentTrees = append(contentTrees, contentTreeConfig)
+		}
+	}
 	var applicationInstances []*config.AppInstanceConfig
 	for _, applicationInstanceConfigID := range dev.GetApplicationInstances() {
 		applicationInstance, err := cloud.GetApplicationInstanceConfig(applicationInstanceConfigID)
@@ -421,29 +444,6 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 			dataStores, err = cloud.checkDriveDs(drive, dataStores)
 			if err != nil {
 				return nil, err
-			}
-		}
-	volumeLoop:
-		//we must check VolumeRefList of applicationInstance and add volumes and contentTrees into EdgeDevConfig
-		for _, volumeRef := range applicationInstance.VolumeRefList {
-			volumeConfig, err := cloud.GetVolume(volumeRef.Uuid)
-			if err != nil {
-				return nil, err
-			}
-			volumes = append(volumes, volumeConfig)
-			if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
-				for _, contentTree := range contentTrees {
-					if contentTree.Uuid == contentTreeConfig.Uuid {
-						//we already define this contentTree in EdgeDevConfig
-						continue volumeLoop
-					}
-				}
-				//add required datastores
-				dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
-				if err != nil {
-					return nil, err
-				}
-				contentTrees = append(contentTrees, contentTreeConfig)
 			}
 		}
 		networkInstanceConfigArray := dev.GetNetworkInstances()
