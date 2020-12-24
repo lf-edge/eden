@@ -25,23 +25,24 @@ IMAGE_DIR=$(CURDIR)/image
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
 WORKDIR ?= $(CURDIR)/../../dist
+TESTDIR := tests/$(shell basename $(CURDIR))
 BINDIR := $(WORKDIR)/bin
+DATADIR := $(WORKDIR)/$(TESTDIR)
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 TESTNAME := eden.eclient
 TESTBIN := $(TESTNAME).test
 TESTSCN := $(TESTNAME).tests.txt
 LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
-LINKDIR := ../../tests/eclient
 
 .DEFAULT_GOAL := help
 
 clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
-$(WORKDIR):
-	mkdir -p $@
 $(BINDIR):
+	mkdir -p $@
+$(DATADIR):
 	mkdir -p $@
 
 test:
@@ -49,11 +50,14 @@ test:
 
 build: setup
 
-setup:
-	cp eden+ports.sh eden-ports.sh $(BINDIR)/
-	cp $(TESTSCN) $(WORKDIR)
+setup: $(BINDIR) $(DATADIR)
+	cp -a *.sh *.yml $(TESTSCN) testdata $(DATADIR)
+	ln -sf ../$(TESTDIR)/eden+ports.sh $(BINDIR)/
+	ln -sf ../$(TESTDIR)/eden-ports.sh $(BINDIR)/
 	chmod 700 image/cert/
 	chmod 600 image/cert/id_rsa*
+	mkdir -p $(DATADIR)/image/cert/
+	cp -a image/cert/id_rsa* $(DATADIR)/image/cert/
 
 .PHONY: test build setup clean all image testbin
 

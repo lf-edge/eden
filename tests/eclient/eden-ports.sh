@@ -7,7 +7,8 @@ then
 fi
 
 EDEN=eden
-which $EDEN || EDEN=../../eden
+DIR=$(dirname "$0")
+PATH=$DIR:$DIR/../../bin:$PATH
 CFG=$($EDEN config get)
 
 OLD=$($EDEN config get "$CFG" --key eve.hostfwd)

@@ -18,7 +18,9 @@ OS ?= $(HOSTOS)
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
 WORKDIR ?= $(CURDIR)/../../dist
+TESTDIR := tests/$(shell basename $(CURDIR))
 BINDIR := $(WORKDIR)/bin
+DATADIR := $(WORKDIR)/$(TESTDIR)/
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 TESTNAME := eden.app
@@ -32,9 +34,9 @@ LINKDIR := ../../tests/app
 clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
-$(WORKDIR):
-	mkdir -p $@
 $(BINDIR):
+	mkdir -p $@
+$(DATADIR):
 	mkdir -p $@
 
 test_docker:
@@ -48,12 +50,14 @@ build: setup
 testbin: $(TESTBIN)
 $(LOCALTESTBIN): $(BINDIR) *.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ *.go
-$(TESTBIN): $(LOCALTESTBIN)
-	ln -sf $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN)
 
-setup: testbin
-	cp $(TESTSCN) $(WORKDIR)
-	ln -sf $(LINKDIR)/$(TESTBIN) $(BINDIR)
+$(TESTBIN): $(LOCALTESTBIN)
+	ln -sf $(LOCALTESTBIN) $(TESTBIN)
+
+setup: testbin $(BINDIR) $(DATADIR)
+	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(DATADIR)
+	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
+	ln -sf ../$(TESTDIR)/$(TESTBIN) $(BINDIR)
 
 .PHONY: test build setup clean all testbin
 

@@ -35,7 +35,7 @@ exec bash networks_process.sh
 source .env
 
 # deploy the first application by nested escript
-test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/network/testdata/
+test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/tests/network/testdata/
 
 # execute the script for waiting RUNNING state and obtain internal IP
 message 'waiting for app1 running state'
@@ -47,7 +47,7 @@ exec -t 15m bash wait_and_get_ip.sh
 source .env
 
 # deploy the second application by nested escript
-test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/network/testdata/
+test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/tests/network/testdata/
 
 # execute the script for waiting RUNNING state and obtain the testing sequence from the second app
 message 'waiting for app2 running state'
@@ -65,7 +65,7 @@ exec -t 15m bash app3.sh
 source .env
 
 # deploy the third application by nested escript
-test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/../tests/network/testdata/
+test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/tests/network/testdata/
 
 message 'waiting for app3 running state'
 test eden.app.test -test.v -timewait 10m RUNNING app3

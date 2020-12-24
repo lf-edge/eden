@@ -18,7 +18,9 @@ OS ?= $(HOSTOS)
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
 WORKDIR ?= $(CURDIR)/../../dist
+TESTDIR := tests/$(shell basename $(CURDIR))
 BINDIR := $(WORKDIR)/bin
+DATADIR := $(WORKDIR)/$(TESTDIR)
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 TESTNAME := eden.escript
@@ -32,9 +34,9 @@ LINKDIR := ../../tests/escript
 clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
-$(WORKDIR):
-	mkdir -p $@
 $(BINDIR):
+	mkdir -p $@
+$(DATADIR):
 	mkdir -p $@
 
 test_escript:
@@ -48,12 +50,15 @@ build: setup
 testbin: $(TESTBIN)
 $(LOCALTESTBIN): $(BINDIR) *.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ *.go
+
 $(TESTBIN): $(LOCALTESTBIN)
 	ln -sf $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN)
 
-setup: testbin
+setup: testbin $(BINDIR) $(DATADIR)
+	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(DATADIR)
+	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
 	cp custom.fail.scenario.txt failScenario.txt $(TESTSCN) $(WORKDIR)
-	ln -sf $(LINKDIR)/$(TESTBIN) $(BINDIR)
+	ln -sf ../$(TESTDIR)/$(TESTBIN) $(BINDIR)
 
 .PHONY: test build setup clean all testbin
 
