@@ -82,7 +82,7 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 
 		if targs != "" {
 			log.Debugf("TestArgsEnv: '%s'", targs)
-			tst.Env = append(os.Environ(),
+			tst.Env = append(tst.Env,
 				fmt.Sprintf("%s=%s",
 					defaults.DefaultTestArgsEnv, targs))
 		}
