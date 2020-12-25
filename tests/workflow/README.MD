@@ -1,5 +1,19 @@
 ## This is the typical example of the test set
 
+# Test workflow
+
+Basic testing [workflow](eden.workflow.tests.txt) for CI/CD of project.
+
+Supported environment variables:
+* EDEN_TEST_SETUP -- make EDEN's setup steps
+* EDEN_TEST_STOP -- stop EDEN after tests
+* EDEN_TEST -- flavour of test set: "small", "medium"(default) and "large"
+
+Example of running:
+```
+EDEN_TEST_STOP=y EDEN_TEST_SETUP=y EDEN_TEST=large eden test tests/workflow/ -v debug
+```
+
 # Quickstart
 
 Each testset or individual test should contain:

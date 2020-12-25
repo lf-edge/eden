@@ -1,52 +1,92 @@
-{{$tests := 18}}
+{{$tests := 31}}
 {{$workflow := EdenGetEnv "EDEN_TEST"}}
-{{ if and (ne $workflow "small") (ne $workflow "large") (ne $workflow "gcp") }}
-/bin/echo Eden setup (1/{{$tests}})
+{{$setup := EdenGetEnv "EDEN_TEST_SETUP"}}
+{{$stop := EdenGetEnv "EDEN_TEST_STOP"}}
+
+{{if (eq $setup "y")}}
+#./eden config add default
+/bin/echo Eden setup (01/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_setup
-/bin/echo Eden start (2/{{$tests}})
+#source ~/.eden/activate.sh
+/bin/echo Eden start (02/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_start
-/bin/echo Eden onboard (3/{{$tests}})
+/bin/echo Eden onboard (03/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_onboard
 {{end}}
-/bin/echo Eden Log test (4/{{$tests}})
+
+/bin/echo Eden Log test (04/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/log_test -testdata ../lim/testdata/
-/bin/echo Eden SSH test (5/{{$tests}})
+/bin/echo Eden SSH test (05/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ssh
 {{ if eq $workflow "large" }}
-/bin/echo Eden Info test (6/{{$tests}})
+/bin/echo Eden Info test (06/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
 {{end}}
-/bin/echo Eden Metric test (7/{{$tests}})
+/bin/echo Eden Metric test (07/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/metric_test -testdata ../lim/testdata/
-eden+ports.sh 2223:2223 2224:2224
-/bin/echo Eden Network test (8/{{$tests}})
-eden.escript.test -test.run TestEdenScripts/test_networking -testdata ../network/testdata/
-/bin/echo Eden 2 dockers test (9/{{$tests}})
-#eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
-eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testdata/
+
+/bin/echo Escript args test (08/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/arg -args=test1=123,test2=456
+/bin/echo Escript template test (09/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/template
+/bin/echo Escript message test (10/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/message
+/bin/echo Escript nested scripts test (11/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/nested_scripts
+/bin/echo Escript time test (12/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/time
+/bin/echo Escript source test (13/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/source
+/bin/echo Escript fail scenario test (14/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/fail_scenario
+
+/bin/echo Eden basic network test (15/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/network_test -testdata ../network/testdata/
+/bin/echo Eden basic volumes test (16/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/volumes_test -testdata ../volume/testdata/
+
+eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027
+
+/bin/echo Eden Host only ACL (16/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/host-only -testdata ../eclient/testdata/
+/bin/echo Eden Network light (17/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/networking_light -testdata ../eclient/testdata/
+/bin/echo Eden Networks switch (18/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/nw_switch -testdata ../eclient/testdata/
+/bin/echo Eden Network Ports switch (19/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/port_switch -testdata ../eclient/testdata/
+
 {{ if or (eq $workflow "large") (eq $workflow "gcp") }}
-/bin/echo Eden VNC (9.5/{{$tests}})
+/bin/echo Eden VNC (20/{{$tests}})
 eden.vnc.test
 {{end}}
 {{ if  (eq $workflow "large")  }}
-/bin/echo Eden registry (10/{{$tests}})
+/bin/echo Eden registry (21/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/registry_test -testdata ../registry/testdata/
-/bin/echo Eden Host only ACL (11/{{$tests}})
-eden.escript.test -test.run TestEdenScripts/host-only -testdata ../eclient/testdata/
-/bin/echo Eden Network light (12/{{$tests}})
-eden.escript.test -test.run TestEdenScripts/networking_light -testdata ../eclient/testdata/
-/bin/echo Eden Nginx (13/{{$tests}})
+/bin/echo Eden Network test (22/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/test_networking -testdata ../network/testdata/
+/bin/echo Eden 2 dockers test (23/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
+/bin/echo Eden 2 dockers test with app state detector (24/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testdata/
+/bin/echo Eden Nginx (25/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ngnix -testdata ../eclient/testdata/
-/bin/echo Eden Mariadb (14/{{$tests}})
+/bin/echo Eden Mariadb (26/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/maridb -testdata ../eclient/testdata/
-/bin/echo Eden's testing the maximum application limit (15/{{$tests}})
+/bin/echo EVE reset (27/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_reset
+/bin/echo Eden's testing the maximum application limit (28/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eclients -testdata ../eclient/testdata/
 {{end}}
-/bin/echo Eden Reboot test (16/{{$tests}})
+
+/bin/echo Eden Reboot test (29/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
 {{ if ne $workflow "small" }}
-/bin/echo Eden base OS update (17/{{$tests}})
+/bin/echo Eden base OS update (30/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/update_eve_image -testdata ../update_eve_image/testdata/
 {{end}}
-/bin/echo Eden stop (18/{{$tests}})
+
+{{if (eq $stop "y")}}
+/bin/echo Eden stop (31/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop
+{{end}}

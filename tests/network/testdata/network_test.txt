@@ -1,0 +1,42 @@
+eden -t 5s network ls
+
+# Starting of reboot detector with a 3 reboots limit
+! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=1 &
+
+# Create n1 network
+eden -t 1m network create 10.1.0.0/24 -n n1
+stdout 'deploy network .* with name n1 request sent'
+
+# Wait for run
+test eden.network.test -test.v -timewait 20m ACTIVATED n1
+# Need to fix -- another try of detecting not passing
+#exec sleep 20
+#test eden.network.test -test.v -timewait 20m ACTIVATED n1
+
+# Volume detecting
+eden -t 1m network ls
+cp stdout vol_ls
+grep '^n1\s*' vol_ls
+
+# Delete by network's actor
+eden -t 5m network delete n1
+stdout 'network n1 delete done'
+
+# Wait for delete
+test eden.network.test -test.v -timewait 20m - n1
+#test eden.network.test -test.v -timewait 20m - n1
+stdout 'no network with n1 found'
+
+# Networks detecting
+eden -t 1m network ls
+! stdout '^n1\s'
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

@@ -9,6 +9,8 @@ For testing Eden provides two essential services:
 You can read more about the general principles of Eden testing at:
 [EVE+Integration+Testing](https://wiki.lfedge.org/display/EVE/EVE+Integration+Testing)
 
+Basic testing workflow for CI/CD of project: [workflow/README.MD](workflow/README.MD)
+
 ## Test building
 
 Tests is a standard Go test [testing](https://golang.org/pkg/testing) compiled by
@@ -222,6 +224,14 @@ This is the short form of:
 ```console
 eden test tests/escript -p eden.escript.test -r TestEdenScripts/message
 ```
+
+List of detectors:
+
+* [eden.reboot.test -- Reboot detector](reboot/README.md)
+* [eden.lim.test -- Log/Info/Metric detector](lim/README.md)
+* [eden.app.test -- Application state detector](app/README.md)
+* [eden.network.test -- Network state detector](network/README.md)
+* [eden.vol.test -- Volume state detector](volume/README.md)
 
 You can read more about the test scripting for Eden testing
 at [escript/README.md](escript/README.md).

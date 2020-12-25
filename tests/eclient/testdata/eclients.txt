@@ -102,10 +102,10 @@ PODS=""
 for i in `seq $APPS`
 do
  PODS="$PODS eclient$i"
+ echo $EDEN pod delete eclient$i
+ $EDEN pod delete eclient$i
 done
 
-echo $EDEN pod delete $PODS
-$EDEN pod delete $PODS
 echo $TAPP -test.v -timewait 20m - $PODS
 $TAPP -test.v -timewait 20m - $PODS
 
@@ -116,4 +116,4 @@ do
 done
 
 echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden-ports.sh $PORTS
-{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/edenr-ports.sh $PORTS
+{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden-ports.sh $PORTS

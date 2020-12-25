@@ -23,7 +23,7 @@ import (
 var (
 	number   = flag.Int("number", 1, "The number of items (0=unlimited) you need to get")
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
-	out      = flag.String("out", "", "Paramters for out separated by ':'")
+	out      = flag.String("out", "", "Parameters for out separated by ':'")
 
 	// This context holds all the configuration items in the same
 	// way that Eden context works: the commands line options override
