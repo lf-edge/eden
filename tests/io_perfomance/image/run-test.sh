@@ -22,7 +22,7 @@ echo "Setting up directories is end"
 # Create FIO config
 echo "Create config for"
 result=$(./mkconfig -type="$FIO_OPTYPE" -bs="$FIO_BS" -jobs="$FIO_JOBS" -depth="$FIO_DEPTH" -time="$FIO_TIME")
-export IOSTAT_COUNT=$result
+export IOSTAT_COUNT="$result"
 cp config.fio ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/
 
 # Running IOSTAT

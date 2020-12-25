@@ -1,10 +1,10 @@
 FROM golang:1.15 as builder
 
 WORKDIR /app
-COPY mkconfig.go /app
-COPY fioconv.go /app
-RUN go build fioconv.go
-RUN go build mkconfig.go
+COPY mkconfig /app/mkconfig
+COPY fioconv /app/fioconv
+RUN go build -o fioconv ./fioconv/fioconv.go \
+    && go build -o mkconfig ./mkconfig/mkconfig.go
 
 FROM ubuntu:focal
 
@@ -16,16 +16,10 @@ RUN apt-get update \
     sysstat=12.2.0-2
 
 WORKDIR /
-COPY run-test.sh /run-test.sh
-COPY README.md /README.md
-COPY run-iostat.sh /run-iostat.sh
-COPY --from=builder /app/fioconv .
-COPY --from=builder /app/mkconfig .
-RUN chmod a+x /run-iostat.sh
-RUN chmod a+x /run-test.sh
+COPY run-test.sh README.md run-iostat.sh ./
+COPY --from=builder /app/fioconv /app/mkconfig ./
+RUN chmod a+x /run-iostat.sh /run-test.sh
 
 VOLUME ["/data"]
 ENTRYPOINT ["/bin/bash"]
 CMD ["/run-test.sh"]
-
-
