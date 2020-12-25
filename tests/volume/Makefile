@@ -20,14 +20,14 @@ override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 WORKDIR ?= $(CURDIR)/../../dist
 TESTDIR := tests/$(shell basename $(CURDIR))
 BINDIR := $(WORKDIR)/bin
-DATADIR := $(WORKDIR)/$(TESTDIR)
+DATADIR := $(WORKDIR)/$(TESTDIR)/
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
-TESTNAME := eden.docker
+TESTNAME := eden.vol
 TESTBIN := $(TESTNAME).test
 TESTSCN := $(TESTNAME).tests.txt
 LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
-LINKDIR := ../../tests/docker
+LINKDIR := ../../tests/volume
 
 .DEFAULT_GOAL := help
 
@@ -39,9 +39,6 @@ $(BINDIR):
 $(DATADIR):
 	mkdir -p $@
 
-test_docker:
-	go test docker_test.go -v -count=1 -timeout 3000s
-
 test:
 	$(LOCALBIN) test $(CURDIR) -v $(DEBUG)
 
@@ -52,7 +49,7 @@ $(LOCALTESTBIN): $(BINDIR) *.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ *.go
 
 $(TESTBIN): $(LOCALTESTBIN)
-	ln -sf $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN)
+	ln -sf $(LOCALTESTBIN) $(TESTBIN)
 
 setup: testbin $(BINDIR) $(DATADIR)
 	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(DATADIR)
@@ -74,4 +71,3 @@ help:
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
 	@echo "You need access to docker socket and installed qemu packages."
-

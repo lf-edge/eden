@@ -10,6 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve/api/go/metrics"
 )
 
 //NetInstState stores state of network instance
@@ -18,6 +19,7 @@ type NetInstState struct {
 	UUID        string
 	NetworkType config.ZNetworkInstType
 	CIDR        string
+	Stats       string
 	AdamState   string
 	EveState    string
 	Activated   bool
@@ -25,12 +27,14 @@ type NetInstState struct {
 }
 
 func netInstStateHeader() string {
-	return "NAME\tUUID\tTYPE\tCIDR\tSTATE(ADAM)\tLAST_STATE(EVE)"
+	return "NAME\tUUID\tTYPE\tCIDR\tSTATS\tSTATE(ADAM)\tLAST_STATE(EVE)"
 }
 
 func (netInstStateObj *NetInstState) toString() string {
-	return fmt.Sprintf("%s\t%s\t%v\t%s\t%s\t%s", netInstStateObj.Name, netInstStateObj.UUID,
-		netInstStateObj.NetworkType, netInstStateObj.CIDR, netInstStateObj.AdamState, netInstStateObj.EveState)
+	return fmt.Sprintf("%s\t%s\t%v\t%s\t%s\t%s\t%s",
+		netInstStateObj.Name, netInstStateObj.UUID,
+		netInstStateObj.NetworkType, netInstStateObj.CIDR, netInstStateObj.Stats,
+		netInstStateObj.AdamState, netInstStateObj.EveState)
 }
 
 func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
@@ -43,6 +47,7 @@ func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
 		netInstStateObj := &NetInstState{
 			Name:        ni.GetDisplayname(),
 			UUID:        ni.Uuidandversion.Uuid,
+			Stats:       "-",
 			AdamState:   "IN_CONFIG",
 			EveState:    "UNKNOWN",
 			CIDR:        ni.Ip.Subnet,
@@ -61,6 +66,7 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 			netInstStateObj = &NetInstState{
 				Name:        im.GetNiinfo().GetDisplayname(),
 				UUID:        im.GetNiinfo().GetNetworkID(),
+				Stats:       "-",
 				AdamState:   "NOT_IN_CONFIG",
 				EveState:    "IN_CONFIG",
 				NetworkType: (config.ZNetworkInstType)(int32(im.GetNiinfo().InstType)),
@@ -84,6 +90,19 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 			netInstStateObj.EveState = fmt.Sprintf("ERRORS: %s", im.GetNiinfo().GetNetworkErr())
 			if netInstStateObj.AdamState == "NOT_IN_CONFIG" {
 				netInstStateObj.deleted = true
+			}
+		}
+	}
+}
+
+func (ctx *State) processNetworksByMetric(msg *metrics.ZMetricMsg) {
+	if networkMetrics := msg.GetNm(); networkMetrics != nil {
+		for _, networkMetric := range networkMetrics {
+			for _, el := range ctx.networks {
+				if networkMetric.NetworkID == el.UUID {
+					el.Stats = networkMetric.GetNetworkStats().String()
+					break
+				}
 			}
 		}
 	}

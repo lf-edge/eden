@@ -8,10 +8,12 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve/api/go/metrics"
 )
 
 //AppInstState stores state of app
@@ -25,13 +27,14 @@ type AppInstState struct {
 	ExternalIP   string
 	InternalPort string
 	ExternalPort string
+	Memory       string
 	macs         []string
 	volumes      map[string]uint32
 	deleted      bool
 }
 
 func appStateHeader() string {
-	return "NAME\tIMAGE\tUUID\tINTERNAL\tEXTERNAL\tSTATE(ADAM)\tLAST_STATE(EVE)"
+	return "NAME\tIMAGE\tUUID\tINTERNAL\tEXTERNAL\tMEMORY\tSTATE(ADAM)\tLAST_STATE(EVE)"
 }
 
 func (appStateObj *AppInstState) toString() string {
@@ -61,9 +64,9 @@ func (appStateObj *AppInstState) toString() string {
 	if appStateObj.ExternalPort == "" {
 		external = "-"
 	}
-	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s", appStateObj.Name, appStateObj.Image, appStateObj.UUID,
-		internal,
-		external,
+	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
+		appStateObj.Name, appStateObj.Image, appStateObj.UUID,
+		internal, external, appStateObj.Memory,
 		appStateObj.AdamState, appStateObj.EVEState)
 }
 
@@ -132,6 +135,21 @@ func (ctx *State) initApplications(ctrl controller.Cloud, dev *device.Ctx) error
 		ctx.applications[app.Uuidandversion.Uuid] = appStateObj
 	}
 	return nil
+}
+
+func (ctx *State) processApplicationsByMetric(msg *metrics.ZMetricMsg) {
+	if appMetrics := msg.GetAm(); appMetrics != nil {
+		for _, appMetric := range appMetrics {
+			for _, el := range ctx.applications {
+				if appMetric.AppID == el.UUID {
+					el.Memory = fmt.Sprintf("%s/%s",
+						humanize.Bytes((uint64)(appMetric.Memory.GetUsedMem()*humanize.MByte)),
+						humanize.Bytes((uint64)(appMetric.Memory.GetAvailMem()*humanize.MByte)))
+					break
+				}
+			}
+		}
+	}
 }
 
 func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {

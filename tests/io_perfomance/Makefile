@@ -17,7 +17,7 @@ OS ?= $(HOSTOS)
 # IMAGE_TAG is the tag for image to build
 IMAGE_TAG ?= itmoeve/fio_tests
 # IMAGE_VERSION is the version of image to build
-IMAGE_VERSION ?= v.1.0
+IMAGE_VERSION ?= v.1.1
 # IMAGE_DIR is the directory with image Dockerfile to build
 IMAGE_DIR=$(CURDIR)/image
 
@@ -25,7 +25,9 @@ IMAGE_DIR=$(CURDIR)/image
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
 WORKDIR ?= $(CURDIR)/../../dist
+TESTDIR := tests/$(shell basename $(CURDIR))
 BINDIR := $(WORKDIR)/bin
+DATADIR := $(WORKDIR)/$(TESTDIR)/
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 TESTNAME := eden.fio
@@ -38,9 +40,9 @@ LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
 clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
-$(WORKDIR):
-	mkdir -p $@
 $(BINDIR):
+	mkdir -p $@
+$(DATADIR):
 	mkdir -p $@
 
 test:
@@ -48,8 +50,8 @@ test:
 
 build: setup
 
-setup:
-	cp $(TESTSCN) $(WORKDIR)
+setup: $(BINDIR) $(DATADIR)
+	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
 
 .PHONY: image
 

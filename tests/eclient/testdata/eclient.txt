@@ -40,6 +40,6 @@ for i in `seq 20`
 do
 sleep 20
 # Test SSH-access to container
-echo $i\) ssh -o ConnectTimeout=10 -oStrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa -p {{$port}} root@$HOST grep Ubuntu /etc/issue
-ssh -o ConnectTimeout=10 -oStrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa -p {{$port}} root@$HOST grep Ubuntu /etc/issue && break
+echo $i\) ssh -o ConnectTimeout=10 -oStrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p {{$port}} root@$HOST grep Ubuntu /etc/issue
+ssh -o ConnectTimeout=10 -oStrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p {{$port}} root@$HOST grep Ubuntu /etc/issue && break
 done

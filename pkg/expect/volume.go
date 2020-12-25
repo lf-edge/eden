@@ -32,3 +32,25 @@ func (exp *AppExpectation) driveToVolume(dr *config.Drive, numberOfDrive int, co
 	_ = exp.ctrl.AddVolume(volume)
 	return volume
 }
+
+//Volume generates volume for provided expectation
+func (exp *AppExpectation) Volume() *config.Volume {
+	img := exp.Image()
+
+	maxSizeBytes := int64(0)
+	if exp.diskSize > 0 {
+		maxSizeBytes = exp.diskSize
+	}
+	drive := &config.Drive{
+		Image:        img,
+		Maxsizebytes: maxSizeBytes,
+	}
+	contentTree := exp.imageToContentTree(img, img.Name)
+	_ = exp.ctrl.AddContentTree(contentTree)
+	exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), contentTree.Uuid))
+	volume := exp.driveToVolume(drive, 0, contentTree)
+	volume.DisplayName = exp.appName
+	_ = exp.ctrl.AddVolume(volume)
+	exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), volume.Uuid))
+	return volume
+}

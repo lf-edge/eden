@@ -18,7 +18,9 @@ OS ?= $(HOSTOS)
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
 
 WORKDIR ?= $(CURDIR)/../../dist
+TESTDIR := tests/$(shell basename $(CURDIR))
 BINDIR := $(WORKDIR)/bin
+DATADIR := $(WORKDIR)/$(TESTDIR)/
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 TESTNAME := eden.registry
@@ -32,9 +34,9 @@ LINKDIR := ../../tests/registry
 clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
 
-$(WORKDIR):
-	mkdir -p $@
 $(BINDIR):
+	mkdir -p $@
+$(DATADIR):
 	mkdir -p $@
 
 test:
@@ -42,8 +44,8 @@ test:
 
 build: setup
 
-setup:
-	cp $(TESTSCN) $(WORKDIR)
+setup: $(BINDIR) $(DATADIR)
+	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
 
 .PHONY: test build setup clean all testbin
 

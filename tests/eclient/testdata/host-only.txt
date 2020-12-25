@@ -1,7 +1,7 @@
 # Test host-only ACL application isolation
 
 {{$test_msg := "This is a test"}}
-{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/../tests/eclient/image/cert/id_rsa root@{{end}}
+{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa root@{{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop

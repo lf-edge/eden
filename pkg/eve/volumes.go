@@ -24,17 +24,18 @@ type VolInstState struct {
 	MaxSize       string
 	AdamState     string
 	EveState      string
+	Ref           string
 	contentTreeID string
 	deleted       bool
 }
 
 func volInstStateHeader() string {
-	return "NAME\tUUID\tIMAGE\tTYPE\tSIZE\tMAX_SIZE\tSTATE(ADAM)\tLAST_STATE(EVE)"
+	return "NAME\tUUID\tREF\tIMAGE\tTYPE\tSIZE\tMAX_SIZE\tSTATE(ADAM)\tLAST_STATE(EVE)"
 }
 
 func (volInstStateObj *VolInstState) toString() string {
-	return fmt.Sprintf("%s\t%s\t%s\t%v\t%s\t%s\t%s\t%s",
-		volInstStateObj.Name, volInstStateObj.UUID, volInstStateObj.Image,
+	return fmt.Sprintf("%s\t%s\t%s\t%s\t%v\t%s\t%s\t%s\t%s",
+		volInstStateObj.Name, volInstStateObj.UUID, volInstStateObj.Ref, volInstStateObj.Image,
 		volInstStateObj.VolumeType, volInstStateObj.Size, volInstStateObj.MaxSize,
 		volInstStateObj.AdamState, volInstStateObj.EveState)
 }
@@ -51,6 +52,20 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 		if err != nil {
 			return fmt.Errorf("no ContentTree in cloud %s: %s", contentTreeID, err)
 		}
+		ref := "-"
+	appInstanceLoop:
+		for _, id := range dev.GetApplicationInstances() {
+			appInstanceConfig, err := ctrl.GetApplicationInstanceConfig(id)
+			if err != nil {
+				return fmt.Errorf("no Application instance in cloud %s: %s", contentTreeID, err)
+			}
+			for _, volumeRef := range appInstanceConfig.VolumeRefList {
+				if volumeRef.Uuid == vi.GetUuid() {
+					ref = fmt.Sprintf("app: %s", appInstanceConfig.Displayname)
+					break appInstanceLoop
+				}
+			}
+		}
 		volInstStateObj := &VolInstState{
 			Name:          vi.GetDisplayName(),
 			UUID:          vi.GetUuid(),
@@ -60,6 +75,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			EveState:      "UNKNOWN",
 			Size:          "-",
 			MaxSize:       "-",
+			Ref:           ref,
 			contentTreeID: contentTreeID,
 		}
 		ctx.volumes[volInstStateObj.Name] = volInstStateObj
@@ -89,6 +105,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 				EveState:  infoObject.State.String(),
 				Size:      "-",
 				MaxSize:   "-",
+				Ref:       "-",
 			}
 			ctx.volumes[infoObject.GetDisplayName()] = volInstStateObj
 		}

@@ -88,6 +88,7 @@ $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 $(BIN): $(LOCALBIN)
 	ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@
 	ln -sf $(LOCALBIN) $@
+	ln -sf bin/$@ $(WORKDIR)/$@
 
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
@@ -110,7 +111,10 @@ run: build setup
 stop: build
 	$(LOCALBIN) stop -v $(DEBUG)
 
-.PHONY: processing eserver all clean test build config
+dist: build-tests
+	tar cvzf dist/eden_dist.tgz dist/bin dist/scripts dist/tests dist/*.txt
+
+.PHONY: processing eserver all clean test build build-tests config setup stop testbin gotestsum dist
 
 eserver:
 	@echo "Build eserver image"
@@ -132,6 +136,7 @@ help:
 	@echo "  * ADAM"
 	@echo
 	@echo "Commonly used maintenance and development targets:"
+	@echo "   dist          make distribution archive dist/eden_dist.tgz"
 	@echo "   run           run ADAM and EVE"
 	@echo "   test          run tests"
 	@echo "   config        generate required config files"

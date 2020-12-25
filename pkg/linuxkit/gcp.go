@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/moby/term"
@@ -562,8 +563,9 @@ func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 	return "", fmt.Errorf("not found NatIP for %s", instance)
 }
 
-// SetFirewallAllowRule runs gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges
-func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string) error {
+// SetFirewallAllowRule runs
+//gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges --priority=priority
+func (g GCPClient) SetFirewallAllowRule(ruleName string, priority int64, sourceRanges []string) error {
 	log.Infof("setting firewall %s for %s", ruleName, sourceRanges)
 	for i := 0; i < timeout; i++ {
 		firewall := &compute.Firewall{
@@ -578,6 +580,7 @@ func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string) 
 					IPProtocol: "udp",
 				},
 			},
+			Priority: priority,
 		}
 		operation, err := g.compute.Firewalls.Insert(g.projectName, firewall).Do()
 		if err != nil {
@@ -589,6 +592,39 @@ func (g GCPClient) SetFirewallAllowRule(ruleName string, sourceRanges []string) 
 			if err.(*googleapi.Error).Code == 503 {
 				// Timeout received when waiting for rule modification
 				break
+			}
+			if strings.Contains(err.Error(), "alreadyExists") {
+				return nil
+			}
+			return err
+		}
+		if operation.Error != nil {
+			return fmt.Errorf("error running operation: %v", operation.Error)
+		}
+		if operation.Status == "DONE" {
+			return nil
+		}
+	}
+	return fmt.Errorf("timeout waiting for operation to finish")
+}
+
+// DeleteFirewallAllowRule runs gcloud compute firewall-rules delete ruleName
+func (g GCPClient) DeleteFirewallAllowRule(ruleName string) error {
+	log.Infof("deleting firewall %s", ruleName)
+	for i := 0; i < timeout; i++ {
+		operation, err := g.compute.Firewalls.Delete(g.projectName, ruleName).Do()
+		if err != nil {
+			if err.(*googleapi.Error).Code == 400 {
+				// Firewall may not be ready yet...
+				time.Sleep(pollingInterval)
+				continue
+			}
+			if err.(*googleapi.Error).Code == 503 {
+				// Timeout received when waiting for rule modification
+				break
+			}
+			if strings.Contains(err.Error(), "notFound") {
+				return nil
 			}
 			return err
 		}
