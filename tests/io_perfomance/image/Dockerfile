@@ -1,8 +1,10 @@
 FROM golang:1.15 as builder
 
 WORKDIR /app
+COPY mkconfig.go /app
 COPY fioconv.go /app
 RUN go build fioconv.go
+RUN go build mkconfig.go
 
 FROM ubuntu:focal
 
@@ -15,10 +17,10 @@ RUN apt-get update \
 
 WORKDIR /
 COPY run-test.sh /run-test.sh
-COPY config.fio /config.fio
 COPY README.md /README.md
 COPY run-iostat.sh /run-iostat.sh
 COPY --from=builder /app/fioconv .
+COPY --from=builder /app/mkconfig .
 RUN chmod a+x /run-iostat.sh
 RUN chmod a+x /run-test.sh
 
