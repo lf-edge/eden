@@ -1,6 +1,6 @@
 #!/bin/bash
 
-let "COUNT_ITER="$FIO_TIME"/3"
+(( "COUNT_ITER="$FIO_TIME"/3" ))
 
 #Running IOSTAT
 for (( i = 1; i <= "$IOSTAT_COUNT"; i++ ))

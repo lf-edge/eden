@@ -16,17 +16,17 @@ mkdir ~/"$GIT_REPO"/"$FOLDERNAME"
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results
 mkdir ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/Test-results/Iostat
-mkdir ~/check_branch
 cp README.md ~/"$GIT_REPO"/"$FOLDERNAME"/
 echo "Setting up directories is end"
 
 # Create FIO config
-echo "Create config for fio with params: -type="$FIO_OPTYPE" -bs="$FIO_BS" -jobs="$FIO_JOBS" -depth="$FIO_DEPTH" -time="$FIO_TIME""
-export IOSTAT_COUNT=`./mkconfig -type="$FIO_OPTYPE" -bs="$FIO_BS" -jobs="$FIO_JOBS" -depth="$FIO_DEPTH" -time="$FIO_TIME"`
+echo "Create config for"
+result=$(./mkconfig -type="$FIO_OPTYPE" -bs="$FIO_BS" -jobs="$FIO_JOBS" -depth="$FIO_DEPTH" -time="$FIO_TIME")
+export IOSTAT_COUNT=$result
 cp config.fio ~/"$GIT_REPO"/"$FOLDERNAME"/Configs/
 
 # Running IOSTAT
-echo "Running IOSTAT = "$IOSTAT_COUNT"" 
+echo "Running IOSTAT $result"
 ./run-iostat.sh &
 
 # Running FIO
@@ -39,7 +39,7 @@ echo "Result FIO generate done"
 
 # Create a new folder in the GIT repository and push the changes
 echo "Create a folder and start posting results to GIT"
-(cd ~/"$GIT_REPO"/ && git add ~/"$GIT_REPO"/"$FOLDERNAME" && git commit -m "io-results "$FOLDERNAME"" && git push)
-echo "FIO tests are end branch:""$FOLDERNAME"
+(cd ~/"$GIT_REPO"/ && git add ~/"$GIT_REPO"/"$FOLDERNAME" && git commit -m "io-results $FOLDERNAME" && git push)
+echo "FIO tests are end branch: $FOLDERNAME"
 
 sleep 30m
