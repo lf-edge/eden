@@ -231,29 +231,10 @@ var consoleEveCmd = &cobra.Command{
 }
 
 var sshEveCmd = &cobra.Command{
-	Use:   "ssh [command]",
-	Short: "ssh into eve",
-	Long:  `SSH into eve.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
-			extension := filepath.Ext(eveSSHKey)
-			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
-			eveRemote = viper.GetBool("eve.remote")
-			eveRemoteAddr = viper.GetString("eve.remote-addr")
-			if eveRemote || eveRemoteAddr == "" {
-				if !cmd.Flags().Changed("eve-ssh-port") {
-					eveSSHPort = 22
-				}
-			}
-		}
-		return nil
-	},
+	Use:     "ssh [command]",
+	Short:   "ssh into eve",
+	Long:    `SSH into eve.`,
+	PreRunE: initSSHVariables,
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
 			changer := &adamChanger{}
