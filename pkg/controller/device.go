@@ -402,6 +402,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 		if err != nil {
 			return nil, err
 		}
+
 		//check drives from baseOSConfigs
 		for _, drive := range baseOSConfig.Drives {
 			dataStores, err = cloud.checkDriveDs(drive, dataStores)
@@ -409,7 +410,34 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 				return nil, err
 			}
 		}
+
 		baseOS = append(baseOS, baseOSConfig)
+
+		if baseOSConfig.VolumeID != "" {
+			volumeConfig, err := cloud.GetVolume(baseOSConfig.VolumeID)
+			if err != nil {
+				return nil, err
+			}
+
+			volumes = append(volumes, volumeConfig)
+
+			if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
+				for _, contentTree := range contentTrees {
+					if contentTree.Uuid == contentTreeConfig.Uuid {
+						contentTreeConfig = nil
+						break
+					}
+				}
+				if contentTreeConfig != nil {
+					//add required datastores
+					dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
+					if err != nil {
+						return nil, err
+					}
+					contentTrees = append(contentTrees, contentTreeConfig)
+				}
+			}
+		}
 	}
 volumeLoop:
 	//we must add volumes and contentTrees into EdgeDevConfig
