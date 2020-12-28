@@ -18,7 +18,7 @@ eden.escript.test -test.run TestEdenScripts/eden_onboard
 eden.escript.test -test.run TestEdenScripts/log_test -testdata ../lim/testdata/
 /bin/echo Eden SSH test (05/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ssh
-{{ if eq $workflow "large" }}
+{{ if or (eq $workflow "large") (eq $workflow "gcp") }}
 /bin/echo Eden Info test (06/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/info_test -testdata ../lim/testdata/
 {{end}}
@@ -40,12 +40,12 @@ eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/sourc
 /bin/echo Escript fail scenario test (14/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/fail_scenario
 
+eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027
+
 /bin/echo Eden basic network test (15/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/network_test -testdata ../network/testdata/
 /bin/echo Eden basic volumes test (16/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/volumes_test -testdata ../volume/testdata/
-
-eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027
 
 /bin/echo Eden Host only ACL (16/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/host-only -testdata ../eclient/testdata/
@@ -59,8 +59,6 @@ eden.escript.test -test.run TestEdenScripts/port_switch -testdata ../eclient/tes
 {{ if or (eq $workflow "large") (eq $workflow "gcp") }}
 /bin/echo Eden VNC (20/{{$tests}})
 eden.vnc.test
-{{end}}
-{{ if  (eq $workflow "large")  }}
 /bin/echo Eden registry (21/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/registry_test -testdata ../registry/testdata/
 /bin/echo Eden Network test (22/{{$tests}})
@@ -75,6 +73,8 @@ eden.escript.test -test.run TestEdenScripts/ngnix -testdata ../eclient/testdata/
 eden.escript.test -test.run TestEdenScripts/maridb -testdata ../eclient/testdata/
 /bin/echo EVE reset (27/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_reset
+{{end}}
+{{ if  (eq $workflow "large")  }}
 /bin/echo Eden's testing the maximum application limit (28/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eclients -testdata ../eclient/testdata/
 {{end}}

@@ -26,11 +26,11 @@ var (
 // EVE instances that we can operate on. For any action, if the instance
 // is not specified explicitly it is assumed to be the first one in the slice
 func TestMain(m *testing.M) {
-	fmt.Println("Docker network's state test")
+	fmt.Println("Network's state test")
 
 	tc = projects.NewTestContext()
 
-	projectName := fmt.Sprintf("%s_%s", "TestVolState", time.Now())
+	projectName := fmt.Sprintf("%s_%s", "TestNetState", time.Now())
 
 	tc.InitProject(projectName)
 
@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 
 	eveState = eve.Init(tc.GetController(), tc.GetEdgeNode())
 
-	tc.StartTrackingState(false)
+	tc.StartTrackingState(true)
 
 	res := m.Run()
 
@@ -64,16 +64,12 @@ func checkAndAppendState(volName, state string) {
 	}
 }
 
-func checkState(eveState *eve.State, state string, volNames []string) error {
+func checkState(eveState *eve.State, state string, netNames []string) error {
 	out := "\n"
 	if state == "-" {
 		foundAny := false
-		if eveState.InfoAndMetrics().GetDinfo() == nil {
-			//we need to wait for info
-			return nil
-		}
 		for _, vol := range eveState.Networks() {
-			if _, inSlice := utils.FindEleInSlice(volNames, vol.Name); inSlice {
+			if _, inSlice := utils.FindEleInSlice(netNames, vol.Name); inSlice {
 				checkAndAppendState(vol.Name, "EXISTS")
 				foundAny = true
 			}
@@ -81,25 +77,25 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 		if foundAny {
 			return nil
 		}
-		for _, volName := range volNames {
+		for _, netName := range netNames {
 			out += fmt.Sprintf(
 				"no network with %s found\n",
-				volName)
+				netName)
 		}
 		return fmt.Errorf(out)
 	}
-	for _, vol := range eveState.Networks() {
-		if _, inSlice := utils.FindEleInSlice(volNames, vol.Name); inSlice {
-			fmt.Printf("%s: %s\n", vol.Name, vol.EveState)
-			checkAndAppendState(vol.Name, vol.EveState)
+	for _, net := range eveState.Networks() {
+		if _, inSlice := utils.FindEleInSlice(netNames, net.Name); inSlice {
+			fmt.Printf("%s: %s\n", net.Name, net.EveState)
+			checkAndAppendState(net.Name, net.EveState)
 		}
 	}
-	if len(states) == len(volNames) {
-		for _, volName := range volNames {
-			if !checkNewLastState(volName, state) {
+	if len(states) == len(netNames) {
+		for _, netName := range netNames {
+			if !checkNewLastState(netName, state) {
 				out += fmt.Sprintf(
 					"network %s state %s\n",
-					volName, state)
+					netName, state)
 			} else {
 				return nil
 			}
@@ -109,17 +105,17 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 	return nil
 }
 
-//checkVol wait for info of ZInfoApp type with state
-func checkVol(state string, volNames []string) projects.ProcInfoFunc {
+//checkNet wait for info of ZInfoApp type with state
+func checkNet(state string, volNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		eveState.InfoCallback()(msg, nil) //feed state with new info
 		return checkState(eveState, state, volNames)
 	}
 }
 
-//TestVolStatus wait for application reaching the selected state
+//TestNetworkStatus wait for networks reaching the selected state
 //with a timewait
-func TestVolStatus(t *testing.T) {
+func TestNetworkStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	args := flag.Args()
@@ -137,21 +133,33 @@ func TestVolStatus(t *testing.T) {
 			states[el] = []string{"no info from controller"}
 		}
 
-		tc.AddProcInfo(edgeNode, checkVol(state, vols))
+		// observe existing info object and feed them into eveState object
+		if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
+			t.Fatal(err)
+		}
 
-		callback := func() {
-			t.Errorf("ASSERTION FAILED: expected networks %s in %s state", vols, state)
-			for k, v := range states {
-				t.Errorf("\tactual %s: %s", k, v[len(v)-1])
-				if checkNewLastState(k, state) {
-					t.Errorf("\thistory of states for %s:", k)
-					for _, st := range v {
-						t.Errorf("\t\t%s", st)
+		// we are done if our eveState object is in required state
+		if ready := checkState(eveState, state, vols); ready == nil {
+
+			tc.AddProcInfo(edgeNode, checkNet(state, vols))
+
+			callback := func() {
+				t.Errorf("ASSERTION FAILED: expected networks %s in %s state", vols, state)
+				for k, v := range states {
+					t.Errorf("\tactual %s: %s", k, v[len(v)-1])
+					if checkNewLastState(k, state) {
+						t.Errorf("\thistory of states for %s:", k)
+						for _, st := range v {
+							t.Errorf("\t\t%s", st)
+						}
 					}
 				}
 			}
-		}
 
-		tc.WaitForProcWithErrorCallback(secs, callback)
+			tc.WaitForProcWithErrorCallback(secs, callback)
+
+		} else {
+			t.Log(ready)
+		}
 	}
 }

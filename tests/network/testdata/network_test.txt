@@ -1,7 +1,7 @@
 eden -t 5s network ls
 
 # Starting of reboot detector with a 3 reboots limit
-! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=1 &
+! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=2 &
 
 # Create n1 network
 eden -t 1m network create 10.1.0.0/24 -n n1
@@ -13,10 +13,10 @@ test eden.network.test -test.v -timewait 20m ACTIVATED n1
 #exec sleep 20
 #test eden.network.test -test.v -timewait 20m ACTIVATED n1
 
-# Volume detecting
+# Networks detecting
 eden -t 1m network ls
-cp stdout vol_ls
-grep '^n1\s*' vol_ls
+cp stdout net_ls
+grep '^n1\s*' net_ls
 
 # Delete by network's actor
 eden -t 5m network delete n1

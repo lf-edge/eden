@@ -48,7 +48,7 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-d0af171f" //DefaultEVETag tag for EVE image
+	DefaultEVETag               = "0.0.0-master-79f610b8" //DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "cf3e117efbe5f32846a6a84385ea429c65679f14"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
@@ -104,7 +104,7 @@ const (
 	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelLinux  = "-machine q35,accel=kvm,dump-guest-core=off -cpu host,invtsc=on,kvmclock=off -machine kernel-irqchip=split -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
 
-	DefaultAppSubnet = "10.1.0.0/24"
+	DefaultAppSubnet = "10.11.12.0/24"
 
 	DefaultQemuModel = "ZedVirtual-4G"
 

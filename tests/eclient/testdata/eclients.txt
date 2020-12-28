@@ -39,8 +39,8 @@ HOST=$($EDEN eve ip)
 
 # 20 apps by default
 APPS="{{if $apps}}{{$apps}}{{else}}20{{end}}"
-# Default image -- docker://itmoeve/eclient:latest
-IMG="{{if $img}}{{$img}}{{else}}docker://itmoeve/eclient:latest{{end}}"
+# Default image -- docker://itmoeve/eclient:0.3
+IMG="{{if $img}}{{$img}}{{else}}docker://itmoeve/eclient:0.3{{end}}"
 
 PORTS=""
 for i in `seq $APPS`

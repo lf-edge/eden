@@ -2,11 +2,13 @@ package expect
 
 import (
 	"fmt"
+	"strconv"
+
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 //appBundle type for aggregate objects, needed for application
@@ -126,13 +128,17 @@ func (exp *AppExpectation) Application() *config.AppInstanceConfig {
 	if err = exp.ctrl.AddApplicationInstanceConfig(bundle.appInstanceConfig); err != nil {
 		log.Fatalf("AddApplicationInstanceConfig: %s", err)
 	}
-	for _, el := range bundle.contentTrees {
-		_ = exp.ctrl.AddContentTree(el)
-		exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), el.Uuid))
-	}
-	for _, el := range bundle.volumes {
-		_ = exp.ctrl.AddVolume(el)
-		exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), el.Uuid))
+	if exp.appLink == defaults.DefaultDummyExpect {
+		log.Debug("skip modify of entities")
+	} else {
+		for _, el := range bundle.contentTrees {
+			_ = exp.ctrl.AddContentTree(el)
+			exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), el.Uuid))
+		}
+		for _, el := range bundle.volumes {
+			_ = exp.ctrl.AddVolume(el)
+			exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), el.Uuid))
+		}
 	}
 	return bundle.appInstanceConfig
 }
