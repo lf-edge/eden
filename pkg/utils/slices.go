@@ -14,6 +14,23 @@ func DelEleInSlice(arr interface{}, index int) {
 	}
 }
 
+// DelEleInSliceByFunction delete an element from slice by function
+//  - arr: the reference of slice
+//  - f: delete if it returns true on element of slice
+func DelEleInSliceByFunction(arr interface{}, f func(interface{}) bool) {
+	vField := reflect.ValueOf(arr)
+	value := vField.Elem()
+	result := reflect.Zero(value.Type())
+	if value.Kind() == reflect.Slice || value.Kind() == reflect.Array {
+		for i := 0; i < reflect.Indirect(vField).Len(); i++ {
+			if !f(reflect.Indirect(vField).Index(i).Interface()) {
+				result = reflect.Append(result, reflect.Indirect(vField).Index(i))
+			}
+		}
+		value.Set(result)
+	}
+}
+
 // FindEleInSlice takes a slice and looks for an element in it. If found it will
 // return it's key, otherwise it will return -1 and a bool of false.
 func FindEleInSlice(slice []string, val string) (int, bool) {

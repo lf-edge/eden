@@ -69,10 +69,28 @@ func (exp *AppExpectation) imageFormatEnum() config.Format {
 func (exp *AppExpectation) Image() (image *config.Image) {
 	datastore := exp.DataStore()
 	var err error
-	for _, img := range exp.ctrl.ListImage() {
-		if exp.checkImage(img, datastore.Id) {
-			image = img
-			break
+	for _, appID := range exp.device.GetApplicationInstances() {
+		app, err := exp.ctrl.GetApplicationInstanceConfig(appID)
+		if err != nil {
+			log.Fatalf("no app %s found in controller: %s", appID, err)
+		}
+		for _, drive := range app.Drives {
+			if exp.checkImage(drive.Image, datastore.Id) {
+				image = drive.Image
+				break
+			}
+		}
+	}
+	for _, baseID := range exp.device.GetBaseOSConfigs() {
+		base, err := exp.ctrl.GetBaseOSConfig(baseID)
+		if err != nil {
+			log.Fatalf("no baseOS %s found in controller: %s", baseID, err)
+		}
+		for _, drive := range base.Drives {
+			if exp.checkImage(drive.Image, datastore.Id) {
+				image = drive.Image
+				break
+			}
 		}
 	}
 	if image == nil { //if image not exists, create it

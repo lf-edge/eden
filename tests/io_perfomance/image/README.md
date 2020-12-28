@@ -18,7 +18,12 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 2. **GIT_LOGIN** - Username on GitHub, where the repository specified in GIT_REPO is located.
 3. **GIT_TOKEN** - GitHub token for authorization and adding a branch with results to your repository.
 4. **EVE_VERSION** - EVE version. This parameter is required for naming a branch in GitHub.
-5. **GIT_BRANCH** - Branch name for results pushing. Optional parameter.
+5. **FIO_OPTYPE** - Determining the type of operation. Default=read,write. Optional parameter. For example: read,write,randread
+6. **FIO_BS** - Determining the block size. Default=4k,64k,1m. Optional parameter. For example: 4k,1m
+7. **FIO_JOBS** - Determining the count jobs in test. Optional parameter. Default=1,8. For example: 1
+8. **FIO_DEPTH** - Determining the io depth in test. Optional parameter. Default=1,8,16. For example: 1,8,32
+9. **FIO_TIME** - Duration of each test in sec. Default=60. Optional parameter.
+10. **GIT_BRANCH** - Branch name for results pushing. Optional parameter.
 
 ### How to run tests
 

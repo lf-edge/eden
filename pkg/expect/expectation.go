@@ -143,7 +143,11 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	//check used ports
 	for _, ni := range expectation.netInstances {
 		if len(ni.ports) > 0 {
-			for _, app := range ctrl.ListApplicationInstanceConfig() {
+			for _, appID := range device.GetApplicationInstances() {
+				app, err := ctrl.GetApplicationInstanceConfig(appID)
+				if err != nil {
+					log.Fatalf("app %s not found: %s", appID, err)
+				}
 				if app.Displayname == expectation.oldAppName {
 					//if we try to modify the app, we skip this check
 					continue

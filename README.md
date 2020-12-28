@@ -254,7 +254,7 @@ eden pod modify laughing_maxwell -p 8028:80
 
 ### View Logs of Applications
 
-To see logs of app you should get name (`app_name` in the example bellow)
+To see logs of app you should get name (`app_name` in the example below)
 of it and run:
 
 ```console
@@ -270,6 +270,18 @@ from the list (or define multiple fields separated by the comma):
 * `app` - to view console output
 
 You can show only N last lines by setting of `--tail` flag.
+
+### Delete Application
+
+To delete the app you should get name (`app_name` in the example below)
+of it and run:
+
+```console
+eden pod delete app_name
+```
+
+The command will also delete volumes of app. If you want to save volumes,
+please use `--with-volumes=false` flag.
 
 ## Different EVE Builds
 
