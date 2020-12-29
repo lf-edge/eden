@@ -13,6 +13,7 @@ import (
 var (
 	testArgs     string
 	testOpts     bool
+	testEscript  string
 	testRun      string
 	testTimeout  string
 	testList     string
@@ -84,6 +85,9 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 		case testOpts:
 			tests.RunTest(testProg, []string{"-h"}, "", testTimeout, failScenario, configFile, verbosity)
 			return
+		case testEscript != "":
+			tests.RunTest("eden.escript.test", []string{"-test.run", "TestEdenScripts/" + testEscript}, testArgs, testTimeout, failScenario, configFile, verbosity)
+			return
 		case testRun != "":
 			tests.RunTest(testProg, []string{"-test.run", testRun}, testArgs, testTimeout, failScenario, configFile, verbosity)
 			return
@@ -95,6 +99,7 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 }
 
 func testInit() {
+	testCmd.Flags().StringVarP(&testEscript, "escript", "e", "", "run EScript matching the regular expression")
 	testCmd.Flags().StringVarP(&testProg, "prog", "p", defaults.DefaultTestProg, "program binary to run tests")
 	testCmd.Flags().StringVarP(&testRun, "run", "r", "", "run only those tests matching the regular expression")
 	testCmd.Flags().StringVarP(&testTimeout, "timeout", "t", "", "panic if test exceded the timeout")

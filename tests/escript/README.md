@@ -8,6 +8,18 @@ The `eden.escript.test` test-binary is an adaptation to
 testscript machinery from
 [github.com/rogpeppe/go-internal/testscript](https://pkg.go.dev/github.com/rogpeppe/go-internal/testscript).
 
+The easiest way to run a script from the test's `testdata` directory is to use the '-e' option:
+
+```console
+eden test tests/escript -e message
+```
+
+This is the short form of:
+
+```console
+eden test tests/escript -p eden.escript.test -r TestEdenScripts/message
+```
+
 To invoke the tests from /tmp directory, for example, call the such command:
 
 ```console
