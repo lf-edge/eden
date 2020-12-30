@@ -44,6 +44,7 @@ BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 EMPTY_DRIVE_QCOW2 := $(WORKDIR)/empty.qcow2
 EMPTY_DRIVE_RAW := $(WORKDIR)/empty.raw
+EMPTY_DRIVE_QEMU_RAW := $(WORKDIR)/qemu-usb.raw
 
 ZARCH ?= $(HOSTARCH)
 export ZARCH
@@ -72,11 +73,15 @@ $(EMPTY_DRIVE_QCOW2):
 $(EMPTY_DRIVE_RAW):
 	qemu-img create -f raw $(EMPTY_DRIVE_RAW) 10M
 
+# create empty drive in raw format to use as usb-storage for qemu
+$(EMPTY_DRIVE_QEMU_RAW):
+	qemu-img create -f raw $(EMPTY_DRIVE_QEMU_RAW) 10M
+
 build-tests: build testbin gotestsum
 install: build
 	CGO_ENABLED=0 go install .
 
-build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2)
+build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2) $(EMPTY_DRIVE_QEMU_RAW)
 ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
 build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2) eserver
 endif

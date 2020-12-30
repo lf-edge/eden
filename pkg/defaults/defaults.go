@@ -128,6 +128,7 @@ const (
 	DefaultEmptyVolumeLinkDocker = "docker://hello-world"
 	DefaultEmptyVolumeLinkQcow2  = "empty.qcow2"
 	DefaultEmptyVolumeLinkRaw    = "empty.raw"
+	DefaultEmptyDriveQemu        = "qemu-usb.raw"
 
 	//defaults for gcp
 

@@ -15,6 +15,7 @@ type QemuSettings struct {
 	CPUs       int
 	USBSerials int
 	USBTablets int
+	EmptyDisk  string
 }
 
 //GenerateQemuConfig provides string representation of Qemu config

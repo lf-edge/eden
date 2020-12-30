@@ -172,10 +172,11 @@ var setupCmd = &cobra.Command{
 					}
 				}
 				settings := utils.QemuSettings{
-					DTBDrive: qemuDTBPathAbsolute,
-					Firmware: qemuFirmwareParam,
-					MemoryMB: qemuMemory,
-					CPUs:     qemuCpus,
+					DTBDrive:  qemuDTBPathAbsolute,
+					Firmware:  qemuFirmwareParam,
+					MemoryMB:  qemuMemory,
+					CPUs:      qemuCpus,
+					EmptyDisk: utils.ResolveAbsPath(defaults.DefaultEmptyDriveQemu),
 				}
 				conf, err := settings.GenerateQemuConfig()
 				if err != nil {
