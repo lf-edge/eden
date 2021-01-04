@@ -10,6 +10,9 @@ jobs:
     steps:
       - name: get eden
         uses: actions/checkout@v2
+      - name: Public IP
+        id: ip
+        uses: haythem/public-ip@v1.2
       - name: setup packages
         run: |
           sudo apt update
@@ -23,9 +26,6 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
-      - name: Public IP
-        id: ip
-        uses: haythem/public-ip@v1.2
       - name: set firewall & clean
         run: |
           gcloud compute instances delete eve-eden-actions-${{github.run_number}} -q --zone=us-west1-a || echo "not exists"
