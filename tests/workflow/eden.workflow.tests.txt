@@ -1,6 +1,6 @@
 {{$tests := 18}}
 {{$workflow := EdenGetEnv "EDEN_TEST"}}
-{{ if and (ne $workflow "small") (ne $workflow "large")  }}
+{{ if and (ne $workflow "small") (ne $workflow "large") (ne $workflow "gcp") }}
 /bin/echo Eden setup (1/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_setup
 /bin/echo Eden start (2/{{$tests}})
@@ -24,9 +24,11 @@ eden.escript.test -test.run TestEdenScripts/test_networking -testdata ../network
 /bin/echo Eden 2 dockers test (9/{{$tests}})
 #eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../docker/testdata/
 eden.escript.test -test.run TestEdenScripts/2dockers_test -testdata ../app/testdata/
-{{ if eq $workflow "large" }}
+{{ if or (eq $workflow "large") (eq $workflow "gcp") }}
 /bin/echo Eden VNC (9.5/{{$tests}})
 eden.vnc.test
+{{end}}
+{{ if  (eq $workflow "large")  }}
 /bin/echo Eden registry (10/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/registry_test -testdata ../registry/testdata/
 /bin/echo Eden Host only ACL (11/{{$tests}})
