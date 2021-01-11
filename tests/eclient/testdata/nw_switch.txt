@@ -16,13 +16,11 @@ exec sleep 20
 
 message 'Creating networks'
 #exec sleep 5
-eden network create 10.1.0.0/24 -n n1
+eden network create 10.11.12.0/24 -n n1
 #exec sleep 5
-eden network create 10.2.0.0/24 -n n2
+eden network create 10.11.13.0/24 -n n2
 
-exec bash wait_net.sh n1 n2
-stdout '^n1\s'
-stdout '^n2\s'
+test eden.network.test -test.v -timewait 10m ACTIVATED n1 n2
 
 message 'Starting applications'
 eden pod deploy -v debug -n ping1 docker://itmoeve/eclient:0.3 -p 2223:22 --networks=n1 --memory=512MB
@@ -86,24 +84,15 @@ test eden.app.test -test.v -timewait 10m - ping-nw ping-fw pong
 
 eden network delete n1
 eden network delete n2
-exec bash wait_off_net.sh n1 n2
-#eden network ls
+
+test eden.network.test -test.v -timewait 10m - n1 n2
+
+stdout 'no network with n1 found'
+stdout 'no network with n2 found'
+
+eden network ls
 ! stdout '^n1\s'
 ! stdout '^n2\s'
-
--- wait_net.sh --
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-
-for n in $*
-do
-  for i in `seq 10`
-  do
-    sleep 10
-    echo $n:$i
-    $EDEN network ls
-    $EDEN network ls | grep "^$n\s\+.*\s\+ACTIVATED$" && break
-  done
-done
 
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
@@ -132,22 +121,6 @@ HOST=$($EDEN eve ip)
 
 echo {{template "ssh"}}$HOST -p $1 ping -c 5 "$PONG_IP"
 {{template "ssh"}}$HOST -p $1 ping -c 5 "$PONG_IP"
-
--- wait_off_net.sh --
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-
-for n in $*
-do
-  for i in `seq 10`
-  do
-    sleep 10
-    echo $n:$i
-    $EDEN network ls
-    $EDEN network ls | grep -v "^$n\s\+" && break
-  done
-done
-
-$EDEN network ls | grep -v [^n[12]\s\+
 
 -- eden-config.yml --
 {{/* Test's config. file */}}

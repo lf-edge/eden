@@ -50,10 +50,19 @@ test:
 
 build: setup
 
-setup: $(BINDIR) $(DATADIR)
-	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
+testbin: $(TESTBIN)
+$(LOCALTESTBIN): $(BINDIR) *.go
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ *.go
 
-.PHONY: test build setup clean all image
+$(TESTBIN): $(LOCALTESTBIN)
+	ln -sf $(LOCALTESTBIN) $(TESTBIN)
+
+setup: testbin $(BINDIR) $(DATADIR)
+	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(DATADIR)
+	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
+	ln -sf ../$(TESTDIR)/$(TESTBIN) $(BINDIR)
+
+.PHONY: test build setup clean all testbin image
 
 image:
 	@echo "Build image"

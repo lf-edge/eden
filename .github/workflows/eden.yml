@@ -12,6 +12,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y qemu-utils qemu-system-x86
+      - name: host info
+        run: |
+          ip a
       - name: get eden
         uses: actions/checkout@v2
       - name: build eden
@@ -23,7 +26,7 @@ jobs:
           ./eden config add default
           ./eden config set default --key=eve.accel --value=false
           echo > tests/workflow/testdata/eden_stop.txt
-          ./eden test ./tests/workflow -v debug
+          EDEN_TEST_SETUP=y ./eden test ./tests/workflow -v debug
       - name: Collect logs
         if: ${{ always() }}
         run: |

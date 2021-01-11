@@ -33,7 +33,7 @@ tc *TestContext // TestContext is at least {
 */
 
 var (
-	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
+	timewait = flag.Duration("timewait", time.Minute, "Timewait for waiting")
 	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
 	count    = flag.Int("count", 1, "Number of reboots")
 

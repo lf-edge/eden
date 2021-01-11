@@ -19,8 +19,8 @@
 {{$test_data := "TEST_SEQUENCE"}}
 
 # create or get two networks for the test
-eden network create 10.1.0.0/24
-eden network create 10.2.0.0/24
+eden network create 10.11.12.0/24
+eden network create 10.11.13.0/24
 
 # obtain network list
 eden network ls
@@ -91,7 +91,7 @@ stdout 'no app with app3 found'
 
 echo "defining of environment variables for the first app"
 
-echo net=$(grep '10.2.0.0/24' network_ls | cut -f1)>.env
+echo net=$(grep '10.11.13.0/24' network_ls | cut -f1)>.env
 echo external_port=''>>.env
 echo metadata={{$test_data}}>>.env
 echo name=app1>>.env
@@ -106,9 +106,9 @@ $EDEN pod ps>pod_ps
 
 echo "defining of environment variables for the second app"
 
-echo net=$(grep '10.1.0.0/24' network_ls | cut -f1),$(grep '10.2.0.0/24' network_ls | cut -f1)>.env
+echo net=$(grep '10.11.12.0/24' network_ls | cut -f1),$(grep '10.11.13.0/24' network_ls | cut -f1)>.env
 echo external_port=-p 8027:80>>.env
-echo metadata=http://$(grep '10.2.0.' pod_ps | grep -o -E '10.2.0.[0-9]{1,3}')/user-data.html>>.env
+echo metadata=http://$(grep '10.11.13.' pod_ps | grep -o -E '10.11.13.[0-9]{1,3}')/user-data.html>>.env
 echo name=app2>>.env
 echo vnc=2>>.env
 echo firewall=false>>.env
@@ -128,9 +128,9 @@ until curl $address | grep {{$test_data}}; do sleep 3; done
 
 echo "defining of environment variables for the third app"
 
-echo net=$(grep '10.1.0.0/24' network_ls | cut -f1),$(grep '10.2.0.0/24' network_ls | cut -f1)>.env
+echo net=$(grep '10.11.12.0/24' network_ls | cut -f1),$(grep '10.11.13.0/24' network_ls | cut -f1)>.env
 echo external_port=-p 8028:80>>.env
-echo metadata=http://$(grep '10.2.0.' pod_ps |grep app1| grep -o -E '10.2.0.[0-9]{1,3}')/user-data.html>>.env
+echo metadata=http://$(grep '10.11.13.' pod_ps |grep app1| grep -o -E '10.11.13.[0-9]{1,3}')/user-data.html>>.env
 echo name=app3>>.env
 echo vnc=3>>.env
 echo firewall=true>>.env
