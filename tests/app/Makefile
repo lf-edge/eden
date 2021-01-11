@@ -49,7 +49,7 @@ build: setup
 
 testbin: $(TESTBIN)
 $(LOCALTESTBIN): $(BINDIR) *.go
-	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -o $@ *.go
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -ldflags "-s -w" -o $@ *.go
 
 $(TESTBIN): $(LOCALTESTBIN)
 	ln -sf $(LOCALTESTBIN) $(TESTBIN)

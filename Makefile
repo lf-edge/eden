@@ -81,7 +81,7 @@ ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
 build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2) eserver
 endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
-	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o $@ .
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-s -w" -o $@ .
 	mkdir -p dist/scripts/shell
 	cp shell-scripts/* dist/scripts/shell/
 
