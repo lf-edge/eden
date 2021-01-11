@@ -81,13 +81,17 @@ func checkIsFileOrURL(pathToCheck string) (isFile bool, pathToRet string, err er
 		return false, pathToCheck, nil
 	case "https":
 		return false, pathToCheck, nil
+	case "oci":
+		return false, pathToCheck, nil
+	case "docker":
+		return false, pathToCheck, nil
 	default:
 		return false, "", fmt.Errorf("%s scheme not supported now", res.Scheme)
 	}
 }
 
 var edgeNodeEVEImageUpdate = &cobra.Command{
-	Use:   "eveimage-update <image file or url (file:// or http(s)://)>",
+	Use:   "eveimage-update <image file or url (oci:// or file:// or http(s)://)>",
 	Short: "update EVE image",
 	Long:  `Update EVE image.`,
 	Args:  cobra.ExactArgs(1),
@@ -131,7 +135,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 }
 
 var edgeNodeEVEImageRemove = &cobra.Command{
-	Use:   "eveimage-remove <image file or url (file:// or http(s)://)>",
+	Use:   "eveimage-remove <image file or url (oci:// or file:// or http(s)://)>",
 	Short: "remove EVE image",
 	Long:  `Remove EVE image.`,
 	Args:  cobra.ExactArgs(1),
@@ -160,14 +164,26 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 				log.Fatalf("GetFileFollowLinks: %s", err)
 			}
 		} else {
-			if err = os.MkdirAll(filepath.Join(edenDist, "tmp"), 0755); err != nil {
-				log.Fatalf("cannot create dir for download image %s", err)
-			}
 			r, _ := url.Parse(baseOSImage)
-			rootFsPath = filepath.Join(edenDist, "tmp", path.Base(r.Path))
-			defer os.Remove(rootFsPath)
-			if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
-				log.Fatalf("DownloadFile error: %s", err)
+			switch r.Scheme {
+			case "http", "https":
+				if err = os.MkdirAll(filepath.Join(edenDist, "tmp"), 0755); err != nil {
+					log.Fatalf("cannot create dir for download image %s", err)
+				}
+				rootFsPath = filepath.Join(edenDist, "tmp", path.Base(r.Path))
+				defer os.Remove(rootFsPath)
+				if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
+					log.Fatalf("DownloadFile error: %s", err)
+				}
+			case "oci", "docker":
+				bits := strings.Split(r.Path, ":")
+				if len(bits) == 2 {
+					rootFsPath = "rootfs-" + bits[1] + ".dummy"
+				} else {
+					rootFsPath = "latest.dummy"
+				}
+			default:
+				log.Fatalf("unknown URI scheme: %s", r.Scheme)
 			}
 		}
 		changer, err := changerByControllerMode(controllerMode)
@@ -178,10 +194,6 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-
-		if _, err := os.Lstat(rootFsPath); os.IsNotExist(err) {
-			log.Fatalf("image file problem (%s): %s", args[0], err)
 		}
 
 		if getFromFileName {
@@ -196,25 +208,19 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)
 
-		sha256sum, err := utils.SHA256SUM(rootFsPath)
-		if err != nil {
-			log.Fatalf("SHA256SUM (%s): %s", rootFsPath, err)
-		}
 		toActivate := true
 		for _, baseOSConfig := range ctrl.ListBaseOSConfig() {
-			if len(baseOSConfig.Drives) == 1 {
-				if baseOSConfig.Drives[0].Image.Sha256 == sha256sum {
-					if ind, found := utils.FindEleInSlice(dev.GetBaseOSConfigs(), baseOSConfig.Uuidandversion.GetUuid()); found {
-						configs := dev.GetBaseOSConfigs()
-						utils.DelEleInSlice(&configs, ind)
-						dev.SetBaseOSConfig(configs)
-						log.Infof("EVE base OS image removed with id %s", baseOSConfig.Uuidandversion.GetUuid())
-					}
-				} else {
-					if toActivate {
-						toActivate = false
-						baseOSConfig.Activate = true //activate another one if exists
-					}
+			if baseOSConfig.BaseOSVersion == baseOSVersion {
+				if ind, found := utils.FindEleInSlice(dev.GetBaseOSConfigs(), baseOSConfig.Uuidandversion.GetUuid()); found {
+					configs := dev.GetBaseOSConfigs()
+					utils.DelEleInSlice(&configs, ind)
+					dev.SetBaseOSConfig(configs)
+					log.Infof("EVE base OS image removed with id %s", baseOSConfig.Uuidandversion.GetUuid())
+				}
+			} else {
+				if toActivate {
+					toActivate = false
+					baseOSConfig.Activate = true //activate another one if exists
 				}
 			}
 		}

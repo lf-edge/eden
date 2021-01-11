@@ -46,6 +46,7 @@ Usage:
 
 Flags:
   -a, --args string            Arguments for test binary
+  -e, --escript string         run EScript matching the regular expression
   -f, --fail_scenario string   scenario for test failing (default "failScenario.txt")
   -h, --help                   help for test
   -l, --list string            list tests matching the regular expression
@@ -209,6 +210,18 @@ Test scripts can be used as glue logic for test binaries “detectors”
 and “actors”. All components that are required for tests,
 such as configuration files, test data, or external scripts,
 can be placed in a test script and processed by the Eden template engine.
+
+The easiest way to run a script from the test's `testdata` directory is to use the '-e' option:
+
+```console
+eden test tests/escript -e message
+```
+
+This is the short form of:
+
+```console
+eden test tests/escript -p eden.escript.test -r TestEdenScripts/message
+```
 
 You can read more about the test scripting for Eden testing
 at [escript/README.md](escript/README.md).

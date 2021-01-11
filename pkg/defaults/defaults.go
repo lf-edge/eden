@@ -48,8 +48,8 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-60ef9c6c" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "df3aa59442b25ecc9fe0c0032dc84eb0808125a4"
+	DefaultEVETag               = "0.0.0-master-d0af171f" //DefaultEVETag tag for EVE image
+	DefaultAdamTag              = "cf3e117efbe5f32846a6a84385ea429c65679f14"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "1.2"
@@ -140,6 +140,7 @@ const (
 
 	DefaultPerfEVELocation       = "/persist/perf.data"
 	DefaultPerfScriptEVELocation = "/persist/perf.script.out"
+	DefaultHWEVELocation         = "/persist/lshw.out"
 )
 
 var (

@@ -16,35 +16,39 @@ import (
 var (
 	perfOptions  string
 	perfLocation string
+	hwLocation   string
+	short        bool
 )
 
 var debugCmd = &cobra.Command{
 	Use: "debug",
 }
 
-var debugStartEveCmd = &cobra.Command{
-	Use:   "start",
-	Short: "start perf in EVE",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
-			extension := filepath.Ext(eveSSHKey)
-			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
-			eveRemote = viper.GetBool("eve.remote")
-			eveRemoteAddr = viper.GetString("eve.remote-addr")
-			if eveRemote || eveRemoteAddr == "" {
-				if !cmd.Flags().Changed("eve-ssh-port") {
-					eveSSHPort = 22
-				}
+func initSSHVariables(cmd *cobra.Command, _ []string) error {
+	assignCobraToViper(cmd)
+	viperLoaded, err := utils.LoadConfigFile(configFile)
+	if err != nil {
+		return fmt.Errorf("error reading config: %s", err.Error())
+	}
+	if viperLoaded {
+		eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
+		extension := filepath.Ext(eveSSHKey)
+		eveSSHKey = strings.TrimRight(eveSSHKey, extension)
+		eveRemote = viper.GetBool("eve.remote")
+		eveRemoteAddr = viper.GetString("eve.remote-addr")
+		if eveRemote || eveRemoteAddr == "" {
+			if !cmd.Flags().Changed("eve-ssh-port") {
+				eveSSHPort = 22
 			}
 		}
-		return nil
-	},
+	}
+	return nil
+}
+
+var debugStartEveCmd = &cobra.Command{
+	Use:     "start",
+	Short:   "start perf in EVE",
+	PreRunE: initSSHVariables,
 	Run: func(cmd *cobra.Command, args []string) {
 		eveIP := getEVEIP()
 		if eveIP == "" {
@@ -64,28 +68,9 @@ var debugStartEveCmd = &cobra.Command{
 }
 
 var debugStopEveCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "stop perf in EVE",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
-			extension := filepath.Ext(eveSSHKey)
-			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
-			eveRemote = viper.GetBool("eve.remote")
-			eveRemoteAddr = viper.GetString("eve.remote-addr")
-			if eveRemote || eveRemoteAddr == "" {
-				if !cmd.Flags().Changed("eve-ssh-port") {
-					eveSSHPort = 22
-				}
-			}
-		}
-		return nil
-	},
+	Use:     "stop",
+	Short:   "stop perf in EVE",
+	PreRunE: initSSHVariables,
 	Run: func(cmd *cobra.Command, args []string) {
 		eveIP := getEVEIP()
 		if eveIP == "" {
@@ -105,29 +90,10 @@ var debugStopEveCmd = &cobra.Command{
 }
 
 var debugSaveEveCmd = &cobra.Command{
-	Use:   "save <file>",
-	Short: "save file with perf script output from EVE, create svg and save to provided file",
-	Args:  cobra.ExactArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
-			extension := filepath.Ext(eveSSHKey)
-			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
-			eveRemote = viper.GetBool("eve.remote")
-			eveRemoteAddr = viper.GetString("eve.remote-addr")
-			if eveRemote || eveRemoteAddr == "" {
-				if !cmd.Flags().Changed("eve-ssh-port") {
-					eveSSHPort = 22
-				}
-			}
-		}
-		return nil
-	},
+	Use:     "save <file>",
+	Short:   "save file with perf script output from EVE, create svg and save to provided file",
+	Args:    cobra.ExactArgs(1),
+	PreRunE: initSSHVariables,
 	Run: func(cmd *cobra.Command, args []string) {
 		absPath, err := filepath.Abs(args[0])
 		if err != nil {
@@ -166,6 +132,43 @@ var debugSaveEveCmd = &cobra.Command{
 	},
 }
 
+var debugHardwareEveCmd = &cobra.Command{
+	Use:     "hw <file>",
+	Short:   "save file with lshw output from EVE",
+	Args:    cobra.ExactArgs(1),
+	PreRunE: initSSHVariables,
+	Run: func(cmd *cobra.Command, args []string) {
+		absPath, err := filepath.Abs(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+		eveIP := getEVEIP()
+		if eveIP == "" {
+			log.Fatal("Np EVE IP")
+		}
+		if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
+			commandToRun := "lshw"
+			if short {
+				commandToRun = "lshw -short"
+			}
+			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s>%s", eveSSHKey, eveSSHPort, eveIP, commandToRun, hwLocation)
+			log.Debugf("Try to scp %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
+			if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
+				log.Fatalf("ssh error for command %s: %s", arguments, err)
+			}
+			commandToRun = fmt.Sprintf("%s %s", hwLocation, absPath)
+			arguments = fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -P %d root@%s:%s", eveSSHKey, eveSSHPort, eveIP, commandToRun)
+			log.Debugf("Try to scp %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
+			if err := utils.RunCommandForeground("scp", strings.Fields(arguments)...); err != nil {
+				log.Fatalf("scp error for command %s: %s", commandToRun, err)
+			}
+			log.Infof("Please see output inside %s", absPath)
+		} else {
+			log.Fatalf("SSH key problem: %s", err)
+		}
+	},
+}
+
 func debugInit() {
 	currentPath, err := os.Getwd()
 	if err != nil {
@@ -174,6 +177,7 @@ func debugInit() {
 	debugCmd.AddCommand(debugStartEveCmd)
 	debugCmd.AddCommand(debugStopEveCmd)
 	debugCmd.AddCommand(debugSaveEveCmd)
+	debugCmd.AddCommand(debugHardwareEveCmd)
 	debugStartEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	debugStartEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	debugStartEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
@@ -186,4 +190,9 @@ func debugInit() {
 	debugSaveEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	debugSaveEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 	debugSaveEveCmd.Flags().StringVar(&perfLocation, "perf-location", defaults.DefaultPerfEVELocation, "Perf output location on EVE")
+	debugHardwareEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
+	debugHardwareEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
+	debugHardwareEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
+	debugHardwareEveCmd.Flags().StringVar(&hwLocation, "hw-location", defaults.DefaultHWEVELocation, "Hardware output location on EVE")
+	debugHardwareEveCmd.Flags().BoolVar(&short, "short", true, "Short hardware info")
 }

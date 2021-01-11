@@ -21,6 +21,12 @@ To process perf results into [Flame Graph](http://www.brendangregg.com/flamegrap
 eden utils debug save flamegraph.svg
 ```
 
+To obtain `lshw` info and store it into file with name `file_name`:
+
+```bash
+eden utils debug hw file_name
+```
+
 To upload file into git:
 
 ```bash
