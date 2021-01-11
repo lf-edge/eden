@@ -5,7 +5,7 @@
 # This test deploys FIO util into EVE, performs the test, and push the results on GitHub.
 
 # Deploy the application
-eden pod deploy --metadata='EVE_VERSION={{EdenConfig "eve.tag"}}\nGIT_BRANCH={{EdenGetEnv "GIT_BRANCH"}}\nGIT_REPO={{EdenGetEnv "GIT_REPO"}}\nGIT_LOGIN={{EdenGetEnv "GIT_LOGIN"}}\nGIT_TOKEN={{EdenGetEnv "GIT_TOKEN"}}' --name=fio_test --memory=2GB --cpus=2 docker://itmoeve/fio_tests:v.1.2
+eden pod deploy --metadata='EVE_VERSION={{EdenConfig "eve.tag"}}\nGIT_BRANCH={{EdenGetEnv "GIT_BRANCH"}}\nGIT_REPO={{EdenGetEnv "GIT_REPO"}}\nGIT_LOGIN={{EdenGetEnv "GIT_LOGIN"}}\nGIT_TOKEN={{EdenGetEnv "GIT_TOKEN"}}\nFIO_TIME={{EdenGetEnv "FIO_TIME"}}\nFIO_OPTYPE={{EdenGetEnv "FIO_OPTYPE"}}\nFIO_BS={{EdenGetEnv "FIO_BS"}}\nFIO_JOBS={{EdenGetEnv "FIO_JOBS"}}\nFIO_DEPTH={{EdenGetEnv "FIO_DEPTH"}}' --name=fio_test --memory=2GB --cpus=2 docker://itmoeve/fio_tests:v.1.2
 
 test eden.app.test -test.v -timewait 5m RUNNING fio_test
 
