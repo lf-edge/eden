@@ -3,7 +3,7 @@
 {{$setup := EdenGetEnv "EDEN_TEST_SETUP"}}
 {{$stop := EdenGetEnv "EDEN_TEST_STOP"}}
 
-{{if (eq $setup "y")}}
+{{if (ne $setup "n")}}
 #./eden config add default
 /bin/echo Eden setup (01/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_setup
