@@ -161,5 +161,8 @@ func TestNetworkStatus(t *testing.T) {
 		} else {
 			t.Log(ready)
 		}
+
+		// sleep to reduce concurrency effects
+		time.Sleep(1 * time.Second)
 	}
 }

@@ -213,7 +213,7 @@ Deploy a VM for Openstack. Initialize `ubuntu` user with password `passw0rd`.
 Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
 
 ```console
-eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-amd64.img -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
+eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-amd64.img -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
 ```
 
 Deploy a VM from a local file. This will cause the local file

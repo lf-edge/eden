@@ -154,5 +154,8 @@ func TestAppStatus(t *testing.T) {
 		}
 
 		tc.WaitForProcWithErrorCallback(secs, callback)
+
+		// sleep to reduce concurrency effects
+		time.Sleep(1 * time.Second)
 	}
 }
