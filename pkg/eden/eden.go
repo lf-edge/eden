@@ -339,6 +339,52 @@ func StatusEServer() (status string, err error) {
 	return state, nil
 }
 
+//StartEVEVBox function run EVE in VirtualBox
+func StartEVEVBox(vmName string, cpus int, mem int, hostFwd map[string]string) (err error) {
+
+	commandArgsString := fmt.Sprintf("startvm  %s", vmName)
+	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+
+		commandArgsString = fmt.Sprintf("createvm --name %s --register", vmName)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+		commandArgsString = fmt.Sprintf("modifyvm %s --cpus %d --memory %d --vram 16 --nested-hw-virt on --ostype Ubuntu_64  --mouse usbtablet --graphicscontroller vmsvga --boot1 disk --boot2 net", vmName, cpus, mem)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+
+		commandArgsString = fmt.Sprintf("storagectl %s --name \"SATA\" --add sata --bootable on --hostiocache on", vmName)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+
+		commandArgsString = fmt.Sprintf("storageattach %s  --storagectl \"SATA\" --port 0 --device 0 --type hdd --medium dist/default-images/eve/live.raw.vdi", vmName)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+
+		commandArgsString = fmt.Sprintf("modifyvm %s  --nic1 nat --cableconnected1 on", vmName)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+
+		for k, v := range hostFwd {
+			commandArgsString = fmt.Sprintf("modifyvm %s --nic1 nat --cableconnected1 on --natpf1 ,tcp,,%s,,%s", vmName, k, v)
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+		}
+
+		commandArgsString = fmt.Sprintf("startvm  %s", vmName)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+	}
+
+	return err
+}
+
 //StartEVEQemu function run EVE in qemu
 func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort int, qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile string, pidFile string, foregroud bool) (err error) {
 	qemuCommand := ""
@@ -411,6 +457,15 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 //StopEVEQemu function stop EVE
 func StopEVEQemu(pidFile string) (err error) {
 	return utils.StopCommandWithPid(pidFile)
+}
+
+//StopEVEVBox function stop EVE in VirtualBox
+func StopEVEVBox(vmName string) (err error) {
+	commandArgsString := fmt.Sprintf("controlvm %s acpipowerbutton", vmName)
+	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+	}
+	return err
 }
 
 //StatusEVEQemu function get status of EVE
@@ -664,7 +719,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID string, config
 }
 
 //StopEden teardown Eden
-func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile string) {
+func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile string, devModel string, vmName string) {
 	if err := StopAdam(adamRm); err != nil {
 		log.Infof("cannot stop adam: %s", err)
 	} else {
@@ -686,17 +741,25 @@ func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile
 		log.Infof("eserver stopped")
 	}
 	if !eveRemote {
-		if err := StopEVEQemu(evePidFile); err != nil {
-			log.Infof("cannot stop EVE: %s", err)
+		if devModel == "VBox" {
+			if err := StopEVEVBox(vmName); err != nil {
+				log.Infof("cannot stop EVE: %s", err)
+			} else {
+				log.Infof("EVE stopped")
+			}
 		} else {
-			log.Infof("EVE stopped")
+			if err := StopEVEQemu(evePidFile); err != nil {
+				log.Infof("cannot stop EVE: %s", err)
+			} else {
+				log.Infof("EVE stopped")
+			}
 		}
 	}
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID string, configSaved string, remote bool) (err error) {
-	StopEden(true, true, true, true, remote, evePID)
+func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID string, configSaved string, remote bool, devModel string, vmName string) (err error) {
+	StopEden(true, true, true, true, remote, evePID, devModel, vmName)
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
 			return fmt.Errorf("CleanEden: error in %s delete: %s", eveDist, err)

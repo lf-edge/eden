@@ -313,6 +313,28 @@ in debug mode with timeout of 600 seconds and requiring 3 messages of each type
 You can find more detailed information about `eden test`
 in [tests/README.md](tests/README.md) and [tests/escript/README.md](tests/escript/README.md)
 
+## VirtualBox support
+
+Eden can be used with VirtualBox.
+Tested on VirtualBox 6.1 with nested virtualization.
+
+Step 1 : Build the eden, set a devmodel and make a Virtual Disk Image (VDI) file. VDI is VirtualBox own container format for guest hard disks.
+
+```console
+make build
+eden config add default --devmodel VBox
+eden setup
+```
+
+Step 2 :  Start eden and onboard Eve. eve_live VM will start in VirtualBox at the same time.
+
+```console
+eden start
+eden eve onboard
+```
+
+Now its ready to use.
+
 ## Google Cloud support
 
 Eden is enough to deploy Eve on Google Cloud. We are going to make

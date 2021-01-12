@@ -137,7 +137,7 @@ var setupCmd = &cobra.Command{
 			eveUefiTag = viper.GetString("eve.uefi-tag")
 			eveHV = viper.GetString("eve.hv")
 			eveArch = viper.GetString("eve.arch")
-			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
+			hostFwd = viper.GetStringMapString("eve.hostfwd")
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			//eserver
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
@@ -335,7 +335,7 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "EVE tag")
 	setupCmd.Flags().StringVarP(&eveUefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "EVE UEFI tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
-	setupCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
+	setupCmd.Flags().StringToStringVarP(&hostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", "", "file to save qemu config")
 	setupCmd.Flags().BoolVarP(&download, "download", "", true, "download EVE or build")
 	setupCmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")

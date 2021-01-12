@@ -25,6 +25,9 @@ var (
 	evePidFile       string
 	eveLogFile       string
 	eveRemote        bool
+	vmName           string
+	cpus             int
+	mem              int
 )
 
 var startCmd = &cobra.Command{
@@ -56,6 +59,7 @@ var startCmd = &cobra.Command{
 			eserverForce = viper.GetBool("eden.eserver.force")
 			eserverTag = viper.GetString("eden.eserver.tag")
 			adamForce = viper.GetBool("adam.force")
+			devModel = viper.GetString("eve.devmodel")
 			qemuARCH = viper.GetString("eve.arch")
 			qemuOS = viper.GetString("eve.os")
 			qemuAccel = viper.GetBool("eve.accel")
@@ -64,7 +68,7 @@ var startCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
-			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
+			hostFwd = viper.GetStringMapString("eve.hostfwd")
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
 		}
 		return nil
@@ -96,10 +100,18 @@ var startCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuHostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
-			log.Errorf("cannot start eve: %s", err)
+		if devModel == "VBox" {
+			if err := eden.StartEVEVBox(vmName, cpus, mem, hostFwd); err != nil {
+				log.Errorf("cannot start eve: %s", err)
+			} else {
+				log.Infof("EVE is starting in Virtual Box")
+			}
 		} else {
-			log.Infof("EVE is starting")
+			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
+				log.Errorf("cannot start eve: %s", err)
+			} else {
+				log.Infof("EVE is starting")
+			}
 		}
 	},
 }
@@ -126,6 +138,9 @@ func startInit() {
 	startCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
 	startCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
 	startCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")
+	startCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	startCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
+	startCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
 	startCmd.Flags().StringVarP(&qemuARCH, "eve-arch", "", runtime.GOARCH, "arch of system")
 	startCmd.Flags().StringVarP(&qemuOS, "eve-os", "", runtime.GOOS, "os to run on")
 	startCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")

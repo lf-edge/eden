@@ -40,7 +40,8 @@ func GetDevModel(devModelType devModelType) (DevModel, error) {
 		return createGCP()
 	case devModelTypeRaspberry:
 		return createRpi()
-
+	case devModelTypeVBox:
+		return createVBox()
 	}
 	return nil, fmt.Errorf("not implemented type: %s", devModelType)
 }

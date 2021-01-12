@@ -73,8 +73,8 @@ const (
 	DefaultFileToSave            = "./test.tar"
 	DefaultIsLocal               = false
 	DefaultEVEHV                 = "kvm"
-	DefaultQemuCpus              = 4
-	DefaultQemuMemory            = 4096
+	DefaultCpus                  = 4
+	DefaultMemory                = 4096
 	DefaultEVESerial             = "31415926"
 	NetDHCPID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
 	NetNoDHCPID                  = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
@@ -112,6 +112,8 @@ const (
 
 	DefaultGCPModel = "GCP"
 
+	DefaultVBoxModel = "VBox"
+
 	DefaultGeneralModel = "general"
 
 	DefaultEVERemote = false
@@ -137,6 +139,10 @@ const (
 	DefaultGcpZone         = "us-west1-a"
 	DefaultGcpMachineType  = "n1-highcpu-4"
 	DefaultGcpRulePriority = 10
+
+	//default for VBox
+
+	DefaultVBoxVMName = "eve_live"
 
 	DefaultPerfEVELocation       = "/persist/perf.data"
 	DefaultPerfScriptEVELocation = "/persist/perf.script.out"

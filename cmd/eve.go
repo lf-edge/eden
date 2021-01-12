@@ -50,7 +50,7 @@ var startEveCmd = &cobra.Command{
 		if viperLoaded {
 			qemuARCH = viper.GetString("eve.arch")
 			qemuOS = viper.GetString("eve.os")
-			qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
+			hostFwd = viper.GetStringMapString("eve.hostfwd")
 			qemuAccel = viper.GetBool("eve.accel")
 			qemuSMBIOSSerial = viper.GetString("eve.serial")
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
@@ -66,7 +66,7 @@ var startEveCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuHostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, qemuForeground); err != nil {
+		if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, qemuForeground); err != nil {
 			log.Errorf("cannot start eve: %s", err)
 		} else {
 			log.Infof("EVE is starting")

@@ -22,7 +22,7 @@ var (
 	qemuConfigPath  string
 	eveImageFile    string
 	qemuDTBPath     string
-	qemuHostFwd     map[string]string
+	hostFwd         map[string]string
 	qemuSocketPath  string
 	qemuUsbSerials  int
 	qemuUsbTablets  int
@@ -51,7 +51,7 @@ func reloadConfigDetails() {
 		qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
 		qemuDTBPath = utils.ResolveAbsPath(viper.GetString("eve.dtb-part"))
 		eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
-		qemuHostFwd = viper.GetStringMapString("eve.hostfwd")
+		hostFwd = viper.GetStringMapString("eve.hostfwd")
 		qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 		devModel = viper.GetString("eve.devmodel")
 		eveRemote = viper.GetBool("eve.remote")
@@ -410,14 +410,14 @@ func configInit() {
 			defaults.DefaultQemuModel, defaults.DefaultRPIModel, defaults.DefaultGCPModel, defaults.DefaultGeneralModel))
 	configAddCmd.Flags().StringVar(&contextFile, "file", "", "file with config to add")
 	configAddCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
-	configAddCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaults.DefaultQemuCpus, "cpus")
-	configAddCmd.Flags().IntVarP(&qemuMemory, "memory", "", defaults.DefaultQemuMemory, "memory (MB)")
+	configAddCmd.Flags().IntVarP(&qemuCpus, "cpus", "", defaults.DefaultCpus, "cpus")
+	configAddCmd.Flags().IntVarP(&qemuMemory, "memory", "", defaults.DefaultMemory, "memory (MB)")
 	configAddCmd.Flags().IntVarP(&qemuUsbSerials, "usbserials", "", 0, "number of USB serial adapters")
 	configAddCmd.Flags().IntVarP(&qemuUsbTablets, "usbtablets", "", 0, "number of USB tablet controllers")
 	configAddCmd.Flags().StringSliceVarP(&qemuFirmware, "eve-firmware", "", nil, "firmware path")
 	configAddCmd.Flags().StringVarP(&qemuConfigPath, "config-part", "", "", "path for config drive")
 	configAddCmd.Flags().StringVarP(&qemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
-	configAddCmd.Flags().StringToStringVarP(&qemuHostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
+	configAddCmd.Flags().StringToStringVarP(&hostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
 	configAddCmd.Flags().StringVar(&ssid, "ssid", "", "set ssid of wifi for rpi")
 	configAddCmd.Flags().StringVar(&eveArch, "arch", runtime.GOARCH, "arch of EVE (amd64 or arm64)")

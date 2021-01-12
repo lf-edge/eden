@@ -31,11 +31,12 @@ var stopCmd = &cobra.Command{
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote, evePidFile)
+		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote, evePidFile, devModel, vmName)
 	},
 }
 
@@ -49,4 +50,5 @@ func stopInit() {
 	stopCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
 	stopCmd.Flags().BoolVarP(&eserverRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
+	stopCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 }
