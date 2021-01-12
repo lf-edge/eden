@@ -48,7 +48,7 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-60ef9c6c" //DefaultEVETag tag for EVE image
+	DefaultEVETag               = "0.0.0-master-79f610b8" //DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "df3aa59442b25ecc9fe0c0032dc84eb0808125a4"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
@@ -111,6 +111,8 @@ const (
 	DefaultRPIModel = "RPi4"
 
 	DefaultGCPModel = "GCP"
+
+	DefaultVBoxModel = "VBox"
 
 	DefaultGeneralModel = "general"
 
