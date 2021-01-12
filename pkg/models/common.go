@@ -115,17 +115,21 @@ func generatePhysicalIOs(ethCount, wifiCount, usbCount uint) []*config.PhysicalI
 			},
 		})
 	}
+	usbGroup := 0
 	for i := uint(0); i < usbCount; i++ {
-		num := fmt.Sprintf("%d:1", i)
-		name := fmt.Sprintf("USB%s", num)
-		physicalIOs = append(physicalIOs, &config.PhysicalIO{
-			Ptype:        evecommon.PhyIoType_PhyIoUSB,
-			Phylabel:     name,
-			Logicallabel: name,
-			Assigngrp:    fmt.Sprintf("USB%d", i),
-			Phyaddrs:     map[string]string{"UsbAddr": num},
-			Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
-		})
+		for j := uint(1); j < 4; j++ {
+			num := fmt.Sprintf("%d:%d", i, j)
+			name := fmt.Sprintf("USB%s", num)
+			physicalIOs = append(physicalIOs, &config.PhysicalIO{
+				Ptype:        evecommon.PhyIoType_PhyIoUSB,
+				Phylabel:     name,
+				Logicallabel: name,
+				Assigngrp:    fmt.Sprintf("USB%d", usbGroup),
+				Phyaddrs:     map[string]string{"UsbAddr": num},
+				Usage:        evecommon.PhyIoMemberUsage_PhyIoUsageDedicated,
+			})
+			usbGroup++
+		}
 	}
 	return physicalIOs
 }

@@ -1,0 +1,13 @@
+eden -t 2m eve stop
+! stderr .
+
+eden eve status
+stdout 'EVE on Qemu status: process doesn''t exist'
+! stderr .
+
+eden -t 2m eve start
+! stderr .
+
+eden eve status
+stdout 'EVE on Qemu status: running with pid \d+'
+! stderr .

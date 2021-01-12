@@ -54,6 +54,7 @@ setup: $(BINDIR) $(DATADIR)
 	cp -a *.sh *.yml $(TESTSCN) testdata $(DATADIR)
 	ln -sf ../$(TESTDIR)/eden+ports.sh $(BINDIR)/
 	ln -sf ../$(TESTDIR)/eden-ports.sh $(BINDIR)/
+	ln -sf ../$(TESTDIR)/qemu+usb.sh $(BINDIR)/
 	chmod 700 image/cert/
 	chmod 600 image/cert/id_rsa*
 	mkdir -p $(DATADIR)/image/cert/

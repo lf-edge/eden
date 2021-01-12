@@ -2,9 +2,17 @@
 
 {{$port := "2222"}}
 {{$test_opts := "-test.v -timewait 20m"}}
+# Number of apps
 {{$apps := EdenGetEnv "EDEN_TEST_APPS"}}
+# Time of app waiting (default -- 30 min)
 {{$time := EdenGetEnv "EDEN_TEST_TIME"}}
+# Image for app (default -- docker://itmoeve/eclient:0.3)
 {{$img := EdenGetEnv "EDEN_TEST_IMG"}}
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+
+# Run test if EDEN_TEST_APPS > 0
+{{if (gt $apps "0")}}
 
 [!exec:bash] stop
 [!exec:sleep] stop
@@ -37,8 +45,7 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 TAPP={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden.app.test
 HOST=$($EDEN eve ip)
 
-# 20 apps by default
-APPS="{{if $apps}}{{$apps}}{{else}}20{{end}}"
+APPS="{{$apps}}"
 # Default image -- docker://itmoeve/eclient:0.3
 IMG="{{if $img}}{{$img}}{{else}}docker://itmoeve/eclient:0.3{{end}}"
 
@@ -48,8 +55,14 @@ do
  PORTS="$PORTS $(({{$port}}+$i)):$(({{$port}}+$i))"
 done
 
+# Is it QEMU?
+{{if (eq $devmodel "ZedVirtual-4G")}}
 echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden+ports.sh $PORTS
 {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden+ports.sh $PORTS
+
+# Restarting EVE to confirm configuration changes
+$EDEN test {{EdenConfig "eden.root"}}/tests/workflow/ -e eve_restart
+{{end}}
 
 PODS=""
 for i in `seq $APPS`
@@ -92,8 +105,7 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 TAPP={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden.app.test
 HOST=$($EDEN eve ip)
 
-# 20 apps by default
-APPS="{{if $apps}}{{$apps}}{{else}}20{{end}}"
+APPS="{{$apps}}"
 # Default image -- docker://itmoeve/eclient:3
 #IMG="{{if $img}}{{$img}}{{else}}docker://itmoeve/eclient:latest{{end}}"
 IMG="{{if $img}}{{$img}}{{else}}docker://itmoeve/eclient:3{{end}}"
@@ -115,5 +127,13 @@ do
  PORTS="$PORTS $(({{$port}}+$i)):$(({{$port}}+$i))"
 done
 
+# Is it QEMU?
+{{if (eq $devmodel "ZedVirtual-4G")}}
 echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden-ports.sh $PORTS
 {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden-ports.sh $PORTS
+
+# Restarting EVE to confirm configuration changes
+$EDEN test {{EdenConfig "eden.root"}}/tests/workflow/ -e eve_restart
+{{end}}
+
+{{end}}
