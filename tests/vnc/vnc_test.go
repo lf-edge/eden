@@ -12,12 +12,14 @@ import (
 
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
+	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -241,7 +243,19 @@ func TestVNCVMStart(t *testing.T) {
 
 	tc.ExpandOnSuccess(int(expand.Seconds()))
 
-	tc.WaitForProc(int(timewait.Seconds()))
+	callback := func() {
+		appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
+		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+			t.Fatalf("LogAppsChecker: %s", err)
+		}
+		fmt.Println("------")
+	}
+
+	tc.WaitForProcWithErrorCallback(int(timewait.Seconds()), callback)
 }
 
 //TestVNCVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
