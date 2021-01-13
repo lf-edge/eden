@@ -135,7 +135,7 @@ const (
 	DefaultGcpBucketName   = "eve-live"
 	DefaultGcpProjectName  = "lf-edge-eve"
 	DefaultGcpZone         = "us-west1-a"
-	DefaultGcpMachineType  = "n1-standard-1"
+	DefaultGcpMachineType  = "n1-highcpu-4"
 	DefaultGcpRulePriority = 10
 
 	DefaultPerfEVELocation       = "/persist/perf.data"
