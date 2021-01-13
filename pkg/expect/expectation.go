@@ -60,6 +60,8 @@ type AppExpectation struct {
 	registry string
 
 	oldAppName string
+
+	httpDirectLoad bool // use eserver for SHA calculation only
 }
 
 //AppExpectationFromURL init AppExpectation with defined:

@@ -37,6 +37,7 @@ var (
 	sshPort      = flag.Int("sshPort", 8027, "Port to publish ssh")
 	cpus         = flag.Uint("cpus", 1, "Cpu number for app")
 	memory       = flag.String("memory", "1G", "Memory for app")
+	direct       = flag.Bool("direct", true, "Load image from url, not from eserver")
 	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
 	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	tc           *projects.TestContext
@@ -198,6 +199,8 @@ func TestVNCVMStart(t *testing.T) {
 	opts = append(opts, expect.WithVnc(uint32(*vncDisplay)))
 
 	opts = append(opts, expect.WithVncPassword(*vncPassword))
+
+	opts = append(opts, expect.WithHTTPDirectLoad(*direct))
 
 	if *sshPort != 0 {
 
