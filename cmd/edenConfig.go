@@ -59,10 +59,10 @@ func reloadConfigDetails() {
 }
 
 var configAddCmd = &cobra.Command{
-	Use:   "add <name>",
-	Short: "generate config context for eden with defined name",
-	Long:  `Generate config context for eden.`,
-	Args:  cobra.ExactValidArgs(1),
+	Use:   "add [name]",
+	Long:  "Generate config context for eden with defined name ('default' by default)",
+	Short: `Generate config context for eden with defined name ('default' by default).`,
+	Args:  cobra.MaximumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		if configFile == "" {
@@ -100,7 +100,11 @@ var configAddCmd = &cobra.Command{
 			log.Fatalf("Load context error: %s", err)
 		}
 		currentContextName := context.Current
-		context.Current = args[0]
+		if len(args) > 0 {
+			context.Current = args[0]
+		} else {
+			context.Current = "default"
+		}
 		configFile = context.GetCurrentConfig()
 		if contextFile != "" {
 			if err := utils.CopyFile(contextFile, configFile); err != nil {
@@ -114,7 +118,7 @@ var configAddCmd = &cobra.Command{
 				}
 				log.Infof("Context file generated: %s", configFile)
 			} else {
-				log.Debugf("Config file already exists %s", configFile)
+				log.Infof("Config file already exists %s", configFile)
 			}
 		}
 		context.SetContext(context.Current)
