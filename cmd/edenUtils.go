@@ -88,6 +88,7 @@ func utilsInit() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	utilsCmd.AddCommand(completionCmd)
 	utilsCmd.AddCommand(templateCmd)
 	utilsCmd.AddCommand(downloaderCmd)
 	downloaderInit()

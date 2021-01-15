@@ -91,6 +91,8 @@ In setup files defined some functions (BASH) and aliases (TCSH) for work with co
 
 To deactivate this settings call `eden_deactivate` function.
 
+You may configure Bash/Zsh/Fish shell completions for Eden by command `eden utils completion`.
+
 ## Eden Config
 
 Eden's config is controlled via a yaml file, overriddable using command-line options.
