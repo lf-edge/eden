@@ -7,11 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
+	uuid "github.com/satori/go.uuid"
 )
 
 // This test wait for the app's state with a timewait.
@@ -148,6 +150,19 @@ func TestAppStatus(t *testing.T) {
 					t.Errorf("\thistory of states for %s:", k)
 					for _, st := range v {
 						t.Errorf("\t\t%s", st)
+					}
+				}
+				for _, app := range eveState.Applications() {
+					if app.Name == k {
+						appID, err := uuid.FromString(app.UUID)
+						if err != nil {
+							t.Fatal(err)
+						}
+						fmt.Printf("--- app %s logs ---\n", app.Name)
+						if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+							t.Fatalf("LogAppsChecker: %s", err)
+						}
+						fmt.Println("------")
 					}
 				}
 			}
