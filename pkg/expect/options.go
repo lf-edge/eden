@@ -165,3 +165,10 @@ func WithOldApp(appName string) ExpectationOption {
 		expectation.oldAppName = appName
 	}
 }
+
+//WithHTTPDirectLoad use eserver only for SHA calculation
+func WithHTTPDirectLoad(direct bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.httpDirectLoad = direct
+	}
+}

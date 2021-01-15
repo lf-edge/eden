@@ -43,6 +43,8 @@ var (
 	outputFields []string
 
 	logAppsFormat eapps.LogFormat
+
+	directLoad bool
 )
 
 var podCmd = &cobra.Command{
@@ -101,6 +103,7 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		opts = append(opts, expect.WithACL(aclOnlyHost))
+		opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -433,6 +436,7 @@ func podInit() {
 	podDeployCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
 	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
+	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
