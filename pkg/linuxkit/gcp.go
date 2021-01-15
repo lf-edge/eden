@@ -314,7 +314,7 @@ func (g GCPClient) CreateInstance(name, image, zone, machineType string, disks D
 
 	if nested {
 		// TODO(rn): We could/should check here if the image has nested virt enabled
-		instanceObj.MinCpuPlatform = "Intel Haswell"
+		instanceObj.MinCpuPlatform = "Intel Skylake"
 	}
 
 	// Don't wait for operation to complete!

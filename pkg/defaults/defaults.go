@@ -48,7 +48,7 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-79f610b8" //DefaultEVETag tag for EVE image
+	DefaultEVETag               = "0.0.0-master-6aaa87a0" //DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "cf3e117efbe5f32846a6a84385ea429c65679f14"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
@@ -135,7 +135,7 @@ const (
 	DefaultGcpBucketName   = "eve-live"
 	DefaultGcpProjectName  = "lf-edge-eve"
 	DefaultGcpZone         = "us-west1-a"
-	DefaultGcpMachineType  = "n1-standard-1"
+	DefaultGcpMachineType  = "n1-highcpu-4"
 	DefaultGcpRulePriority = 10
 
 	DefaultPerfEVELocation       = "/persist/perf.data"

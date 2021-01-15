@@ -32,7 +32,7 @@ To assign a device to a guest VM, the `--adapters` option
 is used during the deployment stage, e.g.:
 
 ```console
-./eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20201022.1/ubuntu-20.10-server-cloudimg-amd64.img \
+./eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-amd64.img \
      -v debug --metadata='#cloud-config\npassword: passw0rd\nlock_passwd: False\nchpasswd: { expire: False }\nssh_pwauth: True\n'\
      --adapters USB3:4
 ```
