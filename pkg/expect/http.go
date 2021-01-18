@@ -107,7 +107,7 @@ func (exp *AppExpectation) createDataStoreHTTP(id uuid.UUID) *config.DatastoreCo
 		Region:     "",
 		CipherData: nil,
 	}
-	if exp.httpDirectLoad {
+	if exp.httpDirectLoad && exp.appType != fileApp {
 		u, err := url.Parse(exp.appLink)
 		if err != nil {
 			log.Fatal(err)
