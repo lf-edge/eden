@@ -110,6 +110,8 @@ const (
 
 	DefaultRPIModel = "RPi4"
 
+	DefaultJetsonNanoBModel = "jetson-nano-b"
+
 	DefaultGCPModel = "GCP"
 
 	DefaultGeneralModel = "general"

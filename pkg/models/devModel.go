@@ -41,7 +41,8 @@ func GetDevModel(devModelType devModelType) (DevModel, error) {
 		return createGCP()
 	case devModelTypeRaspberry:
 		return createRpi()
-
+	case devModelTypeJetsonNanoB:
+		return createJetsonNanoB()
 	}
 	return nil, fmt.Errorf("not implemented type: %s", devModelType)
 }
