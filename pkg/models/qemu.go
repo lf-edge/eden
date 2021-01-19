@@ -79,6 +79,11 @@ func (ctx *DevModelQemu) GetFirstAdapterForSwitches() string {
 	return "uplink"
 }
 
+//GetTarget not used for Qemu
+func (ctx *DevModelQemu) GetTarget() string {
+	return ""
+}
+
 func createQemu() (DevModel, error) {
 	return &DevModelQemu{
 			physicalIOs:        generatePhysicalIOs(2, 0, 4),

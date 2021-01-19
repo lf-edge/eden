@@ -146,6 +146,11 @@ func (ctx *DevModelRpi) GetFirstAdapterForSwitches() string {
 	return "uplink"
 }
 
+//GetTarget not used for Rpi
+func (ctx *DevModelRpi) GetTarget() string {
+	return ""
+}
+
 func createRpi() (DevModel, error) {
 	return &DevModelRpi{
 		physicalIOs: generatePhysicalIOs(1, 1, 0),

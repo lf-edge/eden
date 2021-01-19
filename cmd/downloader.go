@@ -51,6 +51,7 @@ var downloadEVECmd = &cobra.Command{
 			log.Fatalf("GetDevModelByName: %s", err)
 		}
 		format := model.DiskFormat()
+		target := model.GetTarget()
 		eveDesc := utils.EVEDescription{
 			ConfigPath:  adamDist,
 			Arch:        eveArch,
@@ -58,6 +59,7 @@ var downloadEVECmd = &cobra.Command{
 			Registry:    eveRegistry,
 			Tag:         eveTag,
 			Format:      format,
+			Target:      target,
 			ImageSizeMB: eveImageSizeMB,
 		}
 		uefiDesc := utils.UEFIDescription{

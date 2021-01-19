@@ -85,6 +85,11 @@ func (ctx *DevModelGeneral) GetFirstAdapterForSwitches() string {
 	return "uplink"
 }
 
+//GetTarget not used for general
+func (ctx *DevModelGeneral) GetTarget() string {
+	return ""
+}
+
 func createGeneral() (DevModel, error) {
 	return &DevModelGeneral{
 		physicalIOs:        generatePhysicalIOs(2, 0, 0),

@@ -19,6 +19,7 @@ type EVEDescription struct {
 	Registry    string
 	Tag         string
 	Format      string
+	Target      string
 	ImageSizeMB int
 }
 
@@ -103,7 +104,7 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 	if eve.Format == "gcp" {
 		size = eve.ImageSizeMB
 	}
-	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size)
+	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size, eve.Target)
 	if err != nil {
 		return fmt.Errorf("genEVEImage: %s", err)
 	}
@@ -114,7 +115,7 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 }
 
 //genEVELiveImage downloads EVE live image from docker to outputDir with configDir (if defined)
-func genEVELiveImage(image, outputDir string, format string, configDir string, size int) (fileName string, err error) {
+func genEVELiveImage(image, outputDir string, format string, configDir string, size int, target string) (fileName string, err error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", err
 	}
@@ -132,6 +133,9 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 	dockerCommand := fmt.Sprintf("-f %s live %d", format, size)
 	if size == 0 {
 		dockerCommand = fmt.Sprintf("-f %s live", format)
+	}
+	if target != "" {
+		dockerCommand = fmt.Sprintf("-t %s %s", target, dockerCommand)
 	}
 	u, err := RunDockerCommand(image, dockerCommand, volumeMap)
 	if err != nil {

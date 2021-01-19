@@ -85,6 +85,11 @@ func (ctx *DevModelGCP) GetFirstAdapterForSwitches() string {
 	return "uplink"
 }
 
+//GetTarget not used for Rpi
+func (ctx *DevModelGCP) GetTarget() string {
+	return ""
+}
+
 func createGCP() (DevModel, error) {
 	return &DevModelGCP{
 		physicalIOs:        generatePhysicalIOs(2, 0, 0),
