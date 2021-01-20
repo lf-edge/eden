@@ -37,6 +37,8 @@ var (
 	devModel string
 
 	eveImageSizeMB int
+
+	eveConfigDir string
 )
 
 func generateScripts(in string, out string) {
@@ -215,6 +217,12 @@ var setupCmd = &cobra.Command{
 		} else {
 			log.Info("GenerateEVEConfig done")
 		}
+		if _, err := os.Lstat(configDir); !os.IsNotExist(err) {
+			//put files from config folder to generated directory
+			if err := utils.CopyFolder(utils.ResolveAbsPath(eveConfigDir), certsDir); err != nil {
+				log.Errorf("CopyFolder: %s", err)
+			}
+		}
 		imageFormat := model.DiskFormat()
 		if !download {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
@@ -339,4 +347,6 @@ func setupInit() {
 	setupCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
 
 	setupCmd.Flags().IntVar(&eveImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
+
+	setupCmd.Flags().StringVar(&eveConfigDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
 }

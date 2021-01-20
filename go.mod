@@ -66,6 +66,7 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.4.0
+	gotest.tools/gotestsum v1.6.1 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
 

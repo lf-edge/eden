@@ -24,3 +24,5 @@ Config.in
 tests/workflow/workflow.default.txt
 tests/workflow/workflow.small.txt
 tests/workflow/workflow.large.txt
+
+eve-config-dir/*

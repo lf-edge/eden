@@ -159,3 +159,18 @@ func ResolveHomeDir(filePath string) string {
 	}
 	return filePath
 }
+
+//CopyFolder from source to destination
+func CopyFolder(source, destination string) error {
+	var err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+		var relPath = strings.Replace(path, source, "", 1)
+		if relPath == "" {
+			return nil
+		}
+		if info.IsDir() {
+			return os.Mkdir(filepath.Join(destination, relPath), info.Mode())
+		}
+		return CopyFile(filepath.Join(source, relPath), filepath.Join(destination, relPath))
+	})
+	return err
+}
