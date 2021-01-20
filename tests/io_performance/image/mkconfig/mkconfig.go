@@ -137,7 +137,7 @@ var fType = tType{"read", "write"}
 var fBS = blockSize{"4k", "64k", "1m"}
 var fJobs = jobs{1, 8}
 var fDepth = depth{1, 8, 16}
-var fTime int
+var fTime string
 var outPath string
 
 func init() {
@@ -145,7 +145,7 @@ func init() {
 	flag.Var(&fBS, "bs", "Use comma separated string with combinations of 4k,8k,16k,64k ...")
 	flag.Var(&fJobs, "jobs", "Use comma separated string with combinations of int values")
 	flag.Var(&fDepth, "depth", "Use comma separated string with combinations of int values")
-	flag.IntVar(&fTime, "time", 60, "Use seconds to pass execution time")
+	flag.StringVar(&fTime, "time", "60", "Use seconds to pass execution time")
 	flag.StringVar(&outPath, "out", "./config.fio", "Change output file path")
 	flag.Parse()
 }
@@ -154,7 +154,7 @@ const globalTpl = `[global]
 ioengine=libaio
 size=1G
 direct=1
-runtime=%d
+runtime=%s
 time_based=1
 group_reporting
 filename=/data/fio.test.file
@@ -184,6 +184,10 @@ func main() {
 		panic(err)
 	}
 	defer fd.Close()
+
+	if fTime == "" {
+		fTime = "60"
+	}
 
 	fmt.Fprintf(fd, globalTpl, fTime)
 

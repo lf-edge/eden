@@ -24,13 +24,14 @@ Before starting the container, you need to [get a token on GitHub.com](https://d
 8. **FIO_DEPTH** - Determining the io depth in test. Optional parameter. Default=1,8,16. For example: 1,8,32
 9. **FIO_TIME** - Duration of each test in sec. Default=60. Optional parameter.
 10. **GIT_BRANCH** - Branch name for results pushing. Optional parameter.
+11. **GIT_FOLDER** - Folder name for results on GitHub. Optional parameter.
 
 ### How to run tests
 
 This test creates a virtual machine and starts testing.
 
 ```console
-GIT_REPO=<git repository name> GIT_LOGIN=<your git login> GIT_TOKEN=<your git token> ./eden test ./tests/io_perfomance
+GIT_REPO=<git repository name> GIT_LOGIN=<your git login> GIT_TOKEN=<your git token> FIO_TIME=60 ./eden test ./tests/io_performance
 ```
 
 >Before running the test, you need to add environmental variables: GIT_REPO, GIT_LOGIN, GIT_TOKEN.
