@@ -137,22 +137,34 @@ func TestVolStatus(t *testing.T) {
 			states[el] = []string{"no info from controller"}
 		}
 
-		tc.AddProcInfo(edgeNode, checkVol(state, vols))
+		// observe existing info object and feed them into eveState object
+		if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
+			t.Fatal(err)
+		}
 
-		callback := func() {
-			t.Errorf("ASSERTION FAILED: expected volumes %s in %s state", vols, state)
-			for k, v := range states {
-				t.Errorf("\tactual %s: %s", k, v[len(v)-1])
-				if checkNewLastState(k, state) {
-					t.Errorf("\thistory of states for %s:", k)
-					for _, st := range v {
-						t.Errorf("\t\t%s", st)
+		// we are done if our eveState object is in required state
+		if ready := checkState(eveState, state, vols); ready == nil {
+
+			tc.AddProcInfo(edgeNode, checkVol(state, vols))
+
+			callback := func() {
+				t.Errorf("ASSERTION FAILED: expected volumes %s in %s state", vols, state)
+				for k, v := range states {
+					t.Errorf("\tactual %s: %s", k, v[len(v)-1])
+					if checkNewLastState(k, state) {
+						t.Errorf("\thistory of states for %s:", k)
+						for _, st := range v {
+							t.Errorf("\t\t%s", st)
+						}
 					}
 				}
 			}
-		}
 
-		tc.WaitForProcWithErrorCallback(secs, callback)
+			tc.WaitForProcWithErrorCallback(secs, callback)
+
+		} else {
+			t.Log(ready)
+		}
 
 		// sleep to reduce concurrency effects
 		time.Sleep(1 * time.Second)
