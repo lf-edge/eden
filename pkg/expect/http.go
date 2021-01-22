@@ -20,7 +20,7 @@ func (exp *AppExpectation) createImageHTTP(id uuid.UUID, dsID string) *config.Im
 	log.Infof("Starting download of image from %s", exp.appLink)
 	server := &eden.EServer{
 		EServerIP:   exp.ctrl.GetVars().EServerIP,
-		EserverPort: exp.ctrl.GetVars().EServerPort,
+		EServerPort: exp.ctrl.GetVars().EServerPort,
 	}
 	var fileSize int64
 	sha256 := ""

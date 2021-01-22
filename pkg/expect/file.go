@@ -14,7 +14,7 @@ import (
 func (exp *AppExpectation) createImageFile(id uuid.UUID, dsID string) *config.Image {
 	server := &eden.EServer{
 		EServerIP:   exp.ctrl.GetVars().EServerIP,
-		EserverPort: exp.ctrl.GetVars().EServerPort,
+		EServerPort: exp.ctrl.GetVars().EServerPort,
 	}
 	var fileSize int64
 	sha256 := ""
