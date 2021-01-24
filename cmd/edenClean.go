@@ -74,7 +74,7 @@ var cleanCmd = &cobra.Command{
 		} else {
 			if err := eden.CleanEden(eveDist, adamDist, certsDir, filepath.Dir(eveImageFile),
 				eserverImageDist, redisDist, registryDist, configDir, evePidFile,
-				configSaved, eveRemote); err != nil {
+				configSaved, eveRemote, devModel, vmName); err != nil {
 				log.Fatalf("cannot CleanEden: %s", err)
 			}
 		}
@@ -101,4 +101,5 @@ func cleanInit() {
 	cleanCmd.Flags().StringVarP(&certsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
 	cleanCmd.Flags().StringVarP(&configDir, "config-dist", "", configDist, "directory for config")
 	cleanCmd.Flags().BoolVar(&currentContext, "current-context", true, "clean only current context")
+	cleanCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 }

@@ -100,7 +100,7 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 			return fmt.Errorf("SaveImage: %s", err)
 		}
 	}
-	if eve.Format == "gcp" {
+	if eve.Format == "gcp" || eve.Format == "vdi" {
 		size = eve.ImageSizeMB
 	}
 	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size)
@@ -128,6 +128,9 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 	}
 	if format == "gcp" {
 		fileName = fileName + ".img.tar.gz"
+	}
+	if format == "vdi" {
+		fileName = fileName + "." + format
 	}
 	dockerCommand := fmt.Sprintf("-f %s live %d", format, size)
 	if size == 0 {
