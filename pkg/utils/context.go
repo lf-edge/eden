@@ -34,8 +34,9 @@ func (ctx *Context) GetCurrentConfig() string {
 
 //SetContext set current contexts
 func (ctx *Context) SetContext(context string) {
+	//fmt.Println("SetContext:", context)
 	ctx.Current = context
-	ctx.Save()
+	//ctx.Save()
 }
 
 //ListContexts show available contexts

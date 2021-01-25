@@ -31,6 +31,7 @@ import (
 
 var (
 	timewait = flag.Duration("timewait", 20*time.Minute, "Timewait for items waiting")
+	config   = flag.String("config", "default", "EDEN config")
 
 	expand       = flag.Duration("expand", 10*time.Minute, "Expand timewait on success of step")
 	name         = flag.String("name", "", "Name of app, random if empty")
@@ -55,7 +56,8 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("VNC access to app Test")
 
-	tc = projects.NewTestContext()
+	fmt.Println("Test config: ", *config)
+	tc = projects.NewTestContext(*config)
 
 	projectName := fmt.Sprintf("%s_%s", "TestVNCAccess", time.Now())
 

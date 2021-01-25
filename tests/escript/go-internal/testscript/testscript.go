@@ -318,7 +318,8 @@ func (ts *TestScript) setup() string {
 		)
 	} else {
 		env.Vars = append(env.Vars,
-			homeEnvName()+"=/no-home",
+			homeEnvName()+"="+os.Getenv("HOME"),
+			//homeEnvName()+"=/no-home",
 		)
 	}
 	// Must preserve SYSTEMROOT on Windows: https://github.com/golang/go/issues/25513 et al

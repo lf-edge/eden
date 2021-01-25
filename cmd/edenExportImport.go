@@ -139,7 +139,7 @@ var importCmd = &cobra.Command{
 			if viperLoaded {
 				if edenRoot != viper.GetString("eden.root") {
 					viper.Set("eve.root", edenRoot)
-					if err = utils.GenerateConfigFileFromViper(); err != nil {
+					if err = utils.GenerateConfigFileFromViper(configFile); err != nil {
 						log.Fatalf("error writing config: %s", err)
 					}
 				}

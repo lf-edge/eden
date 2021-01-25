@@ -44,10 +44,13 @@ type TestContext struct {
 }
 
 //NewTestContext creates new TestContext
-func NewTestContext() *TestContext {
+func NewTestContext(config string) *TestContext {
 	var err error
 	viperLoaded := false
-	if edenConfigEnv := os.Getenv(defaults.DefaultConfigEnv); edenConfigEnv != "" {
+	if config != "" {
+		viperLoaded, err = utils.LoadConfigFile(utils.GetConfig(config))
+		//fmt.Printf("NewTestContext config=%s viperLoaded=%v err=%v\n", config, viperLoaded, err)
+	} else if edenConfigEnv := os.Getenv(defaults.DefaultConfigEnv); edenConfigEnv != "" {
 		viperLoaded, err = utils.LoadConfigFile(utils.GetConfig(edenConfigEnv))
 	} else {
 		viperLoaded, err = utils.LoadConfigFile("")
@@ -109,10 +112,10 @@ func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	} else {
 		log.Debug("NodeDescriptions not found. Will use default one.")
 		nodes = append(nodes, &EdgeNodeDescription{
-			Name: viper.GetString("eve.name"),
-			Key: utils.ResolveAbsPath(viper.GetString("eve.cert")),
+			Name:   viper.GetString("eve.name"),
+			Key:    utils.ResolveAbsPath(viper.GetString("eve.cert")),
 			Serial: viper.GetString("eve.serial"),
-			Model: viper.GetString("eve.devModel"),
+			Model:  viper.GetString("eve.devModel"),
 		})
 	}
 	return

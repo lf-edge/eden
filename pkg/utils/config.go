@@ -472,10 +472,13 @@ func generateConfigFileFromViperTemplate(filePath string, templateString string)
 }
 
 //GenerateConfigFileFromViper is a function to generate yml from viper config
-func GenerateConfigFileFromViper() error {
-	configFile, err := DefaultConfigPath()
-	if err != nil {
-		log.Fatalf("fail in DefaultConfigPath: %s", err)
+func GenerateConfigFileFromViper(configFile string) error {
+	if configFile == "" {
+		cfg, err := DefaultConfigPath()
+		if err != nil {
+			log.Fatalf("fail in DefaultConfigPath: %s", err)
+		}
+		configFile = cfg
 	}
 	return generateConfigFileFromViperTemplate(configFile, defaults.DefaultEdenTemplate)
 }

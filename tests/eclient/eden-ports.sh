@@ -6,11 +6,14 @@ then
   exit
 fi
 
-test -n "$EDEN_CONFIG" || EDEN_CONFIG=default
-
 EDEN=eden
 DIR=$(dirname "$0")
 PATH=$DIR:$DIR/../../bin:$PATH
+
+if [ -z "$EDEN_CONFIG" ]
+then
+  EDEN_CONFIG=default
+fi
 
 OLD=$($EDEN config get "$EDEN_CONFIG" --key eve.hostfwd)
 NEW=$OLD
@@ -33,9 +36,9 @@ then
   $EDEN config set "$EDEN_CONFIG" --key eve.hostfwd --value "$NEW"
   echo $EDEN config get "$EDEN_CONFIG" --key eve.hostfwd
   $EDEN config get "$EDEN_CONFIG" --key eve.hostfwd
-  cat <<END
-To activate the changes in the config, you need to restart EVE:
+  echo $EDEN eve stop
   $EDEN eve stop
+  sleep 5
+  echo $EDEN eve start
   $EDEN eve start
-END
 fi

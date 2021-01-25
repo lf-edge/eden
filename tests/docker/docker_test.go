@@ -32,10 +32,12 @@ var (
 	cpus         = flag.Uint("cpus", 1, "Cpu number for app")
 	memory       = flag.String("memory", "1G", "Memory for app")
 	nohyper      = flag.Bool("nohyper", false, "Do not use a hypervisor")
-	tc           *projects.TestContext
-	externalIP   string
-	portPublish  []string
-	appName      string
+	cfg          = flag.String("config", "default", "EDEN config")
+
+	tc          *projects.TestContext
+	externalIP  string
+	portPublish []string
+	appName     string
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -45,7 +47,8 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Docker app deployment Test")
 
-	tc = projects.NewTestContext()
+	fmt.Println("Test config: ", *cfg)
+	tc = projects.NewTestContext(*cfg)
 
 	projectName := fmt.Sprintf("%s_%s", "TestDockerDeploy", time.Now())
 
