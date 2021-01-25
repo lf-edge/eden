@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/eden"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/lf-edge/eden/pkg/eden"
 
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -255,7 +256,10 @@ var sshEveCmd = &cobra.Command{
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, getEVEIP(), commandToRun)
+			if !cmd.Flags().Changed("eve-host") {
+				eveHost = getEVEIP()
+			}
+			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveHost, commandToRun)
 			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
 			if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
 				log.Fatalf("ssh error: %s", err)
