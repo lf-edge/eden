@@ -42,6 +42,7 @@ var (
 	direct       = flag.Bool("direct", true, "Load image from url, not from eserver")
 	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
 	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
+	doPanic      = flag.Bool("panic", false, "Test kernel panic")
 	tc           *projects.TestContext
 	externalIP   string
 	externalPort int
@@ -142,9 +143,17 @@ func checkSSHAccess() projects.ProcTimerFunc {
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 			Timeout:         defaults.DefaultRepeatTimeout,
 		}
-		_, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", externalIP, *sshPort), config)
+		conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", externalIP, *sshPort), config)
 		if err != nil {
 			return nil
+		}
+		if *doPanic {
+			session, _ := conn.NewSession()
+			go func() {
+				_ = session.Run("sudo su -c 'echo c > /proc/sysrq-trigger'") //we cannot get answer for this command
+				session.Close()
+			}()
+			return fmt.Errorf("kernel panic fired via SSH on %s:%d", externalIP, *sshPort)
 		}
 		return fmt.Errorf("SSH success. You can access it via SSH on %s:%d", externalIP, *sshPort)
 	}
@@ -222,6 +231,11 @@ func TestVNCVMStart(t *testing.T) {
 
 	edgeNode.SetApplicationInstanceConfig(append(edgeNode.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 
+	appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tc.ConfigSync(edgeNode)
 
 	t.Log("Add processing of app running messages")
@@ -242,15 +256,15 @@ func TestVNCVMStart(t *testing.T) {
 
 		tc.AddProcTimer(edgeNode, checkSSHAccess())
 
+		if *doPanic {
+			fmt.Println("will fire kernel panic in test")
+			tc.AddProcTimer(edgeNode, tc.CheckMessageInAppLog(edgeNode, appID, "Kernel panic"))
+		}
 	}
 
 	tc.ExpandOnSuccess(int(expand.Seconds()))
 
 	callback := func() {
-		appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
-		if err != nil {
-			t.Fatal(err)
-		}
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
 		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
 			t.Fatalf("LogAppsChecker: %s", err)
