@@ -24,10 +24,6 @@ func (exp *AppExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.
 		Activate:    true,
 		Displayname: exp.appName,
 	}
-	if exp.virtualizationMode == config.VmMode_PV {
-		app.Fixedresources.Rootdev = "/dev/xvda1"
-		app.Fixedresources.Bootloader = "/usr/bin/pygrub"
-	}
 	app.Fixedresources.VirtualizationMode = exp.virtualizationMode
 	maxSizeBytes := img.SizeBytes
 	if exp.diskSize > 0 {

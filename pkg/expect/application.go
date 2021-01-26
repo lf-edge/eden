@@ -45,6 +45,10 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
+	if exp.virtualizationMode == config.VmMode_PV {
+		bundle.appInstanceConfig.Fixedresources.Rootdev = "/dev/xvda1"
+		bundle.appInstanceConfig.Fixedresources.Bootloader = "/usr/lib/xen/boot/ovmf.bin"
+	}
 	bundle.appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
 
 	for k, ni := range netInstances {
