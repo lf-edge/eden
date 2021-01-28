@@ -1,6 +1,7 @@
 package eden
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
@@ -342,10 +343,9 @@ func StatusEServer() (status string, err error) {
 //StartEVEVBox function run EVE in VirtualBox
 func StartEVEVBox(vmName string, cpus int, mem int, hostFwd map[string]string) (err error) {
 
-	commandArgsString := fmt.Sprintf("startvm  %s", vmName)
-	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-
-		commandArgsString = fmt.Sprintf("createvm --name %s --register", vmName)
+	if out, _, err := utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("showvminfo %s --machinereadable", vmName))...); err != nil {
+		log.Info("No VMs with eve_live name", err)
+		commandArgsString := fmt.Sprintf("createvm --name %s --register", vmName)
 		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
@@ -377,6 +377,38 @@ func StartEVEVBox(vmName string, cpus int, mem int, hostFwd map[string]string) (
 		}
 
 		commandArgsString = fmt.Sprintf("startvm  %s", vmName)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+	} else {
+		scanner := bufio.NewScanner(bytes.NewReader([]byte(out)))
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if !strings.HasPrefix(line, "Forwarding") {
+				continue
+			}
+			if i := strings.IndexRune(line, '='); i != -1 {
+				line = line[i+1:]
+			}
+			if s, err := strconv.Unquote(line); err == nil {
+				line = s
+			}
+			// forwarding rule is in format "tcp_2222_22,tcp,,2222,,22", where
+			v := strings.Split(line, ",")
+			commandArgsString := fmt.Sprintf("modifyvm %s --natpf1 delete %s", vmName, v[0])
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+		}
+
+		for k, v := range hostFwd {
+			commandArgsString := fmt.Sprintf("modifyvm %s --nic1 nat --cableconnected1 on --natpf1 ,tcp,,%s,,%s", vmName, k, v)
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+		}
+
+		commandArgsString := fmt.Sprintf("startvm  %s", vmName)
 		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
@@ -461,7 +493,7 @@ func StopEVEQemu(pidFile string) (err error) {
 
 //StopEVEVBox function stop EVE in VirtualBox
 func StopEVEVBox(vmName string) (err error) {
-	commandArgsString := fmt.Sprintf("controlvm %s acpipowerbutton", vmName)
+	commandArgsString := fmt.Sprintf("controlvm %s savestate", vmName)
 	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 	}
