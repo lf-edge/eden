@@ -1,1 +1,1 @@
-eden.vnc.test -panic=true
+eden.vnc.test -panic=true -logger=true
