@@ -40,6 +40,7 @@ type Ctx struct {
 	devModel                   string
 	remote                     bool
 	remoteAddr                 string
+	epoch                      int64
 }
 
 //CreateEdgeNode generates EdgeNode
@@ -52,6 +53,7 @@ func CreateEdgeNode() *Ctx {
 		configVersion: 4,
 		configItems:   map[string]string{},
 		state:         NotOnboarded,
+		epoch:         0,
 	}
 }
 
@@ -99,6 +101,12 @@ func (cfg *Ctx) GetRemoteAddr() string { return cfg.remoteAddr }
 
 //SetRemoteAddr set remote address to access EVE
 func (cfg *Ctx) SetRemoteAddr(remoteAddr string) { cfg.remoteAddr = remoteAddr }
+
+//GetEpoch return remote address to access EVE
+func (cfg *Ctx) GetEpoch() int64 { return cfg.epoch }
+
+//SetEpoch set remote address to access EVE
+func (cfg *Ctx) SetEpoch(epoch int64) { cfg.epoch = epoch }
 
 //GetApplicationInstances return applicationInstanceConfigs of device
 func (cfg *Ctx) GetApplicationInstances() []string { return cfg.applicationInstanceConfigs }

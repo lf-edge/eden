@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eve/api/go/config"
@@ -56,7 +55,10 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if _, err := os.Lstat(ctx.fileConfig); os.IsNotExist(err) {
 		return nil, nil, err
 	}
-	var ctrl controller.Cloud = &controller.CloudCtx{Controller: &adam.Ctx{}}
+	ctrl, err := controller.CloudPrepare()
+	if err != nil {
+		log.Fatalf("CloudPrepare error: %s", err)
+	}
 	data, err := ioutil.ReadFile(ctx.fileConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("file reading error: %s", err)

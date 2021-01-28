@@ -181,6 +181,7 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	if config.Reboot != nil {
 		dev.SetRebootCounter(config.Reboot.Counter, config.Reboot.DesiredState)
 	}
+	dev.SetEpoch(config.ControllerEpoch)
 	res, err := cloud.GetConfigBytes(dev, false)
 	if err != nil {
 		return nil, fmt.Errorf("GetConfigBytes error: %s", err)
@@ -557,6 +558,7 @@ volumeLoop:
 		NetworkInstances:  networkInstanceConfigs,
 		Enterprise:        "",
 		Name:              dev.GetName(),
+		ControllerEpoch:   dev.GetEpoch(),
 	}
 	if pretty {
 		return json.MarshalIndent(devConfig, "", "    ")
