@@ -24,6 +24,7 @@ var (
 	number   = flag.Int("number", 1, "The number of items (0=unlimited) you need to get")
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
 	out      = flag.String("out", "", "Parameters for out separated by ':'")
+	config   = flag.String("config", "default", "EDEN config")
 
 	// This context holds all the configuration items in the same
 	// way that Eden context works: the commands line options override
@@ -80,7 +81,8 @@ func TestMain(m *testing.M) {
 
 	tests.TestArgsParse()
 
-	tc = projects.NewTestContext()
+	fmt.Println("Test config: ", *config)
+	tc = projects.NewTestContext(*config)
 
 	projectName := fmt.Sprintf("%s_%s", "TestLogInfoMetric", time.Now())
 

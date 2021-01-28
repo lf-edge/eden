@@ -103,7 +103,7 @@ var configAddCmd = &cobra.Command{
 		if len(args) > 0 {
 			context.Current = args[0]
 		} else {
-			context.Current = "default"
+			context.Current = defaults.DefaultContext
 		}
 		configFile = context.GetCurrentConfig()
 		if contextFile != "" {
@@ -130,7 +130,7 @@ var configAddCmd = &cobra.Command{
 		for k, v := range model.Config() {
 			viper.Set(k, v)
 		}
-		if err = utils.GenerateConfigFileFromViper(); err != nil {
+		if err = utils.GenerateConfigFileFromViper(configFile); err != nil {
 			log.Fatalf("error writing config: %s", err)
 		}
 		context.SetContext(currentContextName)
@@ -197,7 +197,7 @@ var configSetCmd = &cobra.Command{
 						log.Fatalf("error reading config: %s", err.Error())
 					}
 					viper.Set(contextKeySet, contextValueSet)
-					if err = utils.GenerateConfigFileFromViper(); err != nil {
+					if err = utils.GenerateConfigFileFromViper(configFile); err != nil {
 						log.Fatalf("error writing config: %s", err)
 					}
 				}

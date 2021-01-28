@@ -16,6 +16,7 @@ import (
 // This test wait for the network's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
+	config   = flag.String("config", "default", "EDEN config")
 	tc       *projects.TestContext
 	states   map[string][]string
 	eveState *eve.State
@@ -28,7 +29,8 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Network's state test")
 
-	tc = projects.NewTestContext()
+	fmt.Println("Test config: ", *config)
+	tc = projects.NewTestContext(*config)
 
 	projectName := fmt.Sprintf("%s_%s", "TestNetState", time.Now())
 

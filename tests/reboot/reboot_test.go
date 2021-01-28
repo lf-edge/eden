@@ -36,6 +36,7 @@ var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for waiting")
 	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
 	count    = flag.Int("count", 1, "Number of reboots")
+	config   = flag.String("config", "default", "EDEN config")
 
 	tc *projects.TestContext
 
@@ -63,7 +64,8 @@ func TestMain(m *testing.M) {
 
 	tests.TestArgsParse()
 
-	tc = projects.NewTestContext()
+	fmt.Println("Test config: ", *config)
+	tc = projects.NewTestContext(*config)
 
 	projectName := fmt.Sprintf("%s_%s", "TestReboot", time.Now())
 

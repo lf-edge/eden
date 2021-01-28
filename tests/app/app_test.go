@@ -19,6 +19,7 @@ import (
 // This test wait for the app's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
+	config   = flag.String("config", "default", "EDEN config")
 	tc       *projects.TestContext
 	states   map[string][]string
 	eveState *eve.State
@@ -33,7 +34,8 @@ func TestMain(m *testing.M) {
 
 	tests.TestArgsParse()
 
-	tc = projects.NewTestContext()
+	fmt.Println("Test config: ", *config)
+	tc = projects.NewTestContext(*config)
 
 	projectName := fmt.Sprintf("%s_%s", "TestAppState", time.Now())
 
