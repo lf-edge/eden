@@ -19,10 +19,10 @@ eden.escript.test -test.run TestEdenScripts/eden_setup
 {{end}}
 
 # Making some settings for test configuration if we work with QEMU
-{{if (eq $devmodel "ZedVirtual-4G")}}
-{{if (eq $usb_pt "y")}}
+{{if and (eq $usb_pt "y") (eq $devmodel "ZedVirtual-4G") }}
 qemu+usb.sh
 {{end}}
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
 eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027
 {{end}}
 
@@ -36,7 +36,7 @@ eden.escript.test -test.run TestEdenScripts/eden_onboard
 {{if (ne $setup "y")}}
 # Just restart EVE if not using the SETUP steps
 # Is it QEMU?
-{{if (eq $devmodel "ZedVirtual-4G")}}
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
 /bin/echo EVE restart (04/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eve_restart
 {{end}}
