@@ -379,14 +379,14 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 			if qemuOS == "darwin" {
 				qemuOptions += defaults.DefaultQemuAccelDarwin
 			} else {
-				qemuOptions += defaults.DefaultQemuAccelLinux
+				qemuOptions += defaults.DefaultQemuAccelLinuxAmd64
 			}
 		} else {
 			qemuOptions += "--cpu SandyBridge "
 		}
 	case "arm64":
 		qemuCommand = "qemu-system-aarch64"
-		qemuOptions += "-machine virt,gic_version=3 -machine virtualization=true -cpu cortex-a57 -machine type=virt "
+		qemuOptions += defaults.DefaultQemuAccelLinuxArm64
 	default:
 		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
 	}
