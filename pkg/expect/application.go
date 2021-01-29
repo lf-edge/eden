@@ -45,6 +45,23 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
+	for _, d := range exp.disks {
+		tempExp := AppExpectationFromURL(exp.ctrl, exp.device, d, "")
+		tempExp.imageFormat = string(exp.volumesType)
+		image := tempExp.Image()
+		if image != nil {
+			drive := &config.Drive{
+				Image:        image,
+				Maxsizebytes: defaults.DefaultVolumeSize,
+			}
+			ind := len(bundle.volumes)
+			contentTree := exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
+			bundle.contentTrees = append(bundle.contentTrees, contentTree)
+			volume := exp.driveToVolume(drive, ind+1, contentTree)
+			bundle.volumes = append(bundle.volumes, volume)
+			bundle.appInstanceConfig.VolumeRefList = append(bundle.appInstanceConfig.VolumeRefList, &config.VolumeRef{Uuid: volume.Uuid})
+		}
+	}
 	if exp.virtualizationMode == config.VmMode_PV {
 		bundle.appInstanceConfig.Fixedresources.Rootdev = "/dev/xvda1"
 		bundle.appInstanceConfig.Fixedresources.Bootloader = "/usr/lib/xen/boot/ovmf.bin"
