@@ -21,17 +21,18 @@ import (
 )
 
 var (
-	qemuARCH         string
-	qemuOS           string
-	qemuAccel        bool
-	qemuSMBIOSSerial string
-	qemuConfigFile   string
-	qemuForeground   bool
-	eveSSHKey        string
-	eveHost          string
-	eveSSHPort       int
-	eveTelnetPort    int
-	eveRemoteAddr    string
+	qemuARCH          string
+	qemuOS            string
+	qemuAccel         bool
+	qemuSMBIOSSerial  string
+	qemuConfigFile    string
+	qemuForeground    bool
+	eveSSHKey         string
+	eveHost           string
+	eveSSHPort        int
+	eveTelnetPort     int
+	eveRemoteAddr     string
+	eveConfigFromFile bool
 )
 
 var eveCmd = &cobra.Command{
@@ -363,6 +364,44 @@ var resetEveCmd = &cobra.Command{
 	},
 }
 
+var epochEveCmd = &cobra.Command{
+	Use:   "epoch",
+	Short: "Set new epoch of EVE",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if eveConfigFromFile {
+			edenDir, err := utils.DefaultEdenDir()
+			if err != nil {
+				log.Fatal(err)
+			}
+			changer := &fileChanger{fileConfig: filepath.Join(edenDir, fmt.Sprintf("devUUID-%s.json", dev.GetID()))}
+			_, devFromFile, err := changer.getControllerAndDev()
+			if err != nil {
+				log.Fatalf("getControllerAndDev: %s", err)
+			}
+			dev = devFromFile
+		}
+		dev.SetEpoch(dev.GetEpoch() + 1)
+		if err = ctrl.ConfigSync(dev); err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("new epoch %d sent", dev.GetEpoch())
+		log.Info("device UUID: ", dev.GetID().String())
+	},
+}
+
 func eveInit() {
 	eveCmd.AddCommand(startEveCmd)
 	eveCmd.AddCommand(stopEveCmd)
@@ -373,6 +412,7 @@ func eveInit() {
 	eveCmd.AddCommand(onboardEveCmd)
 	eveCmd.AddCommand(resetEveCmd)
 	eveCmd.AddCommand(versionEveCmd)
+	eveCmd.AddCommand(epochEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -394,4 +434,5 @@ func eveInit() {
 	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 	consoleEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
+	epochEveCmd.Flags().BoolVar(&eveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
 }

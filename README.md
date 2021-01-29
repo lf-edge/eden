@@ -611,6 +611,7 @@ If you want to clean artifacts of all contexts, you should to run `clean --curre
 
 * `eden eve onboard` - onboard EVE that is the current config
 * `eden eve reset` - put EVE to the initial state (reset to config) removing all changes made by commands or tests
+* `eden eve epoch` - send new epoch into EVE to obtain info messages for current state
 
 ## Eden utils commands
 
