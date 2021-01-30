@@ -178,7 +178,8 @@ func RunCommandAndWait(name string, args ...string) (stdout string, stderr strin
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = &stdoutBuffer
 	cmd.Stderr = &stderrBuffer
-	return stdoutBuffer.String(), stderrBuffer.String(), cmd.Run()
+	err = cmd.Run()
+	return stdoutBuffer.String(), stderrBuffer.String(), err
 }
 
 //RunCommandWithLogAndWait run process in foreground
