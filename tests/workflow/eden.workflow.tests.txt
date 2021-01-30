@@ -89,7 +89,7 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/usb-p
 
 {{ if or (eq $workflow "large") (eq $workflow "gcp") }}
 /bin/echo Eden VNC (23/{{$tests}})
-eden.vnc.test
+eden.vnc.test -panic=true -logger=true
 /bin/echo Eden registry (24/{{$tests}})
 eden.escript.test -testdata ../registry/testdata/ -test.run TestEdenScripts/registry_test
 /bin/echo Eden Network test (25/{{$tests}})

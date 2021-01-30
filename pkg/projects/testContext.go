@@ -230,7 +230,7 @@ func (tc *TestContext) ExpandOnSuccess(secs int) {
 
 //WaitForProcWithErrorCallback blocking execution until the time elapses or all Procs gone
 //and fires callback in case of timeout
-func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback TimeoutCallback) {
+func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback) {
 	defer func() { tc.addTime = 0 }() //reset addTime on exit
 	timeout := time.Duration(secs) * time.Second
 	tc.stopTime = time.Now().Add(timeout)

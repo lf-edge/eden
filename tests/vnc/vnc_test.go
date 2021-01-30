@@ -13,15 +13,14 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh"
 )
 
 // This test deploys the VM with image https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-ARCH.img
@@ -43,6 +42,7 @@ var (
 	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
 	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	doPanic      = flag.Bool("panic", false, "Test kernel panic")
+	doLogger     = flag.Bool("logger", false, "Test logger print to console")
 	tc           *projects.TestContext
 	externalIP   string
 	externalPort int
@@ -65,6 +65,15 @@ func TestMain(m *testing.M) {
 	tc.AddEdgeNodesFromDescription()
 
 	tc.StartTrackingState(false)
+
+	if appName == "" { //if previous appName not defined
+		if *name == "" {
+			rand.Seed(time.Now().UnixNano())
+			appName = namesgenerator.GetRandomName(0) //generates new name if no flag set
+		} else {
+			appName = *name
+		}
+	}
 
 	res := m.Run()
 
@@ -129,36 +138,6 @@ func checkVNCAccess() projects.ProcTimerFunc {
 	}
 }
 
-//checkSSHAccess try to access SSH with timer
-func checkSSHAccess() projects.ProcTimerFunc {
-	return func() error {
-		if externalIP == "" {
-			return nil
-		}
-		config := &ssh.ClientConfig{
-			User: "ubuntu",
-			Auth: []ssh.AuthMethod{
-				ssh.Password("passw0rd"),
-			},
-			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-			Timeout:         defaults.DefaultRepeatTimeout,
-		}
-		conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", externalIP, *sshPort), config)
-		if err != nil {
-			return nil
-		}
-		if *doPanic {
-			session, _ := conn.NewSession()
-			go func() {
-				_ = session.Run("sudo su -c 'echo c > /proc/sysrq-trigger'") //we cannot get answer for this command
-				session.Close()
-			}()
-			return fmt.Errorf("kernel panic fired via SSH on %s:%d", externalIP, *sshPort)
-		}
-		return fmt.Errorf("SSH success. You can access it via SSH on %s:%d", externalIP, *sshPort)
-	}
-}
-
 //checkAppAbsent check if APP undefined in EVE
 func checkAppAbsent(appName string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
@@ -179,13 +158,6 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 //it checks if app processed by EVE, app in RUNNING state, VNC and SSH of app is accessible
 //it uses timewait for processing all events
 func TestVNCVMStart(t *testing.T) {
-
-	if *name == "" {
-		rand.Seed(time.Now().UnixNano())
-		appName = namesgenerator.GetRandomName(0) //generates new name if no flag set
-	} else {
-		appName = *name
-	}
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
@@ -231,38 +203,16 @@ func TestVNCVMStart(t *testing.T) {
 
 	edgeNode.SetApplicationInstanceConfig(append(edgeNode.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 
-	appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	tc.ConfigSync(edgeNode)
 
 	t.Log("Add processing of app running messages")
 
 	tc.AddProcInfo(edgeNode, checkAppRunning(appName))
 
-	t.Log("Add function to obtain EVE IP")
-
-	tc.AddProcTimer(edgeNode, getEVEIP(edgeNode))
-
-	t.Log("Add trying to access VNC of app")
-
-	tc.AddProcTimer(edgeNode, checkVNCAccess())
-
-	if *sshPort != 0 {
-
-		t.Log("Add trying to access SSH of app")
-
-		tc.AddProcTimer(edgeNode, checkSSHAccess())
-
-		if *doPanic {
-			fmt.Println("will fire kernel panic in test")
-			tc.AddProcTimer(edgeNode, tc.CheckMessageInAppLog(edgeNode, appID, "Kernel panic"))
-		}
+	appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	tc.ExpandOnSuccess(int(expand.Seconds()))
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
@@ -275,19 +225,107 @@ func TestVNCVMStart(t *testing.T) {
 	tc.WaitForProcWithErrorCallback(int(timewait.Seconds()), callback)
 }
 
+func getAppInstanceConfig(edgeNode *device.Ctx, appName string) *config.AppInstanceConfig {
+
+	var appInstanceConfig *config.AppInstanceConfig
+
+	for _, id := range edgeNode.GetApplicationInstances() {
+		appConfig, _ := tc.GetController().GetApplicationInstanceConfig(id)
+		if appConfig.Displayname == appName {
+			appInstanceConfig = appConfig
+			break
+		}
+	}
+	return appInstanceConfig
+}
+
+//TestAccess checks if VNC and SSH of app is accessible
+func TestAccess(t *testing.T) {
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	appInstanceConfig := getAppInstanceConfig(edgeNode, appName)
+
+	if appInstanceConfig == nil {
+		t.Fatalf("No app found with name %s", appName)
+	}
+
+	appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("Add function to obtain EVE IP")
+
+	tc.AddProcTimer(edgeNode, getEVEIP(edgeNode))
+
+	t.Log("Add trying to access VNC of app")
+
+	tc.AddProcTimer(edgeNode, checkVNCAccess())
+
+	t.Log("Add trying to access SSH of app")
+
+	tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "exit", true))
+
+	tc.ExpandOnSuccess(int(expand.Seconds()))
+
+	callback := func() {
+		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
+		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+			t.Fatalf("LogAppsChecker: %s", err)
+		}
+		fmt.Println("------")
+	}
+
+	tc.WaitForProcWithErrorCallback(int(timewait.Seconds()), callback)
+
+}
+
+//TestAppLogs checks if logs of app is accessible
+func TestAppLogs(t *testing.T) {
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	appInstanceConfig := getAppInstanceConfig(edgeNode, appName)
+
+	if appInstanceConfig == nil {
+		t.Fatalf("No app found with name %s", appName)
+	}
+
+	appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	panicCmd := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "sudo su -c 'echo c > /proc/sysrq-trigger'", false)
+	if *doLogger {
+		fmt.Println("will wait for uptime logs in test")
+		callback := func() {
+			if *doPanic { //do panic after logger
+				tc.AddProcTimer(edgeNode, panicCmd)
+			}
+		}
+		tc.AddProcTimer(edgeNode, tc.CheckMessageInAppLog(edgeNode, appID, "uptime: ", callback))
+		tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "sudo su -c 'echo uptime: `uptime`>/dev/console'", true)) //prints uptime to /dev/console
+	}
+	if *doPanic {
+		fmt.Println("will fire kernel panic in test")
+		tc.AddProcTimer(edgeNode, tc.CheckMessageInAppLog(edgeNode, appID, "Kernel panic"))
+		if !*doLogger { //do panic immediately
+			tc.AddProcTimer(edgeNode, panicCmd)
+		}
+	}
+
+	t.Log("Add function to obtain EVE IP")
+
+	tc.AddProcTimer(edgeNode, getEVEIP(edgeNode))
+
+	tc.WaitForProc(int(timewait.Seconds()))
+}
+
 //TestVNCVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
 //it checks if app absent in EVE
 //it uses timewait for processing all events
 func TestVNCVMDelete(t *testing.T) {
-
-	if appName == "" { //if previous appName not defined
-		if *name == "" {
-			rand.Seed(time.Now().UnixNano())
-			appName = namesgenerator.GetRandomName(0) //generates new name if no flag set
-		} else {
-			appName = *name
-		}
-	}
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 

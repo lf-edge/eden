@@ -24,8 +24,8 @@ type ProcLogFunc func(log *elog.FullLogEntry) error
 //ProcMetricFunc provides callback to process metric
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
 
-//TimeoutCallback provides callback to process timeout
-type TimeoutCallback func()
+//Callback provides callback to process
+type Callback func()
 
 //ProcTimerFunc provides callback to process on timer event
 type ProcTimerFunc func() error
@@ -61,16 +61,15 @@ func (lb *processingBus) clean() {
 func (lb *processingBus) processReturn(edgeNode *device.Ctx, procFunc *absFunc, result error) {
 	if result != nil {
 		if lb.tc.addTime != 0 {
-			log.Infof("Expand timewait by %s with return: %s", lb.tc.addTime, result.Error())
+			log.Infof("Expand timewait by %s", lb.tc.addTime)
 			lb.tc.stopTime.Add(lb.tc.addTime)
 		}
 		procFunc.disabled = true
-		toRet := fmt.Sprintf("%T done with return: \"%s\"", procFunc.proc, result)
+		toRet := fmt.Sprintf("%T done with return: %s", procFunc.proc, result.Error())
 		if t, ok := lb.tc.tests[edgeNode]; ok {
 			t.Log(toRet)
-		} else {
-			log.Println(toRet)
 		}
+		log.Info(toRet)
 		lb.wg.Done()
 	}
 }
