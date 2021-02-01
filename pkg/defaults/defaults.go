@@ -130,6 +130,9 @@ const (
 	DefaultEmptyVolumeLinkDocker = "docker://hello-world"
 	DefaultEmptyVolumeLinkQcow2  = "empty.qcow2"
 	DefaultEmptyVolumeLinkRaw    = "empty.raw"
+	DefaultEmptyVolumeLinkQcow   = "empty.qcow"
+	DefaultEmptyVolumeLinkVMDK   = "empty.vmdk"
+	DefaultEmptyVolumeLinkVHDX   = "empty.vhdx"
 
 	//defaults for gcp
 

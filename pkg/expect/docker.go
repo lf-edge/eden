@@ -160,6 +160,12 @@ func (exp *AppExpectation) prepareImage() *config.Image {
 		appLink = defaults.DefaultEmptyVolumeLinkDocker
 	case VolumeRaw:
 		appLink = defaults.DefaultEmptyVolumeLinkRaw
+	case VolumeQcow:
+		appLink = defaults.DefaultEmptyVolumeLinkQcow
+	case VolumeVHDX:
+		appLink = defaults.DefaultEmptyVolumeLinkVHDX
+	case VolumeVMDK:
+		appLink = defaults.DefaultEmptyVolumeLinkVMDK
 	case VolumeNone:
 		return nil
 	}

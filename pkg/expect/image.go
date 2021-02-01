@@ -58,6 +58,12 @@ func (exp *AppExpectation) imageFormatEnum() config.Format {
 		actual = config.Format_QCOW2
 	case "raw":
 		actual = config.Format_RAW
+	case "qcow":
+		actual = config.Format_QCOW
+	case "vmdk":
+		actual = config.Format_VMDK
+	case "vhdx":
+		actual = config.Format_VHDX
 	default:
 		actual = defaultFormat
 	}
