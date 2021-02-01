@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 34}}
+{{$tests := 35}}
 # EDEN_TEST env. var. -- flavour of test set: "small", "medium"(default) and "large"
 {{$workflow := EdenGetEnv "EDEN_TEST"}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
@@ -102,22 +102,24 @@ eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ngnix
 /bin/echo Eden Mariadb (29/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
-/bin/echo EVE reset (30/{{$tests}})
+/bin/echo Eden eclient with disk (30/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/disk
+/bin/echo EVE reset (31/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_reset
 {{end}}
 {{ if  (eq $workflow "large")  }}
-/bin/echo Eden's testing the maximum application limit (31/{{$tests}})
+/bin/echo Eden's testing the maximum application limit (32/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/eclients
 {{end}}
 
-/bin/echo Eden Reboot test (32/{{$tests}})
+/bin/echo Eden Reboot test (33/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
 {{ if ne $workflow "small" }}
-/bin/echo Eden base OS update (33/{{$tests}})
+/bin/echo Eden base OS update (34/{{$tests}})
 eden.escript.test -testdata ../update_eve_image/testdata/ -test.run TestEdenScripts/update_eve_image
 {{end}}
 
 {{if (eq $stop "y")}}
-/bin/echo Eden stop (34/{{$tests}})
+/bin/echo Eden stop (35/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop
 {{end}}
