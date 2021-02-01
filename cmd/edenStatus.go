@@ -115,6 +115,15 @@ func eveStatusQEMU() {
 	}
 }
 
+func eveStatusVBox() {
+	statusEVE, err := eden.StatusEVEVBox(vmName)
+	if err != nil {
+		log.Errorf("%s cannot obtain status of EVE VBox process: %s", statusWarn(), err)
+	} else {
+		fmt.Printf("%s EVE on VBox status: %s\n", representProcessStatus(statusEVE), statusEVE)
+	}
+}
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "status of harness",
@@ -128,6 +137,7 @@ var statusCmd = &cobra.Command{
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -202,7 +212,11 @@ var statusCmd = &cobra.Command{
 					eveStatusRemote()
 				}
 				if !eveRemote {
-					eveStatusQEMU()
+					if devModel == defaults.DefaultVBoxModel {
+						eveStatusVBox()
+					} else {
+						eveStatusQEMU()
+					}
 				}
 				if statusAdam != "container doesn't exist" {
 					eveRequestsAdam()
@@ -221,6 +235,7 @@ func statusInit() {
 	}
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	statusCmd.Flags().BoolVar(&allConfigs, "all", true, "show status for all configs")
+	statusCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 }
 
 // lastWord get last work in string

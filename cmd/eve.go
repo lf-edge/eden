@@ -61,6 +61,7 @@ var startEveCmd = &cobra.Command{
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -68,10 +69,19 @@ var startEveCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-		if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, qemuForeground); err != nil {
-			log.Errorf("cannot start eve: %s", err)
+
+		if devModel == defaults.DefaultVBoxModel {
+			if err := eden.StartEVEVBox(vmName, cpus, mem, hostFwd); err != nil {
+				log.Errorf("cannot start eve: %s", err)
+			} else {
+				log.Infof("EVE is starting in Virtual Box")
+			}
 		} else {
-			log.Infof("EVE is starting")
+			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
+				log.Errorf("cannot start eve: %s", err)
+			} else {
+				log.Infof("EVE is starting")
+			}
 		}
 	},
 }
@@ -89,6 +99,7 @@ var stopEveCmd = &cobra.Command{
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -97,8 +108,18 @@ var stopEveCmd = &cobra.Command{
 			log.Debug("Cannot stop remote EVE")
 			return
 		}
-		if err := eden.StopEVEQemu(evePidFile); err != nil {
-			log.Errorf("cannot stop EVE: %s", err)
+		if devModel == defaults.DefaultVBoxModel {
+			if err := eden.StopEVEVBox(vmName); err != nil {
+				log.Errorf("cannot stop eve: %s", err)
+			} else {
+				log.Infof("EVE is stopping in Virtual Box")
+			}
+		} else {
+			if err := eden.StopEVEQemu(evePidFile); err != nil {
+				log.Errorf("cannot stop eve: %s", err)
+			} else {
+				log.Infof("EVE is stopping")
+			}
 		}
 	},
 }
@@ -159,6 +180,7 @@ var statusEveCmd = &cobra.Command{
 		if viperLoaded {
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -168,7 +190,11 @@ var statusEveCmd = &cobra.Command{
 			eveStatusRemote()
 		}
 		if !eveRemote {
-			eveStatusQEMU()
+			if devModel == defaults.DefaultVBoxModel {
+				eveStatusVBox()
+			} else {
+				eveStatusQEMU()
+			}
 		}
 		if err == nil && statusAdam != "container doesn't exist" {
 			eveRequestsAdam()
@@ -427,8 +453,13 @@ func eveInit() {
 	startEveCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startEveCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
 	startEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
+	startEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	startEveCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
+	startEveCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
+	stopEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
+	statusEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	sshEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	sshEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")

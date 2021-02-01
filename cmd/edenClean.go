@@ -50,6 +50,7 @@ var cleanCmd = &cobra.Command{
 			registryDist = utils.ResolveAbsPath(viper.GetString("registry.dist"))
 			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 			eveRemote = viper.GetBool("eve.remote")
+			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
 	},
@@ -68,7 +69,7 @@ var cleanCmd = &cobra.Command{
 				log.Infof("Adam is running and accessible on port %d", adamPort)
 			}
 			eveUUID := viper.GetString("eve.uuid")
-			if err := eden.CleanContext(eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, configSaved, eveRemote); err != nil {
+			if err := eden.CleanContext(eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, vmName, configSaved, eveRemote); err != nil {
 				log.Fatalf("cannot CleanContext: %s", err)
 			}
 		} else {
