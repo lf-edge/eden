@@ -73,6 +73,8 @@ To find out what is running and where:
 ```console
 eden status
 ```
+Note for ARM64: It may be necessary to specify the UEFI build explicitly,
+via the --eve-uefi-tag parameter during the setup stage
 
 ## Eden's shell settings
 
