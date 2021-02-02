@@ -5,7 +5,6 @@ import (
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
-	log "github.com/sirupsen/logrus"
 )
 
 //VolumeType defines type of empty volumes to use
@@ -13,6 +12,15 @@ type VolumeType string
 
 //VolumeQcow2 use empty qcow2 image for volumes
 var VolumeQcow2 VolumeType = "qcow2"
+
+//VolumeQcow use empty raw image for volumes
+var VolumeQcow VolumeType = "qcow"
+
+//VolumeVMDK use empty raw image for volumes
+var VolumeVMDK VolumeType = "vmdk"
+
+//VolumeVHDX use empty raw image for volumes
+var VolumeVHDX VolumeType = "vhdx"
 
 //VolumeRaw use empty raw image for volumes
 var VolumeRaw VolumeType = "raw"
@@ -30,12 +38,16 @@ func VolumeTypeByName(name string) VolumeType {
 		return VolumeQcow2
 	case "raw":
 		return VolumeRaw
+	case "vmdk":
+		return VolumeVMDK
+	case "vhdx":
+		return VolumeVHDX
+	case "qcow":
+		return VolumeQcow
 	case "oci":
 		return VolumeOCI
 	case "none":
 		return VolumeNone
-	default:
-		log.Fatalf("Not supported volume type %s", name)
 	}
 	return VolumeQcow2
 }

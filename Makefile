@@ -42,8 +42,8 @@ WORKDIR=$(CURDIR)/dist
 BINDIR := dist/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
-EMPTY_DRIVE_QCOW2 := $(WORKDIR)/empty.qcow2
-EMPTY_DRIVE_RAW := $(WORKDIR)/empty.raw
+EMPTY_DRIVE := $(WORKDIR)/empty
+EMPTY_DRIVE_SIZE := 10M
 
 ZARCH ?= $(HOSTARCH)
 export ZARCH
@@ -64,19 +64,15 @@ $(BINDIR):
 test: build
 	make -C tests TESTS="$(TESTS)" DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
-# create empty drive in qcow2 format to use as additional volumes
-$(EMPTY_DRIVE_QCOW2):
-	qemu-img create -f qcow2 $(EMPTY_DRIVE_QCOW2) 100M
-
-# create empty drive in raw format to use as additional volumes
-$(EMPTY_DRIVE_RAW):
-	qemu-img create -f raw $(EMPTY_DRIVE_RAW) 10M
+# create empty drives to use as additional volumes
+$(EMPTY_DRIVE).%:
+	qemu-img create -f $* $@ $(EMPTY_DRIVE_SIZE)
 
 build-tests: build testbin gotestsum
 install: build
 	CGO_ENABLED=0 go install .
 
-build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2)
+build: $(BIN) $(EMPTY_DRIVE).raw $(EMPTY_DRIVE).qcow2 $(EMPTY_DRIVE).qcow $(EMPTY_DRIVE).vmdk $(EMPTY_DRIVE).vhdx
 ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
 build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2) eserver
 endif

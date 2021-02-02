@@ -77,6 +77,7 @@ var volumeCreateCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		opts = append(opts, expect.WithDiskSize(int64(diskSizeParsed)))
+		opts = append(opts, expect.WithImageFormat(volumeType))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -141,6 +142,7 @@ func volumeInit() {
 	volumeCreateCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	volumeCreateCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	volumeCreateCmd.Flags().StringVarP(&volumeName, "name", "n", "", "name of volume, random if empty")
+	volumeCreateCmd.Flags().StringVar(&volumeType, "format", "", "volume type (qcow2, raw, qcow, vmdk, vhdx or oci)")
 
 	volumeCmd.AddCommand(volumeDeleteCmd)
 }
