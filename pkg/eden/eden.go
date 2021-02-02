@@ -386,7 +386,9 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 	case "arm64":
 		qemuCommand = "qemu-system-aarch64"
-		qemuOptions += defaults.DefaultQemuAccelLinuxArm64
+    if qemuAccel {
+		  qemuOptions += defaults.DefaultQemuAccelLinuxArm64
+    }
 	default:
 		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
 	}
