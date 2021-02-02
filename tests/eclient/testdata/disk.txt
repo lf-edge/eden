@@ -17,7 +17,7 @@ test eden.app.test -test.v -timewait 20m RUNNING eclient-disk
 #stdout 'Executing "/usr/sbin/sshd" "-D"'
 
 exec -t 20m bash ssh.sh
-stdout 'vda'
+stdout 'vd.*disk'
 
 eden pod delete eclient-disk
 
