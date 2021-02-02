@@ -172,3 +172,10 @@ func WithHTTPDirectLoad(direct bool) ExpectationOption {
 		expectation.httpDirectLoad = direct
 	}
 }
+
+//WithAdditionalDisks adds disks to application
+func WithAdditionalDisks(disks []string) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.disks = disks
+	}
+}

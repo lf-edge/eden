@@ -21,6 +21,7 @@ var (
 	formatStr  string
 	arch       string
 	local      bool
+	disks      []string
 )
 
 // convert a "path:type" to a Disk struct
@@ -87,10 +88,18 @@ var podPublishCmd = &cobra.Command{
 		if initrdFile != "" {
 			initrdSource = &edgeRegistry.FileSource{Path: initrdFile}
 		}
+
 		artifact := &edgeRegistry.Artifact{
 			Kernel: kernelSource,
 			Initrd: initrdSource,
 			Root:   rootDisk,
+		}
+		for _, disk := range disks {
+			additionalDisk, err := diskToStruct(disk)
+			if err != nil {
+				log.Fatalf("unable to read disk %s: %v", disk, err)
+			}
+			artifact.Disks = append(artifact.Disks, additionalDisk)
 		}
 		if kernelFile == "" {
 			artifact.Kernel = nil
@@ -128,6 +137,7 @@ func eciInit() {
 	podPublishCmd.Flags().StringVar(&kernelFile, "kernel", "", "path to kernel file, optional")
 	podPublishCmd.Flags().StringVar(&initrdFile, "initrd", "", "path to initrd file, optional")
 	podPublishCmd.Flags().StringVar(&rootFile, "root", "", "path to root disk file and format (for example: image.img:qcow2)")
+	podPublishCmd.Flags().StringSliceVar(&disks, "disks", []string{}, "disks to add into image")
 	podPublishCmd.Flags().BoolVar(&local, "local", false, "push to local registry")
 	podPublishCmd.Flags().StringVar(&formatStr, "format", "artifacts", "which format to use, one of: artifacts, legacy")
 	podPublishCmd.Flags().StringVar(&arch, "arch", edgeRegistry.DefaultArch, "arch to deploy")

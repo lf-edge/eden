@@ -14,19 +14,18 @@ import (
 )
 
 //SHA256SUM calculates sha256 of file
-func SHA256SUM(filePath string) (result string, err error) {
+func SHA256SUM(filePath string) string {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 	defer file.Close()
 	hash := sha256.New()
 	if _, err = io.Copy(hash, file); err != nil {
-		return
+		log.Fatal(err)
 	}
 
-	result = hex.EncodeToString(hash.Sum(nil))
-	return
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 //CopyFileNotExists copy file from src to dst with same permission if not exists

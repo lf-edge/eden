@@ -1,6 +1,7 @@
 eden+ports.sh 2223:2223 2224:2224
 # Just a simple test of eclient image functionality -- tested in more complex tests
 #eden.escript.test -test.run TestEdenScripts/eclient -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/disk -test.timeout 15m
 eden.escript.test -test.run TestEdenScripts/host-only -test.timeout 15m
 eden.escript.test -test.run TestEdenScripts/networking_light -test.timeout 15m
 eden.escript.test -test.run TestEdenScripts/nw_switch -test.timeout 20m

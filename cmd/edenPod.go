@@ -104,6 +104,7 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		opts = append(opts, expect.WithACL(aclOnlyHost))
 		opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
+		opts = append(opts, expect.WithAdditionalDisks(disks))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -437,6 +438,7 @@ func podInit() {
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
 	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
+	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, "Additional disks to use")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)

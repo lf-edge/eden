@@ -62,6 +62,8 @@ type AppExpectation struct {
 	oldAppName string
 
 	httpDirectLoad bool // use eserver for SHA calculation only
+
+	disks []string
 }
 
 //AppExpectationFromURL init AppExpectation with defined:

@@ -160,6 +160,8 @@ the `--format` flag (`container`,`qcow2` or `raw`). The defaults are:
 * `https://` - VM qcow2 image
 * `file://` - VM qcow2 image
 
+You can also pass additional disks for your app with `--disks` flag.
+
 #### Docker Image
 
 Deploy nginx server from dockerhub. Expose port 80 of the container

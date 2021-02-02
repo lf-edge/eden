@@ -102,7 +102,11 @@ func (mgr *EServerManager) AddFileFromMultipart(part *multipart.Part) *api.FileI
 	filePath := filepath.Join(mgr.Dir, part.FileName())
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		log.Println("file already exists ", filePath)
-		return mgr.GetFileInfo(part.FileName())
+		// remove file if exists, we have new file in request
+		if err := os.Remove(filePath); err != nil {
+			result.Error = err.Error()
+			return result
+		}
 	}
 	filePathTemp := filepath.Join(mgr.Dir, fmt.Sprintf("%s.tmp", part.FileName()))
 	out, err := os.Create(filePathTemp)
