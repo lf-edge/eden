@@ -1,0 +1,55 @@
+---
+name: Eden_setup
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    branches: [master]
+
+jobs:
+  integration:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: setup
+        run: |
+          sudo apt update
+          sudo apt install -y qemu-utils qemu-system-x86
+      - name: host info
+        run: |
+          ip a
+      - name: get eden
+        uses: actions/checkout@v2
+      - name: build eden
+        run: |
+          make clean
+          make build-tests
+      - name: run
+        run: |
+          ./eden config add setup
+          ./eden --config setup setup
+          ./eden --config setup clean
+          ./eden config delete setup
+
+          ./eden config add setup --devmodel GCP
+          ./eden --config setup setup
+          ./eden --config setup clean
+          ./eden config delete setup
+
+          ./eden config add setup --devmodel RPi4
+          ./eden --config setup setup
+          ./eden --config setup clean
+          ./eden config delete setup
+
+          ./eden config add setup --devmodel general
+          ./eden --config setup setup
+          ./eden --config setup clean
+          ./eden config delete setup
+
+      - name: Collect logs
+        if: ${{ always() }}
+        run: |
+          ./eden log --format json > trace.log
+      - name: Store raw test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'eden-report'
+          path: ${{ github.workspace }}/trace.log
