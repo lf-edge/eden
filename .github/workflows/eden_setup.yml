@@ -27,7 +27,6 @@ jobs:
           ./eden --config setup setup
           ./eden --config setup clean
           ./eden config delete setup
-
           ./eden config add setup --devmodel GCP
           ./eden --config setup setup
           ./eden --config setup clean
@@ -37,19 +36,7 @@ jobs:
           ./eden --config setup setup
           ./eden --config setup clean
           ./eden config delete setup
-
           ./eden config add setup --devmodel general
           ./eden --config setup setup
           ./eden --config setup clean
           ./eden config delete setup
-
-      - name: Collect logs
-        if: ${{ always() }}
-        run: |
-          ./eden log --format json > trace.log
-      - name: Store raw test results
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'eden-report'
-          path: ${{ github.workspace }}/trace.log
