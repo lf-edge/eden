@@ -196,3 +196,39 @@ func genEVERootFSImage(image, outputDir string, size int) (fileName string, err 
 	}
 	return fileName, nil
 }
+
+//DownloadEveNetBoot pulls EVE image from docker and prepares files for net boot
+func DownloadEveNetBoot(eve EVEDescription, outputDir string) (err error) {
+	image, err := eve.Image()
+	if err != nil {
+		return err
+	}
+	log.Debugf("Try ImagePull with (%s)", image)
+	if err := PullImage(image); err != nil {
+		return fmt.Errorf("ImagePull (%s): %s", image, err)
+	}
+	if eve.ConfigPath != "" {
+		if _, err := os.Stat(eve.ConfigPath); os.IsNotExist(err) {
+			return fmt.Errorf("directory not exists: %s", eve.ConfigPath)
+		}
+	}
+
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return err
+	}
+	volumeMap := map[string]string{"/out": outputDir}
+	if eve.ConfigPath != "" {
+		volumeMap = map[string]string{"/in": eve.ConfigPath, "/out": outputDir}
+	}
+	dockerCommand := "installer_net"
+	u, err := RunDockerCommand(image, dockerCommand, volumeMap)
+	if err != nil {
+		return err
+	}
+	log.Debug(u)
+	tempFile := filepath.Join(outputDir, "installer.net")
+	if err := Untar(tempFile, outputDir); err != nil {
+		log.Fatalf("Untar: %s", err)
+	}
+	return os.Remove(tempFile)
+}

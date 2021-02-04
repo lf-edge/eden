@@ -1,15 +1,18 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
+	"text/template"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
@@ -39,6 +42,8 @@ var (
 	eveImageSizeMB int
 
 	eveConfigDir string
+
+	netboot bool
 )
 
 func generateScripts(in string, out string) {
@@ -153,6 +158,11 @@ var setupCmd = &cobra.Command{
 		model, err := models.GetDevModelByName(devModel)
 		if err != nil {
 			log.Fatalf("GetDevModelByName: %s", err)
+		}
+		if netboot {
+			if devModel != defaults.DefaultGeneralModel {
+				log.Fatalf("Cannot use netboot for devmodel %s, please use general instead", devModel)
+			}
 		}
 		if devModel == defaults.DefaultQemuModel {
 			if _, err := os.Stat(qemuFileToSave); os.IsNotExist(err) {
@@ -272,16 +282,62 @@ var setupCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
+			if netboot {
+				if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(eveImageFile)); err != nil {
 					log.Errorf("cannot download EVE: %s", err)
 				} else {
+					if err := eden.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
+						log.Errorf("cannot start eserver: %s", err)
+					} else {
+						log.Infof("Eserver is running and accessible on port %d", eserverPort)
+					}
+					eServerIP := viper.GetString("eden.eserver.ip")
+					eServerPort := viper.GetString("eden.eserver.port")
+					server := &eden.EServer{
+						EServerIP:   eServerIP,
+						EServerPort: eServerPort,
+					}
+					files := []string{
+						"kernel", "initrd.img", "initrd.bits",
+					}
+					for _, file := range files {
+						if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), file)); err != nil {
+							log.Fatalf("AddFileIntoEServer: %s", err)
+						}
+					}
+					t := template.New("t")
+					t, err := t.Parse(defaults.DefaultIPXEConfig)
+					if err != nil {
+						log.Fatal(err)
+					}
+					buf := new(bytes.Buffer)
+					err = t.Execute(buf, struct {
+						ADDRESS string
+					}{
+						path.Join(fmt.Sprintf("%s:%d", eServerIP, eserverPort), "eserver"),
+					})
+					if err != nil {
+						log.Fatal(err)
+					}
+					_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
+					ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
+					_ = ioutil.WriteFile(ipxeConfigFile, buf.Bytes(), 0777)
 					log.Infof("download EVE done: %s", imageTag)
-					log.Infof(model.DiskReadyMessage(), eveImageFile)
+					log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
+					log.Infof("EVE already exists: %s", filepath.Dir(eveImageFile))
 				}
 			} else {
-				log.Infof("download EVE done: %s", imageTag)
-				log.Infof("EVE already exists: %s", eveImageFile)
+				if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
+					if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
+						log.Errorf("cannot download EVE: %s", err)
+					} else {
+						log.Infof("download EVE done: %s", imageTag)
+						log.Infof(model.DiskReadyMessage(), eveImageFile)
+					}
+				} else {
+					log.Infof("download EVE done: %s", imageTag)
+					log.Infof("EVE already exists: %s", eveImageFile)
+				}
 			}
 
 			home, err := os.UserHomeDir()
@@ -349,4 +405,6 @@ func setupInit() {
 	setupCmd.Flags().IntVar(&eveImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
 
 	setupCmd.Flags().StringVar(&eveConfigDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
+
+	setupCmd.Flags().BoolVar(&netboot, "netboot", false, "Setup for use with network boot")
 }

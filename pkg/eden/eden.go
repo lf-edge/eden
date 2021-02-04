@@ -918,7 +918,7 @@ func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
 //EServer for connection to eserver
 type EServer struct {
 	EServerIP   string
-	EserverPort string
+	EServerPort string
 }
 
 func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
@@ -932,7 +932,7 @@ func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
 
 //EServerAddFileURL send url to download image into eserver
 func (server *EServer) EServerAddFileURL(url string) (name string) {
-	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-url")
+	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EServerPort), "admin/add-from-url")
 	if err != nil {
 		log.Fatalf("error constructing URL: %v", err)
 	}
@@ -962,7 +962,7 @@ func (server *EServer) EServerAddFileURL(url string) (name string) {
 
 //EServerCheckStatus checks status of image in eserver
 func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) {
-	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), fmt.Sprintf("admin/status/%s", name))
+	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EServerPort), fmt.Sprintf("admin/status/%s", name))
 	if err != nil {
 		log.Fatalf("EServerAddFileURL: error constructing URL: %v", err)
 	}
@@ -988,7 +988,7 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 
 //EServerAddFile send file with image into eserver
 func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) {
-	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EserverPort), "admin/add-from-file")
+	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EServerPort), "admin/add-from-file")
 	if err != nil {
 		log.Fatalf("EServerAddFile: error constructing URL: %v", err)
 	}
@@ -1069,4 +1069,17 @@ func GetInfoFromSDCard(devicePath string) (eveInfo *EVEInfo, err error) {
 		eveInfo.Syslog = syslog
 	}
 	return eveInfo, nil
+}
+
+//AddFileIntoEServer puts file into eserver
+func AddFileIntoEServer(server *EServer, filePath string) (*api.FileInfo, error) {
+	status := server.EServerCheckStatus(filepath.Base(filePath))
+	if !status.ISReady || status.Size != utils.GetFileSize(filePath) {
+		log.Infof("Start uploading into eserver of %s", filePath)
+		status = server.EServerAddFile(filePath)
+		if status.Error != "" {
+			return nil, fmt.Errorf("AddFileIntoEServer: %s", status.Error)
+		}
+	}
+	return status, nil
 }

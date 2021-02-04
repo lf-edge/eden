@@ -130,3 +130,42 @@ func UnpackTarGz(srcFile string, paths []FileToSave) error {
 	}
 	return nil
 }
+
+// Untar extracts files from srcFile tar into destination
+func Untar(srcFile string, destination string) error {
+	r, err := os.Open(srcFile)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	tr := tar.NewReader(r)
+	for {
+		header, err := tr.Next()
+		switch {
+		case err == io.EOF:
+			return nil
+		case err != nil:
+			return err
+		case header == nil:
+			continue
+		}
+		target := filepath.Join(destination, header.Name)
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
+					return err
+				}
+			}
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(f, tr); err != nil {
+				return err
+			}
+			f.Close()
+		}
+	}
+}
