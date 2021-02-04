@@ -69,3 +69,14 @@ Now turn on a virtual machine and open terminal.
 
 Now VM is ready for later configurations as usual Ubuntu system.
 ![ubuntu-desktop](./pics/parallels_terminal.png)
+
+## Run EVE with EDEN on Parallels
+
+To start with EDEN you should do the following steps:
+
+```bash
+eden config add default --devmodel=parallels
+eden setup
+eden start
+eden eve onboard
+```

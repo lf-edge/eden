@@ -125,13 +125,11 @@ func eveStatusVBox() {
 }
 
 func eveStatusParallels() {
-	commandArgsString := fmt.Sprintf("status %s", vmName)
-	statusEVE, _, err := utils.RunCommandAndWait("prlctl", strings.Fields(commandArgsString)...)
+	statusEVE, err := eden.StatusEVEParallels(vmName)
 	if err != nil {
-		log.Errorf("prlctl error for command %s %s", commandArgsString, err)
+		log.Errorf("%s cannot obtain status of EVE Parallels process: %s", statusWarn(), err)
 	} else {
-		println(statusEVE)
-		fmt.Printf("%s EVE on parallels status: %s\n", representProcessStatus(statusEVE), statusEVE)
+		fmt.Printf("%s EVE on Parallels status: %s\n", representProcessStatus(statusEVE), statusEVE)
 	}
 }
 
@@ -227,7 +225,7 @@ var statusCmd = &cobra.Command{
 						eveStatusVBox()
 					} else if devModel == defaults.DefaultParallelsModel {
 						eveStatusParallels()
-					} else{
+					} else {
 						eveStatusQEMU()
 					}
 				}

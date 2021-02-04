@@ -1,11 +1,15 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
+	uuid "github.com/satori/go.uuid"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"unicode"
 
 	log "github.com/sirupsen/logrus"
@@ -100,12 +104,44 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 			return fmt.Errorf("SaveImage: %s", err)
 		}
 	}
-	if eve.Format == "gcp" || eve.Format == "vdi" || eve.Format == "parallels"{
+	if eve.Format == "gcp" || eve.Format == "vdi" || eve.Format == "parallels" {
 		size = eve.ImageSizeMB
 	}
 	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size)
 	if err != nil {
 		return fmt.Errorf("genEVEImage: %s", err)
+	}
+	if eve.Format == "parallels" {
+		dirForParallels := strings.TrimRight(outputFile, filepath.Ext(outputFile))
+		_ = os.Mkdir(dirForParallels, 0777)
+		if err = CopyFile(fileName, filepath.Join(dirForParallels, fmt.Sprintf("live.0.%s.hds", defaults.DefaultParallelsUUID))); err != nil {
+			return fmt.Errorf("cannot copy image %s", err)
+		}
+
+		t := template.New("t")
+		t, err := t.Parse(defaults.ParallelsDiskTemplate)
+		if err != nil {
+			log.Fatal(err)
+		}
+		buf := new(bytes.Buffer)
+		uid, _ := uuid.NewV4()
+		err = t.Execute(buf, struct {
+			DiskSize    int
+			Cylinders   int
+			UID         string
+			SnapshotUID string
+		}{
+			DiskSize:    eve.ImageSizeMB * 1024 * 1024 / 16 / 32,
+			Cylinders:   eve.ImageSizeMB * 1024 * 1024 / 16 / 32 / 512,
+			UID:         uid.String(),
+			SnapshotUID: defaults.DefaultParallelsUUID,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = ioutil.WriteFile(filepath.Join(dirForParallels, "DiskDescriptor.xml"), buf.Bytes(), 0777); err != nil {
+			return fmt.Errorf("cannot write description %s", err)
+		}
 	}
 	if err = CopyFile(fileName, outputFile); err != nil {
 		return fmt.Errorf("cannot copy image %s", err)

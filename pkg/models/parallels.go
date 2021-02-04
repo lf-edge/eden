@@ -20,14 +20,17 @@ type DevModelParallels struct {
 	adapterForSwitches []string
 }
 
-func (ctx *DevModelParallels) SetWiFiParams(ssid string, psk string) {
+//SetWiFiParams not implemented for parallels
+func (ctx *DevModelParallels) SetWiFiParams(_ string, _ string) {
 	log.Warning("not implemented for parallels")
 }
 
-func (ctx *DevModelParallels) GetPortConfig(ssid string, psk string) string {
+//GetPortConfig not implemented for parallels
+func (ctx *DevModelParallels) GetPortConfig(_ string, _ string) string {
 	return ""
 }
 
+//DiskReadyMessage ready message
 func (ctx *DevModelParallels) DiskReadyMessage() string {
 	return "Upload %s to parallels and run"
 }

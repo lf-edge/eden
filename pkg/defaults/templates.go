@@ -276,3 +276,45 @@ initrd http://{{.ADDRESS}}/initrd.img
 initrd http://{{.ADDRESS}}/initrd.bits
 boot
 `
+
+// ParallelsDiskTemplate is template for disk annotation of parallels
+const ParallelsDiskTemplate = `<?xml version='1.0' encoding='UTF-8'?>
+<Parallels_disk_image Version="1.0">
+    <Disk_Parameters>
+        <Disk_size>{{ .DiskSize }}</Disk_size>
+        <Cylinders>{{ .Cylinders }}</Cylinders>
+        <PhysicalSectorSize>512</PhysicalSectorSize>
+        <Heads>16</Heads>
+        <Sectors>32</Sectors>
+        <Padding>0</Padding>
+        <Encryption>
+            <Engine>{00000000-0000-0000-0000-000000000000}</Engine>
+            <Data></Data>
+        </Encryption>
+        <UID>{{ .UID }}</UID>
+        <Name>eve</Name>
+        <Miscellaneous>
+            <CompatLevel>level2</CompatLevel>
+            <Bootable>1</Bootable>
+            <SuspendState>0</SuspendState>
+        </Miscellaneous>
+    </Disk_Parameters>
+    <StorageData>
+        <Storage>
+            <Start>0</Start>
+            <End>{{ .DiskSize }}</End>
+            <Blocksize>2048</Blocksize>
+            <Image>
+                <GUID>{{ .SnapshotUID }}</GUID>
+                <Type>Compressed</Type>
+                <File>live.0.{{ .SnapshotUID }}.hds</File>
+            </Image>
+        </Storage>
+    </StorageData>
+    <Snapshots>
+        <Shot>
+            <GUID>{{ .SnapshotUID }}</GUID>
+            <ParentGUID>{00000000-0000-0000-0000-000000000000}</ParentGUID>
+        </Shot>
+    </Snapshots>
+</Parallels_disk_image>`

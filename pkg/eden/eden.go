@@ -341,7 +341,7 @@ func StatusEServer() (status string, err error) {
 }
 
 //StartEVEVBox function run EVE in VirtualBox
-func StartEVEVBox(vmName string, cpus int, mem int, hostFwd map[string]string) (err error) {
+func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[string]string) (err error) {
 	poweroff := false
 	if out, _, err := utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("showvminfo %s --machinereadable", vmName))...); err != nil {
 		log.Info("No VMs with eve_live name", err)
@@ -359,7 +359,7 @@ func StartEVEVBox(vmName string, cpus int, mem int, hostFwd map[string]string) (
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
 
-		commandArgsString = fmt.Sprintf("storageattach %s  --storagectl \"SATA\" --port 0 --device 0 --type hdd --medium dist/default-images/eve/live.raw.vdi", vmName)
+		commandArgsString = fmt.Sprintf("storageattach %s  --storagectl \"SATA\" --port 0 --device 0 --type hdd --medium %s", vmName, eveImageFile)
 		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
@@ -531,36 +531,57 @@ func DeleteEVEVBox(vmName string) (err error) {
 	return err
 }
 
+//DeleteEVEParallels function removes EVE from parallels
+func DeleteEVEParallels(vmName string) (err error) {
+	commandArgsString := fmt.Sprintf("delete %s", vmName)
+	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Errorf("prlctl error for command %s %s", commandArgsString, err)
+	}
+	return err
+}
+
 //StatusEVEQemu function get status of EVE
 func StatusEVEQemu(pidFile string) (status string, err error) {
 	return utils.StatusCommandWithPid(pidFile)
 }
 
 //StartEVEParallels function run EVE in parallels
-func StartEVEParallels(vmName string, parallelsCpus int, parallelsMem int) (err error) {
+func StartEVEParallels(vmName, eveImageFile string, parallelsCpus int, parallelsMem int, hostFwd map[string]string) (err error) {
+	status, err := StatusEVEParallels(vmName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if strings.Contains(status, "running") {
+		return nil
+	}
+	_ = StopEVEParallels(vmName)
+
 	commandArgsString := fmt.Sprintf("create %s --distribution ubuntu --no-hdd", vmName)
 	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
 	}
-	commandArgsString = fmt.Sprintf("set %s --device-del net0", vmName)
+	commandArgsString = fmt.Sprintf("set %s --device-del net0 --cpus %d --memsize %d --nested-virt on --adaptive-hypervisor on --hypervisor-type parallels", vmName, parallelsCpus, parallelsMem)
 	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
 	}
-	commandArgsString = fmt.Sprintf("set %s --device-add hdd --image dist/default-images/eve/live.parallels --cpus %d --memsize %d", vmName, parallelsCpus, parallelsMem)
+	dirForParallels := strings.TrimRight(eveImageFile, filepath.Ext(eveImageFile))
+	commandArgsString = fmt.Sprintf("set %s --device-add hdd --image %s", vmName, dirForParallels)
 	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
 	}
-	commandArgsString = fmt.Sprintf("set %s --device-add net --type shared --adapter-type virtio --ipadd 192.168.1.0/24", vmName)
+	commandArgsString = fmt.Sprintf("set %s --device-add net --type shared --adapter-type virtio --ipadd 192.168.1.0/24 --dhcp yes", vmName)
 	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
 	}
-	commandArgsString = fmt.Sprintf("set %s --device-add net --type shared --adapter-type virtio --ipadd 192.168.2.0/24", vmName)
+	commandArgsString = fmt.Sprintf("set %s --device-add net --type shared --adapter-type virtio --ipadd 192.168.2.0/24 --dhcp yes", vmName)
 	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
 	}
-	commandArgsString = fmt.Sprintf("net set Shared --nat-tcp-add 2222_22,2222,%s,22", vmName)
-	if err = utils.RunCommandWithLogAndWait("prlsrvctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-		log.Fatalf("prlsrvctl error for command %s %s", commandArgsString, err)
+	for k, v := range hostFwd {
+		commandArgsString = fmt.Sprintf("net set Shared --nat-tcp-add %s_%s,%s,%s,%s", k, v, k, vmName, v)
+		if err = utils.RunCommandWithLogAndWait("prlsrvctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("prlsrvctl error for command %s %s", commandArgsString, err)
+		}
 	}
 	commandArgsString = fmt.Sprintf("start %s", vmName)
 	return utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
@@ -570,10 +591,9 @@ func StartEVEParallels(vmName string, parallelsCpus int, parallelsMem int) (err 
 func StopEVEParallels(vmName string) (err error) {
 	commandArgsString := fmt.Sprintf("stop %s --kill", vmName)
 	if err = utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-		log.Fatalf("prlctl error for command %s %s", commandArgsString, err)
+		log.Errorf("prlctl error for command %s %s", commandArgsString, err)
 	}
-	commandArgsString = fmt.Sprintf("delete %s", vmName)
-	return utils.RunCommandWithLogAndWait("prlctl", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
+	return DeleteEVEParallels(vmName)
 }
 
 //StatusEVEVBox function get status of EVE
@@ -590,6 +610,17 @@ func StatusEVEVBox(vmName string) (status string, err error) {
 		}
 	}
 	return "process doesn''t exist", nil
+}
+
+//StatusEVEParallels function get status of EVE
+func StatusEVEParallels(vmName string) (status string, err error) {
+	commandArgsString := fmt.Sprintf("status %s", vmName)
+	statusEVE, _, err := utils.RunCommandAndWait("prlctl", strings.Fields(commandArgsString)...)
+	if err != nil {
+		return "process doesn''t exist", nil
+	}
+	statusEVE = strings.TrimLeft(statusEVE, fmt.Sprintf("VM %s exist ", vmName))
+	return statusEVE, nil
 }
 
 //GenerateEveCerts function generates certs for EVE
@@ -817,6 +848,15 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 			if err := DeleteEVEVBox(vmName); err != nil {
 				log.Infof("cannot delete EVE: %s", err)
 			}
+		} else if viper.GetString("eve.devModel") == defaults.DefaultParallelsModel {
+			if err := StopEVEParallels(vmName); err != nil {
+				log.Infof("cannot stop EVE: %s", err)
+			} else {
+				log.Infof("EVE stopped")
+			}
+			if err := DeleteEVEParallels(vmName); err != nil {
+				log.Infof("cannot delete EVE: %s", err)
+			}
 		} else {
 			if err := StopEVEQemu(evePID); err != nil {
 				log.Infof("cannot stop EVE: %s", err)
@@ -871,8 +911,14 @@ func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile
 		log.Infof("eserver stopped")
 	}
 	if !eveRemote {
-		if devModel == "VBox" {
+		if devModel == defaults.DefaultVBoxModel {
 			if err := StopEVEVBox(vmName); err != nil {
+				log.Infof("cannot stop EVE: %s", err)
+			} else {
+				log.Infof("EVE stopped")
+			}
+		} else if devModel == defaults.DefaultParallelsModel {
+			if err := StopEVEParallels(vmName); err != nil {
 				log.Infof("cannot stop EVE: %s", err)
 			} else {
 				log.Infof("EVE stopped")
@@ -949,6 +995,10 @@ func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
 	}
 	if devModel == defaults.DefaultVBoxModel {
 		if err := DeleteEVEVBox(vmName); err != nil {
+			log.Infof("cannot delete EVE: %s", err)
+		}
+	} else if devModel == defaults.DefaultParallelsModel {
+		if err := DeleteEVEParallels(vmName); err != nil {
 			log.Infof("cannot delete EVE: %s", err)
 		}
 	}

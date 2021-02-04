@@ -149,8 +149,7 @@ const (
 
 	DefaultVBoxVMName = "eve_live"
 
-	//defaults for parallels
-	DefaultParallelsVMName = "eve_live"
+	DefaultParallelsUUID = "{5fbaabe3-6958-40ff-92a7-860e329aab41}"
 
 	DefaultPerfEVELocation       = "/persist/perf.data"
 	DefaultPerfScriptEVELocation = "/persist/perf.script.out"
