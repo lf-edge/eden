@@ -136,7 +136,7 @@ func (d depth) String() string {
 var fType = tType{"read", "write"}
 var fBS = blockSize{"4k", "64k", "1m"}
 var fJobs = jobs{1, 8}
-var fDepth = depth{1, 8, 16}
+var fDepth = depth{1, 8, 32}
 var fTime string
 var outPath string
 
