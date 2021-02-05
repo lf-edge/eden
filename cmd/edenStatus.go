@@ -124,6 +124,15 @@ func eveStatusVBox() {
 	}
 }
 
+func eveStatusParallels() {
+	statusEVE, err := eden.StatusEVEParallels(vmName)
+	if err != nil {
+		log.Errorf("%s cannot obtain status of EVE Parallels process: %s", statusWarn(), err)
+	} else {
+		fmt.Printf("%s EVE on Parallels status: %s\n", representProcessStatus(statusEVE), statusEVE)
+	}
+}
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "status of harness",
@@ -214,6 +223,8 @@ var statusCmd = &cobra.Command{
 				if !eveRemote {
 					if devModel == defaults.DefaultVBoxModel {
 						eveStatusVBox()
+					} else if devModel == defaults.DefaultParallelsModel {
+						eveStatusParallels()
 					} else {
 						eveStatusQEMU()
 					}

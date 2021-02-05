@@ -5,13 +5,13 @@ eden eve reset
 stdout 'reset done'
 
 exec bash chk_pods.sh
-stdout '^1$'
+stdout '^\s*1\s*$'
 
 exec bash chk_nets.sh
-stdout '^1$'
+stdout '^\s*1\s*$'
 
 exec bash chk_vols.sh
-stdout '^1$'
+stdout '^\s*1\s*$'
 
 -- chk_pods.sh --
 #!/bin/bash

@@ -71,10 +71,16 @@ var startEveCmd = &cobra.Command{
 		}
 
 		if devModel == defaults.DefaultVBoxModel {
-			if err := eden.StartEVEVBox(vmName, cpus, mem, hostFwd); err != nil {
+			if err := eden.StartEVEVBox(vmName, eveImageFile, cpus, mem, hostFwd); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting in Virtual Box")
+			}
+		} else if devModel == defaults.DefaultParallelsModel {
+			if err := eden.StartEVEParallels(vmName, eveImageFile, cpus, mem, hostFwd); err != nil {
+				log.Errorf("cannot start eve: %s", err)
+			} else {
+				log.Infof("EVE is starting in Parallels")
 			}
 		} else {
 			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
@@ -110,6 +116,12 @@ var stopEveCmd = &cobra.Command{
 		}
 		if devModel == defaults.DefaultVBoxModel {
 			if err := eden.StopEVEVBox(vmName); err != nil {
+				log.Errorf("cannot stop eve: %s", err)
+			} else {
+				log.Infof("EVE is stopping in Virtual Box")
+			}
+		} else if devModel == defaults.DefaultParallelsModel {
+			if err := eden.StopEVEParallels(vmName); err != nil {
 				log.Errorf("cannot stop eve: %s", err)
 			} else {
 				log.Infof("EVE is stopping in Virtual Box")
@@ -192,6 +204,8 @@ var statusEveCmd = &cobra.Command{
 		if !eveRemote {
 			if devModel == defaults.DefaultVBoxModel {
 				eveStatusVBox()
+			} else if devModel == defaults.DefaultParallelsModel {
+				eveStatusParallels()
 			} else {
 				eveStatusQEMU()
 			}
