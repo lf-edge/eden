@@ -37,12 +37,15 @@ git config --global user.email "fio_test@example.com"
 git config --global user.name "FIO"
 echo "GitHub configuration is done"
 
-mv ~/"$FOLDER_GIT"/ ~/"$GIT_REPO"/
+if [ -z "$GIT_PATH" ]
+then mv ~/"$FOLDER_GIT"/ ~/"$GIT_REPO"/
+else mv ~/"$FOLDER_GIT"/ ~/"$GIT_REPO"/"$GIT_PATH"/
+fi
 
 # Create a new folder in the GIT repository and push the changes
 echo "Create a folder and start posting results to GIT"
 if [ -z "$GIT_BRANCH" ]
-then (cd ~/"$GIT_REPO"/ && git add ~/"$GIT_REPO"/"$FOLDER_GIT" && git commit -m "io-results $FOLDER_GIT" && git push)
+then (cd ~/"$GIT_REPO"/ && git add ~/"$GIT_REPO"/"$FOLDER_GIT" && git commit -m "fio-results $FOLDER_GIT" && git push)
 else (cd ~/"$GIT_REPO"/ && git checkout -b "$GIT_BRANCH" && git add ~/"$GIT_REPO"/"$FOLDER_GIT" && git commit -m "io-results $FOLDER_GIT" && git push --set-upstream origin "$GIT_BRANCH")
 fi
 echo "FIO tests are end: $FOLDER_GIT"
