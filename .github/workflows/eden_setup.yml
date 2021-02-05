@@ -40,3 +40,4 @@ jobs:
           ./eden --config setup setup
           ./eden --config setup clean
           ./eden config delete setup
+          
