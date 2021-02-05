@@ -334,8 +334,28 @@ Step 2 :  Start eden and onboard Eve. eve_live VM will start in VirtualBox at th
 eden start
 eden eve onboard
 ```
+Now it's ready to use.
 
-Now its ready to use.
+## Parallels support(MacOS)
+
+Eden can be used with Parallels for MacOS.
+Tested on Parallels Desktop(Pro Edition) Version 16.1.3 with nested virtualization. This nested virtualization feature is available in Parallels Desktop Pro Edition only.
+
+Step 1 : Build the eden, set a devmodel and make a parallels disk file. 
+
+```console
+make build
+eden config add default --devmodel parallels
+eden setup
+```
+
+Step 2 :  Start eden and onboard Eve. eve_live VM will start in Parallels at the same time.
+
+```console
+eden start
+eden eve onboard
+```
+Now it's ready to use.
 
 ## Google Cloud support
 
