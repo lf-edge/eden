@@ -291,7 +291,7 @@ var setupCmd = &cobra.Command{
 					} else {
 						log.Infof("Eserver is running and accessible on port %d", eserverPort)
 					}
-					eServerIP := viper.GetString("eden.eserver.ip")
+					eServerIP := certsEVEIP
 					eServerPort := viper.GetString("eden.eserver.port")
 					server := &eden.EServer{
 						EServerIP:   eServerIP,
@@ -322,8 +322,12 @@ var setupCmd = &cobra.Command{
 					_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
 					ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
 					_ = ioutil.WriteFile(ipxeConfigFile, buf.Bytes(), 0777)
+					if _, err := eden.AddFileIntoEServer(server, ipxeConfigFile); err != nil {
+						log.Fatalf("AddFileIntoEServer: %s", err)
+					}
 					log.Infof("download EVE done: %s", imageTag)
 					log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
+					log.Infof("File uploaded to eserver http://%s:%s/eserver/ipxe.efi.cfg  .Use it to boot your EVE via network", eServerIP, eServerPort)
 					log.Infof("EVE already exists: %s", filepath.Dir(eveImageFile))
 				}
 			} else {
