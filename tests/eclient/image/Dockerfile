@@ -1,9 +1,9 @@
-FROM ubuntu:20.04
+FROM ubuntu:focal-20210119
 
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
-  curl=7.68.0-1ubuntu2.2 \
+  curl=7.68.0-1ubuntu2.4 \
   iproute2=5.5.0-1ubuntu1 \
   iputils-ping=3:20190709-3 \
   mariadb-client=1:10.3.22-1ubuntu1 \

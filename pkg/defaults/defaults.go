@@ -49,7 +49,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "0.0.0-master-41772163" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "df661d7e3d547a8a984a7bd342ad821cc7d533ac"
+	DefaultAdamTag              = "0b72a46462c4e1e7de5acce00cea076feb3f8585"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "1.2"

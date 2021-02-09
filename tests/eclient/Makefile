@@ -70,6 +70,10 @@ push:
 	docker push $(IMAGE_TAG):$(IMAGE_VERSION)
 	docker push $(IMAGE_TAG):latest
 
+push-multi-arch:
+	@echo "Push image"
+	docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
+
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo
