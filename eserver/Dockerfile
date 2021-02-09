@@ -3,7 +3,7 @@ FROM golang:1.15.7-alpine3.13 AS build
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
 
-RUN apk --no-cache add git=2.30.0-r0
+RUN apk --no-cache add git=2.30.1-r0
 
 RUN mkdir -p /eserver/src && mkdir -p /eserver/bin
 WORKDIR /eserver/src
