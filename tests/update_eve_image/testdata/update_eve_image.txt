@@ -1,5 +1,5 @@
 # Default EVE version to update
-{{$eve_ver := "5.12.4"}}
+{{$eve_ver := "5.19.0"}}
 
 # Obtain EVE version from environment variable EVE_VERSION
 {{$env := EdenGetEnv "EVE_VERSION"}}
@@ -16,8 +16,8 @@
 # Combine variables into $short_version
 {{$short_version := printf "%s-%s-%s" $eve_ver $eve_hv $eve_arch}}
 
-# Use eden.lim.test for access Infos with timewait 20m
-{{$test := "test eden.lim.test -test.v -timewait 20m -test.run TestInfo"}}
+# Use eden.lim.test for access Infos with timewait 30m
+{{$test := "test eden.lim.test -test.v -timewait 30m -test.run TestInfo"}}
 
 
 # Download EVE rootfs into eve-dist

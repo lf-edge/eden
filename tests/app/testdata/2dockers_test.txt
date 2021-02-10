@@ -9,11 +9,11 @@ eden -t 5s pod ps
 ! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=1 &
 
 # Run t1 docker
-eden -t 1m pod deploy -p 8027:80 docker://nginx -n t1
+eden -t 1m pod deploy -p 8027:80 docker://nginx -n t1 --memory 512MB
 stdout 'deploy pod t1 with docker://nginx request sent'
 
 # Run t2 docker
-eden -t 1m pod deploy -p 8028:80 docker://nginx -n t2
+eden -t 1m pod deploy -p 8028:80 docker://nginx -n t2 --memory 512MB
 stdout 'deploy pod t2 with docker://nginx request sent'
 
 # Wait for run

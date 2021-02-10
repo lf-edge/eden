@@ -4,7 +4,6 @@ import "github.com/lf-edge/eden/pkg/device"
 
 //EdgeNodeDescription must be defined in config file
 type EdgeNodeDescription struct {
-	Name   string
 	Key    string
 	Serial string
 	Model  string
@@ -24,7 +23,7 @@ func (nodeDescription *EdgeNodeDescription) GetEdgeNode(tc *TestContext) *device
 		}
 		return dev
 	}
-	return ctrl.GetEdgeNode(nodeDescription.Name)
+	return nil
 }
 
 //EdgeNodeOption is type to use for creation of device.Ctx
@@ -33,7 +32,6 @@ type EdgeNodeOption func(description *device.Ctx)
 //WithNodeDescription sets device info
 func (tc *TestContext) WithNodeDescription(nodeDescription *EdgeNodeDescription) EdgeNodeOption {
 	return func(d *device.Ctx) {
-		d.SetName(nodeDescription.Name)
 		d.SetDevModel(nodeDescription.Model)
 		d.SetOnboardKey(nodeDescription.Key)
 		d.SetSerial(nodeDescription.Serial)

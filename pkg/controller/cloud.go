@@ -29,7 +29,6 @@ type CloudCtx struct {
 type Cloud interface {
 	Controller
 	AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error)
-	GetEdgeNode(name string) *device.Ctx
 	GetDeviceUUID(devUUID uuid.UUID) (dev *device.Ctx, err error)
 	GetBaseOSConfig(id string) (baseOSConfig *config.BaseOSConfig, err error)
 	ListBaseOSConfig() []*config.BaseOSConfig

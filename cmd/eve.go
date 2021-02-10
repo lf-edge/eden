@@ -342,7 +342,6 @@ var onboardEveCmd = &cobra.Command{
 		dev.SetSerial(vars.EveSerial)
 		dev.SetOnboardKey(vars.EveCert)
 		dev.SetDevModel(vars.DevModel)
-		dev.SetName(vars.EveName)
 		err = ctrl.OnBoardDev(dev)
 		if err != nil {
 			log.Fatal(err)
@@ -391,7 +390,6 @@ var resetEveCmd = &cobra.Command{
 		dev.SetSerial(vars.EveSerial)
 		dev.SetOnboardKey(vars.EveCert)
 		dev.SetDevModel(vars.DevModel)
-		dev.SetName(vars.EveName)
 		err = ctrl.OnBoardDev(dev)
 		if err != nil {
 			log.Fatal(err)
