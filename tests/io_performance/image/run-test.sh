@@ -21,33 +21,40 @@ cp config.fio ~/"$FOLDER_GIT"/Configs/
 echo "Running IOSTAT $result"
 ./run-iostat.sh &
 
-# Running FIO
-echo "Running FIO"
-fio config.fio --output-format=normal,json > ~/"$FOLDER_GIT"/Configs/Test-results/fio-results
+if [ -z "$GIT_REPO" ] || [ -z "$GIT_LOGIN" ] || [ -z "$GIT_TOKEN" ]
+then
+    # Running FIO
+    echo "Running FIO without publish results on github.com"
+    fio config.fio --output-format=normal
+    echo "FIO tests are end"
+else
+    # Running FIO
+    echo "Running FIO"
+    fio config.fio --output-format=normal,json > ~/"$FOLDER_GIT"/Configs/Test-results/fio-results
 
-echo "Result FIO generate start"
-./fioconv ~/"$FOLDER_GIT"/Configs/Test-results/fio-results ~/"$FOLDER_GIT"/SUMMARY.csv
-echo "Result FIO generate done"
+    echo "Result FIO generate start"
+    ./fioconv ~/"$FOLDER_GIT"/Configs/Test-results/fio-results ~/"$FOLDER_GIT"/SUMMARY.csv
+    echo "Result FIO generate done"
 
-# Git configurate
-echo "Started configuring GitHub"
-git config --global http.sslverify false
-(cd ~ && git clone https://"$GIT_LOGIN":"$GIT_TOKEN"@github.com/"$GIT_LOGIN"/"$GIT_REPO")
-git config --global user.email "fio_test@example.com"
-git config --global user.name "FIO"
-echo "GitHub configuration is done"
+    # Git configurate
+    echo "Started configuring GitHub"
+    git config --global http.sslverify false
+    (cd ~ && git clone https://"$GIT_LOGIN":"$GIT_TOKEN"@github.com/"$GIT_REPO")
+    git config --global user.email "fio_test@example.com"
+    git config --global user.name "FIO"
+    echo "GitHub configuration is done"
 
-if [ -z "$GIT_PATH" ]
-then mv ~/"$FOLDER_GIT"/ ~/"$GIT_REPO"/
-else mv ~/"$FOLDER_GIT"/ ~/"$GIT_REPO"/"$GIT_PATH"/
+    if [ -z "$GIT_PATH" ]
+    then mv ~/"$FOLDER_GIT"/ ~/"$GIT_REPO"/
+    else mv ~/"$FOLDER_GIT"/ ~/"$GIT_REPO"/"$GIT_PATH"/
+    fi
+
+    # Create a new folder in the GIT repository and push the changes
+    echo "Create a folder and start posting results to GIT"
+    if [ -z "$GIT_BRANCH" ]
+    then (cd ~/"$GIT_REPO"/ && git add . && git commit -m "fio-results $FOLDER_GIT" && git push)
+    else (cd ~/"$GIT_REPO"/ && git checkout -b "$GIT_BRANCH" && git add . && git commit -m "fio-results $FOLDER_GIT" && git push --set-upstream origin "$GIT_BRANCH")
+    fi
+    echo "FIO tests are end: $FOLDER_GIT"
 fi
-
-# Create a new folder in the GIT repository and push the changes
-echo "Create a folder and start posting results to GIT"
-if [ -z "$GIT_BRANCH" ]
-then (cd ~/"$GIT_REPO"/ && git add ~/"$GIT_REPO"/"$FOLDER_GIT" && git commit -m "fio-results $FOLDER_GIT" && git push)
-else (cd ~/"$GIT_REPO"/ && git checkout -b "$GIT_BRANCH" && git add ~/"$GIT_REPO"/"$FOLDER_GIT" && git commit -m "io-results $FOLDER_GIT" && git push --set-upstream origin "$GIT_BRANCH")
-fi
-echo "FIO tests are end: $FOLDER_GIT"
-
 sleep 30m
