@@ -86,7 +86,6 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 		}
 	}
 	version, _ := strconv.Atoi(config.Id.Version)
-	dev.SetName(config.Name)
 	dev.SetConfigVersion(version)
 	dev.SetDevModel(config.ProductName)
 	for _, el := range config.ConfigItems {
@@ -556,8 +555,6 @@ volumeLoop:
 		Manufacturer:      "",
 		ProductName:       dev.GetDevModel(),
 		NetworkInstances:  networkInstanceConfigs,
-		Enterprise:        "",
-		Name:              dev.GetName(),
 		ControllerEpoch:   dev.GetEpoch(),
 	}
 	if pretty {
