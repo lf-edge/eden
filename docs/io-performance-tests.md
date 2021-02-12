@@ -15,6 +15,7 @@ Environment parameters that this container can accept.
 5. **GIT_PATH** - Path for placing results in the git repository. The path must already exist in the repository. Optional parameter.
 6. **GIT_FOLDER** - Folder name for results on GitHub. Optional parameter.
 7. **EVE_VERSION** - EVE version. This parameter is required for naming a folder in GitHub. Optional parameter.
+8. **GIT_LOCAL** - Allows you to save test results to the volume passed to the container, via the -v parameter, without publishing the results to GitHub. This parameter can take the value - true. It is an optional parameter.
 
 > If you want to upload results to GitHub.com, the GIT_REPO GIT_LOGIN GIT_TOKEN environment variables will be required. All other environment variables for GitHub are optional.
 > Before starting the container, you need to [get a token on GitHub.com](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token).
@@ -57,6 +58,18 @@ sudo docker run -e GIT_REPO='git_repository_name' -e GIT_LOGIN='your_git_login' 
 ```
 
 You can also write all the environment variables you need to a file and pass them to the container via the --env-file option. You can find more information at [docs.docker.com](https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file).
+
+If you want to store the test results on the volume passed to the container, you need:
+
+1. Specify the -v parameter, which will take 2 values: the path to a directory or file that will act as a volume in the container, and the mount point in the container itself. The mount point must always be located along the path - **/data**.
+2. You also need to pass the GIT_LOCAL environment variable (with the value true), it will save the result.
+3. All other environment variables are added optionally.
+
+```console
+docker run -v ~/home/fio_results:/data -e GIT_LOCAL=true itmoeve/fio_tests:v.1.2.1
+```
+
+After executing this command, the test results will be saved in the directory - ~/home/fio_results
 
 >Over time, the version of the container may be updated
 
