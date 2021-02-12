@@ -9,13 +9,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/lf-edge/eve/api/go/info"
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
+	"github.com/lf-edge/eve/api/go/info"
+	"google.golang.org/protobuf/proto"
 )
 
 // This context holds all the configuration items in the same
@@ -37,21 +35,35 @@ var (
 	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
 	count    = flag.Int("count", 1, "Number of reboots")
 
+	number int
+
 	tc *projects.TestContext
 
 	lastRebootTime *timestamp.Timestamp
 )
 
-func checkReboot(im *info.ZInfoMsg) error {
-	if im.GetZtype() != info.ZInfoTypes_ZiDevice {
+func checkReboot(edgeNode *device.Ctx) projects.ProcInfoFunc {
+	return func(im *info.ZInfoMsg) error {
+		if im.GetZtype() != info.ZInfoTypes_ZiDevice {
+			return nil
+		}
+		currentLastRebootTime := im.GetDinfo().LastRebootTime
+		if !proto.Equal(lastRebootTime, currentLastRebootTime) {
+			lastRebootTime = currentLastRebootTime
+			fmt.Printf("rebooted with reason %s at %s/n", im.GetDinfo().LastRebootReason, ptypes.TimestampString(lastRebootTime))
+			number++
+			if number < *count {
+				if *reboot {
+					edgeNode.Reboot()
+					//sync config only if reboot needed
+					tc.ConfigSync(edgeNode)
+				}
+			} else {
+				return fmt.Errorf("rebooted %d times", number)
+			}
+		}
 		return nil
 	}
-	currentLastRebootTime := im.GetDinfo().LastRebootTime
-	if !proto.Equal(lastRebootTime, currentLastRebootTime) {
-		lastRebootTime = currentLastRebootTime
-		return fmt.Errorf("rebooted with reason %s at %s", im.GetDinfo().LastRebootReason, ptypes.TimestampString(lastRebootTime))
-	}
-	return nil
 }
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -101,7 +113,8 @@ func TestMain(m *testing.M) {
 		// it to be, before the test can run -- this could be multiple checks on its
 		// status, but for example:
 		if edgeNode.GetState() == device.NotOnboarded {
-			log.Fatal("Node is not onboarded now")
+			fmt.Println("Node is not onboarded now")
+			os.Exit(1)
 		}
 
 		// this is a good node -- lets add it to the test context
@@ -125,38 +138,25 @@ func TestReboot(t *testing.T) {
 	// one can specify a name GetEdgeNode("foo")
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for state of %s", edgeNode.GetName())
+	t.Logf("Wait for state of %s", edgeNode.GetID())
 
 	t.Log("timewait: ", timewait)
 	t.Log("reboot: ", *reboot)
 	t.Log("count: ", *count)
 
-	tc.WaitForState(edgeNode, int(timewait.Seconds()))
-
 	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
 
 	t.Logf("lastRebootTime: %s", ptypes.TimestampString(lastRebootTime))
 
-	var number int
-	for *count > number {
-		// this is modeled after: zcli edge-node reboot [-f] <name>
-		// this is expected to be a synchronous call for now
-		if *reboot {
-			edgeNode.Reboot()
+	tc.AddProcInfo(edgeNode, checkReboot(edgeNode))
 
-			//sync config only if reboot needed
-			tc.ConfigSync(edgeNode)
-		}
-
-		t.Logf("Wait for reboot of %s", edgeNode.GetName())
-
-		tc.AddProcInfo(edgeNode, checkReboot)
-
-		tc.WaitForProc(int(timewait.Seconds()))
-
-		number++
-		t.Logf("Reboot number: %d\n", number)
+	if *reboot {
+		edgeNode.Reboot()
+		//sync config only if reboot needed
+		tc.ConfigSync(edgeNode)
 	}
+
+	tc.WaitForProc(int(timewait.Seconds()))
 
 	t.Logf("Number of reboots: %d\n", number)
 }

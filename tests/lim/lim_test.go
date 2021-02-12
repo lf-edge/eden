@@ -145,12 +145,12 @@ func TestLog(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	t.Logf("Wait for log of %s number=%d timewait=%s\n",
-		edgeNode.GetName(), *number, timewait)
+		edgeNode.GetID(), *number, timewait)
 
 	tc.AddProcLog(edgeNode, func(log *elog.FullLogEntry) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
 			log *elog.FullLogEntry) error {
-			name := edgeNode.GetName()
+			name := edgeNode.GetID()
 			if query != nil {
 				if elog.LogItemFind(log, query) {
 					found = true
@@ -166,7 +166,7 @@ func TestLog(t *testing.T) {
 					strings.Split(*out, ":")).Print()
 			}
 
-			cnt := count("Recieved %d logs from %s", name)
+			cnt := count("Recieved %d logs from %s", name.String())
 			if cnt != "" {
 				return fmt.Errorf(cnt)
 			}
@@ -186,12 +186,12 @@ func TestInfo(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	t.Logf("Wait for info of %s number=%d timewait=%s\n",
-		edgeNode.GetName(), *number, timewait)
+		edgeNode.GetID(), *number, timewait)
 
 	tc.AddProcInfo(edgeNode, func(ei *info.ZInfoMsg) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
 			ei *info.ZInfoMsg) error {
-			name := edgeNode.GetName()
+			name := edgeNode.GetID()
 			if query != nil {
 				if einfo.ZInfoFind(ei, query) != nil {
 					found = true
@@ -207,7 +207,7 @@ func TestInfo(t *testing.T) {
 				einfo.ZInfoPrint(ei,
 					strings.Split(*out, ":")).Print()
 			}
-			cnt := count("Recieved %d infos from %s", name)
+			cnt := count("Recieved %d infos from %s", name.String())
 			if cnt != "" {
 				return fmt.Errorf(cnt)
 			}
@@ -227,12 +227,12 @@ func TestMetrics(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	t.Logf("Wait for metric of %s number=%d timewait=%s\n",
-		edgeNode.GetName(), *number, timewait)
+		edgeNode.GetID(), *number, timewait)
 
 	tc.AddProcMetric(edgeNode, func(metric *metrics.ZMetricMsg) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
 			mtr *metrics.ZMetricMsg) error {
-			name := edgeNode.GetName()
+			name := edgeNode.GetID()
 			if query != nil {
 				if emetric.MetricItemFind(mtr, query) {
 					found = true
@@ -250,7 +250,7 @@ func TestMetrics(t *testing.T) {
 					strings.Split(*out, ":")).Print()
 			}
 
-			cnt := count("Recieved %d metrics from %s", name)
+			cnt := count("Received %d metrics from %s", name.String())
 			if cnt != "" {
 				return fmt.Errorf(cnt)
 			}

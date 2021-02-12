@@ -104,12 +104,11 @@ func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 			eveKey := viper.GetString(fmt.Sprintf("test.eve.%s.onboard-cert", name))
 			eveSerial := viper.GetString(fmt.Sprintf("test.eve.%s.serial", name))
 			eveModel := viper.GetString(fmt.Sprintf("test.eve.%s.model", name))
-			nodes = append(nodes, &EdgeNodeDescription{Name: name, Key: eveKey, Serial: eveSerial, Model: eveModel})
+			nodes = append(nodes, &EdgeNodeDescription{Key: eveKey, Serial: eveSerial, Model: eveModel})
 		}
 	} else {
 		log.Debug("NodeDescriptions not found. Will use default one.")
 		nodes = append(nodes, &EdgeNodeDescription{
-			Name: viper.GetString("eve.name"),
 			Key: utils.ResolveAbsPath(viper.GetString("eve.cert")),
 			Serial: viper.GetString("eve.serial"),
 			Model: viper.GetString("eve.devModel"),
@@ -153,13 +152,6 @@ func (tc *TestContext) AddEdgeNodesFromDescription() {
 
 //GetEdgeNodeOpts pattern to pass device modifications
 type GetEdgeNodeOpts func(*device.Ctx) bool
-
-//FilterByName check EdgeNode name
-func (tc *TestContext) FilterByName(name string) GetEdgeNodeOpts {
-	return func(d *device.Ctx) bool {
-		return d.GetName() == name
-	}
-}
 
 //WithTest assign *testing.T for device
 func (tc *TestContext) WithTest(t *testing.T) GetEdgeNodeOpts {
@@ -219,7 +211,7 @@ func (tc *TestContext) ConfigSync(edgeNode *device.Ctx) {
 		log.Debugf("Device %s onboarded", edgeNode.GetID().String())
 	}
 	if err := tc.GetController().ConfigSync(edgeNode); err != nil {
-		log.Fatalf("Cannot send config of %s", edgeNode.GetName())
+		log.Fatalf("Cannot send config of %s", edgeNode.GetID())
 	}
 }
 
@@ -245,7 +237,7 @@ func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback)
 		select {
 		case <-waitChan:
 			for node, el := range tc.tests {
-				el.Logf("done for device %s", node.GetName())
+				el.Logf("done for device %s", node.GetID())
 			}
 			return
 		case <-ticker.C:
@@ -317,7 +309,7 @@ func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 	state, isOk := tc.states[edgeNode]
 	if !isOk {
-		log.Fatalf("edgeNode not found with name %s", edgeNode.GetName())
+		log.Fatalf("edgeNode not found with name %s", edgeNode.GetID())
 	}
 	timeout := time.Duration(secs) * time.Second
 	waitChan := make(chan struct{})

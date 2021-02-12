@@ -279,26 +279,6 @@ func (cloud *CloudCtx) GetAllNodes() {
 	}
 }
 
-//GetEdgeNode by name
-func (cloud *CloudCtx) GetEdgeNode(name string) *device.Ctx {
-	if name == "" {
-		node, _ := cloud.GetDeviceCurrent()
-		if node != nil {
-			return node
-		}
-		return nil
-	}
-	if len(cloud.devices) == 0 {
-		return nil
-	}
-	for _, el := range cloud.devices {
-		if el.GetName() == name {
-			return el
-		}
-	}
-	return nil
-}
-
 //AddDevice add device with specified devUUID
 func (cloud *CloudCtx) AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error) {
 	for _, el := range cloud.devices {

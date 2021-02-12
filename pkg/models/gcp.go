@@ -87,9 +87,9 @@ func (ctx *DevModelGCP) GetFirstAdapterForSwitches() string {
 
 func createGCP() (DevModel, error) {
 	return &DevModelGCP{
-		physicalIOs:        generatePhysicalIOs(2, 0, 0),
-		networks:           generateNetworkConfigs(2, 0),
-		adapters:           generateSystemAdapters(2, 0),
-		adapterForSwitches: []string{"eth1"},
+		physicalIOs:        generatePhysicalIOs(1, 0, 0),
+		networks:           generateNetworkConfigs(1, 0),
+		adapters:           generateSystemAdapters(1, 0),
+		adapterForSwitches: []string{},
 	}, nil
 }

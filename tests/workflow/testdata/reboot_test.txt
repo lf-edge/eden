@@ -1,4 +1,4 @@
-test eden.reboot.test -test.v -timewait 10m
+test eden.reboot.test -test.v -timewait 15m
 stdout 'Number of reboots:'
 
 -- eden-config.yml --

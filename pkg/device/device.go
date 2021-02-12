@@ -20,7 +20,6 @@ type Ctx struct {
 	onboardKey                 string
 	serial                     string
 	state                      EdgeNodeState
-	name                       string
 	project                    string
 	hash                       [32]byte
 	id                         uuid.UUID
@@ -203,16 +202,6 @@ func (cfg *Ctx) Reboot() {
 	}
 	c, _ := cfg.GetRebootCounter()
 	cfg.SetRebootCounter(c+1, true)
-}
-
-//GetName getter
-func (cfg *Ctx) GetName() string {
-	return cfg.name
-}
-
-//SetName setter
-func (cfg *Ctx) SetName(name string) {
-	cfg.name = name
 }
 
 //GetState setter
