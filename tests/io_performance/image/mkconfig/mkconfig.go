@@ -157,7 +157,7 @@ direct=1
 runtime=%s
 time_based=1
 group_reporting
-filename=/data/fio.test.file
+filename=%s
 `
 
 const sectionTpl = `
@@ -171,6 +171,13 @@ stonewall
 
 func main() {
 	var countTests = len(fType) * len(fBS) * len(fDepth) * len(fJobs)
+	var ftPath = "/data/fio.test.file"
+
+	path, exists := os.LookupEnv("FOLDER_GIT")
+	if exists {
+		ftPath = fmt.Sprintf("/data/%s/fio.test.file", path)
+	}
+
 	fmt.Fprintln(os.Stderr, "type:", fType)
 	fmt.Fprintln(os.Stderr, "bs:", fBS)
 	fmt.Fprintln(os.Stderr, "jobs:", fJobs)
@@ -189,7 +196,7 @@ func main() {
 		fTime = "60"
 	}
 
-	fmt.Fprintf(fd, globalTpl, fTime)
+	fmt.Fprintf(fd, globalTpl, fTime, ftPath)
 
 	for _, rw := range fType {
 		for _, bs := range fBS {
