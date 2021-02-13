@@ -84,7 +84,12 @@ func eveStatusRemote() {
 				ips = append(ips, nw.IPAddrs...)
 			}
 			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
-			fmt.Printf("\tLast info received time: %s\n", time.Unix(eveState.InfoAndMetrics().GetLastInfoTime().GetSeconds(), 0))
+			var lastseen = time.Unix(eveState.InfoAndMetrics().GetLastInfoTime().GetSeconds(), 0)
+			var timenow = time.Now().Unix()
+			fmt.Printf("\tLast info received time: %s\n", lastseen)
+			if (timenow - lastseen.Unix()) > 600 {
+				fmt.Printf("\t EVE MIGHT BE DOWN OR CONNECTIVITY BETWEEN EVE AND ADAM WAS LOST\n")
+			}
 		} else {
 			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...")
 		}
