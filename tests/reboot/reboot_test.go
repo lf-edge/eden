@@ -12,6 +12,7 @@ import (
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"google.golang.org/protobuf/proto"
 )
@@ -138,15 +139,15 @@ func TestReboot(t *testing.T) {
 	// one can specify a name GetEdgeNode("foo")
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for state of %s", edgeNode.GetID())
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Wait for state of %s", edgeNode.GetID())))
 
-	t.Log("timewait: ", timewait)
-	t.Log("reboot: ", *reboot)
-	t.Log("count: ", *count)
+	t.Log(utils.AddTimestamp(fmt.Sprintf("timewait: %s", timewait)))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("reboot: %t", *reboot)))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("count: %d", *count)))
 
 	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
 
-	t.Logf("lastRebootTime: %s", ptypes.TimestampString(lastRebootTime))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("lastRebootTime: %s", ptypes.TimestampString(lastRebootTime))))
 
 	tc.AddProcInfo(edgeNode, checkReboot(edgeNode))
 
@@ -158,5 +159,5 @@ func TestReboot(t *testing.T) {
 
 	tc.WaitForProc(int(timewait.Seconds()))
 
-	t.Logf("Number of reboots: %d\n", number)
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Number of reboots: %d\n", number)))
 }

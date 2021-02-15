@@ -255,15 +255,15 @@ func TestAccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log("Add function to obtain EVE IP")
+	t.Log(utils.AddTimestamp("Add function to obtain EVE IP"))
 
 	tc.AddProcTimer(edgeNode, getEVEIP(edgeNode))
 
-	t.Log("Add trying to access VNC of app")
+	t.Log(utils.AddTimestamp("Add trying to access VNC of app"))
 
 	tc.AddProcTimer(edgeNode, checkVNCAccess())
 
-	t.Log("Add trying to access SSH of app")
+	t.Log(utils.AddTimestamp("Add trying to access SSH of app"))
 
 	tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "exit", true))
 
@@ -315,7 +315,7 @@ func TestAppLogs(t *testing.T) {
 		}
 	}
 
-	t.Log("Add function to obtain EVE IP")
+	t.Log(utils.AddTimestamp("Add function to obtain EVE IP"))
 
 	tc.AddProcTimer(edgeNode, getEVEIP(edgeNode))
 
@@ -329,7 +329,7 @@ func TestVNCVMDelete(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Add waiting for app %s absent", appName)
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Add waiting for app %s absent", appName)))
 
 	tc.AddProcInfo(edgeNode, checkAppAbsent(appName))
 
@@ -351,7 +351,7 @@ func TestVNCVMDelete(t *testing.T) {
 			})
 			edgeNode.SetVolumeConfigs(volumeIDs)
 			configs := edgeNode.GetApplicationInstances()
-			t.Log("Remove app from list")
+			t.Log(utils.AddTimestamp("Remove app from list"))
 			utils.DelEleInSlice(&configs, id)
 			edgeNode.SetApplicationInstanceConfig(configs)
 			if err := tc.GetController().RemoveApplicationInstanceConfig(appUUID); err != nil {
