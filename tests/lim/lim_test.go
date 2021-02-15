@@ -16,6 +16,7 @@ import (
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 )
@@ -144,8 +145,8 @@ func TestLog(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for log of %s number=%d timewait=%s\n",
-		edgeNode.GetID(), *number, timewait)
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Wait for log of %s number=%d timewait=%s\n",
+		edgeNode.GetID(), *number, timewait)))
 
 	tc.AddProcLog(edgeNode, func(log *elog.FullLogEntry) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
@@ -158,7 +159,7 @@ func TestLog(t *testing.T) {
 					return nil
 				}
 			}
-			t.Logf("LOG %d(%d) from %s:\n", items+1, *number, name)
+			t.Log(utils.AddTimestamp(fmt.Sprintf("LOG %d(%d) from %s:\n", items+1, *number, name)))
 			if len(*out) == 0 {
 				elog.LogPrn(log, elog.LogLines)
 			} else {
@@ -166,7 +167,7 @@ func TestLog(t *testing.T) {
 					strings.Split(*out, ":")).Print()
 			}
 
-			cnt := count("Recieved %d logs from %s", name.String())
+			cnt := count("Received %d logs from %s", name.String())
 			if cnt != "" {
 				return fmt.Errorf(cnt)
 			}
@@ -185,8 +186,8 @@ func TestInfo(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for info of %s number=%d timewait=%s\n",
-		edgeNode.GetID(), *number, timewait)
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Wait for info of %s number=%d timewait=%s\n",
+		edgeNode.GetID(), *number, timewait)))
 
 	tc.AddProcInfo(edgeNode, func(ei *info.ZInfoMsg) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
@@ -200,7 +201,7 @@ func TestInfo(t *testing.T) {
 				}
 			}
 
-			t.Logf("INFO %d(%d) from %s:\n", items+1, *number, name)
+			t.Log(utils.AddTimestamp(fmt.Sprintf("INFO %d(%d) from %s:\n", items+1, *number, name)))
 			if len(*out) == 0 {
 				einfo.InfoPrn(ei)
 			} else {
@@ -226,8 +227,8 @@ func TestMetrics(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Wait for metric of %s number=%d timewait=%s\n",
-		edgeNode.GetID(), *number, timewait)
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Wait for metric of %s number=%d timewait=%s\n",
+		edgeNode.GetID(), *number, timewait)))
 
 	tc.AddProcMetric(edgeNode, func(metric *metrics.ZMetricMsg) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
@@ -241,8 +242,8 @@ func TestMetrics(t *testing.T) {
 				}
 			}
 
-			t.Logf("METRICS %d(%d) from %s:\n",
-				items+1, *number, name)
+			t.Log(utils.AddTimestamp(fmt.Sprintf("METRICS %d(%d) from %s:\n",
+				items+1, *number, name)))
 			if len(*out) == 0 {
 				emetric.MetricPrn(mtr)
 			} else {

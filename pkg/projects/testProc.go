@@ -10,6 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
@@ -65,7 +66,7 @@ func (lb *processingBus) processReturn(edgeNode *device.Ctx, procFunc *absFunc, 
 			lb.tc.stopTime.Add(lb.tc.addTime)
 		}
 		procFunc.disabled = true
-		toRet := fmt.Sprintf("%T done with return: %s", procFunc.proc, result.Error())
+		toRet := utils.AddTimestamp(fmt.Sprintf("%T done with return: %s", procFunc.proc, result.Error()))
 		if t, ok := lb.tc.tests[edgeNode]; ok {
 			t.Log(toRet)
 		}

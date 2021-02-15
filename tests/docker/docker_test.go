@@ -167,7 +167,7 @@ func TestDockerStart(t *testing.T) {
 	opts = append(opts, expect.WithResources(uint32(*cpus), uint32(appMemoryParsed/1000)))
 
 	if *nohyper {
-		t.Log("will not use hypervisor")
+		t.Log(utils.AddTimestamp("will not use hypervisor"))
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
 
@@ -175,25 +175,25 @@ func TestDockerStart(t *testing.T) {
 
 	appInstanceConfig := expectation.Application()
 
-	t.Log("Add app to list")
+	t.Log(utils.AddTimestamp("Add app to list"))
 
 	edgeNode.SetApplicationInstanceConfig(append(edgeNode.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 
 	tc.ConfigSync(edgeNode)
 
-	t.Log("Add processing of app messages")
+	t.Log(utils.AddTimestamp("Add processing of app messages"))
 
 	tc.AddProcInfo(edgeNode, checkAppDeployStarted(appName))
 
-	t.Log("Add processing of app running messages")
+	t.Log(utils.AddTimestamp("Add processing of app running messages"))
 
 	tc.AddProcInfo(edgeNode, checkAppRunning(appName))
 
-	t.Log("Add function to obtain EVE IP")
+	t.Log(utils.AddTimestamp("Add function to obtain EVE IP"))
 
 	tc.AddProcTimer(edgeNode, getEVEIP(edgeNode))
 
-	t.Log("Add trying to access app via http")
+	t.Log(utils.AddTimestamp("Add trying to access app via http"))
 
 	if *externalPort != 0 {
 
@@ -219,7 +219,7 @@ func TestDockerDelete(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
-	t.Logf("Add waiting for app %s absent", appName)
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Add waiting for app %s absent", appName)))
 
 	tc.AddProcInfo(edgeNode, checkAppAbsent(appName))
 
@@ -241,7 +241,7 @@ func TestDockerDelete(t *testing.T) {
 			})
 			edgeNode.SetVolumeConfigs(volumeIDs)
 			configs := edgeNode.GetApplicationInstances()
-			t.Log("Remove app from list")
+			t.Log(utils.AddTimestamp("Remove app from list"))
 			utils.DelEleInSlice(&configs, id)
 			edgeNode.SetApplicationInstanceConfig(configs)
 			if err := tc.GetController().RemoveApplicationInstanceConfig(appUUID); err != nil {

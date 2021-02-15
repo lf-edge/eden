@@ -16,11 +16,16 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+type appState struct {
+	state     string
+	timestamp time.Time
+}
+
 // This test wait for the app's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
 	tc       *projects.TestContext
-	states   map[string][]string
+	states   map[string][]appState
 	eveState *eve.State
 )
 
@@ -55,7 +60,9 @@ func checkNewLastState(appName, state string) bool {
 	appStates, ok := states[appName]
 	if ok {
 		lastState := appStates[len(appStates)-1]
-		if lastState != state {
+		if lastState.state != state {
+			fmt.Printf("lastState: %s state: %s time: %s\n", lastState.state, state,
+				time.Now().Format(time.RFC3339Nano))
 			return true
 		}
 	}
@@ -64,7 +71,10 @@ func checkNewLastState(appName, state string) bool {
 
 func checkAndAppendState(appName, state string) {
 	if checkNewLastState(appName, state) {
-		states[appName] = append(states[appName], state)
+		states[appName] = append(states[appName], appState{
+			state:     state,
+			timestamp: time.Now(),
+		})
 	}
 }
 
@@ -86,9 +96,9 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 			return nil
 		}
 		for _, appName := range appNames {
-			out += fmt.Sprintf(
+			out += utils.AddTimestamp(fmt.Sprintf(
 				"no app with %s found\n",
-				appName)
+				appName))
 		}
 		return fmt.Errorf(out)
 	}
@@ -100,9 +110,9 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 	if len(states) == len(appNames) {
 		for _, appName := range appNames {
 			if !checkNewLastState(appName, state) {
-				out += fmt.Sprintf(
+				out += utils.AddTimestamp(fmt.Sprintf(
 					"app %s state %s\n",
-					appName, state)
+					appName, state))
 			} else {
 				return nil
 			}
@@ -135,9 +145,11 @@ func TestAppStatus(t *testing.T) {
 			args[1:], state, secs)
 
 		apps := args[1:]
-		states = make(map[string][]string)
+		states = make(map[string][]appState)
 		for _, el := range apps {
-			states[el] = []string{"no info from controller"}
+			states[el] = []appState{{
+				state:     "no info from controller",
+				timestamp: time.Now()}}
 		}
 
 		tc.AddProcInfo(edgeNode, checkApp(state, apps))
@@ -145,11 +157,11 @@ func TestAppStatus(t *testing.T) {
 		callback := func() {
 			t.Errorf("ASSERTION FAILED: expected apps %s in %s state", apps, state)
 			for k, v := range states {
-				t.Errorf("\tactual %s: %s", k, v[len(v)-1])
+				t.Errorf("\tactual %s: %s", k, v[len(v)-1].state)
 				if checkNewLastState(k, state) {
 					t.Errorf("\thistory of states for %s:", k)
 					for _, st := range v {
-						t.Errorf("\t\t%s", st)
+						t.Errorf("\t\tstate: %s time: %s", st.state, st.timestamp.Format(time.RFC3339Nano))
 					}
 				}
 				for _, app := range eveState.Applications() {
