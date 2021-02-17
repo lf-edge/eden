@@ -160,6 +160,18 @@ group_reporting
 filename=%s
 `
 
+const globalTplcheckSumm = `[global]
+ioengine=libaio
+size=1G
+direct=1
+runtime=%s
+verify=%s
+verify_fatal=1
+time_based=1
+group_reporting
+filename=%s
+`
+
 const sectionTpl = `
 [%s]
 rw=%s
@@ -196,7 +208,12 @@ func main() {
 		fTime = "60"
 	}
 
-	fmt.Fprintf(fd, globalTpl, fTime, ftPath)
+	verify, exists := os.LookupEnv("FIO_CHECKSUMM")
+	if exists {
+		fmt.Fprintf(fd, globalTplcheckSumm, fTime, verify, ftPath)
+	} else {
+		fmt.Fprintf(fd, globalTpl, fTime, ftPath)
+	}
 
 	for _, rw := range fType {
 		for _, bs := range fBS {

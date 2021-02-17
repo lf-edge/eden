@@ -38,6 +38,7 @@ In this configuration, the test results will be posted to the GitHub repository 
 3. **FIO_JOBS** - Determining the count jobs in test. Optional parameter. Default=1,8. For example: 1
 4. **FIO_DEPTH** - Determining the io depth in test. Optional parameter. Default=1,8,16. For example: 1,8,32
 5. **FIO_TIME** - Duration of each test in sec. Default=60. Optional parameter. For example: 60
+6. **FIO_CHECKSUMM** - Checking the integrity of the recorded data. It takes only one of the following parameters: md5, crc64, crc32c, crc32, crc16, crc7, xxhash, sha512, sha256, sha1. For example: md5. When setting this parameter, you should use only one pattern - write or randwrite. And also one value of the iodepth, block size, and the count of threads. For instance: (FIO_OPTYPE=write, FIO_BS=4k, FIO_JOBS=1, FIO_DEPTH=32, FIO_CHECKSUMM=md5).
 
 According to these variables, the container generates a configuration file for the FIO utility. If no variables are set, a configuration file with default settings will be compiled.
 
