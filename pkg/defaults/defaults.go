@@ -48,7 +48,7 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "5.21.1" //DefaultEVETag tag for EVE image
+	DefaultEVETag               = "5.21.2" //DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "0.0.12"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
@@ -101,9 +101,9 @@ const (
 	DefaultEveLogLevel  = "info"    //min level of logs saved in files on EVE device
 	DefaultAdamLogLevel = "warning" //min level of logs sent from EVE to Adam
 
-	DefaultQemuAccelDarwin = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
-	DefaultQemuAccelLinuxAmd64  = "-machine q35,accel=kvm,dump-guest-core=off,kernel-irqchip=split -cpu host,invtsc=on,kvmclock=off -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
-  DefaultQemuAccelLinuxArm64  = "-machine virt,accel=kvm -cpu=host "
+	DefaultQemuAccelDarwin     = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
+	DefaultQemuAccelLinuxAmd64 = "-machine q35,accel=kvm,dump-guest-core=off,kernel-irqchip=split -cpu host,invtsc=on,kvmclock=off -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
+	DefaultQemuAccelLinuxArm64 = "-machine virt,accel=kvm -cpu=host "
 
 	DefaultAppSubnet = "10.11.12.0/24"
 

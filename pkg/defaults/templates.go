@@ -274,7 +274,7 @@ const DefaultIPXEConfig = `#!ipxe
 # dhcp
 # chain --autofree https://github.com/lf-edge/eve/releases/download/1.2.3/ipxe.efi.cfg
 echo Installing with an ID ${ip}
-kernel http://{{.ADDRESS}}/kernel eve_installer=${ip} fastboot console=ttyS0 console=ttyS1 console=ttyS2 console=ttyAMA0 console=ttyAMA1 console=tty0 initrd=initrd.img initrd=initrd.bits
+kernel http://{{.ADDRESS}}/kernel eve_installer=${ip} eve_reboot_after_install fastboot console=ttyS0 console=ttyS1 console=ttyS2 console=ttyAMA0 console=ttyAMA1 console=tty0 initrd=initrd.img initrd=initrd.bits
 initrd http://{{.ADDRESS}}/initrd.img
 initrd http://{{.ADDRESS}}/initrd.bits
 boot
