@@ -32,7 +32,7 @@ tc *TestContext // TestContext is at least {
 */
 
 var (
-	timewait = flag.Duration("timewait", time.Minute, "Timewait for waiting")
+	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for waiting")
 	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
 	count    = flag.Int("count", 1, "Number of reboots")
 
@@ -41,6 +41,8 @@ var (
 	tc *projects.TestContext
 
 	lastRebootTime *timestamp.Timestamp
+
+	configRebootCounter uint32
 )
 
 func checkReboot(edgeNode *device.Ctx) projects.ProcInfoFunc {
@@ -62,6 +64,20 @@ func checkReboot(edgeNode *device.Ctx) projects.ProcInfoFunc {
 			} else {
 				return fmt.Errorf("rebooted %d times", number)
 			}
+		}
+		return nil
+	}
+}
+
+func checkRebootCounterMatch() projects.ProcInfoFunc {
+	return func(im *info.ZInfoMsg) error {
+		if im.GetZtype() != info.ZInfoTypes_ZiDevice {
+			return nil
+		}
+		statusRebootCounter := im.GetDinfo().RebootConfigCounter
+		if statusRebootCounter == configRebootCounter {
+			return fmt.Errorf("reached RebootCounter: %d",
+				configRebootCounter)
 		}
 		return nil
 	}
@@ -149,8 +165,23 @@ func TestReboot(t *testing.T) {
 
 	t.Log(utils.AddTimestamp(fmt.Sprintf("lastRebootTime: %s", ptypes.TimestampString(lastRebootTime))))
 
-	tc.AddProcInfo(edgeNode, checkReboot(edgeNode))
+	statusRebootCounter := tc.GetState(edgeNode).GetDinfo().RebootConfigCounter
+	configRebootCounter, _ = edgeNode.GetRebootCounter()
+	if statusRebootCounter != configRebootCounter {
+		t.Logf("Wait for match: statusRebootCounter: %d, configRebootCounter %d",
+			statusRebootCounter, configRebootCounter)
 
+		// Wait for match
+		tc.AddProcInfo(edgeNode, checkRebootCounterMatch())
+		tc.WaitForProc(int(timewait.Seconds()))
+	}
+	statusRebootCounter = tc.GetState(edgeNode).GetDinfo().RebootConfigCounter
+	configRebootCounter, _ = edgeNode.GetRebootCounter()
+	t.Logf("Wait done: statusRebootCounter: %d, configRebootCounter %d",
+		statusRebootCounter, configRebootCounter)
+	t.Logf("lastRestartCounter: %d", tc.GetState(edgeNode).GetDinfo().RestartCounter)
+
+	tc.AddProcInfo(edgeNode, checkReboot(edgeNode))
 	if *reboot {
 		edgeNode.Reboot()
 		//sync config only if reboot needed
