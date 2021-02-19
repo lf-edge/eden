@@ -61,7 +61,7 @@ func checkNewLastState(appName, state string) bool {
 	if ok {
 		lastState := appStates[len(appStates)-1]
 		if lastState.state != state {
-			fmt.Printf("lastState: %s state: %s time: %s\n", lastState.state, state,
+			fmt.Printf("lastState: %s expected state: %s time: %s\n", lastState.state, state,
 				time.Now().Format(time.RFC3339Nano))
 			return true
 		}
@@ -155,13 +155,13 @@ func TestAppStatus(t *testing.T) {
 		tc.AddProcInfo(edgeNode, checkApp(state, apps))
 
 		callback := func() {
-			t.Errorf("ASSERTION FAILED: expected apps %s in %s state", apps, state)
+			t.Errorf("ASSERTION FAILED (%s): expected apps %s in %s state", time.Now().Format(time.RFC3339Nano), apps, state)
 			for k, v := range states {
 				t.Errorf("\tactual %s: %s", k, v[len(v)-1].state)
 				if checkNewLastState(k, state) {
 					t.Errorf("\thistory of states for %s:", k)
 					for _, st := range v {
-						t.Errorf("\t\tstate: %s time: %s", st.state, st.timestamp.Format(time.RFC3339Nano))
+						t.Errorf("\t\tstate: %s received in: %s", st.state, st.timestamp.Format(time.RFC3339Nano))
 					}
 				}
 				for _, app := range eveState.Applications() {

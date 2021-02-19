@@ -130,7 +130,7 @@ func TestNetworkStatus(t *testing.T) {
 	} else {
 		secs := int(timewait.Seconds())
 		state := args[0]
-		t.Log(utils.AddTimestamp(fmt.Sprintf("networks: '%s' state: '%s' secs: %d\n",
+		t.Log(utils.AddTimestamp(fmt.Sprintf("networks: '%s' expected state: '%s' secs: %d\n",
 			args[1:], state, secs)))
 
 		vols := args[1:]
@@ -150,13 +150,13 @@ func TestNetworkStatus(t *testing.T) {
 			tc.AddProcInfo(edgeNode, checkNet(state, vols))
 
 			callback := func() {
-				t.Errorf("ASSERTION FAILED: expected networks %s in %s state", vols, state)
+				t.Errorf("ASSERTION FAILED (%s): expected networks %s in %s state", time.Now().Format(time.RFC3339Nano), vols, state)
 				for k, v := range states {
 					t.Errorf("\tactual %s: %s", k, v[len(v)-1].state)
 					if checkNewLastState(k, state) {
 						t.Errorf("\thistory of states for %s:", k)
 						for _, st := range v {
-							t.Errorf("\t\tstate: %s time: %s", st.state, st.timestamp.Format(time.RFC3339Nano))
+							t.Errorf("\t\tstate: %s received in: %s", st.state, st.timestamp.Format(time.RFC3339Nano))
 						}
 					}
 				}
