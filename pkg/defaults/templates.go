@@ -27,6 +27,12 @@ adam:
       #host of adam's redis for ADAM access
       adam: '{{parse "adam.redis.adam"}}'
 
+    postgres:
+      #host of adam's postgres for EDEN access
+      eden: '{{parse "adam.postgres.eden"}}'
+      #host of adam's postgres for ADAM access
+      adam: '{{parse "adam.postgres.adam"}}'
+
     #force adam rebuild
     force: {{parse "adam.force"}}
 
@@ -39,6 +45,9 @@ adam:
 
         #load logs and info from redis instead of http stream
         redis: {{parse "adam.remote.redis"}}
+
+        #load logs and info from postgres instead of http stream
+        postgres: {{parse "adam.remote.postgres"}}
 
     #use v1 api
     v1: {{parse "adam.v1"}}
@@ -185,6 +194,16 @@ eden:
 gcp:
     #path to the key to interact with gcp
     key: '{{parse "gcp.key"}}'
+
+postgres:
+    #port for access postgres
+    port: {{parse "postgres.port"}}
+
+    #tag for postgres image
+    tag: '{{parse "postgres.tag"}}'
+
+    #directory to use for postgres persistence
+    dist: '{{parse "postgres.dist"}}'
 
 redis:
     #port for access redis

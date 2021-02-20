@@ -71,6 +71,8 @@ func init() {
 	registryInit()
 	rootCmd.AddCommand(redisCmd)
 	redisInit()
+	rootCmd.AddCommand(postgresCmd)
+	postgresInit()
 	rootCmd.AddCommand(eserverCmd)
 	eserverInit()
 	rootCmd.AddCommand(configCmd)

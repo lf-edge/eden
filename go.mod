@@ -34,15 +34,18 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-containerregistry v0.2.1
 	github.com/gorilla/handlers v1.5.1 // indirect
+	github.com/jackc/pgx/v4 v4.10.1
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/lf-edge/adam v0.0.0-20201209042112-7d1fa049e66b
 	github.com/lf-edge/eden/eserver v0.0.0-20201210161141-8551a3b0751b
 	github.com/lf-edge/edge-containers v0.0.0-20201111200732-5491ea93dbe4
-	github.com/lf-edge/eve/api/go v0.0.0-20210211140602-4ce4d3187bb9
+	github.com/lf-edge/eve/api/go v0.0.0-20210223053402-244b31b3657d
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
+	github.com/onsi/ginkgo v1.14.2 // indirect
+	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/opencontainers/selinux v1.7.0 // indirect
 	github.com/prometheus/client_golang v1.8.0 // indirect
 	github.com/prometheus/common v0.15.0 // indirect
@@ -51,22 +54,24 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940 // indirect
 	github.com/yvasiyarov/gorelic v0.0.7 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
-	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9
+	golang.org/x/crypto v0.0.0-20210218145215-b8e89b74b9df
 	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a // indirect
+	golang.org/x/sys v0.0.0-20210218155724-8ebf48af031b // indirect
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 	google.golang.org/api v0.36.0
 	google.golang.org/genproto v0.0.0-20201211151036-40ec1c210f7a // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.4.0
-	gotest.tools/gotestsum v1.6.1 // indirect
+	gotest.tools/gotestsum v1.6.2 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
 

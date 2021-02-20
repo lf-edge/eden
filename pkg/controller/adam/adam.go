@@ -30,16 +30,18 @@ import (
 
 //Ctx stores controller settings
 type Ctx struct {
-	dir               string
-	url               string
-	serverCA          string
-	insecureTLS       bool
-	AdamRemote        bool
-	AdamRemoteRedis   bool   //use redis for obtain logs and info
-	AdamRedisURLEden  string //string with redis url for obtain logs and info
-	AdamCaching       bool   //enable caching of adam`s logs/info
-	AdamCachingRedis  bool   //caching to redis instead of files
-	AdamCachingPrefix string //custom prefix for file or stream naming for cache
+	dir                 string
+	url                 string
+	serverCA            string
+	insecureTLS         bool
+	AdamRemote          bool
+	AdamRemoteRedis     bool   //use redis for obtain logs and info
+	AdamRedisURLEden    string //string with redis url for obtain logs and info
+	AdamRemotePostgres  bool   //use postgres for obtain logs and info
+	AdamPostgresURLEden string //string with postgres url for obtain logs and info
+	AdamCaching         bool   //enable caching of adam`s logs/info
+	AdamCachingRedis    bool   //caching to redis instead of files
+	AdamCachingPrefix   string //custom prefix for file or stream naming for cache
 }
 
 //parseRedisURL try to use string from config to obtain redis url
@@ -65,6 +67,29 @@ func parseRedisURL(s string) (addr, password string, databaseID int, err error) 
 	return
 }
 
+//parsePostgresURL try to use string from config to obtain postgres url
+func parsePostgresURL(s string) (addr, username, password, database string, err error) {
+	URL, err := url.Parse(s)
+	if err != nil || URL.Scheme != "postgres" {
+		return "", "", "", "", err
+	}
+
+	if URL.Host != "" {
+		addr = URL.Host
+	} else {
+		addr = fmt.Sprintf("%s:%d", defaults.DefaultPostgresHost, defaults.DefaultPostgresPort)
+	}
+	username = URL.User.Username()
+	if username == "" {
+		username = "postgres"
+	}
+	password = "postgres"
+	if passwordURL, passwordSet := URL.User.Password(); passwordSet {
+		password = passwordURL
+	}
+	return
+}
+
 //getLoader return loader object from Adam`s config
 func (adam *Ctx) getLoader() (loader loaders.Loader) {
 	if adam.AdamRemote {
@@ -82,6 +107,12 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 				StreamApps:    adam.getAppsLogsRedisStream,
 			}
 			loader = loaders.NewRedisLoader(addr, password, databaseID, streamGetters)
+		} else if adam.AdamRemotePostgres {
+			addr, username, password, database, err := parsePostgresURL(adam.AdamPostgresURLEden)
+			if err != nil {
+				log.Fatalf("Cannot parse adam postgres url: %s", err)
+			}
+			loader = loaders.NewPostgresLoader(addr, username, password, database)
 		} else {
 			urlGetters := types.URLGetters{
 				URLLogs:    adam.getLogsURL,
@@ -141,6 +172,8 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.AdamCachingRedis = vars.AdamCachingRedis
 	adam.AdamCachingPrefix = vars.AdamCachingPrefix
 	adam.AdamRedisURLEden = vars.AdamRedisURLEden
+	adam.AdamPostgresURLEden = vars.AdamPostgresURLEden
+	adam.AdamRemotePostgres = vars.AdamRemotePostgres
 	return nil
 }
 

@@ -18,42 +18,45 @@ import (
 
 //ConfigVars struct with parameters from config file
 type ConfigVars struct {
-	AdamIP            string
-	AdamPort          string
-	AdamDomain        string
-	AdamDir           string
-	AdamCA            string
-	AdamRemote        bool
-	AdamCaching       bool
-	AdamCachingRedis  bool
-	AdamCachingPrefix string
-	AdamRemoteRedis   bool
-	AdamRedisURLEden  string
-	AdamRedisURLAdam  string
-	EveHV             string
-	EveSSID           string
-	EveUUID           string
-	EveName           string
-	EveRemote         bool
-	EveRemoteAddr     string
-	EveQemuPorts      map[string]string
-	EveQemuConfig     string
-	EveDist           string
-	SSHKey            string
-	EveCert           string
-	EveDeviceCert     string
-	EveSerial         string
-	ZArch             string
-	DevModel          string
-	EdenBinDir        string
-	EdenProg          string
-	TestProg          string
-	TestScenario      string
-	EServerImageDist  string
-	EServerPort       string
-	EServerIP         string
-	LogLevel          string
-	AdamLogLevel      string
+	AdamIP              string
+	AdamPort            string
+	AdamDomain          string
+	AdamDir             string
+	AdamCA              string
+	AdamRemote          bool
+	AdamCaching         bool
+	AdamCachingRedis    bool
+	AdamCachingPrefix   string
+	AdamRemoteRedis     bool
+	AdamRedisURLEden    string
+	AdamRedisURLAdam    string
+	AdamPostgresURLEden string
+	AdamRemotePostgres  bool
+	EveHV               string
+	EveSSID             string
+	EveUUID             string
+	EveName             string
+	EveRemote           bool
+	EveRemoteAddr       string
+	EveQemuPorts        map[string]string
+	EveQemuConfig       string
+	EveDist             string
+	SSHKey              string
+	EveCert             string
+	EveDeviceCert       string
+	EveSerial           string
+	ZArch               string
+	DevModel            string
+	EdenBinDir          string
+	EdenProg            string
+	TestProg            string
+	TestScenario        string
+	EServerImageDist    string
+	EServerPort         string
+	EServerIP           string
+	LogLevel            string
+	AdamLogLevel        string
+	EdenDriver          string
 }
 
 //InitVars loads vars from viper
@@ -82,42 +85,45 @@ func InitVars() (*ConfigVars, error) {
 		}
 		caCertPath := filepath.Join(globalCertsDir, "root-certificate.pem")
 		var vars = &ConfigVars{
-			AdamIP:            viper.GetString("adam.ip"),
-			AdamPort:          viper.GetString("adam.port"),
-			AdamDomain:        viper.GetString("adam.domain"),
-			AdamDir:           ResolveAbsPath(viper.GetString("adam.dist")),
-			AdamCA:            caCertPath,
-			AdamRedisURLEden:  viper.GetString("adam.redis.eden"),
-			AdamRedisURLAdam:  viper.GetString("adam.redis.adam"),
-			SSHKey:            ResolveAbsPath(viper.GetString("eden.ssh-key")),
-			EveCert:           ResolveAbsPath(viper.GetString("eve.cert")),
-			EveDeviceCert:     ResolveAbsPath(viper.GetString("eve.device-cert")),
-			EveSerial:         viper.GetString("eve.serial"),
-			EveDist:           viper.GetString("eve.dist"),
-			EveQemuConfig:     viper.GetString("eve.qemu-config"),
-			ZArch:             viper.GetString("eve.arch"),
-			EveSSID:           viper.GetString("eve.ssid"),
-			EveHV:             viper.GetString("eve.hv"),
-			DevModel:          viper.GetString("eve.devmodel"),
-			EveName:           viper.GetString("eve.name"),
-			EveUUID:           viper.GetString("eve.uuid"),
-			EveRemote:         viper.GetBool("eve.remote"),
-			EveRemoteAddr:     viper.GetString("eve.remote-addr"),
-			EveQemuPorts:      viper.GetStringMapString("eve.hostfwd"),
-			AdamRemote:        viper.GetBool("adam.remote.enabled"),
-			AdamRemoteRedis:   viper.GetBool("adam.remote.redis"),
-			AdamCaching:       viper.GetBool("adam.caching.enabled"),
-			AdamCachingPrefix: viper.GetString("adam.caching.prefix"),
-			AdamCachingRedis:  viper.GetBool("adam.caching.redis"),
-			EdenBinDir:        viper.GetString("eden.bin-dist"),
-			EdenProg:          viper.GetString("eden.eden-bin"),
-			TestProg:          viper.GetString("eden.test-bin"),
-			TestScenario:      viper.GetString("eden.test-scenario"),
-			EServerImageDist:  ResolveAbsPath(viper.GetString("eden.images.dist")),
-			EServerPort:       viper.GetString("eden.eserver.port"),
-			EServerIP:         viper.GetString("eden.eserver.ip"),
-			LogLevel:          viper.GetString("eve.log-level"),
-			AdamLogLevel:      viper.GetString("eve.adam-log-level"),
+			AdamIP:              viper.GetString("adam.ip"),
+			AdamPort:            viper.GetString("adam.port"),
+			AdamDomain:          viper.GetString("adam.domain"),
+			AdamDir:             ResolveAbsPath(viper.GetString("adam.dist")),
+			AdamCA:              caCertPath,
+			AdamRedisURLEden:    viper.GetString("adam.redis.eden"),
+			AdamRedisURLAdam:    viper.GetString("adam.redis.adam"),
+			AdamPostgresURLEden: viper.GetString("adam.postgres.eden"),
+			SSHKey:              ResolveAbsPath(viper.GetString("eden.ssh-key")),
+			EveCert:             ResolveAbsPath(viper.GetString("eve.cert")),
+			EveDeviceCert:       ResolveAbsPath(viper.GetString("eve.device-cert")),
+			EveSerial:           viper.GetString("eve.serial"),
+			EveDist:             viper.GetString("eve.dist"),
+			EveQemuConfig:       viper.GetString("eve.qemu-config"),
+			ZArch:               viper.GetString("eve.arch"),
+			EveSSID:             viper.GetString("eve.ssid"),
+			EveHV:               viper.GetString("eve.hv"),
+			DevModel:            viper.GetString("eve.devmodel"),
+			EveName:             viper.GetString("eve.name"),
+			EveUUID:             viper.GetString("eve.uuid"),
+			EveRemote:           viper.GetBool("eve.remote"),
+			EveRemoteAddr:       viper.GetString("eve.remote-addr"),
+			EveQemuPorts:        viper.GetStringMapString("eve.hostfwd"),
+			AdamRemote:          viper.GetBool("adam.remote.enabled"),
+			AdamRemoteRedis:     viper.GetBool("adam.remote.redis"),
+			AdamRemotePostgres:  viper.GetBool("adam.remote.postgres"),
+			AdamCaching:         viper.GetBool("adam.caching.enabled"),
+			AdamCachingPrefix:   viper.GetString("adam.caching.prefix"),
+			AdamCachingRedis:    viper.GetBool("adam.caching.redis"),
+			EdenBinDir:          viper.GetString("eden.bin-dist"),
+			EdenProg:            viper.GetString("eden.eden-bin"),
+			TestProg:            viper.GetString("eden.test-bin"),
+			TestScenario:        viper.GetString("eden.test-scenario"),
+			EServerImageDist:    ResolveAbsPath(viper.GetString("eden.images.dist")),
+			EServerPort:         viper.GetString("eden.eserver.port"),
+			EServerIP:           viper.GetString("eden.eserver.ip"),
+			LogLevel:            viper.GetString("eve.log-level"),
+			AdamLogLevel:        viper.GetString("eve.adam-log-level"),
+			EdenDriver:          viper.GetString("eden.driver"),
 		}
 		return vars, nil
 	}
@@ -285,14 +291,20 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return fmt.Sprintf("redis://%s:%d", ip, defaults.DefaultRedisPort)
 		case "adam.redis.adam":
 			return fmt.Sprintf("redis://%s:%d", defaults.DefaultRedisContainerName, defaults.DefaultRedisPort)
+		case "adam.postgres.eden":
+			return fmt.Sprintf("postgres://postgres:postgres@%s:%d/postgres", ip, defaults.DefaultPostgresPort)
+		case "adam.postgres.adam":
+			return fmt.Sprintf("postgres://postgres:postgres@%s:%d/postgres", defaults.DefaultPostgresContainerName, defaults.DefaultPostgresPort)
 		case "adam.force":
 			return true
 		case "adam.ca":
 			return filepath.Join(certsDist, "root-certificate.pem")
 		case "adam.remote.enabled":
 			return true
-		case "adam.remote.redis":
+		case "adam.remote.postgres":
 			return true
+		case "adam.remote.redis":
+			return false
 		case "adam.v1":
 			return true
 		case "adam.caching.enabled":
@@ -399,6 +411,13 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultRedisTag
 		case "redis.dist":
 			return defaults.DefaultRedisDist
+
+		case "postgres.port":
+			return defaults.DefaultPostgresPort
+		case "postgres.tag":
+			return defaults.DefaultPostgresTag
+		case "postgres.dist":
+			return defaults.DefaultPostgresDist
 
 		case "registry.port":
 			return defaults.DefaultRegistryPort

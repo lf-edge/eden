@@ -13,6 +13,7 @@ const (
 	DefaultImageDist        = "images"           //directory for images inside dist
 	DefaultEserverDist      = ""                 //directory to mount eserver images
 	DefaultRedisDist        = ""                 //directory for volume of redis inside dist
+	DefaultPostgresDist     = ""                 //directory for volume of postgres inside dist
 	DefaultRegistryDist     = ""                 //directory for volume of registry inside dist
 	DefaultAdamDist         = ""                 //directory for volume of adam inside dist
 	DefaultEVEDist          = "eve"              //directory for build EVE inside dist
@@ -42,6 +43,8 @@ const (
 	DefaultTelnetPort   = 7777
 	DefaultSSHPort      = 2222
 	DefaultEVEHost      = "127.0.0.1"
+	DefaultPostgresHost = "localhost"
+	DefaultPostgresPort = 5432
 	DefaultRedisHost    = "localhost"
 	DefaultRedisPort    = 6379
 	DefaultAdamPort     = 3333
@@ -49,13 +52,15 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "5.21.2" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.12"
+	DefaultAdamTag              = "postgres-3"
 	DefaultRedisTag             = "6"
+	DefaultPostgresTag          = "13.2"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "1.2"
 	DefaultImage                = "library/alpine"
-	DefaultAdamContainerRef     = "lfedge/adam"
+	DefaultAdamContainerRef     = "itmoeve/adam"
 	DefaultRedisContainerRef    = "redis"
+	DefaultPostgresContainerRef = "postgres"
 	DefaultRegistryContainerRef = "library/registry"
 	DefaultProcContainerRef     = "itmoeve/eden-processing"
 	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
@@ -88,6 +93,7 @@ const (
 	DefaultAdamContainerName     = "eden_adam"
 	DefaultRegistryContainerName = "eden_registry"
 	DefaultEServerContainerName  = "eden_eserver"
+	DefaultPostgresContainerName = "eden_postgres"
 	DefaultDockerNetworkName     = "eden_network"
 	DefaultLogLevelToPrint       = log.InfoLevel
 	DefaultX509Country           = "RU"
@@ -166,6 +172,11 @@ var (
 		"redis.tag":   "redis-tag",
 		"redis.port":  "redis-port",
 		"redis.force": "redis-force",
+
+		"postgres.dist":  "postgres-dist",
+		"postgres.tag":   "postgres-tag",
+		"postgres.port":  "postgres-port",
+		"postgres.force": "postgres-force",
 
 		"adam.dist":         "adam-dist",
 		"adam.tag":          "adam-tag",

@@ -37,23 +37,39 @@ var exportCmd = &cobra.Command{
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
+			adamRemotePostgresURL = viper.GetString("adam.postgres.adam")
+			adamRemotePostgres = viper.GetBool("adam.remote.postgres")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
 			redisTag = viper.GetString("redis.tag")
 			redisPort = viper.GetInt("redis.port")
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
+			postgresTag = viper.GetString("postgres.tag")
+			postgresPort = viper.GetInt("postgres.port")
+			postgresDist = utils.ResolveAbsPath(viper.GetString("postgres.dist"))
+			postgresForce = viper.GetBool("postgres.force")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		changer := &adamChanger{}
 		// we need to obtain information about EVE from Adam
-		if err := eden.StartRedis(redisPort, redisDist, false, redisTag); err != nil {
-			log.Errorf("cannot start redis: %s", err)
+		adamRemoteURL := adamRemoteRedisURL
+		if adamRemotePostgres {
+			adamRemoteURL = adamRemotePostgresURL
+			if err := eden.StartPostgres(postgresPort, postgresDist, postgresForce, postgresTag); err != nil {
+				log.Errorf("cannot start redis: %s", err)
+			} else {
+				log.Infof("Redis is running and accessible on port %d", redisPort)
+			}
 		} else {
-			log.Infof("Redis is running and accessible on port %d", redisPort)
+			if err := eden.StartRedis(redisPort, redisDist, false, redisTag); err != nil {
+				log.Errorf("cannot start redis: %s", err)
+			} else {
+				log.Infof("Redis is running and accessible on port %d", redisPort)
+			}
 		}
-		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteRedisURL); err != nil {
+		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)
@@ -108,6 +124,8 @@ var importCmd = &cobra.Command{
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
+			adamRemotePostgresURL = viper.GetString("adam.postgres.adam")
+			adamRemotePostgres = viper.GetBool("adam.remote.postgres")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
 			redisTag = viper.GetString("redis.tag")
 			redisPort = viper.GetInt("redis.port")
@@ -151,7 +169,11 @@ var importCmd = &cobra.Command{
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
 		}
-		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteRedisURL); err != nil {
+		adamRemoteURL := adamRemoteRedisURL
+		if adamRemotePostgres {
+			adamRemoteURL = adamRemotePostgresURL
+		}
+		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)

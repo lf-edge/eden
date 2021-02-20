@@ -36,7 +36,7 @@ var stopCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote, evePidFile, devModel, vmName)
+		eden.StopEden(adamRm, redisRm, postgresRm, registryRm, eserverRm, eveRemote, evePidFile, devModel, vmName)
 	},
 }
 
@@ -48,6 +48,7 @@ func stopInit() {
 	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
 	stopCmd.Flags().BoolVarP(&registryRm, "registry-rm", "", false, "registry rm on stop")
 	stopCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
+	stopCmd.Flags().BoolVarP(&postgresRm, "postgres-rm", "", false, "postgres rm on stop")
 	stopCmd.Flags().BoolVarP(&eserverRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	stopCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")

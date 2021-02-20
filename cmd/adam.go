@@ -12,9 +12,11 @@ import (
 )
 
 var (
-	adamTag            string
-	adamRemoteRedisURL string
-	adamRemoteRedis    bool
+	adamTag               string
+	adamRemoteRedisURL    string
+	adamRemoteRedis       bool
+	adamRemotePostgresURL string
+	adamRemotePostgres    bool
 )
 
 var adamCmd = &cobra.Command{
@@ -37,6 +39,8 @@ var startAdamCmd = &cobra.Command{
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamForce = viper.GetBool("adam.force")
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
+			adamRemotePostgresURL = viper.GetString("adam.postgres.adam")
+			adamRemotePostgres = viper.GetBool("adam.remote.postgres")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
 		}
 		return nil
@@ -50,7 +54,11 @@ var startAdamCmd = &cobra.Command{
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}
-		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+		adamRemoteURL := adamRemoteRedisURL
+		if adamRemotePostgres {
+			adamRemoteURL = adamRemotePostgresURL
+		}
+		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)

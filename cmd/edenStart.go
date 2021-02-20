@@ -47,6 +47,8 @@ var startCmd = &cobra.Command{
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamForce = viper.GetBool("adam.force")
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
+			adamRemotePostgresURL = viper.GetString("adam.postgres.adam")
+			adamRemotePostgres = viper.GetBool("adam.remote.postgres")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
 			registryTag = viper.GetString("registry.tag")
 			registryPort = viper.GetInt("registry.port")
@@ -70,19 +72,33 @@ var startCmd = &cobra.Command{
 			eveRemote = viper.GetBool("eve.remote")
 			hostFwd = viper.GetStringMapString("eve.hostfwd")
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
+			postgresTag = viper.GetString("postgres.tag")
+			postgresPort = viper.GetInt("postgres.port")
+			postgresDist = utils.ResolveAbsPath(viper.GetString("postgres.dist"))
+			postgresForce = viper.GetBool("postgres.force")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
-			log.Errorf("cannot start redis: %s", err)
-		} else {
-			log.Infof("Redis is running and accessible on port %d", redisPort)
-		}
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}
-		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+		adamRemoteURL := adamRemoteRedisURL
+		if adamRemotePostgres {
+			adamRemoteURL = adamRemotePostgresURL
+			if err := eden.StartPostgres(postgresPort, postgresDist, postgresForce, postgresTag); err != nil {
+				log.Errorf("cannot start redis: %s", err)
+			} else {
+				log.Infof("Postgres is running and accessible on port %d", redisPort)
+			}
+		} else {
+			if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
+				log.Errorf("cannot start redis: %s", err)
+			} else {
+				log.Infof("Redis is running and accessible on port %d", redisPort)
+			}
+		}
+		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteURL); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accesible on port %d", adamPort)

@@ -180,6 +180,14 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("\tRedis is expected at %s\n", viper.GetString("adam.redis.eden"))
 			fmt.Printf("\tFor local Redis you can run 'docker logs %s' to see logs\n", defaults.DefaultRedisContainerName)
 		}
+		statusPostgres, err := eden.StatusPostgres()
+		if err != nil {
+			log.Errorf("%s cannot obtain status of Postgres: %s", statusWarn(), err)
+		} else {
+			fmt.Printf("%s Postgres status: %s\n", representContainerStatus(lastWord(statusPostgres)), statusPostgres)
+			fmt.Printf("\tPostgres is expected at %s\n", viper.GetString("adam.postgres.eden"))
+			fmt.Printf("\tFor local Postgres you can run 'docker logs %s' to see logs\n", defaults.DefaultPostgresContainerName)
+		}
 		statusEServer, err := eden.StatusEServer()
 		if err != nil {
 			log.Errorf("%s cannot obtain status of EServer process: %s", statusWarn(), err)

@@ -35,6 +35,8 @@ var cleanCmd = &cobra.Command{
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
+			adamRemotePostgresURL = viper.GetString("adam.postgres.adam")
+			adamRemotePostgres = viper.GetBool("adam.remote.postgres")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
 			redisTag = viper.GetString("redis.tag")
 			redisPort = viper.GetInt("redis.port")
@@ -58,12 +60,22 @@ var cleanCmd = &cobra.Command{
 		if currentContext {
 			log.Info("Cleanup current context")
 			// we need to delete information about EVE from adam
-			if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
-				log.Errorf("cannot start redis: %s", err)
+			adamRemoteURL := adamRemoteRedisURL
+			if adamRemotePostgres {
+				adamRemoteURL = adamRemotePostgresURL
+				if err := eden.StartPostgres(postgresPort, postgresDist, postgresForce, postgresTag); err != nil {
+					log.Errorf("cannot start redis: %s", err)
+				} else {
+					log.Infof("Redis is running and accessible on port %d", redisPort)
+				}
 			} else {
-				log.Infof("Redis is running and accessible on port %d", redisPort)
+				if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
+					log.Errorf("cannot start redis: %s", err)
+				} else {
+					log.Infof("Redis is running and accessible on port %d", redisPort)
+				}
 			}
-			if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+			if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteURL); err != nil {
 				log.Errorf("cannot start adam: %s", err)
 			} else {
 				log.Infof("Adam is running and accessible on port %d", adamPort)
