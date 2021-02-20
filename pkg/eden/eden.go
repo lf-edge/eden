@@ -431,7 +431,8 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 //StartEVEQemu function run EVE in qemu
 func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort int, qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile string, pidFile string, foregroud bool) (err error) {
 	qemuCommand := ""
-	qemuOptions := fmt.Sprintf("-display none -serial telnet:localhost:%d,server,nowait -nodefaults -no-user-config ", eveTelnetPort)
+	qemuOptions := "-display none -nodefaults -no-user-config "
+	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logfile=%s ", eveTelnetPort, logFile)
 	if qemuSMBIOSSerial != "" {
 		qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
 	}
@@ -475,9 +476,9 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 	case "arm64":
 		qemuCommand = "qemu-system-aarch64"
-    if qemuAccel {
-		  qemuOptions += defaults.DefaultQemuAccelLinuxArm64
-    }
+		if qemuAccel {
+			qemuOptions += defaults.DefaultQemuAccelLinuxArm64
+		}
 	default:
 		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
 	}
