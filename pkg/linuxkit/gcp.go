@@ -539,12 +539,13 @@ func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 			if gcpError, ok := err.(*googleapi.Error); ok {
 				if gcpError.Code == 400 {
 					// Instance may not be ready yet...
+					log.Debug("waiting for instance")
 					time.Sleep(pollingInterval)
 					continue
 				}
 				if gcpError.Code == 503 {
 					// Timeout received when the instance has terminated
-					break
+					log.Fatal("Error 503")
 				}
 			} else {
 				time.Sleep(pollingInterval)
