@@ -208,7 +208,7 @@ func TestInfo(t *testing.T) {
 				einfo.ZInfoPrint(ei,
 					strings.Split(*out, ":")).Print()
 			}
-			cnt := count("Recieved %d infos from %s", name.String())
+			cnt := count("Received %d infos from %s", name.String())
 			if cnt != "" {
 				return fmt.Errorf(cnt)
 			}
