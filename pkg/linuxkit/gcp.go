@@ -535,15 +535,17 @@ func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 	for i := 0; i < timeout; i++ {
 		res, err := g.compute.Instances.Get(g.projectName, zone, instance).Do()
 		if err != nil {
-			log.Errorf("GetInstanceNatIP: %s", err)
+			log.Fatalf("GetInstanceNatIP: %s", err)
 			if gcpError, ok := err.(*googleapi.Error); ok {
 				if gcpError.Code == 400 {
 					// Instance may not be ready yet...
+					log.Debug("waiting for instance")
 					time.Sleep(pollingInterval)
 					continue
 				}
 				if gcpError.Code == 503 {
 					// Timeout received when the instance has terminated
+					log.Fatal("Error 503")
 					break
 				}
 			} else {
