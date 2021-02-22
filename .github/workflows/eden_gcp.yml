@@ -59,7 +59,7 @@ jobs:
           ./eden utils gcp image --image-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "$GOOGLE_APPLICATION_CREDENTIALS" upload
           ./eden utils gcp vm --image-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} --vm-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "$GOOGLE_APPLICATION_CREDENTIALS" run
           ./eden start
-          sleep 5
+          sleep 100
           BWD=$(./eden utils gcp vm get-ip --vm-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "$GOOGLE_APPLICATION_CREDENTIALS") || { echo "cannot obtain IP"; exit 1; }
           echo "the IP is $BWD"
           ./eden utils gcp firewall -k "$GOOGLE_APPLICATION_CREDENTIALS" --source-range $BWD --name eden-actions-${{ matrix.hv }}-${{github.run_number}} || { echo "cannot set firewall"; exit 1; }
