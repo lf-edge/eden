@@ -113,6 +113,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		var opts []expect.ExpectationOption
 		baseOSImage := args[0]
 		changer, err := changerByControllerMode(controllerMode)
 		if err != nil {
@@ -122,7 +123,15 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
-		expectation := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "")
+		registryToUse := registry
+		switch registry {
+		case "local":
+			registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
+		case "remote":
+			registryToUse = ""
+		}
+		opts = append(opts, expect.WithRegistry(registryToUse))
+		expectation := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "", opts...)
 		if len(qemuPorts) == 0 {
 			qemuPorts = nil
 		}
@@ -308,6 +317,7 @@ func controllerInit() {
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
 	edgeNodeEVEImageUpdateFlags := edgeNodeEVEImageUpdate.Flags()
 	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
+	edgeNodeEVEImageUpdateFlags.StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
