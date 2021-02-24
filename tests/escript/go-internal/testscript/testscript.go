@@ -8,6 +8,7 @@
 package testscript
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"flag"
@@ -513,6 +514,7 @@ Script:
 	rewind()
 	markTime()
 	if !ts.stopped {
+		ts.removeGHAnnotation()
 		fmt.Fprintf(&ts.log, "PASS\n")
 	}
 }
@@ -740,9 +742,51 @@ func (ts *TestScript) expand(s string) string {
 	})
 }
 
+// removeGHAnnotation remove deferred GH annotation
+func (ts *TestScript) removeGHAnnotation() {
+	filteredBuffer := bytes.Buffer{}
+	bytesReader := bytes.NewReader(ts.log.Bytes())
+	scanner := bufio.NewScanner(bytesReader)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "::error file") {
+			continue
+		}
+		if _, err := filteredBuffer.Write(scanner.Bytes()); err != nil {
+			fmt.Printf("cannot write to filteredBuffer: %s", err)
+			os.Exit(1)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("cannot read buffer: %s", err)
+		os.Exit(1)
+	}
+	ts.log = filteredBuffer
+}
+
+// addGHAnnotation loads info from TestScript object and prints annotation
+// with problem description
+func (ts *TestScript) addGHAnnotation() {
+	pathToPrint := ts.file
+	abs, err := filepath.Abs(ts.file)
+	// we need to find the relative path from the repo`s root
+	testDirectory := "tests"
+	if err == nil {
+		split := strings.SplitN(abs, fmt.Sprintf("/%s/", testDirectory), 2)
+		if len(split) == 2 {
+			pathToPrint = filepath.Join(testDirectory, split[1])
+		}
+	}
+	// replace symbols to be compatible with GH Actions
+	ghAnnotation := strings.ReplaceAll(ts.log.String(), "\n", "%0A")
+	ghAnnotation = strings.ReplaceAll(ghAnnotation, "\r", "%0D")
+	// print annotation
+	fmt.Printf("::error file=%s,line=%d::%s\n", pathToPrint, ts.lineno, ghAnnotation)
+}
+
 //Fatalf aborts the test with the given failure message.
 func (ts *TestScript) Fatalf(format string, args ...interface{}) {
 	fmt.Fprintf(&ts.log, "FAIL: %s:%d: %s\n", ts.file, ts.lineno, fmt.Sprintf(format, args...))
+	ts.addGHAnnotation()
 	ts.t.FailNow()
 }
 
