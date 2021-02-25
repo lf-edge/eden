@@ -157,7 +157,7 @@ var gcpRun = &cobra.Command{
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
 		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, nil, nil, true, true); err != nil {
-			log.Fatal(err)
+			log.Fatalf("CreateInstance: %s", err)
 		}
 	},
 }
