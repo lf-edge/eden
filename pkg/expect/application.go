@@ -40,7 +40,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	switch exp.appType {
 	case dockerApp:
 		bundle = exp.createAppInstanceConfigDocker(img, id)
-	case httpApp, httpsApp, fileApp:
+	case httpApp, httpsApp, fileApp, sftpApp:
 		bundle = exp.createAppInstanceConfigVM(img, id)
 	default:
 		return nil, fmt.Errorf("not supported appType")

@@ -44,6 +44,7 @@ require (
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
 	github.com/opencontainers/selinux v1.7.0 // indirect
+	github.com/pkg/sftp v1.10.1
 	github.com/prometheus/client_golang v1.8.0 // indirect
 	github.com/prometheus/common v0.15.0 // indirect
 	github.com/rogpeppe/go-internal v1.6.0
@@ -66,7 +67,7 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.4.0
-	gotest.tools/gotestsum v1.6.1 // indirect
+	gotest.tools/gotestsum v1.6.2 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
 

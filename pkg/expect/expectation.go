@@ -24,6 +24,7 @@ var (
 	httpApp   appType = 2 //for application with image from http link
 	httpsApp  appType = 3 //for application with image from https link
 	fileApp   appType = 4 //for application with image from file path
+	sftpApp   appType = 5 //for application with image from sftp link
 )
 
 //AppExpectation is description of app, expected to run on EVE
@@ -199,6 +200,8 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 		expectation.appType = httpsApp
 	case "file":
 		expectation.appType = fileApp
+	case "sftp":
+		expectation.appType = sftpApp
 	case "":
 		expectation.appType = dockerApp
 	default:

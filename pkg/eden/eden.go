@@ -24,8 +24,10 @@ import (
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/nerd2/gexto"
+	"github.com/pkg/sftp"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/ssh"
 )
 
 //StartRedis function run redis in docker with mounted redisPath:/data
@@ -1021,6 +1023,38 @@ func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
 			ResponseHeaderTimeout: defaults.DefaultRepeatTimeout * defaults.DefaultRepeatCount,
 		},
 	}
+}
+
+func (server *EServer) getSFTPClient(timeout time.Duration) (*sftp.Client, error) {
+	host := server.EServerIP
+	user := "foo"
+	pass := "pass"
+	clientConfig := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(pass),
+			ssh.KeyboardInteractive(
+				func(user, instruction string, questions []string, echos []bool) ([]string, error) {
+					answers := make([]string, len(questions))
+					for i := range answers {
+						answers[i] = pass
+					}
+					return answers, nil
+				}),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         time.Duration(10) * time.Second,
+	}
+
+	client, err := ssh.Dial("tcp", host, clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	session, err := sftp.NewClient(client)
+	if err != nil {
+		return nil, err
+	}
+	return session, nil
 }
 
 //EServerAddFileURL send url to download image into eserver

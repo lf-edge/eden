@@ -20,6 +20,8 @@ RUN go build -ldflags "-s -w" -o /eserver/bin/eserver main.go
 
 FROM alpine:3.13
 
+RUN docker run -p 22:22 -d atmoz/sftp foo:pass
+
 COPY --from=build /eserver/bin/eserver /bin/
 WORKDIR /eserver
 ENTRYPOINT ["/bin/eserver"]

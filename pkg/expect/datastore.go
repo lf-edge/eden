@@ -17,6 +17,8 @@ func (exp *AppExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 		return exp.checkDataStoreDocker(ds)
 	case httpApp, httpsApp, fileApp:
 		return exp.checkDataStoreHTTP(ds)
+	case sftpApp:
+		return exp.checkDataStoreSFTP(ds)
 	}
 	return false
 }
@@ -32,6 +34,8 @@ func (exp *AppExpectation) createDataStore() (*config.DatastoreConfig, error) {
 		return exp.createDataStoreDocker(id), nil
 	case httpApp, httpsApp, fileApp:
 		return exp.createDataStoreHTTP(id), nil
+	case sftpApp:
+		return exp.createDataStoreSFTP(id), nil
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
