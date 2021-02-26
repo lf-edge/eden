@@ -7,19 +7,14 @@ exec docker run  --name azure_iot  dautovri/eden-azure-iot-test
 exec docker cp  azure_iot:/disk  disk/
 exec docker rm -f azure_iot
 
-eden -t 10m pod deploy -p 8028:80 --vnc-display=1 file://disk/Ubuntu-18.04-bionic --disks=file://disk/Ubuntu-18.04-bionic-1 --disks=file://disk/Ubuntu-18.04-bionic-2 --disks=file://disk/Ubuntu-18.04-bionic-3 -n azureiot --memory 3GB -v debug
-stdout 'deploy pod azureiot with ubuntu qcow2 disks request sent'
-
-#detecting
-eden -t 10m pod ps
-cp stdout pod_ps
-grep '^azureiot\s*' pod_ps
-
-# Wait 1 min for loading of apps
-exec sleep 10m
+eden -t 10m pod deploy file://disk/Ubuntu-18.04-bionic --disks=file://disk/Ubuntu-18.04-bionic-1 --disks=file://disk/Ubuntu-18.04-bionic-2 --disks=file://disk/Ubuntu-18.04-bionic-3 -n azureiot --memory 3GB -v debug
+test eden.app.test -test.v -timewait 20m RUNNING azureiot
 
 # Wait results
-exec -t 10m bash get.sh azureiot
+exec -t 15m bash get.sh azureiot
+
+# Teardown applications
+eden pod delete azureiot
 
 # Test's config file
 -- eden-config.yml --
@@ -33,5 +28,8 @@ test:
 
 
 -- get.sh --
-address=`grep "^$1"'\s*' pod_ps | cut -f 5`
-until curl $address; do sleep 5; done
+#!/bin/sh
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+echo "Waiting for the test results"
+until "$EDEN" pod logs --fields=app --format=json azureiot | grep 'Ubuntu 18.04.5 LTS Azure-IoT-Edge'; do sleep 30; done
