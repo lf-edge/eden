@@ -17,6 +17,9 @@
 [!exec:bash] stop
 [!exec:sleep] stop
 [!exec:ssh] stop
+[!exec:chmod] stop
+
+exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 # Starting of reboot detector with a 2 reboot limit
 # Default time -- 30m
@@ -61,7 +64,7 @@ echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden+ports.sh $PO
 {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden+ports.sh $PORTS
 
 # Restarting EVE to confirm configuration changes
-$EDEN test {{EdenConfig "eden.root"}}/tests/workflow/ -e eve_restart
+$EDEN test {{EdenConfig "eden.tests"}}/workflow/ -e eve_restart
 {{end}}
 
 PODS=""
@@ -133,7 +136,7 @@ echo {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden-ports.sh $PO
 {{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/eden-ports.sh $PORTS
 
 # Restarting EVE to confirm configuration changes
-$EDEN test {{EdenConfig "eden.root"}}/tests/workflow/ -e eve_restart
+$EDEN test {{EdenConfig "eden.tests"}}/workflow/ -e eve_restart
 {{end}}
 
 {{end}}

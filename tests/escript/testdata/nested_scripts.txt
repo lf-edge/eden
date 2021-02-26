@@ -1,7 +1,7 @@
 [!exec:ssh] bash
 [!exec:ssh] sed
 
-test eden.escript.test -test.run TestEdenScripts/message -test.v -testdata {{EdenConfig "eden.root"}}/tests/escript/testdata/
+test eden.escript.test -test.run TestEdenScripts/message -test.v -testdata {{EdenConfig "eden.tests"}}/escript/testdata/
 cp stdout out
 exec bash untime.sh out1
 

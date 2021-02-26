@@ -26,3 +26,5 @@ tests/workflow/workflow.small.txt
 tests/workflow/workflow.large.txt
 
 eve-config-dir/*
+
+export

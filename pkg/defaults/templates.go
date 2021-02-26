@@ -140,6 +140,8 @@ eve:
 eden:
     #root directory of eden
     root: '{{parse "eden.root"}}'
+    #directory with tests
+    tests: '{{parse "eden.tests"}}'
     images:
         #directory to save images
         dist: '{{parse "eden.images.dist"}}'

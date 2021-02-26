@@ -13,7 +13,7 @@ arg benchmark benchmark
 source .env
 
 # deploy the application by nested escript
-test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.root"}}/tests/phoronix/testdata/
+test eden.escript.test -test.run TestEdenScripts/deploy_app -test.v  -testdata {{EdenConfig "eden.tests"}}/phoronix/testdata/
 
 exec -t 180m bash wait_app.sh
 exec cat result

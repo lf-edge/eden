@@ -1,11 +1,14 @@
 # Test host-only ACL application isolation
 
 {{$test_msg := "This is a test"}}
-{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa root@{{end}}
+{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@{{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop
 [!exec:ssh] stop
+[!exec:chmod] stop
+
+exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 # Starting of reboot detector with a 1 reboot limit
 ! test eden.reboot.test -test.v -timewait 40m -reboot=0 -count=1 &
