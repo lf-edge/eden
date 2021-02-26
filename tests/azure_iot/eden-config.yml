@@ -1,0 +1,7 @@
+---
+eden:
+    # test binary
+    test-bin: "eden.azure_iot.test"
+
+    # test scenario
+    test-scenario: "eden.azure_iot.tests.txt"
