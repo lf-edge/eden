@@ -51,22 +51,20 @@ func TestMain(m *testing.M) {
 }
 
 // checkNewLastState returns true if provided state not equals with last
-func checkNewLastState(volName, state string) bool {
-	volStates, ok := states[volName]
+func checkNewLastState(netName, state string) bool {
+	netStates, ok := states[netName]
 	if ok {
-		lastState := volStates[len(volStates)-1]
+		lastState := netStates[len(netStates)-1]
 		if lastState.state != state {
-			fmt.Printf("lastState: %s state: %s time: %s\n", lastState.state, state,
-				time.Now().Format(time.RFC3339Nano))
 			return true
 		}
 	}
 	return false
 }
 
-func checkAndAppendState(volName, state string) {
-	if checkNewLastState(volName, state) {
-		states[volName] = append(states[volName], nwState{state: state, timestamp: time.Now()})
+func checkAndAppendState(netName, state string) {
+	if checkNewLastState(netName, state) {
+		states[netName] = append(states[netName], nwState{state: state, timestamp: time.Now()})
 	}
 }
 
@@ -74,9 +72,9 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 	out := "\n"
 	if state == "-" {
 		foundAny := false
-		for _, vol := range eveState.Networks() {
-			if _, inSlice := utils.FindEleInSlice(netNames, vol.Name); inSlice {
-				checkAndAppendState(vol.Name, "EXISTS")
+		for _, net := range eveState.Networks() {
+			if _, inSlice := utils.FindEleInSlice(netNames, net.Name); inSlice {
+				checkAndAppendState(net.Name, net.EveState)
 				foundAny = true
 			}
 		}
@@ -92,7 +90,6 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 	}
 	for _, net := range eveState.Networks() {
 		if _, inSlice := utils.FindEleInSlice(netNames, net.Name); inSlice {
-			fmt.Printf("%s: %s\n", net.Name, net.EveState)
 			checkAndAppendState(net.Name, net.EveState)
 		}
 	}

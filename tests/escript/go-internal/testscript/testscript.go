@@ -776,8 +776,10 @@ func (ts *TestScript) addGHAnnotation() {
 			pathToPrint = filepath.Join(testDirectory, split[1])
 		}
 	}
+	//we should return only text after last [stdout] line
+	lastIndexOfStdout := strings.LastIndex(ts.log.String(), "\n[stdout]\n") + 1
 	// replace symbols to be compatible with GH Actions
-	ghAnnotation := strings.ReplaceAll(ts.log.String(), "\n", "%0A")
+	ghAnnotation := strings.ReplaceAll(ts.log.String()[lastIndexOfStdout:], "\n", "%0A")
 	ghAnnotation = strings.ReplaceAll(ghAnnotation, "\r", "%0D")
 	// print annotation
 	fmt.Printf("::error file=%s,line=%d::%s\n", pathToPrint, ts.lineno, ghAnnotation)
