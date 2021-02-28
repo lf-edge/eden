@@ -748,10 +748,11 @@ func (ts *TestScript) removeGHAnnotation() {
 	bytesReader := bytes.NewReader(ts.log.Bytes())
 	scanner := bufio.NewScanner(bytesReader)
 	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), "::error file") {
+		text := scanner.Text()
+		if strings.Contains(text, "::error file") {
 			continue
 		}
-		if _, err := filteredBuffer.Write(scanner.Bytes()); err != nil {
+		if _, err := filteredBuffer.WriteString(text + "\n"); err != nil {
 			fmt.Printf("cannot write to filteredBuffer: %s", err)
 			os.Exit(1)
 		}

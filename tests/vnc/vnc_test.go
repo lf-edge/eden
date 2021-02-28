@@ -66,6 +66,12 @@ func TestMain(m *testing.M) {
 
 	tc.StartTrackingState(false)
 
+	res := m.Run()
+
+	os.Exit(res)
+}
+
+func setAppName(){
 	if appName == "" { //if previous appName not defined
 		if *name == "" {
 			rand.Seed(time.Now().UnixNano())
@@ -74,10 +80,6 @@ func TestMain(m *testing.M) {
 			appName = *name
 		}
 	}
-
-	res := m.Run()
-
-	os.Exit(res)
 }
 
 //getVNCPort calculate port for vnc
@@ -168,6 +170,8 @@ func TestVNCVMStart(t *testing.T) {
 		return *appLink
 	}
 
+	setAppName()
+
 	var opts []expect.ExpectationOption
 
 	appMemoryParsed, err := humanize.ParseBytes(*memory)
@@ -244,6 +248,8 @@ func TestAccess(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
+	setAppName()
+
 	appInstanceConfig := getAppInstanceConfig(edgeNode, appName)
 
 	if appInstanceConfig == nil {
@@ -260,6 +266,8 @@ func TestAccess(t *testing.T) {
 	tc.AddProcTimer(edgeNode, getEVEIP(edgeNode))
 
 	t.Log(utils.AddTimestamp("Add trying to access VNC of app"))
+
+	externalPort = getVNCPort(edgeNode, *vncDisplay)
 
 	tc.AddProcTimer(edgeNode, checkVNCAccess())
 
@@ -285,6 +293,8 @@ func TestAccess(t *testing.T) {
 func TestAppLogs(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	setAppName()
 
 	appInstanceConfig := getAppInstanceConfig(edgeNode, appName)
 
@@ -328,6 +338,8 @@ func TestAppLogs(t *testing.T) {
 func TestVNCVMDelete(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	setAppName()
 
 	t.Log(utils.AddTimestamp(fmt.Sprintf("Add waiting for app %s absent", appName)))
 
