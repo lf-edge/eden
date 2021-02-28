@@ -61,8 +61,6 @@ func checkNewLastState(appName, state string) bool {
 	if ok {
 		lastState := appStates[len(appStates)-1]
 		if lastState.state != state {
-			fmt.Printf("lastState: %s expected state: %s time: %s\n", lastState.state, state,
-				time.Now().Format(time.RFC3339Nano))
 			return true
 		}
 	}
@@ -88,7 +86,7 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 		}
 		for _, app := range eveState.Applications() {
 			if _, inSlice := utils.FindEleInSlice(appNames, app.Name); inSlice {
-				checkAndAppendState(app.Name, "EXISTS")
+				checkAndAppendState(app.Name, app.EVEState)
 				foundAny = true
 			}
 		}

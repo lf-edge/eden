@@ -56,8 +56,6 @@ func checkNewLastState(volName, state string) bool {
 	if ok {
 		lastState := volStates[len(volStates)-1]
 		if lastState.state != state {
-			fmt.Printf("lastState: %s expected state: %s time: %s\n", lastState.state, state,
-				time.Now().Format(time.RFC3339Nano))
 			return true
 		}
 	}
@@ -80,7 +78,7 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 		}
 		for _, vol := range eveState.Volumes() {
 			if _, inSlice := utils.FindEleInSlice(volNames, vol.Name); inSlice {
-				checkAndAppendState(vol.Name, "EXISTS")
+				checkAndAppendState(vol.Name, vol.EveState)
 				foundAny = true
 			}
 		}
@@ -96,7 +94,6 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 	}
 	for _, vol := range eveState.Volumes() {
 		if _, inSlice := utils.FindEleInSlice(volNames, vol.Name); inSlice {
-			fmt.Printf("%s: %s\n", vol.Name, vol.EveState)
 			checkAndAppendState(vol.Name, vol.EveState)
 		}
 	}
