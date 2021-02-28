@@ -85,41 +85,43 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_
 {{if (eq $usb_pt "y")}}
 /bin/echo EVE USB Passthrough (22/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/usb-pt_test
+/bin/echo Hardware reboot - USB (23/{{$tests}})
+eden.escript.test -testdata ../hardware_reboot/testdata/ -test.run TestEdenScripts/hardware_reboot
 {{end}}
 
 {{ if or (eq $workflow "large") (eq $workflow "gcp") }}
-/bin/echo Eden VNC (23/{{$tests}})
+/bin/echo Eden VNC (24/{{$tests}})
 eden.vnc.test -panic=true -logger=true
-/bin/echo Eden registry (24/{{$tests}})
+/bin/echo Eden registry (25/{{$tests}})
 eden.escript.test -testdata ../registry/testdata/ -test.run TestEdenScripts/registry_test
-/bin/echo Eden Network test (25/{{$tests}})
+/bin/echo Eden Network test (26/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/test_networking
-/bin/echo Eden 2 dockers test (26/{{$tests}})
+/bin/echo Eden 2 dockers test (27/{{$tests}})
 eden.escript.test -testdata ../docker/testdata/ -test.run TestEdenScripts/2dockers_test
-/bin/echo Eden 2 dockers test with app state detector (27/{{$tests}})
+/bin/echo Eden 2 dockers test with app state detector (28/{{$tests}})
 eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_test
-/bin/echo Eden Nginx (28/{{$tests}})
+/bin/echo Eden Nginx (29/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ngnix
-/bin/echo Eden Mariadb (29/{{$tests}})
+/bin/echo Eden Mariadb (30/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
-/bin/echo Eden eclient with disk (30/{{$tests}})
+/bin/echo Eden eclient with disk (31/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/disk
-/bin/echo EVE reset (31/{{$tests}})
+/bin/echo EVE reset (32/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_reset
 {{end}}
 {{ if  (eq $workflow "large")  }}
-/bin/echo Eden's testing the maximum application limit (32/{{$tests}})
+/bin/echo Eden's testing the maximum application limit (33/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/eclients
 {{end}}
 
-/bin/echo Eden Reboot test (33/{{$tests}})
+/bin/echo Eden Reboot test (34/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
 {{ if ne $workflow "small" }}
-/bin/echo Eden base OS update (34/{{$tests}})
+/bin/echo Eden base OS update (35/{{$tests}})
 eden.escript.test -testdata ../update_eve_image/testdata/ -test.run TestEdenScripts/update_eve_image
 {{end}}
 
 {{if (eq $stop "y")}}
-/bin/echo Eden stop (35/{{$tests}})
+/bin/echo Eden stop (36/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop
 {{end}}
