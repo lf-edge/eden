@@ -316,12 +316,11 @@ func (g GCPClient) CreateInstance(name, image, zone, machineType string, disks D
 		// TODO(rn): We could/should check here if the image has nested virt enabled
 		instanceObj.MinCpuPlatform = "Intel Skylake"
 	}
-
-	// Don't wait for operation to complete!
-	// A headstart is needed as by the time we've polled for this event to be
-	// completed, the instance may have already terminated
-	_, err = g.compute.Instances.Insert(g.projectName, zone, instanceObj).Do()
+	op, err := g.compute.Instances.Insert(g.projectName, zone, instanceObj).Do()
 	if err != nil {
+		return err
+	}
+	if err := g.pollZoneOperationStatus(op.Name, zone); err != nil {
 		return err
 	}
 	log.Infof("Instance created")
