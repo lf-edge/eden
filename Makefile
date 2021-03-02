@@ -45,6 +45,8 @@ LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
 EMPTY_DRIVE := $(WORKDIR)/empty
 EMPTY_DRIVE_SIZE := 10M
 
+DIRECTORY_EXPORT ?= $(CURDIR)/export
+
 ZARCH ?= $(HOSTARCH)
 export ZARCH
 
@@ -59,6 +61,9 @@ $(WORKDIR):
 	mkdir -p $@
 
 $(BINDIR):
+	mkdir -p $@
+
+$(DIRECTORY_EXPORT):
 	mkdir -p $@
 
 test: build
@@ -110,7 +115,7 @@ stop: build
 dist: build-tests
 	tar cvzf dist/eden_dist.tgz dist/bin dist/scripts dist/tests dist/*.txt
 
-.PHONY: processing eserver all clean test build build-tests config setup stop testbin gotestsum dist
+.PHONY: processing eserver all clean test build build-tests tests-export config setup stop testbin gotestsum dist
 
 eserver:
 	@echo "Build eserver image"
@@ -119,6 +124,10 @@ eserver:
 processing:
 	@echo "Build processing image"
 	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR); fi
+
+tests-export: $(DIRECTORY_EXPORT) build-tests
+	@cp -af $(WORKDIR)/tests/* $(DIRECTORY_EXPORT)
+	@echo "Your tests inside $(DIRECTORY_EXPORT)"
 
 yetus:
 	@echo Running yetus
@@ -146,7 +155,8 @@ help:
 	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""
 	@echo "   TESTS         list of tests for 'make test' to run, for ex. make TESTS='lim units' test"
 	@echo "   DEBUG         debug level for 'eden' command ('debug' by default)"
-	@echo "yetus          run Apache Yetus to check the quality of the source tree"
+	@echo "yetus            run Apache Yetus to check the quality of the source tree"
+	@echo "tests-export     exports escripts into export directory, content of export directory should be inside tests directory in root of another repo"
 	@echo
 	@echo "You need install requirements for EVE (look at https://github.com/lf-edge/eve#install-dependencies)."
 	@echo "You need access to docker socket and installed qemu packages."

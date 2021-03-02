@@ -55,9 +55,8 @@ $(TESTBIN): $(LOCALTESTBIN)
 	ln -sf $(LOCALTESTBIN) $(TESTBIN)
 
 setup: testbin $(BINDIR) $(DATADIR)
-	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(DATADIR)
+	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(BINDIR)
 	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
-	ln -sf ../$(TESTDIR)/$(TESTBIN) $(BINDIR)
 
 .PHONY: test build setup clean all testbin
 

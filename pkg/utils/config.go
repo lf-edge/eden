@@ -363,6 +363,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 
 		case "eden.root":
 			return filepath.Join(currentPath, defaults.DefaultDist)
+		case "eden.tests":
+			return filepath.Join(currentPath, defaults.DefaultDist, "tests")
 		case "eden.images.dist":
 			return defaults.DefaultEserverDist
 		case "eden.download":
@@ -448,7 +450,7 @@ func generateConfigFileFromViperTemplate(filePath string, templateString string)
 		if result != nil {
 			return result
 		}
-		log.Fatalf("Not found argument %s in config", inp)
+		log.Warnf("Not found argument %s in config", inp)
 		return ""
 	}
 	var fm = template.FuncMap{
