@@ -3,6 +3,8 @@ FROM ubuntu:focal-20210119
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
+  busybox=1:1.30.1-4ubuntu6 \
+  lshw=02.18.85-0.3ubuntu2 \
   curl=7.68.0-1ubuntu2.4 \
   iproute2=5.5.0-1ubuntu1 \
   iputils-ping=3:20190709-3 \
