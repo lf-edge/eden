@@ -185,6 +185,13 @@ func WithHTTPDirectLoad(direct bool) ExpectationOption {
 	}
 }
 
+//WithSFTPLoad force eserver to serve image via sftp
+func WithSFTPLoad(sftp bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.sftpLoad = sftp
+	}
+}
+
 //WithAdditionalDisks adds disks to application
 func WithAdditionalDisks(disks []string) ExpectationOption {
 	return func(expectation *AppExpectation) {
