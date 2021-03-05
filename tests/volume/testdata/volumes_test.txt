@@ -1,6 +1,6 @@
 eden -t 5s volume ls
 
-# Starting of reboot detector with a 3 reboots limit
+# Starting of reboot detector with a 1 reboots limit
 ! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=1 &
 
 # Create v1 volume
@@ -50,7 +50,7 @@ grep 'o volume with v-qcow found' vol_ls
 grep 'o volume with v-vmdk found' vol_ls
 grep 'o volume with v-vhdx found' vol_ls
 
-# Dockers detecting
+# Volumes detecting
 eden -t 1m volume ls
 cp stdout vol_ls
 ! grep '^v-docker\s*' vol_ls
