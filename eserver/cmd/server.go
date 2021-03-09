@@ -12,9 +12,12 @@ const (
 )
 
 var (
-	port      string
-	hostIP    string
-	serverDir string
+	port               string
+	hostIP             string
+	serverDir          string
+	serverSFTPUser     string
+	serverSFTPPassword string
+	serverSFTPReadOnly bool
 )
 
 var serverCmd = &cobra.Command{
@@ -23,9 +26,12 @@ var serverCmd = &cobra.Command{
 	Long:  `Start a server.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		server := &server.EServer{
-			Port:    port,
-			Address: hostIP,
-			Manager: &manager.EServerManager{Dir: serverDir},
+			Port:     port,
+			Address:  hostIP,
+			User:     serverSFTPUser,
+			Password: serverSFTPPassword,
+			ReadOnly: serverSFTPReadOnly,
+			Manager:  &manager.EServerManager{Dir: serverDir},
 		}
 		server.Start()
 	},
@@ -35,4 +41,7 @@ func serverInit() {
 	serverCmd.Flags().StringVar(&port, "port", defaultPort, "port on which to listen")
 	serverCmd.Flags().StringVar(&hostIP, "ip", defaultIP, "IP address on which to listen")
 	serverCmd.Flags().StringVar(&serverDir, "dir", "./run/eserver", "location of files to save")
+	serverCmd.Flags().StringVar(&serverSFTPUser, "user", "user", "user for sftp")
+	serverCmd.Flags().StringVar(&serverSFTPPassword, "password", "password", "password for sftp")
+	serverCmd.Flags().BoolVar(&serverSFTPReadOnly, "readonly", true, "Read only access via sftp")
 }

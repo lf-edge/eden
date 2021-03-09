@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -51,6 +52,9 @@ func (exp *AppExpectation) createImageHTTP(id uuid.UUID, dsID string) *config.Im
 			log.Fatal("Not downloaded")
 		}
 	}
+	if exp.sftpLoad {
+		filePath = filepath.Join(defaults.DefaultSFTPDirPrefix, filePath)
+	} else
 	if exp.httpDirectLoad {
 		u, err := url.Parse(exp.appLink)
 		if err != nil {
@@ -94,6 +98,21 @@ func (exp *AppExpectation) checkDataStoreHTTP(ds *config.DatastoreConfig) bool {
 		}
 	}
 	return false
+}
+
+//createDataStoreHTTP creates datastore, pointed onto EServer sftp endpoint
+func (exp *AppExpectation) createDataStoreSFTP(id uuid.UUID) *config.DatastoreConfig {
+	var ds = &config.DatastoreConfig{
+		Id:         id.String(),
+		DType:      config.DsType_DsSFTP,
+		ApiKey:     defaults.DefaultSFTPUser,
+		Password:   defaults.DefaultSFTPPassword,
+		Fqdn:       fmt.Sprintf("%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort),
+		Dpath:      "",
+		Region:     "",
+		CipherData: nil,
+	}
+	return ds
 }
 
 //createDataStoreHTTP creates datastore, pointed onto EServer http endpoint

@@ -2,17 +2,21 @@ package server
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/lf-edge/eden/eserver/pkg/manager"
 	"log"
+	"net"
 	"net/http"
+
+	"github.com/lf-edge/eden/eserver/pkg/manager"
 )
 
 //EServer stores info about settings
 type EServer struct {
-	Port    string
-	Address string
-	Manager *manager.EServerManager
+	Port     string
+	Address  string
+	Manager  *manager.EServerManager
+	User     string
+	Password string
+	ReadOnly bool
 }
 
 // log the request and client
@@ -32,34 +36,18 @@ func (s *EServer) Start() {
 
 	s.Manager.Init()
 
-	api := &apiHandler{
-		manager: s.Manager,
-	}
-
-	admin := &adminHandler{
-		manager: s.Manager,
-	}
-
-	router := mux.NewRouter()
-
-	ad := router.PathPrefix("/admin").Subrouter()
-
-	router.Use(logRequest)
-
-	ad.HandleFunc("/list", admin.list).Methods("GET")
-	ad.HandleFunc("/add-from-url", admin.addFromURL).Methods("POST")
-	ad.HandleFunc("/add-from-file", admin.addFromFile).Methods("POST")
-	ad.HandleFunc("/status/{filename}", admin.getFileStatus).Methods("GET")
-
-	router.HandleFunc("/eserver/{filename}", api.getFile).Methods("GET")
-
-	server := &http.Server{
-		Handler: router,
-		Addr:    fmt.Sprintf("%s:%s", s.Address, s.Port),
-	}
-
 	log.Println("Starting eserver:")
 	log.Printf("\tIP:Port: %s:%s\n", s.Address, s.Port)
 	log.Printf("\tDirectory: %s\n", s.Manager.Dir)
-	log.Fatal(server.ListenAndServe())
+
+	// server both services (sftp and http) on the same port
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%s", s.Address, s.Port))
+	if err != nil {
+		log.Fatalf("net.Listen error: %s", err)
+	}
+	sshListener, httpListener := MuxListener(l)
+	errorChan := make(chan error)
+	go s.serveHTTP(httpListener, errorChan)
+	go s.serveSFTP(sshListener, errorChan)
+	log.Println(<-errorChan)
 }

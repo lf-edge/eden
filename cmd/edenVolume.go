@@ -78,6 +78,7 @@ var volumeCreateCmd = &cobra.Command{
 		}
 		opts = append(opts, expect.WithDiskSize(int64(diskSizeParsed)))
 		opts = append(opts, expect.WithImageFormat(volumeType))
+		opts = append(opts, expect.WithSFTPLoad(sftpLoad))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -143,6 +144,7 @@ func volumeInit() {
 	volumeCreateCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	volumeCreateCmd.Flags().StringVarP(&volumeName, "name", "n", "", "name of volume, random if empty")
 	volumeCreateCmd.Flags().StringVar(&volumeType, "format", "", "volume type (qcow2, raw, qcow, vmdk, vhdx or oci)")
+	volumeCreateCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "force eserver to use sftp")
 
 	volumeCmd.AddCommand(volumeDeleteCmd)
 }

@@ -45,6 +45,7 @@ var (
 	logAppsFormat eapps.LogFormat
 
 	directLoad bool
+	sftpLoad   bool
 )
 
 var podCmd = &cobra.Command{
@@ -103,7 +104,10 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		opts = append(opts, expect.WithACL(aclOnlyHost))
-		opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
+		opts = append(opts, expect.WithSFTPLoad(sftpLoad))
+		if !sftpLoad {
+			opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
+		}
 		opts = append(opts, expect.WithAdditionalDisks(disks))
 		registryToUse := registry
 		switch registry {
@@ -438,6 +442,7 @@ func podInit() {
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
 	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
+	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
 	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, "Additional disks to use")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
