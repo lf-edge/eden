@@ -1,19 +1,25 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/expect"
-	"github.com/lf-edge/eden/pkg/utils"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/expect"
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -23,6 +29,7 @@ var (
 	baseOSVersion       string
 	getFromFileName     bool
 	edenDist            string
+	fileWithConfig      string
 )
 
 var controllerCmd = &cobra.Command{
@@ -301,8 +308,66 @@ var edgeNodeGetConfig = &cobra.Command{
 		if err != nil {
 			log.Fatalf("GetConfigBytes error: %s", err)
 		}
+		if fileWithConfig != "" {
+			if err = ioutil.WriteFile(fileWithConfig, res, 0755); err != nil {
+				log.Fatalf("WriteFile: %s", err)
+			}
+		} else {
+			fmt.Println(string(res))
+		}
+	},
+}
 
-		fmt.Printf("%s\n", string(res))
+var edgeNodeSetConfig = &cobra.Command{
+	Use:   "set-config",
+	Short: "set EVE config",
+	Long:  `Set EVE config.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		ctrl, err := controller.CloudPrepare()
+		if err != nil {
+			log.Fatalf("CloudPrepare: %s", err)
+		}
+		devFirst, err := ctrl.GetDeviceCurrent()
+		if err != nil {
+			log.Fatalf("GetDeviceCurrent error: %s", err)
+		}
+		devUUID := devFirst.GetID()
+		var newConfig []byte
+		if fileWithConfig != "" {
+			newConfig, err = ioutil.ReadFile(fileWithConfig)
+			if err != nil {
+				log.Fatalf("File reading error: %s", err)
+			}
+		} else if utils.IsInputFromPipe() {
+			newConfig, err = ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				log.Fatalf("Stdin reading error: %s", err)
+			}
+		} else {
+			log.Fatal("Please run command with --file or use it with pipe")
+		}
+		// we should validate config with unmarshal
+		var dConfig config.EdgeDevConfig
+		if err := protojson.Unmarshal(newConfig, &dConfig); err != nil {
+			log.Fatalf("Cannot unmarshal config: %s", err)
+		}
+		// Adam expects json type
+		cfg, err := json.Marshal(&dConfig)
+		if err != nil {
+			log.Fatalf("Cannot marshal config: %s", err)
+		}
+		if err = ctrl.ConfigSet(devUUID, cfg); err != nil {
+			log.Fatalf("ConfigSet: %s", err)
+		}
+		log.Info("Config loaded")
 	},
 }
 
@@ -313,6 +378,9 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeEVEImageRemove)
 	edgeNode.AddCommand(edgeNodeUpdate)
 	edgeNode.AddCommand(edgeNodeGetConfig)
+	edgeNodeGetConfig.Flags().StringVar(&fileWithConfig, "file", "", "save config to file")
+	edgeNode.AddCommand(edgeNodeSetConfig)
+	edgeNodeSetConfig.Flags().StringVar(&fileWithConfig, "file", "", "set config from file")
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
 	edgeNodeEVEImageUpdateFlags := edgeNodeEVEImageUpdate.Flags()

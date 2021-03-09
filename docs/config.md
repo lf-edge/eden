@@ -85,3 +85,11 @@ can use the following command:
 ```console
 eden controller -m adam:// edge-node update --config timer.config.interval=5
 ```
+
+## Modifying of EVE config
+
+You can obtain the current config of EVE with command `eden controller edge-node get-config --file=<file>`.
+It produces current configuration in json format obtained from Adam in the provided file.
+You can make modifications in this file (please do not forget to increment id.version field) and send it back with
+`eden controller edge-node set-config --file=<file>`. You can also omit `file` in commands and use stdin and stdout
+of them.

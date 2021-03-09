@@ -79,8 +79,6 @@ func init() {
 	cleanInit()
 	rootCmd.AddCommand(setupCmd)
 	setupInit()
-	rootCmd.AddCommand(reconfCmd)
-	reconfInit()
 	rootCmd.AddCommand(testCmd)
 	testInit()
 	rootCmd.AddCommand(utilsCmd)
