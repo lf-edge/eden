@@ -3,7 +3,7 @@ FROM golang:1.15.7-alpine3.13 AS build
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
 
-RUN apk --no-cache add git=2.30.1-r0 openssh-keygen=8.4_p1-r2
+RUN apk --no-cache add git=2.30.2-r0 openssh-keygen=8.4_p1-r2
 
 RUN ssh-keygen -t rsa -q -P "" -f /root/.ssh/id_rsa
 
