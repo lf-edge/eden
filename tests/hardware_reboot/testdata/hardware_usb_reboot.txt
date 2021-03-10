@@ -34,6 +34,7 @@ cp stdout after_reboot
 # comparison of lshw output
 cmp before_reboot after_reboot
 
+# teardown applications
 eden pod delete n11
 
 test eden.app.test -test.v -timewait 5m - n11
@@ -78,5 +79,5 @@ HOST=$($EDEN eve ip)
 port=$1
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 HOST=$($EDEN eve ip)
- echo ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST busybox reboot -f -d 1 &>/dev/null &
- ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST busybox reboot -f -d 1 &>/dev/null &
+ echo ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST 'busybox reboot -f -d 1 &>/dev/null &'
+ ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST 'busybox reboot -f -d 1 &>/dev/null &'
