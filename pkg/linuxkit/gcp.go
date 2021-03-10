@@ -351,7 +351,8 @@ func (g GCPClient) DeleteInstance(instance, zone string, wait bool) error {
 }
 
 // GetInstanceSerialOutput streams the serial output of an instance
-func (g GCPClient) GetInstanceSerialOutput(instance, zone string) error {
+// follow log if follow set to true
+func (g GCPClient) GetInstanceSerialOutput(instance, zone string, follow bool) error {
 	log.Infof("Getting serial port output for instance %s", instance)
 	var next int64
 	for {
@@ -369,6 +370,9 @@ func (g GCPClient) GetInstanceSerialOutput(instance, zone string) error {
 			return err
 		}
 		fmt.Printf(res.Contents)
+		if !follow {
+			break
+		}
 		next = res.Next
 		// When the instance has been stopped, Start and Next will both be 0
 		if res.Start > 0 && next == 0 {

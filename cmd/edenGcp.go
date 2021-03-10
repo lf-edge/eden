@@ -23,6 +23,8 @@ var (
 	gcpFirewallRuleName     string
 	gcpFirewallRuleSources  []string
 	gcpFirewallRulePriority int64
+
+	follow bool
 )
 
 var gcpCmd = &cobra.Command{
@@ -198,7 +200,7 @@ var gcpLog = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
-		if err := gcpClient.GetInstanceSerialOutput(gcpVMName, gcpZone); err != nil {
+		if err := gcpClient.GetInstanceSerialOutput(gcpVMName, gcpZone, follow); err != nil {
 			log.Fatalf("GetInstanceSerialOutput: %s", err)
 		}
 	},
@@ -273,6 +275,7 @@ func gcpInit() {
 	gcpVMCmd.AddCommand(gcpLog)
 	gcpLog.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpLog.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
+	gcpLog.Flags().BoolVarP(&follow, "follow", "f", false, "follow log")
 	gcpVMCmd.AddCommand(gcpGetIP)
 	gcpGetIP.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpGetIP.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
