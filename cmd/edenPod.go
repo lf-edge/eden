@@ -36,6 +36,7 @@ var (
 	diskSize    string
 	imageFormat string
 	volumeType  string
+	acl         []string
 
 	deleteVolumes bool
 
@@ -103,7 +104,11 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithVolumeType(expect.VolumeTypeByName(volumeType)))
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
-		opts = append(opts, expect.WithACL(aclOnlyHost))
+		if aclOnlyHost {
+			opts = append(opts, expect.WithACL([]string{""}))
+		} else {
+			opts = append(opts, expect.WithACL(acl))
+		}
 		opts = append(opts, expect.WithSFTPLoad(sftpLoad))
 		if !sftpLoad {
 			opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
@@ -444,6 +449,7 @@ func podInit() {
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
 	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, "Additional disks to use")
+	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, "Allow access only to defined hosts/ips/subnets")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)

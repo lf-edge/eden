@@ -55,8 +55,6 @@ type AppExpectation struct {
 
 	volumesType VolumeType
 
-	onlyHostACL bool
-
 	registry string
 
 	oldAppName string
@@ -65,6 +63,7 @@ type AppExpectation struct {
 	sftpLoad       bool
 
 	disks []string
+	acl   []string
 }
 
 //AppExpectationFromURL init AppExpectation with defined:
@@ -96,7 +95,6 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 		uplinkAdapter: adapter,
 		device:        device,
 		volumesType:   VolumeQcow2,
-		onlyHostACL:   false,
 	}
 	switch expectation.ctrl.GetVars().ZArch {
 	case "amd64":

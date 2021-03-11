@@ -2,7 +2,6 @@ package expect
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eve/api/go/config"
@@ -69,47 +68,10 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	bundle.appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
 
 	for k, ni := range netInstances {
-		var acls []*config.ACE
-		if exp.onlyHostACL {
-			acls = append(acls, &config.ACE{
-				Matches: []*config.ACEMatch{{
-					Type: "host",
-				}},
-				Id: 1,
-			})
-		} else {
-			acls = append(acls, &config.ACE{
-				Matches: []*config.ACEMatch{{
-					Type:  "ip",
-					Value: "0.0.0.0/0",
-				}},
-				Id: 1,
-			})
-		}
-		var aclID int32 = 2
-		if k.ports != nil {
-			for po, pi := range k.ports {
-				acls = append(acls, &config.ACE{
-					Id: aclID,
-					Matches: []*config.ACEMatch{{
-						Type:  "protocol",
-						Value: "tcp",
-					}, {
-						Type:  "lport",
-						Value: strconv.Itoa(po),
-					}},
-					Actions: []*config.ACEAction{{
-						Portmap: true,
-						AppPort: uint32(pi),
-					}},
-					Dir: config.ACEDirection_BOTH})
-				aclID++
-			}
-		}
 		bundle.appInstanceConfig.Interfaces = append(bundle.appInstanceConfig.Interfaces, &config.NetworkAdapter{
 			Name:      "default",
 			NetworkId: ni.Uuidandversion.Uuid,
-			Acls:      acls,
+			Acls:      exp.getAcls(k),
 		})
 	}
 	if exp.vncDisplay != 0 {
