@@ -73,7 +73,7 @@ jobs:
         run: |
           ./eden log --format json > trace.log
           ./eden info > info.log
-          ./eden utils gcp vm console --vm-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "$GOOGLE_APPLICATION_CREDENTIALS" > console.log
+          ./eden utils gcp vm log --vm-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "$GOOGLE_APPLICATION_CREDENTIALS" > console.log
       - name: Clean
         if: ${{ always() }}
         run: |
