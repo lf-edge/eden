@@ -173,3 +173,9 @@ func CopyFolder(source, destination string) error {
 	})
 	return err
 }
+
+// IsInputFromPipe returns true if the command is running from pipe
+func IsInputFromPipe() bool {
+	fileInfo, _ := os.Stdin.Stat()
+	return fileInfo.Mode() & os.ModeCharDevice == 0
+}
