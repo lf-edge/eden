@@ -14,6 +14,14 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.15'
+      - name: Check
+        run: |
+          for addr in $(ip addr list|sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
+          do
+              if echo "$addr" | grep -q -E "10.11.(12|13).[0-9]+"; then
+                echo "$addr overlaps with test"; exit 1
+              fi
+          done
       - name: setup
         run: |
           sudo apt update
