@@ -85,8 +85,8 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nw_sw
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_switch
 
 {{if (eq $usb_pt "y")}}
-/bin/echo EVE USB Passthrough (22/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/usb-pt_test
+/bin/echo Hardware reboot - USB (22/{{$tests}})
+eden.escript.test -testdata ../hardware_reboot/testdata/ -test.run TestEdenScripts/hardware_usb_reboot
 {{end}}
 
 {{ if or (eq $workflow "large") (eq $workflow "gcp") }}
