@@ -48,11 +48,13 @@ var (
 
 func mkquery() error {
 	for _, a := range flag.Args() {
-		s := strings.Split(a, ":")
-		if len(s) == 1 {
-			return fmt.Errorf("incorrect query: %s", a)
+		for _, f := range strings.Split(a, " ") {
+			s := strings.Split(f, ":")
+			if len(s) == 1 {
+				return fmt.Errorf("incorrect query: %s", f)
+			}
+			query[s[0]] = s[1]
 		}
-		query[s[0]] = s[1]
 	}
 
 	return nil

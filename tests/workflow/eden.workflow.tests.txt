@@ -118,7 +118,7 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/eclie
 eden.escript.test -test.run TestEdenScripts/reboot_test
 {{ if ne $workflow "small" }}
 /bin/echo Eden base OS update (34/{{$tests}})
-eden.escript.test -testdata ../update_eve_image/testdata/ -test.run TestEdenScripts/update_eve_image
+eden.escript.test -testdata ../update_eve_image/testdata/ -test.run TestEdenScripts/update_eve_image_http
 {{end}}
 
 {{if (eq $stop "y")}}

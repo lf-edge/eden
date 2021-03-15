@@ -66,7 +66,7 @@ eden eve reset
 ## tests/units
 make -C tests/units test
 ## tests/update_eve_image
-eden test tests/update_eve_image -e update_eve_image -t 10m
+eden test tests/update_eve_image -e update_eve_image_http -t 10m
 eden eve reset
 ## tests/vnc
 eden test tests/vnc -p eden.vnc.test
@@ -95,5 +95,5 @@ eden test tests/workflow -e maridb -a '-testdata ../eclient/testdata/'
 eden eve reset
 eden test tests/workflow -e reboot_test
 eden eve reset
-eden test tests/workflow -e update_eve_image -a '-testdata ../update_eve_image/testdata/'
+eden test tests/workflow -e update_eve_image_http -a '-testdata ../update_eve_image/testdata/'
 ```

@@ -1,11 +1,5 @@
-# Default EVE version to update
-{{$eve_ver := "5.19.0"}}
-
-# Obtain EVE version from environment variable EVE_VERSION
-{{$env := EdenGetEnv "EVE_VERSION"}}
-
-# If environment variable EVE_VERSION set, use it instead of default
-{{if $env}}{{$eve_ver = $env}}{{end}}
+# Obtain eve.tag from config
+{{$eve_ver := EdenConfig "eve.tag"}}
 
 # Obtain eve.hv from config
 {{$eve_hv := EdenConfig "eve.hv"}}
@@ -19,6 +13,8 @@
 # Use eden.lim.test for access Infos with timewait 30m
 {{$test := "test eden.lim.test -test.v -timewait 30m -test.run TestInfo"}}
 
+# Decrease update testing time
+eden controller edge-node update --config timer.test.baseimage.update=30
 
 # Download EVE rootfs into eve-dist
 message 'EVE image download'
@@ -27,21 +23,19 @@ eden -t 10m utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{EdenConf
 # Check stdout of previous command. Expected to get full path to squashfs
 stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs'
 
-
 # Send command to update eveimage
 message 'EVE update request'
-eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs
 
 # Check stderr, it must be empty
 ! stderr .
 
-# Run monitoring of Info messages to obtain info with PartitionState inprogress or active and previously defined ShortVersion
+# Run monitoring of Info messages to obtain info with PartitionState active and previously defined ShortVersion
 message 'Waiting for EVE update...'
-{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:inprogress|active InfoContent.dinfo.SwList[0].ShortVersion:{{ $short_version }}'
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active InfoContent.dinfo.SwList[0].ShortVersion:{{ $short_version }}'
 
 # Check stdout of previous command. Expected to get previously defined ShortVersion
 stdout '{{ $short_version }}'
-
 
 # Test's config file
 -- eden-config.yml --

@@ -86,14 +86,14 @@ func (exp *AppExpectation) checkImageHTTP(img *config.Image, dsID string) bool {
 //checkDataStoreHTTP checks if provided ds match expectation
 func (exp *AppExpectation) checkDataStoreHTTP(ds *config.DatastoreConfig) bool {
 	if ds.DType == config.DsType_DsHttp || ds.DType == config.DsType_DsHttps {
-		if exp.httpDirectLoad && ds.Fqdn == fmt.Sprintf("http://%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort) {
+		if !exp.httpDirectLoad && ds.Fqdn == fmt.Sprintf("http://%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort) {
 			return true
 		}
 		u, err := url.Parse(exp.appLink)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if !exp.httpDirectLoad && ds.Fqdn == fmt.Sprintf("%s://%s", u.Scheme, u.Hostname()) {
+		if exp.httpDirectLoad && ds.Fqdn == fmt.Sprintf("%s://%s", u.Scheme, u.Hostname()) {
 			return true
 		}
 	}
