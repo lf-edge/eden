@@ -2,8 +2,6 @@
 
 {{$test_msg := "Port forward tests"}}
 {{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@{{end}}
-{{define "scp"}}scp -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa{{end}}
-{{define "app_ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i /root/id_rsa root@{{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop
@@ -28,8 +26,8 @@ eden network create 10.11.13.0/24 -n n2
 test eden.network.test -test.v -timewait 10m ACTIVATED n1 n2
 
 message 'Starting with both application attached to same network instance'
-eden pod deploy -v debug -n app1 docker://itmoeve/eclient:0.4 -p 2223:22 --networks=n1 --memory=512MB
-eden pod deploy -v debug -n app2 docker://itmoeve/eclient:0.4 -p 2224:22 --networks=n1 --memory=512MB
+eden pod deploy -v debug -n app1 docker://itmoeve/eclient:0.5 -p 2223:22 --networks=n1 --memory=512MB
+eden pod deploy -v debug -n app2 docker://itmoeve/eclient:0.5 -p 2224:22 --networks=n1 --memory=512MB
 
 message 'Waiting for apps to enter RUNNING state'
 test eden.app.test -test.v -timewait 20m RUNNING app1 app2
@@ -39,10 +37,6 @@ exec -t 5m bash wait_ssh.sh 2223 2224
 
 eden eve status
 cp stdout eve_status
-
-# Copy SSH private key into app. This is required for inter app ping test.
-message 'Copy private key to apps'
-exec -t 5m bash copy_key.sh 2223
 
 message 'Testing port map connectivity between apps'
 exec sleep 20
@@ -67,8 +61,6 @@ eden network ls
 ! stdout '^n1\s'
 ! stdout '^n2\s'
 
-#####################################################################################################
-
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 HOST=$($EDEN eve ip)
@@ -87,16 +79,9 @@ done
 -- ping.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 HOST=$($EDEN eve ip)
-EVE_IP=$(grep '^.*EVE REMOTE IPs:\s' eve_status | sed -n "s/^.*:\s*\(.*\);/\1/p" | awk '{split($0,a," "); print a[1]}')
 
-echo {{template "ssh"}}$HOST -p $1 {{template "app_ssh"}}$EVE_IP -p $2 grep Ubuntu /etc/issue
-{{template "ssh"}}$HOST -p $1 {{template "app_ssh"}}$EVE_IP -p $2 grep Ubuntu /etc/issue
-
--- copy_key.sh --
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-HOST=$($EDEN eve ip)
-
-{{template "scp"}} -P $1 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@$HOST:
+echo {{template "ssh"}}$HOST -p $1 sh /root/portmap_test.sh -p $2
+{{template "ssh"}}$HOST -p $1 sh /root/portmap_test.sh $2
 
 -- eden-config.yml --
 {{/* Test's config. file */}}

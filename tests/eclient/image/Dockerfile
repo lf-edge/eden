@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   mariadb-client=1:10.3.22-1ubuntu1 \
   net-tools=1.60+git20180626.aebd88e-1ubuntu1 \
   netcat=1.206-1ubuntu1 \
-  openssh-server=1:8.2p1-4ubuntu0.1 \
+  openssh-server=1:8.2p1-4ubuntu0.2 \
+  jq=1.6-1ubuntu0.20.04.1 \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -31,6 +32,7 @@ COPY cert/id_rsa* /root/.ssh/
 COPY cert/id_rsa.pub /root/.ssh/authorized_keys
 RUN chown root:root /root/.ssh/
 RUN chmod 600 /root/.ssh/id_rsa*
+COPY portmap_test.sh /root/portmap_test.sh
 COPY entrypoint.sh /entrypoint.sh
 
 EXPOSE 22
