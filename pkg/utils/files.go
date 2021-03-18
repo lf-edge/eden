@@ -97,9 +97,9 @@ func TouchFile(src string) (err error) {
 	return nil
 }
 
-//FileNameWithoutExtension trim file extension
+//FileNameWithoutExtension trim file extension and path
 func FileNameWithoutExtension(fileName string) string {
-	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	return filepath.Base(strings.TrimSuffix(fileName, filepath.Ext(fileName)))
 }
 
 //ResolveAbsPath use eden.root parameter to resolve path
@@ -177,5 +177,5 @@ func CopyFolder(source, destination string) error {
 // IsInputFromPipe returns true if the command is running from pipe
 func IsInputFromPipe() bool {
 	fileInfo, _ := os.Stdin.Stat()
-	return fileInfo.Mode() & os.ModeCharDevice == 0
+	return fileInfo.Mode()&os.ModeCharDevice == 0
 }

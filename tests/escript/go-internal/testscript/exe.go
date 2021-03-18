@@ -184,6 +184,8 @@ func setCoverProfile(cprof string) {
 
 type nopTestDeps struct{}
 
+func (nopTestDeps) SetPanicOnExit0(_ bool) {}
+
 func (nopTestDeps) MatchString(_, _ string) (result bool, err error) {
 	return false, nil
 }
