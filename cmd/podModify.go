@@ -13,7 +13,7 @@ import (
 
 //podModifyCmd is a command to modify app
 var podModifyCmd = &cobra.Command{
-	Use:   "modify",
+	Use:   "modify <app>",
 	Short: "Modify pod",
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -50,6 +50,7 @@ var podModifyCmd = &cobra.Command{
 				} else {
 					opts = append(opts, expect.WithPortsPublish(portPublish))
 				}
+				opts = append(opts, expect.WithACL(acl))
 				opts = append(opts, expect.WithOldApp(appName))
 				expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, appName, opts...)
 				appInstanceConfig := expectation.Application()
@@ -88,4 +89,5 @@ func podModifyInit() {
 	podModifyCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podModifyCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podModifyCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
+	podModifyCmd.Flags().StringSliceVar(&acl, "acl", nil, "Allow access only to defined hosts/ips/subnets")
 }

@@ -157,10 +157,10 @@ func WithVolumeType(volumesType VolumeType) ExpectationOption {
 	}
 }
 
-//WithACL sets access for app only to external networks if onlyHost sets
-func WithACL(onlyHost bool) ExpectationOption {
+//WithACL sets access only for defined hosts
+func WithACL(acl []string) ExpectationOption {
 	return func(expectation *AppExpectation) {
-		expectation.onlyHostACL = onlyHost
+		expectation.acl = acl
 	}
 }
 
