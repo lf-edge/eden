@@ -1,10 +1,12 @@
 package expect
 
 import (
+	"fmt"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -15,6 +17,11 @@ import (
 func (exp *AppExpectation) getBaseOSVersion() string {
 	if exp.appType == dockerApp {
 		return exp.appVersion
+	}
+
+	correctionFileName := fmt.Sprintf("%s.ver", exp.appURL)
+	if rootFSFromCorrectionFile, err := ioutil.ReadFile(correctionFileName); err == nil {
+		return string(rootFSFromCorrectionFile)
 	}
 	rootFSName := path.Base(exp.appURL)
 	rootFSName = strings.TrimSuffix(rootFSName, filepath.Ext(rootFSName))

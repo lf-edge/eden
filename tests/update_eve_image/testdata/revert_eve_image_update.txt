@@ -30,12 +30,19 @@ eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.di
 # Check stderr, it must be empty
 ! stderr .
 
-# Run monitoring of Info messages to obtain info with PartitionState active and previously defined ShortVersion
-message 'Waiting for EVE update...'
-{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active InfoContent.dinfo.SwList[0].ShortVersion:{{ $short_version }}'
+# Run monitoring of Info messages to obtain info with PartitionState inprogress
+message 'Waiting for EVE starting testing...'
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:inprogress'
 
-# Check stdout of previous command. Expected to get previously defined ShortVersion
-stdout '{{ $short_version }}'
+eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:inprogress' --tail=1
+cp stdout ver
+
+message 'Waiting for EVE updated...'
+# Run monitoring of Info messages to obtain info with PartitionState active
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active'
+
+eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active' --tail=1
+cmp stdout ver
 
 # Test's config file
 -- eden-config.yml --
