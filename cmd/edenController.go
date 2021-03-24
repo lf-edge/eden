@@ -213,13 +213,18 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 		}
 
 		if getFromFileName {
-			rootFSName := utils.FileNameWithoutExtension(rootFsPath)
-			rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
-			re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
-			if !re.MatchString(rootFSName) {
-				log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
+			correctionFileName := fmt.Sprintf("%s.ver", rootFsPath)
+			if rootFSFromCorrectionFile, err := ioutil.ReadFile(correctionFileName); err == nil {
+				baseOSVersion = string(rootFSFromCorrectionFile)
+			} else {
+				rootFSName := utils.FileNameWithoutExtension(rootFsPath)
+				rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
+				re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
+				if !re.MatchString(rootFSName) {
+					log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
+				}
+				baseOSVersion = rootFSName
 			}
-			baseOSVersion = rootFSName
 		}
 
 		log.Infof("Will use rootfs version %s", baseOSVersion)

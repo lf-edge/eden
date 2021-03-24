@@ -31,6 +31,15 @@ func (desc EVEDescription) Image() (string, error) {
 	if desc.Registry == "" {
 		desc.Registry = defaults.DefaultEveRegistry
 	}
+	version, err := desc.Version()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s/eve:%s", desc.Registry, version), nil
+}
+
+// Version extracts version from EVEDescription
+func (desc EVEDescription) Version() (string, error) {
 	if desc.Tag == "" {
 		return "", fmt.Errorf("tag not present")
 	}
@@ -40,7 +49,7 @@ func (desc EVEDescription) Image() (string, error) {
 	if desc.HV == "" {
 		return "", fmt.Errorf("hv not present")
 	}
-	return fmt.Sprintf("%s/eve:%s-%s-%s", desc.Registry, desc.Tag, desc.HV, desc.Arch), nil
+	return fmt.Sprintf("%s-%s-%s", desc.Tag, desc.HV, desc.Arch), nil
 }
 
 // UEFIDescription provides information about UEFI to download
@@ -194,7 +203,7 @@ func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, e
 		return "", fmt.Errorf("ImagePull (%s): %s", image, err)
 	}
 	var size int
-	fileName, err := genEVERootFSImage(image, outputDir, size)
+	fileName, err := genEVERootFSImage(eve, outputDir, size)
 	if err != nil {
 		return "", fmt.Errorf("genEVEImage: %s", err)
 	}
@@ -202,8 +211,16 @@ func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, e
 }
 
 //genEVERootFSImage downloads EVE rootfs image from docker to outputDir
-func genEVERootFSImage(image, outputDir string, size int) (fileName string, err error) {
+func genEVERootFSImage(eve EVEDescription, outputDir string, size int) (fileName string, err error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return "", err
+	}
+	image, err := eve.Image()
+	if err != nil {
+		return "", err
+	}
+	version, err := eve.Version()
+	if err != nil {
 		return "", err
 	}
 	log.Debug("Try to get version of rootfs")
@@ -218,20 +235,30 @@ func genEVERootFSImage(image, outputDir string, size int) (fileName string, err 
 		}
 		return true
 	})
-	log.Debugf("rootfs version: %s", u)
-	fileName = filepath.Join(outputDir, fmt.Sprintf("rootfs-%s.squashfs", u))
+	log.Debugf("image version: %s", u)
+	log.Debugf("provided version: %s", version)
+	fileName = filepath.Join(outputDir, fmt.Sprintf("rootfs-%s.squashfs", version))
+	correctionFileName := filepath.Join(outputDir, fmt.Sprintf("rootfs-%s.squashfs.ver", version))
+	_ = os.Remove(correctionFileName)
 	volumeMap := map[string]string{"/out": outputDir}
 	dockerCommand = fmt.Sprintf("-f raw rootfs %d", size)
 	if size == 0 {
 		dockerCommand = "-f raw rootfs"
 	}
-	u, err = RunDockerCommand(image, dockerCommand, volumeMap)
+	cmdOut, err := RunDockerCommand(image, dockerCommand, volumeMap)
 	if err != nil {
 		return "", err
 	}
-	log.Debug(u)
+	log.Debug(cmdOut)
 	if err = CopyFile(filepath.Join(outputDir, "rootfs.img"), fileName); err != nil {
 		return "", err
+	}
+	if version != u {
+		log.Warningf("Versions mismatch (loaded %s vs provided %s): write correction file %s",
+			u, version, correctionFileName)
+		if err := ioutil.WriteFile(correctionFileName, []byte(u), 0755); err != nil {
+			return "", err
+		}
 	}
 	return fileName, nil
 }
