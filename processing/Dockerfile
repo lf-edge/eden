@@ -1,11 +1,12 @@
-FROM alpine:3.12
+FROM lfedge/eve-alpine:8a53b741d47f42752db30dd896c3467433bac152 as build
+ENV BUILD_PKGS perl git gawk
+RUN eve-alpine-deploy.sh
 
-RUN apk add --no-cache perl=5.30.3-r0 git=2.26.3-r0 gawk=5.1.0-r0
+WORKDIR /out
+RUN git clone --single-branch https://github.com/brendangregg/FlameGraph FlameGraph
+COPY entrypoint.sh ./
 
-RUN git clone --single-branch https://github.com/brendangregg/FlameGraph /FlameGraph
-
-COPY entrypoint.sh /
-
+FROM scratch
+COPY --from=build /out/ /
 WORKDIR /FlameGraph
-
 ENTRYPOINT ["/entrypoint.sh"]
