@@ -1,13 +1,14 @@
-FROM golang:1.15-alpine as build
-RUN apk --no-cache add make==4.3-r0 qemu-img=5.0.0-r2
+FROM lfedge/eve-alpine:6.2.0 as build
+ENV BUILD_PKGS go make qemu-img
+RUN eve-alpine-deploy.sh
+
 ARG OS=linux
 ENV CGO_ENABLED=0
 WORKDIR /eden
 COPY . /eden
 RUN make DO_DOCKER=0 OS=${OS} build-tests
-RUN mkdir /out
 RUN cp -rf /eden/eden /eden/tests /eden/dist /eden/docs /eden/README.md /out
 
-FROM alpine:3.12
+FROM scratch
 WORKDIR /
-COPY --from=build /out /
+COPY --from=build /out/ /

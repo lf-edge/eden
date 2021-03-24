@@ -1,9 +1,9 @@
-FROM golang:1.15.7-alpine3.13 AS build
+FROM lfedge/eve-alpine:6.2.0 AS build
+ENV BUILD_PKGS go git openssh-keygen
+RUN eve-alpine-deploy.sh
 
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
-
-RUN apk --no-cache add git=2.30.2-r0 openssh-keygen=8.4_p1-r2
 
 RUN ssh-keygen -t rsa -q -P "" -f /root/.ssh/id_rsa
 
@@ -20,9 +20,12 @@ ARG GOARCH=amd64
 
 RUN go build -ldflags "-s -w" -o /eserver/bin/eserver main.go
 
-FROM alpine:3.13
+WORKDIR /out/root/.ssh
+RUN mv /root/.ssh/* .
+RUN mv /eserver/bin/eserver /out/bin/
 
-COPY --from=build /eserver/bin/eserver /bin/
-COPY --from=build /root/.ssh/ /root/.ssh/
+FROM scratch
+
+COPY --from=build /out/ /
 WORKDIR /eserver
 ENTRYPOINT ["/bin/eserver"]
