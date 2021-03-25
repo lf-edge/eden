@@ -1,39 +1,60 @@
 # Simple test of USB passthrough functionality after reboot of guest
 
+{{$port := "2223"}}
+
 [!exec:bash] stop
 [!exec:sleep] stop
 [!exec:ssh] stop
 
-eden pod deploy -n n11 --memory=512MB docker://itmoeve/eclient:0.4 -p 2223:22 --adapters USB2:2
+eden pod deploy -n n11 --memory=512MB docker://itmoeve/eclient:0.4 -p {{$port}}:22 --adapters USB2:2
 test eden.app.test -test.v -timewait 20m RUNNING n11
 
-exec -t 20m bash ssh.sh 2223
+exec -t 20m bash ssh.sh {{$port}}
 stdout 'Ubuntu'
 
-exec -t 20m bash get-lshw.sh 2223
+exec -t 20m bash get-lshw.sh {{$port}}
 stdout '1024B QEMU HARDDISK'
 
-exec -t 20m bash get-lshw.sh 2223
+exec -t 20m bash get-lshw.sh {{$port}}
 cp stdout before_reboot
 
+# get last reboot time
+exec -t 20m bash get-last-reboot-time.sh {{$port}}
+cp stdout timestamp1
+
 # reboot from guest
-exec -t 20m bash reboot.sh 2223
-exec sleep 60
+exec -t 20m bash reboot.sh {{$port}}
+exec sleep 1m
 
-# reboot detector
-test eden.reboot.test -test.v -timewait 20m -reboot=1
+eden -t 2m eve stop
+! stderr .
 
-exec -t 20m bash ssh.sh 2223
+eden eve status
+stdout 'EVE on .* status: running'
+! stderr .
+
+eden -t 2m eve start
+! stderr .
+
+eden eve status
+stdout 'EVE on .* status: running'
+! stderr .
+
+exec -t 20m bash ssh.sh {{$port}}
 stdout 'Ubuntu'
 
-exec -t 20m bash get-lshw.sh 2223
-stdout '1024B QEMU HARDDISK'
-
-exec -t 20m bash get-lshw.sh 2223
+exec -t 20m bash get-lshw.sh {{$port}}
 cp stdout after_reboot
+
+# get last reboot time
+exec -t 20m bash get-last-reboot-time.sh {{$port}}
+cp stdout timestamp2
 
 # comparison of lshw output
 cmp before_reboot after_reboot
+
+# comparison of reboot time output
+! exec diff timestamp1 timestamp2
 
 # teardown applications
 eden pod delete n11
@@ -68,6 +89,13 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 HOST=$($EDEN eve ip)
  echo ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST lshw -businfo
  ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST lshw -businfo
+
+-- get-last-reboot-time.sh --
+port=$1
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+HOST=$($EDEN eve ip)
+ echo ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST 'last -n 1 --time-format iso reboot'
+ ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.root"}}/tests/eclient/image/cert/id_rsa -p $port root@$HOST 'last -n 1 --time-format iso reboot'
 
 -- reboot.sh --
 port=$1
