@@ -62,11 +62,11 @@ const (
 	DefaultEveRegistry          = "lfedge"
 	DefaultRegistry             = "docker.io"
 
-	DefaultSFTPUser     = "user"
-	DefaultSFTPPassword = "password"
+	DefaultSFTPUser      = "user"
+	DefaultSFTPPassword  = "password"
 	DefaultSFTPDirPrefix = "/eserver/run"
 
-	DefaultEServerTag          = "1.4"
+	DefaultEServerTag          = "1.5"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
 	//DefaultRepeatCount is repeat count for requests

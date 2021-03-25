@@ -1,9 +1,9 @@
-FROM golang:1.15.7-alpine3.13 AS build
+FROM lfedge/eve-alpine:6.2.0 as build
+ENV BUILD_PKGS git go openssh-keygen
+RUN eve-alpine-deploy.sh
 
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
-
-RUN apk --no-cache add git=2.30.2-r0 openssh-keygen=8.4_p1-r2
 
 RUN ssh-keygen -t rsa -q -P "" -f /root/.ssh/id_rsa
 
