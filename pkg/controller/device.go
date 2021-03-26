@@ -377,6 +377,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 	var volumes []*config.Volume
 	var baseOS []*config.BaseOSConfig
 	var dataStores []*config.DatastoreConfig
+baseOSLoop:
 	for _, baseOSConfigID := range dev.GetBaseOSConfigs() {
 		baseOSConfig, err := cloud.GetBaseOSConfig(baseOSConfigID)
 		if err != nil {
@@ -399,6 +400,11 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 				return nil, err
 			}
 
+			for _, v := range volumes {
+				if v.Uuid == baseOSConfig.VolumeID {
+					continue baseOSLoop
+				}
+			}
 			volumes = append(volumes, volumeConfig)
 
 			if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
@@ -425,6 +431,11 @@ volumeLoop:
 		volumeConfig, err := cloud.GetVolume(volumeID)
 		if err != nil {
 			return nil, err
+		}
+		for _, v := range volumes {
+			if v.Uuid == volumeID {
+				continue volumeLoop
+			}
 		}
 		volumes = append(volumes, volumeConfig)
 		if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {

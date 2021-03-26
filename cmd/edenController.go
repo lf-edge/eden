@@ -25,6 +25,7 @@ import (
 var (
 	controllerMode      string
 	baseOSImageActivate bool
+	baseOSVDrive        bool
 	configItems         map[string]string
 	baseOSVersion       string
 	getFromFileName     bool
@@ -142,7 +143,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if len(qemuPorts) == 0 {
 			qemuPorts = nil
 		}
-		baseOSImageConfig := expectation.BaseOSImage()
+		baseOSImageConfig := expectation.BaseOSImage(baseOSVDrive)
 		dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev: %s", err)
@@ -393,6 +394,7 @@ func controllerInit() {
 	edgeNodeEVEImageUpdateFlags.StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
 	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
+	edgeNodeEVEImageUpdateFlags.BoolVar(&baseOSVDrive, "drive", false, "provide drive to baseOS")
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
 	configUsage := `set of key=value items.
 Supported keys are defined in https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md`
