@@ -1,0 +1,170 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "8G",
+    "storage": "800G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_TANK-870-Q170-QGW.png",
+    "logo_front": "/workspace/spec/logo_front_TANK-870-Q170-QGW.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:00:1f.6"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB0",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB0",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB2",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB3",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB4",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB4",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB5",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB5",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB6",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB6",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB7",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB7",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 255,
+      "phylabel": "Thermal subsystem",
+      "assigngrp": "USB+Thermal",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.2"
+      },
+      "logicallabel": "Thermal subsystem",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 255,
+      "phylabel": "Communication controller",
+      "assigngrp": "Serial+Communication",
+      "phyaddrs": {
+        "PciLong": "0000:00:16.0"
+      },
+      "logicallabel": "Communication controller",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 255,
+      "phylabel": "Serial controller",
+      "assigngrp": "Serial+Communication",
+      "phyaddrs": {
+        "PciLong": "0000:00:16.3"
+      },
+      "logicallabel": "Serial controller",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 255,
+      "phylabel": "FPGA",
+      "assigngrp": "FPGA",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "FPGA",
+      "usagePolicy": {}
+    }
+  ]
+}

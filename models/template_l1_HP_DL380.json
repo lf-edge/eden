@@ -1,0 +1,97 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "128G",
+    "storage": "5000G",
+    "Cpus": "32"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_l1_HP_DL380.png",
+    "logo_front": "/workspace/spec/logo_front_l1_HP_DL380.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "eth0-3",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:02:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth0-3",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.1"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth2",
+      "assigngrp": "eth0-3",
+      "phyaddrs": {
+        "Ifname": "eth2",
+        "PciLong": "0000:02:00.2"
+      },
+      "logicallabel": "eth2",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth3",
+      "assigngrp": "eth0-3",
+      "phyaddrs": {
+        "Ifname": "eth3",
+        "PciLong": "0000:02:00.3"
+      },
+      "logicallabel": "eth3",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB0",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB0",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB-ILO",
+      "assigngrp": "ILO",
+      "phyaddrs": {
+        "PciLong": "01:00.4"
+      },
+      "logicallabel": "USB-ILO",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "ILO",
+        "phyaddrs": {
+        "PciLong": "01:00.1"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    }
+  ]
+}

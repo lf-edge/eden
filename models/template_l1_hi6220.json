@@ -1,0 +1,28 @@
+{
+    "arch": 4,
+    "productURL": "https://www.96boards.org/product/hikey/",
+    "productStatus": "production",
+    "attr": {
+        "memory": "2G",
+        "storage": "8G",
+        "Cpus": "8"
+    },
+    "logo": {
+        "logo_front": "/workspace/spec/logo_front_hi6220.png"
+    },
+    "ioMemberList": [
+    {
+        "ztype": 5,
+        "phylabel": "wlan0",
+        "usage": 1,
+        "assigngrp": "",
+        "phyaddrs": {
+            "ifname": "wlan0"
+        },
+        "logicallabel": "wlan0",
+        "usagePolicy": {
+            "freeUplink": true
+        }
+    }
+    ]
+}

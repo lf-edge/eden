@@ -1,0 +1,114 @@
+{
+  "arch": 4,
+  "productURL": "https://metal.equinix.com/developers/docs/servers/#c1largearm",
+  "productStatus": "production",
+  "attr": {
+    "memory": "125G",
+    "storage": "316G",
+    "Cpus": "96"
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_FOXCONN-R2-1221R-A4.png",
+    "logo_front":"/workspace/spec/logo_front_FOXCONN-R2-1221R-A4.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0008:21:00.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:10.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB1",
+      "phyaddrs": {
+        "PciLong": "0000:00:11.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB2",
+      "assigngrp": "USB2",
+      "phyaddrs": {
+        "PciLong": "0004:00:10.0"
+      },
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB3",
+      "assigngrp": "USB3",
+      "phyaddrs": {
+        "PciLong": "0004:00:11.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Serial": "/dev/ttyAMA0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Serial": "/dev/ttyAMA1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "assigngrp": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0002:01:00.1"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0002:01:00.2"
+      }
+    }
+  ]
+}

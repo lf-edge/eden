@@ -1,0 +1,33 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "4G",
+    "storage": "8G",
+    "Cpus": "4"
+  },
+  "logo": {},
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "assigngrp": "",
+      "phyaddrs": {
+        "Ifname": "eth1"
+      },
+      "logicallabel": "eth1"
+    }
+  ]
+}

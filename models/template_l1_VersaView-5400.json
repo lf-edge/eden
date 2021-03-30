@@ -1,0 +1,103 @@
+{
+  "arch": 2,
+  "productURL": "https://www.rockwellautomation.com/en-gb/products/hardware/allen-bradley/industrial-computers-monitors/industrial-computers/6200-versaview-5400-industrial-computer.html",
+  "productStatus": "production",
+  "attr": {
+    "memory": "4G",
+    "storage": "120G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_VersaView-5400.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:03:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "usage": 1,
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:04:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:14:00.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB2",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:14:00.0"
+      },
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB3",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:14:00.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 4,
+      "phylabel": "Audio",
+      "assigngrp": "Audio",
+      "phyaddrs": {
+        "PciLong": "0000:00:1b.0"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM",
+      "phyaddrs": {
+        "Serial": "/dev/ttyXRUSB1",
+        "usbaddr": "1:4.3"
+      },
+      "logicallabel": "COM",
+      "usagePolicy": {}
+    }
+  ]
+}

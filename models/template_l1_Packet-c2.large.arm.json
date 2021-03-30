@@ -1,0 +1,94 @@
+{
+  "arch": 4,
+  "productURL": "https://metal.equinix.com/developers/docs/servers/#c2largearm",
+  "productStatus": "production",
+  "attr": {
+    "memory": "125G",
+    "storage": "447G",
+    "Cpus": "32"
+  },
+  "logo": {
+    "logo_front":"/workspace/spec/logo_front_ThinkSystem-HR330A.jpg"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0007:02:00.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Serial": "/dev/ttyAMA0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Serial": "/dev/ttyAMA1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "assigngrp": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:01:00.0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:01:00.1"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth2",
+      "assigngrp": "eth2",
+      "logicallabel": "eth2",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth2",
+        "PciLong": "0002:01:00.0"
+      }
+    }
+  ]
+}

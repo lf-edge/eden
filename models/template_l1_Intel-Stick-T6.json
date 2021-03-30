@@ -1,0 +1,56 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "4G",
+    "storage": "64G",
+    "Cpus": "4"
+  },"logo": {
+    "logo_back": "/workspace/spec/logo_back_Intel-Stick-T6.png",
+    "logo_front": "/workspace/spec/logo_front_Intel-Stick-T6.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 5,
+      "phylabel": "wlan0",
+      "usage": 1,
+      "assigngrp": "wlan0-1",
+      "phyaddrs": {
+        "Ifname": "wlan0"
+      },
+      "logicallabel": "wlan0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB2",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB3",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 4,
+      "phylabel": "HDMI",
+      "assigngrp": "Audio",
+      "phyaddrs": {
+        "PciLong": "0000:00:0e.0"
+      },
+      "logicallabel": "HDMI",
+      "usagePolicy": {}
+    }
+  ]
+}

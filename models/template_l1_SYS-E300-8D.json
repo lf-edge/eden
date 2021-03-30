@@ -1,0 +1,151 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "8G",
+    "storage": "300G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_SYS-E300-8D.png",
+    "logo_front": "/workspace/spec/logo_front_SYS-E300-8D.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "eth0-1",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:04:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth0-1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:04:00.1"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth2",
+      "assigngrp": "eth2",
+      "phyaddrs": {
+        "Ifname": "eth2",
+        "PciLong": "0000:07:00.0"
+      },
+      "logicallabel": "eth2",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth3",
+      "assigngrp": "eth3",
+      "phyaddrs": {
+        "Ifname": "eth3",
+        "PciLong": "0000:08:00.0"
+      },
+      "logicallabel": "eth3",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth4",
+      "assigngrp": "eth4-7",
+      "phyaddrs": {
+        "Ifname": "eth4",
+        "PciLong": "0000:0b:00.0"
+      },
+      "logicallabel": "eth4",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth5",
+      "assigngrp": "eth4-7",
+      "phyaddrs": {
+        "Ifname": "eth5",
+        "PciLong": "0000:0b:00.1"
+      },
+      "logicallabel": "eth5",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth6",
+      "assigngrp": "eth4-7",
+      "phyaddrs": {
+        "Ifname": "eth6",
+        "PciLong": "0000:0b:00.2"
+      },
+      "logicallabel": "eth6",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth7",
+      "assigngrp": "eth4-7",
+      "phyaddrs": {
+        "Ifname": "eth7",
+        "PciLong": "0000:0b:00.3"
+      },
+      "logicallabel": "eth7",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB0",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB0",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    }
+  ]
+}

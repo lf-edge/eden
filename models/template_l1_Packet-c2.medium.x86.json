@@ -1,0 +1,98 @@
+{
+  "arch": 2,
+  "productURL": "https://metal.equinix.com/developers/docs/servers/#c2mediumx86",
+  "productStatus": "production",
+  "attr": {
+    "memory": "63G",
+    "storage": "223G",
+    "Cpus": " 24"
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_PowerEdge-R6415.png",
+    "logo_front":"/workspace/spec/logo_front_PowerEdge-R6415.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:82:00.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:06:00.3"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB1",
+      "phyaddrs": {
+        "PciLong": "0000:43:00.3"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Ioports": "2f8-2ff",
+        "Irq": "3",
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "assigngrp": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:05:00.0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:05:00.1"
+      }
+    }
+  ]
+}

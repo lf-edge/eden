@@ -1,0 +1,72 @@
+{
+  "arch": 2,
+  "productURL": "https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um003_-en-p.pdf",
+  "productStatus": "production",
+  "attr": {
+    "memory": "4G",
+    "storage": "32G",
+    "Cpus": "2"
+  },"logo": {
+    "logo_back": "/workspace/spec/logo_back_Rockwell-1756CMS1B1.jpg",
+    "logo_front": "/workspace/spec/logo_front_Rockwell-1756CMS1B1.jpg"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "1",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:02:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "2",
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:03:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:1d.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 255,
+      "phylabel": "ROCKWELL",
+      "assigngrp": "ROCKWELL",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "ROCKWELL",
+      "usagePolicy": {}
+    }
+  ]
+}

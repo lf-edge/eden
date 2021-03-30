@@ -1,0 +1,12 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "8G",
+    "storage": "300G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_SYS-5018D-FN8T.png",
+    "logo_front": "/workspace/spec/logo_front_SYS-5018D-FN8T.png"
+  }
+}

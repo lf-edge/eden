@@ -1,0 +1,157 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "8G",
+    "storage": "100G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_X11SSN-E.png",
+    "logo_front": "/workspace/spec/logo_front_X11SSN-E.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:00:1f.6"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB5",
+      "assigngrp": "USB-C",
+      "phyaddrs": {
+        "PciLong": "0000:14:00.0"
+      },
+      "logicallabel": "USB5",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB6",
+      "assigngrp": "USB-C",
+      "phyaddrs": {
+        "PciLong": "0000:14:00.0"
+      },
+      "logicallabel": "USB6",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB0",
+      "assigngrp": "USB-A",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "USB0",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB-A",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB2",
+      "assigngrp": "USB-A",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB3",
+      "assigngrp": "USB-A",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Ioports": "2f8-2ff",
+        "Irq": "3",
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM3",
+      "assigngrp": "COM34",
+      "phyaddrs": {
+        "Ioports": "3e8-3ef",
+        "Irq": "7",
+        "Serial": "/dev/ttyS2"
+      },
+      "logicallabel": "COM3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM4",
+      "assigngrp": "COM34",
+      "phyaddrs": {
+        "Ioports": "2e8-2ef",
+        "Irq": "7",
+        "Serial": "/dev/ttyS3"
+      },
+      "logicallabel": "COM4",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 4,
+      "phylabel": "Audio",
+      "phyaddrs": {
+        "PciLong": "0000:00:1f.3"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    }
+  ]
+}
