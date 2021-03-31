@@ -36,6 +36,7 @@ COPY cert/id_rsa.pub /root/.ssh/authorized_keys
 RUN chown root:root /root/.ssh/
 RUN chmod 600 /root/.ssh/id_rsa*
 COPY portmap_test.sh /root/portmap_test.sh
+COPY get_eve_ip.sh /root/get_eve_ip.sh
 COPY entrypoint.sh /entrypoint.sh
 COPY reboot /sbin/
 COPY halt /sbin

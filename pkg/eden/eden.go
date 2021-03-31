@@ -394,6 +394,32 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 			}
+			log.Errorf("XXXXX NIC1 Added portmap for host port: %s, guest port: %s", k, v)
+		}
+
+		commandArgsString = fmt.Sprintf("modifyvm %s  --nic2 nat --cableconnected2 on", vmName)
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+		log.Errorf("XXXXX NIC2 created")
+		for k, v := range hostFwd {
+			hostPort, err := strconv.Atoi(k)
+			if err != nil {
+				log.Errorf("Parsing %s to Integer value failed", k)
+				break
+			}
+			hostPort += 10
+			guestPort, err := strconv.Atoi(v)
+			if err != nil {
+				log.Errorf("Parsing %s to Integer value failed", v)
+				break
+			}
+			guestPort += 10
+			commandArgsString = fmt.Sprintf("modifyvm %s --nic2 nat --cableconnected2 on --natpf2 ,tcp,,%d,,%d", vmName, hostPort, guestPort)
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+			log.Errorf("XXXXX NIC2 Added portmap for host port: %d, guest port: %d", hostPort, guestPort)
 		}
 
 		commandArgsString = fmt.Sprintf("startvm  %s", vmName)
@@ -401,12 +427,23 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
 	} else {
+		nicNum := 1
 		scanner := bufio.NewScanner(bytes.NewReader([]byte(out)))
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
 			if strings.Contains(line, "VMState=\"poweroff\"") {
 				poweroff = true
 				continue
+			}
+			if strings.HasPrefix(line, "nic") {
+				if i := strings.IndexRune(line, '='); i != -1 {
+					id := line[3: i]
+					num, err := strconv.Atoi(id)
+					if err == nil {
+						nicNum = num
+						log.Errorf("XXXXX Selecting new NIC num %d", nicNum)
+					}
+				}
 			}
 			if !strings.HasPrefix(line, "Forwarding") {
 				continue
@@ -419,13 +456,14 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 			}
 			// forwarding rule is in format "tcp_2222_22,tcp,,2222,,22", where
 			v := strings.Split(line, ",")
-			commandArgsString := fmt.Sprintf("modifyvm %s --natpf1 delete %s", vmName, v[0])
+			commandArgsString := fmt.Sprintf("modifyvm %s --natpf%d delete %s", vmName, nicNum, v[0])
 			if !poweroff {
-				commandArgsString = fmt.Sprintf("controlvm %s natpf1 delete %s", vmName, v[0])
+				commandArgsString = fmt.Sprintf("controlvm %s natpf%d delete %s", vmName, nicNum, v[0])
 			}
 			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 			}
+			log.Errorf("XXXXX Delete portmap %s", v[0])
 		}
 
 		for k, v := range hostFwd {
@@ -436,6 +474,29 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 			}
+		}
+		for k, v := range hostFwd {
+			hostPort, err := strconv.Atoi(k)
+			if err != nil {
+				log.Errorf("Parsing %s to Integer value failed", k)
+				break
+			}
+			hostPort += 10
+			guestPort, err := strconv.Atoi(v)
+			if err != nil {
+				log.Errorf("Parsing %s to Integer value failed", v)
+				break
+			}
+			guestPort += 10
+			commandArgsString := fmt.Sprintf("modifyvm %s --nic2 nat --cableconnected2 on --natpf2 ,tcp,,%d,,%d", vmName, hostPort, guestPort)
+
+			if !poweroff {
+				commandArgsString = fmt.Sprintf("controlvm %s nic2 nat natpf2 ,tcp,,%d,,%d", vmName, hostPort, guestPort)
+			}
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+			log.Errorf("XXXXX NIC2 Added portmap for host port: %d, guest port: %d", hostPort, guestPort)
 		}
 		if poweroff {
 			commandArgsString := fmt.Sprintf("startvm  %s", vmName)
@@ -456,19 +517,47 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	if qemuSMBIOSSerial != "" {
 		qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
 	}
-	nets, err := utils.GetSubnetsNotUsed(2)
+	nets, err := utils.GetSubnetsNotUsed(1)
 	if err != nil {
 		return fmt.Errorf("StartEVEQemu: %s", err)
 	}
-	for ind, n := range nets {
-		qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", ind, n.Subnet, n.FirstAddress)
-		if ind == 0 {
-			for k, v := range qemuHostFwd {
-				qemuOptions += fmt.Sprintf(",hostfwd=tcp::%s-:%s", k, v)
-			}
+	offset := 0
+	firstNet := nets[0].Subnet
+	firstAddr := nets[0].FirstAddress
+	secondAddr := net.ParseIP("192.168.0.11")
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 0, firstNet, firstAddr)
+	for k, v := range qemuHostFwd {
+		origPort, err := strconv.Atoi(k)
+		if err != nil {
+			log.Errorf("Failed converting %s to Integer", k)
+			break
 		}
-		qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", ind)
+		newPort, err := strconv.Atoi(v)
+		if err != nil {
+			log.Errorf("Failed converting %s to Integer", v)
+			break
+		}
+		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort + offset, newPort + offset)
 	}
+	qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", 0)
+	offset += 10
+
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 1, firstNet, secondAddr)
+	for k, v := range qemuHostFwd {
+		origPort, err := strconv.Atoi(k)
+		if err != nil {
+			log.Errorf("Failed converting %s to Integer", k)
+			break
+		}
+		newPort, err := strconv.Atoi(v)
+		if err != nil {
+			log.Errorf("Failed converting %s to Integer", v)
+			break
+		}
+		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort + offset, newPort + offset)
+	}
+	qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", 1)
+
 	if qemuOS == "" {
 		qemuOS = runtime.GOOS
 	} else {

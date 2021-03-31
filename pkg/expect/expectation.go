@@ -82,10 +82,6 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 			Type: evecommon.PhyIoType_PhyIoNetWLAN,
 		}
 	}
-	var qemuPorts map[string]string
-	if ctrl.GetVars().EveQemuPorts != nil {
-		qemuPorts = ctrl.GetVars().EveQemuPorts
-	}
 	expectation = &AppExpectation{
 		ctrl:    ctrl,
 		appLink: appLink,
@@ -114,7 +110,6 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	}
 	//check portPublish variable
 	for _, ni := range expectation.netInstances {
-	exit:
 		for _, el := range ni.portsReceived {
 			splitted := strings.Split(el, ":")
 			if len(splitted) != 2 {
@@ -130,15 +125,6 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 			intPort, err := strconv.Atoi(splitted[1])
 			if err != nil {
 				log.Fatalf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT: %s", el, err)
-			}
-			if len(qemuPorts) > 0 { //not empty forwarding rules, need to check for existing
-				for _, qv := range qemuPorts {
-					if qv == strconv.Itoa(extPort) {
-						ni.ports[extPort] = intPort
-						continue exit
-					}
-				}
-				log.Fatalf("Cannot use external port %d. Not in Qemu %s", extPort, qemuPorts)
 			}
 			ni.ports[extPort] = intPort
 		}

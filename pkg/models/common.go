@@ -27,7 +27,7 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 					Id:   defaults.NetNoDHCPID,
 					Type: config.NetworkType_V4,
 					Ip: &config.Ipspec{
-						Dhcp:      config.DHCPType_DHCPNone,
+						Dhcp:      config.DHCPType_Client,
 						DhcpRange: &config.IpRange{},
 					},
 					Wireless: nil,
