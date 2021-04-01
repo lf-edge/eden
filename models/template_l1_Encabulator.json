@@ -1,0 +1,50 @@
+{
+  "arch": 2,
+  "productURL": "https://www.youtube.com/watch?v=RXJKdh1KZ0w",
+  "productStatus": "production",
+  "attr": {
+    "memory": "32PT",
+    "storage": "128ZB",
+    "Cpus": "1024"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_encabulator.png",
+    "logo_front": "/workspace/spec/logo_front_encabulator.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "1",
+      "usage": 1,
+      "assigngrp": "tokenRing1",
+      "phyaddrs": {
+        "Ifname": "tr0",
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "tokenRing1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "VT100",
+      "assigngrp": "VT100",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "VT100",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 7,
+      "phylabel": "EGA",
+      "assigngrp": "EGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    }
+  ]
+}

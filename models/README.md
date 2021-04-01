@@ -70,6 +70,7 @@
 
 ### [Rockwell automation](https://www.rockwellautomation.com)
 
+* [Retro Encabulator](template_l1_Encabulator.json) - [Vendor site](https://www.youtube.com/watch?v=RXJKdh1KZ0w)<br><img src="logo_back_encabulator.png" width="100" height="80"> <img src="logo_back_encabulator.png" width="100" height="80">
 * [VersaView 5400 TOUCH](template_l1_VersaView-5400-TOUCH.json) - [Vendor site](https://www.rockwellautomation.com/en-gb/products/hardware/allen-bradley/industrial-computers-monitors/industrial-computers/6200-versaview-5400-industrial-computer.html)<br><img src="logo_back_VersaView-5400-TOUCH.png" width="100" height="80"> <img src="logo_back_VersaView-5400-TOUCH.png" width="100" height="80">
 * [VersaView 5400](template_l1_VersaView-5400.json) - [Vendor site](https://www.rockwellautomation.com/en-gb/products/hardware/allen-bradley/industrial-computers-monitors/industrial-computers/6200-versaview-5400-industrial-computer.html)<br><img src="logo_back_VersaView-5400.png" width="100" height="80"> <img src="logo_back_VersaView-5400.png" width="100" height="80">
 * [VersaView 6300](template_l1_VersaView-6300.json) - [Vendor site](https://www.rockwellautomation.com/en-us/products/hardware/allen-bradley/industrial-computers-monitors/thin-clients/6300t-box-thin-client.html)<br><img src="logo_front_VersaView-6300.jpg" width="100" height="80"> <img src="logo_back_VersaView-6300.jpg" width="100" height="80">
