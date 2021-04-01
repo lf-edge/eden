@@ -65,7 +65,8 @@ func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 
 //BaseOSImage expectation gets or creates Image definition,
 //gets BaseOSConfig and returns it or creates BaseOSConfig, adds it into internal controller and returns it
-func (exp *AppExpectation) BaseOSImage() (baseOSConfig *config.BaseOSConfig) {
+//if withDrive set will only create drive and content tree
+func (exp *AppExpectation) BaseOSImage(withDrive bool) (baseOSConfig *config.BaseOSConfig) {
 	var err error
 	if exp.appType == fileApp {
 		if exp.appURL, err = utils.GetFileFollowLinks(exp.appURL); err != nil {
@@ -93,7 +94,7 @@ func (exp *AppExpectation) BaseOSImage() (baseOSConfig *config.BaseOSConfig) {
 	}
 
 	// provision content tree and volume in addition to Drive record in config
-	if len(baseOSConfig.Drives) == 1 {
+	if withDrive && len(baseOSConfig.Drives) == 1 {
 		contentTree := exp.imageToContentTree(image, image.Name)
 		_ = exp.ctrl.AddContentTree(contentTree)
 		exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), contentTree.Uuid))
