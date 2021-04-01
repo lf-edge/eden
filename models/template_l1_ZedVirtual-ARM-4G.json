@@ -1,0 +1,36 @@
+{
+  "arch": 4,
+  "attr": {
+    "memory": "4G",
+    "storage": "100G",
+    "Cpus": "4"
+  },
+  "logo": {},
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    }
+  ]
+}

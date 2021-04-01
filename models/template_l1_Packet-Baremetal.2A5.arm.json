@@ -1,0 +1,61 @@
+{
+  "arch": 4,
+  "productURL": "ttps://www.tomshardware.com/news/qualcomm-debuts-10nm-processor-48-cores,33151.html",
+  "productStatus": "production",
+  "attr": {
+    "memory": "93G",
+    "storage": "447G",
+    "Cpus": "44"
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_Baremetal-2A5.png",
+    "logo_front":"/workspace/spec/logo_front_Baremetal-2A5.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Serial": "/dev/ttyAMA0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "assigngrp": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:01:00.0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:01:00.1"
+      }
+    }
+  ]
+}

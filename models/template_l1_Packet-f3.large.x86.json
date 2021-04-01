@@ -1,0 +1,154 @@
+{
+  "arch": 2,
+  "productURL": "HPE.ProLiant DL360 Gen10",
+  "productStatus": "production",
+  "attr": {
+    "memory": "383G",
+    "storage": "3427G",
+    "Cpus": " 36"
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_ProLiant-DL360-Gen10.png",
+    "logo_front":"/workspace/spec/logo_front_ProLiant-DL360-Gen10.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.1"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB1",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.4"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Ioports": "2f8-2ff",
+        "Irq": "3",
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "assigngrp": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:02:00.0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.1"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth2",
+      "assigngrp": "eth2",
+      "logicallabel": "eth2",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth2",
+        "PciLong": "0000:02:00.2"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth3",
+      "assigngrp": "eth3",
+      "logicallabel": "eth3",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth3",
+        "PciLong": "0000:02:00.3"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth4",
+      "assigngrp": "eth4",
+      "logicallabel": "eth4",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth4",
+        "PciLong": "0000:14:00.0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth5",
+      "assigngrp": "eth5",
+      "logicallabel": "eth5",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth5",
+        "PciLong": "0000:15:00.0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "4G",
+    "storage": "32G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_front": "/workspace/spec/logo_front_EIS-D210.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "PciLong": "0000:03:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB0",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB0",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB2",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB3",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Ioports": "2f8-2ff",
+        "Irq": "3",
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 4,
+      "phylabel": "Audio",
+      "assigngrp": "Audio",
+      "phyaddrs": {
+        "PciLong": "0000:00:0e.0"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    }
+  ]
+}

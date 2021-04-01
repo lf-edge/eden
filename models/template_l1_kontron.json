@@ -1,0 +1,129 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "8G",
+    "storage": "1000G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_front": "/workspace/spec/logo_front_Kontron.png",
+    "logo_back": "/workspace/spec/logo_back_Kontron.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "usage": 1,
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:03:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "usage": 1,
+      "logicallabel": "wwan0",
+      "cbattr": null,
+      "ztype": 6,
+      "phylabel": "wwan0",
+      "assigngrp": "USB",
+      "usagePolicy": null
+    },
+    {
+      "usage": 1,
+      "logicallabel": "wwan1",
+      "cbattr": null,
+      "ztype": 6,
+      "phylabel": "wwan1",
+      "assigngrp": "USB",
+      "usagePolicy": null
+    },
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+    "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 4,
+      "phylabel": "Audio",
+      "assigngrp": "Audio",
+      "phyaddrs": {
+        "PciLong": "0000:00:0e.0"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Ioports": "2f8-2ff",
+        "Irq": "3",
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM3",
+      "assigngrp": "COM3",
+      "phyaddrs": {
+        "Ioports": "3e8-3ef",
+        "Irq": "10",
+        "Serial": "/dev/ttyS2"
+      },
+      "logicallabel": "COM3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM4",
+      "assigngrp": "COM4",
+      "phyaddrs": {
+        "Ioports": "2e8-2ef",
+        "Irq": "3",
+        "Serial": "/dev/ttyS3"
+      },
+      "logicallabel": "COM4",
+      "usagePolicy": {}
+    }
+  ]
+}
+

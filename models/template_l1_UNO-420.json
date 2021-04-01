@@ -1,0 +1,127 @@
+{
+  "arch": 2,
+  "productURL": "https://www.advantech.com/products/9a0cc561-8fc2-4e22-969c-9df90a3952b5/uno-420/mod_2d6a546b-39e3-4bc4-bbf4-ac89e6b7667c",
+  "productStatus": "production",
+  "attr": {
+    "memory": "2G",
+    "storage": "30G",
+    "Cpus": "1"
+  },
+  "logo": {
+    "logo_front": "/workspace/spec/logo_front_UNO-420.png",
+    "logo_back": "/workspace/spec/logo_back_UNO-420.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "eth0",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "eth1",
+      "usage": 1,
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 5,
+      "phylabel": "wlan0",
+      "usage": 1,
+      "assigngrp": "wlan0",
+      "phyaddrs": {
+        "ifname": "wlan0",
+        "PciLong": "0000:03:00.0"
+      },
+      "logicallabel": "wlan0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "usage": 1,
+      "logicallabel": "wwan0",
+      "cbattr": null,
+      "ztype": 6,
+      "phylabel": "wwan0",
+      "assigngrp": "USB",
+      "usagePolicy": null
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB3",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:14:00.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 4,
+      "phylabel": "Audio",
+      "assigngrp": "Audio",
+      "phyaddrs": {
+        "PciLong": "0000:00:1b.0"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "Serial": "/dev/ttyUSB0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "Serial": "/dev/ttyUSB1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM3",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "Serial": "/dev/ttyUSB2"
+      },
+      "logicallabel": "COM3",
+      "usagePolicy": {}
+    }
+  ]
+}

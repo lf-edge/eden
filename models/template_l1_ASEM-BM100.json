@@ -1,0 +1,63 @@
+{
+  "arch": 2,
+  "productURL": "https://www.asemautomation.com/en/products/5/bm100.html",
+  "productStatus": "production",
+  "attr": {
+    "memory": "8G",
+    "storage": "224G",
+    "Cpus": "4"
+  },
+  "logo": {
+    "logo_back": "/workspace/spec/logo_back_ASEM-BM100.png",
+    "logo_front": "/workspace/spec/logo_front_ASEM-BM100.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "1",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "2",
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    }
+  ]
+}

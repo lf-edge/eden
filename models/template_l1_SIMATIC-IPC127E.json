@@ -1,0 +1,103 @@
+{
+  "arch": 2,
+  "attr": {
+    "memory": "4G",
+    "storage": "32G",
+    "Cpus": "4"
+  },"logo": {
+    "logo_back": "/workspace/spec/logo_back_SIMATIC-IPC127E.png",
+    "logo_front": "/workspace/spec/logo_front_SIMATIC-IPC127E.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 1,
+      "phylabel": "X1 P1 PN/IE(LAN)",
+      "usage": 1,
+      "assigngrp": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "X2 P1 PN/IE(LAN)",
+      "assigngrp": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.0"
+      },
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 1,
+      "phylabel": "X3 P1 PN/IE(LAN)",
+      "assigngrp": "eth2",
+      "phyaddrs": {
+        "Ifname": "eth2",
+        "PciLong": "0000:03:00.0"
+      },
+      "logicallabel": "eth2",
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "X60 USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB0",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "X61 USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "X62 USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "X63 USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 4,
+      "phylabel": "X70 DPP",
+      "assigngrp": "Audio",
+      "phyaddrs": {
+        "PciLong": "0000:00:0e.0"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    }
+  ]
+}
