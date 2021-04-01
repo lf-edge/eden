@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -55,6 +56,16 @@ func reloadConfigDetails() {
 		qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 		devModel = viper.GetString("eve.devmodel")
 		eveRemote = viper.GetBool("eve.remote")
+		modelFile = viper.GetString("eve.devmodelfile")
+		if modelFile != "" {
+			filePath, err := filepath.Abs(modelFile)
+			if err != nil {
+				log.Fatalf("cannot get absolute path for devmodelfile (%s): %v", modelFile, err)
+			}
+			if _, err := os.Stat(filePath); err != nil {
+				log.Fatalf("cannot parse devmodelfile (%s): %v", modelFile, err)
+			}
+		}
 	}
 }
 
@@ -421,6 +432,7 @@ func configInit() {
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
 	configAddCmd.Flags().StringVar(&ssid, "ssid", "", "set ssid of wifi for rpi")
 	configAddCmd.Flags().StringVar(&eveArch, "arch", runtime.GOARCH, "arch of EVE (amd64 or arm64)")
+	configAddCmd.Flags().StringVar(&modelFile, "devmodel-file", "", "File to use for overwrite of model defaults")
 	configCmd.AddCommand(configResetCmd)
 	configCmd.AddCommand(configEditCmd)
 }

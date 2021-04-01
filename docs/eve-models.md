@@ -35,3 +35,10 @@ eden setup
 eden start
 eden eve onboard
 ```
+
+## File to overwrite model settings
+
+Default properties of devmodel may be overwritten with values provided in [files](../models/README.md).
+To use it provide flag `--devmodel-file <file>`
+like `make CONFIG='--devmodel-file <file>' run` or `eden config add --devmodel-file <file>`.
+To change it on fly set config `eve.devmodelfile` and run `eden eve reset`.

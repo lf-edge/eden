@@ -59,6 +59,9 @@ eve:
     #devmodel
     devmodel: '{{parse "eve.devmodel"}}'
 
+    #devmodel file overwrite
+    devmodelfile: '{{parse "eve.devmodelfile"}}'
+
     #EVE arch (amd64/arm64)
     arch: '{{parse "eve.arch"}}'
 

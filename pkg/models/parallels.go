@@ -63,6 +63,11 @@ func (ctx *DevModelParallels) PhysicalIOs() []*config.PhysicalIO {
 	return ctx.physicalIOs
 }
 
+//SetPhysicalIOs sets physicalIOs of devModel
+func (ctx *DevModelParallels) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+	ctx.physicalIOs = physicalIOs
+}
+
 //AdapterForSwitches returns adapterForSwitches of devModel
 func (ctx *DevModelParallels) AdapterForSwitches() []string {
 	return nil

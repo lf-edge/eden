@@ -45,6 +45,7 @@ type ConfigVars struct {
 	EveSerial         string
 	ZArch             string
 	DevModel          string
+	DevModelFIle      string
 	EdenBinDir        string
 	EdenProg          string
 	TestProg          string
@@ -99,6 +100,7 @@ func InitVars() (*ConfigVars, error) {
 			EveSSID:           viper.GetString("eve.ssid"),
 			EveHV:             viper.GetString("eve.hv"),
 			DevModel:          viper.GetString("eve.devmodel"),
+			DevModelFIle:      viper.GetString("eve.devmodelfile"),
 			EveName:           viper.GetString("eve.name"),
 			EveUUID:           viper.GetString("eve.uuid"),
 			EveRemote:         viper.GetBool("eve.remote"),
@@ -306,6 +308,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return strings.ToLower(context.Current)
 		case "eve.devmodel":
 			return defaults.DefaultQemuModel
+		case "eve.devmodelfile":
+			return ""
 		case "eve.arch":
 			return runtime.GOARCH
 		case "eve.os":

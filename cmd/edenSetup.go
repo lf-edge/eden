@@ -37,7 +37,8 @@ var (
 
 	eveRegistry string
 
-	devModel string
+	devModel  string
+	modelFile string
 
 	eveImageSizeMB int
 

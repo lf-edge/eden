@@ -64,6 +64,11 @@ func (ctx *DevModelVBox) PhysicalIOs() []*config.PhysicalIO {
 	return ctx.physicalIOs
 }
 
+//SetPhysicalIOs sets physicalIOs of devModel
+func (ctx *DevModelVBox) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+	ctx.physicalIOs = physicalIOs
+}
+
 //AdapterForSwitches returns adapterForSwitches of DevModelVBox
 func (ctx *DevModelVBox) AdapterForSwitches() []string {
 	return ctx.adapterForSwitches

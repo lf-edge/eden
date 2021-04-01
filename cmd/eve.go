@@ -338,13 +338,17 @@ var onboardEveCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		vars := ctrl.GetVars()
-		dev := device.CreateEdgeNode()
-		dev.SetSerial(vars.EveSerial)
-		dev.SetOnboardKey(vars.EveCert)
-		dev.SetDevModel(vars.DevModel)
-		err = ctrl.OnBoardDev(dev)
-		if err != nil {
-			log.Fatal(err)
+		dev, err := ctrl.GetDeviceCurrent()
+		if err != nil || dev == nil {
+			//create new one if not exists
+			dev = device.CreateEdgeNode()
+			dev.SetSerial(vars.EveSerial)
+			dev.SetOnboardKey(vars.EveCert)
+			dev.SetDevModel(vars.DevModel)
+			err = ctrl.OnBoardDev(dev)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 		if err = ctrl.StateUpdate(dev); err != nil {
 			log.Fatal(err)
