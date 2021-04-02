@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/eve"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -107,7 +109,7 @@ var startCmd = &cobra.Command{
 				log.Infof("EVE is starting in Parallels")
 			}
 		} else if devModel == defaults.DefaultVBoxModel {
-			if err := eden.StartEVEVBox(vmName, eveImageFile, cpus, mem, hostFwd); err != nil {
+			if err := eden.StartEVEVBox(vmName, eveImageFile, cpus, mem, hostFwd, getUplinkPortIPMap()); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting in Virtual Box")
@@ -120,6 +122,30 @@ var startCmd = &cobra.Command{
 			}
 		}
 	},
+}
+
+func getUplinkPortIPMap() map[string]net.IP {
+	ipMap := make(map[string]net.IP)
+	changer := &adamChanger{}
+	ctrl, dev, err := changer.getControllerAndDev()
+	if err != nil {
+		log.Debugf("getControllerAndDev: %s", err)
+		fmt.Printf("%s EVE status: undefined (no onboarded EVE)\n", statusWarn())
+	} else {
+		eveState := eve.Init(ctrl, dev)
+		if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
+			log.Fatalf("Fail in get InfoLastCallback: %s", err)
+		}
+		if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
+			log.Fatalf("Fail in get InfoLastCallback: %s", err)
+		}
+		if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
+			for _, nw := range lastDInfo.Network {
+				ipMap[nw.DevName] = net.ParseIP(nw.IPAddrs[0])
+			}
+		}
+	}
+	return ipMap
 }
 
 func startInit() {

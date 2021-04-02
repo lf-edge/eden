@@ -361,7 +361,7 @@ func StatusEServer() (status string, err error) {
 }
 
 //StartEVEVBox function run EVE in VirtualBox
-func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[string]string) (err error) {
+func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[string]string, ipMap map[string]net.IP) (err error) {
 	poweroff := false
 	if out, _, err := utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("showvminfo %s --machinereadable", vmName))...); err != nil {
 		log.Info("No VMs with eve_live name", err)
@@ -384,24 +384,37 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
 
-		commandArgsString = fmt.Sprintf("modifyvm %s  --nic1 nat --cableconnected1 on", vmName)
+		commandArgsString = fmt.Sprintf("natnetwork add --netname %s --network %s --enable --dhcp on",
+										"natnet1", "10.0.2.0/24")
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+		commandArgsString = fmt.Sprintf("natnetwork start --netname %s", "natnet1")
+		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+			log.Errorf("VBoxManage error for command %s %s", commandArgsString, err)
+		}
+
+		commandArgsString = fmt.Sprintf("modifyvm %s --nic1 natnetwork --nat-network1 %s --cableconnected1 on",
+										vmName, "natnet1")
 		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
 
+		eth0IP := ipMap["eth0"]
 		for k, v := range hostFwd {
-			commandArgsString = fmt.Sprintf("modifyvm %s --nic1 nat --cableconnected1 on --natpf1 ,tcp,,%s,,%s", vmName, k, v)
+			commandArgsString = fmt.Sprintf("natnetwork  modify --netname %s --port-forward-4 :tcp:[]:%s:[%s]:%s",
+											"natnet1", k, eth0IP.String(), v)
 			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 			}
-			log.Errorf("XXXXX NIC1 Added portmap for host port: %s, guest port: %s", k, v)
 		}
 
-		commandArgsString = fmt.Sprintf("modifyvm %s  --nic2 nat --cableconnected2 on", vmName)
+		commandArgsString = fmt.Sprintf("modifyvm %s  --nic2 natnetwork --nat-network2 %s --cableconnected2 on",
+										vmName, "natnet1")
 		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
-		log.Errorf("XXXXX NIC2 created")
+		eth1IP := ipMap["eth1"]
 		for k, v := range hostFwd {
 			hostPort, err := strconv.Atoi(k)
 			if err != nil {
@@ -415,11 +428,11 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 				break
 			}
 			guestPort += 10
-			commandArgsString = fmt.Sprintf("modifyvm %s --nic2 nat --cableconnected2 on --natpf2 ,tcp,,%d,,%d", vmName, hostPort, guestPort)
+			commandArgsString = fmt.Sprintf("natnetwork  modify --netname %s --port-forward-4 :tcp:[]:%d:[%s]:%d",
+											"natnet1", hostPort, eth1IP.String(), guestPort)
 			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 			}
-			log.Errorf("XXXXX NIC2 Added portmap for host port: %d, guest port: %d", hostPort, guestPort)
 		}
 
 		commandArgsString = fmt.Sprintf("startvm  %s", vmName)
@@ -427,54 +440,70 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
 	} else {
-		nicNum := 1
 		scanner := bufio.NewScanner(bytes.NewReader([]byte(out)))
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
 			if strings.Contains(line, "VMState=\"poweroff\"") {
 				poweroff = true
-				continue
+				break
 			}
-			if strings.HasPrefix(line, "nic") {
-				if i := strings.IndexRune(line, '='); i != -1 {
-					id := line[3: i]
-					num, err := strconv.Atoi(id)
-					if err == nil {
-						nicNum = num
-						log.Errorf("XXXXX Selecting new NIC num %d", nicNum)
-					}
-				}
-			}
-			if !strings.HasPrefix(line, "Forwarding") {
-				continue
-			}
-			if i := strings.IndexRune(line, '='); i != -1 {
-				line = line[i+1:]
-			}
-			if s, err := strconv.Unquote(line); err == nil {
-				line = s
-			}
-			// forwarding rule is in format "tcp_2222_22,tcp,,2222,,22", where
-			v := strings.Split(line, ",")
-			commandArgsString := fmt.Sprintf("modifyvm %s --natpf%d delete %s", vmName, nicNum, v[0])
-			if !poweroff {
-				commandArgsString = fmt.Sprintf("controlvm %s natpf%d delete %s", vmName, nicNum, v[0])
-			}
-			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
-			}
-			log.Errorf("XXXXX Delete portmap %s", v[0])
 		}
 
-		for k, v := range hostFwd {
-			commandArgsString := fmt.Sprintf("modifyvm %s --nic1 nat --cableconnected1 on --natpf1 ,tcp,,%s,,%s", vmName, k, v)
-			if !poweroff {
-				commandArgsString = fmt.Sprintf("controlvm %s nic1 nat natpf1 ,tcp,,%s,,%s", vmName, k, v)
+		networkFound := false
+		output := ""
+		var err error
+		if output, _, err = utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("natnetwork list  %s", "natnet1"))...); err != nil {
+			log.Fatalf("VBoxManage error for command natnetwork list %s", err)
+		}
+		scanner = bufio.NewScanner(bytes.NewReader([]byte(output)))
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if strings.HasPrefix(line, "Enabled") {
+				enabled := strings.Split(line, ":")[1]
+				enabled = strings.TrimSpace(enabled)
+				if enabled == "Yes" {
+					networkFound = true
+				}
 			}
+		}
+		if !networkFound {
+			commandArgsString := fmt.Sprintf("natnetwork add --netname %s --network %s --enable --dhcp on",
+			"natnet1", "10.0.2.0/24")
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+			commandArgsString = fmt.Sprintf("natnetwork start --netname %s", "natnet1")
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Errorf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+
+			commandArgsString = fmt.Sprintf("modifyvm %s --nic1 natnetwork --nat-network1 %s --cableconnected1 on",
+			vmName, "natnet1")
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+			}
+
+			commandArgsString = fmt.Sprintf("modifyvm %s --nic2 natnetwork --nat-network2 %s --cableconnected2 on",
+			vmName, "natnet1")
 			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 			}
 		}
+
+		eth0IP := ipMap["eth0"]
+		for k, v := range hostFwd {
+			commandArgsString := fmt.Sprintf("natnetwork  modify --netname %s --port-forward-4 :tcp:[]:%s:[%s]:%s",
+											"natnet1", k, eth0IP.String(), v)
+			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+				if err.Error() == "exit status 2" {
+					log.Infof("VBoxManage NAT rule: %s: already exists", commandArgsString)
+				} else {
+					log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+				}
+			}
+		}
+
+		eth1IP := ipMap["eth1"]
 		for k, v := range hostFwd {
 			hostPort, err := strconv.Atoi(k)
 			if err != nil {
@@ -488,15 +517,16 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 				break
 			}
 			guestPort += 10
-			commandArgsString := fmt.Sprintf("modifyvm %s --nic2 nat --cableconnected2 on --natpf2 ,tcp,,%d,,%d", vmName, hostPort, guestPort)
+			commandArgsString := fmt.Sprintf("natnetwork  modify --netname %s --port-forward-4 :tcp:[]:%d:[%s]:%d",
+											"natnet1", hostPort, eth1IP.String(), guestPort)
 
-			if !poweroff {
-				commandArgsString = fmt.Sprintf("controlvm %s nic2 nat natpf2 ,tcp,,%d,,%d", vmName, hostPort, guestPort)
-			}
 			if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
-				log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+				if err.Error() == "exit status 2" {
+					log.Infof("VBoxManage NAT rule: %s: already exists", commandArgsString)
+				} else {
+					log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
+				}
 			}
-			log.Errorf("XXXXX NIC2 Added portmap for host port: %d, guest port: %d", hostPort, guestPort)
 		}
 		if poweroff {
 			commandArgsString := fmt.Sprintf("startvm  %s", vmName)
@@ -616,7 +646,19 @@ func StopEVEQemu(pidFile string) (err error) {
 
 //StopEVEVBox function stop EVE in VirtualBox
 func StopEVEVBox(vmName string) (err error) {
-	commandArgsString := fmt.Sprintf("controlvm %s poweroff", vmName)
+	commandArgsString := fmt.Sprintf("natnetwork modify --netname %s --dhcp off", "natnet1")
+	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Errorf("VBoxManage error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("natnetwork stop --netname %s", "natnet1")
+	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Errorf("VBoxManage error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("natnetwork remove --netname %s", "natnet1")
+	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
+		log.Errorf("VBoxManage error for command %s %s", commandArgsString, err)
+	}
+	commandArgsString = fmt.Sprintf("controlvm %s poweroff", vmName)
 	if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 		log.Errorf("VBoxManage error for command %s %s", commandArgsString, err)
 	} else {
