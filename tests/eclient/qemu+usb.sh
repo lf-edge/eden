@@ -13,9 +13,9 @@ dd if=/dev/zero of="$dist/stick.raw" bs=1K count=1
 cat >> ~/.eden/"$EDEN_CONFIG"-qemu.conf <<END
 
 
-[drive "stick"]
+[drive "empty"]
   if = "none"
-  file = "$dist/stick.raw"
+  file = "$dist/empty.raw"
   format = "raw"
 
 [device]
