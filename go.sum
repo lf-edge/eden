@@ -499,6 +499,8 @@ github.com/lf-edge/eve/api/go v0.0.0-20210128112727-417721637d65 h1:9qDT/QDJU/wO
 github.com/lf-edge/eve/api/go v0.0.0-20210128112727-417721637d65/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lf-edge/eve/api/go v0.0.0-20210211140602-4ce4d3187bb9 h1:3hGI2gaC9W24E8y37j6Cj7fKKHDxJ1SqL690+MsEC+A=
 github.com/lf-edge/eve/api/go v0.0.0-20210211140602-4ce4d3187bb9/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
+github.com/lf-edge/eve/api/go v0.0.0-20210219053903-a52e3a1e37f9 h1:81+YS5FLSbmXG3KpoTa835HDN40Qqa/90dcnYmB44j0=
+github.com/lf-edge/eve/api/go v0.0.0-20210219053903-a52e3a1e37f9/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=
 github.com/lightstep/lightstep-tracer-go v0.18.1/go.mod h1:jlF1pusYV4pidLvZ+XD0UBX0ZE6WURAspgAczcDHrL4=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 h1:EnfXoSqDfSNJv0VBNqY/88RNnhSGYkrHaO0mmFGbVsc=
