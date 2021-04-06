@@ -57,6 +57,7 @@ func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid
 //RunCommandNohup run process in background
 func RunCommandNohup(name string, logFile string, pidFile string, args ...string) (err error) {
 	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if logFile != "" {
 		var file io.Writer
 		_, err := os.Stat(logFile)
