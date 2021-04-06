@@ -8,6 +8,8 @@
 {{$stop := EdenGetEnv "EDEN_TEST_STOP"}}
 # EDEN_TEST_USB_PT -- "y" enables USB Passthrough test (disabled by default).
 {{$usb_pt := EdenGetEnv "EDEN_TEST_USB_PT"}}
+# EDEN_TEST_REGISTRY env. var. -- "y"(default) performs the local EDEN registry test
+{{$registry := EdenGetEnv "EDEN_TEST_REGISTRY"}}
 
 {{$devmodel := EdenConfig "eve.devmodel"}}
 
@@ -96,8 +98,12 @@ eden.escript.test -testdata ../hardware_reboot/testdata/ -test.run TestEdenScrip
 {{ if or (eq $workflow "large") (eq $workflow "gcp") }}
 /bin/echo Eden VNC (23/{{$tests}})
 eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test
+
+{{if (ne $registry "n")}}
 /bin/echo Eden registry (24/{{$tests}})
 eden.escript.test -testdata ../registry/testdata/ -test.run TestEdenScripts/registry_test
+{{end}}
+
 /bin/echo Eden Network test (25/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/test_networking
 /bin/echo Eden 2 dockers test (26/{{$tests}})
