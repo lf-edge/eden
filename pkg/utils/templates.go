@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"os"
+	"runtime"
 	"text/template"
 
 	log "github.com/sirupsen/logrus"
@@ -30,6 +31,10 @@ var funcs = template.FuncMap{
 	"EdenGetEnv": func(key string) string {
 		res := os.Getenv(key)
 		return res
+	},
+	// Get the runtime Operating system name
+	"EdenOSRuntime": func(key string) string {
+		return runtime.GOOS
 	},
 }
 

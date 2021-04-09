@@ -63,6 +63,9 @@ eden network ls
 # These two network instances have different uplink adapters attached to them. And these adapters
 # get IP addresses from two different subnets.
 
+{{$osruntime := EdenOSRuntime "nan"}}
+
+{{if (eq $osruntime "linux")}}
 message 'SCENARIO 2: Creating networks'
 eden network create 10.11.12.0/24 -n n1
 eden network create 10.11.13.0/24 -n n2 --uplink eth1
@@ -104,6 +107,7 @@ stdout 'no network with n2 found'
 eden network ls
 ! stdout '^n1\s'
 ! stdout '^n2\s'
+{{end}}
 
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
