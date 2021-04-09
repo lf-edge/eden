@@ -36,10 +36,10 @@ Typical user workflow is the following:
 * Install Eve image on the device
 * Start Eden and Eve. Once started Eve will try to connect to Adam controller which is part of Eden
 * Onboard Eve - explicitly allow it to connect
-* Use Eden CLI to install apps / do any other task 
+* Use Eden CLI to install apps / do any other task
+
 
 Note: Once onboarded EVE will not reconnect to any other controller. Eve has a strong security layer and you won't be able to change certificates or IP of the controller for onboarded Eve. So be careful once you make Eve image via Eden. Specify the right IP of the controller - the one that will be used in production.
-
 
 ## Install Prerequisites
 
