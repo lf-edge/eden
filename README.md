@@ -17,7 +17,7 @@ Eden contains series of integration tests implemented in Golang.
 Tests are structured as normal Golang tests by using `_test.go`
 nomenclature and be available for test runs using standard go test framework.
 
-## The architecture of the solution:
+## The architecture of the solution
 
 ![Architecture](/Eden_eve_architecture.png)
 
@@ -30,14 +30,16 @@ Note that EVE project by itself without a controller is useless in practice. Eve
 Eden/Eve theoretically supports any docker image from any docker registry and any VM in qcow2/raw format.
 
 Typical user workflow is the following:
+
 * Install Eden on some machine
-*  Create an image for Eve. Note: you will need to specify the IP of this Eden machine for an image.
-*  Install Eve image on the device
-*  Start Eden and Eve. Once started Eve will try to connect to Adam controller which is part of Eden
-*  Onboard Eve - explicitly allow it to connect
-*  Use Eden CLI to install apps / do any other task 
+* Create an image for Eve. Note: you will need to specify the IP of this Eden machine for an image.
+* Install Eve image on the device
+* Start Eden and Eve. Once started Eve will try to connect to Adam controller which is part of Eden
+* Onboard Eve - explicitly allow it to connect
+* Use Eden CLI to install apps / do any other task 
 
 Note: Once onboarded EVE will not reconnect to any other controller. Eve has a strong security layer and you won't be able to change certificates or IP of the controller for onboarded Eve. So be careful once you make Eve image via Eden. Specify the right IP of the controller - the one that will be used in production.
+
 
 ## Install Prerequisites
 
