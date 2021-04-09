@@ -1,18 +1,18 @@
 package cmd
 
 import (
-	"bytes"
+	"compress/gzip"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
 	"strings"
-	"text/template"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
@@ -298,37 +298,66 @@ var setupCmd = &cobra.Command{
 						EServerIP:   eServerIP,
 						EServerPort: eServerPort,
 					}
-					files := []string{
-						"kernel", "initrd.img", "initrd.bits",
-					}
-					for _, file := range files {
-						if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), file)); err != nil {
-							log.Fatalf("AddFileIntoEServer: %s", err)
+					// we should uncompress kernel for arm64
+					if eveArch == "arm64" {
+						// rename to temp file
+						if err := os.Rename(filepath.Join(filepath.Dir(eveImageFile), "kernel"),
+							filepath.Join(filepath.Dir(eveImageFile), "kernel.old")); err != nil {
+							// probably naming changed, give up
+							log.Warnf("Cannot rename kernel: %v", err)
+						} else {
+							r, err := os.Open(filepath.Join(filepath.Dir(eveImageFile), "kernel.old"))
+							if err != nil {
+								log.Fatalf("Open kernel.old: %v", err)
+							}
+							uncompressedStream, err := gzip.NewReader(r)
+							if err != nil {
+								// in case of non-gz rename back
+								log.Errorf("gzip: NewReader failed: %v", err)
+								if err := os.Rename(filepath.Join(filepath.Dir(eveImageFile), "kernel.old"),
+									filepath.Join(filepath.Dir(eveImageFile), "kernel")); err != nil {
+									log.Fatalf("Cannot rename kernel: %v", err)
+								}
+							} else {
+								defer uncompressedStream.Close()
+								out, err := os.Create(filepath.Join(filepath.Dir(eveImageFile), "kernel"))
+								if err != nil {
+									log.Fatalf("Cannot create file to save: %v", err)
+								}
+								if _, err := io.Copy(out, uncompressedStream); err != nil {
+									log.Fatalf("Cannot copy to decompressed file: %v", err)
+								}
+								if err := out.Close(); err != nil {
+									log.Fatalf("Cannot close file: %v", err)
+								}
+							}
 						}
 					}
-					t := template.New("t")
-					t, err := t.Parse(defaults.DefaultIPXEConfig)
-					if err != nil {
-						log.Fatal(err)
+					items, _ := ioutil.ReadDir(filepath.Dir(eveImageFile))
+					for _, item := range items {
+						if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
+							if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), item.Name())); err != nil {
+								log.Fatalf("AddFileIntoEServer: %s", err)
+							}
+						}
 					}
-					buf := new(bytes.Buffer)
-					err = t.Execute(buf, struct {
-						ADDRESS string
-					}{
-						path.Join(fmt.Sprintf("%s:%d", eServerIP, eserverPort), "eserver"),
-					})
+					ipxeFile := filepath.Join(filepath.Dir(eveImageFile), "ipxe.efi.cfg")
+					ipxeFileBytes, err := ioutil.ReadFile(ipxeFile)
 					if err != nil {
-						log.Fatal(err)
+						log.Fatalf("Cannot read ipxe file: %v", err)
 					}
+					re := regexp.MustCompile("# set url .*")
+					ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
+						[]byte(fmt.Sprintf("set url http://%s:%d/%s/", eServerIP, eserverPort, "eserver")))
 					_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
 					ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
-					_ = ioutil.WriteFile(ipxeConfigFile, buf.Bytes(), 0777)
+					_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
 					if _, err := eden.AddFileIntoEServer(server, ipxeConfigFile); err != nil {
 						log.Fatalf("AddFileIntoEServer: %s", err)
 					}
 					log.Infof("download EVE done: %s", imageTag)
 					log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
-					log.Infof("File uploaded to eserver http://%s:%s/eserver/ipxe.efi.cfg  .Use it to boot your EVE via network", eServerIP, eServerPort)
+					log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/eserver/ipxe.efi.cfg). Use it to boot your EVE via network", eServerIP, eServerPort)
 					log.Infof("EVE already exists: %s", filepath.Dir(eveImageFile))
 				}
 			} else {
