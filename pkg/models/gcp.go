@@ -67,6 +67,11 @@ func (ctx *DevModelGCP) PhysicalIOs() []*config.PhysicalIO {
 	return ctx.physicalIOs
 }
 
+//SetPhysicalIOs sets physicalIOs of devModel
+func (ctx *DevModelGCP) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+	ctx.physicalIOs = physicalIOs
+}
+
 //AdapterForSwitches returns adapterForSwitches of devModel
 func (ctx *DevModelGCP) AdapterForSwitches() []string {
 	return ctx.adapterForSwitches

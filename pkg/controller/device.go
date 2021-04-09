@@ -295,6 +295,11 @@ func (cloud *CloudCtx) AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error)
 //ApplyDevModel apply networks, adapters and physicalIOs from DevModel to device
 func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel models.DevModel) error {
 	var err error
+	if cloud.vars.DevModelFIle != "" {
+		if err := models.OverwriteDevModelFromFile(cloud.vars.DevModelFIle, devModel); err != nil {
+			log.Errorf("ApplyDevModel: cannot overwrite devmodel from file: %v", err)
+		}
+	}
 	dev.SetAdaptersForSwitch(devModel.AdapterForSwitches())
 	var adapters []string
 	for _, el := range devModel.Adapters() {

@@ -208,6 +208,7 @@ var (
 		"eve.config-part":  "config-part",
 		"eve.base-version": "os-version",
 		"eve.devmodel":     "devmodel",
+		"eve.devmodelfile": "devmodel-file",
 		"eve.telnet-port":  "eve-telnet-port",
 
 		"eden.images.dist":   "image-dist",

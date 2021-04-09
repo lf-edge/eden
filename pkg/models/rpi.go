@@ -131,6 +131,11 @@ func (ctx *DevModelRpi) PhysicalIOs() []*config.PhysicalIO {
 	return ctx.physicalIOs
 }
 
+//SetPhysicalIOs sets physicalIOs of devModel
+func (ctx *DevModelRpi) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+	ctx.physicalIOs = physicalIOs
+}
+
 //AdapterForSwitches returns adapterForSwitches of devModel
 func (ctx *DevModelRpi) AdapterForSwitches() []string {
 	return nil

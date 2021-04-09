@@ -61,6 +61,11 @@ func (ctx *DevModelQemu) PhysicalIOs() []*config.PhysicalIO {
 	return ctx.physicalIOs
 }
 
+//SetPhysicalIOs sets physicalIOs of devModel
+func (ctx *DevModelQemu) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+	ctx.physicalIOs = physicalIOs
+}
+
 //AdapterForSwitches returns adapterForSwitches of devModel
 func (ctx *DevModelQemu) AdapterForSwitches() []string {
 	return ctx.adapterForSwitches
