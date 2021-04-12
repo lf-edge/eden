@@ -1,3 +1,5 @@
+# Eclient image v 0.7
+
 FROM ubuntu:focal-20210119
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -5,7 +7,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install --no-install-recommends -y \
   busybox=1:1.30.1-4ubuntu6 \
   lshw=02.18.85-0.3ubuntu2 \
-  curl=7.68.0-1ubuntu2.4 \
+  curl=7.68.0-1ubuntu2.5 \
   iproute2=5.5.0-1ubuntu1 \
   iputils-ping=3:20190709-3 \
   mariadb-client=1:10.3.22-1ubuntu1 \
@@ -13,6 +15,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   netcat=1.206-1ubuntu1 \
   openssh-server=1:8.2p1-4ubuntu0.2 \
   jq=1.6-1ubuntu0.20.04.1 \
+  setserial=2.17-52 \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -34,6 +37,8 @@ RUN chown root:root /root/.ssh/
 RUN chmod 600 /root/.ssh/id_rsa*
 COPY portmap_test.sh /root/portmap_test.sh
 COPY entrypoint.sh /entrypoint.sh
+COPY reboot /sbin/
+COPY halt /sbin
 
 EXPOSE 22
 CMD ["/entrypoint.sh"]
