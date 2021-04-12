@@ -385,7 +385,7 @@ func StartEVEVBox(vmName, eveImageFile string, cpus int, mem int, hostFwd map[st
 		}
 
 		commandArgsString = fmt.Sprintf("natnetwork add --netname %s --network %s --enable --dhcp on",
-										"natnet1", "10.0.2.0/24")
+										"natnet1", defaults.DefaultVBoxSubnet)
 		if err = utils.RunCommandWithLogAndWait("VBoxManage", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...); err != nil {
 			log.Fatalf("VBoxManage error for command %s %s", commandArgsString, err)
 		}
@@ -552,10 +552,8 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		return fmt.Errorf("StartEVEQemu: %s", err)
 	}
 	offset := 0
-	firstNet := nets[0].Subnet
-	firstAddr := nets[0].FirstAddress
-	secondAddr := net.ParseIP("192.168.0.11")
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 0, firstNet, firstAddr)
+	network := nets[0].Subnet
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 0, network, nets[0].FirstAddress)
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {
@@ -572,7 +570,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", 0)
 	offset += 10
 
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 1, firstNet, secondAddr)
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 1, network, nets[0].SecondAddress)
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {

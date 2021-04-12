@@ -22,6 +22,7 @@ import (
 type IFInfo struct {
 	Subnet       *net.IPNet
 	FirstAddress net.IP
+	SecondAddress net.IP
 }
 
 func getSubnetByInd(ind int) (*net.IPNet, error) {
@@ -32,7 +33,7 @@ func getSubnetByInd(ind int) (*net.IPNet, error) {
 	return curNet, err
 }
 
-func getIPByInd(ind int) (net.IP, error) {
+func getIPByInd(ind int) ([]net.IP, error) {
 	if ind < 0 || ind > 255 {
 		return nil, fmt.Errorf("error in index %d", ind)
 	}
@@ -40,7 +41,13 @@ func getIPByInd(ind int) (net.IP, error) {
 	if IP == nil {
 		return nil, fmt.Errorf("error in ParseIP for index %d", ind)
 	}
-	return IP, nil
+	ips := []net.IP{IP}
+	IP2 := net.ParseIP(fmt.Sprintf("192.168.%d.11", ind))
+	if IP2 == nil {
+		return nil, fmt.Errorf("error in ParseIP for index %d", ind)
+	}
+	ips = append(ips, IP2)
+	return ips, nil
 }
 
 //GetSubnetsNotUsed prepare map with subnets and ip not used by any interface of host
@@ -68,13 +75,14 @@ func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
 			}
 		}
 		if !contains {
-			ip, err := getIPByInd(curSubnetInd)
+			ips, err := getIPByInd(curSubnetInd)
 			if err != nil {
 				return nil, fmt.Errorf("error in getIPByInd: %s", err)
 			}
 			result = append(result, IFInfo{
 				Subnet:       curNet,
-				FirstAddress: ip,
+				FirstAddress: ips[0],
+				SecondAddress: ips[1],
 			})
 		}
 	}
