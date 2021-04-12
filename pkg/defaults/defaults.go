@@ -123,6 +123,8 @@ const (
 
 	DefaultVBoxSubnet = "10.0.2.0/24"
 
+	DefaultPortMapOffset = 10
+
 	DefaultParallelsModel = "parallels"
 
 	DefaultGeneralModel = "general"
