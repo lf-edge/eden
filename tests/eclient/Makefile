@@ -17,7 +17,7 @@ OS ?= $(HOSTOS)
 # IMAGE_TAG is the tag for image to build
 IMAGE_TAG ?= itmoeve/eclient
 # IMAGE_VERSION is the version of image to build
-IMAGE_VERSION ?= 0.5
+IMAGE_VERSION ?= 0.7
 # IMAGE_DIR is the directory with image Dockerfile to build
 IMAGE_DIR=$(CURDIR)/image
 
@@ -66,7 +66,7 @@ image:
 push:
 	@echo "Push image"
 	docker push $(IMAGE_TAG):$(IMAGE_VERSION)
-	docker push $(IMAGE_TAG):latest
+	#docker push $(IMAGE_TAG):latest
 
 push-multi-arch:
 	@echo "Push image"

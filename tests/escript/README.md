@@ -142,7 +142,7 @@ The predefined commands are:
 
     Change the permissions of file or directory to the given octal mode (000 to 777).
 
-* cmp file1 file2
+* [!] cmp file1 file2
 
     Check that the named files have the same content.
     By convention, file1 is the actual data and file2 the expected data.
@@ -150,7 +150,7 @@ The predefined commands are:
     from the most recent exec or wait command.
     (If the files have differing content, the failure prints a diff.)
 
-* cmpenv file1 file2
+* [!] cmpenv file1 file2
 
     Like cmp, but environment variables in file2 are substituted before the
     comparison. For example, $GOOS is replaced by the target GOOS.

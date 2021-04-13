@@ -105,29 +105,40 @@ func (ts *TestScript) cmdChmod(neg bool, args []string) {
 
 // cmp compares two files.
 func (ts *TestScript) cmdCmp(neg bool, args []string) {
-	if neg {
-		// It would be strange to say "this file can have any content except this precise byte sequence".
-		ts.Fatalf("unsupported: ! cmp")
-	}
 	if len(args) != 2 {
 		ts.Fatalf("usage: cmp file1 file2")
 	}
 
-	ts.doCmdCmp(args, false)
+	res := ts.doCmdCmp(args, false)
+	if neg {
+		if res {
+			ts.Fatalf("unexpected cmp success")
+		}
+		return
+	}
+	if !res {
+		ts.Fatalf("%s and %s differ", args[0], args[1])
+	}
 }
 
 // cmpenv compares two files with environment variable substitution.
 func (ts *TestScript) cmdCmpenv(neg bool, args []string) {
-	if neg {
-		ts.Fatalf("unsupported: ! cmpenv")
-	}
 	if len(args) != 2 {
 		ts.Fatalf("usage: cmpenv file1 file2")
 	}
-	ts.doCmdCmp(args, true)
+	res := ts.doCmdCmp(args, true)
+	if neg {
+		if res {
+			ts.Fatalf("unexpected cmpenv success")
+		}
+		return
+	}
+	if !res {
+		ts.Fatalf("%s and %s differ", args[0], args[1])
+	}
 }
 
-func (ts *TestScript) doCmdCmp(args []string, env bool) {
+func (ts *TestScript) doCmdCmp(args []string, env bool) bool {
 	name1, name2 := args[0], args[1]
 	text1 := ts.ReadFile(name1)
 
@@ -139,19 +150,19 @@ func (ts *TestScript) doCmdCmp(args []string, env bool) {
 		text2 = ts.expand(text2)
 	}
 	if text1 == text2 {
-		return
+		return true
 	}
 	if ts.params.UpdateScripts && !env && (args[0] == "stdout" || args[0] == "stderr") {
 		if scriptFile, ok := ts.scriptFiles[absName2]; ok {
 			ts.scriptUpdates[scriptFile] = text1
-			return
+			return true
 		}
 		// The file being compared against isn't in the txtar archive, so don't
 		// update the script.
 	}
 
 	ts.Logf("[diff -%s +%s]\n%s\n", name1, name2, textutil.Diff(text1, text2))
-	ts.Fatalf("%s and %s differ", name1, name2)
+	return false
 }
 
 // cp copies files, maybe eventually directories.
