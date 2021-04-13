@@ -61,7 +61,7 @@ eden network ls
 ############################## TEST SCENARIO 2 ################################
 # Hairpin connectivity test between two apps connected to two different network instances.
 # These two network instances have different uplink adapters attached to them. And these adapters
-# get IP addresses from two different subnets.
+# get different IP addresses from the same subnet with DHCP.
 
 {{$osruntime := EdenOSRuntime "nan"}}
 
