@@ -34,6 +34,18 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 	portMap := map[string]string{"6379": strconv.Itoa(redisPort)}
 	volumeMap := map[string]string{"/data": redisPath}
 	redisServerCommand := strings.Fields("redis-server --appendonly yes")
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		return err
+	}
+	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
+	pwd, err := ioutil.ReadFile(redisPasswordFile)
+	if err == nil {
+		redisServerCommand = append(redisServerCommand, strings.Fields(fmt.Sprintf("--requirepass %s", string(pwd)))...)
+	} else {
+		log.Errorf("cannot read redis password: %v", err)
+	}
 	if redisPath != "" {
 		if err = os.MkdirAll(redisPath, 0755); err != nil {
 			return fmt.Errorf("StartRedis: Cannot create directory for redis (%s): %s", redisPath, err)
@@ -132,6 +144,14 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 		adamServerCommand = strings.Fields("server")
 	}
 	if adamRemoteRedisURL != "" {
+		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
+		pwd, err := ioutil.ReadFile(redisPasswordFile)
+		if err == nil {
+			adamRemoteRedisURL = fmt.Sprintf("redis://%s:%s@%s", string(pwd), string(pwd), adamRemoteRedisURL)
+		} else {
+			log.Errorf("cannot read redis password: %v", err)
+			adamRemoteRedisURL = fmt.Sprintf("redis://%s", adamRemoteRedisURL)
+		}
 		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--db-url %s", adamRemoteRedisURL))...)
 	}
 	adamServerCommand = append(adamServerCommand, opts...)
@@ -701,8 +721,10 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 			}
 		}
 	}
-	if _, err := os.Stat(certsDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(certsDir, 0755); err != nil {
+	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
+	if _, err := os.Stat(redisPasswordFile); os.IsNotExist(err) {
+		pwd := utils.GeneratePassword(8)
+		if err := ioutil.WriteFile(redisPasswordFile, []byte(pwd), 0755); err != nil {
 			return err
 		}
 	}

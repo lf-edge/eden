@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -89,7 +90,6 @@ func InitVars() (*ConfigVars, error) {
 			AdamDir:           ResolveAbsPath(viper.GetString("adam.dist")),
 			AdamCA:            caCertPath,
 			AdamRedisURLEden:  viper.GetString("adam.redis.eden"),
-			AdamRedisURLAdam:  viper.GetString("adam.redis.adam"),
 			SSHKey:            ResolveAbsPath(viper.GetString("eden.ssh-key")),
 			EveCert:           ResolveAbsPath(viper.GetString("eve.cert")),
 			EveDeviceCert:     ResolveAbsPath(viper.GetString("eve.device-cert")),
@@ -120,6 +120,14 @@ func InitVars() (*ConfigVars, error) {
 			EServerIP:         viper.GetString("eden.eserver.ip"),
 			LogLevel:          viper.GetString("eve.log-level"),
 			AdamLogLevel:      viper.GetString("eve.adam-log-level"),
+		}
+		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
+		pwd, err := ioutil.ReadFile(redisPasswordFile)
+		if err == nil {
+			vars.AdamRedisURLEden = fmt.Sprintf("redis://%s:%s@%s", string(pwd), string(pwd), vars.AdamRedisURLEden)
+		} else {
+			log.Errorf("cannot read redis password: %v", err)
+			vars.AdamRedisURLEden = fmt.Sprintf("redis://%s", vars.AdamRedisURLEden)
 		}
 		return vars, nil
 	}
@@ -284,9 +292,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "adam.ip":
 			return ip
 		case "adam.redis.eden":
-			return fmt.Sprintf("redis://%s:%d", ip, defaults.DefaultRedisPort)
+			return fmt.Sprintf("%s:%d", ip, defaults.DefaultRedisPort)
 		case "adam.redis.adam":
-			return fmt.Sprintf("redis://%s:%d", defaults.DefaultRedisContainerName, defaults.DefaultRedisPort)
+			return fmt.Sprintf("%s:%d", defaults.DefaultRedisContainerName, defaults.DefaultRedisPort)
 		case "adam.force":
 			return true
 		case "adam.ca":

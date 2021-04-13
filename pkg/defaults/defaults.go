@@ -62,9 +62,11 @@ const (
 	DefaultEveRegistry          = "lfedge"
 	DefaultRegistry             = "docker.io"
 
-	DefaultSFTPUser     = "user"
-	DefaultSFTPPassword = "password"
+	DefaultSFTPUser      = "user"
+	DefaultSFTPPassword  = "password"
 	DefaultSFTPDirPrefix = "/eserver/run"
+
+	DefaultRedisPasswordFile = "redis.pass"
 
 	DefaultEServerTag          = "1.4"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
