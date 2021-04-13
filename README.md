@@ -17,6 +17,29 @@ Eden contains series of integration tests implemented in Golang.
 Tests are structured as normal Golang tests by using `_test.go`
 nomenclature and be available for test runs using standard go test framework.
 
+## The architecture of the solution
+
+![Architecture](/Eden_eve_architecture.png)
+
+You will need another machine besides your edge device to install Eden.
+
+This machine should be reachable on the network from the edge device and expose port 3333. This machine will host Adam - the controller, Eden - the control layer with CLI, Redis - the log database, Eserver  - the image/file database for Eve to download from. The alternative is to use some commercial controller.
+
+Note that EVE project by itself without a controller is useless in practice. Eve by itself doesn't have any good options/commands to be used as some other OS like Ubuntu. You don't run workloads on Eve kernel. Eve core is separated from apps - the apps are either containers or VMs.
+
+Eden/Eve theoretically supports any docker image from any docker registry and any VM in qcow2/raw format.
+
+Typical user workflow is the following:
+
+* Install Eden on some machine
+* Create an image for Eve. Note: you will need to specify the IP of this Eden machine for an image.
+* Install Eve image on the device
+* Start Eden and Eve. Once started Eve will try to connect to Adam controller which is part of Eden
+* Onboard Eve - explicitly allow it to connect
+* Use Eden CLI to install apps / do any other task
+
+Note: Once onboarded EVE will not reconnect to any other controller. Eve has a strong security layer and you won't be able to change certificates or IP of the controller for onboarded Eve. So be careful once you make Eve image via Eden. Specify the right IP of the controller - the one that will be used in production.
+
 ## Install Prerequisites
 
 Install requirements from [eve](https://github.com/lf-edge/eve#install-dependencies).
