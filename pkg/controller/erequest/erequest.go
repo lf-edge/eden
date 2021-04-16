@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/lf-edge/adam/pkg/server"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -27,15 +26,15 @@ const (
 	RequestJSON
 )
 
-//ParseRequestItem apply regexp on ApiRequest
-func ParseRequestItem(data []byte) (logItem *server.ApiRequest, err error) {
-	var le server.ApiRequest
+//ParseRequestItem apply regexp on APIRequest
+func ParseRequestItem(data []byte) (logItem *types.APIRequest, err error) {
+	var le types.APIRequest
 	err = json.Unmarshal(data, &le)
 	return &le, err
 }
 
-//RequestItemFind find ApiRequest records by reqexps in 'query' corresponded to ApiRequest structure.
-func RequestItemFind(le *server.ApiRequest, query map[string]string) bool {
+//RequestItemFind find APIRequest records by reqexps in 'query' corresponded to APIRequest structure.
+func RequestItemFind(le *types.APIRequest, query map[string]string) bool {
 	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
@@ -62,8 +61,8 @@ func RequestItemFind(le *server.ApiRequest, query map[string]string) bool {
 	return matched
 }
 
-//RequestPrn print ApiRequest data
-func RequestPrn(le *server.ApiRequest, format RequestFormat) {
+//RequestPrn print APIRequest data
+func RequestPrn(le *types.APIRequest, format RequestFormat) {
 	switch format {
 	case RequestJSON:
 		enc := json.NewEncoder(os.Stdout)
@@ -81,9 +80,9 @@ func RequestPrn(le *server.ApiRequest, format RequestFormat) {
 	}
 }
 
-//HandlerFunc must process ApiRequest and return true to exit
+//HandlerFunc must process APIRequest and return true to exit
 //or false to continue
-type HandlerFunc func(request *server.ApiRequest) bool
+type HandlerFunc func(request *types.APIRequest) bool
 
 func requestProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFunction {
 	return func(bytes []byte) (bool, error) {

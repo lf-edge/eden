@@ -188,6 +188,7 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	dev.CheckHash(sha256.Sum256(res))
 	dev.SetRemote(cloud.vars.EveRemote)
 	dev.SetRemoteAddr(cloud.vars.EveRemoteAddr)
+	dev.SetCipherContexts(config.CipherContexts)
 	return dev, nil
 }
 
@@ -552,6 +553,7 @@ volumeLoop:
 		ProductName:       dev.GetDevModel(),
 		NetworkInstances:  networkInstanceConfigs,
 		ControllerEpoch:   dev.GetEpoch(),
+		CipherContexts:    dev.GetCipherContexts(),
 	}
 	if pretty {
 		return json.MarshalIndent(devConfig, "", "    ")

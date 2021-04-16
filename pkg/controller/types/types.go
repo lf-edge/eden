@@ -2,6 +2,9 @@ package types
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/lf-edge/eve/api/go/certs"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -112,3 +115,34 @@ var RequestType LoaderObjectType = 4
 
 //AppsType for observe logs of apps
 var AppsType LoaderObjectType = 5
+
+//APIRequest stores information about requests from EVE
+type APIRequest struct {
+	Timestamp time.Time `json:"timestamp"`
+	UUID      uuid.UUID `json:"uuid,omitempty"`
+	ClientIP  string    `json:"client-ip"`
+	Forwarded string    `json:"forwarded,omitempty"`
+	Method    string    `json:"method"`
+	URL       string    `json:"url"`
+}
+
+// OnboardCert encoding for sending an onboard cert and serials via json
+// swagger:parameters onboard
+type OnboardCert struct {
+	//Cert for onboarding
+	Cert []byte
+	//Serial for onboarding
+	Serial string
+}
+
+// DeviceCert encoding for sending a device information, including device cert, onboard cert, and serial, if any
+type DeviceCert struct {
+	Cert    []byte
+	Onboard []byte
+	Serial  string
+}
+
+//Zcerts stores device certificates
+type Zcerts struct {
+	Certs []*certs.ZCert `json:"certs,omitempty"` // EVE device certs
+}

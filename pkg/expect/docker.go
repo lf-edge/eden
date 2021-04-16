@@ -2,7 +2,6 @@ package expect
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -202,10 +201,10 @@ func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 			Maxmem: exp.mem,
 			Vcpus:  exp.cpu,
 		},
-		UserData:    base64.StdEncoding.EncodeToString([]byte(exp.metadata)),
 		Activate:    true,
 		Displayname: exp.appName,
 	}
+	exp.applyUserData(app)
 	maxSizeBytes := int64(0)
 	if exp.diskSize > 0 {
 		maxSizeBytes = exp.diskSize
