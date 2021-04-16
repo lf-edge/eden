@@ -64,8 +64,10 @@ eden network ls
 # get different IP addresses from the same subnet with DHCP.
 
 {{$osruntime := EdenOSRuntime "nan"}}
+{{$devmodel := EdenConfig "eve.devmodel"}}
 
 {{if (eq $osruntime "linux")}}
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
 message 'SCENARIO 2: Creating networks'
 eden network create 10.11.12.0/24 -n n1
 eden network create 10.11.13.0/24 -n n2 --uplink eth1
@@ -107,6 +109,7 @@ stdout 'no network with n2 found'
 eden network ls
 ! stdout '^n1\s'
 ! stdout '^n2\s'
+{{end}}
 {{end}}
 
 -- wait_ssh.sh --
