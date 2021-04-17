@@ -84,10 +84,8 @@ func generatePhysicalIOs(ethCount, wifiCount, usbCount uint) []*config.PhysicalI
 	for i := uint(0); i < ethCount; i++ {
 		name := fmt.Sprintf("eth%d", i)
 		usage := evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps
-		freeUplink := true
 		if i == 0 {
 			usage = evecommon.PhyIoMemberUsage_PhyIoUsageShared
-			freeUplink = false
 		}
 		physicalIOs = append(physicalIOs, &config.PhysicalIO{
 			Ptype:        evecommon.PhyIoType_PhyIoNetEth,
@@ -97,7 +95,7 @@ func generatePhysicalIOs(ethCount, wifiCount, usbCount uint) []*config.PhysicalI
 			Phyaddrs:     map[string]string{"Ifname": name},
 			Usage:        usage,
 			UsagePolicy: &config.PhyIOUsagePolicy{
-				FreeUplink: freeUplink,
+				FreeUplink: true,
 			},
 		})
 	}
