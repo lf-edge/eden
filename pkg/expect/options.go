@@ -96,7 +96,7 @@ func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []stri
 
 //AddNetInstanceAndPortPublish adds NetInstance with defined subnet cidr, networkType,
 //netInstanceName and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
-func AddNetInstanceAndPortPublish(subnetCidr string, networkType string, netInstanceName string, portPublish []string) ExpectationOption {
+func AddNetInstanceAndPortPublish(subnetCidr string, networkType string, netInstanceName string, portPublish []string, uplinkAdapter string) ExpectationOption {
 	return func(expectation *AppExpectation) {
 		expectation.netInstances = append(expectation.netInstances, &NetInstanceExpectation{
 			name:          netInstanceName,
@@ -104,6 +104,7 @@ func AddNetInstanceAndPortPublish(subnetCidr string, networkType string, netInst
 			portsReceived: portPublish,
 			ports:         make(map[int]int),
 			netInstType:   networkType,
+			uplinkAdapter: uplinkAdapter,
 		})
 	}
 }

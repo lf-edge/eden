@@ -15,6 +15,7 @@ import (
 var (
 	networkType string
 	networkName string
+	uplinkAdapter string
 )
 
 var networkCmd = &cobra.Command{
@@ -125,7 +126,7 @@ var networkCreateCmd = &cobra.Command{
 			log.Fatalf("getControllerAndDev: %s", err)
 		}
 		var opts []expect.ExpectationOption
-		opts = append(opts, expect.AddNetInstanceAndPortPublish(subnet, networkType, networkName, nil))
+		opts = append(opts, expect.AddNetInstanceAndPortPublish(subnet, networkType, networkName, nil, uplinkAdapter))
 		expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, podName, opts...)
 		netInstancesConfigs := expectation.NetworkInstances()
 	mainloop:
@@ -151,4 +152,5 @@ func networkInit() {
 	networkCmd.AddCommand(networkCreateCmd)
 	networkCreateCmd.Flags().StringVar(&networkType, "type", "local", "Type of network: local or switch")
 	networkCreateCmd.Flags().StringVarP(&networkName, "name", "n", "", "Name of network (empty for auto generation)")
+	networkCreateCmd.Flags().StringVarP(&uplinkAdapter, "uplink", "u", "eth0", "Name of uplink adapter")
 }

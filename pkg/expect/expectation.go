@@ -133,12 +133,15 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 			}
 			if len(qemuPorts) > 0 { //not empty forwarding rules, need to check for existing
 				for _, qv := range qemuPorts {
-					if qv == strconv.Itoa(extPort) {
+					portNum, err := strconv.Atoi(qv)
+					if err != nil {
+						log.Fatalf("Port map port %s could not be converted to Integer", qv)
+					}
+					if portNum == extPort || (portNum + defaults.DefaultPortMapOffset) == extPort {
 						ni.ports[extPort] = intPort
 						continue exit
 					}
 				}
-				log.Fatalf("Cannot use external port %d. Not in Qemu %s", extPort, qemuPorts)
 			}
 			ni.ports[extPort] = intPort
 		}

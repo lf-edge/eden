@@ -10,6 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve/api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,6 +22,7 @@ type NetInstanceExpectation struct {
 	portsReceived []string
 	ports         map[int]int
 	netInstType   string
+	uplinkAdapter string
 }
 
 //checkNetworkInstance checks if provided netInst match expectation
@@ -44,6 +46,13 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		return nil, err
 	}
 	subentIPs := utils.GetSubnetIPs(instanceExpect.subnet)
+	adapter := exp.uplinkAdapter
+	if instanceExpect.uplinkAdapter != "" {
+		adapter = &config.Adapter{
+			Name: instanceExpect.uplinkAdapter,
+			Type: evecommon.PhyIoType_PhyIoNetEth,
+		}
+	}
 	netInst = &config.NetworkInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{
 			Uuid:    id.String(),
@@ -51,7 +60,7 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		},
 		InstType: config.ZNetworkInstType_ZnetInstLocal, //we use local networks for now
 		Activate: true,
-		Port:     exp.uplinkAdapter,
+		Port:     adapter,
 		Cfg:      &config.NetworkInstanceOpaqueConfig{},
 		IpType:   config.AddressType_IPV4,
 		Ip: &config.Ipspec{
