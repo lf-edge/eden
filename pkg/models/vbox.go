@@ -79,14 +79,6 @@ func (ctx *DevModelVBox) DevModelType() string {
 	return string(devModelTypeVBox)
 }
 
-//GetFirstAdapterForSwitches return first adapter available for switch networkInstance
-func (ctx *DevModelVBox) GetFirstAdapterForSwitches() string {
-	if len(ctx.adapterForSwitches) > 0 {
-		return ctx.adapterForSwitches[0]
-	}
-	return "uplink"
-}
-
 func createVBox() (DevModel, error) {
 	return &DevModelVBox{
 			physicalIOs:        generatePhysicalIOs(2, 0, 4),

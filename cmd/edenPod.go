@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
@@ -51,6 +52,19 @@ var (
 
 var podCmd = &cobra.Command{
 	Use: "pod",
+}
+
+func processAcls(acls []string) map[string][]string {
+	m := map[string][]string{}
+	for _, el := range acls {
+		parsed := strings.SplitN(el, ":", 2)
+		if len(parsed) > 1 {
+			m[parsed[0]] = append(m[parsed[0]], parsed[1])
+		} else {
+			m[""] = append(m[""], parsed[0])
+		}
+	}
+	return m
 }
 
 //podDeployCmd is command for deploy application on EVE
@@ -105,9 +119,9 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		if aclOnlyHost {
-			opts = append(opts, expect.WithACL([]string{""}))
+			opts = append(opts, expect.WithACL(map[string][]string{"": {""}}))
 		} else {
-			opts = append(opts, expect.WithACL(acl))
+			opts = append(opts, expect.WithACL(processAcls(acl)))
 		}
 		opts = append(opts, expect.WithSFTPLoad(sftpLoad))
 		if !sftpLoad {
@@ -449,7 +463,9 @@ func podInit() {
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
 	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, "Additional disks to use")
-	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, "Allow access only to defined hosts/ips/subnets")
+	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
+You can set acl for particular network in format '<network_name:acl>'
+To remove acls you can set empty line '<network_name>:'`)
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)

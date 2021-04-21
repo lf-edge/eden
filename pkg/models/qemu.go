@@ -76,14 +76,6 @@ func (ctx *DevModelQemu) DevModelType() string {
 	return string(devModelTypeQemu)
 }
 
-//GetFirstAdapterForSwitches return first adapter available for switch networkInstance
-func (ctx *DevModelQemu) GetFirstAdapterForSwitches() string {
-	if len(ctx.adapterForSwitches) > 0 {
-		return ctx.adapterForSwitches[0]
-	}
-	return "uplink"
-}
-
 func createQemu() (DevModel, error) {
 	return &DevModelQemu{
 			physicalIOs:        generatePhysicalIOs(2, 0, 4),
