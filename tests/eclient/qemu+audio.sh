@@ -17,11 +17,6 @@ cat >> ~/.eden/"$EDEN_CONFIG"-qemu.conf <<END
   driver = "ich9-intel-hda"
   bus = "pcie.0"
   addr = "1b.0"
-
-[device "duplex"]
-  driver = "hda-duplex"
-  bus = "sound.0"
-  cad = "0"
 END
 
 cat <<END
