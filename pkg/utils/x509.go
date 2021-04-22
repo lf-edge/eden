@@ -1,6 +1,12 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
+	"net"
+	"os"
+	"time"
+
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -9,13 +15,8 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"math/big"
-	"net"
-	"os"
-	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 )
@@ -72,35 +73,6 @@ func GenCARoot() (*x509.Certificate, *rsa.PrivateKey) {
 	}
 	rootCert := genCert(&rootTemplate, &rootTemplate, &priv.PublicKey, priv)
 	return rootCert, priv
-}
-
-//GenServerCert cert gen
-func GenServerCert(cert *x509.Certificate, key *rsa.PrivateKey, serial *big.Int, ip []net.IP, dns []string, CN string) (*x509.Certificate, *rsa.PrivateKey) {
-	priv, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		panic(err)
-	}
-
-	var ServerTemplate = x509.Certificate{
-		SerialNumber:   serial,
-		NotBefore:      time.Now().Add(-10 * time.Second),
-		NotAfter:       time.Now().AddDate(10, 0, 0),
-		KeyUsage:       x509.KeyUsageCRLSign,
-		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IsCA:           false,
-		MaxPathLenZero: true,
-		IPAddresses:    ip,
-		DNSNames:       dns,
-		Subject: pkix.Name{
-			Country:      []string{defaults.DefaultX509Country},
-			Organization: []string{defaults.DefaultX509Company},
-			CommonName:   CN,
-		},
-	}
-
-	ServerCert := genCert(&ServerTemplate, cert, &priv.PublicKey, key)
-	return ServerCert, priv
-
 }
 
 //GenServerCertElliptic elliptic cert

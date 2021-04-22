@@ -42,6 +42,7 @@ var exportCmd = &cobra.Command{
 			redisPort = viper.GetInt("redis.port")
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
+			apiV1 = viper.GetBool("adam.v1")
 		}
 		return nil
 	},
@@ -53,7 +54,7 @@ var exportCmd = &cobra.Command{
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
 		}
-		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteRedisURL); err != nil {
+		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteRedisURL, apiV1); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)
@@ -114,6 +115,7 @@ var importCmd = &cobra.Command{
 			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
 			certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 			edenRoot = viper.GetString("eden.root")
+			apiV1 = viper.GetBool("adam.v1")
 		}
 		return nil
 	},
@@ -151,7 +153,7 @@ var importCmd = &cobra.Command{
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
 		}
-		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteRedisURL); err != nil {
+		if err := eden.StartAdam(adamPort, adamDist, false, adamTag, adamRemoteRedisURL, apiV1); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)

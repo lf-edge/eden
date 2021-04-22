@@ -491,6 +491,8 @@ github.com/lf-edge/edge-containers v0.0.0-20201111200732-5491ea93dbe4/go.mod h1:
 github.com/lf-edge/eve/api/go v0.0.0-20201031014148-3a9bcf5d26a7/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lf-edge/eve/api/go v0.0.0-20210401091403-103bd43f7582 h1:vrxXQAo7OdGlpuWzo9BRhuUpK+p9K8U7Ncq7b0H4P6M=
 github.com/lf-edge/eve/api/go v0.0.0-20210401091403-103bd43f7582/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
+github.com/lf-edge/eve/api/go v0.0.0-20210427073226-3906e7ddff44 h1:LK51cxKygMzD1SMYkTs11TyWzjIIqkn3VF2qJOvOO2M=
+github.com/lf-edge/eve/api/go v0.0.0-20210427073226-3906e7ddff44/go.mod h1:DuAv0PyTTzmd3n25iHJ/Hx2SrbON4hf3I0oXfnUH4d8=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=
 github.com/lightstep/lightstep-tracer-go v0.18.1/go.mod h1:jlF1pusYV4pidLvZ+XD0UBX0ZE6WURAspgAczcDHrL4=
 github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 h1:EnfXoSqDfSNJv0VBNqY/88RNnhSGYkrHaO0mmFGbVsc=
@@ -1216,6 +1218,8 @@ gotest.tools v2.2.0+incompatible h1:VsBPFP1AI068pPrMxtb/S8Zkgf9xEmTLJjfM+P5UIEo=
 gotest.tools v2.2.0+incompatible/go.mod h1:DsYFclhRJ6vuDpmuTbkuFWG+y2sxOXAzmJt81HFBacw=
 gotest.tools/gotestsum v1.6.3 h1:E3wOF4wmxKA19BB5wTY7t0L1m+QNARtDcBX4yqG6DEc=
 gotest.tools/gotestsum v1.6.3/go.mod h1:fTR9ZhxC/TLAAx2/WMk/m3TkMB9eEI89gdEzhiRVJT8=
+gotest.tools/gotestsum v1.6.4 h1:HFkapG0hK/HWiOxWS78SbR/JK5EpbH8hFzUuCvvfbfQ=
+gotest.tools/gotestsum v1.6.4/go.mod h1:fTR9ZhxC/TLAAx2/WMk/m3TkMB9eEI89gdEzhiRVJT8=
 gotest.tools/v3 v3.0.2/go.mod h1:3SzNCllyD9/Y+b5r9JIKQ474KzkZyqLqEfYqMsX94Bk=
 gotest.tools/v3 v3.0.3 h1:4AuOwCGf4lLR9u3YOe2awrHygurzhO/HeQ6laiA6Sx0=
 gotest.tools/v3 v3.0.3/go.mod h1:Z7Lb0S5l+klDB31fvDQX8ss/FlKDxtlFlw3Oa8Ymbl8=

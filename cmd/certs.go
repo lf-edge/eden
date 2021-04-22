@@ -43,11 +43,12 @@ var certsCmd = &cobra.Command{
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
 			adamForce = viper.GetBool("adam.force")
+			apiV1 = viper.GetBool("adam.v1")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, password); err != nil {
+		if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, password, apiV1); err != nil {
 			log.Errorf("cannot GenerateEveCerts: %s", err)
 		} else {
 			log.Info("GenerateEveCerts done")

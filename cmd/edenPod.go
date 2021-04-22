@@ -65,6 +65,7 @@ var podDeployCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
+		certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 		ssid = viper.GetString("eve.ssid")
 		return nil
 	},

@@ -304,7 +304,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "adam.remote.redis":
 			return true
 		case "adam.v1":
-			return true
+			return false
 		case "adam.caching.enabled":
 			return false
 		case "adam.caching.redis":
