@@ -1,4 +1,5 @@
 # Simple test of 2 USB passthrough functionality after reboot of guest
+# Works only on KVM
 
 {{define "port"}}2223{{end}}
 {{define "ssh"}} ssh -oServerAliveInterval=10 -oConnectTimeout=10 -oStrictHostKeyChecking=no -oPasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa -p {{template "port"}} root@$HOST {{end}}
