@@ -28,7 +28,7 @@ jobs:
       - name: Public IP
         id: ip
         run: |
-          PUBLIC_IP=$(curl -s ifconfig.me)
+          PUBLIC_IP=$(curl -s https://api.ipify.org/?format=text)
           if [[ ! $PUBLIC_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then exit 1; fi
           echo "::set-output name=ipv4::$PUBLIC_IP"
       - name: setup packages
