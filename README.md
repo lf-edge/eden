@@ -67,7 +67,7 @@ You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 ## Quickstart
 
 Starts nginx Dockerhib image on port 8028, so you will be able to access it via http://my.eve.ip:8028
-my.eve.ip is displayed using `eden status` command
+Eve Ip is displayed by `eden status` command
 
 ```console
 git clone https://github.com/lf-edge/eden.git
