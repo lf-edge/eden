@@ -66,8 +66,8 @@ You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 
 ## Quickstart
 
-Starts nginx Dockerhib image on port 8028, so you will be able to access it via http://<EVE-IP>:8028
-EVE IP is displayed using `eden status` command 
+Starts nginx Dockerhib image on port 8028, so you will be able to access it via http://my.eve.ip:8028
+my.eve.ip is displayed using `eden status` command
 
 ```console
 git clone https://github.com/lf-edge/eden.git
@@ -280,7 +280,7 @@ Eve is listening on all interfaces connected. Docker/VM can only be exposed on o
 Here eth1 is added to network n2 and then a pod is exposed on this network.
 
 ```console
-eden network create 10.11.13.0/24 -n n2 --uplink eth1 
+eden network create 10.11.13.0/24 -n n2 --uplink eth1
 eden pod deploy -p 8028:80 --networks n2 docker://nginx
 ```
 
@@ -506,21 +506,20 @@ to the command above.
 With running status in `eden pod ps` you can try to connect via VNC
 on the public EVE IP at port 5901 with credentials `IEUser:Passw0rd!`.
 
-#### Raspberry Pi 4 WiFi support
+### Raspberry Pi 4 WiFi support
 
 Eve supports Wifi. You should add ssid (name of Wifi network) and Eve will use wifi. You will be asked for a WiFi password upon setup and first reboot. If a WiFi doesn't require password just press return button when asked for a password.
 
-So the quickstart with WiFi will look like: 
+The quickstart with WiFi will look like:
 
 ```console
 git clone https://github.com/lf-edge/eden.git
 cd eden
 make build
-eden config add default --devmodel RPi4 --ssid <Your SSID> 
+eden config add default --devmodel RPi4 --ssid <Your SSID>
 eden setup
 eden start
 ```
-
 
 ### Obtain information about EVE on SD card
 
