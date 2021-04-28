@@ -44,7 +44,8 @@ var (
 
 	eveConfigDir string
 
-	netboot bool
+	netboot   bool
+	installer bool
 )
 
 func generateScripts(in string, out string) {
@@ -160,7 +161,10 @@ var setupCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("GetDevModelByName: %s", err)
 		}
-		if netboot {
+		if netboot && installer {
+			log.Fatal("Please use netboot or installer flag, not both")
+		}
+		if netboot || installer {
 			if devModel != defaults.DefaultGeneralModel {
 				log.Fatalf("Cannot use netboot for devmodel %s, please use general instead", devModel)
 			}
@@ -360,6 +364,18 @@ var setupCmd = &cobra.Command{
 					log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/eserver/ipxe.efi.cfg). Use it to boot your EVE via network", eServerIP, eServerPort)
 					log.Infof("EVE already exists: %s", filepath.Dir(eveImageFile))
 				}
+			} else if installer {
+				if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
+					if err := utils.DownloadEveInstaller(eveDesc, eveImageFile); err != nil {
+						log.Errorf("cannot download EVE: %s", err)
+					} else {
+						log.Infof("download EVE done: %s", imageTag)
+						log.Infof(model.DiskReadyMessage(), eveImageFile)
+					}
+				} else {
+					log.Infof("download EVE done: %s", imageTag)
+					log.Infof("EVE already exists: %s", eveImageFile)
+				}
 			} else {
 				if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
 					if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
@@ -441,4 +457,5 @@ func setupInit() {
 	setupCmd.Flags().StringVar(&eveConfigDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
 
 	setupCmd.Flags().BoolVar(&netboot, "netboot", false, "Setup for use with network boot")
+	setupCmd.Flags().BoolVar(&installer, "installer", false, "Setup for create installer")
 }
