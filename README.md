@@ -66,6 +66,8 @@ You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 
 ## Quickstart
 
+Starts nginx Docker image on port 8028
+
 ```console
 git clone https://github.com/lf-edge/eden.git
 cd eden
@@ -76,8 +78,8 @@ make build-tests
 source ~/.eden/activate.sh
 ./eden start
 ./eden eve onboard
+eden pod deploy -p 8028:80 docker://nginx
 ./eden status
-EDEN_TEST=small ./eden test tests/workflow -v debug
 ```
 
 Note: Don't forget to call clean if you want to try the  installation again.
@@ -117,6 +119,10 @@ In setup files defined some functions (BASH) and aliases (TCSH) for work with co
 To deactivate this settings call `eden_deactivate` function.
 
 You may configure Bash/Zsh/Fish shell completions for Eden by command `eden utils completion`.
+
+## Eden Test Run
+
+EDEN_TEST=small ./eden test tests/workflow -v debug
 
 ## Eden Config
 
@@ -198,7 +204,7 @@ eden pod deploy -p 8028:80 docker://nginx
 
 #### Docker Image with volume
 
-If Docker image contains `Volume` annotation inside, Eden will add volumes for every of it.
+If Docker image contains `Volume` annotation inside, Eden will add volumes for every mention of volume.
 You can modify behavior with `--volume-type` flag:
 
 * choose type of volume (`qcow2`, `raw` or `oci`)
@@ -233,7 +239,7 @@ eden will do the following:
 
 1. Check if the image is in your local docker image cache, i.e. `docker image ls`.
 If it is, load it into the local registry and done.
-1. If it is not, try to pull it from the remote registry via `docker pull`.
+2. If it is not there, try to pull it from the remote registry via `docker pull`.
 Once that is done, it will load it into the local registry.
 
 #### VM Image
