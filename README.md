@@ -243,7 +243,7 @@ If it is, load it into the local registry and done.
 2. If it is not there, try to pull it from the remote registry via `docker pull`.
 Once that is done, it will load it into the local registry.
 
-#### VM Image with SSH access,
+#### VM Image with SSH access
 
 Deploy a VM with Ubuntu 20.10 . Initialize `ubuntu` user with password `passw0rd`.
 Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
@@ -251,6 +251,7 @@ Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
 ```console
 eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-amd64.img -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
 ```
+
 You will be able to ssh into the image via EVE-IP and port 8027 and do whatever you'd like to
 `ssh ubuntu@EVE-IP -p 8027`
 
@@ -272,11 +273,11 @@ or wrapped in a container. All formats from
 eden pod deploy docker://some/image:container-tag --format=qcow2
 ```
 
-####  Deal with multiple network interfaces. Expose the pod on a specific network. 
+#### Deal with multiple network interfaces. Expose the pod on a specific network
 
-Eve is listening on all interfaces connected. Docker/VM can only be exposed on one. By default it's the first interface (eth0). If you want to expose on the selected inteface you need to set up a network and then use this network upon the deploy. 
+Eve is listening on all interfaces connected. Docker/VM can only be exposed on one. By default it's the first interface (eth0). If you want to expose on the selected interface you need to set up a network and then use this network upon the deploy.
 
-Here eth1 is added to network n2 and then a pod is exposed on this network. 
+Here eth1 is added to network n2 and then a pod is exposed on this network.
 
 ```console
 eden network create 10.11.13.0/24 -n n2 --uplink eth1 
