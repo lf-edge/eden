@@ -115,7 +115,7 @@ func StatusRedis() (status string, err error) {
 
 //StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 //if adamForce is set, it recreates container
-func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, opts ...string) (err error) {
+func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, apiV1 bool, opts ...string) (err error) {
 	edenHome, err := utils.DefaultEdenDir()
 	if err != nil {
 		return err
@@ -134,6 +134,33 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	envs := []string{
 		fmt.Sprintf("SERVER_CERT=%s", cert),
 		fmt.Sprintf("SERVER_KEY=%s", key),
+	}
+	if !apiV1 {
+		signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
+		signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
+		signingCert, err := ioutil.ReadFile(signingCertPath)
+		if err != nil {
+			return fmt.Errorf("StartAdam: cannot load %s: %s", signingCertPath, err)
+		}
+		signingKey, err := ioutil.ReadFile(signingKeyPath)
+		if err != nil {
+			return fmt.Errorf("StartAdam: cannot load %s: %s", signingKeyPath, err)
+		}
+		envs = append(envs, fmt.Sprintf("SIGNING_CERT=%s", signingCert))
+		envs = append(envs, fmt.Sprintf("SIGNING_KEY=%s", signingKey))
+
+		encryptCertPath := filepath.Join(globalCertsDir, "encrypt.pem")
+		encryptKeyPath := filepath.Join(globalCertsDir, "encrypt-key.pem")
+		encryptCert, err := ioutil.ReadFile(encryptCertPath)
+		if err != nil {
+			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptCertPath, err)
+		}
+		encryptKey, err := ioutil.ReadFile(encryptKeyPath)
+		if err != nil {
+			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptKeyPath, err)
+		}
+		envs = append(envs, fmt.Sprintf("ENCRYPT_CERT=%s", encryptCert))
+		envs = append(envs, fmt.Sprintf("ENCRYPT_KEY=%s", encryptKey))
 	}
 	portMap := map[string]string{"8080": strconv.Itoa(adamPort)}
 	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
@@ -359,9 +386,8 @@ func StatusEServer() (status string, err error) {
 	return state, nil
 }
 
-
 //GenerateEveCerts function generates certs for EVE
-func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, password string) (err error) {
+func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, password string, apiV1 bool) (err error) {
 	model, err := models.GetDevModelByName(devModel)
 	if err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
@@ -404,16 +430,38 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 	if _, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
 		log.Debug("generating Adam cert and key")
 		ips := []net.IP{net.ParseIP(ip), net.ParseIP(eveIP), net.ParseIP("127.0.0.1")}
-		ServerCert, ServerKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(1), ips, []string{domain}, domain)
+		ServerCert, ServerKey := utils.GenServerCertElliptic(rootCert, rootKey, big.NewInt(1), ips, []string{domain}, domain)
 		if err := utils.WriteToFiles(ServerCert, ServerKey, serverCertPath, serverKeyPath); err != nil {
 			return fmt.Errorf("GenerateEveCerts: %s", err)
+		}
+	}
+	if !apiV1 {
+		signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
+		signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
+		if _, err := tls.LoadX509KeyPair(signingCertPath, signingKeyPath); err != nil {
+			log.Debug("generating Adam signing cert and key")
+			ips := []net.IP{net.ParseIP(ip), net.ParseIP(eveIP), net.ParseIP("127.0.0.1")}
+			signingCert, signingKey := utils.GenServerCertElliptic(rootCert, rootKey, big.NewInt(1), ips, []string{domain}, domain)
+			if err := utils.WriteToFiles(signingCert, signingKey, signingCertPath, signingKeyPath); err != nil {
+				return fmt.Errorf("GenerateEveCerts signing: %s", err)
+			}
+		}
+		encryptCertPath := filepath.Join(globalCertsDir, "encrypt.pem")
+		encryptKeyPath := filepath.Join(globalCertsDir, "encrypt-key.pem")
+		if _, err := tls.LoadX509KeyPair(encryptCertPath, encryptKeyPath); err != nil {
+			log.Debug("generating Adam encrypt cert and key")
+			ips := []net.IP{net.ParseIP(ip), net.ParseIP(eveIP), net.ParseIP("127.0.0.1")}
+			encryptCert, encryptKey := utils.GenServerCertElliptic(rootCert, rootKey, big.NewInt(1), ips, []string{domain}, domain)
+			if err := utils.WriteToFiles(encryptCert, encryptKey, encryptCertPath, encryptKeyPath); err != nil {
+				return fmt.Errorf("GenerateEveCerts signing: %s", err)
+			}
 		}
 	}
 	log.Debug("generating EVE cert and key")
 	if err := utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
 	}
-	ClientCert, ClientKey := utils.GenServerCert(rootCert, rootKey, big.NewInt(2), nil, nil, uuid)
+	ClientCert, ClientKey := utils.GenServerCertElliptic(rootCert, rootKey, big.NewInt(2), nil, nil, uuid)
 	log.Debug("saving files")
 	if err := utils.WriteToFiles(ClientCert, ClientKey, filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(certsDir, "onboard.key.pem")); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)

@@ -39,7 +39,7 @@ require (
 	github.com/lf-edge/adam v0.0.0-20201209042112-7d1fa049e66b
 	github.com/lf-edge/eden/eserver v0.0.0-20201210161141-8551a3b0751b
 	github.com/lf-edge/edge-containers v0.0.0-20201111200732-5491ea93dbe4
-	github.com/lf-edge/eve/api/go v0.0.0-20210401091403-103bd43f7582
+	github.com/lf-edge/eve/api/go v0.0.0-20210427073226-3906e7ddff44
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
@@ -67,7 +67,7 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.4.0
-	gotest.tools/gotestsum v1.6.3 // indirect
+	gotest.tools/gotestsum v1.6.4 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
 

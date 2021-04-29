@@ -191,6 +191,11 @@ func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 	return adam.getObj(path.Join("/admin/device", devUUID.String(), "config"))
 }
 
+//CertsGet get attest certs for devID
+func (adam *Ctx) CertsGet(devUUID uuid.UUID) (out string, err error) {
+	return adam.getObj(path.Join("/admin/device", devUUID.String(), "certs"))
+}
+
 //RequestLastCallback check request by pattern from existence files with callback
 func (adam *Ctx) RequestLastCallback(devUUID uuid.UUID, q map[string]string, handler erequest.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
