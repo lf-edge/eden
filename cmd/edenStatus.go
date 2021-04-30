@@ -9,7 +9,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
-	"github.com/lf-edge/adam/pkg/server"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/eve"
@@ -36,8 +36,8 @@ func eveLastRequests() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var lastRequest *server.ApiRequest
-	var handleRequest = func(request *server.ApiRequest) bool {
+	var lastRequest *types.APIRequest
+	var handleRequest = func(request *types.APIRequest) bool {
 		if request.ClientIP != "" {
 			lastRequest = request
 		}

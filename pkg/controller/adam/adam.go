@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lf-edge/adam/pkg/server"
-	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
@@ -161,7 +159,7 @@ func (adam *Ctx) Register(device *device.Ctx) error {
 		return err
 	}
 
-	objToSend := server.OnboardCert{
+	objToSend := types.OnboardCert{
 		Cert:   b,
 		Serial: device.GetSerial(),
 	}
@@ -264,7 +262,7 @@ func (adam *Ctx) DeviceRemove(devUUID uuid.UUID) (err error) {
 
 //DeviceGetOnboard get device onboardUUID for devUUID
 func (adam *Ctx) DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error) {
-	var devCert server.DeviceCert
+	var devCert types.DeviceCert
 	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String()))
 	if err != nil {
 		return uuid.Nil, err
@@ -272,7 +270,7 @@ func (adam *Ctx) DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err
 	if err = json.Unmarshal([]byte(devInfo), &devCert); err != nil {
 		return uuid.Nil, err
 	}
-	cert, err := x509.ParseCert(devCert.Onboard)
+	cert, err := utils.ParseFirstCertFromBlock(devCert.Onboard)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -290,7 +288,7 @@ func (adam *Ctx) DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err erro
 		log.Printf("error reading cert file %s: %v", eveCert, err)
 		return uuid.Nil, err
 	}
-	cert, err := x509.ParseCert(b)
+	cert, err := utils.ParseFirstCertFromBlock(b)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -324,12 +322,12 @@ func (adam *Ctx) DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, 
 }
 
 //GetDeviceCert gets deviceCert contains certificates and serial
-func (adam *Ctx) GetDeviceCert(device *device.Ctx) (deviceCert *server.DeviceCert, err error) {
+func (adam *Ctx) GetDeviceCert(device *device.Ctx) (deviceCert *types.DeviceCert, err error) {
 	devInfo, err := adam.getObj(path.Join("/admin/device", device.GetID().String()))
 	if err != nil {
 		return nil, err
 	}
-	var devCert server.DeviceCert
+	var devCert types.DeviceCert
 	if err = json.Unmarshal([]byte(devInfo), &devCert); err != nil {
 		return nil, err
 	}
@@ -337,7 +335,7 @@ func (adam *Ctx) GetDeviceCert(device *device.Ctx) (deviceCert *server.DeviceCer
 }
 
 //UploadDeviceCert upload deviceCert into Adam
-func (adam *Ctx) UploadDeviceCert(deviceCert server.DeviceCert) error {
+func (adam *Ctx) UploadDeviceCert(deviceCert types.DeviceCert) error {
 	body, err := json.Marshal(deviceCert)
 	if err != nil {
 		return err

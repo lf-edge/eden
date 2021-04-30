@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lf-edge/adam/pkg/server"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -182,7 +182,7 @@ var importCmd = &cobra.Command{
 				if err != nil {
 					log.Warn(err)
 				}
-				dc := server.DeviceCert{
+				dc := types.DeviceCert{
 					Cert:   deviceCert,
 					Serial: ctrl.GetVars().EveSerial,
 				}

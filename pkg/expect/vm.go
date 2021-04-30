@@ -1,7 +1,6 @@
 package expect
 
 import (
-	"encoding/base64"
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 )
@@ -20,10 +19,10 @@ func (exp *AppExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.
 			Maxmem: exp.mem,
 			Vcpus:  exp.cpu,
 		},
-		UserData:    base64.StdEncoding.EncodeToString([]byte(exp.metadata)),
 		Activate:    true,
 		Displayname: exp.appName,
 	}
+	exp.applyUserData(app)
 	app.Fixedresources.VirtualizationMode = exp.virtualizationMode
 	maxSizeBytes := img.SizeBytes
 	if exp.diskSize > 0 {
