@@ -2,8 +2,10 @@ package expect
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
@@ -45,20 +47,54 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 		return nil, fmt.Errorf("not supported appType")
 	}
 	for _, d := range exp.disks {
-		tempExp := AppExpectationFromURL(exp.ctrl, exp.device, d, "")
-		tempExp.imageFormat = string(exp.volumesType)
+		mountPoint := ""
+		proccessedLink := d
+		splitLink := strings.SplitN(d, ":", 2)
+		if len(splitLink) == 2 {
+			if strings.HasPrefix(splitLink[0], "/") {
+				log.Printf("will use volume [%s] at mount point [%s]", splitLink[1], splitLink[0])
+				mountPoint = splitLink[0]
+				proccessedLink = splitLink[1]
+				//remove existing elements with the same mount point to overwrite
+				utils.DelEleInSliceByFunction(&bundle.appInstanceConfig.VolumeRefList, func(i interface{}) bool {
+					if i.(*config.VolumeRef).MountDir == mountPoint {
+						utils.DelEleInSliceByFunction(&bundle.volumes, func(v interface{}) bool {
+							return v.(*config.Volume).Uuid == i.(*config.VolumeRef).Uuid
+						})
+						return true
+					}
+					return false
+				})
+			}
+		}
+		tempExp := AppExpectationFromURL(exp.ctrl, exp.device, proccessedLink, "")
+		if tempExp.appType != dockerApp {
+			//we should not overwrite type for docker
+			tempExp.imageFormat = string(exp.volumesType)
+		}
 		image := tempExp.Image()
 		if image != nil {
 			drive := &config.Drive{
 				Image:        image,
-				Maxsizebytes: defaults.DefaultVolumeSize,
+				Maxsizebytes: exp.volumeSize,
 			}
 			ind := len(bundle.volumes)
-			contentTree := exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
-			bundle.contentTrees = append(bundle.contentTrees, contentTree)
+			toAppend := true
+			var contentTree *config.ContentTree
+			for _, ct := range bundle.contentTrees {
+				if ct.URL == image.Name && ct.Sha256 == image.Sha256 {
+					//skip append of existent ContentTree
+					toAppend = false
+					contentTree = ct
+				}
+			}
+			if toAppend {
+				contentTree = exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
+				bundle.contentTrees = append(bundle.contentTrees, contentTree)
+			}
 			volume := exp.driveToVolume(drive, ind+1, contentTree)
 			bundle.volumes = append(bundle.volumes, volume)
-			bundle.appInstanceConfig.VolumeRefList = append(bundle.appInstanceConfig.VolumeRefList, &config.VolumeRef{Uuid: volume.Uuid})
+			bundle.appInstanceConfig.VolumeRefList = append(bundle.appInstanceConfig.VolumeRefList, &config.VolumeRef{Uuid: volume.Uuid, MountDir: mountPoint})
 		}
 	}
 	if exp.virtualizationMode == config.VmMode_PV {

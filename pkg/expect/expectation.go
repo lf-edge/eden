@@ -54,6 +54,7 @@ type AppExpectation struct {
 	device *device.Ctx
 
 	volumesType VolumeType
+	volumeSize  int64
 
 	registry string
 

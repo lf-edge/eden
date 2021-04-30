@@ -35,6 +35,8 @@ var (
 	appCpus     uint32
 	appMemory   string
 	diskSize    string
+	volumes     []string
+	volumeSize  string
 	imageFormat string
 	volumeType  string
 	acl         []string
@@ -112,6 +114,11 @@ var podDeployCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		opts = append(opts, expect.WithDiskSize(int64(diskSizeParsed)))
+		volumeSizeParsed, err := humanize.ParseBytes(volumeSize)
+		if err != nil {
+			log.Fatal(err)
+		}
+		opts = append(opts, expect.WithVolumeSize(int64(volumeSizeParsed)))
 		appMemoryParsed, err := humanize.ParseBytes(appMemory)
 		if err != nil {
 			log.Fatal(err)
@@ -128,7 +135,7 @@ var podDeployCmd = &cobra.Command{
 		if !sftpLoad {
 			opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
 		}
-		opts = append(opts, expect.WithAdditionalDisks(disks))
+		opts = append(opts, expect.WithAdditionalDisks(append(disks, volumes...)))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -463,7 +470,9 @@ func podInit() {
 	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
-	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, "Additional disks to use")
+	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
+	podDeployCmd.Flags().StringSliceVar(&volumes, "volume", nil, `Additional volumes to use. You can write it in notation <link> or <mount point>:<link>.`)
+	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
 	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
 You can set acl for particular network in format '<network_name:acl>'
 To remove acls you can set empty line '<network_name>:'`)

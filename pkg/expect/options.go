@@ -129,6 +129,13 @@ func WithDiskSize(diskSizeBytes int64) ExpectationOption {
 	}
 }
 
+//WithVolumeSize set volume size for created app
+func WithVolumeSize(volumeSizeBytes int64) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.volumeSize = volumeSizeBytes
+	}
+}
+
 //WithResources sets cpu count and memory for app
 func WithResources(cpus uint32, memory uint32) ExpectationOption {
 	return func(expectation *AppExpectation) {
