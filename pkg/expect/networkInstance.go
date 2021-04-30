@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
@@ -125,13 +126,18 @@ func (exp *AppExpectation) NetworkInstances() (networkInstances map[*NetInstance
 func parseACE(inp string) *config.ACE {
 	//set default to host
 	aclType := "host"
-	if _, _, err := net.ParseCIDR(inp); err == nil {
-		//check if it is subnet
-		aclType = "ip"
+	if inp == defaults.DefaultHostOnlyNotation {
+		//special case for host only acl
+		inp = ""
 	} else {
-		if ip := net.ParseIP(inp); ip != nil {
-			//check if it is ip
+		if _, _, err := net.ParseCIDR(inp); err == nil {
+			//check if it is subnet
 			aclType = "ip"
+		} else {
+			if ip := net.ParseIP(inp); ip != nil {
+				//check if it is ip
+				aclType = "ip"
+			}
 		}
 	}
 	return &config.ACE{
@@ -167,10 +173,17 @@ func (exp *AppExpectation) getAcls(ni *NetInstanceExpectation) []*config.ACE {
 		}
 	} else {
 		// allow access to all addresses
+		aclType := "ip"
+		aclValue := "0.0.0.0/0"
+		if val, ok := exp.acl[""]; ok && val[0] == defaults.DefaultHostOnlyNotation {
+			//special case for host only acl
+			aclType = "host"
+			aclValue = ""
+		}
 		acls = append(acls, &config.ACE{
 			Matches: []*config.ACEMatch{{
-				Type:  "ip",
-				Value: "0.0.0.0/0",
+				Type:  aclType,
+				Value: aclValue,
 			}},
 			Id: aclID,
 		})

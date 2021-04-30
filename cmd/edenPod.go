@@ -120,7 +120,7 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		if aclOnlyHost {
-			opts = append(opts, expect.WithACL(map[string][]string{"": {""}}))
+			opts = append(opts, expect.WithACL(map[string][]string{"": {defaults.DefaultHostOnlyNotation}}))
 		} else {
 			opts = append(opts, expect.WithACL(processAcls(acl)))
 		}

@@ -111,7 +111,8 @@ const (
 	DefaultQemuAccelLinuxAmd64 = "-machine q35,accel=kvm,dump-guest-core=off,kernel-irqchip=split -cpu host,invtsc=on,kvmclock=off -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
 	DefaultQemuAccelLinuxArm64 = "-machine virt,accel=kvm -cpu=host "
 
-	DefaultAppSubnet = "10.11.12.0/24"
+	DefaultAppSubnet        = "10.11.12.0/24"
+	DefaultHostOnlyNotation = "host-only-acl"
 
 	DefaultQemuModel = "ZedVirtual-4G"
 
