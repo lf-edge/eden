@@ -5,7 +5,10 @@
   "attr": {
     "memory": "4G",
     "storage": "56G",
-    "Cpus": "4"
+    "Cpus": "4",
+    "hsm": 0,
+    "leds": 3,
+    "watchdog": true
   },
   "logo": {
     "logo_front": "/workspace/spec/logo_front_APU-2.png",
