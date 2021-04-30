@@ -76,6 +76,22 @@ func (desc UEFIDescription) image(latest bool) (string, error) {
 	return fmt.Sprintf("%s/eve-uefi:%s-%s", desc.Registry, desc.Tag, desc.Arch), nil
 }
 
+//DownloadEveInstaller pulls EVE installer image from docker
+func DownloadEveInstaller(eve EVEDescription, outputFile string) (err error) {
+	image, err := eve.Image()
+	if err != nil {
+		return err
+	}
+	fileName, err := genEVEInstallerImage(image, filepath.Dir(outputFile), eve.ConfigPath)
+	if err != nil {
+		return fmt.Errorf("genEVEImage: %s", err)
+	}
+	if err = CopyFile(fileName, outputFile); err != nil {
+		return fmt.Errorf("cannot copy image %s", err)
+	}
+	return nil
+}
+
 //DownloadEveLive pulls EVE live image from docker
 func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string) (err error) {
 	efiImage, err := uefi.image(false) //download OVMF
@@ -156,6 +172,25 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 		return fmt.Errorf("cannot copy image %s", err)
 	}
 	return nil
+}
+
+//genEVEInstallerImage downloads EVE installer image from docker to outputDir with configDir (if defined)
+func genEVEInstallerImage(image, outputDir string, configDir string) (fileName string, err error) {
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return "", err
+	}
+	volumeMap := map[string]string{"/out": outputDir}
+	if configDir != "" {
+		volumeMap = map[string]string{"/in": configDir, "/out": outputDir}
+	}
+	fileName = filepath.Join(outputDir, "installer.raw")
+	dockerCommand := "-f raw installer_raw"
+	u, err := RunDockerCommand(image, dockerCommand, volumeMap)
+	if err != nil {
+		return "", err
+	}
+	log.Debug(u)
+	return fileName, nil
 }
 
 //genEVELiveImage downloads EVE live image from docker to outputDir with configDir (if defined)
