@@ -5,7 +5,10 @@
     "attr": {
     "memory": "4G",
     "storage": "16G",
-    "Cpus": "4"
+    "Cpus": "4",
+    "hsm": 0,
+    "leds": 1,
+    "watchdog": true
     },
     "logo": {
         "logo_front": "/workspace/spec/logo_front_RPi4.png"
