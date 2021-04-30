@@ -8,11 +8,11 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/lf-edge/eden/pkg/eden"
-
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
@@ -217,8 +217,34 @@ var statusEveCmd = &cobra.Command{
 }
 
 func getEVEIP() string {
-	if !eveRemote && runtime.GOOS == "darwin" {
-		return "127.0.0.1"
+	if runtime.GOOS == "darwin" {
+		if !eveRemote {
+			return "127.0.0.1"
+		}
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Errorf("getControllerAndDev: %s", err)
+			return ""
+		}
+		eveState := eve.Init(ctrl, dev)
+		if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
+			log.Errorf("Fail in get InfoLastCallback: %s", err)
+		}
+		if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
+			log.Errorf("Fail in get InfoLastCallback: %s", err)
+		}
+		if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
+			var ips []string
+			for _, nw := range lastDInfo.Network {
+				ips = append(ips, nw.IPAddrs...)
+			}
+			if len(ips) == 0 {
+				return ""
+			}
+			return ips[0]
+		}
+		return ""
 	}
 	if ip, err := eveLastRequests(); err == nil && ip != "" {
 		return ip
