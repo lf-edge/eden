@@ -206,3 +206,10 @@ func WithAdditionalDisks(disks []string) ExpectationOption {
 		expectation.disks = disks
 	}
 }
+
+//WithOpenStackMetadata use openstackMetadata for VM
+func WithOpenStackMetadata(openStackMetadata bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.openStackMetadata = openStackMetadata
+	}
+}

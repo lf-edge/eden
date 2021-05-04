@@ -65,6 +65,8 @@ type AppExpectation struct {
 
 	disks []string
 	acl   map[string][]string // networkInstanceName -> acls
+
+	openStackMetadata bool
 }
 
 //AppExpectationFromURL init AppExpectation with defined:
