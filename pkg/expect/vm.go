@@ -22,6 +22,9 @@ func (exp *AppExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.
 		Activate:    true,
 		Displayname: exp.appName,
 	}
+	if exp.openStackMetadata {
+		app.MetaDataType = config.MetaDataType_MetaDataOpenStack
+	}
 	exp.applyUserData(app)
 	app.Fixedresources.VirtualizationMode = exp.virtualizationMode
 	maxSizeBytes := img.SizeBytes
