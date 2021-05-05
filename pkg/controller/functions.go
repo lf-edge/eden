@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lf-edge/adam/pkg/x509"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/models"
@@ -66,7 +65,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 			log.Printf("error reading cert file %s: %v", node.GetOnboardKey(), err)
 			return err
 		}
-		cert, err := x509.ParseCert(b)
+		cert, err := utils.ParseFirstCertFromBlock(b)
 		if err != nil {
 			return err
 		}

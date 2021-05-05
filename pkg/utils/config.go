@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -16,6 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+var viperAccessMutex sync.RWMutex
 
 //ConfigVars struct with parameters from config file
 type ConfigVars struct {
@@ -83,6 +86,7 @@ func InitVars() (*ConfigVars, error) {
 			}
 		}
 		caCertPath := filepath.Join(globalCertsDir, "root-certificate.pem")
+		viperAccessMutex.RLock()
 		var vars = &ConfigVars{
 			AdamIP:            viper.GetString("adam.ip"),
 			AdamPort:          viper.GetString("adam.port"),
@@ -121,6 +125,7 @@ func InitVars() (*ConfigVars, error) {
 			LogLevel:          viper.GetString("eve.log-level"),
 			AdamLogLevel:      viper.GetString("eve.adam-log-level"),
 		}
+		viperAccessMutex.RUnlock()
 		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
 		pwd, err := ioutil.ReadFile(redisPasswordFile)
 		if err == nil {
@@ -183,7 +188,7 @@ func loadConfigFile(config string, local bool) (loaded bool, err error) {
 		}
 		contextFile := context.GetCurrentConfig()
 		if config != contextFile {
-			loaded, err := LoadConfigFile(contextFile)
+			loaded, err := loadConfigFile(contextFile, true)
 			if err != nil {
 				return loaded, err
 			}
@@ -227,11 +232,15 @@ func loadConfigFile(config string, local bool) (loaded bool, err error) {
 
 //LoadConfigFile load config from file with viper
 func LoadConfigFile(config string) (loaded bool, err error) {
+	viperAccessMutex.Lock()
+	defer viperAccessMutex.Unlock()
 	return loadConfigFile(config, true)
 }
 
 //LoadConfigFileContext load config from context file with viper
 func LoadConfigFileContext(config string) (loaded bool, err error) {
+	viperAccessMutex.Lock()
+	defer viperAccessMutex.Unlock()
 	return loadConfigFile(config, false)
 }
 
@@ -304,7 +313,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "adam.remote.redis":
 			return true
 		case "adam.v1":
-			return true
+			return false
 		case "adam.caching.enabled":
 			return false
 		case "adam.caching.redis":

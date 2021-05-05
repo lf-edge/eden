@@ -82,14 +82,6 @@ func (ctx *DevModelGeneral) DevModelType() string {
 	return string(devModelTypeGeneral)
 }
 
-//GetFirstAdapterForSwitches return first adapter available for switch networkInstance
-func (ctx *DevModelGeneral) GetFirstAdapterForSwitches() string {
-	if len(ctx.adapterForSwitches) > 0 {
-		return ctx.adapterForSwitches[0]
-	}
-	return "uplink"
-}
-
 func createGeneral() (DevModel, error) {
 	return &DevModelGeneral{
 		physicalIOs:        generatePhysicalIOs(2, 0, 0),

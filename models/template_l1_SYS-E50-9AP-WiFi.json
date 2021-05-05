@@ -3,7 +3,10 @@
   "attr": {
     "memory": "4G",
     "storage": "30G",
-    "Cpus": "4"
+    "Cpus": "4",
+    "hsm": 2,
+    "leds": 0,
+    "watchdog": true
   },
   "logo": {
     "logo_back": "/workspace/spec/logo_back_SYS-E50-9AP-WiFi.png",
