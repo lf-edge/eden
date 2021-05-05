@@ -48,7 +48,7 @@
           "PciLong": "0000:00:15.0"
       },
       "logicallabel": "wwan0",
-      "cost": 0,
+      "cost": 10,
       "usagePolicy": {}
     },
     {
@@ -60,7 +60,7 @@
           "PciLong": "0000:00:15.0"
       },
       "logicallabel": "wwan1",
-      "cost": 0,
+      "cost": 10,
       "usagePolicy": {}
     },
     {

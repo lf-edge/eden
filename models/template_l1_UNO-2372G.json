@@ -60,7 +60,7 @@
     {
       "usage": 1,
       "logicallabel": "wwan0",
-      "cost": 0,
+      "cost": 10,
       "cbattr": null,
       "ztype": 6,
       "phylabel": "wwan0",
