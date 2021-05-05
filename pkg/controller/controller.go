@@ -3,7 +3,6 @@ package controller
 import (
 	"time"
 
-	"github.com/lf-edge/adam/pkg/server"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -17,6 +16,7 @@ import (
 
 //Controller is an interface of controller
 type Controller interface {
+	CertsGet(devUUID uuid.UUID) (out string, err error)
 	ConfigGet(devUUID uuid.UUID) (out string, err error)
 	ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error)
 	LogAppsChecker(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc, mode eapps.LogCheckerMode, timeout time.Duration) (err error)
@@ -32,8 +32,8 @@ type Controller interface {
 	DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err error)
 	DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, err error)
 	DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error)
-	GetDeviceCert(device *device.Ctx) (*server.DeviceCert, error)
-	UploadDeviceCert(server.DeviceCert) error
+	GetDeviceCert(device *device.Ctx) (*types.DeviceCert, error)
+	UploadDeviceCert(types.DeviceCert) error
 	OnboardRemove(onboardUUID string) (err error)
 	DeviceRemove(devUUID uuid.UUID) (err error)
 	Register(device *device.Ctx) error

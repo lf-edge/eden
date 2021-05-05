@@ -1,0 +1,97 @@
+{
+  "arch": 4,
+  "productURL": "https://www.nexcom.com/Products/multi-media-solutions/digital-signage-player/value-player/digital-signage-player-ndis-b116",
+  "productStatus": "production",
+  "attr": {
+    "memory": "1G",
+    "storage": "18G",
+    "Cpus": "6",
+    "watchdog": true,
+    "hsm": 0,
+    "leds": 1
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_Nexcom-B116.png",
+    "logo_front":"/workspace/spec/logo_front_Nexcom-B116.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB1",
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB2",
+      "assigngrp": "USB2",
+      "logicallabel": "USB2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Serial": "/dev/ttyUSB0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Serial": "/dev/ttyUSB1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM3",
+      "assigngrp": "COM3",
+      "phyaddrs": {
+        "Serial": "/dev/ttyUSB2"
+      },
+      "logicallabel": "COM3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM4",
+      "assigngrp": "COM4",
+      "phyaddrs": {
+        "Serial": "/dev/ttyUSB3"
+      },
+      "logicallabel": "COM4",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth1"
+      }
+    }
+  ]
+}

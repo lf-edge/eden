@@ -1,21 +1,24 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
+	"log"
+	"net"
+	"os"
+	"time"
+
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"math/big"
-	"net"
-	"os"
-	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 )
@@ -72,35 +75,6 @@ func GenCARoot() (*x509.Certificate, *rsa.PrivateKey) {
 	}
 	rootCert := genCert(&rootTemplate, &rootTemplate, &priv.PublicKey, priv)
 	return rootCert, priv
-}
-
-//GenServerCert cert gen
-func GenServerCert(cert *x509.Certificate, key *rsa.PrivateKey, serial *big.Int, ip []net.IP, dns []string, CN string) (*x509.Certificate, *rsa.PrivateKey) {
-	priv, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		panic(err)
-	}
-
-	var ServerTemplate = x509.Certificate{
-		SerialNumber:   serial,
-		NotBefore:      time.Now().Add(-10 * time.Second),
-		NotAfter:       time.Now().AddDate(10, 0, 0),
-		KeyUsage:       x509.KeyUsageCRLSign,
-		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IsCA:           false,
-		MaxPathLenZero: true,
-		IPAddresses:    ip,
-		DNSNames:       dns,
-		Subject: pkix.Name{
-			Country:      []string{defaults.DefaultX509Country},
-			Organization: []string{defaults.DefaultX509Company},
-			CommonName:   CN,
-		},
-	}
-
-	ServerCert := genCert(&ServerTemplate, cert, &priv.PublicKey, key)
-	return ServerCert, priv
-
 }
 
 //GenServerCertElliptic elliptic cert
@@ -186,8 +160,7 @@ func ParseCertificate(certFile string) (*x509.Certificate, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot read file with certificate: %s", err)
 	}
-	pemBlock, _ := pem.Decode(cert)
-	return x509.ParseCertificate(pemBlock.Bytes)
+	return ParseFirstCertFromBlock(cert)
 }
 
 // ParsePrivateKey from file
@@ -206,4 +179,158 @@ func ParsePrivateKey(keyFile string) (*rsa.PrivateKey, error) {
 		return nil, fmt.Errorf("cannot parse private key: wrong type")
 	}
 	return privateKey, nil
+}
+
+//ParseFirstCertFromBlock process provided certificate date
+func ParseFirstCertFromBlock(b []byte) (*x509.Certificate, error) {
+	certs, err := parseCertFromBlock(b)
+	if err != nil {
+		return nil, err
+	}
+	if len(certs) <= 0 {
+		return nil, fmt.Errorf("no certs found")
+	}
+
+	return certs[0], nil
+}
+
+func parseCertFromBlock(b []byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	for block, rest := pem.Decode(b); block != nil; block, rest = pem.Decode(rest) {
+		if block.Type == "CERTIFICATE" {
+			c, e := x509.ParseCertificates(block.Bytes)
+			if e != nil {
+				continue
+			}
+			certs = append(certs, c...)
+		}
+	}
+
+	return certs, nil
+}
+
+func parsePrivateKey(keyPEMBlock []byte, passCode string) (interface{}, error) {
+	var keyDERBlock *pem.Block
+	var err error
+
+	for len(keyPEMBlock) > 0 {
+		keyDERBlock, keyPEMBlock = pem.Decode(keyPEMBlock)
+		if keyDERBlock == nil {
+			return nil, fmt.Errorf("No valid private key found")
+		}
+		pvtKeyBytes := keyDERBlock.Bytes
+
+		if passCode != "" {
+			pvtKeyBytes, err = x509.DecryptPEMBlock(keyDERBlock, []byte(passCode))
+			if err != nil {
+				return nil, fmt.Errorf("Error while decrypting the private key block: %v", err)
+			}
+		}
+		log.Println(keyDERBlock.Type)
+		switch keyDERBlock.Type {
+		case "RSA PRIVATE KEY":
+			privatekey, pErr := x509.ParsePKCS1PrivateKey(pvtKeyBytes) //PKCS1 standard
+			if pErr != nil {
+				return nil, fmt.Errorf("Unable to parse PKCS1 private key, %v", pErr)
+			}
+			return privatekey, nil
+		case "PRIVATE KEY":
+			//privatekeyPKCS8 can be RSA, ed25519, ecdsa.
+			privatekeyPKCS8, pErr := x509.ParsePKCS8PrivateKey(pvtKeyBytes) //PKCS8 standard
+			if pErr != nil {
+				return nil, fmt.Errorf("Unable to parse PKCS8 private key, %v", pErr)
+			}
+			return privatekeyPKCS8, nil
+
+		case "EC PRIVATE KEY":
+			privateKey, err := x509.ParseECPrivateKey(pvtKeyBytes)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to parse EC private key, %v", err)
+			}
+			return privateKey, nil
+		}
+	}
+	return nil, fmt.Errorf("Unknown type of private key")
+}
+
+func ecdsakeyBytes(pubKey *ecdsa.PublicKey) (int, error) {
+	curveBits := pubKey.Curve.Params().BitSize
+	keyBytes := curveBits / 8
+	if curveBits%8 > 0 {
+		keyBytes++
+	}
+
+	if keyBytes%8 > 0 {
+		return 0, fmt.Errorf("ecdsa pubkey size error, curveBits %v", curveBits)
+	}
+	return keyBytes, nil
+}
+
+// RSCombinedBytes - combine r & s into fixed length bytes
+func rsCombinedBytes(rBytes, sBytes []byte, pubKey *ecdsa.PublicKey) ([]byte, error) {
+	keySize, err := ecdsakeyBytes(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("RSCombinedBytes: ecdsa key bytes error %v", err)
+	}
+	rsize := len(rBytes)
+	ssize := len(sBytes)
+	if rsize > keySize || ssize > keySize {
+		return nil, fmt.Errorf("RSCombinedBytes: error. keySize %v, rSize %v, sSize %v", keySize, rsize, ssize)
+	}
+
+	// basically the size is 32 bytes. the r and s needs to be both left padded to two 32 bytes slice
+	// into a single signature buffer
+	buffer := make([]byte, keySize*2)
+	startPos := keySize - rsize
+	copy(buffer[startPos:], rBytes)
+	startPos = keySize*2 - ssize
+	copy(buffer[startPos:], sBytes)
+	return buffer[:], nil
+}
+
+func sha256FromECPoint(X, Y *big.Int, pubKey *ecdsa.PublicKey) ([32]byte, error) {
+	var sha [32]byte
+	bytes, err := rsCombinedBytes(X.Bytes(), Y.Bytes(), pubKey)
+	if err != nil {
+		return sha, fmt.Errorf("Error occurred while combining bytes for ECPoints: %v", err)
+	}
+	return sha256.Sum256(bytes), nil
+}
+
+func calculateSymmetricKeyForEcdhAES(deviceCert, controllerPrivateKey []byte) ([]byte, error) {
+	//get public key of edge node.
+	devCert, pErr := ParseFirstCertFromBlock(deviceCert)
+	if pErr != nil {
+		return nil, fmt.Errorf("Error in parsing public cert: %v", pErr)
+	}
+
+	var devPublicKey *ecdsa.PublicKey
+
+	switch devCert.PublicKey.(type) {
+	case *ecdsa.PublicKey:
+		devPublicKey = devCert.PublicKey.(*ecdsa.PublicKey)
+	default:
+		return nil, fmt.Errorf("Public key type %v", "Unknown")
+	}
+
+	//get decoded private key.
+	privateKey, rErr := parsePrivateKey(controllerPrivateKey, "")
+	if rErr != nil {
+		return nil, fmt.Errorf("Error in reading private key: %v", rErr)
+	}
+
+	var X, Y *big.Int
+	switch privateKey := privateKey.(type) {
+	case *ecdsa.PrivateKey:
+		//multiply privateKey key with devPublic key.
+		X, Y = elliptic.P256().Params().ScalarMult(devPublicKey.X, devPublicKey.Y, privateKey.D.Bytes())
+	default:
+		return nil, fmt.Errorf("unknown type of controller private key: %v", privateKey)
+	}
+
+	symmetricKey, err := sha256FromECPoint(X, Y, devPublicKey)
+	if err != nil {
+		return nil, err
+	}
+	return symmetricKey[:], nil
 }

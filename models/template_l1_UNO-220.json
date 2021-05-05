@@ -1,0 +1,63 @@
+{
+  "arch": 4,
+  "productURL": "https://www.advantech.com/products/9a0cc561-8fc2-4e22-969c-9df90a3952b5/uno-220-p4n2/mod_92d93912-216e-4ee9-a5ed-be94a5f1eca8",
+  "productStatus": "production",
+  "attr": {
+    "memory": "8G",
+    "storage": "32G",
+    "Cpus": "4",
+    "watchdog": true,
+    "hsm": 1,
+    "leds": 1
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_UNO-220.png",
+    "logo_front":"/workspace/spec/logo_front_UNO-220.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "phyaddrs": {
+        "PciLong": "0000:01:00.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "eth0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "wlan0",
+      "logicallabel": "wlan0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "phyaddrs": {
+        "Ifname": "wlan0"
+      }
+    }
+  ]
+}

@@ -38,6 +38,7 @@ var startAdamCmd = &cobra.Command{
 			adamForce = viper.GetBool("adam.force")
 			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
 			adamRemoteRedis = viper.GetBool("adam.remote.redis")
+			apiV1 = viper.GetBool("adam.v1")
 		}
 		return nil
 	},
@@ -50,7 +51,7 @@ var startAdamCmd = &cobra.Command{
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}
-		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL, apiV1); err != nil {
 			log.Errorf("cannot start adam: %s", err)
 		} else {
 			log.Infof("Adam is running and accessible on port %d", adamPort)

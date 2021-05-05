@@ -152,5 +152,5 @@ func networkInit() {
 	networkCmd.AddCommand(networkCreateCmd)
 	networkCreateCmd.Flags().StringVar(&networkType, "type", "local", "Type of network: local or switch")
 	networkCreateCmd.Flags().StringVarP(&networkName, "name", "n", "", "Name of network (empty for auto generation)")
-	networkCreateCmd.Flags().StringVarP(&uplinkAdapter, "uplink", "u", "eth0", "Name of uplink adapter")
+	networkCreateCmd.Flags().StringVarP(&uplinkAdapter, "uplink", "u", "eth0", "Name of uplink adapter, set to 'none' to not use uplink")
 }

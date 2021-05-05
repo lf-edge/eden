@@ -51,6 +51,7 @@ var cleanCmd = &cobra.Command{
 			configSaved = utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 			eveRemote = viper.GetBool("eve.remote")
 			devModel = viper.GetString("eve.devmodel")
+			apiV1 = viper.GetBool("adam.v1")
 		}
 		return nil
 	},
@@ -63,7 +64,7 @@ var cleanCmd = &cobra.Command{
 			} else {
 				log.Infof("Redis is running and accessible on port %d", redisPort)
 			}
-			if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL); err != nil {
+			if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL, apiV1); err != nil {
 				log.Errorf("cannot start adam: %s", err)
 			} else {
 				log.Infof("Adam is running and accessible on port %d", adamPort)

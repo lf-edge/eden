@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/lf-edge/eden/pkg/controller/loaders"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -111,7 +110,7 @@ func HandleAll(le *metrics.ZMetricMsg) bool {
 //MetricPrn print Metric data
 func MetricPrn(le *metrics.ZMetricMsg) {
 	fmt.Printf("DevID: %s", le.DevID)
-	fmt.Printf("\tAtTimeStamp: %s", ptypes.TimestampString(le.AtTimeStamp))
+	fmt.Printf("\tAtTimeStamp: %s", le.AtTimeStamp.AsTime())
 	fmt.Print("\tDm: ", le.GetDm(), "\tAm: ", le.Am, "\tNm: ", le.Nm, "\tVm: ", le.Vm)
 	fmt.Println()
 }

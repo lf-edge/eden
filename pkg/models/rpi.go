@@ -146,11 +146,6 @@ func (ctx *DevModelRpi) DevModelType() string {
 	return string(devModelTypeRaspberry)
 }
 
-//GetFirstAdapterForSwitches return first adapter available for switch networkInstance
-func (ctx *DevModelRpi) GetFirstAdapterForSwitches() string {
-	return "uplink"
-}
-
 func createRpi() (DevModel, error) {
 	return &DevModelRpi{
 		physicalIOs: generatePhysicalIOs(1, 1, 0),

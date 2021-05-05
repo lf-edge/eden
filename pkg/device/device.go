@@ -1,8 +1,10 @@
 package device
 
 import (
-	"github.com/satori/go.uuid"
 	"log"
+
+	"github.com/lf-edge/eve/api/go/config"
+	"github.com/satori/go.uuid"
 )
 
 //EdgeNodeState determinate state of EdgeNode
@@ -40,6 +42,7 @@ type Ctx struct {
 	remote                     bool
 	remoteAddr                 string
 	epoch                      int64
+	cipherContexts             []*config.CipherContext
 }
 
 //CreateEdgeNode generates EdgeNode
@@ -247,4 +250,15 @@ func (cfg *Ctx) CheckHash(newHash [32]byte) bool {
 		return true
 	}
 	return false
+}
+
+//SetCipherContexts set CipherContexts for device
+func (cfg *Ctx) SetCipherContexts(contexts []*config.CipherContext) *Ctx {
+	cfg.cipherContexts = contexts
+	return cfg
+}
+
+//GetCipherContexts get CipherContexts of device
+func (cfg *Ctx) GetCipherContexts() []*config.CipherContext {
+	return cfg.cipherContexts
 }

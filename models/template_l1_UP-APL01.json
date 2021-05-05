@@ -1,73 +1,70 @@
 {
   "arch": 2,
+  "productURL": "https://www.aaeon.com/en/p/iot-gateway-maker-boards-up-squared",
+  "productStatus": "production",
   "attr": {
-    "memory": "4G",
+    "memory": "2G",
     "storage": "32G",
-    "Cpus": "4"
+    "Cpus": "2",
+    "hsm": 2,
+    "leds": 4,
+    "watchdog": true
   },
   "logo": {
-    "logo_back": "/workspace/spec/logo_back_UP-APL01.png"
+    "logo_back": "/workspace/spec/logo_back_UP-APL01.png",
+    "logo_front": "/workspace/spec/logo_back_UP-APL01.png"
   },
   "ioMemberList": [
     {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "",
+      "phyaddrs": {
+        "PciLong": "0000:00:15.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
       "ztype": 1,
-      "phylabel": "eth0",
       "usage": 1,
+      "phylabel": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
       "assigngrp": "eth0",
       "phyaddrs": {
         "Ifname": "eth0",
         "PciLong": "0000:02:00.0"
-      },
-      "logicallabel": "eth0",
-      "usagePolicy": {
-        "freeUplink": true
       }
     },
     {
       "ztype": 1,
+      "usage": 1,
       "phylabel": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
       "assigngrp": "eth1",
       "phyaddrs": {
         "Ifname": "eth1",
         "PciLong": "0000:03:00.0"
-      },
-      "logicallabel": "eth1",
-      "usagePolicy": {
-        "freeUplink": true
       }
     },
     {
       "ztype": 2,
-      "phylabel": "USB0",
-      "assigngrp": "USB",
-      "phyaddrs": {
-        "PciLong": "0000:00:15.0"
-      },
-      "logicallabel": "USB0",
-      "usagePolicy": {}
-    },
-    {
-      "ztype": 2,
-      "phylabel": "USB1",
-      "assigngrp": "USB",
-      "phyaddrs": {
-        "PciLong": "0000:00:15.0"
-      },
-      "logicallabel": "USB1",
-      "usagePolicy": {}
-    },
-    {
-      "ztype": 2,
-      "phylabel": "USB2",
-      "assigngrp": "USB",
-      "phyaddrs": {
-        "PciLong": "0000:00:15.0"
-      },
-      "logicallabel": "USB2",
-      "usagePolicy": {}
-    },
-    {
-      "ztype": 4,
       "phylabel": "Audio",
       "assigngrp": "Audio",
       "phyaddrs": {

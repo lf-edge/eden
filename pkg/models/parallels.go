@@ -78,11 +78,6 @@ func (ctx *DevModelParallels) DevModelType() string {
 	return string(devModelTypeParallels)
 }
 
-//GetFirstAdapterForSwitches return first adapter available for switch networkInstance
-func (ctx *DevModelParallels) GetFirstAdapterForSwitches() string {
-	return "uplink"
-}
-
 func createParallels() (DevModel, error) {
 	return &DevModelParallels{
 		physicalIOs:        generatePhysicalIOs(2, 0, 4),
