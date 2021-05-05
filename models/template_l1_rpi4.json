@@ -70,6 +70,7 @@
         "usage": 1,
         "assigngrp": "eth0-1",
         "logicallabel": "eth0",
+        "cost": 0,
         "usagePolicy": {
             "freeUplink": true
         }
@@ -80,6 +81,7 @@
         "usage": 1,
         "assigngrp": "wlan0-1",
         "logicallabel": "wlan0",
+        "cost": 0,
         "usagePolicy": {
             "freeUplink": true
         }

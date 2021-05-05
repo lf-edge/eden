@@ -72,6 +72,7 @@
       "phylabel": "eth0",
       "assigngrp": "eth0",
       "logicallabel": "eth0",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
@@ -86,6 +87,7 @@
       "phylabel": "eth1",
       "assigngrp": "eth1",
       "logicallabel": "eth1",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
