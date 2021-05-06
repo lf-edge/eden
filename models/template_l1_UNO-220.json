@@ -40,6 +40,7 @@
       "usage": 1,
       "phylabel": "eth0",
       "logicallabel": "eth0",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
@@ -52,6 +53,7 @@
       "usage": 1,
       "phylabel": "wlan0",
       "logicallabel": "wlan0",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },

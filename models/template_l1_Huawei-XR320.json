@@ -47,6 +47,7 @@
              "usage": 1,
              "assigngrp": "eth0",
              "logicallabel": "eth0",
+             "cost": 0,
              "usagePolicy": {
                 "freeUplink": true
              }
@@ -57,6 +58,7 @@
              "usage": 1,
              "assigngrp": "eth1",
              "logicallabel": "eth1",
+             "cost": 0,
              "usagePolicy": {
                 "freeUplink": true
              }
@@ -67,6 +69,7 @@
              "usage": 1,
              "assigngrp": "eth2",
              "logicallabel": "eth2",
+             "cost": 0,
              "usagePolicy": {
                 "freeUplink": true
              }
@@ -77,6 +80,7 @@
              "usage": 1,
              "assigngrp": "eth3",
              "logicallabel": "eth3",
+             "cost": 0,
              "usagePolicy": {
                 "freeUplink": true
              }

@@ -72,6 +72,7 @@
       "phylabel": "eth0",
       "assigngrp": "eth0",
       "logicallabel": "eth0",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
@@ -86,6 +87,7 @@
       "phylabel": "eth1",
       "assigngrp": "eth1",
       "logicallabel": "eth1",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
@@ -100,6 +102,7 @@
       "phylabel": "eth2",
       "assigngrp": "eth2",
       "logicallabel": "eth2",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
@@ -114,6 +117,7 @@
       "phylabel": "eth3",
       "assigngrp": "eth3",
       "logicallabel": "eth3",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
@@ -128,6 +132,7 @@
       "phylabel": "eth4",
       "assigngrp": "eth4",
       "logicallabel": "eth4",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
@@ -142,6 +147,7 @@
       "phylabel": "eth5",
       "assigngrp": "eth5",
       "logicallabel": "eth5",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       },
