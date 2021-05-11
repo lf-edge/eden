@@ -37,7 +37,7 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/lf-edge/eden/eserver v0.0.0-20201210161141-8551a3b0751b
 	github.com/lf-edge/edge-containers v0.0.0-20201111200732-5491ea93dbe4
-	github.com/lf-edge/eve/api/go v0.0.0-20210518050837-ad0d90303a1f
+	github.com/lf-edge/eve/api/go v0.0.0-20210527213129-76adc960648b
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee

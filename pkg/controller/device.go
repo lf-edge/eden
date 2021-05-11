@@ -181,14 +181,18 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 		dev.SetRebootCounter(config.Reboot.Counter, config.Reboot.DesiredState)
 	}
 	dev.SetEpoch(config.ControllerEpoch)
+	dev.SetGlobalProfile(config.GlobalProfile)
+	dev.SetLocalProfileServer(config.LocalProfileServer)
+	dev.SetProfileServerToken(config.ProfileServerToken)
+	dev.SetRemote(cloud.vars.EveRemote)
+	dev.SetRemoteAddr(cloud.vars.EveRemoteAddr)
+	dev.SetCipherContexts(config.CipherContexts)
+
 	res, err := cloud.GetConfigBytes(dev, false)
 	if err != nil {
 		return nil, fmt.Errorf("GetConfigBytes error: %s", err)
 	}
 	dev.CheckHash(sha256.Sum256(res))
-	dev.SetRemote(cloud.vars.EveRemote)
-	dev.SetRemoteAddr(cloud.vars.EveRemoteAddr)
-	dev.SetCipherContexts(config.CipherContexts)
 	return dev, nil
 }
 
@@ -204,6 +208,7 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 		if devConfig, err = VersionIncrement(devConfig); err != nil {
 			return fmt.Errorf("VersionIncrement error: %s", err)
 		}
+		dev.CheckHash(sha256.Sum256(devConfig))
 		if err = cloud.ConfigSet(dev.GetID(), devConfig); err != nil {
 			return err
 		}
@@ -538,22 +543,25 @@ volumeLoop:
 			Uuid:    dev.GetID().String(),
 			Version: strconv.Itoa(dev.GetConfigVersion()),
 		},
-		Volumes:           volumes,
-		ContentInfo:       contentTrees,
-		Apps:              applicationInstances,
-		Networks:          networkConfigs,
-		Datastores:        dataStores,
-		Base:              baseOS,
-		Reboot:            rebootCmd,
-		Backup:            nil,
-		ConfigItems:       configItems,
-		SystemAdapterList: systemAdapterConfigs,
-		DeviceIoList:      physicalIOs,
-		Manufacturer:      "",
-		ProductName:       dev.GetDevModel(),
-		NetworkInstances:  networkInstanceConfigs,
-		ControllerEpoch:   dev.GetEpoch(),
-		CipherContexts:    dev.GetCipherContexts(),
+		Volumes:            volumes,
+		ContentInfo:        contentTrees,
+		Apps:               applicationInstances,
+		Networks:           networkConfigs,
+		Datastores:         dataStores,
+		Base:               baseOS,
+		Reboot:             rebootCmd,
+		Backup:             nil,
+		ConfigItems:        configItems,
+		SystemAdapterList:  systemAdapterConfigs,
+		DeviceIoList:       physicalIOs,
+		Manufacturer:       "",
+		ProductName:        dev.GetDevModel(),
+		NetworkInstances:   networkInstanceConfigs,
+		ControllerEpoch:    dev.GetEpoch(),
+		CipherContexts:     dev.GetCipherContexts(),
+		GlobalProfile:      dev.GetGlobalProfile(),
+		LocalProfileServer: dev.GetLocalProfileServer(),
+		ProfileServerToken: dev.GetProfileServerToken(),
 	}
 	if pretty {
 		return json.MarshalIndent(devConfig, "", "    ")

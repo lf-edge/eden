@@ -137,6 +137,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 		})
 	}
 	bundle.appInstanceConfig.Adapters = adapters
+	bundle.appInstanceConfig.ProfileList = exp.profiles
 	return bundle, nil
 }
 

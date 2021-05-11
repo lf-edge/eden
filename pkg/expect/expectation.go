@@ -72,6 +72,7 @@ type AppExpectation struct {
 	acl   map[string][]string // networkInstanceName -> acls
 
 	openStackMetadata bool
+	profiles          []string
 }
 
 //use provided appLink to try predict format of volume

@@ -242,3 +242,10 @@ func WithOpenStackMetadata(openStackMetadata bool) ExpectationOption {
 		expectation.openStackMetadata = openStackMetadata
 	}
 }
+
+//WithProfiles set profileList for appInstance
+func WithProfiles(profiles []string) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.profiles = profiles
+	}
+}
