@@ -106,8 +106,8 @@ eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test
 eden.escript.test -testdata ../registry/testdata/ -test.run TestEdenScripts/registry_test
 {{end}}
 
-/bin/echo Eden Network test (25/{{$tests}})
-eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/test_networking
+/bin/echo Eden Networking via switch test (25/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-gapped-switch
 /bin/echo Eden 2 dockers test (26/{{$tests}})
 eden.escript.test -testdata ../docker/testdata/ -test.run TestEdenScripts/2dockers_test
 /bin/echo Eden 2 dockers test with app state detector (27/{{$tests}})

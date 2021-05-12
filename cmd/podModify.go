@@ -117,7 +117,7 @@ func podModifyInit() {
 	podCmd.AddCommand(podModifyCmd)
 	podModifyCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podModifyCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
-	podModifyCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
+	podModifyCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
 	podModifyCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
 You can set acl for particular network in format '<network_name:acl>'
 To remove acls you can set empty line '<network_name>:'`)

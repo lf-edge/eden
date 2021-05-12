@@ -17,6 +17,7 @@ import (
 
 //NetInstanceExpectation stores options for create NetworkInstanceConfigs for apps
 type NetInstanceExpectation struct {
+	mac           string
 	name          string
 	subnet        string
 	portsReceived []string
