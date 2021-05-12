@@ -103,7 +103,7 @@ func AddNetInstanceNameAndPortPublish(netInstance string, portPublish []string) 
 
 //AddNetInstanceAndPortPublish adds NetInstance with defined subnet cidr, networkType,
 //netInstanceName and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
-func AddNetInstanceAndPortPublish(subnetCidr string, networkType string, netInstanceName string, portPublish []string, uplinkAdapter string) ExpectationOption {
+func AddNetInstanceAndPortPublish(subnetCidr, networkType, netInstanceName string, portPublish []string, uplinkAdapter string) ExpectationOption {
 	return func(expectation *AppExpectation) {
 		expectation.netInstances = append(expectation.netInstances, &NetInstanceExpectation{
 			name:          netInstanceName,
@@ -126,6 +126,28 @@ func WithPortsPublish(portPublish []string) ExpectationOption {
 			}}
 		}
 		expectation.netInstances[0].portsReceived = portPublish
+	}
+}
+
+//WithStaticDNSEntries extends network configuration with static DNS entries
+//in format ["HOSTNAME:IP_ADDRESS,IP_ADDRESS,..."]
+func WithStaticDNSEntries(networkName string, dnsEntries []string) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		for _, netInstance := range expectation.netInstances {
+			if netInstance.name != networkName {
+				continue
+			}
+			netInstance.staticDNSEntries = make(map[string][]string)
+			for _, entry := range dnsEntries {
+				mapping := strings.SplitN(entry, ":", 2)
+				if len(mapping) != 2 {
+					continue
+				}
+				hostname := mapping[0]
+				ips := strings.Split(mapping[1], ",")
+				netInstance.staticDNSEntries[hostname] = ips
+			}
+		}
 	}
 }
 
