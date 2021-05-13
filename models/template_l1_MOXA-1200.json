@@ -22,6 +22,7 @@
         "PciLong": "0000:00:1f.6"
       },
       "logicallabel": "eth0",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       }
@@ -36,6 +37,7 @@
         "PciLong": "0000:01:00.0"
       },
       "logicallabel": "eth1",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       }

@@ -48,8 +48,8 @@ const (
 	DefaultRegistryPort = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "6.3.0" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.12"
+	DefaultEVETag               = "6.5.0" //DefaultEVETag tag for EVE image
+	DefaultAdamTag              = "0.0.22"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "1.2"
@@ -109,9 +109,13 @@ const (
 
 	DefaultQemuAccelDarwin     = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelLinuxAmd64 = "-machine q35,accel=kvm,dump-guest-core=off,kernel-irqchip=split -cpu host,invtsc=on,kvmclock=off -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
-	DefaultQemuAccelLinuxArm64 = "-machine virt,accel=kvm -cpu=host "
+	DefaultQemulAmd64          = "-machine q35 --cpu SandyBridge "
 
-	DefaultAppSubnet = "10.11.12.0/24"
+	DefaultQemuAccelArm64 = "-machine virt,accel=kvm,usb=off,dump-guest-core=off -cpu host "
+	DefaultQemulArm64     = "-machine virt,virtualization=true -cpu cortex-a57 "
+
+	DefaultAppSubnet        = "10.11.12.0/24"
+	DefaultHostOnlyNotation = "host-only-acl"
 
 	DefaultQemuModel = "ZedVirtual-4G"
 
@@ -138,7 +142,7 @@ const (
 
 	DefaultDummyExpect = "docker://image"
 
-	DefaultVolumeSize = 2 * 1024 * 1024 * 1024
+	DefaultVolumeSize = 200 * 1024 * 1024
 
 	DefaultEmptyVolumeLinkDocker = "docker://hello-world"
 	DefaultEmptyVolumeLinkQcow2  = "empty.qcow2"

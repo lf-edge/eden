@@ -54,6 +54,7 @@ type AppExpectation struct {
 	device *device.Ctx
 
 	volumesType VolumeType
+	volumeSize  int64
 
 	registry string
 
@@ -63,7 +64,9 @@ type AppExpectation struct {
 	sftpLoad       bool
 
 	disks []string
-	acl   []string
+	acl   map[string][]string // networkInstanceName -> acls
+
+	openStackMetadata bool
 }
 
 //AppExpectationFromURL init AppExpectation with defined:
@@ -137,7 +140,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 					if err != nil {
 						log.Fatalf("Port map port %s could not be converted to Integer", qv)
 					}
-					if portNum == extPort || (portNum + defaults.DefaultPortMapOffset) == extPort {
+					if portNum == extPort || (portNum+defaults.DefaultPortMapOffset) == extPort {
 						ni.ports[extPort] = intPort
 						continue exit
 					}

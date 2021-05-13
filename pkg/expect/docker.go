@@ -2,7 +2,6 @@ package expect
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -202,10 +201,10 @@ func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 			Maxmem: exp.mem,
 			Vcpus:  exp.cpu,
 		},
-		UserData:    base64.StdEncoding.EncodeToString([]byte(exp.metadata)),
 		Activate:    true,
 		Displayname: exp.appName,
 	}
+	exp.applyUserData(app)
 	maxSizeBytes := int64(0)
 	if exp.diskSize > 0 {
 		maxSizeBytes = exp.diskSize
@@ -221,19 +220,32 @@ func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 	volumes := []*config.Volume{volume}
 	app.VolumeRefList = []*config.VolumeRef{{MountDir: "/", Uuid: volume.Uuid}}
 
-	// we need to add volumes for every mount point
-	for ind, el := range mountPointsList {
+	if len(mountPointsList) > 0 {
+		// we need to add volumes for every mount point
 		image := exp.prepareImage()
-		if image != nil {
-			drive := &config.Drive{
-				Image:        image,
-				Maxsizebytes: defaults.DefaultVolumeSize,
+		for ind, el := range mountPointsList {
+			if image != nil {
+				drive := &config.Drive{
+					Image:        image,
+					Maxsizebytes: exp.volumeSize,
+				}
+				toAppend := true
+				var contentTree *config.ContentTree
+				for _, ct := range contentTrees {
+					if ct.URL == image.Name && ct.Sha256 == image.Sha256 {
+						//skip append of existent ContentTree
+						toAppend = false
+						contentTree = ct
+					}
+				}
+				if toAppend {
+					contentTree = exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
+					contentTrees = append(contentTrees, contentTree)
+				}
+				volume := exp.driveToVolume(drive, ind+1, contentTree)
+				volumes = append(volumes, volume)
+				app.VolumeRefList = append(app.VolumeRefList, &config.VolumeRef{MountDir: el, Uuid: volume.Uuid})
 			}
-			contentTree := exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
-			contentTrees = append(contentTrees, contentTree)
-			volume := exp.driveToVolume(drive, ind+1, contentTree)
-			volumes = append(volumes, volume)
-			app.VolumeRefList = append(app.VolumeRefList, &config.VolumeRef{MountDir: el, Uuid: volume.Uuid})
 		}
 	}
 	app.Fixedresources.VirtualizationMode = exp.virtualizationMode

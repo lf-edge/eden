@@ -82,14 +82,6 @@ func (ctx *DevModelGCP) DevModelType() string {
 	return string(devModelTypeGCP)
 }
 
-//GetFirstAdapterForSwitches return first adapter available for switch networkInstance
-func (ctx *DevModelGCP) GetFirstAdapterForSwitches() string {
-	if len(ctx.adapterForSwitches) > 0 {
-		return ctx.adapterForSwitches[0]
-	}
-	return "uplink"
-}
-
 func createGCP() (DevModel, error) {
 	return &DevModelGCP{
 		physicalIOs:        generatePhysicalIOs(1, 0, 0),

@@ -66,6 +66,9 @@ You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 
 ## Quickstart
 
+Starts nginx Dockerhib image on port 8028, so you will be able to access it via `http://<EVE IP>:8028`
+Eve Ip is displayed by `eden status` command
+
 ```console
 git clone https://github.com/lf-edge/eden.git
 cd eden
@@ -76,8 +79,8 @@ make build-tests
 source ~/.eden/activate.sh
 ./eden start
 ./eden eve onboard
+eden pod deploy -p 8028:80 docker://nginx
 ./eden status
-EDEN_TEST=small ./eden test tests/workflow -v debug
 ```
 
 Note: Don't forget to call clean if you want to try the  installation again.
@@ -117,6 +120,10 @@ In setup files defined some functions (BASH) and aliases (TCSH) for work with co
 To deactivate this settings call `eden_deactivate` function.
 
 You may configure Bash/Zsh/Fish shell completions for Eden by command `eden utils completion`.
+
+## Eden Test Run
+
+EDEN_TEST=small ./eden test tests/workflow -v debug
 
 ## Eden Config
 
@@ -198,7 +205,7 @@ eden pod deploy -p 8028:80 docker://nginx
 
 #### Docker Image with volume
 
-If Docker image contains `Volume` annotation inside, Eden will add volumes for every of it.
+If Docker image contains `Volume` annotation inside, Eden will add volumes for every mention of volume.
 You can modify behavior with `--volume-type` flag:
 
 * choose type of volume (`qcow2`, `raw` or `oci`)
@@ -233,17 +240,20 @@ eden will do the following:
 
 1. Check if the image is in your local docker image cache, i.e. `docker image ls`.
 If it is, load it into the local registry and done.
-1. If it is not, try to pull it from the remote registry via `docker pull`.
+2. If it is not there, try to pull it from the remote registry via `docker pull`.
 Once that is done, it will load it into the local registry.
 
-#### VM Image
+#### VM Image with SSH access
 
-Deploy a VM for Openstack. Initialize `ubuntu` user with password `passw0rd`.
+Deploy a VM with Ubuntu 20.10 . Initialize `ubuntu` user with password `passw0rd`.
 Expose port 22 of the VM (ssh) to port 8027 of eve for ssh:
 
 ```console
 eden pod deploy -p 8027:22 https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-amd64.img -v debug --metadata='#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n'
 ```
+
+You will be able to ssh into the image via EVE-IP and port 8027 and do whatever you'd like to
+`ssh ubuntu@EVE-IP -p 8027`
 
 Deploy a VM from a local file. This will cause the local file
 to be uploaded to the eden-deployed `eserver`, which, in turn,
@@ -261,6 +271,17 @@ or wrapped in a container. All formats from
 
 ```console
 eden pod deploy docker://some/image:container-tag --format=qcow2
+```
+
+#### Deal with multiple network interfaces. Expose the pod on a specific network
+
+Eve is listening on all interfaces connected. Docker/VM can only be exposed on one. By default it's the first interface (eth0). If you want to expose on the selected interface you need to set up a network and then use this network upon the deploy.
+
+Here eth1 is added to network n2 and then a pod is exposed on this network.
+
+```console
+eden network create 10.11.13.0/24 -n n2 --uplink eth1
+eden pod deploy -p 8028:80 --networks n2 docker://nginx
 ```
 
 ### List Applications
@@ -484,6 +505,21 @@ to the command above.
 
 With running status in `eden pod ps` you can try to connect via VNC
 on the public EVE IP at port 5901 with credentials `IEUser:Passw0rd!`.
+
+### Raspberry Pi 4 WiFi support
+
+Eve supports Wifi. You should add ssid (name of Wifi network) and Eve will use wifi. You will be asked for a WiFi password upon setup and first reboot. If a WiFi doesn't require password just press return button when asked for a password.
+
+The quickstart with WiFi will look like:
+
+```console
+git clone https://github.com/lf-edge/eden.git
+cd eden
+make build
+eden config add default --devmodel RPi4 --ssid <Your SSID>
+eden setup
+eden start
+```
 
 ### Obtain information about EVE on SD card
 

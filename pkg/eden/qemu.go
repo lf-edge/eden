@@ -37,7 +37,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 			log.Errorf("Failed converting %s to Integer", v)
 			break
 		}
-		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort + offset, newPort + offset)
+		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
 	qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", 0)
 	offset += 10
@@ -81,12 +81,14 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 				qemuOptions += defaults.DefaultQemuAccelLinuxAmd64
 			}
 		} else {
-			qemuOptions += "--cpu SandyBridge "
+			qemuOptions += defaults.DefaultQemulAmd64
 		}
 	case "arm64":
 		qemuCommand = "qemu-system-aarch64"
 		if qemuAccel {
-			qemuOptions += defaults.DefaultQemuAccelLinuxArm64
+			qemuOptions += defaults.DefaultQemuAccelArm64
+		} else {
+			qemuOptions += defaults.DefaultQemulArm64
 		}
 	default:
 		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)

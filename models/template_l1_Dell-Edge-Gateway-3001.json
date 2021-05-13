@@ -3,7 +3,10 @@
   "attr": {
     "memory": "4G",
     "storage": "32G",
-    "Cpus": "4"
+    "Cpus": "4",
+    "hsm": 2,
+    "leds": 1,
+    "watchdog": true
   },
   "logo": {
     "logo_back": "/workspace/spec/logo_back_Edge-Gateway-3001.png",
@@ -20,6 +23,7 @@
         "PciLong": "0000:02:00.0"
       },
       "logicallabel": "eth0",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       }

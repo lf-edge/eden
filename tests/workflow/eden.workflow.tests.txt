@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 35}}
+{{$tests := 37}}
 # EDEN_TEST env. var. -- flavour of test set: "small", "medium"(default) and "large"
 {{$workflow := EdenGetEnv "EDEN_TEST"}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
@@ -76,6 +76,8 @@ eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/netwo
 eden.escript.test -testdata ../volume/testdata/ -test.run TestEdenScripts/volumes_test
 /bin/echo Eden sftp volumes test (17.2/{{$tests}})
 eden.escript.test -testdata ../volume/testdata/ -test.run TestEdenScripts/volume_sftp
+/bin/echo Eden eclient with mounted volume (17.3/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/mount
 
 /bin/echo Eden Host only ACL (18.1/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/host-only
@@ -120,20 +122,22 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/disk
 eden.escript.test -test.run TestEdenScripts/eden_reset
 {{end}}
 {{ if  (eq $workflow "large")  }}
-/bin/echo Eden's testing the maximum application limit (32/{{$tests}})
+/bin/echo Verifying that we can use a switch network instance on a management port (32/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_nonat
+/bin/echo Eden's testing the maximum application limit (33/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/eclients
 {{end}}
 
-/bin/echo Eden Reboot test (33/{{$tests}})
+/bin/echo Eden Reboot test (34/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/reboot_test
 {{ if ne $workflow "small" }}
-/bin/echo Eden base OS update http (34/{{$tests}})
+/bin/echo Eden base OS update http (35/{{$tests}})
 eden.escript.test -testdata ../update_eve_image/testdata/ -test.run TestEdenScripts/update_eve_image_http
-/bin/echo Eden base OS update oci (35/{{$tests}})
+/bin/echo Eden base OS update oci (36/{{$tests}})
 eden.escript.test -testdata ../update_eve_image/testdata/ -test.run TestEdenScripts/update_eve_image_oci
 {{end}}
 
 {{if (eq $stop "y")}}
-/bin/echo Eden stop (36/{{$tests}})
+/bin/echo Eden stop (37/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_stop
 {{end}}

@@ -5,7 +5,10 @@
   "attr": {
     "memory": "4G",
     "storage": "56G",
-    "Cpus": "4"
+    "Cpus": "4",
+    "hsm": 0,
+    "leds": 3,
+    "watchdog": true
   },
   "logo": {
     "logo_front": "/workspace/spec/logo_front_APU-2.png",
@@ -22,6 +25,7 @@
         "PciLong": "0000:01:00.0"
       },
       "logicallabel": "eth0",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       }
@@ -36,6 +40,7 @@
         "PciLong": "0000:02:00.0"
       },
       "logicallabel": "eth1",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       }
@@ -50,6 +55,7 @@
         "PciLong": "0000:03:00.0"
       },
       "logicallabel": "eth2",
+      "cost": 0,
       "usagePolicy": {
         "freeUplink": true
       }

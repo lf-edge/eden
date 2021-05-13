@@ -129,6 +129,13 @@ func WithDiskSize(diskSizeBytes int64) ExpectationOption {
 	}
 }
 
+//WithVolumeSize set volume size for created app
+func WithVolumeSize(volumeSizeBytes int64) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.volumeSize = volumeSizeBytes
+	}
+}
+
 //WithResources sets cpu count and memory for app
 func WithResources(cpus uint32, memory uint32) ExpectationOption {
 	return func(expectation *AppExpectation) {
@@ -159,7 +166,7 @@ func WithVolumeType(volumesType VolumeType) ExpectationOption {
 }
 
 //WithACL sets access only for defined hosts
-func WithACL(acl []string) ExpectationOption {
+func WithACL(acl map[string][]string) ExpectationOption {
 	return func(expectation *AppExpectation) {
 		expectation.acl = acl
 	}
@@ -197,5 +204,12 @@ func WithSFTPLoad(sftp bool) ExpectationOption {
 func WithAdditionalDisks(disks []string) ExpectationOption {
 	return func(expectation *AppExpectation) {
 		expectation.disks = disks
+	}
+}
+
+//WithOpenStackMetadata use openstackMetadata for VM
+func WithOpenStackMetadata(openStackMetadata bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.openStackMetadata = openStackMetadata
 	}
 }

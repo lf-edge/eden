@@ -1,0 +1,71 @@
+{
+  "arch": 2,
+  "productURL": "",
+  "productStatus": "production",
+  "attr": {
+    "memory": "62G",
+    "storage": "931G",
+    "Cpus": "12"
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_NUC10i7FNH2.jpg",
+    "logo_front":"/workspace/spec/logo_front_NUC10i7FNH2.jpg"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "VGA",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB1",
+      "assigngrp": "USB1",
+      "phyaddrs": {
+        "PciLong": "0000:39:00.0"
+      },
+      "logicallabel": "USB1",
+      "usagePolicy": {}
+    },
+    
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "assigngrp": "",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:00:1f.6"
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "Audio",
+      "assigngrp": "",
+      "phyaddrs": {
+        "PciLong": "0000:00:1f.3"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    }
+  ]
+}

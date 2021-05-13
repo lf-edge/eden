@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
@@ -34,6 +35,8 @@ var (
 	appCpus     uint32
 	appMemory   string
 	diskSize    string
+	volumes     []string
+	volumeSize  string
 	imageFormat string
 	volumeType  string
 	acl         []string
@@ -47,10 +50,25 @@ var (
 
 	directLoad bool
 	sftpLoad   bool
+
+	openStackMetadata bool
 )
 
 var podCmd = &cobra.Command{
 	Use: "pod",
+}
+
+func processAcls(acls []string) map[string][]string {
+	m := map[string][]string{}
+	for _, el := range acls {
+		parsed := strings.SplitN(el, ":", 2)
+		if len(parsed) > 1 {
+			m[parsed[0]] = append(m[parsed[0]], parsed[1])
+		} else {
+			m[""] = append(m[""], parsed[0])
+		}
+	}
+	return m
 }
 
 //podDeployCmd is command for deploy application on EVE
@@ -65,6 +83,7 @@ var podDeployCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
+		certsDir = utils.ResolveAbsPath(viper.GetString("eden.certs-dist"))
 		ssid = viper.GetString("eve.ssid")
 		return nil
 	},
@@ -97,6 +116,11 @@ var podDeployCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		opts = append(opts, expect.WithDiskSize(int64(diskSizeParsed)))
+		volumeSizeParsed, err := humanize.ParseBytes(volumeSize)
+		if err != nil {
+			log.Fatal(err)
+		}
+		opts = append(opts, expect.WithVolumeSize(int64(volumeSizeParsed)))
 		appMemoryParsed, err := humanize.ParseBytes(appMemory)
 		if err != nil {
 			log.Fatal(err)
@@ -105,15 +129,15 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		if aclOnlyHost {
-			opts = append(opts, expect.WithACL([]string{""}))
+			opts = append(opts, expect.WithACL(map[string][]string{"": {defaults.DefaultHostOnlyNotation}}))
 		} else {
-			opts = append(opts, expect.WithACL(acl))
+			opts = append(opts, expect.WithACL(processAcls(acl)))
 		}
 		opts = append(opts, expect.WithSFTPLoad(sftpLoad))
 		if !sftpLoad {
 			opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
 		}
-		opts = append(opts, expect.WithAdditionalDisks(disks))
+		opts = append(opts, expect.WithAdditionalDisks(append(disks, volumes...)))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -125,6 +149,7 @@ var podDeployCmd = &cobra.Command{
 		if noHyper {
 			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 		}
+		opts = append(opts, expect.WithOpenStackMetadata(openStackMetadata))
 		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
@@ -448,8 +473,13 @@ func podInit() {
 	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
-	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, "Additional disks to use")
-	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, "Allow access only to defined hosts/ips/subnets")
+	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
+	podDeployCmd.Flags().StringSliceVar(&volumes, "volume", nil, `Additional volumes to use. You can write it in notation <link> or <mount point>:<link>.`)
+	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
+	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
+You can set acl for particular network in format '<network_name:acl>'
+To remove acls you can set empty line '<network_name>:'`)
+	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)

@@ -31,26 +31,51 @@ var podModifyCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev: %s", err)
 		}
-		for _, el := range dev.GetApplicationInstances() {
-			app, err := ctrl.GetApplicationInstanceConfig(el)
+		for _, appID := range dev.GetApplicationInstances() {
+			app, err := ctrl.GetApplicationInstanceConfig(appID)
 			if err != nil {
-				log.Fatalf("no app in cloud %s: %s", el, err)
+				log.Fatalf("no app in cloud %s: %s", appID, err)
 			}
 			if app.Displayname == appName {
+				portPublishCombined := portPublish
+				if !cmd.Flags().Changed("publish") {
+					portPublishCombined = []string{}
+					for _, intf := range app.Interfaces {
+						for _, acls := range intf.Acls {
+							lport := ""
+							var appPort uint32
+							for _, match := range acls.Matches {
+								if match.Type == "lport" {
+									lport = match.Value
+									break
+								}
+							}
+							for _, action := range acls.Actions {
+								if action.Portmap {
+									appPort = action.AppPort
+									break
+								}
+							}
+							if lport != "" && appPort != 0 {
+								portPublishCombined = append(portPublishCombined, fmt.Sprintf("%s:%d", lport, appPort))
+							}
+						}
+					}
+				}
 				var opts []expect.ExpectationOption
 				if len(podNetworks) > 0 {
 					for i, el := range podNetworks {
 						if i == 0 {
 							//allocate ports on first network
-							opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, portPublish))
+							opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, portPublishCombined))
 						} else {
 							opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, nil))
 						}
 					}
 				} else {
-					opts = append(opts, expect.WithPortsPublish(portPublish))
+					opts = append(opts, expect.WithPortsPublish(portPublishCombined))
 				}
-				opts = append(opts, expect.WithACL(acl))
+				opts = append(opts, expect.WithACL(processAcls(acl)))
 				opts = append(opts, expect.WithOldApp(appName))
 				expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, appName, opts...)
 				appInstanceConfig := expectation.Application()
@@ -59,7 +84,11 @@ var podModifyCmd = &cobra.Command{
 					needPurge = true
 				} else {
 					for ind, el := range app.Interfaces {
-						if el.NetworkId != appInstanceConfig.Interfaces[ind].NetworkId {
+						equals, err := utils.CompareProtoMessages(el, appInstanceConfig.Interfaces[ind])
+						if err != nil {
+							log.Fatalf("CompareMessages: %v", err)
+						}
+						if !equals {
 							needPurge = true
 							break
 						}
@@ -89,5 +118,7 @@ func podModifyInit() {
 	podModifyCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podModifyCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podModifyCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network)")
-	podModifyCmd.Flags().StringSliceVar(&acl, "acl", nil, "Allow access only to defined hosts/ips/subnets")
+	podModifyCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
+You can set acl for particular network in format '<network_name:acl>'
+To remove acls you can set empty line '<network_name>:'`)
 }

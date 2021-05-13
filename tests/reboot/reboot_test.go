@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
@@ -51,7 +50,7 @@ func checkReboot(edgeNode *device.Ctx) projects.ProcInfoFunc {
 		currentLastRebootTime := im.GetDinfo().LastRebootTime
 		if !proto.Equal(lastRebootTime, currentLastRebootTime) {
 			lastRebootTime = currentLastRebootTime
-			fmt.Printf("rebooted with reason %s at %s/n", im.GetDinfo().LastRebootReason, ptypes.TimestampString(lastRebootTime))
+			fmt.Printf("rebooted with reason %s at %s/n", im.GetDinfo().LastRebootReason, lastRebootTime.AsTime())
 			number++
 			if number < *count {
 				if *reboot {
@@ -147,7 +146,7 @@ func TestReboot(t *testing.T) {
 
 	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
 
-	t.Log(utils.AddTimestamp(fmt.Sprintf("lastRebootTime: %s", ptypes.TimestampString(lastRebootTime))))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("lastRebootTime: %s", lastRebootTime.AsTime())))
 
 	tc.AddProcInfo(edgeNode, checkReboot(edgeNode))
 

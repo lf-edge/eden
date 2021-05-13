@@ -5,7 +5,10 @@
     "attr": {
     "memory": "4G",
     "storage": "16G",
-    "Cpus": "4"
+    "Cpus": "4",
+    "hsm": 0,
+    "leds": 1,
+    "watchdog": true
     },
     "logo": {
         "logo_front": "/workspace/spec/logo_front_RPi4.png"
@@ -67,6 +70,7 @@
         "usage": 1,
         "assigngrp": "eth0-1",
         "logicallabel": "eth0",
+        "cost": 0,
         "usagePolicy": {
             "freeUplink": true
         }
@@ -77,6 +81,7 @@
         "usage": 1,
         "assigngrp": "wlan0-1",
         "logicallabel": "wlan0",
+        "cost": 0,
         "usagePolicy": {
             "freeUplink": true
         }

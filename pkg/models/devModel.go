@@ -68,7 +68,6 @@ type DevModel interface {
 	SetPhysicalIOs([]*config.PhysicalIO)
 	AdapterForSwitches() []string
 	DevModelType() string
-	GetFirstAdapterForSwitches() string
 	SetWiFiParams(ssid string, psk string)
 	GetPortConfig(ssid string, psk string) string
 	DiskFormat() string
