@@ -35,7 +35,7 @@ var (
 	appCpus     uint32
 	appMemory   string
 	diskSize    string
-	volumes     []string
+	mount       []string
 	volumeSize  string
 	imageFormat string
 	volumeType  string
@@ -73,7 +73,7 @@ func processAcls(acls []string) map[string][]string {
 
 //podDeployCmd is command for deploy application on EVE
 var podDeployCmd = &cobra.Command{
-	Use:   "deploy (docker|http(s)|file)://(<TAG>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
+	Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
 	Short: "Deploy app in pod",
 	Long:  `Deploy app in pod.`,
 	Args:  cobra.ExactArgs(1),
@@ -137,7 +137,7 @@ var podDeployCmd = &cobra.Command{
 		if !sftpLoad {
 			opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
 		}
-		opts = append(opts, expect.WithAdditionalDisks(append(disks, volumes...)))
+		opts = append(opts, expect.WithAdditionalDisks(append(disks, mount...)))
 		registryToUse := registry
 		switch registry {
 		case "local":
@@ -474,7 +474,7 @@ func podInit() {
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
 	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
-	podDeployCmd.Flags().StringSliceVar(&volumes, "volume", nil, `Additional volumes to use. You can write it in notation <link> or <mount point>:<link>.`)
+	podDeployCmd.Flags().StringArrayVar(&mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
 	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
 	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
 You can set acl for particular network in format '<network_name:acl>'

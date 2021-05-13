@@ -57,6 +57,8 @@ type ConfigVars struct {
 	EServerImageDist  string
 	EServerPort       string
 	EServerIP         string
+	RegistryIP        string
+	RegistryPort      string
 	LogLevel          string
 	AdamLogLevel      string
 }
@@ -122,6 +124,8 @@ func InitVars() (*ConfigVars, error) {
 			EServerImageDist:  ResolveAbsPath(viper.GetString("eden.images.dist")),
 			EServerPort:       viper.GetString("eden.eserver.port"),
 			EServerIP:         viper.GetString("eden.eserver.ip"),
+			RegistryIP:        viper.GetString("registry.ip"),
+			RegistryPort:      viper.GetString("registry.port"),
 			LogLevel:          viper.GetString("eve.log-level"),
 			AdamLogLevel:      viper.GetString("eve.adam-log-level"),
 		}

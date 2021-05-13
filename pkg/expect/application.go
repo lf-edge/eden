@@ -39,7 +39,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	}
 	var bundle *appBundle
 	switch exp.appType {
-	case dockerApp:
+	case dockerApp, directoryApp:
 		bundle = exp.createAppInstanceConfigDocker(img, id)
 	case httpApp, httpsApp, fileApp:
 		bundle = exp.createAppInstanceConfigVM(img, id)
@@ -49,23 +49,31 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	for _, d := range exp.disks {
 		mountPoint := ""
 		proccessedLink := d
-		splitLink := strings.SplitN(d, ":", 2)
-		if len(splitLink) == 2 {
-			if strings.HasPrefix(splitLink[0], "/") {
-				log.Printf("will use volume [%s] at mount point [%s]", splitLink[1], splitLink[0])
-				mountPoint = splitLink[0]
-				proccessedLink = splitLink[1]
-				//remove existing elements with the same mount point to overwrite
-				utils.DelEleInSliceByFunction(&bundle.appInstanceConfig.VolumeRefList, func(i interface{}) bool {
-					if i.(*config.VolumeRef).MountDir == mountPoint {
-						utils.DelEleInSliceByFunction(&bundle.volumes, func(v interface{}) bool {
-							return v.(*config.Volume).Uuid == i.(*config.VolumeRef).Uuid
-						})
-						return true
-					}
-					return false
-				})
+		splitLink := strings.Split(d, ",")
+		if len(splitLink) > 1 {
+			for _, el := range splitLink {
+				splitArgs := strings.SplitN(el, "=", 2)
+				if len(splitArgs) < 2 {
+					log.Fatalf("cannot parse volume (must have src and dst): %s", el)
+				}
+				switch splitArgs[0] {
+				case "source", "src":
+					proccessedLink = splitArgs[1]
+				case "destination", "dst", "target":
+					mountPoint = splitArgs[1]
+				}
 			}
+			log.Printf("will use volume [%s] at mount point [%s]", proccessedLink, mountPoint)
+			//remove existing elements with the same mount point to overwrite
+			utils.DelEleInSliceByFunction(&bundle.appInstanceConfig.VolumeRefList, func(i interface{}) bool {
+				if i.(*config.VolumeRef).MountDir == mountPoint {
+					utils.DelEleInSliceByFunction(&bundle.volumes, func(v interface{}) bool {
+						return v.(*config.Volume).Uuid == i.(*config.VolumeRef).Uuid
+					})
+					return true
+				}
+				return false
+			})
 		}
 		tempExp := AppExpectationFromURL(exp.ctrl, exp.device, proccessedLink, "")
 		if tempExp.appType != dockerApp {

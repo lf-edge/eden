@@ -35,6 +35,8 @@ func (exp *AppExpectation) createImage(dsID string) (*config.Image, error) {
 		return exp.createImageHTTP(id, dsID), nil
 	case fileApp:
 		return exp.createImageFile(id, dsID), nil
+	case directoryApp:
+		return exp.createImageDirectory(id, dsID), nil
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}

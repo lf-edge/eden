@@ -41,6 +41,7 @@ require (
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
+	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
 	github.com/onsi/gomega v1.10.0 // indirect

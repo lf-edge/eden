@@ -19,6 +19,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/nat"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -199,6 +200,53 @@ func HasImage(image string) (bool, error) {
 	}
 	// theoretically, this should distinguishe
 	return false, nil
+}
+
+// CreateImage create new image from directory with tag
+// If Dockerfile is inside the directory will use it
+// otherwise will create image from scratch
+func CreateImage(dir, tag, platform string) error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
+	dockerFile := filepath.Join(dir, "Dockerfile")
+	if _, err := os.Stat(dockerFile); os.IsNotExist(err) {
+		//write simple Dockerfile if not exists
+		defer os.Remove(dockerFile)
+		if err := ioutil.WriteFile(dockerFile, []byte("FROM scratch\nCOPY . /\n"), 0777); err != nil {
+			return err
+		}
+	}
+	reader, err := archive.TarWithOptions(dir, &archive.TarOptions{})
+	if err != nil {
+		return err
+	}
+
+	imageBuildResponse, err := cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
+		Tags:     []string{tag},
+		Platform: platform,
+	})
+	if err != nil {
+		return err
+	}
+	defer imageBuildResponse.Body.Close()
+	_, err = io.Copy(os.Stdout, imageBuildResponse.Body)
+	return err
+}
+
+// TagImage set new tag to image
+func TagImage(oldTag, newTag string) error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+	}
+	if err := cli.ImageTag(ctx, oldTag, newTag); err != nil {
+		return fmt.Errorf("unable to tag %s to %s", oldTag, newTag)
+	}
+	return nil
 }
 
 // PushImage from docker while optionally changing to a different remote registry
