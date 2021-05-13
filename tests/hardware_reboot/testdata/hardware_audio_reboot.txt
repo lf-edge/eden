@@ -1,7 +1,7 @@
 # Simple test of Audio device after reboot of guest
 
-{{define "port"}}2223{{end}}
-{{define "ssh"}} ssh -oServerAliveInterval=10 -oConnectTimeout=10 -oStrictHostKeyChecking=no -oPasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa -p {{template "port"}} root@$HOST {{end}}
+{{define "port"}}8027{{end}}
+{{define "ssh"}} ssh -oServerAliveInterval=10 -oConnectTimeout=10 -oStrictHostKeyChecking=no -oPasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa -p {{template "port"}} ubuntu@$HOST {{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop
@@ -10,8 +10,7 @@
 # Starting of reboot detector with a 2 reboot limit
 ! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=2 &
 
-eden pod deploy -n eclient --memory=512MB docker://itmoeve/eclient:0.7 -p {{template "port"}}:22
-
+# eden pod deploy -n eclient --memory=1GB  https://cloud-images.ubuntu.com/releases/focal/release-20210510/ubuntu-20.04-server-cloudimg-amd64.img --metadata='#cloud-config\nssh_authorized_keys:\n - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDOLVxfqzHzozOOBzbgLEAU66vTztBvIyKe9NH3ILb1f2gjlAKaPCinkDNH8m2bbbsccPfNWCuAKxNPN4ZWnXkYP0BnQKVnJxtES519PgyZLk6NlTzC4lsSJxWbkLOwV/3gjqBA7u+MQ+erJLFZQRUwtDq8LY2P0pQIsEiYFJi/SUjifADnBHhb3MXTWrxbRdiga8UH5Ksbz1HTBSGx0jwiaylsgN8qKs6N7TNMIYtGO1YZE9aMEFNHIW3zC5D5bzTBBa44FHtURXhLg6lVHXaPvBAUU5Q6QH9iyVxVNRQqO5EHO1Th0h0+lgWkRDFuVSu3gl/QR1MbRvRa10i/44jSnhQtuBZGS7Av7/Ef0ESymBp+4m2wBFFJQ6PpIZ2uu9iEVGFv2EbL0/gabOgjWauLlaCSG1PKG3p64C4qNvvXbMzfvsX1+yVLPw+Q59R5y3Q66wFpCrsd2OO5Cfp3WpGH51j8C7j6UWQAhXXDv+rdsu4VoJWCk8ulnZ1PRnLFHh3tw9VkESTXVxIo8BjxsbFiUWcMoXm6Nr3QnBGISRlDDutJ0ycxgZFjpLVpHCZLpM+NsVBiLIZ8Y3AHGaxW5vtD/oJAg2fc9APf0mwTMEEjeC0QCOgl5AijWxdaJFk3sXUqPp63oFKnIv7g//bSQ20Vuqor2JV8JaGDBExsMzZO4Q== mykey@host' -p {{template "port"}}:22
 test eden.app.test -test.v -timewait 20m RUNNING eclient
 
 exec -t 20m bash ssh.sh {{template "port"}}
@@ -24,6 +23,9 @@ stdout 'msg="Config loaded"'
 # Wait for reconfig
 exec -t 20m bash ssh.sh
 stdout 'Ubuntu'
+
+# drivers
+exec -t 20m bash install_drivers.sh
 
 exec -t 5m bash get_reboot_time.sh
 cp stdout reboot_time
@@ -41,7 +43,7 @@ exec -t 5m bash get_reboot_time.sh
 #! cmp stdout reboot_time
 
 # teardown applications
-eden pod delete eclient
+#eden pod delete eclient
 
 test eden.app.test -test.v -timewait 20m - eclient
 
@@ -91,8 +93,9 @@ echo {{template "ssh"}} uptime -s
 port=$1
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 HOST=$($EDEN eve ip)
- echo {{template "ssh"}} lshw -businfo
- {{template "ssh"}} lshw -businfo
+
+echo {{template "ssh"}} lshw -businfo
+{{template "ssh"}} lshw -businfo
 
 -- reboot.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
