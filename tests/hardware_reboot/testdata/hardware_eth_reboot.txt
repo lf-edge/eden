@@ -1,15 +1,14 @@
-# Simple test of 2 USB passthrough functionality after reboot of guest
 # Works only on KVM
 
-{{define "port"}}2223{{end}}
+{{define "port"}}8027{{end}}
 {{define "ssh"}} ssh -oServerAliveInterval=10 -oConnectTimeout=10 -oStrictHostKeyChecking=no -oPasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa -p {{template "port"}} root@$HOST {{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop
 [!exec:ssh] stop
 
-# Starting of reboot detector with a 2 reboot limit
-! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=2 &
+# Starting of reboot detector with a 1 reboot limit
+! test eden.reboot.test -test.v -timewait 60m -reboot=0 -count=3 &
 
 eden pod deploy -n eclient --memory=512MB docker://itmoeve/eclient:0.7 -p {{template "port"}}:22
 
@@ -17,6 +16,16 @@ test eden.app.test -test.v -timewait 20m RUNNING eclient
 
 exec -t 20m bash ssh.sh {{template "port"}}
 stdout 'Ubuntu'
+
+# Audio device passthrough setup
+exec -t 20m bash set_eth.sh eclient
+stdout 'msg="Config loaded"'
+
+exec -t 20m bash eve_ssh.sh
+stdout 'keth2'
+
+exec -t 20m bash get-lshw.sh  {{template "port"}}
+stdout 'Ethernet interfacedfd'
 
 exec -t 5m bash get_reboot_time.sh
 cp stdout reboot_time
@@ -28,10 +37,13 @@ cp stdout reboot_time
 exec -t 20m bash ssh.sh
 stdout 'Ubuntu'
 
+#exec -t 20m bash get-lshw.sh  {{template "port"}}
+#stdout 'Ethernet interface'
+
 exec -t 5m bash get_reboot_time.sh
 #! cmp stdout reboot_time
 
-# teardown applications
+message 'Resource cleaning'
 eden pod delete eclient
 
 test eden.app.test -test.v -timewait 20m - eclient
@@ -59,7 +71,6 @@ echo $i\) {{template "ssh"}} grep Ubuntu /etc/issue
 {{template "ssh"}} grep Ubuntu /etc/issue && break
 done
 
-
 -- get_reboot_time.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 HOST=$($EDEN eve ip)
@@ -80,3 +91,22 @@ HOST=$($EDEN eve ip)
 
 echo {{template "ssh"}} reboot
 {{template "ssh"}} reboot
+
+-- eve_ssh.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+$EDEN eve ssh 'ifconfig'
+
+
+-- set_eth.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+HOST=$($EDEN eve ip)
+CNF=eve.cfg
+
+$EDEN controller edge-node get-config --file $CNF
+
+jq '.deviceIoList += [{ "ptype": 1, "phylabel": "eth2", "phyaddrs": { "Ifname": "eth2","PciLong": "0000:00:19.0" }, "logicallabel": "eth2", "assigngrp": "eth2", "usage": 2, "usagePolicy": {"freeUplink": true }  }]' < $CNF | \
+jq '.systemAdapterList += [{ "name": "eth2", "uplink": true, "networkUUID":"6822e35f-c1b8-43ca-b344-0bbc0ece8cf1" }]' | \
+jq '.networks += [{ "id": "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1", "type": 4, "ip": { "dhcp": 4, "dhcpRange": {}} }]' > $CNF.new
+
+$EDEN controller edge-node set-config --file $CNF.new
