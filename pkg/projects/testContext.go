@@ -270,6 +270,11 @@ func (tc *TestContext) AddProcLog(edgeNode *device.Ctx, processFunction ProcLogF
 	tc.procBus.addProc(edgeNode, processFunction)
 }
 
+//AddProcFlowLog add processFunction, that will get all FlowLogs for edgeNode
+func (tc *TestContext) AddProcFlowLog(edgeNode *device.Ctx, processFunction ProcLogFlowFunc) {
+	tc.procBus.addProc(edgeNode, processFunction)
+}
+
 //AddProcInfo add processFunction, that will get all info for edgeNode
 func (tc *TestContext) AddProcInfo(edgeNode *device.Ctx, processFunction ProcInfoFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)

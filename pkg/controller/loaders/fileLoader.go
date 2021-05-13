@@ -50,6 +50,8 @@ func (loader *FileLoader) getFilePath(typeToProcess types.LoaderObjectType) stri
 		return loader.getters.InfoGetter(loader.devUUID)
 	case types.MetricsType:
 		return loader.getters.MetricsGetter(loader.devUUID)
+	case types.FlowLogType:
+		return loader.getters.FlowLogGetter(loader.devUUID)
 	case types.RequestType:
 		return loader.getters.RequestGetter(loader.devUUID)
 	case types.AppsType:

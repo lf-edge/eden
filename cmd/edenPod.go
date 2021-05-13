@@ -6,6 +6,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
+	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
@@ -426,6 +427,23 @@ var podLogsCmd = &cobra.Command{
 						if err = ctrl.MetricChecker(dev.GetID(), metricsQ, handleMetric, metricType, 0); err != nil {
 							log.Fatalf("MetricChecker: %s", err)
 						}
+					case "netstat":
+						//block for process FlowLog
+						fmt.Printf("netstat list for app %s:\n", app.Uuidandversion.Uuid)
+						//process only existing elements
+						flowLogType := eflowlog.FlowLogExist
+
+						if outputTail > 0 {
+							//process only outputTail elements from end
+							flowLogType = eflowlog.FlowLogTail(outputTail)
+						}
+
+						//logsQ for filtering logs by app
+						logsQ := make(map[string]string)
+						logsQ["scope.uuid"] = app.Uuidandversion.Uuid
+						if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(false), flowLogType, 0); err != nil {
+							log.Fatalf("FlowLogChecker: %s", err)
+						}
 					case "app":
 						//block for process app logs
 						fmt.Printf("App logs list for app %s:\n", app.Uuidandversion.Uuid)
@@ -487,7 +505,7 @@ To remove acls you can set empty line '<network_name>:'`)
 	podDeleteCmd.Flags().BoolVar(&deleteVolumes, "with-volumes", true, "delete volumes of pod")
 	podCmd.AddCommand(podLogsCmd)
 	podLogsCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
-	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "app"}, "Show defined elements")
+	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "netstat", "app"}, "Show defined elements")
 	podLogsCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
 	podModifyInit()
 }

@@ -29,6 +29,11 @@ stderr 'Connected to github.com'
 ! exec -t 1m bash curl.sh 2223 google.com
 ! stderr 'Connected'
 
+# Wait for network packets information information
+exec -t 10m bash wait_netstat.sh
+stdout 'google.com'
+
+# Cleanup
 eden pod delete curl-acl
 
 test eden.app.test -test.v -timewait 10m - curl-acl
@@ -55,6 +60,14 @@ HOST=$($EDEN eve ip)
 
 echo {{template "ssh"}}$HOST -p $1 curl -v --max-time 30 "$2"
 {{template "ssh"}}$HOST -p $1 curl -v --max-time 30 "$2"
+
+-- wait_netstat.sh --
+#!/bin/sh
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+echo "Waiting for flowlog results"
+until "$EDEN" pod logs --fields=netstat curl-acl | grep 'google.com'; do sleep 30; done
+"$EDEN" pod logs --fields=netstat curl-acl
 
 -- eden-config.yml --
 {{/* Test's config file */}}

@@ -10,6 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
@@ -17,6 +18,7 @@ import (
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/flowlog"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 )
@@ -259,6 +261,46 @@ func TestMetrics(t *testing.T) {
 			}
 			return nil
 		}(t, edgeNode, metric)
+	})
+
+	tc.WaitForProc(int(timewait.Seconds()))
+}
+
+func TestFlowLog(t *testing.T) {
+	err := mkquery()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Wait for FlowLog of %s number=%d timewait=%s\n",
+		edgeNode.GetID(), *number, timewait)))
+
+	tc.AddProcFlowLog(edgeNode, func(log *flowlog.FlowMessage) error {
+		return func(t *testing.T, edgeNode *device.Ctx,
+			flowLog *flowlog.FlowMessage) error {
+			name := edgeNode.GetID()
+			if query != nil {
+				if eflowlog.FlowLogItemFind(flowLog, query) {
+					found = true
+				} else {
+					return nil
+				}
+			}
+			t.Log(utils.AddTimestamp(fmt.Sprintf("FLOWLOG %d(%d) from %s:\n", items+1, *number, name)))
+			if len(*out) == 0 {
+				eflowlog.FlowLogPrn(flowLog)
+			} else {
+				eflowlog.FlowLogItemPrint(flowLog, strings.Split(*out, ":")).Print()
+			}
+
+			cnt := count("Received %d FlowLog from %s", name.String())
+			if cnt != "" {
+				return fmt.Errorf(cnt)
+			}
+			return nil
+		}(t, edgeNode, log)
 	})
 
 	tc.WaitForProc(int(timewait.Seconds()))

@@ -5,12 +5,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/flowlog"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
@@ -21,6 +23,9 @@ type ProcInfoFunc func(info *info.ZInfoMsg) error
 
 //ProcLogFunc provides callback to process log
 type ProcLogFunc func(log *elog.FullLogEntry) error
+
+//ProcLogFlowFunc provides callback to process flowLog
+type ProcLogFlowFunc func(log *flowlog.FlowMessage) error
 
 //ProcMetricFunc provides callback to process metric
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
@@ -126,6 +131,12 @@ func (lb *processingBus) getMainProcessorLog(dev *device.Ctx) elog.HandlerFunc {
 	}
 }
 
+func (lb *processingBus) getMainProcessorFlowLog(dev *device.Ctx) eflowlog.HandlerFunc {
+	return func(msg *flowlog.FlowMessage) bool {
+		return lb.process(dev, msg)
+	}
+}
+
 func (lb *processingBus) getMainProcessorInfo(dev *device.Ctx) einfo.HandlerFunc {
 	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
 		return lb.process(dev, im)
@@ -143,6 +154,12 @@ func (lb *processingBus) initCheckers(dev *device.Ctx) {
 		err := lb.tc.GetController().LogChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorLog(dev), elog.LogNew, 0)
 		if err != nil {
 			log.Errorf("LogChecker for dev %s error %s", dev.GetID(), err)
+		}
+	}()
+	go func() {
+		err := lb.tc.GetController().FlowLogChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorFlowLog(dev), eflowlog.FlowLogNew, 0)
+		if err != nil {
+			log.Errorf("FlowLogChecker for dev %s error %s", dev.GetID(), err)
 		}
 	}()
 	go func() {

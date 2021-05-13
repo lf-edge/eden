@@ -64,6 +64,8 @@ func (loader *RedisLoader) getStream(typeToProcess types.LoaderObjectType) strin
 		return loader.streamGetters.StreamInfo(loader.devUUID)
 	case types.MetricsType:
 		return loader.streamGetters.StreamMetrics(loader.devUUID)
+	case types.FlowLogType:
+		return loader.streamGetters.StreamFlowLog(loader.devUUID)
 	case types.RequestType:
 		return loader.streamGetters.StreamRequest(loader.devUUID)
 	case types.AppsType:
