@@ -84,12 +84,19 @@ func WithAppAdapters(appadapters []string) ExpectationOption {
 }
 
 //AddNetInstanceNameAndPortPublish adds NetInstance with defined name and ports mapping for apps in format ["EXTERNAL_PORT:INTERNAL_PORT"]
-func AddNetInstanceNameAndPortPublish(netInstanceName string, portPublish []string) ExpectationOption {
+func AddNetInstanceNameAndPortPublish(netInstance string, portPublish []string) ExpectationOption {
+	mac := ""
+	split := strings.Split(netInstance, ":")
+	name := split[0]
+	if len(split) == 7 {
+		mac = strings.Join(split[1:], ":")
+	}
 	return func(expectation *AppExpectation) {
 		expectation.netInstances = append(expectation.netInstances, &NetInstanceExpectation{
-			name:          netInstanceName,
+			name:          name,
 			portsReceived: portPublish,
 			ports:         make(map[int]int),
+			mac:           mac,
 		})
 	}
 }

@@ -103,11 +103,17 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	}
 	bundle.appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
 
-	for k, ni := range netInstances {
+	//keep order of exp.netInstances
+	for _, k := range exp.netInstances {
+		ni, ok := netInstances[k]
+		if !ok {
+			log.Fatalf("broken network instance pointer: %v", k)
+		}
 		bundle.appInstanceConfig.Interfaces = append(bundle.appInstanceConfig.Interfaces, &config.NetworkAdapter{
-			Name:      "default",
-			NetworkId: ni.Uuidandversion.Uuid,
-			Acls:      exp.getAcls(k),
+			Name:       "default",
+			NetworkId:  ni.Uuidandversion.Uuid,
+			Acls:       exp.getAcls(k),
+			MacAddress: k.mac,
 		})
 	}
 	if exp.vncDisplay != 0 {
