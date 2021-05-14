@@ -142,6 +142,10 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 				if err = cloud.ConfigSync(node); err != nil {
 					log.Fatal(err)
 				}
+				//wait for certs
+				if _, err = cloud.CertsGet(node.GetID()); err != nil {
+					log.Fatal(err)
+				}
 			}
 			return nil
 		}
