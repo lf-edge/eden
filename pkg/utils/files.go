@@ -179,3 +179,28 @@ func IsInputFromPipe() bool {
 	fileInfo, _ := os.Stdin.Stat()
 	return fileInfo.Mode()&os.ModeCharDevice == 0
 }
+
+//SHA256SUMAll calculates sha256 of directory
+func SHA256SUMAll(dir string) (string, error) {
+	hash := sha256.New()
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		r, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		if _, err := io.Copy(hash, r); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
