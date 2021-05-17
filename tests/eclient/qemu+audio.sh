@@ -6,12 +6,7 @@ EDEN=eden
 DIR=$(dirname "$0")
 PATH=$DIR:$DIR/../../bin:$PATH
 
-dist=$($EDEN config get "$EDEN_CONFIG" --key eden.root)
-
-dd if=/dev/zero of="$dist/stick.raw" bs=1K count=1
-
 cat >> ~/.eden/"$EDEN_CONFIG"-qemu.conf <<END
-
 
 
 [device "sound"]
