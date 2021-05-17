@@ -80,6 +80,8 @@ func (loader *RemoteLoader) getURL(typeToProcess types.LoaderObjectType) string 
 		return loader.urlGetters.URLInfo(loader.devUUID)
 	case types.MetricsType:
 		return loader.urlGetters.URLMetrics(loader.devUUID)
+	case types.FlowLogType:
+		return loader.urlGetters.URLFlowLog(loader.devUUID)
 	case types.RequestType:
 		return loader.urlGetters.URLRequest(loader.devUUID)
 	case types.AppsType:

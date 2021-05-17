@@ -30,6 +30,11 @@ func (adam *Ctx) getMetricsRedisStream(devUUID uuid.UUID) (dir string) {
 	return fmt.Sprintf("%s%s", defaults.DefaultMetricsRedisPrefix, devUUID.String())
 }
 
+//getFlowLogRedisStream return flowLog stream for devUUID for flowLog from redis
+func (adam *Ctx) getFlowLogRedisStream(devUUID uuid.UUID) (dir string) {
+	return fmt.Sprintf("%s%s", defaults.DefaultFlowLogRedisPrefix, devUUID.String())
+}
+
 //getRequestRedisStream return request stream for devUUID for requests from redis
 func (adam *Ctx) getRequestRedisStream(devUUID uuid.UUID) (dir string) {
 	return fmt.Sprintf("%s%s", defaults.DefaultRequestsRedisPrefix, devUUID.String())

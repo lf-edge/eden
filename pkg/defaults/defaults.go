@@ -49,7 +49,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "0.0.0-master-37a88878" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.22"
+	DefaultAdamTag              = "0.0.24"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "1.2"
@@ -103,6 +103,7 @@ const (
 	DefaultInfoRedisPrefix       = "INFO_EVE_"
 	DefaultMetricsRedisPrefix    = "METRICS_EVE_"
 	DefaultRequestsRedisPrefix   = "REQUESTS_EVE_"
+	DefaultFlowLogRedisPrefix    = "FLOW_MESSAGE_EVE_"
 
 	DefaultEveLogLevel  = "info"    //min level of logs saved in files on EVE device
 	DefaultAdamLogLevel = "warning" //min level of logs sent from EVE to Adam

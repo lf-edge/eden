@@ -55,6 +55,8 @@ func init() {
 	infoInit()
 	rootCmd.AddCommand(logCmd)
 	logInit()
+	rootCmd.AddCommand(netStatCmd)
+	netStatInit()
 	rootCmd.AddCommand(metricCmd)
 	metricInit()
 	rootCmd.AddCommand(startCmd)

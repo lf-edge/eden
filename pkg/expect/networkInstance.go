@@ -154,7 +154,7 @@ func parseACE(inp string) *config.ACE {
 func (exp *AppExpectation) getAcls(ni *NetInstanceExpectation) []*config.ACE {
 	var acls []*config.ACE
 	var aclID int32 = 1
-	if exp.acl != nil && len(exp.acl[ni.name]) > 0 {
+	if exp.acl != nil && (len(exp.acl[ni.name]) > 0 || len(exp.acl[""]) > 0) {
 		// in case of defined acl allow access only to them
 		for netName, acl := range exp.acl {
 			if netName != "" && netName != ni.name {

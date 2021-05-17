@@ -22,15 +22,15 @@ To use `adam admin`:
 docker exec eden_adam adam admin <command>
 ```
 
-To use `redis-cli`:
+To use `redis-cli` (with password from file `~/.eden/certs/redis.pass`):
 
 ```sh
-docker exec -it eden_redis redis-cli
+docker exec -it eden_redis redis-cli -a $(cat ~/.eden/certs/redis.pass)
 ```
 
 For the redis keys, you can run `keys *` inside the redis CLI.
-Note that the `INFO_EVE_*` and `LOGS_EVE_*` keys are of type `stream`,
+Note that the `INFO_EVE_*`, `LOGS_EVE_*`, `METRICS_EVE_*` and `FLOW_MESSAGE_EVE_*` keys are of type `stream`,
 and thus you need to use `xread stream`, `xinfo stream`
 and their family of commands to read them.
 
-It may be much easier to just use `adam admin` or `eden info`/`eden logs`.
+It may be much easier to just use `adam admin` or `eden info`/`eden logs`/`eden metric`/`eden netstat`.

@@ -68,6 +68,7 @@ type DirGetters struct {
 	LogsGetter    getDir
 	InfoGetter    getDir
 	MetricsGetter getDir
+	FlowLogGetter getDir
 	RequestGetter getDir
 	AppsGetter    getDirApps
 }
@@ -81,6 +82,7 @@ type StreamGetters struct {
 	StreamLogs    getStream
 	StreamInfo    getStream
 	StreamMetrics getStream
+	StreamFlowLog getStream
 	StreamRequest getStream
 	StreamApps    getStreamApps
 }
@@ -94,6 +96,7 @@ type URLGetters struct {
 	URLLogs    getURL
 	URLInfo    getURL
 	URLMetrics getURL
+	URLFlowLog getURL
 	URLRequest getURL
 	URLApps    getURLApps
 }
@@ -115,6 +118,9 @@ var RequestType LoaderObjectType = 4
 
 //AppsType for observe logs of apps
 var AppsType LoaderObjectType = 5
+
+//FlowLogType for observe FlowMessages
+var FlowLogType LoaderObjectType = 6
 
 //APIRequest stores information about requests from EVE
 type APIRequest struct {

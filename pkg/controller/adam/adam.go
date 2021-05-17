@@ -13,6 +13,7 @@ import (
 
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
+	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
@@ -76,6 +77,7 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 				StreamLogs:    adam.getLogsRedisStream,
 				StreamInfo:    adam.getInfoRedisStream,
 				StreamMetrics: adam.getMetricsRedisStream,
+				StreamFlowLog: adam.getFlowLogRedisStream,
 				StreamRequest: adam.getRequestRedisStream,
 				StreamApps:    adam.getAppsLogsRedisStream,
 			}
@@ -224,6 +226,18 @@ func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return elog.LogLast(loader, q, handler)
+}
+
+//FlowLogChecker check FlowLogs by pattern from existence files with FlowLogLast and use FlowLogWatchWithTimeout with timeout for observe new files
+func (adam *Ctx) FlowLogChecker(devUUID uuid.UUID, q map[string]string, handler eflowlog.HandlerFunc, mode eflowlog.FlowLogCheckerMode, timeout time.Duration) (err error) {
+	return eflowlog.FlowLogChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
+}
+
+//FlowLogLastCallback check FlowLogs by pattern from existence files with callback
+func (adam *Ctx) FlowLogLastCallback(devUUID uuid.UUID, q map[string]string, handler eflowlog.HandlerFunc) (err error) {
+	var loader = adam.getLoader()
+	loader.SetUUID(devUUID)
+	return eflowlog.FlowLogLast(loader, q, handler)
 }
 
 //InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.

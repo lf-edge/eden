@@ -317,6 +317,7 @@ from the list (or define multiple fields separated by the comma):
 * `log` - to view log objects
 * `info` - to view info objects
 * `metric` - to view metric objects
+* `netstat` - to view network packages counts
 * `app` - to view console output
 
 You can show only N last lines by setting of `--tail` flag.
