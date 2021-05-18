@@ -388,6 +388,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultTelnetPort
 		case "eve.ssid":
 			return ""
+		case "eve.qemu-monitor-port":
+			return defaults.DefaultQemuMonitorPort
 
 		case "eden.root":
 			return filepath.Join(currentPath, defaults.DefaultDist)

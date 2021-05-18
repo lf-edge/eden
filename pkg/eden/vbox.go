@@ -3,8 +3,10 @@ package eden
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -248,4 +250,68 @@ func StatusEVEVBox(vmName string) (status string, err error) {
 		}
 	}
 	return "process doesn''t exist", nil
+}
+
+//SetLinkStateVbox changes the link state of the given interface.
+//If interface name is undefined, the function changes the link state of every uplink interface.
+func SetLinkStateVbox(vmName, ifName string, up bool) error {
+	if ifName == "" {
+		if err := setLinkStateVbox(vmName, "eth0", up); err != nil {
+			return err
+		}
+		if err := setLinkStateVbox(vmName, "eth1", up); err != nil {
+			return err
+		}
+		return nil
+	}
+	return setLinkStateVbox(vmName, ifName, up)
+}
+
+func setLinkStateVbox(vmName, ifName string, up bool) error {
+	var ifIdx int
+	switch ifName {
+	case "eth0":
+		ifIdx = 1
+	case "eth1":
+		ifIdx = 2
+	default:
+		return errors.New("no such device")
+	}
+	linkState := "on"
+	if !up {
+		linkState = "off"
+	}
+	_, _, err := utils.RunCommandAndWait("VBoxManage",
+		strings.Fields(fmt.Sprintf("controlvm %s setlinkstate%d %s", vmName, ifIdx, linkState))...)
+	return err
+}
+
+//GetLinkStateVbox returns the link state of the interface.
+//If interface name is undefined, link state of all interfaces is returned.
+func GetLinkStateVbox(vmName, ifName string) (linkStates []LinkState, err error) {
+	out, _, err := utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("showvminfo %s", vmName))...)
+	if err != nil {
+		return nil, err
+	}
+	scanner := bufio.NewScanner(bytes.NewReader([]byte(out)))
+	nicInfoReg := regexp.MustCompile("NIC ([0-9]+):.*Cable connected: (on|off)")
+	for scanner.Scan() {
+		match := nicInfoReg.FindStringSubmatch(scanner.Text())
+		if len(match) == 3 {
+			nicIdx, err := strconv.Atoi(match[1])
+			if err != nil {
+				continue
+			}
+			nicName := fmt.Sprintf("eth%d", nicIdx-1)
+			if ifName != "" && ifName != nicName {
+				continue
+			}
+			isUp := match[2] == "on"
+			linkStates = append(linkStates, LinkState{
+				InterfaceName: nicName,
+				IsUP:          isUp,
+			})
+		}
+	}
+	return linkStates, nil
 }
