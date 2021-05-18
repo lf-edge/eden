@@ -28,7 +28,6 @@ var (
 	baseOSVDrive        bool
 	configItems         map[string]string
 	baseOSVersion       string
-	getFromFileName     bool
 	edenDist            string
 	fileWithConfig      string
 )
@@ -143,7 +142,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if len(qemuPorts) == 0 {
 			qemuPorts = nil
 		}
-		baseOSImageConfig := expectation.BaseOSImage(baseOSVDrive)
+		baseOSImageConfig := expectation.BaseOSImage(baseOSVersion, baseOSVDrive)
 		dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev: %s", err)
@@ -213,7 +212,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
 
-		if getFromFileName {
+		if baseOSVersion == "" {
 			correctionFileName := fmt.Sprintf("%s.ver", rootFsPath)
 			if rootFSFromCorrectionFile, err := ioutil.ReadFile(correctionFileName); err == nil {
 				baseOSVersion = string(rootFSFromCorrectionFile)
@@ -389,12 +388,12 @@ func controllerInit() {
 	edgeNodeSetConfig.Flags().StringVar(&fileWithConfig, "file", "", "set config from file")
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
-	edgeNodeEVEImageUpdateFlags := edgeNodeEVEImageUpdate.Flags()
-	edgeNodeEVEImageUpdateFlags.StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
-	edgeNodeEVEImageUpdateFlags.StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
-	edgeNodeEVEImageUpdateFlags.BoolVarP(&getFromFileName, "from-filename", "", true, "get version from filename")
-	edgeNodeEVEImageUpdateFlags.BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
-	edgeNodeEVEImageUpdateFlags.BoolVar(&baseOSVDrive, "drive", false, "provide drive to baseOS")
+	edgeNodeEVEImageUpdate.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
+	edgeNodeEVEImageUpdate.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
+	edgeNodeEVEImageUpdate.Flags().BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
+	edgeNodeEVEImageUpdate.Flags().BoolVar(&baseOSVDrive, "drive", false, "provide drive to baseOS")
+	edgeNodeEVEImageRemove.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
+	edgeNodeEVEImageRemove.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
 	configUsage := `set of key=value items.
 Supported keys are defined in https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md`

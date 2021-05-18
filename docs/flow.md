@@ -243,7 +243,14 @@ If the hash is identical, nothing will be updated.
 To update the image, run:
 
 ```console
-eden controller edge-node eveimage-update -m adam://[adam_ip:adam_port] <path-to-image>
+eden controller edge-node eveimage-update -m adam:// <path-to-image>
+```
+
+or if you want to update from docker image (you should use image in full notation for example
+`lfedge/eve:0.0.0-master-ad0d9030-kvm-amd64`):
+
+```console
+eden controller edge-node eveimage-update -m adam:// docker://lf-edge/eve:<tag of eve>
 ```
 
 As with running a VM image from a file, this will load the image up to
@@ -262,17 +269,16 @@ $ eden status
 
 So we would use `-m adam://172.31.15.153:3333`
 
-If your filename does not _precisely_ match the required pattern,
-you can override it as follows:
+EVE creates eve_version file in the same directory as image, so EDEN will try to use it for obtain version.
+If the file does not exist and your filename does not precisely match the required pattern
+(`<semver>-<free-form-text>-<hypervisor>-<arch>.squashfs`), you can override it as follows:
 
 ```console
-eden controller edge-node eveimage-update -m adam:// --os-version=0.0.0-12345-kvm-amd64  --from-filename=false <path-to-file>
+eden controller edge-node eveimage-update -m adam:// --os-version=0.0.0-12345-kvm-amd64 <path-to-file>
 ```
 
 The options are:
 
-* `--from-filename=false` - do not use the filename to get
-the precise version tag, but instead get it from `--os-version`
 * `--os-version=<version>` - use the provided version, which
 must match the pattern of `<semver>-<free-form-text>-<hypervisor>-<arch>`
 

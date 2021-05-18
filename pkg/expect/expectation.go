@@ -43,6 +43,8 @@ type AppExpectation struct {
 	mem         uint32
 	metadata    string
 
+	baseOSVersion string
+
 	vncDisplay  uint32
 	vncPassword string
 
