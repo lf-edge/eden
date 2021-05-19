@@ -1,4 +1,4 @@
-FROM lfedge/eve-alpine:8a53b741d47f42752db30dd896c3467433bac152 as build
+FROM lfedge/eve-alpine:6.6.0 as build
 ENV BUILD_PKGS perl git gawk
 RUN eve-alpine-deploy.sh
 

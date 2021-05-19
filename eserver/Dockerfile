@@ -1,4 +1,4 @@
-FROM lfedge/eve-alpine:6.2.0 AS build
+FROM lfedge/eve-alpine:6.6.0 AS build
 ENV BUILD_PKGS go git openssh-keygen
 RUN eve-alpine-deploy.sh
 
@@ -16,7 +16,6 @@ RUN go mod download
 COPY . /eserver/src
 
 ARG GOOS=linux
-ARG GOARCH=amd64
 
 RUN go build -ldflags "-s -w" -o /eserver/bin/eserver main.go
 

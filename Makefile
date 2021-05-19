@@ -6,7 +6,7 @@ DO_DOCKER ?= 1
 # ESERVER_TAG is the tag for eserver image to build
 ESERVER_TAG ?= "lfedge/eden-http-server"
 # ESERVER_VERSION is the version of eserver image to build
-ESERVER_VERSION ?= "1.4"
+ESERVER_VERSION ?= "1.5"
 # ESERVER_DIR is the directory with eserver Dockerfile to build
 ESERVER_DIR=$(CURDIR)/eserver
 # check if eserver image already exists in local docker and get its IMAGE_ID
@@ -17,7 +17,7 @@ endif
 # ESERVER_TAG is the tag for processing image to build
 PROCESSING_TAG ?= "itmoeve/eden-processing"
 # PROCESSING_VERSION is the version of processing image to build
-PROCESSING_VERSION ?= "1.2"
+PROCESSING_VERSION ?= "1.3"
 # PROCESSING_DIR is the directory with processing Dockerfile to build
 PROCESSING_DIR=$(CURDIR)/processing
 
@@ -73,7 +73,7 @@ test: build
 $(EMPTY_DRIVE).%:
 	qemu-img create -f $* $@ $(EMPTY_DRIVE_SIZE)
 
-build-tests: build testbin gotestsum
+build-tests: build testbin
 install: build
 	CGO_ENABLED=0 go install .
 
@@ -94,9 +94,6 @@ $(BIN): $(LOCALBIN)
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
-gotestsum:
-	go get gotest.tools/gotestsum
-
 config: build
 ifeq ($(OS), $(HOSTOS))
 	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
@@ -115,7 +112,7 @@ stop: build
 dist: build-tests
 	tar cvzf dist/eden_dist.tgz dist/bin dist/scripts dist/tests dist/*.txt
 
-.PHONY: processing eserver all clean test build build-tests tests-export config setup stop testbin gotestsum dist
+.PHONY: processing eserver all clean test build build-tests tests-export config setup stop testbin dist
 
 eserver:
 	@echo "Build eserver image"
@@ -124,6 +121,10 @@ eserver:
 processing:
 	@echo "Build processing image"
 	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR); fi
+
+push-multi-arch-processing:
+	@echo "Build and push processing image"
+	docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR)
 
 tests-export: $(DIRECTORY_EXPORT) build-tests
 	@cp -af $(WORKDIR)/tests/* $(DIRECTORY_EXPORT)
