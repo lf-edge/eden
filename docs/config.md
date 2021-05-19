@@ -58,25 +58,25 @@ eden controller -m adam:// edge-node get-config
 
 The above uses the adam mode to get the config for the edge-node, i.e. eve device.
 
-To update the running eve os base image to another one, for example one stored in `dist/amd64/installer/rootfs.img`:
+To update the running eve os base image to another one, for example one stored in `dist/amd64/current/installer/rootfs.img`:
 
 ```console
-eden controller -m adam:// edge-node eveimage-update dist/amd64/installer/rootfs.img
+eden controller -m adam:// edge-node eveimage-update dist/amd64/current/installer/rootfs.img
 ```
 
 The last argument is the path tp the new rootfs image. It can be one of:
 
-* relative file path, like the example above, `dist/amd64/installer/rootfs.img`
-* absolute file path, e.g. `/home/user1/eve/dist/amd64/installer/rootfs.img`
-* file URL, e.g. `file:///home/user1/eve/dist/amd64/installer/rootfs.img`
+* relative file path, like the example above, `dist/amd64/current/installer/rootfs.img`
+* absolute file path, e.g. `/home/user1/eve/dist/amd64/current/installer/rootfs.img`
+* file URL, e.g. `file:///home/user1/eve/dist/amd64/current/installer/rootfs.img`
 * http/s URL, e.g. `https://some.server.com/path/to/rootfs.img`
-* OCI registry, e.g. `docker.io/lfedge/eve:6.7.8`
+* OCI registry, e.g. `docker.io/lfedge/eve:6.7.8-kvm-amd64`
 
 Note that when providing the OCI registry option, you can select to get the image from the local, eden-launched registry with
 the `--registry=local` argument, e.g.
 
 ```console
-eden controller -m adam:// edge-node eveimage-update --registry=local oci://docker.io/lfedge/eve:6.7.8
+eden controller -m adam:// edge-node eveimage-update --registry=local oci://docker.io/lfedge/eve:6.7.8-kvm-amd64
 ```
 
 To set config property of EVE from [list](https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md) you

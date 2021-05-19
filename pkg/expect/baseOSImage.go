@@ -15,6 +15,9 @@ import (
 
 //parse file or url name and returns Base OS Version
 func (exp *AppExpectation) getBaseOSVersion() string {
+	if exp.baseOSVersion != "" {
+		return exp.baseOSVersion
+	}
 	if exp.appType == dockerApp {
 		return exp.appVersion
 	}
@@ -27,7 +30,14 @@ func (exp *AppExpectation) getBaseOSVersion() string {
 	rootFSName = strings.TrimSuffix(rootFSName, filepath.Ext(rootFSName))
 	rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
 	if re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern); !re.MatchString(rootFSName) {
-		log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
+		log.Warnf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
+		// check for eve_version file
+		if v, err := ioutil.ReadFile(filepath.Join(filepath.Dir(exp.appURL), "eve_version")); err == nil {
+			baseOSVersion := strings.TrimSpace(string(v))
+			log.Warnf("Will use version from eve_version file: %s", baseOSVersion)
+			return baseOSVersion
+		}
+		log.Fatalf("Cannot use provided file: version unknown, please provide it with --os-version flag")
 	}
 	return rootFSName
 }
@@ -65,8 +75,10 @@ func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 
 //BaseOSImage expectation gets or creates Image definition,
 //gets BaseOSConfig and returns it or creates BaseOSConfig, adds it into internal controller and returns it
+//if version is not empty will use it as BaseOSVersion
 //if withDrive set will only create drive and content tree
-func (exp *AppExpectation) BaseOSImage(withDrive bool) (baseOSConfig *config.BaseOSConfig) {
+func (exp *AppExpectation) BaseOSImage(baseOSVersion string, withDrive bool) (baseOSConfig *config.BaseOSConfig) {
+	exp.baseOSVersion = baseOSVersion
 	var err error
 	if exp.appType == fileApp {
 		if exp.appURL, err = utils.GetFileFollowLinks(exp.appURL); err != nil {
