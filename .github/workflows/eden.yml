@@ -25,7 +25,7 @@ jobs:
       - name: setup
         run: |
           sudo apt update
-          sudo apt install -y qemu-utils qemu-system-x86
+          sudo apt install -y qemu-utils qemu-system-x86 jq
       - name: build eden
         run: |
           make build-tests
@@ -38,8 +38,25 @@ jobs:
       - name: Collect logs
         if: ${{ always() }}
         run: |
-          ./eden log --format json > trace.log
-          ./eden info > info.log
+          ./eden log --format json > trace.log || echo "no log"
+          ./eden info > info.log || echo "no info"
+          cp dist/default-eve.log console.log || echo "no device log"
+          docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
+      - name: Log counting
+        if: ${{ always() }}
+        run: |
+          echo "::group::Total errors"
+          echo "$(jq '.severity' trace.log|grep err|wc -l)"
+          echo "::endgroup::"
+          echo "::group::Errors by source"
+          echo "errors by source: $(jq -s 'map(select(.severity|contains("err")))|group_by(.source)|map({"source": .[0].source, "total":length})|sort_by(.total)|reverse[]' trace.log)"
+          echo "::endgroup::"
+          echo "::group::Error log content duplicates"
+          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.content)|map(select(length>1))' trace.log)"
+          echo "::endgroup::"
+          echo "::group::Error log function filename duplicates"
+          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.filename)|map(select(length>10))|map({"source": .[0].source, "filename": .[0].filename, "function": .[0].function, "content": [.[].content], "total":length})|sort_by(.total)| reverse[]' trace.log)"
+          echo "::endgroup::"
       - name: Store raw test results
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
@@ -48,4 +65,5 @@ jobs:
           path: |
               ${{ github.workspace }}/trace.log
               ${{ github.workspace }}/info.log
-              ${{ github.workspace }}/dist/default-eve.log
+              ${{ github.workspace }}/console.log
+              ${{ github.workspace }}/adam.log
