@@ -17,8 +17,11 @@ OS ?= $(HOSTOS)
 
 WORKDIR ?= $(CURDIR)/../dist
 
+gotestsum:
+	go get gotest.tools/gotestsum
+
 #test: $(TESTS:=_test)
-test:
+test: gotestsum
 	gotestsum --jsonfile $(WORKDIR)/results.json --junitfile $(WORKDIR)/results.xml --raw-command -- go tool test2json -t ../eden test workflow -v debug
 
 build: $(TESTS:=_build)
