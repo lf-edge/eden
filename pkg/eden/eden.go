@@ -483,6 +483,12 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 			}
 		}
 	}
+	if model.DevModelType() == defaults.DefaultQemuModel && viper.GetString("eve.arch") == "arm64" {
+		// we need to properly set console for qemu arm64
+		if err := ioutil.WriteFile(filepath.Join(certsDir, "grub.cfg"), []byte("set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\""), 0666); err != nil {
+			return fmt.Errorf("GenerateEveCerts: %s", err)
+		}
+	}
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
 	if _, err := os.Stat(redisPasswordFile); os.IsNotExist(err) {
 		pwd := utils.GeneratePassword(8)
