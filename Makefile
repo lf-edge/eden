@@ -84,7 +84,7 @@ endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-s -w" -o $@ .
 	mkdir -p dist/scripts/shell
-	cp shell-scripts/* dist/scripts/shell/
+	cp -r shell-scripts/* dist/scripts/shell/
 
 $(BIN): $(LOCALBIN)
 	ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@
