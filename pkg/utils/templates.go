@@ -2,7 +2,9 @@ package utils
 
 import (
 	"bytes"
+	"debug/elf"
 	"os"
+	"path/filepath"
 	"runtime"
 	"text/template"
 
@@ -33,8 +35,42 @@ var funcs = template.FuncMap{
 		return res
 	},
 	// Get the runtime Operating system name
-	"EdenOSRuntime": func(key string) string {
+	"EdenOSRuntime": func() string {
 		return runtime.GOOS
+	},
+	// Check libslirp version. Version 4.2 and later do not support communication between slirp interfaces
+	"EdenCheckSlirpSupportRouting": func() bool {
+		pathToSearch := ""
+		if err := filepath.Walk("/usr/lib", func(path string, info os.FileInfo, err error) error {
+			if err == nil && info.Name() == "libslirp.so.0" {
+				pathToSearch = path
+			}
+			return nil
+		}); err != nil {
+			log.Errorf("filepath.Walk: %v", err)
+			return false
+		}
+		if pathToSearch == "" {
+			log.Errorf("Not found libslirp.so.0")
+			return false
+		}
+		elfFile, err := elf.Open(pathToSearch)
+		if err != nil {
+			log.Errorf("elf.Open: %v", err)
+			return false
+		}
+		symbols, err := elfFile.DynamicSymbols()
+		if err != nil {
+			log.Errorf("elfFile.DynamicSymbols: %v", err)
+			return false
+		}
+		for _, el := range symbols {
+			if el.Name == "SLIRP_4.2" {
+				log.Warn("SLIRP_4.2 and later do not allow to communicate between slirp interfaces")
+				return false
+			}
+		}
+		return true
 	},
 }
 

@@ -63,11 +63,12 @@ eden network ls
 # These two network instances have different uplink adapters attached to them. And these adapters
 # get different IP addresses from the same subnet with DHCP.
 
-{{$osruntime := EdenOSRuntime "nan"}}
+{{$osruntime := EdenOSRuntime}}
 {{$devmodel := EdenConfig "eve.devmodel"}}
+{{$allowSlirpRouting := EdenCheckSlirpSupportRouting}}
 
 {{if (eq $osruntime "linux")}}
-{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
+{{if or (and (eq $devmodel "ZedVirtual-4G") $allowSlirpRouting) (eq $devmodel "VBox") }}
 message 'SCENARIO 2: Creating networks'
 eden network create 10.11.12.0/24 -n n1
 eden network create 10.11.13.0/24 -n n2 --uplink eth1
