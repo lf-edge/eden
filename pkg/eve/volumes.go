@@ -26,17 +26,18 @@ type VolInstState struct {
 	EveState      string
 	Ref           string
 	contentTreeID string
+	MountPoint    string
 	deleted       bool
 }
 
 func volInstStateHeader() string {
-	return "NAME\tUUID\tREF\tIMAGE\tTYPE\tSIZE\tMAX_SIZE\tSTATE(ADAM)\tLAST_STATE(EVE)"
+	return "NAME\tUUID\tREF\tIMAGE\tTYPE\tSIZE\tMAX_SIZE\tMOUNT\tSTATE(ADAM)\tLAST_STATE(EVE)"
 }
 
 func (volInstStateObj *VolInstState) toString() string {
-	return fmt.Sprintf("%s\t%s\t%s\t%s\t%v\t%s\t%s\t%s\t%s",
+	return fmt.Sprintf("%s\t%s\t%s\t%s\t%v\t%s\t%s\t%s\t%s\t%s",
 		volInstStateObj.Name, volInstStateObj.UUID, volInstStateObj.Ref, volInstStateObj.Image,
-		volInstStateObj.VolumeType, volInstStateObj.Size, volInstStateObj.MaxSize,
+		volInstStateObj.VolumeType, volInstStateObj.Size, volInstStateObj.MaxSize, volInstStateObj.MountPoint,
 		volInstStateObj.AdamState, volInstStateObj.EveState)
 }
 
@@ -53,6 +54,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			return fmt.Errorf("no ContentTree in cloud %s: %s", contentTreeID, err)
 		}
 		ref := "-"
+		mountPoint := "-"
 	appInstanceLoop:
 		for _, id := range dev.GetApplicationInstances() {
 			appInstanceConfig, err := ctrl.GetApplicationInstanceConfig(id)
@@ -62,6 +64,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			for _, volumeRef := range appInstanceConfig.VolumeRefList {
 				if volumeRef.Uuid == vi.GetUuid() {
 					ref = fmt.Sprintf("app: %s", appInstanceConfig.Displayname)
+					mountPoint = volumeRef.MountDir
 					break appInstanceLoop
 				}
 			}
@@ -75,6 +78,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			EveState:      "UNKNOWN",
 			Size:          "-",
 			MaxSize:       "-",
+			MountPoint:    mountPoint,
 			Ref:           ref,
 			contentTreeID: contentTreeID,
 		}
@@ -99,13 +103,14 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		volInstStateObj, ok := ctx.volumes[infoObject.GetDisplayName()]
 		if !ok {
 			volInstStateObj = &VolInstState{
-				Name:      infoObject.GetDisplayName(),
-				UUID:      infoObject.GetUuid(),
-				AdamState: "NOT_IN_CONFIG",
-				EveState:  infoObject.State.String(),
-				Size:      "-",
-				MaxSize:   "-",
-				Ref:       "-",
+				Name:       infoObject.GetDisplayName(),
+				UUID:       infoObject.GetUuid(),
+				AdamState:  "NOT_IN_CONFIG",
+				EveState:   infoObject.State.String(),
+				Size:       "-",
+				MaxSize:    "-",
+				MountPoint: "-",
+				Ref:        "-",
 			}
 			ctx.volumes[infoObject.GetDisplayName()] = volInstStateObj
 		}

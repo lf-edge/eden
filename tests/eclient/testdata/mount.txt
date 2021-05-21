@@ -21,6 +21,10 @@ stdout 'docker-entrypoint.sh'
 exec -t 5m bash ssh.sh /dir
 stdout 'mount.txt'
 
+eden volume ls
+stdout '/dir'
+stdout '/tst'
+
 eden pod delete eclient-mount
 
 test eden.app.test -test.v -timewait 10m - eclient-mount
