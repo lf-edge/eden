@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/models"
@@ -134,7 +133,18 @@ var configAddCmd = &cobra.Command{
 		}
 		context.SetContext(context.Current)
 		reloadConfigDetails()
-		viper.Set("eve.arch", eveArch)
+		if eveArch != "" {
+			viper.Set("eve.arch", eveArch)
+			imageDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist)
+			switch eveArch {
+			case "amd64":
+				viper.Set("eve.firmware", fmt.Sprintf("[%s %s]",
+					filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
+					filepath.Join(imageDist, "eve", "OVMF_VARS.fd")))
+			case "arm64":
+				viper.Set("eve.firmware", fmt.Sprintf("[%s]", filepath.Join(imageDist, "eve", "OVMF.fd")))
+			}
+		}
 		if ssid != "" {
 			viper.Set("eve.ssid", ssid)
 		}
@@ -431,7 +441,7 @@ func configInit() {
 	configAddCmd.Flags().StringToStringVarP(&hostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVarP(&qemuSocketPath, "qmp", "", "", "use qmp socket with path")
 	configAddCmd.Flags().StringVar(&ssid, "ssid", "", "set ssid of wifi for rpi")
-	configAddCmd.Flags().StringVar(&eveArch, "arch", runtime.GOARCH, "arch of EVE (amd64 or arm64)")
+	configAddCmd.Flags().StringVar(&eveArch, "arch", "", "arch of EVE (amd64 or arm64)")
 	configAddCmd.Flags().StringVar(&modelFile, "devmodel-file", "", "File to use for overwrite of model defaults")
 	configCmd.AddCommand(configResetCmd)
 	configCmd.AddCommand(configEditCmd)

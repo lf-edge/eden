@@ -350,9 +350,12 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "eve.log":
 			return fmt.Sprintf("%s-eve.log", strings.ToLower(context.Current))
 		case "eve.firmware":
-			return fmt.Sprintf("[%s %s]",
-				filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
-				filepath.Join(imageDist, "eve", "OVMF_VARS.fd"))
+			if runtime.GOARCH == "amd64" {
+				return fmt.Sprintf("[%s %s]",
+					filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
+					filepath.Join(imageDist, "eve", "OVMF_VARS.fd"))
+			}
+			return fmt.Sprintf("[%s]", filepath.Join(imageDist, "eve", "OVMF.fd"))
 		case "eve.repo":
 			return defaults.DefaultEveRepo
 		case "eve.registry":

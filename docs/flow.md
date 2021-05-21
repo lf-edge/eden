@@ -14,9 +14,11 @@ adam with default options. See below for options on modifying the flow.
 
 1. Make sure you have prerequisites, like `docker` and `qemu`. See
 the main [README](../README.md).
-1. Make sure you have `eden` the binary, or, if you prefer, this entire repositor.
+1. Make sure you have `eden` the binary, or, if you prefer, this entire repository.
 See the main [README](../README.md).
-1. Create a basic config named `default` with: `eden config add default`
+1. Create a basic config named `default` with: `eden config add default`.
+   You can define `--arch` here, but do not forget about
+   [disabling hardware acceleration](flow.md#Disabling hardware acceleration) if tou will run arm64 on amd64.
 1. Run the setup with: `eden setup` - this does the following:
    * reads the configuration from your context and validates it
    * generates the certificates for adam and for eve
@@ -77,7 +79,7 @@ the registry, for `lfedge/eve:abcdefg-kvm-amd64`.
 #### Disabling hardware acceleration
 
 Sometimes, when running in a virtualized platform, like qemu,
-on another virtualized platform, like an ec2 instance, you might want to disable
+on another virtualized platform, like an arm64 instance on amd64, you might want to disable
 hardware acceleration, as it is not available. In that case, you can pass in:
 
 ```console
