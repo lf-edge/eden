@@ -1,5 +1,5 @@
 ---
-name: EdenPacketARM
+name: EdenEMH_ARM
 on:  # yamllint disable-line rule:truthy
   push:
     branches: [master]
@@ -21,7 +21,7 @@ jobs:
           sudo apt install -y golang jq expect
       - name: Get eden
         uses: actions/checkout@v2
-      - name: Create ubuntu on packet hosting
+      - name: Create ubuntu server on packet hosting
         id: ubuntu
         run: |
           packet_ubuntu_id=$(./shell-scripts/packet/create.sh ${{ matrix.conf_eden_server }} -p "$PACKET_PROJECT" -ns gh-action -os ubuntu_18_04)
@@ -36,7 +36,7 @@ jobs:
         env:
           PACKET_TOKEN: ${{ secrets.PACKET_TOKEN }}
           PACKET_PROJECT: ${{ secrets.PACKET_PROJECT }}
-      - name: Create ssh key
+      - name: Create SSH key
         run: |
           mkdir -p ~/.ssh/keys/
           echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_PATH"
@@ -49,7 +49,7 @@ jobs:
           SSH_PASSPHRASE: ${{secrets.PACKET_SSH_PASSPHRASE}}
           SSH_KEY_PATH: ${{ github.workspace }}/../private.key
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      - name: Install Dependencies to packet EDEN server
+      - name: Install Dependencies to packet ubuntu server for EDEN
         run: |
           ssh root@${{steps.ubuntu.outputs.ip}} 'sudo apt-get update && sudo apt-get remove docker docker-engine docker.io containerd runc'
           ssh root@${{steps.ubuntu.outputs.ip}} 'sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release'
@@ -60,7 +60,7 @@ jobs:
           ssh root@${{steps.ubuntu.outputs.ip}} 'sudo add-apt-repository ppa:longsleep/golang-backports && sudo apt install -y golang'
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      - name: Get and setup EDEN on packet
+      - name: Get and setup EDEN on ubuntu packet server
         run: |
           ssh root@${{steps.ubuntu.outputs.ip}} 'sudo rm -rf ~/eden'
           ssh root@${{steps.ubuntu.outputs.ip}} 'git clone https://github.com/lf-edge/eden.git && cd eden && git checkout '"$GITHUB_SHA"
@@ -71,7 +71,7 @@ jobs:
           ssh root@${{steps.ubuntu.outputs.ip}} 'cd eden && ./eden start'
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      - name: Create EVE on packet
+      - name: Create EVE server on packet hosting
         id: eve
         run: |
           device_id=$(ssh root@${{steps.ubuntu.outputs.ip}} 'cd eden && export PACKET_TOKEN='"$PACKET_TOKEN"' && ./shell-scripts/packet/create-eve.sh'" ${{ matrix.conf_eve_server }} -p $PACKET_PROJECT"' -ns eve-gh-action')
