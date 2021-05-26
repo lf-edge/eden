@@ -101,8 +101,7 @@ To find out what is running and where:
 eden status
 ```
 
-
-##  Quickstart 2: Build an image for a real hardware (x86)
+## Quickstart 2: Build an image for a real hardware (x86)
 
 Starts nginx Dockerhub image on port 8028 serving ./data/helloeve/ content, so you will be able to access it via `http://<EVE IP>:8028`. Feel free to change ./data/helloeve/ and redeploy the pod.
 
@@ -119,7 +118,7 @@ make build-tests
 ```
 
 Burn the image that was displayed to SD card / USB and boot from it. You may use balena etcher.
-Then on eden machine: 
+Then on eden machine:
 
 ```
 source ~/.eden/activate.sh
