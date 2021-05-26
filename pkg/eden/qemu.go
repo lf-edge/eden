@@ -136,10 +136,7 @@ func SetLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
 		if err := setLinkStateQemu(qemuMonitorPort, "eth0", up); err != nil {
 			return err
 		}
-		if err := setLinkStateQemu(qemuMonitorPort, "eth1", up); err != nil {
-			return err
-		}
-		return nil
+		return setLinkStateQemu(qemuMonitorPort, "eth1", up)
 	}
 	return setLinkStateQemu(qemuMonitorPort, ifName, up)
 }
@@ -201,7 +198,7 @@ func GetLinkStateQemu(qemuMonitorPort int, ifName string) (linkStates []LinkStat
 		return nil, fmt.Errorf("failed to send '%s' command to qemu: %v", cmd, err)
 	}
 	scanner := bufio.NewScanner(conn)
-	setLinkCmdReg := regexp.MustCompile("'set_link (\\S+) (on|off)'")
+	setLinkCmdReg := regexp.MustCompile(`'set_link (\S+) (on|off)'`)
 	for scanner.Scan() {
 		// read output from the QEMU monitor command prompt
 		line := scanner.Text()

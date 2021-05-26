@@ -259,10 +259,7 @@ func SetLinkStateVbox(vmName, ifName string, up bool) error {
 		if err := setLinkStateVbox(vmName, "eth0", up); err != nil {
 			return err
 		}
-		if err := setLinkStateVbox(vmName, "eth1", up); err != nil {
-			return err
-		}
-		return nil
+		return setLinkStateVbox(vmName, "eth1", up)
 	}
 	return setLinkStateVbox(vmName, ifName, up)
 }
