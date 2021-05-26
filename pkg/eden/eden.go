@@ -27,6 +27,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+//LinkState of an EVE uplink interface.
+type LinkState struct {
+	InterfaceName string
+	IsUP          bool
+}
+
 //StartRedis function run redis in docker with mounted redisPath:/data
 //if redisForce is set, it recreates container
 func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {

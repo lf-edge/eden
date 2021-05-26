@@ -140,6 +140,9 @@ eve:
     #ssid for wifi
     ssid: '{{parse "eve.ssid"}}'
 
+    #port for QEMU Monitor
+    qemu-monitor-port: {{parse "eve.qemu-monitor-port"}}
+
 eden:
     #root directory of eden
     root: '{{parse "eden.root"}}'

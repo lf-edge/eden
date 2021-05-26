@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -27,12 +29,14 @@ var (
 	qemuSMBIOSSerial  string
 	qemuConfigFile    string
 	qemuForeground    bool
+	qemuMonitorPort   int
 	eveSSHKey         string
 	eveHost           string
 	eveSSHPort        int
 	eveTelnetPort     int
 	eveRemoteAddr     string
 	eveConfigFromFile bool
+	eveInterfaceName  string
 )
 
 var eveCmd = &cobra.Command{
@@ -56,6 +60,7 @@ var startEveCmd = &cobra.Command{
 			qemuAccel = viper.GetBool("eve.accel")
 			qemuSMBIOSSerial = viper.GetString("eve.serial")
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+			qemuMonitorPort = viper.GetInt("eve.qemu-monitor-port")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
@@ -83,7 +88,8 @@ var startEveCmd = &cobra.Command{
 				log.Infof("EVE is starting in Parallels")
 			}
 		} else {
-			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
+			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuMonitorPort,
+				hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting")
@@ -470,6 +476,87 @@ var epochEveCmd = &cobra.Command{
 	},
 }
 
+var linkEveCmd = &cobra.Command{
+	Use:   "link up|down|status",
+	Short: "manage EVE interface link state",
+	Long:  `Manage EVE interface link state. Supported for QEMU and VirtualBox.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		if viperLoaded {
+			eveRemote = viper.GetBool("eve.remote")
+			qemuMonitorPort = viper.GetInt("eve.qemu-monitor-port")
+			devModel = viper.GetString("eve.devmodel")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		var err error
+		if eveRemote {
+			log.Fatal("Cannot change interface link of a remote EVE")
+		}
+		command := "status"
+		if len(args) > 0 {
+			command = args[0]
+		}
+		if command == "up" || command == "down" {
+			bringUp := command == "up"
+			switch devModel {
+			case defaults.DefaultVBoxModel:
+				err = eden.SetLinkStateVbox(vmName, eveInterfaceName, bringUp)
+			case defaults.DefaultQemuModel:
+				err = eden.SetLinkStateQemu(qemuMonitorPort, eveInterfaceName, bringUp)
+			default:
+				log.Fatalf("Link operations are not supported for devmodel '%s'", devModel)
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+			// continue to print the new link state of every interface after the update
+			log.Info("Link state of EVE interfaces after update:")
+			eveInterfaceName = ""
+		}
+
+		var linkStates []eden.LinkState
+		switch devModel {
+		case defaults.DefaultVBoxModel:
+			linkStates, err = eden.GetLinkStateVbox(vmName, eveInterfaceName)
+		case defaults.DefaultQemuModel:
+			linkStates, err = eden.GetLinkStateQemu(qemuMonitorPort, eveInterfaceName)
+		default:
+			log.Fatalf("Link operations are not supported for devmodel '%s'", devModel)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// print table with link states into stdout
+		w := new(tabwriter.Writer)
+		w.Init(os.Stdout, 0, 8, 1, '\t', 0)
+		if _, err = fmt.Fprintln(w, "INTERFACE\tLINK"); err != nil {
+			log.Fatal(err)
+		}
+		sort.SliceStable(linkStates, func(i, j int) bool {
+			return linkStates[i].InterfaceName < linkStates[j].InterfaceName
+		})
+		for _, linkState := range linkStates {
+			state := "UP"
+			if !linkState.IsUP {
+				state = "DOWN"
+			}
+			if _, err := fmt.Fprintln(w, linkState.InterfaceName + "\t" + state); err != nil {
+				log.Fatal(err)
+			}
+		}
+		if err = w.Flush(); err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
 func eveInit() {
 	eveCmd.AddCommand(startEveCmd)
 	eveCmd.AddCommand(stopEveCmd)
@@ -481,6 +568,7 @@ func eveInit() {
 	eveCmd.AddCommand(resetEveCmd)
 	eveCmd.AddCommand(versionEveCmd)
 	eveCmd.AddCommand(epochEveCmd)
+	eveCmd.AddCommand(linkEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -494,6 +582,7 @@ func eveInit() {
 	startEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startEveCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startEveCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
+	startEveCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	startEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	startEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	startEveCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
@@ -508,4 +597,7 @@ func eveInit() {
 	consoleEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	epochEveCmd.Flags().BoolVar(&eveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
+	linkEveCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
+	linkEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "name of the EVE VBox VM")
+	linkEveCmd.Flags().StringVarP(&eveInterfaceName, "interface-name", "i", "", "EVE interface to get/change the link state of")
 }
