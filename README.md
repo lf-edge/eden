@@ -120,7 +120,7 @@ make build-tests
 Burn the image that was displayed to SD card / USB and boot from it. You may use balena etcher.
 Then on eden machine:
 
-```
+```console
 source ~/.eden/activate.sh
 ./eden start
 ./eden eve onboard
