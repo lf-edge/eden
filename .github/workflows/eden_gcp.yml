@@ -34,7 +34,7 @@ jobs:
       - name: setup packages
         run: |
           sudo apt update
-          sudo apt install -y qemu-utils openvpn
+          sudo apt install -y qemu-utils openvpn jq
           echo "$OVPN_FILE" | base64 -d > ./config.ovpn
         env:
           OVPN_FILE: ${{ secrets.OVPN_FILE }}
@@ -92,6 +92,21 @@ jobs:
           gcloud compute firewall-rules delete eden-actions-${{ matrix.hv }}-${{github.run_number}} || echo "not exists"
           gcloud compute instances delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q --zone=us-west1-a || echo "not exists"
           gcloud compute images delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q || echo "not exists"
+      - name: Log counting
+        if: ${{ always() }}
+        run: |
+          echo "::group::Total errors"
+          echo "$(jq '.severity' trace.log|grep err|wc -l)"
+          echo "::endgroup::"
+          echo "::group::Errors by source"
+          echo "errors by source: $(jq -s 'map(select(.severity|contains("err")))|group_by(.source)|map({"source": .[0].source, "total":length})|sort_by(.total)|reverse[]' trace.log)"
+          echo "::endgroup::"
+          echo "::group::Error log content duplicates"
+          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.content)|map(select(length>1))' trace.log)"
+          echo "::endgroup::"
+          echo "::group::Error log function filename duplicates"
+          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.filename)|map(select(length>10))|map({"source": .[0].source, "filename": .[0].filename, "function": .[0].function, "content": [.[].content], "total":length})|sort_by(.total)| reverse[]' trace.log)"
+          echo "::endgroup::"
       - name: Store raw test results
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
