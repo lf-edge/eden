@@ -40,6 +40,8 @@ jobs:
         run: |
           ./eden log --format json > trace.log || echo "no log"
           ./eden info > info.log || echo "no info"
+          ./eden metric > metric.log || echo "no metric"
+          ./eden netstat > netstat.log || echo "no netstat"
           cp dist/default-eve.log console.log || echo "no device log"
           docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
       - name: Log counting
@@ -65,5 +67,7 @@ jobs:
           path: |
               ${{ github.workspace }}/trace.log
               ${{ github.workspace }}/info.log
+              ${{ github.workspace }}/metric.log
+              ${{ github.workspace }}/netstat.log
               ${{ github.workspace }}/console.log
               ${{ github.workspace }}/adam.log

@@ -64,12 +64,12 @@ stderr 'Connected to {{$long_domain}}'
 ! stderr 'Connected'
 
 # Wait for network packets information
-exec -t 10m bash wait_netstat.sh curl-acl1
+exec -t 20m bash wait_netstat.sh curl-acl1 google.com github.com {{$long_domain}} {{$fake_domain}}
 stdout 'google.com'
 stdout 'github.com'
 stdout '{{$long_domain}}'
 stdout '{{$fake_domain}}'
-exec -t 10m bash wait_netstat.sh curl-acl2
+exec -t 20m bash wait_netstat.sh curl-acl2 google.com github.com {{$long_domain}}
 stdout 'google.com'
 stdout 'github.com'
 stdout '{{$long_domain}}'
@@ -121,8 +121,11 @@ echo {{template "ssh"}}$HOST -p $1 curl -v --max-time 30 "$2"
 #!/bin/sh
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 
-echo "Waiting for flowlog results"
-until "$EDEN" pod logs --fields=netstat $1 | grep 'google.com'; do sleep 30; done
+echo "Waiting for netstat results"
+for p in ${@: 2}
+do
+  until "$EDEN" pod logs --fields=netstat $1 | grep $p; do sleep 30; done
+done
 "$EDEN" pod logs --fields=netstat $1
 
 -- eden-config.yml --
