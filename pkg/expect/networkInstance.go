@@ -17,13 +17,14 @@ import (
 
 //NetInstanceExpectation stores options for create NetworkInstanceConfigs for apps
 type NetInstanceExpectation struct {
-	mac           string
-	name          string
-	subnet        string
-	portsReceived []string
-	ports         map[int]int
-	netInstType   string
-	uplinkAdapter string
+	mac              string
+	name             string
+	subnet           string
+	portsReceived    []string
+	ports            map[int]int
+	netInstType      string
+	uplinkAdapter    string
+	staticDNSEntries map[string][]string
 }
 
 //checkNetworkInstance checks if provided netInst match expectation
@@ -66,7 +67,6 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		Cfg:      &config.NetworkInstanceOpaqueConfig{},
 		IpType:   config.AddressType_IPV4,
 		Ip:       &config.Ipspec{},
-		Dns:      nil,
 	}
 	if instanceExpect.netInstType == "switch" {
 		netInst.InstType = config.ZNetworkInstType_ZnetInstSwitch
@@ -87,6 +87,12 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		instanceExpect.name = namesgenerator.GetRandomName(0)
 	}
 	netInst.Displayname = instanceExpect.name
+	for hostname, ipAddrs := range instanceExpect.staticDNSEntries {
+		netInst.Dns = append(netInst.Dns, &config.ZnetStaticDNSEntry{
+			HostName: hostname,
+			Address:  ipAddrs,
+		})
+	}
 	return netInst, nil
 }
 

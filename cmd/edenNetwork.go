@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	networkType string
-	networkName string
-	uplinkAdapter string
+	networkType      string
+	networkName      string
+	uplinkAdapter    string
+	staticDNSEntries []string
 )
 
 var networkCmd = &cobra.Command{
@@ -127,6 +128,7 @@ var networkCreateCmd = &cobra.Command{
 		}
 		var opts []expect.ExpectationOption
 		opts = append(opts, expect.AddNetInstanceAndPortPublish(subnet, networkType, networkName, nil, uplinkAdapter))
+		opts = append(opts, expect.WithStaticDNSEntries(networkName, staticDNSEntries))
 		expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, podName, opts...)
 		netInstancesConfigs := expectation.NetworkInstances()
 	mainloop:
@@ -153,4 +155,5 @@ func networkInit() {
 	networkCreateCmd.Flags().StringVar(&networkType, "type", "local", "Type of network: local or switch")
 	networkCreateCmd.Flags().StringVarP(&networkName, "name", "n", "", "Name of network (empty for auto generation)")
 	networkCreateCmd.Flags().StringVarP(&uplinkAdapter, "uplink", "u", "eth0", "Name of uplink adapter, set to 'none' to not use uplink")
+	networkCreateCmd.Flags().StringSliceVarP(&staticDNSEntries, "static-dns-entries", "s", []string{}, "List of static DNS entries in format HOSTNAME:IP_ADDR,IP_ADDR,...")
 }

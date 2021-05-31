@@ -27,6 +27,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+//LinkState of an EVE uplink interface.
+type LinkState struct {
+	InterfaceName string
+	IsUP          bool
+}
+
 //StartRedis function run redis in docker with mounted redisPath:/data
 //if redisForce is set, it recreates container
 func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
@@ -481,6 +487,12 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 					return fmt.Errorf("GenerateEveCerts: %s", err)
 				}
 			}
+		}
+	}
+	if model.DevModelType() == defaults.DefaultQemuModel && viper.GetString("eve.arch") == "arm64" {
+		// we need to properly set console for qemu arm64
+		if err := ioutil.WriteFile(filepath.Join(certsDir, "grub.cfg"), []byte("set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\""), 0666); err != nil {
+			return fmt.Errorf("GenerateEveCerts: %s", err)
 		}
 	}
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)

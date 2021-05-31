@@ -9,6 +9,7 @@ Supported environment variables:
 * EDEN_TEST_STOP -- "y" stops EDEN after tests ("n" by default);
 * EDEN_TEST -- flavour of test set: "small", "medium"(default) and "large";
 * EDEN_TEST_USB_PT -- "y" enables USB Passthrough test (disabled by default).
+* EDEN_TEST_AUDIO_PT -- "y" enables AUDIO Passthrough test (disabled by default).
 
 Example of running:
 ```

@@ -64,9 +64,10 @@ newgrp kvm
 If you want to be able to launch VMs or containers-in-VMs on Mac
 You need to use Parallels. ([Parallels Manual](./docs/parallels.md))
 
-## Quickstart
+## Quickstart Local (running on a PC in qemu mode)
 
-Starts nginx Dockerhib image on port 8028, so you will be able to access it via `http://<EVE IP>:8028`
+Starts nginx Dockerhub image on port 8028 serving ./data/helloeve/ content, so you will be able to access it via `http://<EVE IP>:8028`. Feel free to change ./data/helloeve/ and redeploy the pod.
+
 Eve Ip is displayed by `eden status` command
 
 ```console
@@ -79,7 +80,51 @@ make build-tests
 source ~/.eden/activate.sh
 ./eden start
 ./eden eve onboard
-eden pod deploy -p 8028:80 docker://nginx
+./eden pod deploy docker://nginx -p 8027:80 --mount=src=./data/helloeve,dst=/usr/share/nginx/html
+./eden status
+```
+
+Note: Don't forget to call clean if you want to try the  installation again.
+Call either `make clean` or
+
+```console
+eden stop
+eden clean --current-context=false
+```
+
+Note for cloud and VM users: eden and eve use virtualization.
+To run in VM-based environments, see [the cloud document](./docs/cloud.md).
+
+To find out what is running and where:
+
+```console
+eden status
+```
+
+## Quickstart 2: Build an image for a real hardware (x86)
+
+Starts nginx Dockerhub image on port 8028 serving ./data/helloeve/ content, so you will be able to access it via `http://<EVE IP>:8028`. Feel free to change ./data/helloeve/ and redeploy the pod.
+
+Eve Ip is displayed by `eden status` command
+
+```console
+git clone https://github.com/lf-edge/eden.git
+cd eden
+make clean
+make build-tests
+./eden config add default --devmodel general
+./eden config set default --key adam.eve-ip --value <IP of Adam/Eden>
+./eden setup
+```
+
+Burn the image that was displayed to SD card / USB and boot from it. You may use balena etcher.
+Then on eden machine:
+
+```console
+source ~/.eden/activate.sh
+./eden start
+./eden eve onboard
+./eden pod deploy docker://nginx -p 8027:80 --mount=src=./data/helloeve,dst=/usr/share/nginx/html
 ./eden status
 ```
 
@@ -458,6 +503,7 @@ git clone https://github.com/lf-edge/eden.git
 cd eden
 make build
 eden config add default --devmodel RPi4
+eden config set default --key adam.eve-ip --value <IP of Adam/Eden>
 eden setup
 eden start
 ```

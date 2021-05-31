@@ -1,7 +1,11 @@
 package eden
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"net"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -12,12 +16,16 @@ import (
 )
 
 //StartEVEQemu function run EVE in qemu
-func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort int, qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile string, pidFile string, foregroud bool) (err error) {
+func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort int, qemuHostFwd map[string]string,
+	qemuAccel bool, qemuConfigFile, logFile, pidFile string, foregroud bool) (err error) {
 	qemuCommand := ""
 	qemuOptions := "-display none -nodefaults -no-user-config "
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logfile=%s ", eveTelnetPort, logFile)
 	if qemuSMBIOSSerial != "" {
 		qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
+	}
+	if qemuMonitorPort != 0 {
+		qemuOptions += fmt.Sprintf("-monitor tcp:localhost:%d,server,nowait  ", qemuMonitorPort)
 	}
 	nets, err := utils.GetSubnetsNotUsed(1)
 	if err != nil {
@@ -119,4 +127,98 @@ func StopEVEQemu(pidFile string) (err error) {
 //StatusEVEQemu function get status of EVE
 func StatusEVEQemu(pidFile string) (status string, err error) {
 	return utils.StatusCommandWithPid(pidFile)
+}
+
+//SetLinkStateQemu changes the link state of the given interface.
+//If interface name is undefined, the function changes the link state of every uplink interface.
+func SetLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
+	if ifName == "" {
+		if err := setLinkStateQemu(qemuMonitorPort, "eth0", up); err != nil {
+			return err
+		}
+		return setLinkStateQemu(qemuMonitorPort, "eth1", up)
+	}
+	return setLinkStateQemu(qemuMonitorPort, ifName, up)
+}
+
+func setLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
+	tcpAddr, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", qemuMonitorPort))
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return err
+	}
+	linkState := "on"
+	if !up {
+		linkState = "off"
+	}
+	cmd := fmt.Sprintf("set_link %s %s", ifName, linkState)
+	_, err = conn.Write([]byte(cmd + "\n"))
+	if err == nil {
+		err = conn.CloseWrite()
+	}
+	if err != nil {
+		return fmt.Errorf("failed to send '%s' command to qemu: %v", cmd, err)
+	}
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		// read output from the QEMU monitor command prompt
+		line := scanner.Text()
+		if strings.HasPrefix(line, "QEMU") || strings.HasPrefix(line, "(qemu)") {
+			continue
+		}
+		// anything else must be an error message
+		return errors.New(line)
+	}
+	if scanner.Err() != nil {
+		return fmt.Errorf("failed to read response from QEMU monitor: %v", scanner.Err())
+	}
+	return nil
+}
+
+//GetLinkStateQemu returns the link state of the interface.
+//If interface name is undefined, link state of all interfaces is returned.
+func GetLinkStateQemu(qemuMonitorPort int, ifName string) (linkStates []LinkState, err error) {
+	// Unfortunately QEMU Monitor doesn't provide command to obtain
+	// the current link state of interfaces.
+	// All we can do is to traverse through the command history,
+	// find the last invocation of set_link command for every interface and assume
+	// that it succeeded.
+	var linkStateMap = map[string]bool{"eth0": true, "eth1": true} // initial state
+	tcpAddr, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", qemuMonitorPort))
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return nil, err
+	}
+	cmd := "info history"
+	_, err = conn.Write([]byte(cmd + "\n"))
+	if err == nil {
+		err = conn.CloseWrite()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to send '%s' command to qemu: %v", cmd, err)
+	}
+	scanner := bufio.NewScanner(conn)
+	setLinkCmdReg := regexp.MustCompile(`'set_link (\S+) (on|off)'`)
+	for scanner.Scan() {
+		// read output from the QEMU monitor command prompt
+		line := scanner.Text()
+		match := setLinkCmdReg.FindStringSubmatch(line)
+		if len(match) == 3 {
+			nicName := match[1]
+			isUp := match[2] == "on"
+			if _, knownNic := linkStateMap[nicName]; knownNic {
+				linkStateMap[nicName] = isUp
+			}
+		}
+	}
+	if scanner.Err() != nil {
+		return nil, fmt.Errorf("failed to read response from QEMU monitor: %v", scanner.Err())
+	}
+	for nicName, isUP := range linkStateMap {
+		if ifName != "" && ifName != nicName {
+			continue
+		}
+		linkStates = append(linkStates, LinkState{InterfaceName: nicName, IsUP: isUP})
+	}
+	return linkStates, nil
 }
