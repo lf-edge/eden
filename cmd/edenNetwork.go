@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/expect"
@@ -96,6 +97,55 @@ var networkDeleteCmd = &cobra.Command{
 	},
 }
 
+//networkNetstatCmd is a command to show netstat for network
+var networkNetstatCmd = &cobra.Command{
+	Use:   "netstat <name>",
+	Short: "Show netstat for network",
+	Args:  cobra.ExactArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		niName := args[0]
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		for _, el := range dev.GetNetworkInstances() {
+			ni, err := ctrl.GetNetworkInstanceConfig(el)
+			if err != nil {
+				log.Fatalf("no network in cloud %s: %s", el, err)
+			}
+			if ni.Displayname == niName {
+				//block for process FlowLog
+				fmt.Printf("netstat list for network %s:\n", ni.Uuidandversion.Uuid)
+				//process only existing elements
+				flowLogType := eflowlog.FlowLogExist
+
+				if outputTail > 0 {
+					//process only outputTail elements from end
+					flowLogType = eflowlog.FlowLogTail(outputTail)
+				}
+
+				//logsQ for filtering logs by app
+				logsQ := make(map[string]string)
+				logsQ["scope.netInstUUID"] = ni.Uuidandversion.Uuid
+				if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(false), flowLogType, 0); err != nil {
+					log.Fatalf("FlowLogChecker: %s", err)
+				}
+				return
+			}
+		}
+		log.Infof("not found network with name %s", niName)
+	},
+}
+
 //networkCreateCmd is command for create network instance in EVE
 var networkCreateCmd = &cobra.Command{
 	Use:   "create [subnet]",
@@ -151,6 +201,7 @@ var networkCreateCmd = &cobra.Command{
 func networkInit() {
 	networkCmd.AddCommand(networkLsCmd)
 	networkCmd.AddCommand(networkDeleteCmd)
+	networkCmd.AddCommand(networkNetstatCmd)
 	networkCmd.AddCommand(networkCreateCmd)
 	networkCreateCmd.Flags().StringVar(&networkType, "type", "local", "Type of network: local or switch")
 	networkCreateCmd.Flags().StringVarP(&networkName, "name", "n", "", "Name of network (empty for auto generation)")

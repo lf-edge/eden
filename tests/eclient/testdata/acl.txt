@@ -8,6 +8,8 @@
 # non-existent domain statically assigned to an (existing public) IP address through a host file
 {{$fake_domain := "this-fake-domain-is-associated-with-zededa.com"}}
 
+{{$network_name := "n1"}}
+
 [!exec:bash] stop
 [!exec:sleep] stop
 [!exec:ssh] stop
@@ -28,13 +30,13 @@ exec -t 10m bash dns_lookup.sh zededa.com
 source .env
 
 # Create network for which ACLs will be defined.
-eden network create 10.11.12.0/24 -n n1 -s {{$fake_domain}}:$host_ip
-test eden.network.test -test.v -timewait 10m ACTIVATED n1
+eden network create 10.11.12.0/24 -n {{$network_name}} -s {{$fake_domain}}:$host_ip
+test eden.network.test -test.v -timewait 10m ACTIVATED {{$network_name}}
 
 # First app is only allowed to access github.com and $long_domain.
-eden pod deploy -n curl-acl1 --memory=512MB docker://itmoeve/eclient:0.4 -p 2223:22 --networks=n1 --acl=n1:github.com --acl=n1:{{$long_domain}}
+eden pod deploy -n curl-acl1 --memory=512MB docker://itmoeve/eclient:0.4 -p 2223:22 --networks={{$network_name}} --acl={{$network_name}}:github.com --acl={{$network_name}}:{{$long_domain}}
 # Second app is only allowed to access $long_domain and $fake_domain.
-eden pod deploy -n curl-acl2 --memory=512MB docker://itmoeve/eclient:0.4 -p 2224:22 --networks=n1 --acl=n1:{{$long_domain}} --acl=n1:{{$fake_domain}}
+eden pod deploy -n curl-acl2 --memory=512MB docker://itmoeve/eclient:0.4 -p 2224:22 --networks={{$network_name}} --acl={{$network_name}}:{{$long_domain}} --acl={{$network_name}}:{{$fake_domain}}
 
 test eden.app.test -test.v -timewait 10m RUNNING curl-acl1 curl-acl2
 
@@ -64,15 +66,11 @@ stderr 'Connected to {{$long_domain}}'
 ! stderr 'Connected'
 
 # Wait for network packets information
-exec -t 20m bash wait_netstat.sh curl-acl1 google.com github.com {{$long_domain}} {{$fake_domain}}
+exec -t 20m bash wait_netstat.sh {{$network_name}} google.com github.com {{$long_domain}} {{$fake_domain}}
 stdout 'google.com'
 stdout 'github.com'
 stdout '{{$long_domain}}'
 stdout '{{$fake_domain}}'
-exec -t 20m bash wait_netstat.sh curl-acl2 google.com github.com {{$long_domain}}
-stdout 'google.com'
-stdout 'github.com'
-stdout '{{$long_domain}}'
 
 # Cleanup - undeploy applications
 eden pod delete curl-acl1
@@ -80,10 +78,10 @@ eden pod delete curl-acl2
 test eden.app.test -test.v -timewait 10m - curl-acl1 curl-acl2
 
 # Cleanup - remove network
-eden network delete n1
-test eden.network.test -test.v -timewait 10m - n1
+eden network delete {{$network_name}}
+test eden.network.test -test.v -timewait 10m - {{$network_name}}
 eden network ls
-! stdout '^n1\s'
+! stdout '^{{$network_name}}\s'
 
 -- wait_ssh.sh --
 
@@ -124,9 +122,9 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 echo "Waiting for netstat results"
 for p in ${@: 2}
 do
-  until "$EDEN" pod logs --fields=netstat $1 | grep $p; do sleep 30; done
+  until "$EDEN" network netstat $1 | grep $p; do sleep 30; done
 done
-"$EDEN" pod logs --fields=netstat $1
+"$EDEN" network netstat $1
 
 -- eden-config.yml --
 {{/* Test's config file */}}
