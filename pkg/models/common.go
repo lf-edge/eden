@@ -79,6 +79,7 @@ func generateSystemAdapters(ethCount, wifiCount uint) []*config.SystemAdapter {
 	}
 	return adapters
 }
+
 func generatePhysicalIOs(ethCount, wifiCount, usbCount uint) []*config.PhysicalIO {
 	var physicalIOs []*config.PhysicalIO
 	for i := uint(0); i < ethCount; i++ {
@@ -130,4 +131,25 @@ func generatePhysicalIOs(ethCount, wifiCount, usbCount uint) []*config.PhysicalI
 		}
 	}
 	return physicalIOs
+}
+
+// filterSystemAdapters filters out adapters for which the underlying network device was
+// either removed or disabled through devmodel file.
+func filterSystemAdapters(adapters []*config.SystemAdapter, physicalIOs []*config.PhysicalIO) []*config.SystemAdapter {
+	var filtered []*config.SystemAdapter
+	for _, adapter := range adapters {
+		for _, physicalIO := range physicalIOs {
+			if physicalIO.Ptype != evecommon.PhyIoType_PhyIoNetEth {
+				continue
+			}
+			if physicalIO.Logicallabel != adapter.Name {
+				continue
+			}
+			if physicalIO.Usage == evecommon.PhyIoMemberUsage_PhyIoUsageNone {
+				continue
+			}
+			filtered = append(filtered, adapter)
+		}
+	}
+	return filtered
 }

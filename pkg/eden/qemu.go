@@ -64,7 +64,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort + offset, newPort + offset)
 	}
-	qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", 1)
+	qemuOptions += fmt.Sprintf(" -device e1000,netdev=eth%d ", 1)
 
 	if qemuOS == "" {
 		qemuOS = runtime.GOOS

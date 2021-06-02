@@ -64,6 +64,7 @@ func (ctx *DevModelQemu) PhysicalIOs() []*config.PhysicalIO {
 //SetPhysicalIOs sets physicalIOs of devModel
 func (ctx *DevModelQemu) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
 	ctx.physicalIOs = physicalIOs
+	ctx.adapters = filterSystemAdapters(ctx.adapters, ctx.physicalIOs)
 }
 
 //AdapterForSwitches returns adapterForSwitches of devModel

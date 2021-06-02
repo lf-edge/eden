@@ -449,7 +449,8 @@ Script:
 			continue
 		}
 
-		// Echo command to log.
+		// Echo command to log and stdout.
+		fmt.Printf("> %s\n", line)
 		fmt.Fprintf(&ts.log, "> %s\n", line)
 
 		// Command prefix [cond] means only run this command if cond is satisfied.
