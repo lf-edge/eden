@@ -20,8 +20,8 @@ import (
 
 //IFInfo stores information about net address and subnet
 type IFInfo struct {
-	Subnet       *net.IPNet
-	FirstAddress net.IP
+	Subnet        *net.IPNet
+	FirstAddress  net.IP
 	SecondAddress net.IP
 }
 
@@ -80,8 +80,8 @@ func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
 				return nil, fmt.Errorf("error in getIPByInd: %s", err)
 			}
 			result = append(result, IFInfo{
-				Subnet:       curNet,
-				FirstAddress: ips[0],
+				Subnet:        curNet,
+				FirstAddress:  ips[0],
 				SecondAddress: ips[1],
 			})
 		}
@@ -177,11 +177,13 @@ func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.R
 			i = 0
 		})
 		resp, err := client.Do(req)
+		wrongCode := false
 		if err == nil {
 			// we should check the status code of the response and try again if needed
 			if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusAccepted {
 				return resp, nil
 			}
+			wrongCode = true
 			buf, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				log.Debugf("bad status: %s", resp.Status)
@@ -191,7 +193,12 @@ func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.R
 		}
 		log.Debugf("error %s URL %s: %v", req.Method, req.RequestURI, err)
 		timer.Stop()
-		log.Infof("Attempt to re-establish connection (%d) of (%d)", i, maxRepeat)
+		if wrongCode {
+			log.Infof("Received unexpected StatusCode(%s): repeat request (%d) of (%d)",
+				http.StatusText(resp.StatusCode), i, maxRepeat)
+		} else {
+			log.Infof("Attempt to re-establish connection (%d) of (%d)", i, maxRepeat)
+		}
 		time.Sleep(delayTime)
 	}
 	return nil, fmt.Errorf("all connection attempts failed")

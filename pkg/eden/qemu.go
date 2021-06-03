@@ -33,7 +33,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	}
 	offset := 0
 	network := nets[0].Subnet
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 0, network, nets[0].FirstAddress)
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off", 0, network, nets[0].FirstAddress)
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {
@@ -50,7 +50,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", 0)
 	offset += 10
 
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s", 1, network, nets[0].SecondAddress)
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off", 1, network, nets[0].SecondAddress)
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {
