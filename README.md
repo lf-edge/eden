@@ -80,7 +80,7 @@ make build-tests
 source ~/.eden/activate.sh
 ./eden start
 ./eden eve onboard
-./eden pod deploy docker://nginx -p 8027:80 --mount=src=./data/helloeve,dst=/usr/share/nginx/html
+./eden pod deploy docker://nginx -p 8028:80 --mount=src=./data/helloeve,dst=/usr/share/nginx/html
 ./eden status
 ```
 
@@ -124,7 +124,7 @@ Then on eden machine:
 source ~/.eden/activate.sh
 ./eden start
 ./eden eve onboard
-./eden pod deploy docker://nginx -p 8027:80 --mount=src=./data/helloeve,dst=/usr/share/nginx/html
+./eden pod deploy docker://nginx -p 8028:80 --mount=src=./data/helloeve,dst=/usr/share/nginx/html
 ./eden status
 ```
 
