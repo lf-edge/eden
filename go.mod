@@ -46,6 +46,7 @@ require (
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
 	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/opencontainers/selinux v1.7.0 // indirect
+	github.com/packethost/packngo v0.15.0 // indirect
 	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/prometheus/client_golang v1.8.0 // indirect
 	github.com/prometheus/common v0.15.0 // indirect

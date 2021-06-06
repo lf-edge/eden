@@ -98,6 +98,8 @@ func utilsInit() {
 	certsInit()
 	utilsCmd.AddCommand(gcpCmd)
 	gcpInit()
+	utilsCmd.AddCommand(emhCmd)
+	emhInit()
 	utilsCmd.AddCommand(sdInfoEveCmd)
 	debugInit()
 	utilsCmd.AddCommand(debugCmd)
