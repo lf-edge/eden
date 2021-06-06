@@ -406,7 +406,7 @@ var setupCmd = &cobra.Command{
 					generateScripts(shPath+"activate.csh.tmpl",
 						cfgDir+"activate.csh")
 					fmt.Println("To activate EDEN settings run:")
-					fmt.Println("* for BASH -- `source ~/.eden/activate.sh`")
+					fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
 					fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
 					fmt.Println("To deactivate them -- eden_deactivate")
 				}

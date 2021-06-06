@@ -151,12 +151,12 @@ via the --eve-uefi-tag parameter during the setup stage
 
 For more ease of use of Eden, you can use the automatically generated setup files for your shell:
 
-* for BASH -- `source ~/.eden/activate.sh`
+* for BASH/ZSH -- `source ~/.eden/activate.sh`
 * for TCSH -- `source ~/.eden/activate.csh`
 
 These settings add the Eden's binaries directory to the PATH environment variable and add the "EDEN\_<current\_config>\_" label to the command prompt.
 
-In setup files defined some functions (BASH) and aliases (TCSH) for work with configs:
+In setup files defined some functions (BASH/ZSH) and aliases (TCSH) for work with configs:
 
 * eden+config <config\_name> -- add new config for Eden
 * eden-config <config\_name> -- remove config from Eden and switch to 'default'
