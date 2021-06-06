@@ -25,6 +25,9 @@ tests/workflow/workflow.default.txt
 tests/workflow/workflow.small.txt
 tests/workflow/workflow.large.txt
 
+#IDE
+.idea
+
 eve-config-dir/*
 
 export
