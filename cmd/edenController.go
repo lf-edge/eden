@@ -27,6 +27,7 @@ var (
 	baseOSImageActivate bool
 	baseOSVDrive        bool
 	configItems         map[string]string
+	deviceItems         map[string]string
 	baseOSVersion       string
 	edenDist            string
 	fileWithConfig      string
@@ -252,7 +253,7 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 }
 
 var edgeNodeUpdate = &cobra.Command{
-	Use:   "update --config key=value",
+	Use:   "update --config key=value --device key=value",
 	Short: "update EVE config",
 	Long:  `Update EVE config.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -278,6 +279,11 @@ var edgeNodeUpdate = &cobra.Command{
 		}
 		for key, val := range configItems {
 			dev.SetConfigItem(key, val)
+		}
+		for key, val := range deviceItems {
+			if err := dev.SetDeviceItem(key, val); err != nil {
+				log.Fatalf("SetDeviceItem: %s", err)
+			}
 		}
 
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
@@ -398,4 +404,7 @@ func controllerInit() {
 	configUsage := `set of key=value items.
 Supported keys are defined in https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md`
 	edgeNodeUpdateFlags.StringToStringVar(&configItems, "config", make(map[string]string), configUsage)
+	deviceUsage := `set of key=value items.
+Supported keys: global_profile,local_profile_server,profile_server_token`
+	edgeNodeUpdateFlags.StringToStringVar(&deviceItems, "device", make(map[string]string), deviceUsage)
 }

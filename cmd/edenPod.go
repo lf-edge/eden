@@ -41,6 +41,7 @@ var (
 	imageFormat string
 	volumeType  string
 	acl         []string
+	profiles    []string
 
 	deleteVolumes bool
 
@@ -151,6 +152,7 @@ var podDeployCmd = &cobra.Command{
 			opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 		}
 		opts = append(opts, expect.WithOpenStackMetadata(openStackMetadata))
+		opts = append(opts, expect.WithProfiles(profiles))
 		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
@@ -494,6 +496,7 @@ func podInit() {
 	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
 	podDeployCmd.Flags().StringArrayVar(&mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
 	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
+	podDeployCmd.Flags().StringSliceVar(&profiles, "profile", nil, "profile to set for app")
 	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
 You can set acl for particular network in format '<network_name:acl>'
 To remove acls you can set empty line '<network_name>:'`)

@@ -49,7 +49,7 @@ const (
 	DefaultRegistryPort    = 5000
 
 	//tags, versions, repos
-	DefaultEVETag               = "6.6.0" //DefaultEVETag tag for EVE image
+	DefaultEVETag               = "0.0.0-master-87f2a9a8" //DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "0.0.27"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"

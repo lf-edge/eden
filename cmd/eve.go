@@ -426,6 +426,8 @@ var resetEveCmd = &cobra.Command{
 		dev.SetSerial(vars.EveSerial)
 		dev.SetOnboardKey(vars.EveCert)
 		dev.SetDevModel(vars.DevModel)
+		dev.SetGlobalProfile("")
+		dev.SetLocalProfileServer("")
 		err = ctrl.OnBoardDev(dev)
 		if err != nil {
 			log.Fatal(err)

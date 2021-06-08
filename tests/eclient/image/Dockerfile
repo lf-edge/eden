@@ -1,4 +1,19 @@
-# Eclient image v 0.7
+# Eclient image v 0.8
+
+FROM lfedge/eve-alpine:6.6.0 AS build
+ENV BUILD_PKGS go git openssh-keygen
+RUN eve-alpine-deploy.sh
+
+ENV CGO_ENABLED=0
+ENV GO111MODULE=on
+
+RUN mkdir -p /src
+WORKDIR /src
+COPY pkg .
+
+ARG GOOS=linux
+
+RUN go build -ldflags "-s -w" -o /out/local_manager main.go
 
 FROM ubuntu:focal-20210119
 
@@ -31,6 +46,8 @@ ENV NOTVISIBLE="in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
 RUN mkdir -p /root/.ssh/
+RUN mkdir -p /mnt
+RUN touch /mnt/profile
 COPY cert/id_rsa* /root/.ssh/
 COPY cert/id_rsa.pub /root/.ssh/authorized_keys
 RUN chown root:root /root/.ssh/
@@ -40,6 +57,7 @@ COPY get_eve_ip.sh /root/get_eve_ip.sh
 COPY entrypoint.sh /entrypoint.sh
 COPY reboot /sbin/
 COPY halt /sbin
+COPY --from=build /out/local_manager /root/
 
 EXPOSE 22
 CMD ["/entrypoint.sh"]
