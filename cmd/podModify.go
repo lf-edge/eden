@@ -3,10 +3,12 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -104,6 +106,22 @@ var podModifyCmd = &cobra.Command{
 				app.Interfaces = appInstanceConfig.Interfaces
 				if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 					log.Fatalf("setControllerAndDev: %s", err)
+				}
+				if needPurge {
+					processingFunction := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+						if im.Ztype == info.ZInfoTypes_ZiApp {
+							//waiting for purging state
+							if im.GetAinfo().State == info.ZSwState_PURGING {
+								return true
+							}
+						}
+						return false
+					}
+					infoQ := make(map[string]string)
+					infoQ["InfoContent.Ainfo.AppID"] = app.Uuidandversion.Uuid
+					if err = ctrl.InfoChecker(dev.GetID(), infoQ, processingFunction, einfo.InfoNew, defaults.DefaultRepeatTimeout*defaults.DefaultRepeatCount); err != nil {
+						log.Fatalf("InfoChecker: %s", err)
+					}
 				}
 				log.Infof("app %s modify done", appName)
 				return
