@@ -13,7 +13,7 @@ exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 eden pod deploy -n eclient-mount --memory=512MB docker://itmoeve/eclient:0.7 -p {{$port}}:22 --mount=src=docker://nginx:1.20.0,dst=/tst --mount=src={{EdenConfig "eden.tests"}}/eclient/testdata,dst=/dir
 
-test eden.app.test -test.v -timewait 20m RUNNING eclient-mount
+test eden.app.test -test.v -timewait 21m RUNNING eclient-mount
 
 exec -t 5m bash ssh.sh /tst
 stdout 'docker-entrypoint.sh'

@@ -22,7 +22,7 @@ exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 message 'Resetting of EVE'
 eden eve reset
-exec sleep 20
+exec sleep 30
 
 # use zededa.com IP address as a target for $fake_domain
 exec -t 10m bash dns_lookup.sh zededa.com
