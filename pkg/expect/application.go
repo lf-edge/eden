@@ -100,7 +100,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 				contentTree = exp.imageToContentTree(image, fmt.Sprintf("%s-%d", exp.appName, ind))
 				bundle.contentTrees = append(bundle.contentTrees, contentTree)
 			}
-			volume := exp.driveToVolume(drive, ind+1, contentTree)
+			volume := exp.driveToVolume(drive, ind, contentTree)
 			bundle.volumes = append(bundle.volumes, volume)
 			bundle.appInstanceConfig.VolumeRefList = append(bundle.appInstanceConfig.VolumeRefList, &config.VolumeRef{Uuid: volume.Uuid, MountDir: mountPoint})
 		}

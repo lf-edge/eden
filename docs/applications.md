@@ -76,3 +76,19 @@ Global Flags:
       --config string      Name of config (default "default")
   -v, --verbosity string   Log level (debug, info, warn, error, fatal, panic (default "info")
 ```
+
+## Volume management
+
+To see volumes you can run `eden volume ls` to output the list like below:
+
+```console
+NAME                    UUID                                    REF                     IMAGE                   TYPE            SIZE    MAX_SIZE        MOUNT   STATE(ADAM)     LAST_STATE(EVE)
+eclient-mount_0_m_0     1784916f-b0dc-4d94-b29e-e954741c9d8a    app: eclient-mount      itmoeve/eclient:0.7     CONTAINER       9.4 kB  -               /       IN_CONFIG       DELIVERED
+eclient-mount_1_m_0     0b5fda69-680f-4780-8439-ed8e1104a15f    app: eclient-mount      library/nginx:1.20.0    CONTAINER       7.8 kB  -               /tst    IN_CONFIG       DELIVERED
+```
+
+If you want to detach the volume from app you can run `eden volume detach <volume name>`. Where `<volume name>`
+is the volume from list.
+To attach volume you can run `attach <volume name> <app name> [mount point]`. Where `<volume name>`
+is the volume from list, `<app name>` - name of application you want to attach the volume, `[mount point]` - the
+mount point of volume attached to the app (may be omitted).

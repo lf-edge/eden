@@ -7,6 +7,7 @@ import (
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -136,6 +137,120 @@ var volumeDeleteCmd = &cobra.Command{
 	},
 }
 
+//volumeDetachCmd is a command to detach volume
+var volumeDetachCmd = &cobra.Command{
+	Use:   "detach <name>",
+	Short: "Detach volume",
+	Args:  cobra.ExactArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		volumeName = args[0]
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		for _, el := range dev.GetVolumes() {
+			volume, err := ctrl.GetVolume(el)
+			if err != nil {
+				log.Fatalf("no volume in cloud %s: %s", el, err)
+			}
+			if volume.DisplayName == volumeName {
+				for _, appID := range dev.GetApplicationInstances() {
+					app, err := ctrl.GetApplicationInstanceConfig(appID)
+					if err != nil {
+						log.Fatalf("no app in cloud %s: %s", el, err)
+					}
+					volumeRefs := app.GetVolumeRefList()
+					utils.DelEleInSliceByFunction(&volumeRefs, func(i interface{}) bool {
+						vol := i.(*config.VolumeRef)
+						if vol.Uuid == volume.Uuid {
+							purgeCounter := uint32(1)
+							if app.Purge != nil {
+								purgeCounter = app.Purge.Counter + 1
+							}
+							app.Purge = &config.InstanceOpsCmd{Counter: purgeCounter}
+							log.Infof("Volume detached from %s, app will be purged", app.Displayname)
+							return true
+						}
+						return false
+					})
+					app.VolumeRefList = volumeRefs
+				}
+				if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+					log.Fatalf("setControllerAndDev: %s", err)
+				}
+				return
+			}
+		}
+		log.Infof("not found volume with name %s", volumeName)
+	},
+}
+
+//volumeAttachCmd is a command to attach volume to app instance
+var volumeAttachCmd = &cobra.Command{
+	Use:   "attach <volume name> <app name> [mount point]",
+	Short: "Attach volume to app",
+	Args:  cobra.MinimumNArgs(2),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		volumeName = args[0]
+		appName := args[1]
+		mountPoint := ""
+		if len(args) > 2 {
+			mountPoint = args[2]
+		}
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		for _, el := range dev.GetVolumes() {
+			volume, err := ctrl.GetVolume(el)
+			if err != nil {
+				log.Fatalf("no volume in cloud %s: %s", el, err)
+			}
+			if volume.DisplayName == volumeName {
+				for _, appID := range dev.GetApplicationInstances() {
+					app, err := ctrl.GetApplicationInstanceConfig(appID)
+					if err != nil {
+						log.Fatalf("no app in cloud %s: %s", el, err)
+					}
+					if app.Displayname == appName {
+						purgeCounter := uint32(1)
+						if app.Purge != nil {
+							purgeCounter = app.Purge.Counter + 1
+						}
+						app.Purge = &config.InstanceOpsCmd{Counter: purgeCounter}
+						app.VolumeRefList = append(app.VolumeRefList, &config.VolumeRef{Uuid: volume.Uuid, MountDir: mountPoint})
+						log.Infof("Volume %s attached to %s, app will be purged", volumeName, app.Displayname)
+						if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+							log.Fatalf("setControllerAndDev: %s", err)
+						}
+						return
+					}
+				}
+				log.Infof("not found app with name %s", appName)
+			}
+		}
+		log.Infof("not found volume with name %s", volumeName)
+	},
+}
+
 func volumeInit() {
 	volumeCmd.AddCommand(volumeLsCmd)
 
@@ -147,4 +262,6 @@ func volumeInit() {
 	volumeCreateCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "force eserver to use sftp")
 
 	volumeCmd.AddCommand(volumeDeleteCmd)
+	volumeCmd.AddCommand(volumeDetachCmd)
+	volumeCmd.AddCommand(volumeAttachCmd)
 }

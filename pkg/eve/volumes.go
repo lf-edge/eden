@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/dustin/go-humanize"
@@ -53,8 +54,8 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 		if err != nil {
 			return fmt.Errorf("no ContentTree in cloud %s: %s", contentTreeID, err)
 		}
-		ref := "-"
-		mountPoint := "-"
+		var ref []string
+		var mountPoint []string
 	appInstanceLoop:
 		for _, id := range dev.GetApplicationInstances() {
 			appInstanceConfig, err := ctrl.GetApplicationInstanceConfig(id)
@@ -63,8 +64,8 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			}
 			for _, volumeRef := range appInstanceConfig.VolumeRefList {
 				if volumeRef.Uuid == vi.GetUuid() {
-					ref = fmt.Sprintf("app: %s", appInstanceConfig.Displayname)
-					mountPoint = volumeRef.MountDir
+					ref = append(ref, fmt.Sprintf("app: %s", appInstanceConfig.Displayname))
+					mountPoint = append(mountPoint, volumeRef.MountDir)
 					break appInstanceLoop
 				}
 			}
@@ -78,8 +79,8 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			EveState:      "UNKNOWN",
 			Size:          "-",
 			MaxSize:       "-",
-			MountPoint:    mountPoint,
-			Ref:           ref,
+			MountPoint:    strings.Join(mountPoint, ";"),
+			Ref:           strings.Join(ref, ";"),
 			contentTreeID: contentTreeID,
 		}
 		ctx.volumes[volInstStateObj.Name] = volInstStateObj
