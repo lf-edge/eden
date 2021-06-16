@@ -131,8 +131,12 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	}
 	var adapters []*config.Adapter
 	for _, adapterName := range exp.appAdapters {
+		adapterType := evecommon.PhyIoType_PhyIoUSB
+		if strings.HasPrefix(adapterName, "eth") {
+			adapterType = evecommon.PhyIoType_PhyIoNetEth
+		}
 		adapters = append(adapters, &config.Adapter{
-			Type: evecommon.PhyIoType_PhyIoUSB,
+			Type: adapterType,
 			Name: adapterName,
 		})
 	}
