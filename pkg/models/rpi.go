@@ -91,9 +91,7 @@ func (ctx *DevModelRpi) SetWiFiParams(ssid string, psk string) {
 			switch el.Ptype {
 			case evecommon.PhyIoType_PhyIoNetEth:
 				el.Usage = evecommon.PhyIoMemberUsage_PhyIoUsageDisabled
-				el.UsagePolicy = &config.PhyIOUsagePolicy{
-					FreeUplink: false,
-				}
+				el.UsagePolicy = &config.PhyIOUsagePolicy{}
 				for _, adapter := range ctx.adapters {
 					if adapter.Name == el.Phylabel {
 						adapter.Uplink = false
@@ -102,9 +100,7 @@ func (ctx *DevModelRpi) SetWiFiParams(ssid string, psk string) {
 				}
 			case evecommon.PhyIoType_PhyIoNetWLAN:
 				el.Usage = evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps
-				el.UsagePolicy = &config.PhyIOUsagePolicy{
-					FreeUplink: true,
-				}
+				el.UsagePolicy = &config.PhyIOUsagePolicy{}
 				for _, adapter := range ctx.adapters {
 					if adapter.Name == el.Phylabel {
 						adapter.Uplink = true
@@ -132,7 +128,7 @@ func (ctx *DevModelRpi) PhysicalIOs() []*config.PhysicalIO {
 }
 
 //SetPhysicalIOs sets physicalIOs of devModel
-func (ctx *DevModelRpi) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+func (ctx *DevModelRpi) SetPhysicalIOs(physicalIOs []*config.PhysicalIO) {
 	ctx.physicalIOs = physicalIOs
 }
 

@@ -19,9 +19,7 @@
       },
       "logicallabel": "wlan0",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 2,

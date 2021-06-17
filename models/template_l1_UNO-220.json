@@ -41,9 +41,7 @@
       "phylabel": "eth0",
       "logicallabel": "eth0",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      },
+      "usagePolicy": {},
       "phyaddrs": {
         "Ifname": "eth0"
       }
@@ -54,9 +52,7 @@
       "phylabel": "wlan0",
       "logicallabel": "wlan0",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      },
+      "usagePolicy": {},
       "phyaddrs": {
         "Ifname": "wlan0"
       }
