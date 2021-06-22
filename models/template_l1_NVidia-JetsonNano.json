@@ -68,9 +68,7 @@
         "assigngrp": "eth0",
         "logicallabel": "eth0",
         "cost": 0,
-        "usagePolicy": {
-            "freeUplink": true
-        }
+        "usagePolicy": {}
     }
     ]
 }

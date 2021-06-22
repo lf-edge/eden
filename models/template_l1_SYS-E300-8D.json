@@ -21,9 +21,7 @@
       },
       "logicallabel": "eth0",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 1,
@@ -35,9 +33,7 @@
       },
       "logicallabel": "eth1",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 1,
@@ -49,9 +45,7 @@
       },
       "logicallabel": "eth2",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 1,
@@ -63,9 +57,7 @@
       },
       "logicallabel": "eth3",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 1,
@@ -77,9 +69,7 @@
       },
       "logicallabel": "eth4",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 1,
@@ -91,9 +81,7 @@
       },
       "logicallabel": "eth5",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 1,
@@ -105,9 +93,7 @@
       },
       "logicallabel": "eth6",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 1,
@@ -119,9 +105,7 @@
       },
       "logicallabel": "eth7",
       "cost": 0,
-      "usagePolicy": {
-        "freeUplink": true
-      }
+      "usagePolicy": {}
     },
     {
       "ztype": 2,

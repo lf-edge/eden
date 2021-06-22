@@ -48,9 +48,7 @@
       "usage": 1,
       "phylabel": "eth0",
       "logicallabel": "eth0",
-      "usagePolicy": {
-        "freeUplink": true
-      },
+      "usagePolicy": {},
       "assigngrp": "",
       "phyaddrs": {
         "Ifname": "eth0",
