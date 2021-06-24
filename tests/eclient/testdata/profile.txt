@@ -16,7 +16,7 @@ exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 message 'Resetting of EVE'
 eden eve reset
-exec sleep 20
+exec sleep 30
 
 # Define local-manager and two apps in different profiles
 # TBD: static ip in pod deploy
