@@ -78,6 +78,11 @@ var podModifyCmd = &cobra.Command{
 					opts = append(opts, expect.WithPortsPublish(portPublishCombined))
 				}
 				opts = append(opts, expect.WithACL(processAcls(acl)))
+				vlansParsed, err := processVLANs(vlans)
+				if err != nil {
+					log.Fatal(err)
+				}
+				opts = append(opts, expect.WithVLANs(vlansParsed))
 				opts = append(opts, expect.WithOldApp(appName))
 				expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, appName, opts...)
 				appInstanceConfig := expectation.Application()
@@ -139,4 +144,6 @@ func podModifyInit() {
 	podModifyCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
 You can set acl for particular network in format '<network_name:acl>'
 To remove acls you can set empty line '<network_name>:'`)
+	podModifyCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
+You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 }

@@ -122,7 +122,7 @@ type Params struct {
 	// Condition is called, if not nil, to determine whether a particular
 	// condition is true. It's called only for conditions not in the
 	// standard set, and may be nil.
-	Condition func(cond string) (bool, error)
+	Condition func(ts *TestScript, cond string) (bool, error)
 
 	// Cmds holds a map of commands available to the script.
 	// It will only be consulted for commands not part of the standard set.
@@ -580,7 +580,7 @@ func (ts *TestScript) condition(cond string) (bool, error) {
 			return ok, nil
 		}
 		if ts.params.Condition != nil {
-			return ts.params.Condition(cond)
+			return ts.params.Condition(ts, cond)
 		}
 		ts.Fatalf("unknown condition %q", cond)
 		panic("unreachable")

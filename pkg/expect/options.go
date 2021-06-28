@@ -201,6 +201,13 @@ func WithACL(acl map[string][]string) ExpectationOption {
 	}
 }
 
+//WithVLANs sets access VLAN IDs for application interfaces
+func WithVLANs(vlans map[string]int) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.vlans = vlans
+	}
+}
+
 //WithRegistry sets registry to use (remote/local)
 func WithRegistry(registry string) ExpectationOption {
 	return func(expectation *AppExpectation) {

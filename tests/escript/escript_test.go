@@ -1,6 +1,7 @@
 package escript
 
 import (
+	"errors"
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -35,9 +36,21 @@ func TestEdenScripts(t *testing.T) {
 
 	log.Info("testData directory: ", *testData)
 	testscript.Run(t, testscript.Params{
-		Dir:   *testData,
-		Flags: flagsParsed,
+		Dir:       *testData,
+		Flags:     flagsParsed,
+		Condition: customConditions,
 	})
+}
+
+// Function adds additional condition(s) for testscripts:
+// - [env:<env-variable>] is satisfied if the environment variable has a non-empty string value assigned.
+func customConditions(ts *testscript.TestScript, cond string) (bool, error) {
+	if strings.HasPrefix(cond, "env:") {
+		env := cond[len("env:"):]
+		env = strings.TrimSpace(env)
+		return ts.Getenv(env) != "", nil
+	}
+	return false, errors.New("unknown condition")
 }
 
 func TestMain(m *testing.M) {

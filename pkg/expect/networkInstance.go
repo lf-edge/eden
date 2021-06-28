@@ -218,3 +218,12 @@ func (exp *AppExpectation) getAcls(ni *NetInstanceExpectation) []*config.ACE {
 	}
 	return acls
 }
+
+// getAccessVID returns Access VLAN ID to assign to the interface between the app
+// and the given network instance.
+func (exp *AppExpectation) getAccessVID(ni *NetInstanceExpectation) uint32 {
+	if exp.vlans == nil {
+		return 0
+	}
+	return uint32(exp.vlans[ni.name])
+}
