@@ -70,6 +70,7 @@ type AppExpectation struct {
 
 	disks []string
 	acl   map[string][]string // networkInstanceName -> acls
+	vlans map[string]int // networkInstanceName -> VID
 
 	openStackMetadata bool
 	profiles          []string

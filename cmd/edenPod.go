@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/dustin/go-humanize"
@@ -42,6 +44,7 @@ var (
 	volumeType  string
 	acl         []string
 	profiles    []string
+	vlans       []string
 
 	deleteVolumes bool
 
@@ -71,6 +74,22 @@ func processAcls(acls []string) map[string][]string {
 		}
 	}
 	return m
+}
+
+func processVLANs(vlans []string) (map[string]int, error) {
+	m := map[string]int{}
+	for _, el := range vlans {
+		parsed := strings.SplitN(el, ":", 2)
+		if len(parsed) < 2 {
+			return nil, errors.New("missing VLAN ID")
+		}
+		vid, err := strconv.Atoi(parsed[1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid VLAN ID: %w", err)
+		}
+		m[parsed[0]] = vid
+	}
+	return m, nil
 }
 
 //podDeployCmd is command for deploy application on EVE
@@ -135,6 +154,11 @@ var podDeployCmd = &cobra.Command{
 		} else {
 			opts = append(opts, expect.WithACL(processAcls(acl)))
 		}
+		vlansParsed, err := processVLANs(vlans)
+		if err != nil {
+			log.Fatal(err)
+		}
+		opts = append(opts, expect.WithVLANs(vlansParsed))
 		opts = append(opts, expect.WithSFTPLoad(sftpLoad))
 		if !sftpLoad {
 			opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
@@ -500,6 +524,8 @@ func podInit() {
 	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
 You can set acl for particular network in format '<network_name:acl>'
 To remove acls you can set empty line '<network_name>:'`)
+	podDeployCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
+You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
