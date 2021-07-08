@@ -15,8 +15,7 @@ var (
 
 var asbddsCmd = &cobra.Command{
 	Use:   "asbdds",
-	Short: `Manage devices in ASBDDS`,
-	Long:  `Manage devices in ARM Single Board Devices Deployment System`,
+	Short: `Manage devices in ARM Single Board Devices Deployment System`,
 }
 
 var asbddsDeviceCmd = &cobra.Command{
@@ -30,11 +29,11 @@ var asbddsDeviceCreateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		asbddsClient, err := linuxkit.NewASBDDSClient()
 		if err != nil {
-			log.Fatalf("Unable to create ASBDDS REST client: %v", err)
+			log.Fatalf("ASBDS: unable to create rest client: %v", err)
 		}
 		resp, err := asbddsClient.CreateDevice(asbddsModel, asbddsIPXELink)
 		if err != nil {
-			log.Fatalf("Unable to create device in ASBDDS: %v", err)
+			log.Fatalf("ASBDS: unable to create device:  %v", err)
 		}
 		jsonStr,_ := resp.MarshalJSON()
 		fmt.Println(string(jsonStr[:]))
@@ -47,11 +46,11 @@ var asbddsDeviceDeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		asbddsClient, err := linuxkit.NewASBDDSClient()
 		if err != nil {
-			log.Fatalf("Unable to create ASBDDS REST client: %v", err)
+			log.Fatalf("ASBDS: unable to create rest client: %v", err)
 		}
 		resp, err := asbddsClient.DeleteDevice(asbddsDeviceUUID)
 		if err != nil {
-			log.Fatalf("Unable to delete device in ASBDDS: %v", err)
+			log.Fatalf("ASBDS: unable to delete device: %v", err)
 		}
 		jsonStr,_ := resp.MarshalJSON()
 		fmt.Println(string(jsonStr[:]))
