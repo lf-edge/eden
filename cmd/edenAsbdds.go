@@ -36,7 +36,8 @@ var asbddsDeviceCreateCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to create device in ASBDDS: %v", err)
 		}
-		fmt.Println(resp)
+		jsonStr,_ := resp.MarshalJSON()
+		fmt.Println(string(jsonStr[:]))
 	},
 }
 
@@ -52,7 +53,8 @@ var asbddsDeviceDeleteCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to delete device in ASBDDS: %v", err)
 		}
-		fmt.Println(resp)
+		jsonStr,_ := resp.MarshalJSON()
+		fmt.Println(string(jsonStr[:]))
 	},
 }
 func asbddsInit() {

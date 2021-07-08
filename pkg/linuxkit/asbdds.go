@@ -1,7 +1,10 @@
 package linuxkit
 
 import (
+	"fmt"
 	"github.com/go-resty/resty/v2"
+	"encoding/json"
+	"strings"
 )
 
 const serverIP = "10.10.98.2"
@@ -15,6 +18,16 @@ type ASBDDSClient struct {
 	rest resty.Client
 }
 
+type ASBDDSResponseStatus struct {
+	Code int
+	Message string
+}
+
+type ASBDDSResponse struct {
+	Status ASBDDSResponseStatus
+	Data json.RawMessage
+}
+
 // NewASBDDSClient creates a new ASBDDS client
 func NewASBDDSClient() (*ASBDDSClient, error) {
 	var client = &ASBDDSClient{
@@ -26,8 +39,32 @@ func NewASBDDSClient() (*ASBDDSClient, error) {
 	return client, nil
 }
 
+func CheckResponse(resp resty.Response) (*json.RawMessage, error) {
+	var response ASBDDSResponse
+	err := json.Unmarshal([]byte(resp.String()), &response)
+	if err != nil {
+		err = fmt.Errorf("unable to parse response from asbdds api, please check server access")
+	}
+
+	if response.Status.Code != 0 {
+		if len(response.Status.Message) > 3 {
+			err = fmt.Errorf(strings.ToLower(response.Status.Message))
+		} else {
+			code := response.Status.Code
+			if code == 1 {
+				err = fmt.Errorf("requested object not found")
+			} else if code == 2 {
+				err = fmt.Errorf("error, bad request")
+			} else if code == 3 {
+				err = fmt.Errorf("try later")
+			}
+		}
+	}
+	return &response.Data, err
+}
+
 // CreateDevice create a device in asbdds
-func (a ASBDDSClient) CreateDevice(model, ipxeURL string) (string, error){
+func (a ASBDDSClient) CreateDevice(model, ipxeURL string) (*json.RawMessage, error){
 	resp, err := a.rest.R().
 		SetQueryParams(map[string]string{
 			"model": model,
@@ -36,14 +73,22 @@ func (a ASBDDSClient) CreateDevice(model, ipxeURL string) (string, error){
 		SetHeader("Accept", "application/json").
 		Put(a.APIBaseURL + "device")
 
-	return resp.String(), err
+	if err != nil {
+		return nil, err
+	}
+
+	return CheckResponse(*resp)
 }
 
 // DeleteDevice delete a device in asbdds
-func (a ASBDDSClient) DeleteDevice(deviceUUID string) (string, error){
+func (a ASBDDSClient) DeleteDevice(deviceUUID string) (*json.RawMessage, error){
 	resp, err := a.rest.R().
 		SetHeader("Accept", "application/json").
 		Delete(a.APIBaseURL + "device/" + deviceUUID)
 
-	return resp.String(), err
+	if err != nil {
+		return nil, err
+	}
+
+	return CheckResponse(*resp)
 }
