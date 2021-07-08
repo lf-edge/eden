@@ -57,6 +57,8 @@ func CheckResponse(resp resty.Response) (*json.RawMessage, error) {
 				err = fmt.Errorf("error, bad request")
 			} else if code == 3 {
 				err = fmt.Errorf("try later")
+			} else {
+				err = fmt.Errorf("unrecognized error")
 			}
 		}
 	}
@@ -85,6 +87,32 @@ func (a ASBDDSClient) DeleteDevice(deviceUUID string) (*json.RawMessage, error){
 	resp, err := a.rest.R().
 		SetHeader("Accept", "application/json").
 		Delete(a.apiBaseURL + "device/" + deviceUUID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return CheckResponse(*resp)
+}
+
+// GetDevice get a devices in asbdds
+func (a ASBDDSClient) GetDevice(deviceUUID string) (*json.RawMessage, error){
+	resp, err := a.rest.R().
+		SetHeader("Accept", "application/json").
+		Get(a.apiBaseURL + "device/"  + deviceUUID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return CheckResponse(*resp)
+}
+
+// ListDevices list devices in asbdds
+func (a ASBDDSClient) ListDevices() (*json.RawMessage, error){
+	resp, err := a.rest.R().
+		SetHeader("Accept", "application/json").
+		Get(a.apiBaseURL + "device/list")
 
 	if err != nil {
 		return nil, err
