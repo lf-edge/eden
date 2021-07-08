@@ -14,7 +14,7 @@ const serverPort = "5000"
 type ASBDDSClient struct {
 	serverIP string
 	serverPort string
-	APIBaseURL string
+	apiBaseURL string
 	rest resty.Client
 }
 
@@ -34,7 +34,7 @@ func NewASBDDSClient() (*ASBDDSClient, error) {
 		serverIP: serverIP,
 		serverPort: serverPort,
 		rest: *resty.New(),
-		APIBaseURL: "http://" + serverIP + ":" + serverPort + "/",
+		apiBaseURL: "http://" + serverIP + ":" + serverPort + "/",
 	}
 	return client, nil
 }
@@ -71,7 +71,7 @@ func (a ASBDDSClient) CreateDevice(model, ipxeURL string) (*json.RawMessage, err
 			"ipxe_url": ipxeURL,
 		}).
 		SetHeader("Accept", "application/json").
-		Put(a.APIBaseURL + "device")
+		Put(a.apiBaseURL + "device")
 
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (a ASBDDSClient) CreateDevice(model, ipxeURL string) (*json.RawMessage, err
 func (a ASBDDSClient) DeleteDevice(deviceUUID string) (*json.RawMessage, error){
 	resp, err := a.rest.R().
 		SetHeader("Accept", "application/json").
-		Delete(a.APIBaseURL + "device/" + deviceUUID)
+		Delete(a.apiBaseURL + "device/" + deviceUUID)
 
 	if err != nil {
 		return nil, err
