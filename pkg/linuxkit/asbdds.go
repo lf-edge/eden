@@ -18,13 +18,13 @@ type ASBDDSClient struct {
 	rest resty.Client
 }
 
-type ASBDDSResponseStatus struct {
+type asbddsResponseStatus struct {
 	Code int
 	Message string
 }
 
-type ASBDDSResponse struct {
-	Status ASBDDSResponseStatus
+type asbddsResponse struct {
+	Status asbddsResponseStatus
 	Data json.RawMessage
 }
 
@@ -39,8 +39,8 @@ func NewASBDDSClient() (*ASBDDSClient, error) {
 	return client, nil
 }
 
-func CheckResponse(resp resty.Response) (*json.RawMessage, error) {
-	var response ASBDDSResponse
+func checkResponse(resp resty.Response) (*json.RawMessage, error) {
+	var response asbddsResponse
 	err := json.Unmarshal([]byte(resp.String()), &response)
 	if err != nil {
 		err = fmt.Errorf("unable to parse response from asbdds api, please check server access")
@@ -79,7 +79,7 @@ func (a ASBDDSClient) CreateDevice(model, ipxeURL string) (*json.RawMessage, err
 		return nil, err
 	}
 
-	return CheckResponse(*resp)
+	return checkResponse(*resp)
 }
 
 // DeleteDevice delete a device in asbdds
@@ -92,7 +92,7 @@ func (a ASBDDSClient) DeleteDevice(deviceUUID string) (*json.RawMessage, error){
 		return nil, err
 	}
 
-	return CheckResponse(*resp)
+	return checkResponse(*resp)
 }
 
 // GetDevice get a devices in asbdds
@@ -105,7 +105,7 @@ func (a ASBDDSClient) GetDevice(deviceUUID string) (*json.RawMessage, error){
 		return nil, err
 	}
 
-	return CheckResponse(*resp)
+	return checkResponse(*resp)
 }
 
 // ListDevices list devices in asbdds
@@ -118,5 +118,5 @@ func (a ASBDDSClient) ListDevices() (*json.RawMessage, error){
 		return nil, err
 	}
 
-	return CheckResponse(*resp)
+	return checkResponse(*resp)
 }
