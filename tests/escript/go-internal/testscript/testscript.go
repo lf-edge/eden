@@ -629,9 +629,12 @@ func (ts *TestScript) Logf(format string, args ...interface{}) {
 // exec runs the given command line (an actual subprocess, not simulated)
 // in ts.cd with environment ts.env and then returns collected standard output and standard error.
 func (ts *TestScript) exec(command string, args ...string) (stdout, stderr string, err error) {
-	cmd, _, err := ts.buildExecCmd(command, args...)
+	ctx, cmd, cancel, err := ts.buildExecCmd(command, args...)
 	if err != nil {
 		return "", "", err
+	}
+	if cancel != nil {
+		defer cancel()
 	}
 	cmd.Dir = ts.cd
 	cmd.Env = append(ts.env, "PWD="+ts.cd)
@@ -640,7 +643,7 @@ func (ts *TestScript) exec(command string, args ...string) (stdout, stderr strin
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	if err = cmd.Start(); err == nil {
-		err = ctxWait(ts.ctxt, cmd)
+		err = ctxWait(ctx, cmd)
 	}
 	ts.stdin = ""
 	return stdoutBuf.String(), stderrBuf.String(), err
@@ -649,7 +652,7 @@ func (ts *TestScript) exec(command string, args ...string) (stdout, stderr strin
 // execBackground starts the given command line (an actual subprocess, not simulated)
 // in ts.cd with environment ts.env.
 func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd, context.CancelFunc, error) {
-	cmd, cancelFunc, err := ts.buildExecCmd(command, args...)
+	_, cmd, cancelFunc, err := ts.buildExecCmd(command, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -663,22 +666,22 @@ func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd,
 	return cmd, cancelFunc, cmd.Start()
 }
 
-func (ts *TestScript) buildExecCmd(command string, args ...string) (*exec.Cmd, context.CancelFunc, error) {
+func (ts *TestScript) buildExecCmd(command string, args ...string) (context.Context, *exec.Cmd, context.CancelFunc, error) {
 	if filepath.Base(command) == command {
 		lp, err := execpath.Look(command, ts.Getenv)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		command = lp
 	}
 	if timewait == 0 {
 		//ts.ctxt = context.Background()
-		return exec.Command(command, args...), nil, nil
+		return context.Background(), exec.Command(command, args...), nil, nil
 	}
 	//ts.ctxt, _ = context.WithTimeout(context.Background(), timewait)
 	//return exec.CommandContext(ts.ctxt, command, args...), nil
 	ctx, cancelFunc := context.WithTimeout(context.Background(), timewait)
-	return exec.CommandContext(ctx, command, args...), cancelFunc, nil
+	return ctx, exec.CommandContext(ctx, command, args...), cancelFunc, nil
 }
 
 // BackgroundCmds returns a slice containing all the commands that have
@@ -705,7 +708,7 @@ func ctxWait(ctx context.Context, cmd *exec.Cmd) error {
 		return err
 	case <-ctx.Done():
 		interruptProcess(cmd.Process)
-		return <-errc
+		return ctx.Err()
 	}
 }
 

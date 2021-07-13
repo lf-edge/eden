@@ -24,8 +24,7 @@ exec -t 2m bash check_vm_support.sh
 source .env
 [!env:with_hw_virt] skip 'Missing HW-assisted virtualization capability'
 
-# TODO: push into the itmoeve repository
-{{$image := "docker://milan4zededa/docker-test:1.3"}}
+{{$image := "docker://itmoeve/docker-test:1.3"}}
 
 # string to use as the testing sequence
 {{$test_data := "TEST_SEQUENCE"}}
