@@ -8,6 +8,7 @@
 [!exec:sleep] stop
 [!exec:ssh] stop
 [!exec:chmod] stop
+[!exec:timeout] stop
 
 exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
@@ -150,8 +151,8 @@ do
   do
     sleep 20
     # Test SSH-access to container
-    echo {{template "ssh"}}$HOST -p $p grep -q Ubuntu /etc/issue
-    {{template "ssh"}}$HOST -p $p grep -q Ubuntu /etc/issue && break
+    echo timeout 10s {{template "ssh"}}$HOST -p $p grep -q Ubuntu /etc/issue
+    timeout 10s {{template "ssh"}}$HOST -p $p grep -q Ubuntu /etc/issue && break
   done
 done
 

@@ -130,18 +130,19 @@ func (exp *AppExpectation) NetworkInstances() (networkInstances map[*NetInstance
 }
 
 // parseACE returns ACE from string notation
-func parseACE(inp string) *config.ACE {
+func parseACE(ace ACE) *config.ACE {
 	//set default to host
 	aclType := "host"
-	if inp == defaults.DefaultHostOnlyNotation {
+	ep := ace.Endpoint
+	if ep == defaults.DefaultHostOnlyNotation {
 		//special case for host only acl
-		inp = ""
+		ep = ""
 	} else {
-		if _, _, err := net.ParseCIDR(inp); err == nil {
+		if _, _, err := net.ParseCIDR(ep); err == nil {
 			//check if it is subnet
 			aclType = "ip"
 		} else {
-			if ip := net.ParseIP(inp); ip != nil {
+			if ip := net.ParseIP(ep); ip != nil {
 				//check if it is ip
 				aclType = "ip"
 			}
@@ -150,9 +151,12 @@ func parseACE(inp string) *config.ACE {
 	return &config.ACE{
 		Matches: []*config.ACEMatch{{
 			Type:  aclType,
-			Value: inp,
+			Value: ep,
 		}},
 		Dir: config.ACEDirection_BOTH,
+		Actions: []*config.ACEAction{{
+			Drop: ace.Drop,
+		}},
 	}
 }
 
@@ -160,30 +164,22 @@ func parseACE(inp string) *config.ACE {
 func (exp *AppExpectation) getAcls(ni *NetInstanceExpectation) []*config.ACE {
 	var acls []*config.ACE
 	var aclID int32 = 1
-	if exp.acl != nil && (len(exp.acl[ni.name]) > 0 || len(exp.acl[""]) > 0) {
-		// in case of defined acl allow access only to them
-		for netName, acl := range exp.acl {
-			if netName != "" && netName != ni.name {
-				continue
-			}
-			for _, el := range acl {
-				if el == "" {
-					continue
-				}
-				acl := parseACE(el)
-				if acl != nil {
-					acl.Id = aclID
-					acls = append(acls, acl)
-					aclID++
-				}
+	if _, hasAcls := exp.acl[ni.name]; hasAcls {
+		// explicitly configured ACLs for the network instance
+		for _, acl := range exp.acl[ni.name] {
+			ace := parseACE(acl)
+			if ace != nil {
+				ace.Id = aclID
+				acls = append(acls, ace)
+				aclID++
 			}
 		}
 	} else {
 		// allow access to all addresses
 		aclType := "ip"
 		aclValue := "0.0.0.0/0"
-		if val, ok := exp.acl[""]; ok && val[0] == defaults.DefaultHostOnlyNotation {
-			//special case for host only acl
+		if val := exp.acl[""]; len(val) > 0 && val[0].Endpoint == defaults.DefaultHostOnlyNotation {
+			// special case for host only acl applied for all NIs without explicit ACLs
 			aclType = "host"
 			aclValue = ""
 		}

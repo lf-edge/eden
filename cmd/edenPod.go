@@ -63,14 +63,23 @@ var podCmd = &cobra.Command{
 	Use: "pod",
 }
 
-func processAcls(acls []string) map[string][]string {
-	m := map[string][]string{}
+func processAcls(acls []string) expect.ACLs {
+	m := expect.ACLs{}
 	for _, el := range acls {
-		parsed := strings.SplitN(el, ":", 2)
+		parsed := strings.SplitN(el, ":", 3)
+		ni := parsed[0]
+		var ep string
 		if len(parsed) > 1 {
-			m[parsed[0]] = append(m[parsed[0]], parsed[1])
+			ep = strings.TrimSpace(parsed[1])
+		}
+		if ep == "" {
+			m[ni] = []expect.ACE{}
 		} else {
-			m[""] = append(m[""], parsed[0])
+			drop := false
+			if len(parsed) == 3 {
+				drop = parsed[2] == "drop"
+			}
+			m[ni] = append(m[ni], expect.ACE{Endpoint: ep, Drop: drop})
 		}
 	}
 	return m
@@ -150,7 +159,9 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 		opts = append(opts, expect.WithImageFormat(imageFormat))
 		if aclOnlyHost {
-			opts = append(opts, expect.WithACL(map[string][]string{"": {defaults.DefaultHostOnlyNotation}}))
+			opts = append(opts, expect.WithACL(map[string][]expect.ACE{
+				"": {{Endpoint: defaults.DefaultHostOnlyNotation}},
+			}))
 		} else {
 			opts = append(opts, expect.WithACL(processAcls(acl)))
 		}
@@ -521,9 +532,11 @@ func podInit() {
 	podDeployCmd.Flags().StringArrayVar(&mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
 	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
 	podDeployCmd.Flags().StringSliceVar(&profiles, "profile", nil, "profile to set for app")
-	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets
-You can set acl for particular network in format '<network_name:acl>'
-To remove acls you can set empty line '<network_name>:'`)
+	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets.
+Without explicitly configured ACLs, all traffic is allowed.
+You can set ACL for a particular network in format '<network_name[:endpoint[:action]]>', where 'action' is either 'allow' (default) or 'drop'.
+With ACLs configured, endpoints not matched by any rule are blocked.
+To block all traffic define ACL with no endpoints: '<network_name>:'`)
 	podDeployCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
