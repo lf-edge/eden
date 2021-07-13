@@ -44,7 +44,7 @@
       "ztype": 6,
       "phylabel": "wwan0",
       "assigngrp": "USB",
-      "usagePolicy": null
+      "usagePolicy": {}
     },
     {
       "usage": 1,
@@ -54,7 +54,7 @@
       "ztype": 6,
       "phylabel": "wwan1",
       "assigngrp": "USB",
-      "usagePolicy": null
+      "usagePolicy": {}
     },
     {
       "ztype": 7,

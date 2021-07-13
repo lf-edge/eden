@@ -4,9 +4,9 @@
     "memory": "4G",
     "storage": "32G",
     "Cpus": "4",
-    "hsm": 1,
-    "leds": 3,
-    "watchdog": true
+    "hsm": "1",
+    "leds": "3",
+    "watchdog": "true"
   },"logo": {
     "logo_back": "/workspace/spec/logo_back_SIMATIC-IPC127E.png",
     "logo_front": "/workspace/spec/logo_front_SIMATIC-IPC127E.png"

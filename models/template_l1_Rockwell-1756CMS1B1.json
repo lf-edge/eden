@@ -22,7 +22,7 @@
       },
       "logicallabel": "eth0",
       "cost": 0,
-      "usagePolicy": {
+      "usagePolicy": {}
     },
     {
       "ztype": 1,

@@ -4,9 +4,9 @@
     "memory": "4G",
     "storage": "32G",
     "Cpus": "4",
-    "hsm": 2,
-    "leds": 1,
-    "watchdog": true
+    "hsm": "2",
+    "leds": "1",
+    "watchdog": "true"
   },
   "logo": {
     "logo_back": "/workspace/spec/logo_back_Edge-Gateway-3001.png",

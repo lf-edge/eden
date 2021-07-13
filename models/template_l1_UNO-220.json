@@ -6,9 +6,9 @@
     "memory": "8G",
     "storage": "32G",
     "Cpus": "4",
-    "watchdog": true,
-    "hsm": 1,
-    "leds": 1
+    "watchdog": "true",
+    "hsm": "1",
+    "leds": "1"
   },
   "logo": {
     "logo_back":"/workspace/spec/logo_back_UNO-220.png",
