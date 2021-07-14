@@ -4,9 +4,9 @@
     "memory": "8G",
     "storage": "500G",
     "Cpus": "4",
-    "hsm": 2,
-    "leds": 0,
-    "watchdog": true
+    "hsm": "2",
+    "leds": "0",
+    "watchdog": "true"
   },
   "logo": {
     "logo_back": "/workspace/spec/logo_back_SYSE100-9APP.png",

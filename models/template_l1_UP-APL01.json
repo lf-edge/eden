@@ -6,9 +6,9 @@
     "memory": "2G",
     "storage": "32G",
     "Cpus": "2",
-    "hsm": 2,
-    "leds": 4,
-    "watchdog": true
+    "hsm": "2",
+    "leds": "4",
+    "watchdog": "true"
   },
   "logo": {
     "logo_back": "/workspace/spec/logo_back_UP-APL01.png",

@@ -59,7 +59,7 @@
       "ztype": 6,
       "phylabel": "wwan0",
       "assigngrp": "USB0-3",
-      "usagePolicy": null
+      "usagePolicy": {}
     },
     {
       "ztype": 2,

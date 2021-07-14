@@ -6,9 +6,9 @@
     "memory": "1G",
     "storage": "18G",
     "Cpus": "6",
-    "watchdog": true,
-    "hsm": 0,
-    "leds": 1
+    "watchdog": "true",
+    "hsm": "0",
+    "leds": "1"
   },
   "logo": {
     "logo_back":"/workspace/spec/logo_back_Nexcom-B116.png",
