@@ -45,6 +45,12 @@ exec -t 10m bash wait_ssh.sh 2224
 
 exec sleep 10
 
+# Check that the configured ACLs do not allow direct communication between the applications,
+# even if they are on the same local network.
+! exec -t 10m bash ping_between_apps.sh curl-acl1 curl-acl2
+stdout '100% packet loss'
+!  stdout '[1-5] received'
+
 # Try to curl hosts allowed by ACLs
 exec -t 1m bash curl.sh 2223 github.com
 stderr 'Connected to github.com'
@@ -123,6 +129,44 @@ HOST=$($EDEN eve ip)
 
 echo {{template "ssh"}}$HOST -p $1 curl -v --max-time 30 "$2"
 {{template "ssh"}}$HOST -p $1 curl -v --max-time 30 "$2"
+
+-- ping_between_apps.sh --
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+HOST=$($EDEN eve ip)
+
+app1=$1
+app2=$2
+app1_ssh_port=$($EDEN pod ps | grep $app1 | awk '{print $5}' | cut -d ":" -f 2)
+app2_ssh_port=$($EDEN pod ps | grep $app2 | awk '{print $5}' | cut -d ":" -f 2)
+app1_ip=$($EDEN pod ps | grep $app1 | awk '{print $4}' | cut -d ":" -f 1)
+app2_ip=$($EDEN pod ps | grep $app2 | awk '{print $4}' | cut -d ":" -f 1)
+
+echo {{template "ssh"}}$HOST -p $app1_ssh_port ping -c 5 $app2_ip
+{{template "ssh"}}$HOST -p $app1_ssh_port ping -c 5 $app2_ip      && exit
+echo {{template "ssh"}}$HOST -p $app2_ssh_port ping -c 5 $app1_ip
+{{template "ssh"}}$HOST -p $app2_ssh_port ping -c 5 $app1_ip      && exit
+
+# ping routed by EVE was blocked, but check if on the L2 layer it is blocked as well
+# (i.e. when only forwarded by EVE)...
+function configure_link_route {
+    from_ssh_port=$1
+    from_ip=$2
+    to_ip=$3
+    CMDS="
+    iface=\$(ifconfig | awk -v filter=\"inet $from_ip\" '\$0 ~ filter {print \$1}' RS=\"\n\n\" FS=\":\") &&
+    ip route add $to_ip dev \$iface
+    "
+    echo {{template "ssh"}}$HOST -p $from_ssh_port "$CMDS"
+    {{template "ssh"}}$HOST -p $from_ssh_port "$CMDS"
+}
+configure_link_route $app1_ssh_port $app1_ip $app2_ip
+configure_link_route $app2_ssh_port $app2_ip $app1_ip
+
+echo {{template "ssh"}}$HOST -p $app1_ssh_port ping -c 5 $app2_ip
+{{template "ssh"}}$HOST -p $app1_ssh_port ping -c 5 $app2_ip      && exit
+echo {{template "ssh"}}$HOST -p $app2_ssh_port ping -c 5 $app1_ip
+{{template "ssh"}}$HOST -p $app2_ssh_port ping -c 5 $app1_ip      && exit
 
 -- wait_netstat.sh --
 #!/bin/sh
