@@ -223,6 +223,8 @@ var (
 		"eve.devmodelfile":      "devmodel-file",
 		"eve.telnet-port":       "eve-telnet-port",
 		"eve.qemu-monitor-port": "qemu-monitor-port",
+		"eve.cpu":               "cpus",
+		"eve.ram":               "memory",
 
 		"eden.images.dist":   "image-dist",
 		"eden.images.docker": "docker-yml",

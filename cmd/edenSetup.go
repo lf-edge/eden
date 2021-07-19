@@ -149,6 +149,9 @@ var setupCmd = &cobra.Command{
 			eveArch = viper.GetString("eve.arch")
 			hostFwd = viper.GetStringMapString("eve.hostfwd")
 			qemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
+			qemuCpus = viper.GetInt("eve.cpu")
+			qemuMemory = viper.GetInt("eve.ram")
+			eveImageSizeMB = viper.GetInt("eve.disk")
 			//eserver
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 

@@ -143,6 +143,15 @@ eve:
     #port for QEMU Monitor
     qemu-monitor-port: {{parse "eve.qemu-monitor-port"}}
 
+    #cpu count
+    cpu: {{parse "eve.cpu"}}
+
+    #memory (MB)
+    ram: {{parse "eve.ram"}}
+
+    #disk (MB)
+    disk: {{parse "eve.disk"}}
+
 eden:
     #root directory of eden
     root: '{{parse "eden.root"}}'
