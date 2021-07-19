@@ -56,7 +56,11 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 		}
 
 		if testProg == "" {
-			testProg = vars.TestProg
+			if vars.TestProg != "" {
+				testProg = vars.TestProg
+			} else {
+				testProg = defaults.DefaultTestProg
+			}
 		}
 		if testScenario == "" {
 			testScenario = vars.TestScenario
@@ -100,7 +104,7 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 
 func testInit() {
 	testCmd.Flags().StringVarP(&testEscript, "escript", "e", "", "run EScript matching the regular expression")
-	testCmd.Flags().StringVarP(&testProg, "prog", "p", defaults.DefaultTestProg, "program binary to run tests")
+	testCmd.Flags().StringVarP(&testProg, "prog", "p", "", "program binary to run tests")
 	testCmd.Flags().StringVarP(&testRun, "run", "r", "", "run only those tests matching the regular expression")
 	testCmd.Flags().StringVarP(&testTimeout, "timeout", "t", "", "panic if test exceded the timeout")
 	testCmd.Flags().StringVarP(&testArgs, "args", "a", "", "Arguments for test binary")
