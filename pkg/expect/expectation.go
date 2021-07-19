@@ -29,6 +29,15 @@ var (
 	directoryApp appType = 5 //for application with files from directory
 )
 
+//ACE is an access control entry (a single entry of ACL).
+type ACE struct {
+	Endpoint string
+	Drop     bool
+}
+
+//ACLs is a map of access control lists assigned to network instances.
+type ACLs map[string][]ACE // network instance -> ACL (list of ACEs)
+
 //AppExpectation is description of app, expected to run on EVE
 type AppExpectation struct {
 	ctrl        controller.Cloud
@@ -69,7 +78,7 @@ type AppExpectation struct {
 	sftpLoad       bool
 
 	disks []string
-	acl   map[string][]string // networkInstanceName -> acls
+	acl   ACLs
 	vlans map[string]int // networkInstanceName -> VID
 
 	openStackMetadata bool

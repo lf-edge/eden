@@ -195,7 +195,7 @@ func WithVolumeType(volumesType VolumeType) ExpectationOption {
 }
 
 //WithACL sets access only for defined hosts
-func WithACL(acl map[string][]string) ExpectationOption {
+func WithACL(acl ACLs) ExpectationOption {
 	return func(expectation *AppExpectation) {
 		expectation.acl = acl
 	}
