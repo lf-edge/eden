@@ -31,10 +31,7 @@ The cleanup happens whenever `make clean` or `eden clean` is called in the Eden 
 
 ### A template file - eden-config.tmpl
 
-A template file contains 2 sections: eden and test
-
-Eden section specifies the name of the test and the scenario.
-Test section describes the environment required for the test. This data goes to config that the test sends to EVE. It is recommended to use parameters from EdenConfig which is the current config file.
+File specifies the name of the test binary and the scenario. Those parameters overrides global parameters from config file.
 
 Example:
 
@@ -45,15 +42,10 @@ eden:
 
     #test scenario
     test-scenario: "eden.testname.tests.txt"
-
-test:
-    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
-    eve:
-      {{EdenConfig "eve.name"}}:
-        onboard-cert: {{EdenConfigPath "eve.cert"}}
-        serial: "{{EdenConfig "eve.serial"}}"
-        model: {{EdenConfig "eve.devmodel"}}
 ```
+
+You can omit `test-bin` option if your test does not provide test binary or use specific one from another test.
+In this case it will use default one `eden.escript.test`.
 
 ### A test scenario
 
