@@ -28,6 +28,7 @@ type VolInstState struct {
 	Ref           string
 	contentTreeID string
 	MountPoint    string
+	originType    config.VolumeContentOriginType
 	deleted       bool
 }
 
@@ -50,9 +51,15 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			return fmt.Errorf("no Volume in cloud %s: %s", el, err)
 		}
 		contentTreeID := vi.GetOrigin().GetDownloadContentTreeID()
-		ct, err := ctrl.GetContentTree(contentTreeID)
-		if err != nil {
-			return fmt.Errorf("no ContentTree in cloud %s: %s", contentTreeID, err)
+		image := "-"
+		iFormat := config.Format_RAW
+		if vi.GetOrigin().GetType() == config.VolumeContentOriginType_VCOT_DOWNLOAD {
+			ct, err := ctrl.GetContentTree(contentTreeID)
+			if err != nil {
+				return fmt.Errorf("no ContentTree in cloud %s: %s", contentTreeID, err)
+			}
+			image = ct.GetURL()
+			iFormat = ct.Iformat
 		}
 		var ref []string
 		var mountPoint []string
@@ -73,8 +80,8 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 		volInstStateObj := &VolInstState{
 			Name:          vi.GetDisplayName(),
 			UUID:          vi.GetUuid(),
-			Image:         ct.GetURL(),
-			VolumeType:    ct.Iformat,
+			Image:         image,
+			VolumeType:    iFormat,
 			AdamState:     "IN_CONFIG",
 			EveState:      "UNKNOWN",
 			Size:          "-",
@@ -82,6 +89,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			MountPoint:    strings.Join(mountPoint, ";"),
 			Ref:           strings.Join(ref, ";"),
 			contentTreeID: contentTreeID,
+			originType:    vi.GetOrigin().GetType(),
 		}
 		ctx.volumes[volInstStateObj.Name] = volInstStateObj
 	}
@@ -127,6 +135,10 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		}
 		if infoObject.GetVolumeErr() != nil {
 			volInstStateObj.EveState = fmt.Sprintf("ERRORS: %s", infoObject.GetVolumeErr().String())
+		} else {
+			if volInstStateObj.originType == config.VolumeContentOriginType_VCOT_BLANK {
+				volInstStateObj.EveState = infoObject.GetState().String()
+			}
 		}
 	case info.ZInfoTypes_ZiContentTree:
 		infoObject := im.GetCinfo()
