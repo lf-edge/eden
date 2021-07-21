@@ -33,6 +33,7 @@ jobs:
         run: |
           ./eden config add default
           ./eden config set default --key=eve.accel --value=false
+          ./eden config set default --key=eve.cpu --value=2
           echo > tests/workflow/testdata/eden_stop.txt
           ./eden test ./tests/workflow -v debug
       - name: Collect logs

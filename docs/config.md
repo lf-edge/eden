@@ -86,6 +86,13 @@ can use the following command:
 eden controller -m adam:// edge-node update --config timer.config.interval=5
 ```
 
+To set options for virtualized environment (if you plan to deploy applications to EVE with cpus/ram/disk larger than
+default described below) please use several options before run of `eden setup`:
+
+* `eden config set default --key=eve.cpu --value=2` - to set 2 virtual CPUs for EVE (default is 4)
+* `eden config set default --key=eve.ram --value=8096` - to set 8096 MB of ram for EVE (default is 4096)
+* `eden config set default --key=eve.disk --value=65536` - to set 65536 MB of disk space for EVE (default is 8192)
+
 ## Modifying of EVE config
 
 You can obtain the current config of EVE with command `eden controller edge-node get-config --file=<file>`.

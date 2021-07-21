@@ -390,6 +390,12 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return ""
 		case "eve.qemu-monitor-port":
 			return defaults.DefaultQemuMonitorPort
+		case "eve.cpu":
+			return defaults.DefaultCpus
+		case "eve.ram":
+			return defaults.DefaultMemory
+		case "eve.disk":
+			return defaults.DefaultEVEImageSize
 
 		case "eden.root":
 			return filepath.Join(currentPath, defaults.DefaultDist)

@@ -72,6 +72,8 @@ var startCmd = &cobra.Command{
 			hostFwd = viper.GetStringMapString("eve.hostfwd")
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
 			apiV1 = viper.GetBool("adam.v1")
+			cpus = viper.GetInt("eve.cpu")
+			mem = viper.GetInt("eve.ram")
 		}
 		return nil
 	},
@@ -148,8 +150,8 @@ func startInit() {
 	startCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
 	startCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")
 	startCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
-	startCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
-	startCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
+	startCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "cpus count")
+	startCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "memory size (MB)")
 	startCmd.Flags().StringVarP(&qemuARCH, "eve-arch", "", runtime.GOARCH, "arch of system")
 	startCmd.Flags().StringVarP(&qemuOS, "eve-os", "", runtime.GOOS, "os to run on")
 	startCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")
