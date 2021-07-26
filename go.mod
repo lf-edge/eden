@@ -11,7 +11,7 @@ require (
 	github.com/bshuster-repo/logrus-logstash-hook v1.0.0 // indirect
 	github.com/bugsnag/bugsnag-go v1.5.3 // indirect
 	github.com/bugsnag/panicwrap v1.2.0 // indirect
-	github.com/containerd/containerd v1.5.2
+	github.com/containerd/containerd v1.5.4
 	github.com/deislabs/oras v0.8.2-0.20201110191325-f1caa175232f
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.0+incompatible
