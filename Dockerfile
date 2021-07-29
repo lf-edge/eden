@@ -7,8 +7,11 @@ ENV CGO_ENABLED=0
 WORKDIR /eden
 COPY . /eden
 RUN make DO_DOCKER=0 OS=${OS} build-tests
-RUN cp -rf /eden/eden /eden/tests /eden/dist /eden/docs /eden/README.md /out
+RUN mkdir /out/eden && cp -rf /eden/eden /eden/dist /eden/docs /eden/README.md /out/eden
+COPY tests /out/eden/tests
+RUN cp /etc/passwd /etc/group /out/etc/
 
 FROM scratch
-WORKDIR /
 COPY --from=build /out/ /
+WORKDIR /eden
+CMD ["/bin/sh"]

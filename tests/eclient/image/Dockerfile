@@ -1,5 +1,3 @@
-# Eclient image v 0.8
-
 FROM lfedge/eve-alpine:6.6.0 AS build
 ENV BUILD_PKGS go git openssh-keygen
 RUN eve-alpine-deploy.sh
@@ -15,22 +13,22 @@ ARG GOOS=linux
 
 RUN go build -ldflags "-s -w" -o /out/local_manager main.go
 
-FROM ubuntu:focal-20210119
+FROM ubuntu:focal
 
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
-  busybox=1:1.30.1-4ubuntu6 \
-  lshw=02.18.85-0.3ubuntu2 \
-  curl=7.68.0-1ubuntu2.5 \
-  iproute2=5.5.0-1ubuntu1 \
-  iputils-ping=3:20190709-3 \
-  mariadb-client=1:10.3.22-1ubuntu1 \
-  net-tools=1.60+git20180626.aebd88e-1ubuntu1 \
-  netcat=1.206-1ubuntu1 \
-  openssh-server=1:8.2p1-4ubuntu0.2 \
-  jq=1.6-1ubuntu0.20.04.1 \
-  setserial=2.17-52 \
+  busybox \
+  lshw \
+  curl \
+  iproute2 \
+  iputils-ping \
+  mariadb-client \
+  net-tools \
+  netcat \
+  openssh-server \
+  jq \
+  setserial \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 

@@ -15,11 +15,17 @@ ARCH ?= $(HOSTARCH)
 OS ?= $(HOSTOS)
 
 # IMAGE_TAG is the tag for image to build
-IMAGE_TAG ?= itmoeve/fio_tests
+IMAGE_TAG ?= lfedge/eden-fio-tests
 # IMAGE_VERSION is the version of image to build
-IMAGE_VERSION ?= v.1.2
+IMAGE_VERSION ?= $(shell git tag -l --contains HEAD)
+ifeq ($(IMAGE_VERSION),)
+	IMAGE_VERSION = $(shell git describe --always)
+endif
 # IMAGE_DIR is the directory with image Dockerfile to build
 IMAGE_DIR=$(CURDIR)/image
+
+DOCKER_TARGET ?= load
+DOCKER_PLATFORM ?= $(shell uname -s | tr '[A-Z]' '[a-z]')/$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
 
 # canonicalized names for target architecture
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
@@ -59,9 +65,9 @@ image:
 	@echo "Build image"
 	docker build -t $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
 
-push-multi-arch:
-	@echo "Push image"
-	docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
+build-docker:
+	@echo "$(DOCKER_TARGET) image $(IMAGE_TAG):$(IMAGE_VERSION)"
+	docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
 
 .PHONY: test build setup clean all
 
