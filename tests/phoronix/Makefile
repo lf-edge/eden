@@ -15,11 +15,17 @@ ARCH ?= $(HOSTARCH)
 OS ?= $(HOSTOS)
 
 # IMAGE_TAG is the tag for image to build
-IMAGE_TAG ?= itmoeve/phoronix-test
+IMAGE_TAG ?= lfedge/eden-phoronix-test
 # IMAGE_VERSION is the version of image to build
-IMAGE_VERSION ?= 1.2
+IMAGE_VERSION ?= $(shell git tag -l --contains HEAD)
+ifeq ($(IMAGE_VERSION),)
+	IMAGE_VERSION = $(shell git describe --always)
+endif
 # IMAGE_DIR is the directory with image Dockerfile to build
 IMAGE_DIR=$(CURDIR)/image
+
+DOCKER_TARGET ?= load
+DOCKER_PLATFORM ?= $(shell uname -s | tr '[A-Z]' '[a-z]')/$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
 
 # canonicalized names for target architecture
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
@@ -53,11 +59,9 @@ build: setup
 setup: $(BINDIR) $(DATADIR)
 	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
 
-.PHONY: image
-
-image:
-	@echo "Build image"
-	docker build -t $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
+build-docker:
+	@echo "$(DOCKER_TARGET) image $(IMAGE_TAG):$(IMAGE_VERSION)"
+	docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
 
 .PHONY: test build setup clean all
 
@@ -68,7 +72,7 @@ help:
 	@echo
 	@echo "Commonly used maintenance and development targets:"
 	@echo "   build         build test-binary (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
-	@echo "   image         build image for upload into docker"
+	@echo "   build-docker  build image for upload into docker"
 	@echo "   setup         setup of test environment"
 	@echo "   test          run tests"
 	@echo "   clean         cleanup of test harness"

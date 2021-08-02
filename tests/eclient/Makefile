@@ -15,11 +15,17 @@ ARCH ?= $(HOSTARCH)
 OS ?= $(HOSTOS)
 
 # IMAGE_TAG is the tag for image to build
-IMAGE_TAG ?= itmoeve/eclient
+IMAGE_TAG ?= lfedge/eden-eclient
 # IMAGE_VERSION is the version of image to build
-IMAGE_VERSION ?= 0.8
+IMAGE_VERSION ?= $(shell git tag -l --contains HEAD)
+ifeq ($(IMAGE_VERSION),)
+	IMAGE_VERSION = $(shell git describe --always)
+endif
 # IMAGE_DIR is the directory with image Dockerfile to build
 IMAGE_DIR=$(CURDIR)/image
+
+DOCKER_TARGET ?= load
+DOCKER_PLATFORM ?= $(shell uname -s | tr '[A-Z]' '[a-z]')/$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
 
 # canonicalized names for target architecture
 override ARCH := $(subst aarch64,arm64,$(subst x86_64,amd64,$(ARCH)))
@@ -58,19 +64,11 @@ setup: $(BINDIR) $(DATADIR)
 	mkdir -p $(DATADIR)/image/cert/
 	cp -a image/cert/id_rsa* $(DATADIR)/image/cert/
 
-.PHONY: test build setup clean all image testbin
+.PHONY: test build setup clean all testbin
 
-image:
-	@echo "Build image"
-	docker build -t $(IMAGE_TAG):$(IMAGE_VERSION) -t $(IMAGE_TAG):latest $(IMAGE_DIR)
-push:
-	@echo "Push image"
-	docker push $(IMAGE_TAG):$(IMAGE_VERSION)
-	#docker push $(IMAGE_TAG):latest
-
-push-multi-arch:
-	@echo "Push image"
-	docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
+build-docker:
+	@echo "$(DOCKER_TARGET) image $(IMAGE_TAG):$(IMAGE_VERSION)"
+	docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(IMAGE_TAG):$(IMAGE_VERSION) $(IMAGE_DIR)
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
@@ -79,7 +77,7 @@ help:
 	@echo
 	@echo "Commonly used maintenance and development targets:"
 	@echo "   build         build test-binary (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
-	@echo "   image         build image for upload into docker"
+	@echo "   build-docker  build image for upload into docker"
 	@echo "   setup         setup of test environment"
 	@echo "   test          run tests"
 	@echo "   clean         cleanup of test harness"

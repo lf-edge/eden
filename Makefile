@@ -3,23 +3,55 @@ CONFIG ?=
 TESTS ?= $(shell find tests/ -maxdepth 1 -mindepth 1 -type d  -exec basename {} \;)
 DO_DOCKER ?= 1
 
+DOCKER_TARGET ?= load
+DOCKER_PLATFORM ?= $(shell uname -s | tr '[A-Z]' '[a-z]')/$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
+
 # ESERVER_TAG is the tag for eserver image to build
 ESERVER_TAG ?= "lfedge/eden-http-server"
 # ESERVER_VERSION is the version of eserver image to build
-ESERVER_VERSION ?= "1.5"
+ESERVER_VERSION ?= $(shell git tag -l --contains HEAD)
+ifeq ($(ESERVER_VERSION),)
+	ESERVER_VERSION = $(shell git describe --always)
+endif
+# ESERVER_LOCAL_VERSION for local build FIXME remove when we will have the image lfedge/eden-http-server
+ESERVER_LOCAL_VERSION ?= snapshot
 # ESERVER_DIR is the directory with eserver Dockerfile to build
 ESERVER_DIR=$(CURDIR)/eserver
 # check if eserver image already exists in local docker and get its IMAGE_ID
 ifeq ($(DO_DOCKER), 1) # if we need to build eserver
-ESERVER_IMAGE_ID ?= $(shell docker images -q $(ESERVER_TAG):$(ESERVER_VERSION))
+	ESERVER_IMAGE_ID ?= $(shell docker images -q $(ESERVER_TAG):$(ESERVER_LOCAL_VERSION))
+	ifeq ($(ESERVER_IMAGE_ID),)
+		ESERVER_IMAGE_ID = $(shell docker pull $(ESERVER_TAG):$(ESERVER_LOCAL_VERSION) &>/dev/null&&docker images -q $(ESERVER_TAG):$(ESERVER_LOCAL_VERSION))
+	endif
 endif
 
-# ESERVER_TAG is the tag for processing image to build
-PROCESSING_TAG ?= "itmoeve/eden-processing"
+# PROCESSING_TAG is the tag for processing image to build
+PROCESSING_TAG ?= "lfedge/eden-processing"
 # PROCESSING_VERSION is the version of processing image to build
-PROCESSING_VERSION ?= "1.3"
+PROCESSING_VERSION ?= $(shell git tag -l --contains HEAD)
+ifeq ($(PROCESSING_VERSION),)
+	PROCESSING_VERSION = $(shell git describe --always)
+endif
+# PROCESSING_LOCAL_VERSION for local build FIXME remove when we will have the image lfedge/eden-processing
+PROCESSING_LOCAL_VERSION ?= snapshot
 # PROCESSING_DIR is the directory with processing Dockerfile to build
 PROCESSING_DIR=$(CURDIR)/processing
+# check if processing image already exists in local docker and get its IMAGE_ID
+ifeq ($(DO_DOCKER), 1) # if we need to build processing
+	PROCESSING_IMAGE_ID ?= $(shell docker images -q $(PROCESSING_TAG):$(PROCESSING_LOCAL_VERSION))
+	ifeq ($(PROCESSING_IMAGE_ID),)
+		PROCESSING_IMAGE_ID = $(shell docker pull $(PROCESSING_TAG):$(PROCESSING_LOCAL_VERSION) &>/dev/null&&docker images -q $(PROCESSING_TAG):$(PROCESSING_LOCAL_VERSION))
+	endif
+endif
+
+
+# EDEN_TAG is the tag for eden image to build
+EDEN_TAG ?= "lfedge/eden"
+# EDEN_VERSION is the version of eden image to build
+EDEN_VERSION ?= $(shell git tag -l --contains HEAD)
+ifeq ($(EDEN_VERSION),)
+	EDEN_VERSION = $(shell git describe --always)
+endif
 
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
@@ -79,7 +111,10 @@ install: build
 
 build: $(BIN) $(EMPTY_DRIVE).raw $(EMPTY_DRIVE).qcow2 $(EMPTY_DRIVE).qcow $(EMPTY_DRIVE).vmdk $(EMPTY_DRIVE).vhdx
 ifeq ($(ESERVER_IMAGE_ID), ) # if we need to build eserver
-build: $(BIN) $(EMPTY_DRIVE_RAW) $(EMPTY_DRIVE_QCOW2) eserver
+build: eserver
+endif
+ifeq ($(PROCESSING_IMAGE_ID), ) # if we need to build processing
+build: processing
 endif
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-s -w" -o $@ .
@@ -115,16 +150,27 @@ dist: build-tests
 .PHONY: processing eserver all clean test build build-tests tests-export config setup stop testbin dist
 
 eserver:
-	@echo "Build eserver image"
-	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR); fi
+	@echo "Build eserver image $(ESERVER_TAG):$(ESERVER_LOCAL_VERSION)"
+	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(ESERVER_TAG):$(ESERVER_LOCAL_VERSION) $(ESERVER_DIR); fi
+
+push-multi-arch-eserver:
+	@echo "Build and $(DOCKER_TARGET) eserver image $(ESERVER_TAG):$(ESERVER_VERSION)"
+	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR)
 
 processing:
-	@echo "Build processing image"
-	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR); fi
+	@echo "Build processing image $(PROCESSING_TAG):$(PROCESSING_LOCAL_VERSION)"
+	@if [ $(DO_DOCKER) -ne 0 ]; then docker build -t $(PROCESSING_TAG):$(PROCESSING_LOCAL_VERSION) $(PROCESSING_DIR); fi
+
+push-multi-arch-eden:
+	@echo "Build and $(DOCKER_TARGET) eden image $(EDEN_TAG):$(EDEN_VERSION)"
+	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(EDEN_TAG):$(EDEN_VERSION) .
 
 push-multi-arch-processing:
-	@echo "Build and push processing image"
-	docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR)
+	@echo "Build and $(DOCKER_TARGET) processing image $(PROCESSING_TAG):$(PROCESSING_VERSION)"
+	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR)
+
+build-docker: push-multi-arch-processing push-multi-arch-eserver push-multi-arch-eden
+	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) DOCKER_TARGET=$(DOCKER_TARGET) DOCKER_PLATFORM=$(DOCKER_PLATFORM) build-docker
 
 tests-export: $(DIRECTORY_EXPORT) build-tests
 	@cp -af $(WORKDIR)/tests/* $(DIRECTORY_EXPORT)
@@ -151,6 +197,7 @@ help:
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo "   eserver       build eserver image"
+	@echo "   build-docker  build all docker images of EDEN"
 	@echo
 	@echo "You can use some parameters:"
 	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""

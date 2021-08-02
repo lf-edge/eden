@@ -1,6 +1,9 @@
 DEBUG ?= "debug"
 TESTS ?= $(wildcard */Makefile)
 
+DOCKER_TARGET ?= load
+DOCKER_PLATFORM ?= $(shell uname -s | tr '[A-Z]' '[a-z]')/$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
+
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
 # we need to keep track of them separately
@@ -27,6 +30,7 @@ test: gotestsum
 build: $(TESTS:=_build)
 setup: $(TESTS:=_setup)
 clean: $(TESTS:=_clean)
+build-docker: $(TESTS:=_build_docker)
 
 .PHONY: test build setup clean all
 
@@ -42,3 +46,5 @@ clean: $(TESTS:=_clean)
 %_clean: %
 	make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) clean
 
+%_build_docker: %
+	@grep ^build-docker: $< && make -C $$(dirname $<) DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) DOCKER_TARGET=$(DOCKER_TARGET) DOCKER_PLATFORM=$(DOCKER_PLATFORM) build-docker; exit 0

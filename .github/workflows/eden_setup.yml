@@ -17,6 +17,14 @@ jobs:
           ip a
       - name: get eden
         uses: actions/checkout@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: build docker images
+        run: |
+          make DOCKER_PLATFORM=linux/arm64 build-docker
+          make DOCKER_PLATFORM=linux/amd64 build-docker
       - name: build eden
         run: |
           make clean

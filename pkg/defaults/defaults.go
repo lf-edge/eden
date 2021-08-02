@@ -53,12 +53,12 @@ const (
 	DefaultAdamTag              = "0.0.28"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
-	DefaultProcTag              = "1.3"
+	DefaultProcTag              = "snapshot"
 	DefaultImage                = "library/alpine"
 	DefaultAdamContainerRef     = "lfedge/adam"
 	DefaultRedisContainerRef    = "redis"
 	DefaultRegistryContainerRef = "library/registry"
-	DefaultProcContainerRef     = "itmoeve/eden-processing"
+	DefaultProcContainerRef     = "lfedge/eden-processing"
 	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
 	DefaultEveRegistry          = "lfedge"
 	DefaultRegistry             = "docker.io"
@@ -69,7 +69,7 @@ const (
 
 	DefaultRedisPasswordFile = "redis.pass"
 
-	DefaultEServerTag          = "1.5"
+	DefaultEServerTag          = "snapshot"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
 	//DefaultRepeatCount is repeat count for requests
