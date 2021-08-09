@@ -3,11 +3,13 @@ package projects
 import (
 	"fmt"
 	"strings"
+	"os"
 
 	"github.com/lf-edge/eden/pkg/controller/eapps"
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/logs"
+	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/tmc/scp"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
@@ -72,5 +74,38 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 			return fmt.Errorf("command \"%s\" sended via SSH on %s:%d", command, *ip, *port)
 		}
 		return nil
+	}
+}
+
+//SendFileSCP sends a file over SCP
+func SendFileSCP(ip *string, port *int, user, password, filename, destpath string) {
+	if *ip != "" {
+		configSSH := &ssh.ClientConfig{
+			User: user,
+			Auth: []ssh.AuthMethod{
+				ssh.Password(password),
+			},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Timeout:         defaults.DefaultRepeatTimeout,  //no timeout
+		}
+
+		conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port), configSSH)
+		if err != nil {
+			panic(fmt.Sprintf("No ssh connections: %v",err))
+		}
+
+		session, err := conn.NewSession()
+		if err != nil {
+			panic(fmt.Sprintf("Create new session failed: %v",err))
+		}
+
+		err = scp.CopyPath(filename, destpath, session)
+		if err != nil {
+			panic(fmt.Sprintf("Copy file on guest VM failed: %v",err))
+		}
+
+		if _, err := os.Stat(destpath); os.IsNotExist(err) {
+			panic(fmt.Sprintf("No such file or directory: %s", destpath))
+		}
 	}
 }
