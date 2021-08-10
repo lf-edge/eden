@@ -1,5 +1,5 @@
 ---
-name: Publish
+name: Publish DockerHub
 # yamllint disable-line rule:truthy
 on:
   push:
