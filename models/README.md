@@ -61,6 +61,10 @@
 * [NIFE105 A](template_l1_NEXCOM-NIFE105.json) - [Vendor site](https://www.nexcom.com/Products/industrial-computing-solutions/pc-based-factory-automation/industrial-fieldbus-computer/industrial-fieldbus-computer-nife-105)<br><img src="logo_back_NEXCOM-NIFE105.jpg" width="100" height="80"> <img src="logo_back_NEXCOM-NIFE105.jpg" width="100" height="80">
 * [NIFE105 B](template_l1_NIFE105.json) - [Vendor site](https://www.nexcom.com/Products/industrial-computing-solutions/pc-based-factory-automation/industrial-fieldbus-computer/industrial-fieldbus-computer-nife-105)<br><img src="logo_front_NIFE105.png" width="100" height="80"> <img src="logo_back_NIFE105.png" width="100" height="80">
 
+### [OnLogic](https://www.onlogic.com/)
+
+* [CL210G-11-RS](template_l1_OnLogic-CL210G-11-RS.json) - [Vendor site](https://www.onlogic.com/cl210g-11-rs/)<br><img src="logo_front_OnLogic-CL210G-11-RS.jpg" width="100" height="80"> <img src="logo_back_OnLogic-CL210G-11-RS.jpg" width="100" height="80">
+
 ### [Open 19](https://www.open19.org)
 
 * [ASROCK 1U](template_l1_Packet-t3.small.x86.json) - [Vendor site](https://www.open19.org/marketplace/asrock-rack-1u-open19-t3-small-x86)<br><img src="logo_front_1U-Open19-t3.small.png" width="100" height="80"> <img src="logo_back_1U-Open19-t3.small.png" width="100" height="80">
