@@ -1,6 +1,6 @@
 {
   "arch": 2,
-  "productURL": "MiTAC.UltraPoint",
+  "productURL": "https://www.onlogic.com/cl210g-11-rs/",
   "productStatus": "production",
   "attr": {
     "memory": "3G",
@@ -11,8 +11,8 @@
     "leds": 0
   },
   "logo": {
-    "logo_back":"/workspace/spec/logo_back_.jpg",
-    "logo_front":"/workspace/spec/logo_front_.jpg"
+    "logo_back":"/workspace/spec/logo_back_OnLogic-CL210G-11-RS.jpg",
+    "logo_front":"/workspace/spec/logo_front_OnLogic-CL210G-11-RS.jpg"
   },
   "ioMemberList": [
     {
