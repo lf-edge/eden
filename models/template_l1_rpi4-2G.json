@@ -1,0 +1,86 @@
+{
+    "arch": 4,
+    "productURL": "https://www.raspberrypi.org/documentation/hardware/raspberrypi/README.md",
+    "productStatus": "production",
+    "attr": {
+    "memory": "2G",
+    "storage": "16G",
+    "Cpus": "4",
+    "hsm": "0",
+    "leds": "1",
+    "watchdog": "true"
+    },
+    "logo": {
+        "logo_front": "/workspace/spec/logo_front_RPi4.png"
+    },
+    "ioMemberList": [
+        {
+            "ztype": 3,
+            "phylabel": "COM1",
+            "assigngrp": "COM1",
+            "phyaddrs": {
+                "Serial": "/dev/ttyS0"
+            },
+            "logicallabel": "COM1",
+            "usagePolicy": {}
+        },
+        {
+            "ztype": 2,
+            "phylabel": "USB0",
+            "assigngrp": "USB",
+            "phyaddrs": {
+               "PciLong": "0000:01:00.0"
+            },
+            "logicallabel": "USB0",
+            "usagePolicy": {}
+        },
+        {
+            "ztype": 2,
+            "phylabel": "USB1",
+            "assigngrp": "USB",
+            "phyaddrs": {
+               "PciLong": "0000:01:00.0"
+            },
+            "logicallabel": "USB1",
+            "usagePolicy": {}
+        },
+        {
+            "ztype": 2,
+            "phylabel": "USB2",
+            "assigngrp": "USB",
+            "phyaddrs": {
+               "PciLong": "0000:01:00.0"
+            },
+            "logicallabel": "USB2",
+            "usagePolicy": {}
+        },
+        {
+            "ztype": 2,
+            "phylabel": "USB3",
+            "assigngrp": "USB",
+            "phyaddrs": {
+               "PciLong": "0000:01:00.0"
+            },
+            "logicallabel": "USB3",
+            "usagePolicy": {}
+        },
+    {
+        "ztype": 1,
+        "phylabel": "eth0",
+        "usage": 1,
+        "assigngrp": "eth0-1",
+        "logicallabel": "eth0",
+        "cost": 0,
+        "usagePolicy": {}
+    },
+    {
+        "ztype": 5,
+        "phylabel": "wlan0",
+        "usage": 1,
+        "assigngrp": "wlan0-1",
+        "logicallabel": "wlan0",
+        "cost": 0,
+        "usagePolicy": {}
+    }
+    ]
+}
