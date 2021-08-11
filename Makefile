@@ -180,6 +180,14 @@ yetus:
 	@echo Running yetus
 	build-tools/src/yetus/test-patch.sh
 
+validate:
+	@echo Running static validation checks...
+	@echo ...on model files
+	@tar -cf - models/*.json | docker run -i alpine sh -c \
+		'tar xf - && apk add jq >&2 && for i in models/*.json; do echo "$$i" >&2 && jq -r ".logo | to_entries[] | .value" "$$i" || exit 1; done' |\
+		while read logo; do echo "$$logo" ; if [ ! -f models/`basename "$$logo"` ]; then echo "can't find $$logo" && exit 1; fi; done
+
+
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
 	@echo
