@@ -6,10 +6,10 @@ exec 1>&2
 
 do_help() {
 cat <<__EOT__
-Usage for process perf script into svg:
-    docker run itmoeve/processing -i file -o file svg - to process output of perf script into svg
-Usage for upload to git:
-    docker run itmoeve/processing -i file -o https://GIT_LOGIN:GIT_TOKEN@GIT_REPO -b branch [-d directory] git
+Options for process perf script into svg:
+    -i file -o file svg - to process output of perf script into svg
+Options for upload to git:
+    -i file -o https://GIT_LOGIN:GIT_TOKEN@GIT_REPO -b branch [-d directory] git
 __EOT__
   exit 0
 }

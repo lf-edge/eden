@@ -49,13 +49,13 @@ According to these variables, the container generates a configuration file for t
 To run the test without specifying additional parameters, run the following command (In this case, the output of the results will be displayed in the container console):
 
 ```console
-docker run itmoeve/fio_tests:v.1.2.1
+docker run lfedge/eden-fio-tests:83cfe07
 ```
 
 To run tests and upload results to GitHub, or configure the FIO utility, you need to start the container by passing the necessary environment variables to it:
 
 ```console
-sudo docker run -e GIT_REPO='git_repository_name' -e GIT_LOGIN='your_git_login' -e GIT_TOKEN='your_git_token' -e GIT_BRANCH='fio_results' itmoeve/fio_tests:v.1.2.1
+sudo docker run -e GIT_REPO='git_repository_name' -e GIT_LOGIN='your_git_login' -e GIT_TOKEN='your_git_token' -e GIT_BRANCH='fio_results' lfedge/eden-fio-tests:83cfe07
 ```
 
 You can also write all the environment variables you need to a file and pass them to the container via the --env-file option. You can find more information at [docs.docker.com](https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file).
@@ -67,7 +67,7 @@ If you want to store the test results on the volume passed to the container, you
 3. All other environment variables are added optionally.
 
 ```console
-docker run -v ~/home/fio_results:/data -e GIT_LOCAL=true itmoeve/fio_tests:v.1.2.1
+docker run -v ~/home/fio_results:/data -e GIT_LOCAL=true lfedge/eden-fio-tests:83cfe07
 ```
 
 After executing this command, the test results will be saved in the directory - ~/home/fio_results
@@ -77,7 +77,7 @@ After executing this command, the test results will be saved in the directory - 
 ### How to run in Eden
 
 ```console
-./eden pod deploy --metadata="EVE_VERSION=$(./eden config get --key=eve.tag)\nGIT_REPO=<git repository name>\nGIT_LOGIN=<your git login>\nGIT_TOKEN=<your git token>" -p 8029:80 docker://itmoeve/fio_tests:v.1.2.1
+./eden pod deploy --metadata="EVE_VERSION=$(./eden config get --key=eve.tag)\nGIT_REPO=<git repository name>\nGIT_LOGIN=<your git login>\nGIT_TOKEN=<your git token>" -p 8029:80 docker://lfedge/eden-fio-tests:83cfe07
 ```
 
 > Note that the environment variables were also specified here.
