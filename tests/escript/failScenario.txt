@@ -10,6 +10,8 @@ eden pod ps
 eden network ls
 /bin/echo eden volume ls
 eden volume ls
+/bin/echo check fatal_stacks in logs
+eden log --format=json content:fatal_stacks
 
 {{ if (ne $reset "") }}
 /bin/echo EDEN's reset
