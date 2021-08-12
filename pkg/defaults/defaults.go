@@ -53,7 +53,7 @@ const (
 	DefaultAdamTag              = "0.0.28"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
-	DefaultProcTag              = "snapshot"
+	DefaultProcTag              = "83cfe07"
 	DefaultImage                = "library/alpine"
 	DefaultAdamContainerRef     = "lfedge/adam"
 	DefaultRedisContainerRef    = "redis"
@@ -69,7 +69,7 @@ const (
 
 	DefaultRedisPasswordFile = "redis.pass"
 
-	DefaultEServerTag          = "snapshot"
+	DefaultEServerTag          = "83cfe07"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
 	//DefaultRepeatCount is repeat count for requests

@@ -47,7 +47,7 @@ Global Flags:
 You can pass additional volumes to application with `--mount` flag. For example:
 
 ```bash
-eden pod deploy docker://itmoeve/eclient:0.7 -p 8027:22 --mount=src=docker://nginx:1.20.0,dst=/tst --volume=src=./tests,dst=/dir
+eden pod deploy docker://lfedge/eden-eclient:83cfe07 -p 8027:22 --mount=src=docker://nginx:1.20.0,dst=/tst --volume=src=./tests,dst=/dir
 ```
 
 The command above will deploy eclient image with rootfs of `nginx` mounted to `/tst` and local directory `./tests` mounted to `/dir`.
@@ -82,9 +82,9 @@ Global Flags:
 To see volumes you can run `eden volume ls` to output the list like below:
 
 ```console
-NAME                    UUID                                    REF                     IMAGE                   TYPE            SIZE    MAX_SIZE        MOUNT   STATE(ADAM)     LAST_STATE(EVE)
-eclient-mount_0_m_0     1784916f-b0dc-4d94-b29e-e954741c9d8a    app: eclient-mount      itmoeve/eclient:0.7     CONTAINER       9.4 kB  -               /       IN_CONFIG       DELIVERED
-eclient-mount_1_m_0     0b5fda69-680f-4780-8439-ed8e1104a15f    app: eclient-mount      library/nginx:1.20.0    CONTAINER       7.8 kB  -               /tst    IN_CONFIG       DELIVERED
+NAME                    UUID                                    REF                     IMAGE                           TYPE            SIZE    MAX_SIZE        MOUNT   STATE(ADAM)     LAST_STATE(EVE)
+eclient-mount_0_m_0     1784916f-b0dc-4d94-b29e-e954741c9d8a    app: eclient-mount      lfedge/eden-eclient:83cfe07     CONTAINER       9.4 kB  -               /       IN_CONFIG       DELIVERED
+eclient-mount_1_m_0     0b5fda69-680f-4780-8439-ed8e1104a15f    app: eclient-mount      library/nginx:1.20.0            CONTAINER       7.8 kB  -               /tst    IN_CONFIG       DELIVERED
 ```
 
 If you want to detach the volume from app you can run `eden volume detach <volume name>`. Where `<volume name>`
