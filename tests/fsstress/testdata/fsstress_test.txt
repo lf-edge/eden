@@ -1,23 +1,42 @@
+{{$timewait := "96h"}}
+
+{{$env := EdenGetEnv "FSSTRESS_TIME"}}
+{{if $env}}{{$timewait = $env}}{{end}}
+
 {{$test_opts := "-test.v -name fsstress-app"}}
 
 # Starting of reboot detector with a 1 reboot limit
-! test eden.reboot.test -test.v -timewait 96h -reboot=0 -count=1 &
+! test eden.reboot.test -test.v -timewait {{$timewait}} -reboot=0 -count=1 &
 
-#TestFSstressVMStart checks if app processed by EVE, app in RUNNING state
-test eden.fsstress.test {{$test_opts}} -timewait 15m -test.run TestFSstressVMStart
-stdout '--- PASS: TestFSstressVMStart'
+# TestFSStressVMStart checks if app processed by EVE, app in RUNNING state
+test eden.fsstress.test {{$test_opts}} -timewait 15m -test.run TestFSStressVMStart
+stdout '--- PASS: TestFSStressVMStart'
 
 # TestAccess checks if SSH of app is accessible
 test eden.fsstress.test {{$test_opts}} -timewait 10m -test.run TestAccess
 stdout '--- PASS: TestAccess'
 
-# TestRunStres checks if SSH of app is accessible
-test eden.fsstress.test {{$test_opts}} -timewait 96h -test.run TestRunStress
+# Increase metric sending interval
+eden controller edge-node update --config timer.metric.interval=600
+
+# Decrease log verbosity
+eden controller edge-node update --config debug.default.loglevel=error
+eden controller edge-node update --config debug.default.remote.loglevel=error
+
+# TestRunStress checks if SSH of app is accessible
+test eden.fsstress.test {{$test_opts}} -timewait {{$timewait}} -test.run TestRunStress
 stdout '--- PASS: TestRunStress'
 
-#TestFSstressVMDelete initiates deleting of app and checks if app deleted from EVE
-test eden.fsstress.test {{$test_opts}} -timewait 10m -test.run TestFSstressVMDelete
-stdout '--- PASS: TestFSstressVMDelete'
+# TestFSStressVMDelete initiates deleting of app and checks if app deleted from EVE
+test eden.fsstress.test {{$test_opts}} -timewait 10m -test.run TestFSStressVMDelete
+stdout '--- PASS: TestFSStressVMDelete'
+
+# Reset metric sending interval
+eden controller edge-node update --config timer.metric.interval=60
+
+# Reset log verbosity
+eden controller edge-node update --config debug.default.loglevel={{EdenConfig "eve.log-level"}}
+eden controller edge-node update --config debug.default.remote.loglevel={{EdenConfig "eve.adam-log-level"}}
 
 # Test's config. file
 -- eden-config.yml --

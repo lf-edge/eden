@@ -3,15 +3,14 @@ package projects
 import (
 	"fmt"
 	"strings"
-	"os"
 
 	"github.com/lf-edge/eden/pkg/controller/eapps"
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/logs"
-	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/tmc/scp"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"github.com/tmc/scp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -42,7 +41,7 @@ func (tc *TestContext) CheckMessageInAppLog(edgeNode *device.Ctx, appID uuid.UUI
 //SendCommandSSH try to access SSH with timer and sends command
 func SendCommandSSH(ip *string, port *int, user, password, command string, foreground bool, callbacks ...Callback) ProcTimerFunc {
 	return func() error {
-		if *ip != "" {
+		if ip != nil && *ip != "" {
 			configSSH := &ssh.ClientConfig{
 				User: user,
 				Auth: []ssh.AuthMethod{
@@ -53,6 +52,7 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 			}
 			conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port), configSSH)
 			if err != nil {
+				fmt.Printf("No ssh connections: %v", err)
 				return nil
 			}
 			session, _ := conn.NewSession()
@@ -78,34 +78,37 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 }
 
 //SendFileSCP sends a file over SCP
-func SendFileSCP(ip *string, port *int, user, password, filename, destpath string) {
-	if *ip != "" {
-		configSSH := &ssh.ClientConfig{
-			User: user,
-			Auth: []ssh.AuthMethod{
-				ssh.Password(password),
-			},
-			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-			Timeout:         defaults.DefaultRepeatTimeout,  //no timeout
-		}
+func SendFileSCP(ip *string, port *int, user, password, filename, destpath string) ProcTimerFunc {
+	return func() error {
+		if ip != nil && *ip != "" {
+			configSSH := &ssh.ClientConfig{
+				User: user,
+				Auth: []ssh.AuthMethod{
+					ssh.Password(password),
+				},
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+				Timeout:         defaults.DefaultRepeatTimeout,
+			}
 
-		conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port), configSSH)
-		if err != nil {
-			panic(fmt.Sprintf("No ssh connections: %v",err))
-		}
+			conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port), configSSH)
+			if err != nil {
+				fmt.Printf("No ssh connections: %v", err)
+				return nil
+			}
 
-		session, err := conn.NewSession()
-		if err != nil {
-			panic(fmt.Sprintf("Create new session failed: %v",err))
-		}
+			session, err := conn.NewSession()
+			if err != nil {
+				fmt.Printf("Create new session failed: %v\n", err)
+				return nil
+			}
 
-		err = scp.CopyPath(filename, destpath, session)
-		if err != nil {
-			panic(fmt.Sprintf("Copy file on guest VM failed: %v",err))
+			err = scp.CopyPath(filename, destpath, session)
+			if err != nil {
+				fmt.Printf("Copy file on guest VM failed: %v\n", err)
+				return nil
+			}
+			return fmt.Errorf("scp of file %s done", filename)
 		}
-
-		if _, err := os.Stat(destpath); os.IsNotExist(err) {
-			panic(fmt.Sprintf("No such file or directory: %s", destpath))
-		}
+		return nil
 	}
 }
