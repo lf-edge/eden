@@ -30,19 +30,18 @@ import (
 // and removes app from EVE
 
 var (
-	timewait = flag.Duration("timewait", 20*time.Minute, "Timewait for items waiting")
-	expand       = flag.Duration("expand", 10*time.Minute, "Expand timewait on success of step")
-	name         = flag.String("name", "", "Name of app, random if empty")
-	sshPort      = flag.Int("sshPort", 8028, "Port to publish ssh")
-	cpus         = flag.Uint("cpus", 2, "Cpu number for app")
-	memory       = flag.String("memory", "1G", "Memory for app")
-	scriptpath   = flag.String("script_path", "", "Full path to the script that will be sent to the guest machine")
-	direct       = flag.Bool("direct", true, "Load image from url, not from eserver")
-	metadata     = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
-	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
-	tc           *projects.TestContext
-	externalIP   string
-	appName      string
+	timewait   = flag.Duration("timewait", 20*time.Minute, "Timewait for items waiting")
+	name       = flag.String("name", "", "Name of app, random if empty")
+	sshPort    = flag.Int("sshPort", 8028, "Port to publish ssh")
+	cpus       = flag.Uint("cpus", 2, "Cpu number for app")
+	memory     = flag.String("memory", "1G", "Memory for app")
+	scriptpath = flag.String("script_path", "", "Full path to the script that will be sent to the guest machine")
+	direct     = flag.Bool("direct", true, "Load image from url, not from eserver")
+	metadata   = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
+	appLink    = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
+	tc         *projects.TestContext
+	externalIP string
+	appName    string
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -67,7 +66,7 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
-func setAppName(){
+func setAppName() {
 	if appName == "" { //if previous appName not defined
 		if *name == "" {
 			rand.Seed(time.Now().UnixNano())
@@ -128,20 +127,33 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 }
 
 //CheckTimeWorkOfTest checks how much time is left,
-//and returns success if less than 4 minutes left
-func CheckTimeWorkOfTest(timeStart time.Time, timeEnd time.Duration) bool {
-	expiresAt := timeEnd
-
-	df := time.Since(timeStart)
-	return df >= expiresAt-4*time.Minute
+//and returns success if less than 1 minutes left
+//also it checks existence of fsstress process on VM
+//and in case of not existence or some issues with connection it fails test immediately
+func CheckTimeWorkOfTest(t *testing.T, timeStart time.Time) projects.ProcTimerFunc {
+	return func() error {
+		df := time.Since(timeStart)
+		if df >= *timewait-time.Minute {
+			return fmt.Errorf("stress test is stable, end test")
+		}
+		if externalIP == "" {
+			return nil
+		}
+		sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "pgrep fsstress", true)
+		result := sendSSHCommand()
+		if result == nil {
+			t.Fatal(utils.AddTimestamp("cannot find fsstress process or connection problem"))
+		}
+		return nil
+	}
 }
 
-//TestFSstressVMStart gets EdgeNode and deploys app,
+//TestFSStressVMStart gets EdgeNode and deploys app,
 //it generates random appName and adds processing functions
 //it checks if app processed by EVE, app in RUNNING state SSH of app is accessible
 //it uses timewait for processing all events
 //
-func TestFSstressVMStart(t *testing.T) {
+func TestFSStressVMStart(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
@@ -245,7 +257,63 @@ func TestAccess(t *testing.T) {
 
 	tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "exit", true))
 
-	tc.ExpandOnSuccess(int(expand.Seconds()))
+	callback := func() {
+		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
+		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+			t.Fatalf("LogAppsChecker: %s", err)
+		}
+		fmt.Println("------")
+	}
+
+	tc.WaitForProcWithErrorCallback(int(timewait.Seconds()), callback)
+}
+
+//TestRunStress run fsstress test on guest vm
+func TestRunStress(t *testing.T) {
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	timeTestStart := time.Now()
+	setAppName()
+
+	appInstanceConfig := getAppInstanceConfig(edgeNode, appName)
+
+	if appInstanceConfig == nil {
+		t.Fatalf("No app found with name %s", appName)
+	}
+
+	appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pathScript := *scriptpath
+	if *scriptpath == "" {
+		pathScript = filepath.Join(viper.GetString("eden.tests"), "/fsstress/testdata/run-script.sh")
+	}
+
+	result := getEVEIP(edgeNode)()
+	if result == nil {
+		t.Fatal(utils.AddTimestamp("Cannot get EVE IP"))
+	}
+
+	t.Log(utils.AddTimestamp("Send script on guest VM"))
+	result = projects.SendFileSCP(&externalIP, sshPort, "ubuntu", "passw0rd", pathScript, "/home/ubuntu/run-script.sh")()
+	if result == nil {
+		t.Fatal(utils.AddTimestamp("Error in scp"))
+	}
+
+	t.Log(utils.AddTimestamp("Add options for running"))
+	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "chmod +x ~/run-script.sh", true)()
+	if result == nil {
+		t.Fatal(utils.AddTimestamp("Error in chmod"))
+	}
+
+	t.Log(utils.AddTimestamp("Run script on guest VM"))
+	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "~/run-script.sh", true)()
+	if result == nil {
+		t.Fatal(utils.AddTimestamp("Error in running script"))
+	}
+
+	tc.AddProcTimer(edgeNode, CheckTimeWorkOfTest(t, timeTestStart))
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
@@ -256,49 +324,12 @@ func TestAccess(t *testing.T) {
 	}
 
 	tc.WaitForProcWithErrorCallback(int(timewait.Seconds()), callback)
-
 }
 
-//TestRunStress run fsstress test on guest vm
-func TestRunStress(t *testing.T) {
-	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
-	timeTestStart := time.Now()
-	setAppName()
-
-	pathScript := *scriptpath
-	if *scriptpath == "" {
-		pathScript = filepath.Join(viper.GetString("eden.tests"), "/fsstress/testdata/run-script.sh")
-	}
-
-	result := getEVEIP(edgeNode)()
- 	if result == nil {
- 		t.Fatal(utils.AddTimestamp("Cannot get EVE IP"))
- 	}
-
-	t.Log(utils.AddTimestamp("Send script on guest VM"))
-	projects.SendFileSCP(&externalIP, sshPort, "ubuntu", "passw0rd", pathScript, "/home/ubuntu/run-script.sh")
-
-	t.Log(utils.AddTimestamp("Add options for running"))
-	projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "chmod +x ~/run-script.sh", true)()
-
-	t.Log(utils.AddTimestamp("Run script on guest VM"))
-	projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "~/run-script.sh &", false)()
-
-	t.Log(utils.AddTimestamp("Waiting sucсess finished test"))
-	for {
-		ret := CheckTimeWorkOfTest(timeTestStart, *timewait)
-		if ret == true {
-			t.Log(utils.AddTimestamp("FSStress test finished success"))
-			break
-		}
-		time.Sleep(20000 * time.Millisecond)
-	}
-}
-
-//TestFSstressVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
+//TestFSStressVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
 //it checks if app absent in EVE
 //it uses timewait for processing all events
-func TestFSstressVMDelete(t *testing.T) {
+func TestFSStressVMDelete(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 

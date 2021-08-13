@@ -2,6 +2,11 @@ package projects
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -9,10 +14,6 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 //GetControllerMode parse url with controller
@@ -109,9 +110,9 @@ func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	} else {
 		log.Debug("NodeDescriptions not found. Will use default one.")
 		nodes = append(nodes, &EdgeNodeDescription{
-			Key: utils.ResolveAbsPath(viper.GetString("eve.cert")),
+			Key:    utils.ResolveAbsPath(viper.GetString("eve.cert")),
 			Serial: viper.GetString("eve.serial"),
-			Model: viper.GetString("eve.devModel"),
+			Model:  viper.GetString("eve.devModel"),
 		})
 	}
 	return
@@ -224,14 +225,15 @@ func (tc *TestContext) ExpandOnSuccess(secs int) {
 //and fires callback in case of timeout
 func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback) {
 	defer func() { tc.addTime = 0 }() //reset addTime on exit
+	defer tc.procBus.clean()
 	timeout := time.Duration(secs) * time.Second
 	tc.stopTime = time.Now().Add(timeout)
 	ticker := time.NewTicker(defaults.DefaultRepeatTimeout)
 	defer ticker.Stop()
-	waitChan := make(chan struct{})
+	waitChan := make(chan struct{}, 1)
 	go func() {
 		tc.procBus.wg.Wait()
-		close(waitChan)
+		waitChan <- struct{}{}
 	}()
 	for {
 		select {
@@ -241,8 +243,18 @@ func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback)
 			}
 			return
 		case <-ticker.C:
+			for _, el := range tc.tests {
+				if el.Failed() {
+					// if one of tests failed, we are failed
+					callback()
+					return
+				}
+			}
 			if time.Now().After(tc.stopTime) {
 				callback()
+				for _, el := range tc.tests {
+					el.Errorf("WaitForProcWithErrorCallback terminated by timeout %s", timeout)
+				}
 				return
 			}
 		}
@@ -254,7 +266,6 @@ func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback)
 func (tc *TestContext) WaitForProc(secs int) {
 	timeout := time.Duration(secs) * time.Second
 	callback := func() {
-		tc.procBus.clean()
 		if len(tc.tests) == 0 {
 			log.Fatalf("WaitForProc terminated by timeout %s", timeout)
 		}
