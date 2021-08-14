@@ -28,6 +28,7 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lf-edge/eden/eserver v0.0.0-20201210161141-8551a3b0751b
 	github.com/lf-edge/edge-containers v0.0.0-20210630151415-7dbb4f290dab
 	github.com/lf-edge/eve/api/go v0.0.0-20210712071350-c1e7b2f6ffee
@@ -46,6 +47,7 @@ require (
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
+	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef
 	github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940 // indirect
 	github.com/yvasiyarov/gorelic v0.0.7 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect

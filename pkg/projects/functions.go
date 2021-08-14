@@ -10,6 +10,7 @@ import (
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"github.com/tmc/scp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -40,7 +41,7 @@ func (tc *TestContext) CheckMessageInAppLog(edgeNode *device.Ctx, appID uuid.UUI
 //SendCommandSSH try to access SSH with timer and sends command
 func SendCommandSSH(ip *string, port *int, user, password, command string, foreground bool, callbacks ...Callback) ProcTimerFunc {
 	return func() error {
-		if *ip != "" {
+		if ip != nil && *ip != "" {
 			configSSH := &ssh.ClientConfig{
 				User: user,
 				Auth: []ssh.AuthMethod{
@@ -51,6 +52,7 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 			}
 			conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port), configSSH)
 			if err != nil {
+				fmt.Printf("No ssh connections: %v", err)
 				return nil
 			}
 			session, _ := conn.NewSession()
@@ -70,6 +72,42 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 				clb()
 			}
 			return fmt.Errorf("command \"%s\" sended via SSH on %s:%d", command, *ip, *port)
+		}
+		return nil
+	}
+}
+
+//SendFileSCP sends a file over SCP
+func SendFileSCP(ip *string, port *int, user, password, filename, destpath string) ProcTimerFunc {
+	return func() error {
+		if ip != nil && *ip != "" {
+			configSSH := &ssh.ClientConfig{
+				User: user,
+				Auth: []ssh.AuthMethod{
+					ssh.Password(password),
+				},
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+				Timeout:         defaults.DefaultRepeatTimeout,
+			}
+
+			conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port), configSSH)
+			if err != nil {
+				fmt.Printf("No ssh connections: %v", err)
+				return nil
+			}
+
+			session, err := conn.NewSession()
+			if err != nil {
+				fmt.Printf("Create new session failed: %v\n", err)
+				return nil
+			}
+
+			err = scp.CopyPath(filename, destpath, session)
+			if err != nil {
+				fmt.Printf("Copy file on guest VM failed: %v\n", err)
+				return nil
+			}
+			return fmt.Errorf("scp of file %s done", filename)
 		}
 		return nil
 	}

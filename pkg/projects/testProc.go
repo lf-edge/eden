@@ -111,14 +111,16 @@ func (lb *processingBus) process(edgeNode *device.Ctx, inp interface{}) bool {
 
 func (lb *processingBus) processTimers(edgeNode *device.Ctx) bool {
 	for node, functions := range lb.proc {
-		if node == edgeNode {
-			for _, procFunc := range functions {
-				if !procFunc.disabled {
-					switch pf := procFunc.proc.(type) {
-					case ProcTimerFunc:
-						lb.processReturn(edgeNode, procFunc, pf())
-					}
-				}
+		if node != edgeNode {
+			continue
+		}
+		for _, procFunc := range functions {
+			if procFunc.disabled {
+				continue
+			}
+			switch pf := procFunc.proc.(type) {
+			case ProcTimerFunc:
+				lb.processReturn(edgeNode, procFunc, pf())
 			}
 		}
 	}

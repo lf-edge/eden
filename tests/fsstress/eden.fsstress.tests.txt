@@ -1,0 +1,1 @@
+eden.escript.test -test.run TestEdenScripts/fsstress_test
