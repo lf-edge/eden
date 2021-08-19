@@ -17,7 +17,7 @@ import (
 
 //StartEVEQemu function run EVE in qemu
 func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort int, qemuHostFwd map[string]string,
-	qemuAccel bool, qemuConfigFile, logFile, pidFile string, foregroud bool) (err error) {
+	qemuAccel bool, qemuConfigFile, logFile, pidFile string, tapInterface string, foregroud bool) (err error) {
 	qemuCommand := ""
 	qemuOptions := "-display none -nodefaults -no-user-config "
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logfile=%s ", eveTelnetPort, logFile)
@@ -62,9 +62,14 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 			log.Errorf("Failed converting %s to Integer", v)
 			break
 		}
-		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort + offset, newPort + offset)
+		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
 	qemuOptions += fmt.Sprintf(" -device e1000,netdev=eth%d ", 1)
+
+	if tapInterface != "" {
+		qemuOptions += fmt.Sprintf("-netdev tap,id=eth%d,ifname=%s", 2, tapInterface)
+		qemuOptions += fmt.Sprintf(" -device e1000,netdev=eth%d ", 2)
+	}
 
 	if qemuOS == "" {
 		qemuOS = runtime.GOOS

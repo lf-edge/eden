@@ -38,6 +38,7 @@ var (
 	eveRemoteAddr     string
 	eveConfigFromFile bool
 	eveInterfaceName  string
+	tapInterface      string
 )
 
 var eveCmd = &cobra.Command{
@@ -90,7 +91,7 @@ var startEveCmd = &cobra.Command{
 			}
 		} else {
 			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuMonitorPort,
-				hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
+				hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, tapInterface, false); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting")
@@ -644,6 +645,7 @@ func eveInit() {
 	startEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	startEveCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
+	startEveCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	stopEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")

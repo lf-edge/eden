@@ -33,6 +33,18 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 					Wireless: nil,
 				})
 		}
+		if ethCount > 2 {
+			networkConfigs = append(networkConfigs,
+				&config.NetworkConfig{
+					Id:   defaults.NetSwitch,
+					Type: config.NetworkType_V4,
+					Ip: &config.Ipspec{
+						Dhcp:      config.DHCPType_DHCPNone,
+						DhcpRange: &config.IpRange{},
+					},
+					Wireless: nil,
+				})
+		}
 	}
 	if wifiCount > 0 {
 		networkConfigs = append(networkConfigs,
@@ -62,7 +74,12 @@ func generateSystemAdapters(ethCount, wifiCount uint) []*config.SystemAdapter {
 		networkUUID := defaults.NetDHCPID
 		if i > 0 {
 			uplink = false
+		}
+		if i == 1 {
 			networkUUID = defaults.NetNoDHCPID
+		}
+		if i == 2 {
+			networkUUID = defaults.NetSwitch
 		}
 		adapters = append(adapters, &config.SystemAdapter{
 			Name:        name,
@@ -85,7 +102,7 @@ func generatePhysicalIOs(ethCount, wifiCount, usbCount uint) []*config.PhysicalI
 	for i := uint(0); i < ethCount; i++ {
 		name := fmt.Sprintf("eth%d", i)
 		usage := evecommon.PhyIoMemberUsage_PhyIoUsageMgmtAndApps
-		if i == 0 {
+		if i > 0 {
 			usage = evecommon.PhyIoMemberUsage_PhyIoUsageShared
 		}
 		physicalIOs = append(physicalIOs, &config.PhysicalIO{
