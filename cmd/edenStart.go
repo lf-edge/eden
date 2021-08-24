@@ -118,7 +118,7 @@ var startCmd = &cobra.Command{
 			}
 		} else {
 			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuMonitorPort,
-				hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, false); err != nil {
+				hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, tapInterface, false); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting")
@@ -161,4 +161,5 @@ func startInit() {
 	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path to image drive, overrides default setting")
+	startCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
 }
