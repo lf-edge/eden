@@ -114,6 +114,8 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nw_sw
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_switch
 /bin/echo Eden Network portmap test (21.3/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_forward
+/bin/echo Eden test radio silence (21.4/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/radio_silence
 
 {{if (eq $usb_pt "y")}}
 /bin/echo Hardware reboot - USB (22/{{$tests}})
