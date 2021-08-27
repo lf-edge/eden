@@ -9,11 +9,11 @@
     "watchdog": "false",
     "hsm": "1",
     "leds": "0"
-  }
+  },
   "logo": {
     "logo_back":"/workspace/spec/logo_back_TANK-870AI.png",
     "logo_front":"/workspace/spec/logo_front_TANK-870AI.png"
-  }
+  },
   "ioMemberList": [
     {
       "ztype": 7,
@@ -21,7 +21,7 @@
       "assigngrp": "iommu_groups/2",
       "phyaddrs": {
         "PciLong": "0000:00:02.0"
-      }
+      },
       "logicallabel": "VGA",
       "usagePolicy": {}
     },
@@ -31,7 +31,7 @@
       "assigngrp": "iommu_groups/4",
       "phyaddrs": {
         "PciLong": "0000:00:14.0"
-      }
+      },
       "logicallabel": "USB",
       "usagePolicy": {}
     },
@@ -43,7 +43,7 @@
         "Ioports": "3f8-3ff",
         "Irq": "4",
         "Serial": "/dev/ttyS0"
-      }
+      },
       "logicallabel": "COM1",
       "usagePolicy": {}
     },
@@ -55,7 +55,7 @@
         "Ioports": "2f8-2ff",
         "Irq": "3",
         "Serial": "/dev/ttyS1"
-      }
+      },
       "logicallabel": "COM2",
       "usagePolicy": {}
     },
@@ -67,7 +67,7 @@
         "Ioports": "3e8-3ef",
         "Irq": "10",
         "Serial": "/dev/ttyS2"
-      }
+      },
       "logicallabel": "COM3",
       "usagePolicy": {}
     },
@@ -79,7 +79,7 @@
         "Ioports": "2e8-2ef",
         "Irq": "10",
         "Serial": "/dev/ttyS0"
-      }
+      },
       "logicallabel": "COM4",
       "usagePolicy": {}
     },
@@ -90,7 +90,6 @@
       "phylabel": "eth0",
       "logicallabel": "eth0",
       "cost": 0,
-      },
       "assigngrp": "iommu_groups/10",
       "phyaddrs": {
         "Ifname": "eth0",
@@ -103,7 +102,6 @@
       "phylabel": "eth1",
       "logicallabel": "eth1",
       "cost": 0,
-      },
       "assigngrp": "iommu_groups/11",
       "phyaddrs": {
         "Ifname": "eth1",
@@ -116,7 +114,6 @@
       "phylabel": "wlan0",
       "logicallabel": "wlan0",
       "cost": 0,
-      },
       "assigngrp": "iommu_groups/12",
       "phyaddrs": {
         "Ifname": "wlan0",
@@ -129,7 +126,7 @@
       "assigngrp": "iommu_groups/9",
       "phyaddrs": {
         "PciLong": "0000:00:1f.3"
-      }
+      },
       "logicallabel": "Audio",
       "usagePolicy": {}
     }
