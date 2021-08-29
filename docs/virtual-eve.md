@@ -1,4 +1,4 @@
-# Running in the Cloud
+# Running in VMs
 
 When running the components that make up eden, most are run
 as straight binaries or docker containers. One, the core EVE device,
@@ -14,14 +14,18 @@ the following commands being passed to qemu when started:
 There are two instances where this might be a problem:
 
 * Running on an older CPU without hardware virtualization support
-* If you already are running on a VM, for example on a cloud provider,
-which would be virtualization inside virtualization, or "nested virtualization".
+* If you already are running on a VM, for example on a typical cloud provider instance
 
-Note that some cloud providers have started to support nested virtualization.
-For example, see
-[this article on GCP](https://cloud.google.com/compute/docs/instances/enable-nested-virtualization-vm-instances).
+Running EVE in a VM, e.g. qemu, and then running workloads inside EVE as VMs, is
+virtualization inside virtualization, or "nested virtualization".
 
-If you tried to do this, you might get an error, e.g.:
+While some cloud providers have started to support nested virtualization,
+for example
+[GCP](https://cloud.google.com/compute/docs/instances/enable-nested-virtualization-vm-instances),
+many others do not.
+
+If you tried to use nested virtualization without support, you might get an
+error like this:
 
 ```console
 Could not access KVM kernel module: No such file or directory

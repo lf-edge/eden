@@ -9,14 +9,17 @@
 
 Each of these can have their own config, and each can have multiple instances, running in their own ways.
 
-eden maintains a configuration for running, that combines the setup of adam, eve devices, redis and the eserver. Each such
-combination is called a "context" and is given a unique name.
+## Contexts
+
+eden maintains a "contexts", a unique, named configuration adam, eve devices,
+redis, eserver and registry. With contexts, you can have multiple configurations,
+and select the one you want to use.
 
 Contexts are stored in a context file, by default `~/.eden/contexts/<name>.yml`. In addition, the currently active context
 is indicated in `~/.eden/context.yml`. If you do not change the settings, eden will name the sole running context `default`,
 stored in `~/.eden/contexts/default.yml`.
 
-## Modifying, Adding or Removing Contexts
+### Modifying, Adding or Removing Contexts
 
 You can change settings by doing one of the following:
 
@@ -35,20 +38,38 @@ You can modify settings before running `eden setup`. Only one EVE instance can b
 
 Please see [Test configuring](../tests/README.md#Test configuring) section for details about tests config options with switching context.
 
-### Example
+### Examples
 
-To create a new config named `new1` and change the system to a new config
+#### New Context
+
+To create a new context named `new1` and set it to the current context:
 
 ```console
-export EDITOR=vim     # sets your default editor
-eden stop             # stop anything else running
-eden clean            # remove any old artifacts
 eden config add new1  # creates a new context named "new1"
 eden config edit new1 # edit the context "new1"
 eden config set new1  # set the context "new1" as the current context
 eden setup            # generate config and certificates based on context "new1"
 eden start            # start everything up
 ```
+
+#### Change Context Settings
+
+```console
+./eden config add t1     # creates a new context named "t1"
+./eden config set t1 --key eve.hostfwd --value '{"2223":"22"}' # sets the eve.hostfwd value
+./eden config set t1 --key eve.telnet-port --value 7778 # sets the eve.telnet-port value
+```
+
+#### Apply Commands to a Context
+
+```console
+./eden setup -v debug                 # runs setup using the current context
+./eden setup --config t1 -v debug     # runs setup using the t1 context
+./eden start -v debug                 # start all services and EVE with the current context
+./eden eve start --config t1 -v debug # start second EVE with t1 context
+```
+
+## Device Config
 
 To get the current config in json format:
 
@@ -64,7 +85,7 @@ To update the running eve os base image to another one, for example one stored i
 eden controller -m adam:// edge-node eveimage-update dist/amd64/current/installer/rootfs.img
 ```
 
-The last argument is the path tp the new rootfs image. It can be one of:
+The last argument is the path to the new rootfs image. It can be one of:
 
 * relative file path, like the example above, `dist/amd64/current/installer/rootfs.img`
 * absolute file path, e.g. `/home/user1/eve/dist/amd64/current/installer/rootfs.img`
