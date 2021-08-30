@@ -2,14 +2,19 @@
 
 For testing Eden provides two essential services:
 
-* A place where an abstract library that drives most of test functionality
- gets maintained and developed
-* An overall harness for launching all the required components for test runs
+* A harness for launching EVE and required components, executing tests, and reporting results
+* A convenience library that you can use in your tests to drive most of the test functionality
 
-You can read more about the general principles of Eden testing at:
+The general principles for Eden testing are at
 [EVE+Integration+Testing](https://wiki.lfedge.org/display/EVE/EVE+Integration+Testing)
 
-Basic testing workflow for CI/CD of project: [workflow/README.MD](workflow/README.MD)
+Basic testing workflow for CI/CD of project is at [workflow/README.MD](workflow/README.MD)
+
+## Test structure
+
+This directory contains a series of integration tests implemented in Golang.
+Tests are structured as normal Golang tests by using `_test.go`
+nomenclature and be available for test runs using standard go test framework.
 
 ## Test building
 

@@ -1,6 +1,6 @@
 # Writing eden tests
 
-## About tests in Eden
+## Eden Test Structure
 
 Each test suite or individual test must have:
 
