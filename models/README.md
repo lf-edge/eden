@@ -1,4 +1,5 @@
-## Community supported hardware models
+# Community supported hardware models
+<!-- markdownlint-disable MD033 -->
 
 ## x86 models
 
@@ -100,7 +101,6 @@
 * [SYS E50 9AP WiFi](template_l1_SYS-E50-9AP-WiFi.json) - [Vendor site](null)<br><img src="logo_front_SYS-E50-9AP-WiFi.png" width="100" height="80"> <img src="logo_back_SYS-E50-9AP-WiFi.png" width="100" height="80">
 * [SYS E50 9AP](template_l1_SYS-E50-9AP.json) - [Vendor site](null)<br><img src="logo_front_SYS-E50-9AP.png" width="100" height="80"> <img src="logo_back_SYS-E50-9AP.png" width="100" height="80">
 
-
 * [X11SSN-E](template_l1_X11SSN-E.json) - [Vendor site](null)<br><img src="logo_front_X11SSN-E.png" width="100" height="80"> <img src="logo_back_X11SSN-E.png" width="100" height="80">
 
 * [SYS 5039M](template_l1_Packet-c1.small.x86.json) - [Vendor site](https://metal.equinix.com/developers/docs/servers/#c1smallx86)<br><img src="logo_front_SYS-5039MS-H12TRF.png" width="100" height="80"> <img src="logo_back_SYS-5039MS-H12TRF.png" width="100" height="80">
@@ -111,7 +111,6 @@
 * [SSG 6028R E1CR12L](template_l1_Packet-s1.large.x86.json) - [Vendor site](https://metal.equinix.com/developers/docs/servers/#s1largex86)<br><img src="logo_front_SSG-6028R-E1CR12L.png" width="100" height="80"> <img src="logo_back_SSG-6028R-E1CR12L.png" width="100" height="80">
 * [SSG 6029P E1CR12L](template_l1_Packet-s3.xlarge.x86.json) - [Vendor site](https://metal.equinix.com/developers/docs/servers/#s3xlargex86)<br><img src="logo_front_SSG-6029P-E1CR12L-PH004.png" width="100" height="80"> <img src="logo_back_SSG-6029P-E1CR12L-PH004.png" width="100" height="80">
 * [X11DGQ](template_l1_Packet-g2.large.x86.json) - [Vendor site](https://metal.equinix.com/developers/docs/servers/#g2largex86)<br><img src="logo_front_X11DGQ.png" width="100" height="80"> <img src="logo_back_X11DGQ.png" width="100" height="80">
-
 
 ### [UP Squared](https://up-board.org/)
 
@@ -149,7 +148,7 @@
 
 ## Virtual models
 
-### [VM](https://en.wikipedia.org/wiki/Hardware_virtualization) 
+### [VM](https://en.wikipedia.org/wiki/Hardware_virtualization)
 
 * [4G local VM x86](template_l1_ZedVirtual-4G.json) - [Vendor site](null)<br><img src="logo_front_Parallels.jpg" width="100" height="80"> <img src="logo_front_Virtualbox.png" width="100" height="80">
 * [4G local VM ARM](template_l1_ZedVirtual-ARM-4G.json) - [Vendor site](null)<br><img src="logo_front_Qemu.jpg" width="100" height="80"> <img src="logo_front_Qemu.jpg" width="100" height="80">
