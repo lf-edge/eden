@@ -1,0 +1,134 @@
+{
+  "arch": 2,
+  "productURL": "https://www.ieiworld.com/tank-aiot-development-kit/en/",
+  "productStatus": "production",
+  "attr": {
+    "memory": "7G",
+    "storage": "931G",
+    "Cpus": "8",
+    "watchdog": "false",
+    "hsm": "1",
+    "leds": "0"
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_TANK-870AI.png",
+    "logo_front":"/workspace/spec/logo_front_TANK-870AI.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "iommu_groups/2",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "iommu_groups/4",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Ioports": "2f8-2ff",
+        "Irq": "3",
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM3",
+      "assigngrp": "COM3",
+      "phyaddrs": {
+        "Ioports": "3e8-3ef",
+        "Irq": "10",
+        "Serial": "/dev/ttyS2"
+      },
+      "logicallabel": "COM3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM4",
+      "assigngrp": "COM4",
+      "phyaddrs": {
+        "Ioports": "2e8-2ef",
+        "Irq": "10",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM4",
+      "usagePolicy": {}
+    },
+
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "logicallabel": "eth0",
+      "cost": 0,
+      "assigngrp": "iommu_groups/10",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:00:1f.6"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "logicallabel": "eth1",
+      "cost": 0,
+      "assigngrp": "iommu_groups/11",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.0"
+      }
+    },
+    {
+      "ztype": 5,
+      "usage": 1,
+      "phylabel": "wlan0",
+      "logicallabel": "wlan0",
+      "cost": 0,
+      "assigngrp": "iommu_groups/12",
+      "phyaddrs": {
+        "Ifname": "wlan0",
+        "PciLong": "0000:03:00.0"
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "Audio",
+      "assigngrp": "iommu_groups/9",
+      "phyaddrs": {
+        "PciLong": "0000:00:1f.3"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    }
+  ]
+}

@@ -41,6 +41,7 @@
 
 * [TANK 870 Q170 QGW](template_l1_TANK-870-Q170-QGW.json) - [Vendor site](https://www.ieiworld.com/en/product/model.php?II=525)<br><img src="logo_front_TANK-870-Q170-QGW.png" width="100" height="80"> <img src="logo_back_TANK-870-Q170-QGW.png" width="100" height="80">
 * [TANK 870 AI i7 8G 2A](template_l1_iEi_TANK-870-AI-i7-8G-2A.json) - [Vendor site](https://www.ieiworld.com/tank-aiot-development-kit/en/)<br><img src="logo_front_TANK-870AI.png" width="100" height="80"> <img src="logo_back_TANK-870AI.png" width="100" height="80">
+* [TANK 870 AI i5 8G 2A](template_l1_iEi_TANK-870-AI-i5-8G-2A.json) - [Vendor site](https://www.ieiworld.com/tank-aiot-development-kit/en/)<br><img src="logo_front_TANK-870AI.png" width="100" height="80"> <img src="logo_back_TANK-870AI.png" width="100" height="80">
 
 ### [Intel](https://www.intel.com/content/www/us/en/products/boards-kits.html)
 
