@@ -2,12 +2,14 @@ package eve
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/apoorvam/goterminal"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/device"
@@ -279,10 +281,9 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 	}
 }
 
-//PodsList prints applications
-func (ctx *State) PodsList() error {
+func (ctx *State) podsListWriter(writer io.Writer) error {
 	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 0, 8, 1, '\t', 0)
+	w.Init(writer, 0, 8, 1, '\t', 0)
 	if _, err := fmt.Fprintln(w, appStateHeader()); err != nil {
 		return err
 	}
@@ -297,4 +298,27 @@ func (ctx *State) PodsList() error {
 		}
 	}
 	return w.Flush()
+}
+
+//PodsList prints applications
+func (ctx *State) PodsList() error {
+	return ctx.podsListWriter(os.Stdout)
+}
+
+//PodWatch prints applications in watch-stile
+func (ctx *State) PodWatch() error {
+	writer := goterminal.New(os.Stdout)
+	defer writer.Reset()
+	for range ctx.events {
+		writer.Clear()
+		err := ctx.podsListWriter(writer)
+		if err != nil {
+			return err
+		}
+		err = writer.Print()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

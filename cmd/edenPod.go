@@ -45,6 +45,7 @@ var (
 	acl         []string
 	profiles    []string
 	vlans       []string
+	watch       bool
 
 	deleteVolumes bool
 
@@ -228,7 +229,21 @@ var podPsCmd = &cobra.Command{
 		if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
 			log.Fatalf("fail in get MetricLastCallback: %s", err)
 		}
-		if err := state.PodsList(); err != nil {
+		if !watch {
+			if err := state.PodsList(); err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+		go func() {
+			if err := ctrl.InfoChecker(dev.GetID(), nil, state.InfoCallback(), einfo.InfoNew, 0); err != nil {
+				log.Fatalf("fail in get InfoLastCallback: %s", err)
+			}
+			if err := ctrl.MetricChecker(dev.GetID(), nil, state.MetricCallback(), emetric.MetricNew, 0); err != nil {
+				log.Fatalf("fail in get MetricLastCallback: %s", err)
+			}
+		}()
+		if err := state.PodWatch(); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -543,6 +558,7 @@ To block all traffic define ACL with no endpoints: '<network_name>:'`)
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podDeployCmd.Flags().StringVar(&datastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
+	podPsCmd.Flags().BoolVarP(&watch, "watch", "w", false, "Keep watching for changes")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)

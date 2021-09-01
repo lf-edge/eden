@@ -56,6 +56,8 @@ List running applications, their names, ip/ports
 eden pod ps
 ```
 
+You can use `-w/--watch` flag to keep output up to date in terminal.
+
 ### View Application Logs
 
 To view the logs of an application:

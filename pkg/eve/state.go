@@ -19,13 +19,23 @@ type State struct {
 	volumes        map[string]*VolInstState
 	infoAndMetrics *projects.State
 	device         *device.Ctx
+	ctrl           controller.Cloud
+	events         chan struct{}
+}
+
+func (ctx *State) triggerEvent() {
+	select {
+	case ctx.events <- struct{}{}:
+	default:
+	}
 }
 
 //Init State object with controller and device
 func Init(ctrl controller.Cloud, dev *device.Ctx) (ctx *State) {
-	ctx = &State{device: dev, infoAndMetrics: projects.InitState(dev)}
+	ctx = &State{ctrl: ctrl, device: dev, infoAndMetrics: projects.InitState(dev)}
 	ctx.applications = make(map[string]*AppInstState)
 	ctx.networks = make(map[string]*NetInstState)
+	ctx.events = make(chan struct{}, 1)
 	if err := ctx.initApplications(ctrl, dev); err != nil {
 		log.Fatalf("EVE State initApplications error: %s", err)
 	}
@@ -35,6 +45,7 @@ func Init(ctrl controller.Cloud, dev *device.Ctx) (ctx *State) {
 	if err := ctx.initNetworks(ctrl, dev); err != nil {
 		log.Fatalf("EVE State initNetworks error: %s", err)
 	}
+	ctx.triggerEvent()
 	return
 }
 
@@ -85,6 +96,7 @@ func (ctx *State) InfoCallback() einfo.HandlerFunc {
 		if err := ctx.infoAndMetrics.GetInfoProcessingFunction()(msg); err != nil {
 			log.Fatalf("EVE State GetInfoProcessingFunction error: %s", err)
 		}
+		ctx.triggerEvent()
 		return false
 	}
 }
@@ -98,6 +110,7 @@ func (ctx *State) MetricCallback() emetric.HandlerFunc {
 		if err := ctx.infoAndMetrics.GetMetricProcessingFunction()(msg); err != nil {
 			log.Fatalf("EVE State GetMetricProcessingFunction error: %s", err)
 		}
+		ctx.triggerEvent()
 		return false
 	}
 }
