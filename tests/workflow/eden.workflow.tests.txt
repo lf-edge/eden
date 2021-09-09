@@ -96,6 +96,8 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/host-
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/acl
 /bin/echo Eden profile test (18.3/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/profile
+/bin/echo Eden app metadata test (18.4/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/metadata
 /bin/echo Eden Network light (19/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/networking_light
 /bin/echo Eden Networks switch (20/{{$tests}})

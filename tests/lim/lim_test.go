@@ -49,10 +49,15 @@ var (
 )
 
 func mkquery() error {
-	for _, a := range flag.Args() {
+	for _, arg := range flag.Args() {
+		// we use & to indicate background process
+		a := strings.TrimSuffix(arg, "&")
 		for _, f := range strings.Split(a, " ") {
 			s := strings.Split(f, ":")
 			if len(s) == 1 {
+				if s[0] == "" {
+					continue
+				}
 				return fmt.Errorf("incorrect query: %s", f)
 			}
 			query[s[0]] = s[1]
