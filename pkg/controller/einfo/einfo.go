@@ -87,7 +87,7 @@ func processElem(value reflect.Value, query map[string]string) bool {
 			n = append(n, strings.Title(pathElement))
 		}
 		var clb = func(inp reflect.Value) {
-			f := fmt.Sprint(inp)
+			f := fmt.Sprintf("%s", inp)
 			newMatched, err := regexp.Match(v, []byte(f))
 			if err != nil {
 				log.Debug(err)
@@ -115,7 +115,7 @@ func ZInfoPrint(im *info.ZInfoMsg, query []string) *types.PrintResult {
 			n = append(n, strings.Title(pathElement))
 		}
 		var clb = func(inp reflect.Value) {
-			f := fmt.Sprint(inp)
+			f := fmt.Sprintf("%s", inp)
 			result[v] = append(result[v], f)
 		}
 		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(im)).Interface(), strings.Join(n, "."), clb)
