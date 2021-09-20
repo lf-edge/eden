@@ -29,33 +29,35 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   openssh-server \
   jq \
   setserial \
+  avahi-daemon \
+  nginx-light \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN mkdir /var/run/sshd
-RUN echo 'root:adam&eve' | chpasswd
-RUN sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
-
-# SSH login fix. Otherwise user is kicked off after login
-RUN sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
+RUN mkdir /var/run/sshd && \
+    echo 'root:adam&eve' | chpasswd && \
+    sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config && \
+    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
 
 ENV NOTVISIBLE="in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
-RUN mkdir -p /root/.ssh/
-RUN mkdir -p /mnt
-RUN touch /mnt/profile
 COPY cert/id_rsa* /root/.ssh/
 COPY cert/id_rsa.pub /root/.ssh/authorized_keys
-RUN chown root:root /root/.ssh/
-RUN chmod 600 /root/.ssh/id_rsa*
+
+RUN mkdir -p /mnt && \
+    touch /mnt/profile && \
+    chown root:root /root/.ssh/ && \
+    chmod 600 /root/.ssh/id_rsa*
 COPY portmap_test.sh /root/portmap_test.sh
 COPY get_eve_ip.sh /root/get_eve_ip.sh
 COPY entrypoint.sh /entrypoint.sh
-COPY reboot /sbin/
-COPY halt /sbin
+COPY avahi.http.service /etc/avahi/services/http.service
+COPY reboot /sbin/reboot
+COPY halt /sbin/halt
 COPY --from=build /out/local_manager /root/
 
 EXPOSE 22
+EXPOSE 80
 CMD ["/entrypoint.sh"]
