@@ -82,6 +82,13 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 				netInstStateObj.deleted = true
 			}
 		}
+		// XXX Guard against old EVE which doesn't send state
+		// sends INIT state when deleting network instance
+		if !netInstStateObj.Activated &&
+			netInstStateObj.AdamState == "NOT_IN_CONFIG" {
+			netInstStateObj.deleted = true
+		}
+
 		if netInstStateObj.EveState == "ZNETINST_STATE_UNSPECIFIED" {
 			netInstStateObj.deleted = true
 		}
