@@ -91,6 +91,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			contentTreeID: contentTreeID,
 			originType:    vi.GetOrigin().GetType(),
 		}
+		// XXX use vi.GetUUID()?
 		ctx.volumes[volInstStateObj.Name] = volInstStateObj
 	}
 	return nil
@@ -100,6 +101,9 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 	switch im.GetZtype() {
 	case info.ZInfoTypes_ZiVolume:
 		infoObject := im.GetVinfo()
+		// XXX use state? unit
+		// XXX if el.EveState = "INIT" set deleted below?
+		// XXX use [uuid] instead of loop throughout
 		if infoObject.DisplayName == "" {
 			for _, el := range ctx.volumes {
 				if infoObject.Uuid == el.UUID {
@@ -109,6 +113,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 			}
 			return
 		}
+		// XXX use vi.GetUUID()?
 		volInstStateObj, ok := ctx.volumes[infoObject.GetDisplayName()]
 		if !ok {
 			volInstStateObj = &VolInstState{
@@ -121,6 +126,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 				MountPoint: "-",
 				Ref:        "-",
 			}
+			// XXX use vi.GetUUID()?
 			ctx.volumes[infoObject.GetDisplayName()] = volInstStateObj
 		}
 		if volInstStateObj.VolumeType != config.Format_FmtUnknown &&
@@ -142,6 +148,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		}
 	case info.ZInfoTypes_ZiContentTree:
 		infoObject := im.GetCinfo()
+		// XXX use [uuid] instead of loop
 		for _, el := range ctx.volumes {
 			if infoObject.Uuid == el.contentTreeID {
 				if infoObject.GetErr() != nil {
@@ -149,6 +156,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 				} else {
 					el.EveState = infoObject.State.String()
 				}
+				// XXX if el.EveState = "INIT" set deleted?
 			}
 		}
 	}
@@ -157,6 +165,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 func (ctx *State) processVolumesByMetric(msg *metrics.ZMetricMsg) {
 	if volumeMetrics := msg.GetVm(); volumeMetrics != nil {
 		for _, volumeMetric := range volumeMetrics {
+			// XXX use [uuid] instead of loop
 			for _, el := range ctx.volumes {
 				if volumeMetric.Uuid == el.UUID {
 					//UsedBytes to show in SIZE column
@@ -181,10 +190,8 @@ func (ctx *State) VolumeList() error {
 		return volInstStatesSlice[i].Name < volInstStatesSlice[j].Name
 	})
 	for _, el := range volInstStatesSlice {
-		if !el.deleted {
-			if _, err := fmt.Fprintln(w, el.toString()); err != nil {
-				return err
-			}
+		if _, err := fmt.Fprintln(w, el.toString()); err != nil {
+			return err
 		}
 	}
 	return w.Flush()
