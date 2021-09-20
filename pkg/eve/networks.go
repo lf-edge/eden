@@ -53,7 +53,7 @@ func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
 			CIDR:        ni.Ip.Subnet,
 			NetworkType: ni.InstType,
 		}
-		ctx.networks[ni.Displayname] = netInstStateObj
+		ctx.networks[ni.Uuidandversion.Uuid] = netInstStateObj
 	}
 	return nil
 }
@@ -61,7 +61,7 @@ func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
 func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 	switch im.GetZtype() {
 	case info.ZInfoTypes_ZiNetworkInstance:
-		netInstStateObj, ok := ctx.networks[im.GetNiinfo().GetDisplayname()]
+		netInstStateObj, ok := ctx.networks[im.GetNiinfo().GetNetworkID()]
 		if !ok {
 			netInstStateObj = &NetInstState{
 				Name:        im.GetNiinfo().GetDisplayname(),
@@ -71,19 +71,9 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 				EveState:    "IN_CONFIG",
 				NetworkType: (config.ZNetworkInstType)(int32(im.GetNiinfo().InstType)),
 			}
-			ctx.networks[im.GetNiinfo().GetDisplayname()] = netInstStateObj
+			ctx.networks[im.GetNiinfo().GetNetworkID()] = netInstStateObj
 		}
-		if !im.GetNiinfo().Activated {
-			if netInstStateObj.Activated {
-				//if previously Activated==true and now Activated==false then deleted
-				netInstStateObj.deleted = true
-			} else {
-				netInstStateObj.deleted = false
-			}
-			netInstStateObj.EveState = "NOT_ACTIVATED"
-		} else {
-			netInstStateObj.EveState = "ACTIVATED"
-		}
+		netInstStateObj.EveState = im.GetNiinfo().State.String()
 		netInstStateObj.Activated = im.GetNiinfo().Activated
 		//if errors, show them if in adam`s config
 		if len(im.GetNiinfo().GetNetworkErr()) > 0 {
@@ -92,12 +82,29 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 				netInstStateObj.deleted = true
 			}
 		}
+		// XXX Guard against old EVE which doesn't send state
+		// sends INIT state when deleting network instance
+		if !netInstStateObj.Activated &&
+			netInstStateObj.AdamState == "NOT_IN_CONFIG" {
+			netInstStateObj.deleted = true
+		}
+
+		if netInstStateObj.EveState == "ZNETINST_STATE_UNSPECIFIED" {
+			netInstStateObj.deleted = true
+		}
+		if netInstStateObj.EveState == "ZNETINST_STATE_ONLINE" {
+			netInstStateObj.EveState = "ACTIVATED"
+		} else {
+			netInstStateObj.EveState = "NOT_ACTIVATED"
+		}
+
 	}
 }
 
 func (ctx *State) processNetworksByMetric(msg *metrics.ZMetricMsg) {
 	if networkMetrics := msg.GetNm(); networkMetrics != nil {
 		for _, networkMetric := range networkMetrics {
+			// XXX use [uuid] instead of loop
 			for _, el := range ctx.networks {
 				if networkMetric.NetworkID == el.UUID {
 					el.Stats = networkMetric.GetNetworkStats().String()
