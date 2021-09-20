@@ -83,6 +83,7 @@ type AppExpectation struct {
 
 	openStackMetadata bool
 	profiles          []string
+	datastoreOverride string
 }
 
 //use provided appLink to try predict format of volume

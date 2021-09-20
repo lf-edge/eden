@@ -85,6 +85,8 @@ eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/vlans
 eden.escript.test -testdata ../volume/testdata/ -test.run TestEdenScripts/volumes_test
 /bin/echo Eden sftp volumes test (17.2/{{$tests}})
 eden.escript.test -testdata ../volume/testdata/ -test.run TestEdenScripts/volume_sftp
+/bin/echo Eden test for local datastore volume (17.3/{{$tests}})
+eden.escript.test -testdata ../volume/testdata/ -test.run TestEdenScripts/local_datastore
 {{if (ne $registry "n")}}
 /bin/echo Eden eclient with mounted volume (17.3/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/mount

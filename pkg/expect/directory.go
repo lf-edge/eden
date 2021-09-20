@@ -46,7 +46,7 @@ func (exp *AppExpectation) checkDataStoreDirectory(ds *config.DatastoreConfig) b
 
 //createDataStoreDirectory creates datastore, pointed onto local registry
 func (exp *AppExpectation) createDataStoreDirectory(id uuid.UUID) *config.DatastoreConfig {
-	return &config.DatastoreConfig{
+	ds := &config.DatastoreConfig{
 		Id:         id.String(),
 		DType:      config.DsType_DsContainerRegistry,
 		ApiKey:     "",
@@ -56,4 +56,8 @@ func (exp *AppExpectation) createDataStoreDirectory(id uuid.UUID) *config.Datast
 		CipherData: nil,
 		Fqdn:       fmt.Sprintf("docker://%s:%s", exp.ctrl.GetVars().RegistryIP, exp.ctrl.GetVars().RegistryPort),
 	}
+	if exp.datastoreOverride != "" {
+		ds.Fqdn = exp.datastoreOverride
+	}
+	return ds
 }
