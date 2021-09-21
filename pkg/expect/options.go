@@ -256,3 +256,10 @@ func WithProfiles(profiles []string) ExpectationOption {
 		expectation.profiles = profiles
 	}
 }
+
+//WithDatastoreOverride set override for datastore for app
+func WithDatastoreOverride(datastoreOverride string) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.datastoreOverride = datastoreOverride
+	}
+}

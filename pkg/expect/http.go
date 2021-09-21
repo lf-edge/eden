@@ -54,8 +54,7 @@ func (exp *AppExpectation) createImageHTTP(id uuid.UUID, dsID string) *config.Im
 	}
 	if exp.sftpLoad {
 		filePath = filepath.Join(defaults.DefaultSFTPDirPrefix, filePath)
-	} else
-	if exp.httpDirectLoad {
+	} else if exp.httpDirectLoad {
 		u, err := url.Parse(exp.appLink)
 		if err != nil {
 			log.Fatal(err)
@@ -89,8 +88,7 @@ func (exp *AppExpectation) checkDataStoreHTTP(ds *config.DatastoreConfig) bool {
 		if ds.Fqdn == fmt.Sprintf("%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort) {
 			return true
 		}
-	} else
-	if ds.DType == config.DsType_DsHttp || ds.DType == config.DsType_DsHttps {
+	} else if ds.DType == config.DsType_DsHttp || ds.DType == config.DsType_DsHttps {
 		if !exp.httpDirectLoad && ds.Fqdn == fmt.Sprintf("http://%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort) {
 			return true
 		}
@@ -117,6 +115,9 @@ func (exp *AppExpectation) createDataStoreSFTP(id uuid.UUID) *config.DatastoreCo
 		Region:     "",
 		CipherData: nil,
 	}
+	if exp.datastoreOverride != "" {
+		ds.Fqdn = exp.datastoreOverride
+	}
 	return ds
 }
 
@@ -131,7 +132,9 @@ func (exp *AppExpectation) createDataStoreHTTP(id uuid.UUID) *config.DatastoreCo
 		Region:     "",
 		CipherData: nil,
 	}
-	if exp.httpDirectLoad && exp.appType != fileApp {
+	if exp.datastoreOverride != "" {
+		ds.Fqdn = exp.datastoreOverride
+	} else if exp.httpDirectLoad && exp.appType != fileApp {
 		u, err := url.Parse(exp.appLink)
 		if err != nil {
 			log.Fatal(err)

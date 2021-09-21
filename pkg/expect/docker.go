@@ -43,6 +43,9 @@ func (exp *AppExpectation) checkImageDocker(img *config.Image, dsID string) bool
 
 //getDataStoreFQDN return fqdn info for datastore based on provided ref of image and registry
 func (exp *AppExpectation) getDataStoreFQDN(withProto bool) string {
+	if exp.datastoreOverride != "" {
+		return exp.datastoreOverride
+	}
 	var fqdn string
 	if exp.registry != "" {
 		fqdn = exp.registry

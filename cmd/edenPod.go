@@ -57,6 +57,7 @@ var (
 	sftpLoad   bool
 
 	openStackMetadata bool
+	datastoreOverride string
 )
 
 var podCmd = &cobra.Command{
@@ -188,6 +189,7 @@ var podDeployCmd = &cobra.Command{
 		}
 		opts = append(opts, expect.WithOpenStackMetadata(openStackMetadata))
 		opts = append(opts, expect.WithProfiles(profiles))
+		opts = append(opts, expect.WithDatastoreOverride(datastoreOverride))
 		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
@@ -540,6 +542,7 @@ To block all traffic define ACL with no endpoints: '<network_name>:'`)
 	podDeployCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
+	podDeployCmd.Flags().StringVar(&datastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
