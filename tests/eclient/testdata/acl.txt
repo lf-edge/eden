@@ -18,7 +18,7 @@
 exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 # Starting of reboot detector with a 1 reboot limit
-! test eden.reboot.test -test.v -timewait 40m -reboot=0 -count=1 &
+! test eden.reboot.test -test.v -timewait=0 -reboot=0 -count=1 &
 
 message 'Resetting of EVE'
 eden eve reset

@@ -47,7 +47,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
-	qemuOptions += fmt.Sprintf(" -device virtio-net-pci,netdev=eth%d ", 0)
+	qemuOptions += fmt.Sprintf(" -device e1000,netdev=eth%d ", 0)
 	offset += 10
 
 	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off", 1, network, nets[0].SecondAddress)

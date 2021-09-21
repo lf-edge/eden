@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ tc *TestContext // TestContext is at least {
 */
 
 var (
-	timewait = flag.Duration("timewait", time.Minute, "Timewait for waiting")
+	timewait = flag.Duration("timewait", time.Minute, "Timewait for waiting. Zero value will wait infinite.")
 	reboot   = flag.Bool("reboot", true, "Reboot or not reboot...")
 	count    = flag.Int("count", 1, "Number of reboots")
 
@@ -42,7 +43,7 @@ var (
 	lastRebootTime *timestamp.Timestamp
 )
 
-func checkReboot(edgeNode *device.Ctx) projects.ProcInfoFunc {
+func checkReboot(t *testing.T, edgeNode *device.Ctx) projects.ProcInfoFunc {
 	return func(im *info.ZInfoMsg) error {
 		if im.GetZtype() != info.ZInfoTypes_ZiDevice {
 			return nil
@@ -51,6 +52,16 @@ func checkReboot(edgeNode *device.Ctx) projects.ProcInfoFunc {
 		if !proto.Equal(lastRebootTime, currentLastRebootTime) {
 			lastRebootTime = currentLastRebootTime
 			fmt.Printf("rebooted with reason %s at %s/n", im.GetDinfo().LastRebootReason, lastRebootTime.AsTime())
+			if !strings.Contains(im.GetDinfo().LastRebootReason, "NORMAL") {
+				err := fmt.Errorf("abnormal reboot: %s", im.GetDinfo().LastRebootReason)
+				if *reboot {
+					//if we use this test to do reboot, abnormal one must errored the test
+					t.Fatal(err)
+				} else {
+					//if we use this test as detector, abnormal one must end the test
+					return err
+				}
+			}
 			number++
 			if number < *count {
 				if *reboot {
@@ -133,6 +144,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestReboot(t *testing.T) {
+
+	if timewait.Seconds() == 0 {
+		timewaitNew := time.Duration(1<<63 - 1)
+		timewait = &timewaitNew
+	}
 	// note that GetEdgeNode() without any argument is
 	// equivalent to the default (first one). Otherwise
 	// one can specify a name GetEdgeNode("foo")
@@ -146,9 +162,11 @@ func TestReboot(t *testing.T) {
 
 	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
 
-	t.Log(utils.AddTimestamp(fmt.Sprintf("lastRebootTime: %s", lastRebootTime.AsTime())))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("LastRebootTime: %s", lastRebootTime.AsTime())))
 
-	tc.AddProcInfo(edgeNode, checkReboot(edgeNode))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("LastRebootReason: %s", tc.GetState(edgeNode).GetDinfo().LastRebootReason)))
+
+	tc.AddProcInfo(edgeNode, checkReboot(t, edgeNode))
 
 	if *reboot {
 		edgeNode.Reboot()
