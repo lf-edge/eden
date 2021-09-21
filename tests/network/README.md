@@ -1,6 +1,6 @@
 # Test Description
 
-This test creates and assignes a network to 2 applications, which communicate.
+This test creates and assigns a network to 2 applications, which communicate.
 One has nginx, the other uses curl.
 Creates 2 networks, checks internal IPs and does intercommunication
 
