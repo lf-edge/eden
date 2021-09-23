@@ -65,6 +65,7 @@ func checkNewLastState(netName, state string) bool {
 func checkAndAppendState(netName, state string) {
 	if checkNewLastState(netName, state) {
 		states[netName] = append(states[netName], nwState{state: state, timestamp: time.Now()})
+		fmt.Println(utils.AddTimestamp(fmt.Sprintf("\tnetName %s state changed to %s", netName, state)))
 	}
 }
 
