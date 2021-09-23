@@ -73,6 +73,7 @@ func checkAndAppendState(appName, state string) {
 			state:     state,
 			timestamp: time.Now(),
 		})
+		fmt.Println(utils.AddTimestamp(fmt.Sprintf("\tappName %s state changed to %s", appName, state)))
 	}
 }
 

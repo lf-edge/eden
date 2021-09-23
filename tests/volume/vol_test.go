@@ -65,6 +65,7 @@ func checkNewLastState(volName, state string) bool {
 func checkAndAppendState(volName, state string) {
 	if checkNewLastState(volName, state) {
 		states[volName] = append(states[volName], volState{state: state, timestamp: time.Now()})
+		fmt.Println(utils.AddTimestamp(fmt.Sprintf("\tvolName %s state changed to %s", volName, state)))
 	}
 }
 
