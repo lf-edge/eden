@@ -210,8 +210,11 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 		//check appStateObj not defined in adam
 		if appStateObj.AdamState != "IN_CONFIG" {
 			if im.GetAinfo().AppID == appStateObj.UUID {
-				appStateObj.deleted = false //if in recent ZInfoTypes_ZiApp, than not deleted
+				appStateObj.deleted = false //if in recent ZInfoTypes_ZiApp, then not deleted
 			}
+		}
+		if im.GetAinfo().State == info.ZSwState_INVALID {
+			appStateObj.deleted = true
 		}
 	case info.ZInfoTypes_ZiNetworkInstance: //try to find ips from NetworkInstances
 		for _, el := range im.GetNiinfo().IpAssignments {

@@ -91,8 +91,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			contentTreeID: contentTreeID,
 			originType:    vi.GetOrigin().GetType(),
 		}
-		// XXX use vi.GetUUID()?
-		ctx.volumes[volInstStateObj.Name] = volInstStateObj
+		ctx.volumes[vi.GetUuid()] = volInstStateObj
 	}
 	return nil
 }
@@ -101,20 +100,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 	switch im.GetZtype() {
 	case info.ZInfoTypes_ZiVolume:
 		infoObject := im.GetVinfo()
-		// XXX use state? unit
-		// XXX if el.EveState = "INIT" set deleted below?
-		// XXX use [uuid] instead of loop throughout
-		if infoObject.DisplayName == "" {
-			for _, el := range ctx.volumes {
-				if infoObject.Uuid == el.UUID {
-					el.deleted = true
-					break
-				}
-			}
-			return
-		}
-		// XXX use vi.GetUUID()?
-		volInstStateObj, ok := ctx.volumes[infoObject.GetDisplayName()]
+		volInstStateObj, ok := ctx.volumes[infoObject.GetUuid()]
 		if !ok {
 			volInstStateObj = &VolInstState{
 				Name:       infoObject.GetDisplayName(),
@@ -126,8 +112,10 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 				MountPoint: "-",
 				Ref:        "-",
 			}
-			// XXX use vi.GetUUID()?
-			ctx.volumes[infoObject.GetDisplayName()] = volInstStateObj
+			ctx.volumes[infoObject.GetUuid()] = volInstStateObj
+		}
+		if infoObject.DisplayName == "" || infoObject.State == info.ZSwState_INVALID {
+			volInstStateObj.deleted = true
 		}
 		if volInstStateObj.VolumeType != config.Format_FmtUnknown &&
 			volInstStateObj.VolumeType != config.Format_CONTAINER {
@@ -148,7 +136,6 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		}
 	case info.ZInfoTypes_ZiContentTree:
 		infoObject := im.GetCinfo()
-		// XXX use [uuid] instead of loop
 		for _, el := range ctx.volumes {
 			if infoObject.Uuid == el.contentTreeID {
 				if infoObject.GetErr() != nil {
@@ -156,7 +143,6 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 				} else {
 					el.EveState = infoObject.State.String()
 				}
-				// XXX if el.EveState = "INIT" set deleted?
 			}
 		}
 	}
@@ -165,13 +151,9 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 func (ctx *State) processVolumesByMetric(msg *metrics.ZMetricMsg) {
 	if volumeMetrics := msg.GetVm(); volumeMetrics != nil {
 		for _, volumeMetric := range volumeMetrics {
-			// XXX use [uuid] instead of loop
-			for _, el := range ctx.volumes {
-				if volumeMetric.Uuid == el.UUID {
-					//UsedBytes to show in SIZE column
-					el.Size = humanize.Bytes(volumeMetric.GetUsedBytes())
-					break
-				}
+			volInstStateObj, ok := ctx.volumes[volumeMetric.GetUuid()]
+			if ok {
+				volInstStateObj.Size = humanize.Bytes(volumeMetric.GetUsedBytes())
 			}
 		}
 	}
