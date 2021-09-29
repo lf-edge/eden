@@ -75,11 +75,14 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 		}
 		netInstStateObj.EveState = im.GetNiinfo().State.String()
 		netInstStateObj.Activated = im.GetNiinfo().Activated
-		//if errors, show them if in adam`s config
+
 		if len(im.GetNiinfo().GetNetworkErr()) > 0 {
-			netInstStateObj.EveState = fmt.Sprintf("ERRORS: %s", im.GetNiinfo().GetNetworkErr())
-			if netInstStateObj.AdamState == "NOT_IN_CONFIG" {
-				netInstStateObj.deleted = true
+			netInstStateObj.EveState = fmt.Sprintf("%s ERRORS: %s", im.GetNiinfo().GetState().String(), im.GetNiinfo().GetNetworkErr())
+		} else {
+			if im.GetNiinfo().State == info.ZNetworkInstanceState_ZNETINST_STATE_ONLINE || netInstStateObj.Activated {
+				netInstStateObj.EveState = "ACTIVATED"
+			} else {
+				netInstStateObj.EveState = "NOT_ACTIVATED"
 			}
 		}
 		// XXX Guard against old EVE which doesn't send state
@@ -89,15 +92,10 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 			netInstStateObj.deleted = true
 		}
 
-		if netInstStateObj.EveState == "ZNETINST_STATE_UNSPECIFIED" {
+		if im.GetNiinfo().State == info.ZNetworkInstanceState_ZNETINST_STATE_UNSPECIFIED &&
+			netInstStateObj.AdamState == "NOT_IN_CONFIG" {
 			netInstStateObj.deleted = true
 		}
-		if netInstStateObj.EveState == "ZNETINST_STATE_ONLINE" {
-			netInstStateObj.EveState = "ACTIVATED"
-		} else {
-			netInstStateObj.EveState = "NOT_ACTIVATED"
-		}
-
 	}
 }
 
