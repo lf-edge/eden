@@ -751,6 +751,8 @@ func (ts *TestScript) removeGHAnnotation() {
 	filteredBuffer := bytes.Buffer{}
 	bytesReader := bytes.NewReader(ts.log.Bytes())
 	scanner := bufio.NewScanner(bytesReader)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
 	for scanner.Scan() {
 		text := scanner.Text()
 		if strings.Contains(text, "::error file") {

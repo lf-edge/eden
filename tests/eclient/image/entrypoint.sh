@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#save envs to debug them
+env >/run/envs
+
 # configurable with envs
 if [ -z "$AVAHI_HOST_NAME" ]; then AVAHI_HOST_NAME=ubuntu-http-server; fi
 if [ -z "$AVAHI_DOMAIN_NAME" ]; then AVAHI_DOMAIN_NAME=local; fi

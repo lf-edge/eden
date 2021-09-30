@@ -1,6 +1,7 @@
 package expect
 
 import (
+	"io/ioutil"
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -70,9 +71,15 @@ func WithVncPassword(password string) ExpectationOption {
 }
 
 //WithMetadata sets metadata for created apps
+//if existing file provided, use its content
 func WithMetadata(metadata string) ExpectationOption {
 	return func(expectation *AppExpectation) {
-		expectation.metadata = strings.Replace(metadata, `\n`, "\n", -1)
+		b, err := ioutil.ReadFile(metadata)
+		if err != nil {
+			expectation.metadata = strings.Replace(metadata, `\n`, "\n", -1)
+		} else {
+			expectation.metadata = string(b)
+		}
 	}
 }
 
