@@ -514,7 +514,7 @@ var podLogsCmd = &cobra.Command{
 func podInit() {
 	podCmd.AddCommand(podDeployCmd)
 	podDeployCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
-	podDeployCmd.Flags().StringVarP(&podMetadata, "metadata", "", "", "metadata for pod")
+	podDeployCmd.Flags().StringVarP(&podMetadata, "metadata", "", "", "Metadata for pod. If file path provided, will use content of it")
 	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
 	podDeployCmd.Flags().Uint32Var(&vncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
 	podDeployCmd.Flags().StringVar(&vncPassword, "vnc-password", "", "VNC password (empty - no password)")
