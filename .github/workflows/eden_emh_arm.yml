@@ -2,7 +2,8 @@
 name: EdenEMH_ARM
 on:  # yamllint disable-line rule:truthy
   push:
-    branches: [master]
+    branches-ignore:
+      - '**'
 # yamllint disable rule:line-length
 jobs:
   integration:
