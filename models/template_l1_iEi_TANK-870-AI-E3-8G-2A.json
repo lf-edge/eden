@@ -4,7 +4,7 @@
   "productStatus": "production",
   "attr": {
     "memory": "7G",
-    "storage": "698G",
+    "storage": "931G",
     "Cpus": "8",
     "watchdog": "false",
     "hsm": "1",
@@ -78,7 +78,7 @@
       "phyaddrs": {
         "Ioports": "2e8-2ef",
         "Irq": "10",
-        "Serial": "/dev/ttyS3"
+        "Serial": "/dev/ttyS0"
       },
       "logicallabel": "COM4",
       "usagePolicy": {}
