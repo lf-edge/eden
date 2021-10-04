@@ -1,0 +1,125 @@
+{
+  "arch": 2,
+  "productURL": "https://www.onlogic.com/mc510-50/",
+  "productStatus": "production",
+  "attr": {
+    "memory": "7G",
+    "storage": "119G",
+    "Cpus": "4",
+    "watchdog": true,
+    "hsm": 1,
+    "leds": 0
+  },
+  "logo": {
+    "logo_back":"/workspace/spec/logo_back_OnLogic-MC510-50.jpg",
+    "logo_front":"/workspace/spec/logo_front_OnLogic-MC510-50.jpg"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 7,
+      "phylabel": "VGA",
+      "assigngrp": "iommu_groups/2",
+      "phyaddrs": {
+        "PciLong": "0000:00:02.0"
+      },
+      "logicallabel": "VGA",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "iommu_groups/4",
+      "phyaddrs": {
+        "PciLong": "0000:00:14.0"
+      },
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Ioports": "3f8-3ff",
+        "Irq": "4",
+        "Serial": "/dev/ttyS0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Ioports": "2f8-2ff",
+        "Irq": "3",
+        "Serial": "/dev/ttyS1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM3",
+      "assigngrp": "COM3",
+      "phyaddrs": {
+        "Ioports": "3e8-3ef",
+        "Irq": "7",
+        "Serial": "/dev/ttyS2"
+      },
+      "logicallabel": "COM3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM4",
+      "assigngrp": "COM4",
+      "phyaddrs": {
+        "Ioports": "2e8-2ef",
+        "Irq": "7",
+        "Serial": "/dev/ttyS3"
+      },
+      "logicallabel": "COM4",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "assigngrp": "iommu_groups/8",
+      "phyaddrs": {
+        "Ifname": "eth0",
+        "PciLong": "0000:00:1f.6"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {
+        "freeUplink": true
+      },
+      "assigngrp": "iommu_groups/9",
+      "phyaddrs": {
+        "Ifname": "eth1",
+        "PciLong": "0000:02:00.0"
+      }
+    },
+    {
+      "ztype": 2,
+      "phylabel": "Audio",
+      "assigngrp": "iommu_groups/8",
+      "phyaddrs": {
+        "PciLong": "0000:00:1f.3"
+      },
+      "logicallabel": "Audio",
+      "usagePolicy": {}
+    }
+  ]
+}

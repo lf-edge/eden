@@ -71,6 +71,8 @@
 
 * [CL210G-11-RS](template_l1_OnLogic-CL210G-11-RS.json) - [Vendor site](https://www.onlogic.com/cl210g-11-rs/)<br><img src="logo_front_OnLogic-CL210G-11-RS.jpg" width="100" height="80"> <img src="logo_back_OnLogic-CL210G-11-RS.jpg" width="100" height="80">
 
+* [MC510-50 (CPU: G5400T, RAM: 8G, Disk: 128G M.2 SSD, TPM Enabled)](template_l1_OnLogic-MC510-50_P-G5400T_M-8G_D-128G_TPM.json) - [Vendor site](https://www.onlogic.com/mc510-50/)<br><img src="logo_front_OnLogic-MC510-50.jpg" width="100" height="80"> <img src="logo_back_OnLogic-MC510-50.jpg" width="100" height="80">
+
 ### [Open 19](https://www.open19.org)
 
 * [ASROCK 1U](template_l1_Packet-t3.small.x86.json) - [Vendor site](https://www.open19.org/marketplace/asrock-rack-1u-open19-t3-small-x86)<br><img src="logo_front_1U-Open19-t3.small.png" width="100" height="80"> <img src="logo_back_1U-Open19-t3.small.png" width="100" height="80">
