@@ -21,6 +21,7 @@ type volState struct {
 // This test wait for the volume's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
+	newitems = flag.Bool("check-new", false, "Check only new info messages")
 	tc       *projects.TestContext
 	states   map[string][]volState
 	eveState *eve.State
@@ -136,14 +137,22 @@ func TestVolStatus(t *testing.T) {
 			args[1:], state, secs)))
 
 		vols := args[1:]
+		if vols[len(vols)-1] == "&" {
+			vols = vols[:len(vols)-1]
+		}
 		states = make(map[string][]volState)
 		for _, el := range vols {
+			if el == "&" {
+				continue
+			}
 			states[el] = []volState{{state: "no info from controller", timestamp: time.Now()}}
 		}
 
-		// observe existing info object and feed them into eveState object
-		if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
-			t.Fatal(err)
+		if !*newitems {
+			// observe existing info object and feed them into eveState object
+			if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		// we are done if our eveState object is in required state

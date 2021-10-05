@@ -21,6 +21,7 @@ type nwState struct {
 // This test wait for the network's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
+	newitems = flag.Bool("check-new", false, "Check only new info messages")
 	tc       *projects.TestContext
 	states   map[string][]nwState
 	eveState *eve.State
@@ -131,24 +132,29 @@ func TestNetworkStatus(t *testing.T) {
 		t.Log(utils.AddTimestamp(fmt.Sprintf("networks: '%s' expected state: '%s' secs: %d\n",
 			args[1:], state, secs)))
 
-		vols := args[1:]
+		nws := args[1:]
+		if nws[len(nws)-1] == "&" {
+			nws = nws[:len(nws)-1]
+		}
 		states = make(map[string][]nwState)
-		for _, el := range vols {
+		for _, el := range nws {
 			states[el] = []nwState{{state: "no info from controller", timestamp: time.Now()}}
 		}
 
-		// observe existing info object and feed them into eveState object
-		if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
-			t.Fatal(err)
+		if !*newitems {
+			// observe existing info object and feed them into eveState object
+			if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		// we are done if our eveState object is in required state
-		if ready := checkState(eveState, state, vols); ready == nil {
+		if ready := checkState(eveState, state, nws); ready == nil {
 
-			tc.AddProcInfo(edgeNode, checkNet(state, vols))
+			tc.AddProcInfo(edgeNode, checkNet(state, nws))
 
 			callback := func() {
-				t.Errorf("ASSERTION FAILED (%s): expected networks %s in %s state", time.Now().Format(time.RFC3339Nano), vols, state)
+				t.Errorf("ASSERTION FAILED (%s): expected networks %s in %s state", time.Now().Format(time.RFC3339Nano), nws, state)
 				for k, v := range states {
 					t.Errorf("\tactual %s: %s", k, v[len(v)-1].state)
 					if checkNewLastState(k, state) {
