@@ -24,6 +24,7 @@ type appState struct {
 // This test wait for the app's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
+	newitems = flag.Bool("check-new", false, "Check only new info messages")
 	tc       *projects.TestContext
 	states   map[string][]appState
 	eveState *eve.State
@@ -144,6 +145,9 @@ func TestAppStatus(t *testing.T) {
 			args[1:], state, secs)
 
 		apps := args[1:]
+		if apps[len(apps)-1] == "&" {
+			apps = apps[:len(apps)-1]
+		}
 		states = make(map[string][]appState)
 		for _, el := range apps {
 			states[el] = []appState{{
@@ -151,9 +155,11 @@ func TestAppStatus(t *testing.T) {
 				timestamp: time.Now()}}
 		}
 
-		// observe existing info object and feed them into eveState object
-		if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
-			t.Fatal(err)
+		if !*newitems {
+			// observe existing info object and feed them into eveState object
+			if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		if ready := checkState(eveState, state, apps); ready == nil {
