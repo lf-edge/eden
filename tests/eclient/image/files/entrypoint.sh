@@ -14,7 +14,9 @@ sed -i "s/^domain-name=.*/domain-name=$AVAHI_DOMAIN_NAME/" /etc/avahi/avahi-daem
 sed -i 's/^publish-workstation=no/publish-workstation=yes/' /etc/avahi/avahi-daemon.conf
 sed -i 's/^use-ipv6=yes/use-ipv6=no/' /etc/avahi/avahi-daemon.conf
 
+# we must re-generate them now on every boot for no-hyper mode
 mkdir -p /run/sshd
+mkdir -p /run/nginx
 
 nginx
 
