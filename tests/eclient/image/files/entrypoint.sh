@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #save envs to debug them
 env >/run/envs
@@ -14,9 +14,10 @@ sed -i "s/^domain-name=.*/domain-name=$AVAHI_DOMAIN_NAME/" /etc/avahi/avahi-daem
 sed -i 's/^publish-workstation=no/publish-workstation=yes/' /etc/avahi/avahi-daemon.conf
 sed -i 's/^use-ipv6=yes/use-ipv6=no/' /etc/avahi/avahi-daemon.conf
 
-service dbus start
-service avahi-daemon start
-service nginx start
-
 mkdir -p /run/sshd
-/usr/sbin/sshd -D
+
+nginx
+
+/usr/sbin/sshd -h /root/.ssh/id_rsa
+
+avahi-daemon

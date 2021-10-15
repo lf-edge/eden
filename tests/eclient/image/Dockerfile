@@ -1,62 +1,45 @@
-FROM lfedge/eve-alpine:6.6.0 AS build
-ENV BUILD_PKGS go git openssh-keygen
-RUN eve-alpine-deploy.sh
+FROM golang:1.16-alpine AS build
 
-ENV CGO_ENABLED=0
-ENV GO111MODULE=on
-
-RUN mkdir -p /src
-WORKDIR /src
+WORKDIR /go/src/local_manager
 COPY pkg .
-
-ARG GOOS=linux
 
 RUN go build -ldflags "-s -w" -o /out/local_manager main.go
 
-FROM ubuntu:focal
+FROM alpine:3.14.2
 
-ENV DEBIAN_FRONTEND noninteractive
-
-RUN apt-get update && apt-get install --no-install-recommends -y \
-  busybox \
-  lshw \
-  curl \
-  iproute2 \
-  iputils-ping \
-  mariadb-client \
-  net-tools \
-  netcat \
-  openssh-server \
-  jq \
-  setserial \
-  avahi-daemon \
-  nginx-light \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN mkdir /var/run/sshd && \
-    echo 'root:adam&eve' | chpasswd && \
-    sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config && \
-    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
-
-ENV NOTVISIBLE="in users profile"
-RUN echo "export VISIBLE=now" >> /etc/profile
+# hadolint ignore=DL3018
+RUN apk add --no-cache lshw \
+    curl \
+    nginx \
+    iproute2 \
+    mysql-client \
+    netcat-openbsd \
+    net-tools \
+    openssh \
+    jq \
+    setserial \
+    avahi \
+    lsblk
 
 COPY cert/id_rsa* /root/.ssh/
 COPY cert/id_rsa.pub /root/.ssh/authorized_keys
 
+COPY files /
+COPY --from=build /out/local_manager /root/
+
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN mkdir -p /mnt && \
     touch /mnt/profile && \
     chown root:root /root/.ssh/ && \
-    chmod 600 /root/.ssh/id_rsa*
-COPY portmap_test.sh /root/portmap_test.sh
-COPY get_eve_ip.sh /root/get_eve_ip.sh
-COPY entrypoint.sh /entrypoint.sh
-COPY avahi.http.service /etc/avahi/services/http.service
-COPY reboot /sbin/reboot
-COPY halt /sbin/halt
-COPY --from=build /out/local_manager /root/
+    chmod go-w /root && \
+    chmod 600 /root/.ssh/id_rsa* && \
+    mkdir /var/run/sshd && \
+    mkdir -p /var/www/html && \
+    echo 'root:adam&eve' | chpasswd && \
+    sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config && \
+    sed -i 's/#*PubkeyAuthentication yes/PubkeyAuthentication yes/g' /etc/ssh/sshd_config && \
+    sed -i 's/#*PasswordAuthentication yes/PasswordAuthentication yes/g' /etc/ssh/sshd_config && \
+    sed -i 's/#enable-dbus=yes/enable-dbus=no/g' /etc/avahi/avahi-daemon.conf
 
 EXPOSE 22
 EXPOSE 80
