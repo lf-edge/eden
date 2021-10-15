@@ -1,0 +1,2 @@
+Special container to be used for Eden tests.
+Based on Alpine linux (previously based on Ubuntu).
