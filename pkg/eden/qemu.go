@@ -107,6 +107,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
 	}
 	qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", eveImageFile)
+	qemuOptions += "-watchdog-action reset "
 	if qemuConfigFile != "" {
 		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
