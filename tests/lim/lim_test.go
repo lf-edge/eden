@@ -8,8 +8,10 @@ import (
 	"testing"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -20,6 +22,7 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/flowlog"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve/api/go/logs"
 	"github.com/lf-edge/eve/api/go/metrics"
 )
 
@@ -27,6 +30,7 @@ var (
 	number   = flag.Int("number", 1, "The number of items (0=unlimited) you need to get")
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
 	out      = flag.String("out", "", "Parameters for out separated by ':'")
+	app      = flag.String("app", "", "Name of app for TestAppLogs")
 
 	// This context holds all the configuration items in the same
 	// way that Eden context works: the commands line options override
@@ -177,6 +181,76 @@ func TestLog(t *testing.T) {
 			}
 
 			cnt := count("Received %d logs from %s", name.String())
+			if cnt != "" {
+				return fmt.Errorf(cnt)
+			}
+			return nil
+		}(t, edgeNode, log)
+	})
+
+	tc.WaitForProc(int(timewait.Seconds()))
+}
+
+func TestAppLog(t *testing.T) {
+	err := mkquery()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if app == nil {
+		t.Fatal("Please provide app flag")
+	}
+
+	appName := *app
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	appID := ""
+
+	for _, appUUID := range edgeNode.GetApplicationInstances() {
+		for _, appConfig := range tc.GetController().ListApplicationInstanceConfig() {
+			if appConfig.Displayname == appName && appUUID == appConfig.Uuidandversion.GetUuid() {
+				appID = appUUID
+				break
+			}
+		}
+		if appID != "" {
+			break
+		}
+	}
+
+	if appID == "" {
+		t.Fatalf("No app with name %s found", appName)
+	}
+
+	appUUID, err := uuid.FromString(appID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(utils.AddTimestamp(fmt.Sprintf("Wait for app log of %s app %s number=%d timewait=%s\n",
+		edgeNode.GetID(), appName, *number, timewait)))
+
+	tc.AddProcAppLog(edgeNode, appUUID, func(log *logs.LogEntry) error {
+		return func(t *testing.T, edgeNode *device.Ctx,
+			log *logs.LogEntry) error {
+			name := edgeNode.GetID()
+			if query != nil {
+				if eapps.LogItemFind(log, query) {
+					found = true
+				} else {
+					return nil
+				}
+			}
+			t.Log(utils.AddTimestamp(fmt.Sprintf("APP LOG %d(%d) from %s:\n", items+1, *number, name)))
+			if len(*out) == 0 {
+				eapps.LogPrn(log, eapps.LogLines)
+			} else {
+				eapps.LogItemPrint(log, eapps.LogLines,
+					strings.Split(*out, ":")).Print()
+			}
+
+			cnt := count("Received %d app logs from %s", name.String())
 			if cnt != "" {
 				return fmt.Errorf(cnt)
 			}

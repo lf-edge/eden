@@ -5,6 +5,10 @@ import (
 	"sync"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -14,8 +18,8 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/flowlog"
 	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve/api/go/logs"
 	"github.com/lf-edge/eve/api/go/metrics"
-	log "github.com/sirupsen/logrus"
 )
 
 //ProcInfoFunc provides callback to process info
@@ -30,6 +34,9 @@ type ProcLogFlowFunc func(log *flowlog.FlowMessage) error
 //ProcMetricFunc provides callback to process metric
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
 
+//ProcAppLogFunc provides callback to process app log
+type ProcAppLogFunc func(log *logs.LogEntry) error
+
 //Callback provides callback to process
 type Callback func()
 
@@ -40,6 +47,7 @@ type absFunc struct {
 	disabled bool
 	states   bool
 	proc     interface{}
+	appUUID  uuid.UUID
 }
 
 type processingBus struct {
@@ -101,6 +109,33 @@ func (lb *processingBus) process(edgeNode *device.Ctx, inp interface{}) bool {
 						if match {
 							lb.processReturn(edgeNode, procFunc, pf(el))
 						}
+					case ProcLogFlowFunc:
+						el, match := inp.(*flowlog.FlowMessage)
+						if match {
+							lb.processReturn(edgeNode, procFunc, pf(el))
+						}
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (lb *processingBus) processApp(edgeNode *device.Ctx, appUUID uuid.UUID, inp interface{}) bool {
+	for node, functions := range lb.proc {
+		if node == edgeNode {
+			for _, procFunc := range functions {
+				if procFunc.appUUID != appUUID {
+					continue
+				}
+				if !procFunc.disabled {
+					switch pf := procFunc.proc.(type) {
+					case ProcAppLogFunc:
+						el, match := inp.(*logs.LogEntry)
+						if match {
+							lb.processReturn(edgeNode, procFunc, pf(el))
+						}
 					}
 				}
 			}
@@ -151,6 +186,12 @@ func (lb *processingBus) getMainProcessorMetric(dev *device.Ctx) emetric.Handler
 	}
 }
 
+func (lb *processingBus) getMainProcessorAppLog(dev *device.Ctx, appUUID uuid.UUID) eapps.HandlerFunc {
+	return func(im *logs.LogEntry) bool {
+		return lb.processApp(dev, appUUID, im)
+	}
+}
+
 func (lb *processingBus) initCheckers(dev *device.Ctx) {
 	go func() {
 		err := lb.tc.GetController().LogChecker(dev.GetID(), map[string]string{}, lb.getMainProcessorLog(dev), elog.LogNew, 0)
@@ -185,10 +226,33 @@ func (lb *processingBus) initCheckers(dev *device.Ctx) {
 	}()
 }
 
+func (lb *processingBus) initAppChecker(dev *device.Ctx, appUUID uuid.UUID) {
+	for _, el := range lb.proc[dev] {
+		if el.appUUID == appUUID {
+			return
+		}
+	}
+	go func() {
+		err := lb.tc.GetController().LogAppsChecker(dev.GetID(), appUUID, map[string]string{}, lb.getMainProcessorAppLog(dev, appUUID), eapps.LogNew, 0)
+		if err != nil {
+			log.Errorf("AppLogChecker for dev %s error %s", dev.GetID(), err)
+		}
+	}()
+}
+
 func (lb *processingBus) addProc(dev *device.Ctx, procFunc interface{}) {
 	if _, exists := lb.proc[dev]; !exists {
 		lb.initCheckers(dev)
 	}
 	lb.proc[dev] = append(lb.proc[dev], &absFunc{proc: procFunc, disabled: false})
+	lb.wg.Add(1)
+}
+
+func (lb *processingBus) addAppProc(dev *device.Ctx, appUUID uuid.UUID, procFunc interface{}) {
+	if _, exists := lb.proc[dev]; !exists {
+		lb.initCheckers(dev)
+	}
+	lb.initAppChecker(dev, appUUID)
+	lb.proc[dev] = append(lb.proc[dev], &absFunc{proc: procFunc, disabled: false, appUUID: appUUID})
 	lb.wg.Add(1)
 }

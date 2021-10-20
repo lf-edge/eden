@@ -97,8 +97,10 @@ You can get a list of tests included in the test-binary:
 $ ./eden test tests/lim/ -l '.*'
 Log/Info/Metric Test
 TestLog
+TestAppLog
 TestInfo
 TestMetrics
+TestFlowLog
 ```
 
 and descriptions of test-binary options that can be used for test scripts

@@ -7,12 +7,14 @@ import (
 	"testing"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -279,6 +281,11 @@ func (tc *TestContext) WaitForProc(secs int) {
 //AddProcLog add processFunction, that will get all logs for edgeNode
 func (tc *TestContext) AddProcLog(edgeNode *device.Ctx, processFunction ProcLogFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)
+}
+
+//AddProcAppLog add processFunction, that will get all app logs for edgeNode
+func (tc *TestContext) AddProcAppLog(edgeNode *device.Ctx, appUUID uuid.UUID, processFunction ProcAppLogFunc) {
+	tc.procBus.addAppProc(edgeNode, appUUID, processFunction)
 }
 
 //AddProcFlowLog add processFunction, that will get all FlowLogs for edgeNode
