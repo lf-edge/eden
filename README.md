@@ -62,10 +62,12 @@ On the manager, you need:
 
 * the `eden` binary
 * [docker](https://docker.com), to run eden's components, including the ability to execute commands. For Linux:
-  ```console
+
+```console
 sudo usermod -aG docker $USER
 newgrp docker
-  ```
+```
+
 * test binaries - eden ships with pre-compiled ones
 * a text editor to configure the system and create test scenarios
 and scripts using `eden`
@@ -109,17 +111,18 @@ There are additional requirements for certain use cases:
 If you intend to run EVE in a virtual local device, you also will need:
 
 * qemu version 4.x or higher
-* virtualization accelerators:
-  * Linux: [KVM](https://www.linux-kvm.org/page/Main_Page), including the ability to execute commands. For Linux:
+* Linux: [KVM](https://www.linux-kvm.org/page/Main_Page), including the ability to execute commands. For Linux:
+
 ```console
   sudo usermod -aG kvm $USER
   newgrp kvm
 ```
-  * macOS: [machyve](https://github.com/machyve/xhyve) or [Parallels](./docs/parallels.md)
+
+* macOS: [machyve](https://github.com/machyve/xhyve) or [Parallels](./docs/parallels.md)
 * `telnet`
 * squashfs tools, available, depending on your OS, as `squashfs` or `squashfs-tools`
 
-EVE uses virtualization; to run in VM-based environments, see [the cloud document](./docs/cloud.md).
+EVE uses virtualization; to run in VM-based environments, see [the cloud document](./docs/virtual-eve.md).
 
 #### Raspberry Pi
 
@@ -131,8 +134,7 @@ If you want to use Eden with Raspberry Pi on Linux, you also need to install
 All of the quickstart guides get you running quickly, and assume you already have
 eden installed.
 They start the official [nginx](https://hub.docker.com/_/nginx) image as a container,
-serving the content of [./data/helloeve/](./data/helloever)
-on port 8028. You will be able to access it via `http://<EVE IP>:8028`.
+serving the content of [./data/helloeve/](./data/helloeve ) on port 8028. You will be able to access it via `http://<EVE IP>:8028`.
 Feel free to change the content in [./data/helloeve/](./data/helloeve) and redeploy the pod.
 
 At any time, to get the status of what is running and where, including `<EVE IP>`, run:
