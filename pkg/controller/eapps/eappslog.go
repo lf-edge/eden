@@ -108,6 +108,23 @@ func LogPrn(le *logs.LogEntry, format LogFormat) {
 	}
 }
 
+//LogItemPrint find LogItem elements by paths in 'query'
+func LogItemPrint(le *logs.LogEntry, _ LogFormat, query []string) *types.PrintResult {
+	result := make(types.PrintResult)
+	for _, v := range query {
+		var n []string
+		for _, pathElement := range strings.Split(v, ".") {
+			n = append(n, strings.Title(pathElement))
+		}
+		var clb = func(inp reflect.Value) {
+			f := fmt.Sprint(inp)
+			result[v] = append(result[v], f)
+		}
+		utils.LookupWithCallback(reflect.Indirect(reflect.ValueOf(le)).Interface(), strings.Join(n, "."), clb)
+	}
+	return &result
+}
+
 //HandlerFunc must process LogItem and return true to exit
 //or false to continue
 type HandlerFunc func(*logs.LogEntry) bool

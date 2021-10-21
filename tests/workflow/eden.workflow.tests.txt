@@ -101,6 +101,8 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/profi
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/metadata
 /bin/echo Eden app userdata test (19.2/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/userdata
+/bin/echo Eden app log test (19.3/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_logs
 
 /bin/echo Eden ACL to particular host (20.1/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/acl
