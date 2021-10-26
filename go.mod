@@ -11,7 +11,7 @@ require (
 	github.com/bshuster-repo/logrus-logstash-hook v1.0.0 // indirect
 	github.com/bugsnag/bugsnag-go v1.5.3 // indirect
 	github.com/bugsnag/panicwrap v1.2.0 // indirect
-	github.com/containerd/containerd v1.5.2
+	github.com/containerd/containerd v1.5.7
 	github.com/deislabs/oras v0.8.2-0.20201110191325-f1caa175232f
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.0+incompatible
@@ -54,7 +54,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210427231257-85d9c07bbe3a
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
-	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887 // indirect
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 	google.golang.org/api v0.36.0
 	google.golang.org/genproto v0.0.0-20201211151036-40ec1c210f7a // indirect
