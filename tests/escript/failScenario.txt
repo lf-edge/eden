@@ -17,3 +17,6 @@ eden log --format=json content:fatal_stacks
 /bin/echo EDEN's reset
 eden.escript.test -test.run TestEdenScripts/eden_reset -testdata {{EdenConfig "eden.root"}}/../tests/workflow/testdata/
 {{end}}
+
+# stay for 10 seconds to keep additional logs
+exec sleep 10
