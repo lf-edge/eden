@@ -10,6 +10,10 @@ eden pod ps
 eden network ls
 /bin/echo eden volume ls
 eden volume ls
+
+# stay for 10 seconds to keep additional logs
+/bin/sleep 10
+
 /bin/echo check fatal_stacks in logs
 eden log --format=json content:fatal_stacks
 
@@ -17,6 +21,3 @@ eden log --format=json content:fatal_stacks
 /bin/echo EDEN's reset
 eden.escript.test -test.run TestEdenScripts/eden_reset -testdata {{EdenConfig "eden.root"}}/../tests/workflow/testdata/
 {{end}}
-
-# stay for 10 seconds to keep additional logs
-exec sleep 10

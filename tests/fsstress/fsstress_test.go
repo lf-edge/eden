@@ -34,7 +34,7 @@ var (
 	name       = flag.String("name", "", "Name of app, random if empty")
 	sshPort    = flag.Int("sshPort", 8028, "Port to publish ssh")
 	cpus       = flag.Uint("cpus", 2, "Cpu number for app")
-	memory     = flag.String("memory", "1G", "Memory for app")
+	memory     = flag.String("memory", "2G", "Memory for app")
 	scriptpath = flag.String("script_path", "", "Full path to the script that will be sent to the guest machine")
 	direct     = flag.Bool("direct", true, "Load image from url, not from eserver")
 	metadata   = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
