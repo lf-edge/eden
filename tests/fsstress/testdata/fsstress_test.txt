@@ -3,7 +3,12 @@
 {{$env := EdenGetEnv "FSSTRESS_TIME"}}
 {{if $env}}{{$timewait = $env}}{{end}}
 
-{{$test_opts := "-test.v -name fsstress-app"}}
+{{$password := "passw0rd"}}
+
+{{$envpassword := EdenGetEnv "FSSTRESS_PASSWORD"}}
+{{if $envpassword}}{{$password = $envpassword}}{{end}}
+
+{{$test_opts := ( print "-test.v -name fsstress-app -password " $password)}}
 
 # Starting of reboot detector with a 1 reboot limit
 ! test eden.reboot.test -test.v -timewait {{$timewait}} -reboot=0 -count=1 &
