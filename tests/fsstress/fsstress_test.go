@@ -35,9 +35,10 @@ var (
 	sshPort    = flag.Int("sshPort", 8028, "Port to publish ssh")
 	cpus       = flag.Uint("cpus", 2, "Cpu number for app")
 	memory     = flag.String("memory", "2G", "Memory for app")
+	diskSize   = flag.String("disk_size", "3G", "Disk size")
 	scriptpath = flag.String("script_path", "", "Full path to the script that will be sent to the guest machine")
 	direct     = flag.Bool("direct", true, "Load image from url, not from eserver")
-	metadata   = flag.String("metadata", "#cloud-config\npassword: passw0rd\nchpasswd: { expire: False }\nssh_pwauth: True\n", "Metadata to pass into VM")
+	password   = flag.String("password", "passw0rd", "Password to use for ssh")
 	appLink    = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	tc         *projects.TestContext
 	externalIP string
@@ -139,7 +140,7 @@ func CheckTimeWorkOfTest(t *testing.T, timeStart time.Time) projects.ProcTimerFu
 		if externalIP == "" {
 			return nil
 		}
-		sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "pgrep fsstress", true)
+		sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "pgrep fsstress", true)
 		result := sendSSHCommand()
 		if result == nil {
 			t.Fatal(utils.AddTimestamp("cannot find fsstress process or connection problem"))
@@ -173,9 +174,18 @@ func TestFSStressVMStart(t *testing.T) {
 		log.Fatal(err)
 	}
 
+	diskSizeParsed, err := humanize.ParseBytes(*diskSize)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts = append(opts, expect.WithDiskSize(int64(diskSizeParsed)))
+
 	opts = append(opts, expect.WithResources(uint32(*cpus), uint32(appMemoryParsed/1000)))
 
-	opts = append(opts, expect.WithMetadata(*metadata))
+	metadata := fmt.Sprintf("#cloud-config\npassword: %s\nchpasswd: { expire: False }\nssh_pwauth: True\n", *password)
+
+	opts = append(opts, expect.WithMetadata(metadata))
 
 	opts = append(opts, expect.WithHTTPDirectLoad(*direct))
 
@@ -255,7 +265,7 @@ func TestAccess(t *testing.T) {
 
 	t.Log(utils.AddTimestamp("Add trying to access SSH of app"))
 
-	tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "exit", true))
+	tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "exit", true))
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
@@ -296,19 +306,19 @@ func TestRunStress(t *testing.T) {
 	}
 
 	t.Log(utils.AddTimestamp("Send script on guest VM"))
-	result = projects.SendFileSCP(&externalIP, sshPort, "ubuntu", "passw0rd", pathScript, "/home/ubuntu/run-script.sh")()
+	result = projects.SendFileSCP(&externalIP, sshPort, "ubuntu", *password, pathScript, "/home/ubuntu/run-script.sh")()
 	if result == nil {
 		t.Fatal(utils.AddTimestamp("Error in scp"))
 	}
 
 	t.Log(utils.AddTimestamp("Add options for running"))
-	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "chmod +x ~/run-script.sh", true)()
+	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "chmod +x ~/run-script.sh", true)()
 	if result == nil {
 		t.Fatal(utils.AddTimestamp("Error in chmod"))
 	}
 
 	t.Log(utils.AddTimestamp("Run script on guest VM"))
-	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "~/run-script.sh", true)()
+	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "~/run-script.sh", true)()
 	if result == nil {
 		t.Fatal(utils.AddTimestamp("Error in running script"))
 	}

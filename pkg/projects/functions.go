@@ -55,8 +55,13 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 				fmt.Printf("No ssh connections: %v", err)
 				return nil
 			}
-			session, _ := conn.NewSession()
+			session, err := conn.NewSession()
+			if err != nil {
+				fmt.Printf("Error creating session: %v", err)
+				return nil
+			}
 			if foreground {
+				defer conn.Close()
 				defer session.Close()
 				if err := session.Run(command); err != nil {
 					fmt.Println(err)
@@ -66,6 +71,7 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 				go func() {
 					_ = session.Run(command) //we cannot get answer for this command
 					session.Close()
+					conn.Close()
 				}()
 			}
 			for _, clb := range callbacks {
