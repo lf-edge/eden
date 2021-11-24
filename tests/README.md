@@ -1,7 +1,7 @@
 # Eden Integration Tests
 
 This directory contains a series of integration tests that meet the
-[eden task API](../docs/test-writing.md), and thus can be launched using
+[eden task API](../docs/task-writing.md), and thus can be launched using
 `eden test`. Each subdirectory contains an individual test suite with one or
 more tests.
 
