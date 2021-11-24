@@ -38,7 +38,7 @@ You need at least two devices, either or both of which can be virtual:
 
 A typical eden workflow is:
 
-1. install the [prerequisites][Prerequisites]
+1. install the [prerequisites](#prerequisites)
 1. create a named context to store all of your configuration - `eden config add <name>`
 1. (optional) set options for the context - `eden config set <name> [options...]`
 1. run setup - `eden setup`, which extracts an eve-os qcow2 disk image from the docker image named in the context
