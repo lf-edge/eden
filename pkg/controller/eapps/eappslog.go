@@ -3,7 +3,6 @@
 package eapps
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -92,15 +91,18 @@ func HandleFactory(format LogFormat, once bool) HandlerFunc {
 func LogPrn(le *logs.LogEntry, format LogFormat) {
 	switch format {
 	case LogJSON:
-		enc := json.NewEncoder(os.Stdout)
-		_ = enc.Encode(le)
+		b, err := protojson.Marshal(le)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(b)
 	case LogLines:
 		fmt.Println("source:", le.Source)
 		fmt.Println("severity:", le.Severity)
 		fmt.Println("content:", strings.TrimSpace(le.Content))
 		fmt.Println("filename:", le.Filename)
 		fmt.Println("function:", le.Function)
-		fmt.Println("timestamp:", le.Timestamp)
+		fmt.Println("timestamp:", le.Timestamp.AsTime())
 		fmt.Println("iid:", le.Iid)
 		fmt.Println()
 	default:
