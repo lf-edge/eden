@@ -49,7 +49,7 @@ func InfoPrn(im *info.ZInfoMsg) {
 	if im.GetNiinfo() != nil {
 		fmt.Println("niinfo:", im.GetNiinfo())
 	}
-	fmt.Println("atTimeStamp:", im.GetAtTimeStamp())
+	fmt.Println("atTimeStamp:", im.GetAtTimeStamp().AsTime())
 	fmt.Println()
 }
 
@@ -60,7 +60,7 @@ func ZInfoPrn(im *info.ZInfoMsg, ds []*ZInfoMsgInterface) {
 	for i, d := range ds {
 		fmt.Printf("[%d]: %s\n", i, *d)
 	}
-	fmt.Println("atTimeStamp:", im.GetAtTimeStamp())
+	fmt.Println("atTimeStamp:", im.GetAtTimeStamp().AsTime())
 	fmt.Println()
 }
 
