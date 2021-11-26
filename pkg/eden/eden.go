@@ -33,6 +33,50 @@ type LinkState struct {
 	IsUP          bool
 }
 
+//StartSwtpm function run swtpm in docker
+func StartSwtpm(swtpmTag string) (err error) {
+	volumeMap := map[string]string{"/swtpm":"/tmp"}
+	if err != nil {
+		return err
+	}
+  swtpmCommand := strings.Fields("socket --tpmstate dir=/swtpm --ctrl type=unixio,path=/swtpm/swtpm-sock --log level=20 --tpm2")
+	state, err := utils.StateContainer(defaults.DefaultSwtpmContainerName)
+	if err != nil {
+		return fmt.Errorf("StartSwtpm: error in get state of swtpm container: %s", err)
+	}
+	if state == "" {
+		if err := utils.CreateAndRunContainer(defaults.DefaultSwtpmContainerName, defaults.DefaultSwtpmContainerRef+":latest",nil , volumeMap, swtpmCommand, nil); err != nil {
+			return fmt.Errorf("StartSwtpm: error in create swtpm container: %s", err)
+		}
+	} else if !strings.Contains(state, "running") {
+		if err := utils.StartContainer(defaults.DefaultSwtpmContainerName); err != nil {
+			return fmt.Errorf("StartSwtpm: error in restart swtpm container: %s", err)
+		}
+	}
+	return nil
+}
+
+//StopSwtpm function stop swtpm container
+func StopSwtpm() (err error) {
+	if err := utils.StopContainer(defaults.DefaultSwtpmContainerName, true); err != nil {
+		return fmt.Errorf("StopSwtpm: error in stop container: %s", err)
+	}
+	return nil
+}
+
+//StatusSwtpm function return status of swtpm container
+func StatusSwtpm() (status string, err error) {
+	state, err := utils.StateContainer(defaults.DefaultSwtpmContainerName)
+	if err != nil {
+		return "", fmt.Errorf("StatusSwtpm: error in get state of swtpm container: %s", err)
+	}
+	if state == "" {
+		return "container doesn't exist", nil
+	}
+	return state, nil
+}
+
+
 //StartRedis function run redis in docker with mounted redisPath:/data
 //if redisForce is set, it recreates container
 func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
@@ -797,6 +841,11 @@ func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile
 		log.Infof("cannot stop redis: %s", err)
 	} else {
 		log.Infof("redis stopped")
+	}
+	if err := StopSwtpm(); err != nil {
+		log.Infof("cannot stop swtpm: %s", err)
+	} else {
+		log.Infof("swtpm stopped")
 	}
 	if err := StopRegistry(registryRm); err != nil {
 		log.Infof("cannot stop registry: %s", err)
