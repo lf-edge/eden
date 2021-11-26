@@ -16,6 +16,13 @@ ifeq ($(ESERVER_VERSION),)
 	ESERVER_VERSION = $(shell git describe --always)
 endif
 
+# SWTPM_TAG is the tag for swtpm image to build
+SWTPM_TAG ?= "lfedge/swtpm"
+# SWTPM_DIR is the directory with swtpm Dockerfile to build
+SWTPM_DIR=$(CURDIR)/swtpm
+# SWTPM_VERSION is the version of swtpm image to build - TODO: Move to docker environment?
+SWTPM_VERSION ?= "v0.7"
+
 # PROCESSING_TAG is the tag for processing image to build
 PROCESSING_TAG ?= "lfedge/eden-processing"
 # PROCESSING_DIR is the directory with processing Dockerfile to build
@@ -129,6 +136,10 @@ push-multi-arch-eserver:
 	@echo "Build and $(DOCKER_TARGET) eserver image $(ESERVER_TAG):$(ESERVER_VERSION)"
 	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(ESERVER_TAG):$(ESERVER_VERSION) $(ESERVER_DIR)
 
+push-multi-arch-swtpm:
+	@echo "Build and $(DOCKER_TARGET) swtpm image"
+	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(SWTPM_TAG):$(SWTPM_VERSION) $(SWTPM_DIR)
+
 push-multi-arch-eden:
 	@echo "Build and $(DOCKER_TARGET) eden image $(EDEN_TAG):$(EDEN_VERSION)"
 	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(EDEN_TAG):$(EDEN_VERSION) .
@@ -137,7 +148,7 @@ push-multi-arch-processing:
 	@echo "Build and $(DOCKER_TARGET) processing image $(PROCESSING_TAG):$(PROCESSING_VERSION)"
 	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(PROCESSING_TAG):$(PROCESSING_VERSION) $(PROCESSING_DIR)
 
-build-docker: push-multi-arch-processing push-multi-arch-eserver push-multi-arch-eden
+build-docker: push-multi-arch-processing push-multi-arch-eserver push-multi-arch-eden push-multi-arch-swtpm
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) DOCKER_TARGET=$(DOCKER_TARGET) DOCKER_PLATFORM=$(DOCKER_PLATFORM) build-docker
 
 tests-export: $(DIRECTORY_EXPORT) build-tests
