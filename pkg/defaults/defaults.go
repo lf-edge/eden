@@ -46,7 +46,7 @@ const (
 	DefaultRedisHost       = "localhost"
 	DefaultRedisPort       = 6379
 	DefaultAdamPort        = 3333
-	DefaultRegistryPort    = 5000
+	DefaultRegistryPort    = 5050
 
 	//tags, versions, repos
 	DefaultEVETag               = "0.0.0-master-6b6fa8fe" //DefaultEVETag tag for EVE image

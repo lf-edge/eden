@@ -194,7 +194,7 @@ You can modify behavior with `--volume-type` flag:
 
 ### Docker Image from Local Registry
 
-eden starts a local registry image, running on the localhost at port `5000`
+eden starts a local registry image, running on the localhost at port `5050`
 (configurable). You can start a docker image from that registry by
 passing it the `--registry=local` option. The default for `--registry`
 is the hostname given by the registry. For example,
