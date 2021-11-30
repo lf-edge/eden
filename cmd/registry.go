@@ -49,7 +49,7 @@ var startRegistryCmd = &cobra.Command{
 		if err := eden.StartRegistry(registryPort, registryTag, registryDist); err != nil {
 			log.Errorf("cannot start registry: %s", err)
 		} else {
-			log.Infof("registry is running and accessible on port %d", adamPort)
+			log.Infof("registry is running and accessible on port %d", registryPort)
 		}
 	},
 }
