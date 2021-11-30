@@ -95,7 +95,7 @@ func LogPrn(le *logs.LogEntry, format LogFormat) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(b)
+		fmt.Println(string(b))
 	case LogLines:
 		fmt.Println("source:", le.Source)
 		fmt.Println("severity:", le.Severity)
