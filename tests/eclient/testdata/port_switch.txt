@@ -15,7 +15,7 @@ cp stdout pod_ps
 exec bash server_ip.sh nginx
 
 exec sleep 10
-exec -t 5m bash run_clent.sh
+exec -t 5m bash run_client.sh
 stdout 'Welcome to nginx!'
 
 eden pod modify t1 -p 8028:80
@@ -25,7 +25,7 @@ cp stdout pod_ps
 exec bash server_ip.sh nginx
 
 exec sleep 10
-exec -t 5m bash run_clent.sh
+exec -t 5m bash run_client.sh
 stdout 'Welcome to nginx!'
 
 eden pod modify t1 -p 8027:80
