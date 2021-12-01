@@ -546,7 +546,7 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: image,
 		Cmd:   strings.Fields(command),
-		Tty:   false,
+		Tty:   true,
 	}, &container.HostConfig{
 		Mounts: mounts,
 	},
