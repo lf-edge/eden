@@ -575,8 +575,10 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 	}
 	defer out.Close()
 	b, err := ioutil.ReadAll(out)
-	if err == nil {
-		return string(b), nil
+
+	if err := cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{RemoveVolumes: true}); err != nil {
+		log.Errorf("ContainerRemove error: %s", err)
 	}
-	return "", err
+
+	return string(b), err
 }
