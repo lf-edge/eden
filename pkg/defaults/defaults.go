@@ -50,7 +50,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "7.3.0" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.32"
+	DefaultAdamTag              = "0.0.34"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
@@ -140,6 +140,8 @@ const (
 
 	DefaultEVEImageSize = 8192
 
+	DefaultTPMEnabled = false
+
 	DefaultAppMem = 1024000
 	DefaultAppCPU = 1
 
@@ -226,6 +228,7 @@ var (
 		"eve.qemu-monitor-port": "qemu-monitor-port",
 		"eve.cpu":               "cpus",
 		"eve.ram":               "memory",
+		"eve.tpm":               "tpm",
 
 		"eden.images.dist":   "image-dist",
 		"eden.images.docker": "docker-yml",

@@ -152,6 +152,9 @@ eve:
     #disk (MB)
     disk: {{parse "eve.disk"}}
 
+    #tpm
+    tpm: {{parse "eve.tpm"}}
+
 eden:
     #root directory of eden
     root: '{{parse "eden.root"}}'

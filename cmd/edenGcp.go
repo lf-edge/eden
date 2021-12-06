@@ -19,6 +19,7 @@ var (
 	gcpBucketName  string
 	gcpZone        string
 	gcpMachineType string
+	gcpvTPM        bool
 
 	gcpFirewallRuleName     string
 	gcpFirewallRuleSources  []string
@@ -97,6 +98,7 @@ var gcpImageUpload = &cobra.Command{
 
 		if viperLoaded {
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+			gcpvTPM = viper.GetBool("eve.tpm")
 		}
 
 		return nil
@@ -110,7 +112,7 @@ var gcpImageUpload = &cobra.Command{
 		if err := gcpClient.UploadFile(eveImageFile, fileName, gcpBucketName, false); err != nil {
 			log.Fatalf("Error copying to Google Storage: %v", err)
 		}
-		err = gcpClient.CreateImage(gcpImageName, "https://storage.googleapis.com/"+gcpBucketName+"/"+fileName, "", true, true)
+		err = gcpClient.CreateImage(gcpImageName, "https://storage.googleapis.com/"+gcpBucketName+"/"+fileName, "", gcpvTPM, true)
 		if err != nil {
 			log.Fatalf("Error creating Google Compute Image: %v", err)
 		}
@@ -153,12 +155,25 @@ var gcpImageDelete = &cobra.Command{
 var gcpRun = &cobra.Command{
 	Use:   "run",
 	Short: "run vm in gcp",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		viperLoaded, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+
+		if viperLoaded {
+			gcpvTPM = viper.GetBool("eve.tpm")
+		}
+
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
 		if err != nil {
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
-		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, nil, nil, true, true); err != nil {
+		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, nil, nil, gcpvTPM, true); err != nil {
 			log.Fatalf("CreateInstance: %s", err)
 		}
 	},
@@ -258,6 +273,7 @@ func gcpInit() {
 	gcpImageUpload.Flags().StringVar(&gcpImageName, "image-name", defaults.DefaultGcpImageName, "image name")
 	gcpImageUpload.Flags().StringVar(&eveImageFile, "image-file", "", "image file to upload")
 	gcpImageUpload.Flags().StringVar(&gcpBucketName, "bucket-name", defaults.DefaultGcpBucketName, "bucket name to upload into")
+	gcpImageUpload.Flags().BoolVar(&gcpvTPM, "tpm", defaults.DefaultTPMEnabled, "enable UEFI to support vTPM for image")
 	gcpImageCmd.AddCommand(gcpImageDelete)
 	gcpImageDelete.Flags().StringVar(&gcpImageName, "image-name", defaults.DefaultGcpImageName, "image name")
 	gcpImageDelete.Flags().StringVar(&gcpBucketName, "bucket-name", defaults.DefaultGcpBucketName, "bucket name to upload into")
@@ -266,6 +282,7 @@ func gcpInit() {
 	gcpRun.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpRun.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
 	gcpRun.Flags().StringVar(&gcpMachineType, "machine-type", defaults.DefaultGcpMachineType, "gcp machine type")
+	gcpRun.Flags().BoolVar(&gcpvTPM, "tpm", defaults.DefaultTPMEnabled, "enable vTPM for VM")
 	gcpVMCmd.AddCommand(gcpDelete)
 	gcpDelete.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpDelete.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")

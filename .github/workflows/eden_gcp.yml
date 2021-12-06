@@ -70,6 +70,7 @@ jobs:
           ./eden config set default --key adam.eve-ip --value ${{ steps.connect_vpn.outputs.tunnel_ip }}
           ./eden config set default --key registry.ip --value ${{ steps.connect_vpn.outputs.tunnel_ip }}
           ./eden config set default --key eve.hv --value ${{ matrix.hv }}
+          ./eden config set default --key eve.tpm --value true
           ./eden utils gcp firewall --source-range ${{ steps.ip.outputs.ipv4 }}/32 --name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}"
           ./eden setup -v debug
           ./eden utils gcp image --image-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}" upload
