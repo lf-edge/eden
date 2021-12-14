@@ -128,7 +128,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 			}
 		}
 		if infoObject.GetVolumeErr() != nil {
-			volInstStateObj.EveState = fmt.Sprintf("ERRORS: %s", infoObject.GetVolumeErr().String())
+			volInstStateObj.EveState = fmt.Sprintf("%s: %s", infoObject.State.String(), infoObject.GetVolumeErr().String())
 		} else {
 			if volInstStateObj.originType == config.VolumeContentOriginType_VCOT_BLANK {
 				volInstStateObj.EveState = infoObject.GetState().String()
@@ -139,9 +139,12 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		for _, el := range ctx.volumes {
 			if infoObject.Uuid == el.contentTreeID {
 				if infoObject.GetErr() != nil {
-					el.EveState = fmt.Sprintf("ERRORS: %s", infoObject.GetErr().String())
-				} else {
-					el.EveState = infoObject.State.String()
+					el.EveState = fmt.Sprintf("%s: %s", infoObject.State.String(), infoObject.GetErr().String())
+					continue
+				}
+				el.EveState = infoObject.State.String()
+				if infoObject.State == info.ZSwState_DOWNLOAD_STARTED {
+					el.EveState = fmt.Sprintf("%s (%d%%)", el.EveState, infoObject.ProgressPercentage)
 				}
 			}
 		}
