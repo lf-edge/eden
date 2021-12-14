@@ -58,6 +58,7 @@ func (exp *AppExpectation) DataStore() (datastore *config.DatastoreConfig) {
 		if datastore, err = exp.createDataStore(); err != nil {
 			log.Fatalf("cannot create datastore: %s", err)
 		}
+		exp.applyDatastoreCipher(datastore)
 		if err = exp.ctrl.AddDataStore(datastore); err != nil {
 			log.Fatalf("AddDataStore: %s", err)
 		}
