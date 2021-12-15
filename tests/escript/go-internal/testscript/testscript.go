@@ -226,13 +226,16 @@ func RunT(t T, p Params) {
 		name := strings.TrimSuffix(filepath.Base(file), ".txt")
 		t.Run(name, func(t T) {
 			t.Parallel()
+			ctx := context.Background()
+			ctxt, cancel := context.WithCancel(ctx)
 			ts := &TestScript{
 				t:             t,
 				testTempDir:   testTempDir,
 				name:          name,
 				file:          file,
 				params:        p,
-				ctxt:          context.Background(),
+				ctxt:          ctxt,
+				cancel:        cancel,
 				deferred:      func() {},
 				scriptFiles:   make(map[string]string),
 				scriptUpdates: make(map[string]string),
@@ -280,7 +283,8 @@ type TestScript struct {
 	scriptFiles   map[string]string           // files stored in the txtar archive (absolute paths -> path in script)
 	scriptUpdates map[string]string           // updates to testscript files via UpdateScripts.
 
-	ctxt context.Context // per TestScript context
+	cancel context.CancelFunc
+	ctxt   context.Context // per TestScript context
 }
 
 type backgroundCmd struct {
@@ -651,10 +655,10 @@ func (ts *TestScript) exec(command string, args ...string) (stdout, stderr strin
 
 // execBackground starts the given command line (an actual subprocess, not simulated)
 // in ts.cd with environment ts.env.
-func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd, context.CancelFunc, error) {
+func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd, context.CancelFunc, *strings.Builder, *strings.Builder, error) {
 	_, cmd, cancelFunc, err := ts.buildExecCmd(command, args...)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	cmd.Dir = ts.cd
 	cmd.Env = append(ts.env, "PWD="+ts.cd)
@@ -663,7 +667,7 @@ func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd,
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	ts.stdin = ""
-	return cmd, cancelFunc, cmd.Start()
+	return cmd, cancelFunc, &stdoutBuf, &stderrBuf, cmd.Start()
 }
 
 func (ts *TestScript) buildExecCmd(command string, args ...string) (context.Context, *exec.Cmd, context.CancelFunc, error) {
@@ -676,11 +680,11 @@ func (ts *TestScript) buildExecCmd(command string, args ...string) (context.Cont
 	}
 	if timewait == 0 {
 		//ts.ctxt = context.Background()
-		return context.Background(), exec.Command(command, args...), nil, nil
+		return ts.ctxt, exec.Command(command, args...), nil, nil
 	}
 	//ts.ctxt, _ = context.WithTimeout(context.Background(), timewait)
 	//return exec.CommandContext(ts.ctxt, command, args...), nil
-	ctx, cancelFunc := context.WithTimeout(context.Background(), timewait)
+	ctx, cancelFunc := context.WithTimeout(ts.ctxt, timewait)
 	return ctx, exec.CommandContext(ctx, command, args...), cancelFunc, nil
 }
 
@@ -794,6 +798,8 @@ func (ts *TestScript) addGHAnnotation() {
 
 //Fatalf aborts the test with the given failure message.
 func (ts *TestScript) Fatalf(format string, args ...interface{}) {
+	defer ts.cancel()
+	ts.stopped = true
 	fmt.Fprintf(&ts.log, "FAIL: %s:%d: %s\n", ts.file, ts.lineno, fmt.Sprintf(format, args...))
 	ts.addGHAnnotation()
 	ts.t.FailNow()

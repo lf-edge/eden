@@ -5,6 +5,7 @@
 package testscript
 
 import (
+	"context"
 	"fmt"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -212,6 +213,35 @@ func (ts *TestScript) cmdCp(neg bool, args []string) {
 	}
 }
 
+func (ts *TestScript) backgroundHelper(neg bool, command string, args []string) error {
+	cmd, _, stdoutBuf, stderrBuf, err := ts.execBackground(command, args...)
+	if err != nil {
+		return err
+	}
+	wait := make(chan struct{})
+	go func() {
+		err = ctxWait(ts.ctxt, cmd)
+		close(wait)
+		if err == context.Canceled {
+			return
+		}
+		outString := stdoutBuf.String()
+		errString := stderrBuf.String()
+		if outString != "" {
+			fmt.Fprintf(&ts.log, "[stdout]\n%s", outString)
+		}
+		if errString != "" {
+			fmt.Fprintf(&ts.log, "[stderr]\n%s", errString)
+		}
+		if err == nil && neg {
+			ts.Fatalf("unexpected command success")
+		}
+	}()
+	ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
+	ts.stdout, ts.stderr = "", ""
+	return nil
+}
+
 // eden execute EDEN's commands.
 func (ts *TestScript) cmdEden(neg bool, args []string) {
 	if len(args) < 1 || (len(args) == 1 && args[0] == "&") {
@@ -243,16 +273,7 @@ func (ts *TestScript) cmdEden(neg bool, args []string) {
 	fmt.Printf("edenProg: %s timewait: %s\n", edenProg, timewait)
 
 	if len(args) > 0 && args[len(args)-1] == "&" {
-		cmd, _, err := ts.execBackground(edenProg, args...)
-		if err == nil {
-			wait := make(chan struct{})
-			go func() {
-				_ = ctxWait(ts.ctxt, cmd)
-				close(wait)
-			}()
-			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
-		}
-		ts.stdout, ts.stderr = "", ""
+		err = ts.backgroundHelper(neg, edenProg, args)
 	} else {
 		ts.stdout, ts.stderr, err = ts.exec(edenProg, args...)
 		if ts.stdout != "" {
@@ -269,7 +290,7 @@ func (ts *TestScript) cmdEden(neg bool, args []string) {
 	if err != nil {
 		fmt.Fprintf(&ts.log, "[%v]\n", err)
 		if ts.ctxt.Err() != nil {
-			ts.Fatalf("test timed out while running command")
+			ts.Fatalf("test interrupted while running command")
 		} else if !neg {
 			ts.Fatalf("command failure")
 		}
@@ -311,16 +332,7 @@ func (ts *TestScript) cmdTest(neg bool, args []string) {
 	}
 
 	if len(args) > 0 && args[len(args)-1] == "&" {
-		cmd, _, err := ts.execBackground(testProg, args...)
-		if err == nil {
-			wait := make(chan struct{})
-			go func() {
-				_ = ctxWait(ts.ctxt, cmd)
-				close(wait)
-			}()
-			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
-		}
-		ts.stdout, ts.stderr = "", ""
+		err = ts.backgroundHelper(neg, testProg, args)
 	} else {
 		ts.stdout, ts.stderr, err = ts.exec(testProg, args...)
 		if ts.stdout != "" {
@@ -337,7 +349,7 @@ func (ts *TestScript) cmdTest(neg bool, args []string) {
 	if err != nil {
 		fmt.Fprintf(&ts.log, "[%v]\n", err)
 		if ts.ctxt.Err() != nil {
-			ts.Fatalf("test timed out while running command")
+			ts.Fatalf("test interrupted while running command")
 		} else if !neg {
 			ts.Fatalf("command failure")
 		}
@@ -430,16 +442,7 @@ func (ts *TestScript) cmdExec(neg bool, args []string) {
 	fmt.Printf("exec timewait: %s\n", timewait)
 
 	if len(args) > 0 && args[len(args)-1] == "&" {
-		cmd, _, err := ts.execBackground(args[0], args[1:len(args)-1]...)
-		if err == nil {
-			wait := make(chan struct{})
-			go func() {
-				_ = ctxWait(ts.ctxt, cmd)
-				close(wait)
-			}()
-			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
-		}
-		ts.stdout, ts.stderr = "", ""
+		err = ts.backgroundHelper(neg, args[0], args[1:len(args)-1])
 	} else {
 		ts.stdout, ts.stderr, err = ts.exec(args[0], args[1:]...)
 		if ts.stdout != "" {
@@ -456,7 +459,7 @@ func (ts *TestScript) cmdExec(neg bool, args []string) {
 	if err != nil {
 		fmt.Fprintf(&ts.log, "[%v]\n", err)
 		if ts.ctxt.Err() != nil {
-			ts.Fatalf("test timed out while running command")
+			ts.Fatalf("test interrupted while running command")
 		} else if !neg {
 			t := ts.ctxt.Value("kind")
 			if t != nil {
