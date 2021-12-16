@@ -101,6 +101,7 @@ jobs:
           gcloud compute firewall-rules delete eden-actions-${{ matrix.hv }}-${{github.run_number}} || echo "not exists"
           gcloud compute instances delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q --zone=us-west1-a || echo "not exists"
           gcloud compute images delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q || echo "not exists"
+          gsutil -o "Credentials:gs_service_key_file=${{ steps.gcpauth.outputs.credentials_file_path }}" rm gs://eve-live/eve-eden-actions-${{ matrix.hv }}-${{github.run_number}}.img.tar.gz || echo "not exists"
       - name: Log counting
         if: ${{ always() }}
         run: |
