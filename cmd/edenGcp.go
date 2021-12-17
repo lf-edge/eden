@@ -37,6 +37,9 @@ var gcpCmd = &cobra.Command{
 			return err
 		}
 		assignCobraToViper(cmd)
+		if flag := cmd.Flag("key"); flag != nil {
+			_ = viper.BindPFlag("gcp.key", flag)
+		}
 
 		viperLoaded, err := utils.LoadConfigFile(configFile)
 

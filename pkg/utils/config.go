@@ -433,6 +433,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "gcp.key":
 			return ""
 
+		case "packet.key":
+			return ""
+
 		case "redis.port":
 			return defaults.DefaultRedisPort
 		case "redis.tag":

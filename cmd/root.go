@@ -95,6 +95,8 @@ func init() {
 	exportImportInit()
 	rootCmd.AddCommand(volumeCmd)
 	volumeInit()
+	rootCmd.AddCommand(packetCmd)
+	packetInit()
 }
 
 // Execute primary function for cobra
