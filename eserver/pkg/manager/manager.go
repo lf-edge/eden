@@ -100,6 +100,11 @@ func (mgr *EServerManager) AddFileFromMultipart(part *multipart.Part) *api.FileI
 	result := &api.FileInfo{ISReady: false}
 	log.Println("Starting copy image from ", part.FileName())
 	filePath := filepath.Join(mgr.Dir, part.FileName())
+	if err := os.MkdirAll(filepath.Dir(filePath), os.ModeDir); err != nil {
+		log.Println("cannot create dir for ", filePath)
+		result.Error = err.Error()
+		return result
+	}
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		log.Println("file already exists ", filePath)
 		// remove file if exists, we have new file in request

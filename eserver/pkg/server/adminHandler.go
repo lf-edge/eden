@@ -43,7 +43,7 @@ func (h *adminHandler) addFromURL(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusCreated)
-	_,_ = w.Write([]byte(name))
+	_, _ = w.Write([]byte(name))
 }
 
 func (h *adminHandler) addFromFile(w http.ResponseWriter, r *http.Request) {
@@ -73,15 +73,12 @@ func (h *adminHandler) addFromFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusOK)
-	_,_ = w.Write(out)
+	_, _ = w.Write(out)
 }
 
 func (h *adminHandler) getFileStatus(w http.ResponseWriter, r *http.Request) {
 	u := mux.Vars(r)["filename"]
 	fileInfo := h.manager.GetFileInfo(u)
-	if fileInfo.Error != "" {
-		log.Error(fileInfo.Error)
-	}
 	out, err := json.Marshal(fileInfo)
 	if err != nil {
 		wrapError(err, w)
@@ -89,5 +86,5 @@ func (h *adminHandler) getFileStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add(contentType, mimeTextPlain)
 	w.WriteHeader(http.StatusOK)
-	_,_ = w.Write(out)
+	_, _ = w.Write(out)
 }

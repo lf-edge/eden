@@ -26,9 +26,9 @@ func (s *EServer) serveHTTP(listener net.Listener, errorChan chan error) {
 	ad.HandleFunc("/list", admin.list).Methods("GET")
 	ad.HandleFunc("/add-from-url", admin.addFromURL).Methods("POST")
 	ad.HandleFunc("/add-from-file", admin.addFromFile).Methods("POST")
-	ad.HandleFunc("/status/{filename}", admin.getFileStatus).Methods("GET")
+	ad.HandleFunc("/status/{filename:[A-Za-z0-9_\\-.\\/]*}", admin.getFileStatus).Methods("GET")
 
-	router.HandleFunc("/eserver/{filename}", api.getFile).Methods("GET")
+	router.HandleFunc("/eserver/{filename:[A-Za-z0-9_\\-.\\/]*}", api.getFile).Methods("GET")
 
 	server := &http.Server{
 		Handler: router,
