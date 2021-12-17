@@ -975,13 +975,13 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 }
 
 //EServerAddFile send file with image into eserver
-func (server *EServer) EServerAddFile(filepath string) (fileInfo *api.FileInfo) {
+func (server *EServer) EServerAddFile(filepath, prefix string) (fileInfo *api.FileInfo) {
 	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EServerPort), "admin/add-from-file")
 	if err != nil {
 		log.Fatalf("EServerAddFile: error constructing URL: %v", err)
 	}
 	client := server.getHTTPClient(0)
-	response, err := utils.UploadFile(client, u, filepath)
+	response, err := utils.UploadFile(client, u, filepath, prefix)
 	if err != nil {
 		log.Fatalf("EServerAddFile: %s", err)
 	}
@@ -1060,11 +1060,16 @@ func GetInfoFromSDCard(devicePath string) (eveInfo *EVEInfo, err error) {
 }
 
 //AddFileIntoEServer puts file into eserver
-func AddFileIntoEServer(server *EServer, filePath string) (*api.FileInfo, error) {
-	status := server.EServerCheckStatus(filepath.Base(filePath))
-	if !status.ISReady || status.Size != utils.GetFileSize(filePath) {
+//prefix will be added to the file if defined
+func AddFileIntoEServer(server *EServer, filePath, prefix string) (*api.FileInfo, error) {
+	fileName := filepath.Base(filePath)
+	if prefix != "" {
+		fileName = fmt.Sprintf("%s/%s", prefix, fileName)
+	}
+	status := server.EServerCheckStatus(fileName)
+	if !status.ISReady || status.Size != utils.GetFileSize(filePath) || status.Sha256 != utils.SHA256SUM(filePath) {
 		log.Infof("Start uploading into eserver of %s", filePath)
-		status = server.EServerAddFile(filePath)
+		status = server.EServerAddFile(filePath, prefix)
 		if status.Error != "" {
 			return nil, fmt.Errorf("AddFileIntoEServer: %s", status.Error)
 		}

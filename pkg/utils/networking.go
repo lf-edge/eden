@@ -205,7 +205,7 @@ func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.R
 }
 
 //UploadFile send file in form
-func UploadFile(client *http.Client, url string, filePath string) (result *http.Response, err error) {
+func UploadFile(client *http.Client, url, filePath, prefix string) (result *http.Response, err error) {
 	body, writer := io.Pipe()
 
 	req, err := http.NewRequest(http.MethodPost, url, body)
@@ -218,10 +218,15 @@ func UploadFile(client *http.Client, url string, filePath string) (result *http.
 
 	errchan := make(chan error)
 
+	fileName := filepath.Base(filePath)
+	if prefix != "" {
+		fileName = fmt.Sprintf("%s/%s", prefix, fileName)
+	}
+
 	go func() {
 		defer writer.Close()
 		defer mwriter.Close()
-		w, err := mwriter.CreateFormFile("file", filepath.Base(filePath))
+		w, err := mwriter.CreateFormFile("file", fileName)
 		if err != nil {
 			errchan <- err
 			return

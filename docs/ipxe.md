@@ -22,7 +22,7 @@ dhcp option [67 Bootfile-Name](https://tools.ietf.org/html/rfc2132#section-9.5) 
 
 You can also use `ipxe.efi.cfg` uploaded into eserver, link to which will also be inside
 output of setup command (something like
-`ipxe.efi.cfg uploaded to eserver (http://IP:8888/eserver/ipxe.efi.cfg).`).
+`ipxe.efi.cfg uploaded to eserver (http://IP:8888/eserver/default/ipxe.efi.cfg).`).
 
 You can start your device and wait for installation process of EVE. Next, you can run
 `eden start` and `eden eve onboard` as usual.
@@ -60,7 +60,7 @@ make build
 To boot EVE with iPXE you should run:
 
 ```console
-packet device create -f LOCATION -H NAME -i http://IP:8888/eserver/ipxe.efi.cfg -o custom_ipxe -P TYPE -p PROJECT_ID
+packet device create -f LOCATION -H NAME -i http://IP:8888/eserver/default/ipxe.efi.cfg -o custom_ipxe -P TYPE -p PROJECT_ID
 ```
 
 where:

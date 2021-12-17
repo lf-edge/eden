@@ -363,7 +363,7 @@ var setupCmd = &cobra.Command{
 					items, _ := ioutil.ReadDir(filepath.Dir(eveImageFile))
 					for _, item := range items {
 						if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
-							if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), item.Name())); err != nil {
+							if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), item.Name()), configName); err != nil {
 								log.Fatalf("AddFileIntoEServer: %s", err)
 							}
 						}
@@ -375,7 +375,7 @@ var setupCmd = &cobra.Command{
 					}
 					re := regexp.MustCompile("# set url .*")
 					ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
-						[]byte(fmt.Sprintf("set url http://%s:%d/%s/", eServerIP, eserverPort, "eserver")))
+						[]byte(fmt.Sprintf("set url http://%s:%d/%s/%s/", eServerIP, eserverPort, "eserver", configName)))
 					if softserial != "" {
 						ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
 							"eve_soft_serial=${mac:hexhyp}",
@@ -384,12 +384,13 @@ var setupCmd = &cobra.Command{
 					_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
 					ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
 					_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
-					if _, err := eden.AddFileIntoEServer(server, ipxeConfigFile); err != nil {
+					i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configName)
+					if err != nil {
 						log.Fatalf("AddFileIntoEServer: %s", err)
 					}
 					log.Infof("download EVE done: %s", imageTag)
 					log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
-					log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/eserver/ipxe.efi.cfg). Use it to boot your EVE via network", eServerIP, eServerPort)
+					log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/%s). Use it to boot your EVE via network", eServerIP, eServerPort, i.FileName)
 					log.Infof("EVE already exists: %s", filepath.Dir(eveImageFile))
 				}
 			} else if installer {
