@@ -69,7 +69,7 @@ const (
 
 	DefaultRedisPasswordFile = "redis.pass"
 
-	DefaultEServerTag          = "83cfe07"
+	DefaultEServerTag          = "4fd3d15"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
 	//DefaultRepeatCount is repeat count for requests

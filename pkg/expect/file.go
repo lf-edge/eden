@@ -24,7 +24,7 @@ func (exp *AppExpectation) createImageFile(id uuid.UUID, dsID string) *config.Im
 	status := server.EServerCheckStatus(filepath.Base(exp.appURL))
 	if !status.ISReady || status.Size != utils.GetFileSize(exp.appURL) || status.Sha256 != utils.SHA256SUM(exp.appURL) {
 		log.Infof("Start uploading into eserver of %s", exp.appLink)
-		status = server.EServerAddFile(exp.appURL)
+		status = server.EServerAddFile(exp.appURL, "")
 		if status.Error != "" {
 			log.Error(status.Error)
 		}
