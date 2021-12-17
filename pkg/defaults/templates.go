@@ -206,6 +206,10 @@ gcp:
     #path to the key to interact with gcp
     key: '{{parse "gcp.key"}}'
 
+packet:
+    #path to the key to interact with packet
+    key: '{{parse "packet.key"}}'
+
 redis:
     #port for access redis
     port: {{parse "redis.port"}}

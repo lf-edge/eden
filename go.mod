@@ -38,6 +38,7 @@ require (
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
+	github.com/packethost/packngo v0.20.0
 	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/prometheus/client_golang v1.8.0 // indirect
 	github.com/prometheus/common v0.15.0 // indirect

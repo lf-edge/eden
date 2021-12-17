@@ -165,6 +165,13 @@ const (
 	DefaultGcpMachineType  = "n1-highcpu-4"
 	DefaultGcpRulePriority = 10
 
+	//defaults for packet
+
+	DefaultVMName            = "eden-packet-test"
+	DefaultPacketProjectName = "Zededa"
+	DefaultPacketZone        = "sjc1"
+	DefaultPacketMachineType = "t1.small.x86"
+
 	//default for VBox
 
 	DefaultVBoxVMName = "eve_live"
@@ -243,8 +250,6 @@ var (
 		"eden.ssh-key":       "ssh-key",
 		"eden.test-bin":      "prog",
 		"eden.test-scenario": "scenario",
-
-		"gcp.key": "key",
 
 		"config": "config",
 	}

@@ -49,6 +49,8 @@ var (
 
 	softserial    string
 	zedcontrolURL string
+
+	ipxeOverride string
 )
 
 func generateScripts(in string, out string) {
@@ -381,6 +383,18 @@ var setupCmd = &cobra.Command{
 							"eve_soft_serial=${mac:hexhyp}",
 							fmt.Sprintf("eve_soft_serial=%s", softserial)))
 					}
+					ipxeOverrideSlice := strings.Split(ipxeOverride, "||")
+					if len(ipxeOverrideSlice) > 1 {
+						fmt.Println(ipxeOverrideSlice)
+
+						for i := 0; ; i += 2 {
+							if i+1 >= len(ipxeOverrideSlice) {
+								break
+							}
+							re := regexp.MustCompile(ipxeOverrideSlice[i])
+							ipxeFileReplaced = re.ReplaceAll(ipxeFileReplaced, []byte(ipxeOverrideSlice[i+1]))
+						}
+					}
 					_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
 					ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
 					_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
@@ -496,4 +510,6 @@ func setupInit() {
 	setupCmd.Flags().BoolVar(&installer, "installer", false, "Setup for create installer")
 	setupCmd.Flags().StringVar(&softserial, "soft-serial", "", "Use provided serial instead of hardware one, please use chars and numbers here")
 	setupCmd.Flags().StringVar(&zedcontrolURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
+
+	setupCmd.Flags().StringVar(&ipxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
 }
