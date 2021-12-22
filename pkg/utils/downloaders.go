@@ -35,7 +35,7 @@ func (desc EVEDescription) Image() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/eve:%s", desc.Registry, version), nil
+	return fmt.Sprintf("%s:%s", desc.Registry, version), nil
 }
 
 // Version extracts version from EVEDescription
@@ -65,7 +65,7 @@ func (desc UEFIDescription) image(latest bool) (string, error) {
 		desc.Registry = defaults.DefaultEveRegistry
 	}
 	if latest {
-		return fmt.Sprintf("%s/eve-uefi", desc.Registry), nil
+		return fmt.Sprintf("%s-uefi", desc.Registry), nil
 	}
 	if desc.Tag == "" {
 		return "", fmt.Errorf("tag not present")
@@ -73,7 +73,7 @@ func (desc UEFIDescription) image(latest bool) (string, error) {
 	if desc.Arch == "" {
 		return "", fmt.Errorf("arch not present")
 	}
-	return fmt.Sprintf("%s/eve-uefi:%s-%s", desc.Registry, desc.Tag, desc.Arch), nil
+	return fmt.Sprintf("%s-uefi:%s-%s", desc.Registry, desc.Tag, desc.Arch), nil
 }
 
 //DownloadEveInstaller pulls EVE installer image from docker

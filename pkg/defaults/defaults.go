@@ -60,7 +60,7 @@ const (
 	DefaultRegistryContainerRef = "library/registry"
 	DefaultProcContainerRef     = "lfedge/eden-processing"
 	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
-	DefaultEveRegistry          = "lfedge"
+	DefaultEveRegistry          = "lfedge/eve"
 	DefaultRegistry             = "docker.io"
 
 	DefaultSFTPUser      = "user"
