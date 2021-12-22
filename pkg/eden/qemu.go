@@ -21,6 +21,35 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	qemuCommand := ""
 	qemuOptions := "-display none -nodefaults -no-user-config "
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logfile=%s ", eveTelnetPort, logFile)
+	netDev := "e1000"
+	if qemuARCH == "" {
+		qemuARCH = runtime.GOARCH
+	} else {
+		qemuARCH = strings.ToLower(qemuARCH)
+	}
+	switch qemuARCH {
+	case "amd64":
+		qemuCommand = "qemu-system-x86_64"
+		if qemuAccel {
+			if qemuOS == "darwin" {
+				qemuOptions += defaults.DefaultQemuAccelDarwin
+			} else {
+				qemuOptions += defaults.DefaultQemuAccelLinuxAmd64
+			}
+		} else {
+			qemuOptions += defaults.DefaultQemulAmd64
+		}
+	case "arm64":
+		qemuCommand = "qemu-system-aarch64"
+		if qemuAccel {
+			qemuOptions += defaults.DefaultQemuAccelArm64
+		} else {
+			qemuOptions += defaults.DefaultQemulArm64
+		}
+		netDev = "virtio-net-pci"
+	default:
+		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
+	}
 	if qemuSMBIOSSerial != "" {
 		qemuOptions += fmt.Sprintf("-smbios type=1,serial=%s ", qemuSMBIOSSerial)
 	}
@@ -47,7 +76,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
-	qemuOptions += fmt.Sprintf(" -device e1000,netdev=eth%d ", 0)
+	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, 0)
 	offset += 10
 
 	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off", 1, network, nets[0].SecondAddress)
@@ -64,11 +93,11 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
-	qemuOptions += fmt.Sprintf(" -device e1000,netdev=eth%d ", 1)
+	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, 1)
 
 	if tapInterface != "" {
 		qemuOptions += fmt.Sprintf("-netdev tap,id=eth%d,ifname=%s", 2, tapInterface)
-		qemuOptions += fmt.Sprintf(" -device e1000,netdev=eth%d ", 2)
+		qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, 2)
 	}
 
 	if qemuOS == "" {
@@ -78,33 +107,6 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	}
 	if qemuOS != "linux" && qemuOS != "darwin" {
 		return fmt.Errorf("StartEVEQemu: OS not supported: %s", qemuOS)
-	}
-	if qemuARCH == "" {
-		qemuARCH = runtime.GOARCH
-	} else {
-		qemuARCH = strings.ToLower(qemuARCH)
-	}
-	switch qemuARCH {
-	case "amd64":
-		qemuCommand = "qemu-system-x86_64"
-		if qemuAccel {
-			if qemuOS == "darwin" {
-				qemuOptions += defaults.DefaultQemuAccelDarwin
-			} else {
-				qemuOptions += defaults.DefaultQemuAccelLinuxAmd64
-			}
-		} else {
-			qemuOptions += defaults.DefaultQemulAmd64
-		}
-	case "arm64":
-		qemuCommand = "qemu-system-aarch64"
-		if qemuAccel {
-			qemuOptions += defaults.DefaultQemuAccelArm64
-		} else {
-			qemuOptions += defaults.DefaultQemulArm64
-		}
-	default:
-		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
 	}
 	qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", eveImageFile)
 	qemuOptions += "-watchdog-action reset "
