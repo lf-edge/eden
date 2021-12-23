@@ -65,7 +65,7 @@ func (desc UEFIDescription) image(latest bool) (string, error) {
 		desc.Registry = defaults.DefaultEveRegistry
 	}
 	if latest {
-		return fmt.Sprintf("%s-uefi", desc.Registry), nil
+		return fmt.Sprintf("%s-uefi:latest-%s", defaults.DefaultEveRegistry, desc.Arch), nil
 	}
 	if desc.Tag == "" {
 		return "", fmt.Errorf("tag not present")
