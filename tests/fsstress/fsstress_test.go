@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// This test deploys the VM with image https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-ARCH.img
+// This test deploys the VM with image https://cloud-images.ubuntu.com/releases/21.10/release-20211103/ubuntu-21.10-server-cloudimg-ARCH.img
 // waits for the RUNNING state and checks access to SSH console
 // and removes app from EVE
 
@@ -39,7 +39,7 @@ var (
 	scriptpath = flag.String("script_path", "", "Full path to the script that will be sent to the guest machine")
 	direct     = flag.Bool("direct", true, "Load image from url, not from eserver")
 	password   = flag.String("password", "passw0rd", "Password to use for ssh")
-	appLink    = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
+	appLink    = flag.String("applink", "https://cloud-images.ubuntu.com/releases/21.10/release-20211103/ubuntu-21.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	tc         *projects.TestContext
 	externalIP string
 	appName    string
