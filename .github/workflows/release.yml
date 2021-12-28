@@ -10,11 +10,18 @@ on:
 jobs:
   build:
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        os: [linux, darwin]
+        exclude:
+          # excludes darwin-arm64 for now
+          - os: darwin
+            arch: arm64
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Set env
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Set up QEMU
@@ -23,28 +30,53 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y qemu-utils qemu-system-x86
+      - name: Determine ref
+        env:
+          REF: ${{ github.ref }}
+        run: echo "TAG=$(echo "$REF" | sed -e 's#^.*/##')" >> "$GITHUB_ENV"
+      - name: Create a GitHub release
+        id: create-release
+        uses: actions/github-script@v3
+        with:
+          result-encoding: string
+          script: |
+            console.log(context)
+            tag = '${{ env.TAG }}'
+
+            // first create a release -- it is OK if that fails,
+            // since it means the release is already there
+            try {
+              const raw = (await github.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tag,
+                name: 'Release ' + tag,
+                prerelease: true,
+              })).data
+              console.log(raw)
+            } catch (e) {}
+
+            // get the release ID
+            const release = (await github.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: tag,
+            })).data
+
+            return release.upload_url
+
       - name: Build project
         run: |
-          make build
-          make build-tests
-          tar -zcvf eden.tar.gz -C ./ ./eden ./README.md dist docs tests
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+          make OS=${{ matrix.os }} ARCH=${{ matrix.arch }} build
+          make OS=${{ matrix.os }} ARCH=${{ matrix.arch }} build-tests
+          tar -zcvf eden.${{ matrix.os }}.${{ matrix.arch }}.tar.gz -C ./ ./eden ./README.md dist docs tests
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./eden.tar.gz
-          asset_name: eden.tar.gz
+          upload_url: ${{ steps.create-release.outputs.result }}
+          asset_path: ./eden.${{ matrix.os }}.${{ matrix.arch }}.tar.gz
+          asset_name: eden.${{ matrix.os }}.${{ matrix.arch }}.tar.gz
           asset_content_type: application/gzip
