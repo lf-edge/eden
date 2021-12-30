@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -362,10 +363,15 @@ var setupCmd = &cobra.Command{
 							}
 						}
 					}
+					configPrefix := configName
+					if configPrefix == defaults.DefaultContext {
+						//in case of default context we use empty prefix to keep compatibility
+						configPrefix = ""
+					}
 					items, _ := ioutil.ReadDir(filepath.Dir(eveImageFile))
 					for _, item := range items {
 						if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
-							if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), item.Name()), configName); err != nil {
+							if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), item.Name()), configPrefix); err != nil {
 								log.Fatalf("AddFileIntoEServer: %s", err)
 							}
 						}
@@ -377,7 +383,7 @@ var setupCmd = &cobra.Command{
 					}
 					re := regexp.MustCompile("# set url .*")
 					ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
-						[]byte(fmt.Sprintf("set url http://%s:%d/%s/%s/", eServerIP, eserverPort, "eserver", configName)))
+						[]byte(fmt.Sprintf("set url http://%s:%d/%s/", eServerIP, eserverPort, path.Join("eserver", configPrefix))))
 					if softserial != "" {
 						ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
 							"eve_soft_serial=${mac:hexhyp}",
@@ -398,7 +404,7 @@ var setupCmd = &cobra.Command{
 					_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
 					ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
 					_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
-					i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configName)
+					i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configPrefix)
 					if err != nil {
 						log.Fatalf("AddFileIntoEServer: %s", err)
 					}
