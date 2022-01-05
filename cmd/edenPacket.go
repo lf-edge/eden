@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/packet"
@@ -76,7 +77,11 @@ var packetRun = &cobra.Command{
 		if packetIPXEUrl == "" {
 			certsEVEIP = viper.GetString("adam.eve-ip")
 			eServerPort := viper.GetString("eden.eserver.port")
-			packetIPXEUrl = fmt.Sprintf("http://%s:%s/%s/%s/ipxe.efi.cfg", certsEVEIP, eServerPort, "eserver", configName)
+			configPrefix := configName
+			if configName == defaults.DefaultContext {
+				configPrefix = ""
+			}
+			packetIPXEUrl = fmt.Sprintf("http://%s:%s/%s/ipxe.efi.cfg", certsEVEIP, eServerPort, path.Join("eserver", configPrefix))
 			log.Debugf("ipxe-url is empty, will use default one: %s", packetIPXEUrl)
 		}
 		packetClient, err := packet.NewPacketClient(packetKey, packetProjectName)
