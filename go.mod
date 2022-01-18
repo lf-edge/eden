@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.74.0 // indirect
+	github.com/Insei/rolgo v0.0.1
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
 	github.com/amitbet/vncproxy v0.0.0-20200118084310-ea8f9b510913
 	github.com/bitly/go-simplejson v0.5.0 // indirect
@@ -53,7 +54,7 @@ require (
 	github.com/yvasiyarov/gorelic v0.0.7 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	golang.org/x/net v0.0.0-20210427231257-85d9c07bbe3a
+	golang.org/x/net v0.0.0-20211029224645-99673261e6eb
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 	google.golang.org/api v0.36.0

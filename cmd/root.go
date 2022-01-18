@@ -97,6 +97,8 @@ func init() {
 	volumeInit()
 	rootCmd.AddCommand(packetCmd)
 	packetInit()
+	rootCmd.AddCommand(rolCmd)
+	rolInit()
 }
 
 // Execute primary function for cobra
