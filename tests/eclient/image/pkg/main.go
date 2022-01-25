@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/lf-edge/eve/api/go/profile"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -28,6 +29,8 @@ var (
 		"File contains the number of radio-silence state changes (ON/OFF switches) already performed")
 	radioStatusFile = flag.String("radio-status", "/mnt/radio-status.json",
 		"Periodically updated JSON file with the current radio status")
+	appInfoFile = flag.String("app-info-status", "/mnt/app-info-status.json",
+		"File to save app info status")
 	token = flag.String("token", "", "Token of profile server")
 )
 
@@ -41,7 +44,47 @@ func main() {
 	flag.Parse()
 	http.HandleFunc("/api/v1/local_profile", localProfile)
 	http.HandleFunc("/api/v1/radio", radio)
+	http.HandleFunc("/api/v1/appinfo", appinfo)
 	fmt.Println(http.ListenAndServe(":8888", nil))
+}
+
+func appinfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to read request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	appInfoList := &profile.LocalAppInfoList{}
+	err = proto.Unmarshal(body, appInfoList)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to unmarshal request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	data, err := protojson.Marshal(appInfoList)
+	if err != nil {
+		errStr := fmt.Sprintf("Marshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	err = ioutil.WriteFile(*appInfoFile, data, 0644)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to write request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func localProfile(w http.ResponseWriter, r *http.Request) {
