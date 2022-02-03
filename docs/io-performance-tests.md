@@ -8,7 +8,7 @@ Environment parameters that this container can accept.
 
 ### For settings for uploading results to GitHub.com
 
-1. **GIT_REPO** - Is the login/name of the repository without .git. For example "itmo-eve/eve-performance", and the result will be as follows: "github.com/itmo-eve/eve-performance".
+1. **GIT_REPO** - Is the login/name of the repository without .git. For example "lf-edge/eve-performance", and the result will be as follows: "github.com/lf-edge/eve-performance".
 2. **GIT_LOGIN** - Username on GitHub, where the repository specified in GIT_REPO is located.
 3. **GIT_TOKEN** - GitHub token for authorization and adding a branch with results to your repository.
 4. **GIT_BRANCH** - Branch name for results pushing. Optional parameter.

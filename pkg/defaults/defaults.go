@@ -99,7 +99,7 @@ const (
 	DefaultDockerNetworkName     = "eden_network"
 	DefaultLogLevelToPrint       = log.InfoLevel
 	DefaultX509Country           = "RU"
-	DefaultX509Company           = "Itmo"
+	DefaultX509Company           = "lf-edge"
 	DefaultAppsLogsRedisPrefix   = "APPS_EVE_"
 	DefaultLogsRedisPrefix       = "LOGS_EVE_"
 	DefaultInfoRedisPrefix       = "INFO_EVE_"

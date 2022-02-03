@@ -263,14 +263,14 @@ for manual debugging of failing tests:
 	$ ./eden test tests/escript/ -r TestEdenScripts/bug -v debug -a '-testwork'
 	DEBU[0000] DIR: tests/escript/
 	DEBU[0000] Will use config from /home/user/.eden/contexts/default.yml
-	DEBU[0000] Try to add config from /data/work/user/EVE/github/itmo-eve/eden/tests/escript/eden-config.yml
-	DEBU[0000] Merged config with /data/work/user/EVE/github/itmo-eve/eden/tests/escript/eden-config.yml
+	DEBU[0000] Try to add config from /data/work/user/EVE/github/lf-edge/eden/tests/escript/eden-config.yml
+	DEBU[0000] Merged config with /data/work/user/EVE/github/lf-edge/eden/tests/escript/eden-config.yml
 	DEBU[0000] testApp: eden.escript.test
 	DEBU[0000] Will use config from /home/user/.eden/contexts/default.yml
-	DEBU[0000] Try to add config from /data/work/user/EVE/github/itmo-eve/eden/tests/escript/eden-config.yml
-	DEBU[0000] Merged config with /data/work/user/EVE/github/itmo-eve/eden/tests/escript/eden-config.yml
-	DEBU[0000] testProg: /home/user/work/EVE/github/itmo-eve/eden/dist/bin/eden.escript.test
-	DEBU[0000] Test: /home/user/work/EVE/github/itmo-eve/eden/dist/bin/eden.escript.test -test.run TestEdenScripts/bug -test.v -testwork
+	DEBU[0000] Try to add config from /data/work/user/EVE/github/lf-edge/eden/tests/escript/eden-config.yml
+	DEBU[0000] Merged config with /data/work/user/EVE/github/lf-edge/eden/tests/escript/eden-config.yml
+	DEBU[0000] testProg: /home/user/work/EVE/github/lf-edge/eden/dist/bin/eden.escript.test
+	DEBU[0000] Test: /home/user/work/EVE/github/lf-edge/eden/dist/bin/eden.escript.test -test.run TestEdenScripts/bug -test.v -testwork
 	=== RUN   TestEdenScripts
 	INFO[0000] testData directory: testdata
 	=== RUN   TestEdenScripts/bug
