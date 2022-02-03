@@ -103,5 +103,5 @@ directory may use different languages, provided that they meet the
 ## Useful links
 
 * [EVE+Integration+Testing](https://wiki.lfedge.org/display/EVE/EVE+Integration+Testing)
-* [Eden testing README](https://github.com/itmo-eve/eden/blob/master/tests/README.md)
+* [Eden testing README](https://github.com/lf-edge/eden/blob/master/tests/README.md)
 * [Description of existing tests](https://wiki.lfedge.org/display/EVE/Tests)

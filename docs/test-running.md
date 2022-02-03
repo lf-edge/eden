@@ -108,7 +108,7 @@ and '-a | --args' option parameters:
 
 ```console
 $ ./eden test tests/integration/ --opts
-Usage of /home/user/work/EVE/github/itmo-eve/eden/dist/bin/eden.integration.test:
+Usage of /home/user/work/EVE/github/lf-edge/eden/dist/bin/eden.integration.test:
   -app-docker.yml string
     docker yml file to build
   -app-vm.yml string
