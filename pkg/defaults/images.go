@@ -24,12 +24,12 @@ var ImageStore = map[string]*ImageOptions{
 		Size:   528285696,
 		Sha256: "076f86f027daddb1d48c92eba3fcb81f7e8f1512a86e051a5fdd9906671a92ca",
 	},
-	"https://cloud-images.ubuntu.com/releases/21.10/release-20211103/ubuntu-21.10-server-cloudimg-amd64.img": {
-		Size:   568262656,
-		Sha256: "4090e8317d9eecfddd0ca8c6fd11792209eaf13347d954e6e6119b0d41c69c41",
+	"https://cloud-images.ubuntu.com/releases/impish/release-20220201/ubuntu-21.10-server-cloudimg-amd64.img": {
+		Size:   585105408,
+		Sha256: "73fe1785c60edeb506f191affff0440abcc2de02420bb70865d51d0ff9b28223",
 	},
-	"https://cloud-images.ubuntu.com/releases/21.10/release-20211103/ubuntu-21.10-server-cloudimg-arm64.img": {
-		Size:   549191680,
-		Sha256: "063fa690f56b11f6bb12eecabd9e140a82faa05e26aed89cc1b7efa4c86e3bf2",
+	"https://cloud-images.ubuntu.com/releases/impish/release-20220201/ubuntu-21.10-server-cloudimg-arm64.img": {
+		Size:   562692096,
+		Sha256: "1b5b3fe616e1eea4176049d434a360344a7d471f799e151190f21b0a27f0b424",
 	},
 }
