@@ -272,6 +272,88 @@ var podStopCmd = &cobra.Command{
 	},
 }
 
+//podPurgeCmd is a command to purge app
+var podPurgeCmd = &cobra.Command{
+	Use:   "purge",
+	Short: "Purge pod",
+	Args:  cobra.ExactArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		appName := args[0]
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		for _, el := range dev.GetApplicationInstances() {
+			app, err := ctrl.GetApplicationInstanceConfig(el)
+			if err != nil {
+				log.Fatalf("no app in cloud %s: %s", el, err)
+			}
+			if app.Displayname == appName {
+				if app.Purge == nil {
+					app.Purge = &config.InstanceOpsCmd{Counter: 0}
+				}
+				app.Purge.Counter++
+				if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+					log.Fatalf("setControllerAndDev: %s", err)
+				}
+				log.Infof("app %s purge done", appName)
+				return
+			}
+		}
+		log.Infof("not found app with name %s", appName)
+	},
+}
+
+//podRestartCmd is a command to restart app
+var podRestartCmd = &cobra.Command{
+	Use:   "restart",
+	Short: "Restart pod",
+	Args:  cobra.ExactArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		appName := args[0]
+		changer := &adamChanger{}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev: %s", err)
+		}
+		for _, el := range dev.GetApplicationInstances() {
+			app, err := ctrl.GetApplicationInstanceConfig(el)
+			if err != nil {
+				log.Fatalf("no app in cloud %s: %s", el, err)
+			}
+			if app.Displayname == appName {
+				if app.Restart == nil {
+					app.Restart = &config.InstanceOpsCmd{Counter: 0}
+				}
+				app.Restart.Counter++
+				if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+					log.Fatalf("setControllerAndDev: %s", err)
+				}
+				log.Infof("app %s restart done", appName)
+				return
+			}
+		}
+		log.Infof("not found app with name %s", appName)
+	},
+}
+
 //podStopCmd is a command to start app
 var podStartCmd = &cobra.Command{
 	Use:   "start",
@@ -552,5 +634,7 @@ You can set access VLAN ID (VID) for a particular network in the format '<networ
 	podLogsCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
 	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "netstat", "app"}, "Show defined elements")
 	podLogsCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
+	podCmd.AddCommand(podRestartCmd)
+	podCmd.AddCommand(podPurgeCmd)
 	podModifyInit()
 }
