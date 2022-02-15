@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -31,6 +30,8 @@ var (
 		"Periodically updated JSON file with the current radio status")
 	appInfoFile = flag.String("app-info-status", "/mnt/app-info-status.json",
 		"File to save app info status")
+	appCmdFile = flag.String("app-command", "/mnt/app-command.json",
+		"File to save (single) app command request")
 	token = flag.String("token", "", "Token of profile server")
 )
 
@@ -38,6 +39,7 @@ var (
 	radioSilenceIsChanging bool
 	radioSilenceCounter    int
 	radioSilenceMTime      time.Time
+	appCmdMTime            time.Time
 )
 
 func main() {
@@ -70,7 +72,7 @@ func appinfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
-	data, err := protojson.Marshal(appInfoList)
+	data, err := protojson.MarshalOptions{Multiline: true}.Marshal(appInfoList)
 	if err != nil {
 		errStr := fmt.Sprintf("Marshal: %s", err)
 		fmt.Println(errStr)
@@ -84,7 +86,54 @@ func appinfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
+
+	// Submit application command if requested.
+	cmdFile, err := os.Stat(*appCmdFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			errStr := fmt.Sprintf("Stat: %s", err)
+			fmt.Println(errStr)
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if cmdFile.ModTime().Equal(appCmdMTime) {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	appCmdMTime = cmdFile.ModTime()
+	data, err = ioutil.ReadFile(*appCmdFile)
+	if err != nil {
+		errStr := fmt.Sprintf("ReadFile: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	appCommand := &profile.AppCommand{}
+	err = protojson.Unmarshal(data, appCommand)
+	if err != nil {
+		errStr := fmt.Sprintf("Unmarshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	data, err = proto.Marshal(&profile.LocalAppCmdList{
+		ServerToken: *token,
+		AppCommands: []*profile.AppCommand{
+			appCommand,
+		},
+	})
+	if err != nil {
+		errStr := fmt.Sprintf("Marshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(contentType, mimeProto)
 	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(data); err != nil {
+		fmt.Printf("Failed to write: %s\n", err)
+	}
 }
 
 func localProfile(w http.ResponseWriter, r *http.Request) {
@@ -147,7 +196,7 @@ func radio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
-	data, err := json.Marshal(radioStatus)
+	data, err := protojson.Marshal(radioStatus)
 	if err != nil {
 		errStr := fmt.Sprintf("Marshal: %s", err)
 		fmt.Println(errStr)
@@ -178,8 +227,10 @@ func radio(w http.ResponseWriter, r *http.Request) {
 	// If the requested radio-silence state has changed, send it in the response.
 	info, err := os.Stat(*radioSilenceCfgFile)
 	if err != nil {
-		errStr := fmt.Sprintf("Stat: %s", err)
-		fmt.Println(errStr)
+		if !os.IsNotExist(err) {
+			errStr := fmt.Sprintf("Stat: %s", err)
+			fmt.Println(errStr)
+		}
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -192,10 +243,6 @@ func radio(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errStr := fmt.Sprintf("ReadFile: %s", err)
 		fmt.Println(errStr)
-		if os.IsNotExist(err) {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
