@@ -114,9 +114,8 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 			}
 			ctx.volumes[infoObject.GetUuid()] = volInstStateObj
 		}
-		if infoObject.DisplayName == "" || infoObject.State == info.ZSwState_INVALID {
-			volInstStateObj.deleted = true
-		}
+		volInstStateObj.deleted =
+			infoObject.DisplayName == "" ||	infoObject.State == info.ZSwState_INVALID
 		if volInstStateObj.VolumeType != config.Format_FmtUnknown &&
 			volInstStateObj.VolumeType != config.Format_CONTAINER {
 			//we cannot use limits for container or unknown types
