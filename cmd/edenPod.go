@@ -58,6 +58,8 @@ var (
 
 	openStackMetadata bool
 	datastoreOverride string
+
+	volumesToPurge []string
 )
 
 var podCmd = &cobra.Command{
@@ -292,6 +294,7 @@ var podPurgeCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev: %s", err)
 		}
+		explicitVolumes := cmd.Flags().Changed("volumes")
 		for _, el := range dev.GetApplicationInstances() {
 			app, err := ctrl.GetApplicationInstanceConfig(el)
 			if err != nil {
@@ -302,6 +305,39 @@ var podPurgeCmd = &cobra.Command{
 					app.Purge = &config.InstanceOpsCmd{Counter: 0}
 				}
 				app.Purge.Counter++
+				volumeConfigs := dev.GetVolumes()
+				for i, oldUUID := range volumeConfigs {
+					v, err := ctrl.GetVolume(oldUUID)
+					if err != nil {
+						log.Fatal(err)
+					}
+					if explicitVolumes {
+						skip := true
+						for _, el := range volumesToPurge {
+							if el == v.DisplayName {
+								skip = false
+								break
+							}
+						}
+						if skip {
+							continue
+						}
+					}
+					newUUID, err := uuid.NewV4()
+					if err != nil {
+						log.Fatal(err)
+					}
+					//update uuid to fire purge
+					v.Uuid = newUUID.String()
+					volumeConfigs[i] = newUUID.String()
+					//fix volume ref to point onto new volume
+					for _, el := range app.VolumeRefList {
+						if el.Uuid == oldUUID {
+							el.Uuid = newUUID.String()
+						}
+					}
+				}
+				dev.SetVolumeConfigs(volumeConfigs)
 				if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 					log.Fatalf("setControllerAndDev: %s", err)
 				}
@@ -635,6 +671,7 @@ You can set access VLAN ID (VID) for a particular network in the format '<networ
 	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "netstat", "app"}, "Show defined elements")
 	podLogsCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
 	podCmd.AddCommand(podRestartCmd)
+	podPurgeCmd.Flags().StringSliceVar(&volumesToPurge, "volumes", []string{}, "Explicitly set volume names to purge, purge all if not defined")
 	podCmd.AddCommand(podPurgeCmd)
 	podModifyInit()
 }
