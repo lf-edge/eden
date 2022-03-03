@@ -80,7 +80,7 @@ $(BINDIR):
 $(DIRECTORY_EXPORT):
 	mkdir -p $@
 
-test: build
+test: build-tests
 	make -C tests TESTS="$(TESTS)" DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
 # create empty drives to use as additional volumes
