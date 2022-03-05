@@ -32,4 +32,12 @@ var ImageStore = map[string]*ImageOptions{
 		Size:   562692096,
 		Sha256: "1b5b3fe616e1eea4176049d434a360344a7d471f799e151190f21b0a27f0b424",
 	},
+	"http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img": {
+		Size:   16300544,
+		Sha256: "932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464",
+	},
+	"http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-aarch64-disk.img": {
+		Size:   16872448,
+		Sha256: "889c1117647b3b16cfc47957931c6573bf8e755fc9098fdcad13727b6c9f2629",
+	},
 }
