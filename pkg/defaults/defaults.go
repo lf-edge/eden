@@ -35,22 +35,23 @@ const (
 
 //domains, ips, ports
 const (
-	DefaultDomain          = "mydomain.adam"
-	DefaultIP              = "192.168.0.1"
-	DefaultEVEIP           = "192.168.1.2"
-	DefaultEserverPort     = 8888
-	DefaultTelnetPort      = 7777
-	DefaultQemuMonitorPort = 7788
-	DefaultSSHPort         = 2222
-	DefaultEVEHost         = "127.0.0.1"
-	DefaultRedisHost       = "localhost"
-	DefaultRedisPort       = 6379
-	DefaultAdamPort        = 3333
-	DefaultRegistryPort    = 5050
+	DefaultDomain               = "mydomain.adam"
+	DefaultIP                   = "192.168.0.1"
+	DefaultEVEIP                = "192.168.1.2"
+	DefaultEserverPort          = 8888
+	DefaultTelnetPort           = 7777
+	DefaultQemuMonitorPort      = 7788
+	DefaultQemuNetdevSocketPort = 7790
+	DefaultSSHPort              = 2222
+	DefaultEVEHost              = "127.0.0.1"
+	DefaultRedisHost            = "localhost"
+	DefaultRedisPort            = 6379
+	DefaultAdamPort             = 3333
+	DefaultRegistryPort         = 5050
 
 	//tags, versions, repos
 	DefaultEVETag               = "0.0.0-master-69a79aea" //DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.34"
+	DefaultAdamTag              = "0.0.35"
 	DefaultRedisTag             = "6"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
@@ -208,34 +209,36 @@ var (
 		"registry.port": "registry-port",
 		"registry.dist": "registry-dist",
 
-		"eve.arch":              "eve-arch",
-		"eve.os":                "eve-os",
-		"eve.accel":             "eve-accel",
-		"eve.hv":                "eve-hv",
-		"eve.serial":            "eve-serial",
-		"eve.pid":               "eve-pid",
-		"eve.log":               "eve-log",
-		"eve.firmware":          "eve-firmware",
-		"eve.repo":              "eve-repo",
-		"eve.registry":          "eve-registry",
-		"eve.tag":               "eve-tag",
-		"eve.uefi-tag":          "eve-uefi-tag",
-		"eve.hostfwd":           "eve-hostfwd",
-		"eve.dist":              "eve-dist",
-		"eve.base-dist":         "eve-base-dist",
-		"eve.qemu-config":       "qemu-config",
-		"eve.uuid":              "uuid",
-		"eve.image-file":        "image-file",
-		"eve.dtb-part":          "dtb-part",
-		"eve.config-part":       "config-part",
-		"eve.base-version":      "os-version",
-		"eve.devmodel":          "devmodel",
-		"eve.devmodelfile":      "devmodel-file",
-		"eve.telnet-port":       "eve-telnet-port",
-		"eve.qemu-monitor-port": "qemu-monitor-port",
-		"eve.cpu":               "cpus",
-		"eve.ram":               "memory",
-		"eve.tpm":               "tpm",
+		"eve.arch":         "eve-arch",
+		"eve.os":           "eve-os",
+		"eve.accel":        "eve-accel",
+		"eve.hv":           "eve-hv",
+		"eve.serial":       "eve-serial",
+		"eve.pid":          "eve-pid",
+		"eve.log":          "eve-log",
+		"eve.firmware":     "eve-firmware",
+		"eve.repo":         "eve-repo",
+		"eve.registry":     "eve-registry",
+		"eve.tag":          "eve-tag",
+		"eve.uefi-tag":     "eve-uefi-tag",
+		"eve.hostfwd":      "eve-hostfwd",
+		"eve.dist":         "eve-dist",
+		"eve.base-dist":    "eve-base-dist",
+		"eve.qemu-config":  "qemu-config",
+		"eve.uuid":         "uuid",
+		"eve.image-file":   "image-file",
+		"eve.dtb-part":     "dtb-part",
+		"eve.config-part":  "config-part",
+		"eve.base-version": "os-version",
+		"eve.devmodel":     "devmodel",
+		"eve.devmodelfile": "devmodel-file",
+		"eve.telnet-port":  "eve-telnet-port",
+		"eve.cpu":          "cpus",
+		"eve.ram":          "memory",
+		"eve.tpm":          "tpm",
+
+		"eve.qemu.monitor-port":       "qemu-monitor-port",
+		"eve.qemu.netdev-socket-port": "qemu-netdev-socket-port",
 
 		"eden.images.dist":   "image-dist",
 		"eden.images.docker": "docker-yml",

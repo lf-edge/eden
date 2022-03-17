@@ -24,21 +24,23 @@ import (
 )
 
 var (
-	qemuARCH          string
-	qemuOS            string
-	qemuAccel         bool
-	qemuSMBIOSSerial  string
-	qemuConfigFile    string
-	qemuForeground    bool
-	qemuMonitorPort   int
-	eveSSHKey         string
-	eveHost           string
-	eveSSHPort        int
-	eveTelnetPort     int
-	eveRemoteAddr     string
-	eveConfigFromFile bool
-	eveInterfaceName  string
-	tapInterface      string
+	qemuARCH             string
+	qemuOS               string
+	qemuAccel            bool
+	qemuSMBIOSSerial     string
+	qemuConfigFile       string
+	qemuForeground       bool
+	qemuMonitorPort      int
+	qemuNetdevSocketPort int
+	eveSSHKey            string
+	eveHost              string
+	eveSSHPort           int
+	eveTelnetPort        int
+	eveRemoteAddr        string
+	eveConfigFromFile    bool
+	eveInterfaceName     string
+	tapInterface         string
+	eveEthLoops          int
 )
 
 var eveCmd = &cobra.Command{
@@ -62,7 +64,8 @@ var startEveCmd = &cobra.Command{
 			qemuAccel = viper.GetBool("eve.accel")
 			qemuSMBIOSSerial = viper.GetString("eve.serial")
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
-			qemuMonitorPort = viper.GetInt("eve.qemu-monitor-port")
+			qemuMonitorPort = viper.GetInt("eve.qemu.monitor-port")
+			qemuNetdevSocketPort = viper.GetInt("eve.qemu.netdev-socket-port")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
@@ -90,8 +93,9 @@ var startEveCmd = &cobra.Command{
 				log.Infof("EVE is starting in Parallels")
 			}
 		} else {
-			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuMonitorPort,
-				hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, tapInterface, false); err != nil {
+			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
+				qemuMonitorPort, qemuNetdevSocketPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile,
+				evePidFile, tapInterface, eveEthLoops, false); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting")
@@ -492,7 +496,7 @@ var linkEveCmd = &cobra.Command{
 		}
 		if viperLoaded {
 			eveRemote = viper.GetBool("eve.remote")
-			qemuMonitorPort = viper.GetInt("eve.qemu-monitor-port")
+			qemuMonitorPort = viper.GetInt("eve.qemu.monitor-port")
 			devModel = viper.GetString("eve.devmodel")
 		}
 		return nil
@@ -641,11 +645,13 @@ func eveInit() {
 	startEveCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startEveCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
 	startEveCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
+	startEveCmd.Flags().IntVarP(&qemuNetdevSocketPort, "qemu-netdev-socket-port", "", defaults.DefaultQemuNetdevSocketPort, "Base port for socket-based ethernet interfaces used in QEMU")
 	startEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	startEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	startEveCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
 	startEveCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startEveCmd.Flags().IntVarP(&eveEthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	stopEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")

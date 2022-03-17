@@ -33,8 +33,7 @@ func (exp *AppExpectation) checkNetworkInstance(netInst *config.NetworkInstanceC
 		return false
 	}
 	if (netInst.Ip.Subnet != "" && netInst.Ip.Subnet == instanceExpect.subnet) || //if subnet defined and the same
-		(instanceExpect.name != "" && netInst.Displayname == instanceExpect.name) || //if name defined and the same
-		(instanceExpect.netInstType == "switch" && netInst.InstType == config.ZNetworkInstType_ZnetInstSwitch) { //only one switch for now
+		(instanceExpect.name != "" && netInst.Displayname == instanceExpect.name) { // if name defined and the same
 		return true
 	}
 	return false

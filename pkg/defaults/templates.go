@@ -140,9 +140,6 @@ eve:
     #ssid for wifi
     ssid: '{{parse "eve.ssid"}}'
 
-    #port for QEMU Monitor
-    qemu-monitor-port: {{parse "eve.qemu-monitor-port"}}
-
     #cpu count
     cpu: {{parse "eve.cpu"}}
 
@@ -154,6 +151,14 @@ eve:
 
     #tpm
     tpm: {{parse "eve.tpm"}}
+
+    #configuration specific to QEMU-emulated device
+    qemu:
+        #port for QEMU Monitor
+        monitor-port: {{parse "eve.qemu.monitor-port"}}
+
+        #base port for socket-based ethernet interfaces used in QEMU
+        netdev-socket-port: {{parse "eve.qemu.netdev-socket-port"}}
 
 eden:
     #root directory of eden

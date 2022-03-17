@@ -17,6 +17,8 @@ type DevModelParallels struct {
 	networks []*config.NetworkConfig
 	//adapters is SystemAdapter slice for DevModel
 	adapters           []*config.SystemAdapter
+	vlanAdapters       []*config.VlanAdapter
+	bondAdapters       []*config.BondAdapter
 	adapterForSwitches []string
 }
 
@@ -53,9 +55,19 @@ func (ctx *DevModelParallels) Adapters() []*config.SystemAdapter {
 	return ctx.adapters
 }
 
+//SetAdapters sets systems adapters of devModel
+func (ctx *DevModelParallels) SetAdapters(adapters []*config.SystemAdapter) {
+	ctx.adapters = adapters
+}
+
 //Networks returns networks of devModel
 func (ctx *DevModelParallels) Networks() []*config.NetworkConfig {
 	return ctx.networks
+}
+
+//SetNetworks sets networks of devModel
+func (ctx *DevModelParallels) SetNetworks(networks []*config.NetworkConfig) {
+	ctx.networks = networks
 }
 
 //PhysicalIOs returns physicalIOs of devModel
@@ -64,9 +76,28 @@ func (ctx *DevModelParallels) PhysicalIOs() []*config.PhysicalIO {
 }
 
 //SetPhysicalIOs sets physicalIOs of devModel
-func (ctx *DevModelParallels) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+func (ctx *DevModelParallels) SetPhysicalIOs(physicalIOs []*config.PhysicalIO) {
 	ctx.physicalIOs = physicalIOs
-	ctx.adapters = filterSystemAdapters(ctx.adapters, ctx.physicalIOs)
+}
+
+//VlanAdapters returns Vlan adapters of devModel
+func (ctx *DevModelParallels) VlanAdapters() []*config.VlanAdapter {
+	return ctx.vlanAdapters
+}
+
+//SetVlanAdapters sets Vlan adapters of devModel
+func (ctx *DevModelParallels) SetVlanAdapters(vlans []*config.VlanAdapter) {
+	ctx.vlanAdapters = vlans
+}
+
+//BondAdapters returns Bond adapters of devModel
+func (ctx *DevModelParallels) BondAdapters() []*config.BondAdapter {
+	return ctx.bondAdapters
+}
+
+//SetBondAdapters sets Bond adapters of devModel
+func (ctx *DevModelParallels) SetBondAdapters(bonds []*config.BondAdapter) {
+	ctx.bondAdapters = bonds
 }
 
 //AdapterForSwitches returns adapterForSwitches of devModel

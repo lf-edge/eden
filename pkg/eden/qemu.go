@@ -16,8 +16,9 @@ import (
 )
 
 //StartEVEQemu function run EVE in qemu
-func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort int, qemuHostFwd map[string]string,
-	qemuAccel bool, qemuConfigFile, logFile, pidFile string, tapInterface string, foregroud bool) (err error) {
+func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort,
+	qemuMonitorPort, qemuNetdevSocketPort int, qemuHostFwd map[string]string, qemuAccel bool,
+	qemuConfigFile, logFile, pidFile string, tapInterface string, ethLoops int, foreground bool) (err error) {
 	qemuCommand := ""
 	qemuOptions := "-display none -nodefaults -no-user-config "
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logfile=%s ", eveTelnetPort, logFile)
@@ -62,7 +63,9 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	}
 	offset := 0
 	network := nets[0].Subnet
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off", 0, network, nets[0].FirstAddress)
+	var ethIndex int
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off",
+		ethIndex, network, nets[0].FirstAddress)
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {
@@ -76,10 +79,12 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
-	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, 0)
+	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, ethIndex)
 	offset += 10
+	ethIndex++
 
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off", 1, network, nets[0].SecondAddress)
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off",
+		ethIndex, network, nets[0].SecondAddress)
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {
@@ -93,11 +98,25 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
-	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, 1)
+	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, ethIndex)
+	ethIndex++
 
 	if tapInterface != "" {
-		qemuOptions += fmt.Sprintf("-netdev tap,id=eth%d,ifname=%s", 2, tapInterface)
-		qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, 2)
+		qemuOptions += fmt.Sprintf("-netdev tap,id=eth%d,ifname=%s", ethIndex, tapInterface)
+		qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, ethIndex)
+		ethIndex++
+	}
+
+	for i := 0; i < ethLoops; i++ {
+		qemuOptions += fmt.Sprintf("-netdev socket,id=eth%d,listen=:%d",
+			ethIndex, qemuNetdevSocketPort)
+		qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, ethIndex)
+		ethIndex++
+		qemuOptions += fmt.Sprintf("-netdev socket,id=eth%d,connect=:%d",
+			ethIndex, qemuNetdevSocketPort)
+		qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, ethIndex)
+		ethIndex++
+		qemuNetdevSocketPort++
 	}
 
 	if qemuOS == "" {
@@ -114,7 +133,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
-	if foregroud {
+	if foreground {
 		if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {
 			return fmt.Errorf("StartEVEQemu: %s", err)
 		}
