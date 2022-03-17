@@ -65,7 +65,8 @@ var startCmd = &cobra.Command{
 			qemuAccel = viper.GetBool("eve.accel")
 			qemuSMBIOSSerial = viper.GetString("eve.serial")
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
-			qemuMonitorPort = viper.GetInt("eve.qemu-monitor-port")
+			qemuMonitorPort = viper.GetInt("eve.qemu.monitor-port")
+			qemuNetdevSocketPort = viper.GetInt("eve.qemu.netdev-socket-port")
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
@@ -117,8 +118,9 @@ var startCmd = &cobra.Command{
 				log.Infof("EVE is starting in Virtual Box")
 			}
 		} else {
-			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort, qemuMonitorPort,
-				hostFwd, qemuAccel, qemuConfigFile, eveLogFile, evePidFile, tapInterface, false); err != nil {
+			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
+				qemuMonitorPort, qemuNetdevSocketPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile,
+				evePidFile, tapInterface, eveEthLoops,false); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting")
@@ -162,4 +164,5 @@ func startInit() {
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path to image drive, overrides default setting")
 	startCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startCmd.Flags().IntVarP(&eveEthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
 }

@@ -33,6 +33,8 @@ type Ctx struct {
 	networks                   []string
 	physicalIO                 []string
 	systemAdapters             []string
+	vlanAdapters               []string
+	bondAdapters               []string
 	applicationInstanceConfigs []string
 	contentTrees               []string
 	volumes                    []string
@@ -83,6 +85,12 @@ func (cfg *Ctx) GetNetworks() []string { return cfg.networks }
 
 //GetPhysicalIOs return physicalIO of device
 func (cfg *Ctx) GetPhysicalIOs() []string { return cfg.physicalIO }
+
+//GetVlanAdapters return vlansAdapters of device
+func (cfg *Ctx) GetVlanAdapters() []string { return cfg.vlanAdapters }
+
+//GetBondAdapters return bondAdapters of device
+func (cfg *Ctx) GetBondAdapters() []string { return cfg.bondAdapters }
 
 //GetSystemAdapters return systemAdapters of device
 func (cfg *Ctx) GetSystemAdapters() []string { return cfg.systemAdapters }
@@ -154,6 +162,18 @@ func (cfg *Ctx) SetPhysicalIOConfig(configIDs []string) *Ctx {
 //SetSystemAdaptersConfig set systemAdapters by configIDs from cloud
 func (cfg *Ctx) SetSystemAdaptersConfig(configIDs []string) *Ctx {
 	cfg.systemAdapters = configIDs
+	return cfg
+}
+
+//SetVlanAdaptersConfig set vlanAdapters by configIDs from cloud
+func (cfg *Ctx) SetVlanAdaptersConfig(configIDs []string) *Ctx {
+	cfg.vlanAdapters = configIDs
+	return cfg
+}
+
+//SetBondAdaptersConfig set bondAdapters by configIDs from cloud
+func (cfg *Ctx) SetBondAdaptersConfig(configIDs []string) *Ctx {
+	cfg.bondAdapters = configIDs
 	return cfg
 }
 

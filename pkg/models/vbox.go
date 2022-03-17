@@ -16,7 +16,9 @@ type DevModelVBox struct {
 	//networks is NetworkConfig slice for DevModelVBox
 	networks []*config.NetworkConfig
 	//adapters is SystemAdapter slice for DevModelVBox
-	adapters []*config.SystemAdapter
+	adapters     []*config.SystemAdapter
+	vlanAdapters []*config.VlanAdapter
+	bondAdapters []*config.BondAdapter
 	//adapterForSwitches is name of adapter for use in switch
 	adapterForSwitches []string
 }
@@ -54,9 +56,19 @@ func (ctx *DevModelVBox) Adapters() []*config.SystemAdapter {
 	return ctx.adapters
 }
 
+//SetAdapters sets systems adapters of devModel
+func (ctx *DevModelVBox) SetAdapters(adapters []*config.SystemAdapter) {
+	ctx.adapters = adapters
+}
+
 //Networks returns networks of DevModelVBox
 func (ctx *DevModelVBox) Networks() []*config.NetworkConfig {
 	return ctx.networks
+}
+
+//SetNetworks sets networks of devModel
+func (ctx *DevModelVBox) SetNetworks(networks []*config.NetworkConfig) {
+	ctx.networks = networks
 }
 
 //PhysicalIOs returns physicalIOs of DevModelVBox
@@ -65,9 +77,28 @@ func (ctx *DevModelVBox) PhysicalIOs() []*config.PhysicalIO {
 }
 
 //SetPhysicalIOs sets physicalIOs of devModel
-func (ctx *DevModelVBox) SetPhysicalIOs(physicalIOs []*config.PhysicalIO){
+func (ctx *DevModelVBox) SetPhysicalIOs(physicalIOs []*config.PhysicalIO) {
 	ctx.physicalIOs = physicalIOs
-	ctx.adapters = filterSystemAdapters(ctx.adapters, ctx.physicalIOs)
+}
+
+//VlanAdapters returns Vlan adapters of devModel
+func (ctx *DevModelVBox) VlanAdapters() []*config.VlanAdapter {
+	return ctx.vlanAdapters
+}
+
+//SetVlanAdapters sets Vlan adapters of devModel
+func (ctx *DevModelVBox) SetVlanAdapters(vlans []*config.VlanAdapter) {
+	ctx.vlanAdapters = vlans
+}
+
+//BondAdapters returns Bond adapters of devModel
+func (ctx *DevModelVBox) BondAdapters() []*config.BondAdapter {
+	return ctx.bondAdapters
+}
+
+//SetBondAdapters sets Bond adapters of devModel
+func (ctx *DevModelVBox) SetBondAdapters(bonds []*config.BondAdapter) {
+	ctx.bondAdapters = bonds
 }
 
 //AdapterForSwitches returns adapterForSwitches of DevModelVBox

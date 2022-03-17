@@ -149,6 +149,28 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	}
 	dev.SetSystemAdaptersConfig(systemAdapters)
 
+	var vlanAdapters []string
+	for _, el := range config.Vlans {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return nil, err
+		}
+		_ = cloud.AddVlanAdapter(id.String(), el)
+		vlanAdapters = append(vlanAdapters, id.String())
+	}
+	dev.SetVlanAdaptersConfig(vlanAdapters)
+
+	var bondAdapters []string
+	for _, el := range config.Bonds {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return nil, err
+		}
+		_ = cloud.AddBondAdapter(id.String(), el)
+		bondAdapters = append(bondAdapters, id.String())
+	}
+	dev.SetBondAdaptersConfig(bondAdapters)
+
 	var appInstances []string
 	for _, el := range config.Apps {
 		_ = cloud.AddApplicationInstanceConfig(el)
@@ -342,6 +364,32 @@ func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel models.DevModel) 
 		physicalIOs = append(physicalIOs, id.String())
 	}
 	dev.SetPhysicalIOConfig(physicalIOs)
+	var vlans []string
+	for _, el := range devModel.VlanAdapters() {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+		err = cloud.AddVlanAdapter(id.String(), el)
+		if err != nil {
+			return err
+		}
+		vlans = append(vlans, id.String())
+	}
+	dev.SetVlanAdaptersConfig(vlans)
+	var bonds []string
+	for _, el := range devModel.BondAdapters() {
+		id, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+		err = cloud.AddBondAdapter(id.String(), el)
+		if err != nil {
+			return err
+		}
+		bonds = append(bonds, id.String())
+	}
+	dev.SetBondAdaptersConfig(bonds)
 	dev.SetDevModel(string(devModel.DevModelType()))
 	return nil
 }
@@ -504,6 +552,22 @@ volumeLoop:
 		}
 		physicalIOs = append(physicalIOs, physicalIOConfig)
 	}
+	var vlanAdapters []*config.VlanAdapter
+	for _, vlanID := range dev.GetVlanAdapters() {
+		vlanConfig, err := cloud.GetVlanAdapter(vlanID)
+		if err != nil {
+			return nil, err
+		}
+		vlanAdapters = append(vlanAdapters, vlanConfig)
+	}
+	var bondAdapters []*config.BondAdapter
+	for _, bondID := range dev.GetBondAdapters() {
+		bondConfig, err := cloud.GetBondAdapter(bondID)
+		if err != nil {
+			return nil, err
+		}
+		bondAdapters = append(bondAdapters, bondConfig)
+	}
 	var networkConfigs []*config.NetworkConfig
 	for _, networkConfigID := range dev.GetNetworks() {
 		networkConfig, err := cloud.GetNetworkConfig(networkConfigID)
@@ -554,6 +618,8 @@ volumeLoop:
 		ConfigItems:        configItems,
 		SystemAdapterList:  systemAdapterConfigs,
 		DeviceIoList:       physicalIOs,
+		Vlans:              vlanAdapters,
+		Bonds:              bondAdapters,
 		Manufacturer:       "",
 		ProductName:        dev.GetDevModel(),
 		NetworkInstances:   networkInstanceConfigs,

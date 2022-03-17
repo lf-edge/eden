@@ -21,6 +21,8 @@ type CloudCtx struct {
 	networks             []*config.NetworkConfig
 	physicalIOs          map[string]*config.PhysicalIO
 	systemAdapters       map[string]*config.SystemAdapter
+	vlanAdapters         map[string]*config.VlanAdapter
+	bondAdapters         map[string]*config.BondAdapter
 	applicationInstances []*config.AppInstanceConfig
 	vars                 *utils.ConfigVars
 }
@@ -67,6 +69,12 @@ type Cloud interface {
 	GetSystemAdapter(id string) (systemAdapter *config.SystemAdapter, err error)
 	AddSystemAdapter(id string, systemAdapter *config.SystemAdapter) error
 	RemoveSystemAdapter(id string) error
+	GetVlanAdapter(id string) (vlanAdapter *config.VlanAdapter, err error)
+	AddVlanAdapter(id string, vlanAdapter *config.VlanAdapter) error
+	RemoveVlanAdapter(id string) error
+	GetBondAdapter(id string) (bondAdapter *config.BondAdapter, err error)
+	AddBondAdapter(id string, bondAdapter *config.BondAdapter) error
+	RemoveBondAdapter(id string) error
 	ApplyDevModel(dev *device.Ctx, devModel models.DevModel) error
 	GetApplicationInstanceConfig(id string) (applicationInstanceConfig *config.AppInstanceConfig, err error)
 	AddApplicationInstanceConfig(applicationInstanceConfig *config.AppInstanceConfig) error
