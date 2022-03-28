@@ -7,11 +7,9 @@ package testscript
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"sync/atomic"
-	"testing"
 )
 
 var profileID int32
@@ -141,7 +139,7 @@ func runCoverSubcommand(cprof string, mainf func() int) (exitCode int) {
 
 		// Run MainStart (recursively, but it we should be ok) with no tests
 		// so that it writes the coverage profile.
-		m := testing.MainStart(nopTestDeps{}, nil, nil, nil)
+		m := getTestingMain()
 		if code := m.Run(); code != 0 && exitCode == 0 {
 			exitCode = code
 		}
@@ -180,36 +178,4 @@ func coverProfile() string {
 
 func setCoverProfile(cprof string) {
 	_ = coverProfileFlag().Set(cprof)
-}
-
-type nopTestDeps struct{}
-
-func (nopTestDeps) SetPanicOnExit0(_ bool) {}
-
-func (nopTestDeps) MatchString(_, _ string) (result bool, err error) {
-	return false, nil
-}
-
-func (nopTestDeps) StartCPUProfile(_ io.Writer) error {
-	return nil
-}
-
-func (nopTestDeps) StopCPUProfile() {}
-
-func (nopTestDeps) WriteProfileTo(_ string, _ io.Writer, _ int) error {
-	return nil
-}
-func (nopTestDeps) ImportPath() string {
-	return ""
-}
-func (nopTestDeps) StartTestLog(_ io.Writer) {}
-
-func (nopTestDeps) StopTestLog() error {
-	return nil
-}
-
-// Note: WriteHeapProfile is needed for Go 1.10 but not Go 1.11.
-func (nopTestDeps) WriteHeapProfile(io.Writer) error {
-	// Not needed for Go 1.10.
-	return nil
 }
