@@ -118,6 +118,8 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/radio_silence
 /bin/echo Eden test app info (21.5/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_local_info
+/bin/echo Eden test app info (21.6/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dhcp
 
 {{if (eq $usb_pt "y")}}
 /bin/echo Hardware reboot - USB (22/{{$tests}})
