@@ -19,7 +19,8 @@ RUN apk add --no-cache lshw \
     jq \
     setserial \
     avahi \
-    lsblk
+    lsblk \
+    dhcping
 
 COPY cert/id_rsa* /root/.ssh/
 COPY cert/id_rsa.pub /root/.ssh/authorized_keys
