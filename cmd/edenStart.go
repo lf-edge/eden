@@ -83,6 +83,12 @@ var startCmd = &cobra.Command{
 		} else {
 			log.Infof("Redis is running and accessible on port %d", redisPort)
 		}
+		if err := eden.StartSwtpm("latest"); err != nil {
+			log.Errorf("cannot start swtpm: %s", err)
+		} else {
+			log.Infof("swtpm is running and accessible via unix socket")
+		}
+
 		if !adamRemoteRedis {
 			adamRemoteRedisURL = ""
 		}

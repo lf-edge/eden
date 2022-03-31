@@ -100,6 +100,8 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, 2)
 	}
 
+  qemuOptions += "-chardev socket,id=chrtpm,path=/tmp/swtpm-sock -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 "
+
 	if qemuOS == "" {
 		qemuOS = runtime.GOOS
 	} else {
