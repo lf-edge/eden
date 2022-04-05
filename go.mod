@@ -32,7 +32,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lf-edge/eden/eserver v0.0.0-20201210161141-8551a3b0751b
 	github.com/lf-edge/edge-containers v0.0.0-20210630151415-7dbb4f290dab
-	github.com/lf-edge/eve/api/go v0.0.0-20220125064314-55e8c30d0b76
+	github.com/lf-edge/eve/api/go v0.0.0-20220316204329-846f0a12103a
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
