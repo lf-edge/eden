@@ -21,7 +21,7 @@ OS ?= $(HOSTOS)
 WORKDIR ?= $(CURDIR)/../dist
 
 gotestsum:
-	go get gotest.tools/gotestsum
+	go get -d gotest.tools/gotestsum
 
 #test: $(TESTS:=_test)
 test: gotestsum
