@@ -202,6 +202,9 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	if config.Reboot != nil {
 		dev.SetRebootCounter(config.Reboot.Counter, config.Reboot.DesiredState)
 	}
+	if config.Shutdown != nil {
+		dev.SetShutdownCounter(config.Shutdown.Counter, config.Shutdown.DesiredState)
+	}
 	dev.SetEpoch(config.ControllerEpoch)
 	dev.SetGlobalProfile(config.GlobalProfile)
 	dev.SetLocalProfileServer(config.LocalProfileServer)
@@ -602,6 +605,8 @@ volumeLoop:
 
 	rebootCounter, rebootState := dev.GetRebootCounter()
 	rebootCmd := &config.DeviceOpsCmd{Counter: rebootCounter, DesiredState: rebootState}
+	shutdownCounter, shutdownState := dev.GetShutdownCounter()
+	shutdownCmd := &config.DeviceOpsCmd{Counter: shutdownCounter, DesiredState: shutdownState}
 	devConfig := &config.EdgeDevConfig{
 		Id: &config.UUIDandVersion{
 			Uuid:    dev.GetID().String(),
@@ -614,6 +619,7 @@ volumeLoop:
 		Datastores:         dataStores,
 		Base:               baseOS,
 		Reboot:             rebootCmd,
+		Shutdown:           shutdownCmd,
 		Backup:             nil,
 		ConfigItems:        configItems,
 		SystemAdapterList:  systemAdapterConfigs,
