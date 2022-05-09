@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/profile"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -32,6 +33,10 @@ var (
 		"File to save app info status")
 	appCmdFile = flag.String("app-command", "/mnt/app-command.json",
 		"File to save (single) app command request")
+	locationFile = flag.String("location", "/mnt/location.json",
+		"File to save location info obtained from EVE")
+	locationThrottleFile = flag.String("location-throttle", "/mnt/location.throttle",
+		"When this file exists, location reporting is throttled")
 	token = flag.String("token", "", "Token of profile server")
 )
 
@@ -47,6 +52,7 @@ func main() {
 	http.HandleFunc("/api/v1/local_profile", localProfile)
 	http.HandleFunc("/api/v1/radio", radio)
 	http.HandleFunc("/api/v1/appinfo", appinfo)
+	http.HandleFunc("/api/v1/location", location)
 	fmt.Println(http.ListenAndServe(":8888", nil))
 }
 
@@ -264,5 +270,52 @@ func radio(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Failed to write: %s\n", err)
 	} else {
 		radioSilenceIsChanging = radioStatus.RadioSilence != radioConfig.RadioSilence
+	}
+}
+
+func location(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to read request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	locInfo := &info.ZInfoLocation{}
+	err = proto.Unmarshal(body, locInfo)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to unmarshal request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	data, err := protojson.MarshalOptions{Multiline: true}.Marshal(locInfo)
+	if err != nil {
+		errStr := fmt.Sprintf("Marshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	err = ioutil.WriteFile(*locationFile, data, 0644)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to write request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+
+	_, err = os.Stat(*locationThrottleFile)
+	notExist := err != nil && os.IsNotExist(err)
+	if notExist {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		// throttle location reporting
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
