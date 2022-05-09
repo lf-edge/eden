@@ -122,6 +122,8 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/radio
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_local_info
 /bin/echo Eden test app info (21.6/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dhcp
+/bin/echo Eden location publish test (21.7/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
 
 {{if (eq $usb_pt "y")}}
 /bin/echo Hardware reboot - USB (22/{{$tests}})
