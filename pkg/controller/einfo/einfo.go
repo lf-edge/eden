@@ -49,6 +49,9 @@ func InfoPrn(im *info.ZInfoMsg) {
 	if im.GetNiinfo() != nil {
 		fmt.Println("niinfo:", im.GetNiinfo())
 	}
+	if im.GetLocinfo() != nil {
+		fmt.Println("locinfo:", im.GetLocinfo())
+	}
 	fmt.Println("atTimeStamp:", im.GetAtTimeStamp().AsTime())
 	fmt.Println()
 }
