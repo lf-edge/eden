@@ -14,6 +14,12 @@ started, but not that useful in production.
 Note that KVM requires that the virtual machine host's processor
 has virtualization support.
 
+Qemu instance may be started with vTPM device to fully support EVE-OS
+security considerations. To use vTPM please ensure that
+[swtpm](https://github.com/stefanberger/swtpm/wiki) package is built/installed
+in you system and configure eden with
+`eden config set default --key eve.tpm --value true`.
+
 ## GCP deployment
 
 This deployment type is activated  by flag `--devmodel GCP`

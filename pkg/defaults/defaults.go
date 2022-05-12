@@ -26,6 +26,7 @@ const (
 	DefaultSSHKey           = "certs/id_rsa.pub" //file for save ssh key
 	DefaultConfigHidden     = ".eden-config.yml" //file to save config get --all
 	DefaultConfigSaved      = "config_saved.yml" //file to save config during 'eden setup'
+	DefaultSwtpmSockFile    = "swtpm-sock"       //file to communicate with swtpm
 
 	DefaultContext = "default" //default context name
 

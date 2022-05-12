@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -15,14 +17,37 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//StartSWTPM starts swtpm process and use stateDir as state, log, pid and socket location
+func StartSWTPM(stateDir string) error {
+	if err := os.MkdirAll(stateDir, 0777); err != nil {
+		return err
+	}
+	command := "swtpm"
+	logFile := filepath.Join(stateDir, fmt.Sprintf("%s.log", command))
+	pidFile := filepath.Join(stateDir, fmt.Sprintf("%s.pid", command))
+	options := fmt.Sprintf("socket --tpmstate dir=%s --ctrl type=unixio,path=%s --log level=20 --tpm2", stateDir, filepath.Join(stateDir, defaults.DefaultSwtpmSockFile))
+	if err := utils.RunCommandNohup(command, logFile, pidFile, strings.Fields(options)...); err != nil {
+		return fmt.Errorf("StartSWTPM: %s", err)
+	}
+	return nil
+}
+
+//StopSWTPM stops swtpm process using pid from stateDir
+func StopSWTPM(stateDir string) error {
+	command := "swtpm"
+	pidFile := filepath.Join(stateDir, fmt.Sprintf("%s.pid", command))
+	return utils.StopCommandWithPid(pidFile)
+}
+
 //StartEVEQemu function run EVE in qemu
 func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTelnetPort,
 	qemuMonitorPort, qemuNetdevSocketPort int, qemuHostFwd map[string]string, qemuAccel bool,
-	qemuConfigFile, logFile, pidFile string, tapInterface string, ethLoops int, foreground bool) (err error) {
+	qemuConfigFile, logFile, pidFile string, tapInterface string, ethLoops int, swtpm, foreground bool) (err error) {
 	qemuCommand := ""
 	qemuOptions := "-display none -nodefaults -no-user-config "
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logfile=%s ", eveTelnetPort, logFile)
 	netDev := "e1000"
+	tpmDev := "tpm-tis"
 	if qemuARCH == "" {
 		qemuARCH = runtime.GOARCH
 	} else {
@@ -48,6 +73,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 			qemuOptions += defaults.DefaultQemulArm64
 		}
 		netDev = "virtio-net-pci"
+		tpmDev = "tpm-tis-device"
 	default:
 		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
 	}
@@ -118,7 +144,10 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		ethIndex++
 		qemuNetdevSocketPort++
 	}
-
+	if swtpm {
+		tpmSocket := filepath.Join(filepath.Dir(eveImageFile), "swtpm", defaults.DefaultSwtpmSockFile)
+		qemuOptions += fmt.Sprintf("-chardev socket,id=chrtpm,path=%s -tpmdev emulator,id=tpm0,chardev=chrtpm -device %s,tpmdev=tpm0 ", tpmSocket, tpmDev)
+	}
 	if qemuOS == "" {
 		qemuOS = runtime.GOOS
 	} else {
