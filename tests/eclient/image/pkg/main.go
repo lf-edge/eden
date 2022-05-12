@@ -33,6 +33,10 @@ var (
 		"File to save app info status")
 	appCmdFile = flag.String("app-command", "/mnt/app-command.json",
 		"File to save (single) app command request")
+	devInfoFile = flag.String("dev-info-status", "/mnt/dev-info-status.json",
+		"File to save dev info status")
+	devCmdFile = flag.String("dev-command", "/mnt/dev-command.json",
+		"File to save (single) dev command request")
 	locationFile = flag.String("location", "/mnt/location.json",
 		"File to save location info obtained from EVE")
 	locationThrottleFile = flag.String("location-throttle", "/mnt/location.throttle",
@@ -45,6 +49,7 @@ var (
 	radioSilenceCounter    int
 	radioSilenceMTime      time.Time
 	appCmdMTime            time.Time
+	devCmdMTime            time.Time
 )
 
 func main() {
@@ -52,6 +57,7 @@ func main() {
 	http.HandleFunc("/api/v1/local_profile", localProfile)
 	http.HandleFunc("/api/v1/radio", radio)
 	http.HandleFunc("/api/v1/appinfo", appinfo)
+	http.HandleFunc("/api/v1/devinfo", devinfo)
 	http.HandleFunc("/api/v1/location", location)
 	fmt.Println(http.ListenAndServe(":8888", nil))
 }
@@ -129,6 +135,89 @@ func appinfo(w http.ResponseWriter, r *http.Request) {
 			appCommand,
 		},
 	})
+	if err != nil {
+		errStr := fmt.Sprintf("Marshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(contentType, mimeProto)
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(data); err != nil {
+		fmt.Printf("Failed to write: %s\n", err)
+	}
+}
+
+func devinfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to read request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	devInfo := &profile.LocalDevInfo{}
+	err = proto.Unmarshal(body, devInfo)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to unmarshal request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	data, err := protojson.MarshalOptions{Multiline: true}.Marshal(devInfo)
+	if err != nil {
+		errStr := fmt.Sprintf("Marshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	err = ioutil.WriteFile(*devInfoFile, data, 0644)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to write request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+
+	// Submit application command if requested.
+	cmdFile, err := os.Stat(*devCmdFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			errStr := fmt.Sprintf("Stat: %s", err)
+			fmt.Println(errStr)
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if cmdFile.ModTime().Equal(devCmdMTime) {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	devCmdMTime = cmdFile.ModTime()
+	data, err = ioutil.ReadFile(*devCmdFile)
+	if err != nil {
+		errStr := fmt.Sprintf("ReadFile: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	devCommand := &profile.LocalDevCmd{}
+	err = protojson.Unmarshal(data, devCommand)
+	if err != nil {
+		errStr := fmt.Sprintf("Unmarshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	devCommand.ServerToken = *token
+	devCommand.Timestamp = uint64(devCmdMTime.UTC().Unix())
+	data, err = proto.Marshal(devCommand)
 	if err != nil {
 		errStr := fmt.Sprintf("Marshal: %s", err)
 		fmt.Println(errStr)
