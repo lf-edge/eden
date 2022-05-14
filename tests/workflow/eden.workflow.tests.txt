@@ -176,6 +176,9 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/eclie
 /bin/echo Eden Reboot test (34/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/reboot_test
 
+/bin/echo Eden Shutdown test (34.1/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/shutdown_test
+
 {{ if ne $workflow "small" }}
 /bin/echo Eden base OS update http (35/{{$tests}})
 eden.escript.test -testdata ../update_eve_image/testdata/ -test.run TestEdenScripts/update_eve_image_http
