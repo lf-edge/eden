@@ -41,6 +41,8 @@ type Ctx struct {
 	configItems                map[string]string
 	rebootCounter              uint32
 	rebootState                bool
+	shutdownCounter            uint32
+	shutdownState              bool
 	devModel                   string
 	remote                     bool
 	remoteAddr                 string
@@ -217,6 +219,17 @@ func (cfg *Ctx) GetRebootCounter() (counter uint32, state bool) {
 	return cfg.rebootCounter, cfg.rebootState
 }
 
+//SetShutdownCounter setter
+func (cfg *Ctx) SetShutdownCounter(counter uint32, state bool) {
+	cfg.shutdownCounter = counter
+	cfg.shutdownState = state
+}
+
+//GetShutdownCounter getter
+func (cfg *Ctx) GetShutdownCounter() (counter uint32, state bool) {
+	return cfg.shutdownCounter, cfg.shutdownState
+}
+
 //SetProject setter
 func (cfg *Ctx) SetProject(name string) {
 	cfg.project = name
@@ -229,6 +242,15 @@ func (cfg *Ctx) Reboot() {
 	}
 	c, _ := cfg.GetRebootCounter()
 	cfg.SetRebootCounter(c+1, true)
+}
+
+//Shutdown node app instances by incrementing RebootCounter
+func (cfg *Ctx) Shutdown() {
+	if cfg == nil {
+		log.Fatal("EdgeNode not initialized")
+	}
+	c, _ := cfg.GetShutdownCounter()
+	cfg.SetShutdownCounter(c+1, true)
 }
 
 //GetState setter

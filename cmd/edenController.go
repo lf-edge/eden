@@ -66,12 +66,40 @@ var edgeNodeReboot = &cobra.Command{
 		if err != nil {
 			log.Fatalf("getControllerAndDev error: %s", err)
 		}
-		rebootCounter, _ := dev.GetRebootCounter()
-		dev.SetRebootCounter(rebootCounter+1, true)
+		dev.Reboot()
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev error: %s", err)
 		}
 		log.Info("Reboot request has been sent")
+	},
+}
+
+var edgeNodeShutdown = &cobra.Command{
+	Use:   "shutdown",
+	Short: "shutdown EVE app instances",
+	Long:  `shutdown EVE app instances.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		changer, err := changerByControllerMode(controllerMode)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev error: %s", err)
+		}
+		dev.Shutdown()
+		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+			log.Fatalf("setControllerAndDev error: %s", err)
+		}
+		log.Info("Shutdown request has been sent")
 	},
 }
 
@@ -385,6 +413,7 @@ var edgeNodeSetConfig = &cobra.Command{
 func controllerInit() {
 	controllerCmd.AddCommand(edgeNode)
 	edgeNode.AddCommand(edgeNodeReboot)
+	edgeNode.AddCommand(edgeNodeShutdown)
 	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
 	edgeNode.AddCommand(edgeNodeEVEImageRemove)
 	edgeNode.AddCommand(edgeNodeUpdate)
