@@ -72,6 +72,7 @@ var startEveCmd = &cobra.Command{
 			eveRemote = viper.GetBool("eve.remote")
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
 			devModel = viper.GetString("eve.devmodel")
+			gcpvTPM = viper.GetBool("eve.tpm")
 		}
 		return nil
 	},
@@ -93,9 +94,17 @@ var startEveCmd = &cobra.Command{
 				log.Infof("EVE is starting in Parallels")
 			}
 		} else {
+			if gcpvTPM {
+				err := eden.StartSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
+				if err != nil {
+					log.Errorf("cannot start swtpm: %s", err)
+				} else {
+					log.Infof("swtpm is starting")
+				}
+			}
 			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
 				qemuMonitorPort, qemuNetdevSocketPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile,
-				evePidFile, tapInterface, eveEthLoops, false); err != nil {
+				evePidFile, tapInterface, eveEthLoops, gcpvTPM, false); err != nil {
 				log.Errorf("cannot start eve: %s", err)
 			} else {
 				log.Infof("EVE is starting")
@@ -118,6 +127,8 @@ var stopEveCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 			devModel = viper.GetString("eve.devmodel")
+			gcpvTPM = viper.GetBool("eve.tpm")
+			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 		}
 		return nil
 	},
@@ -143,6 +154,14 @@ var stopEveCmd = &cobra.Command{
 				log.Errorf("cannot stop eve: %s", err)
 			} else {
 				log.Infof("EVE is stopping")
+			}
+			if gcpvTPM {
+				err := eden.StopSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
+				if err != nil {
+					log.Errorf("cannot stop swtpm: %s", err)
+				} else {
+					log.Infof("swtpm is stopping")
+				}
 			}
 		}
 	},

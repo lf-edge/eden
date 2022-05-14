@@ -57,10 +57,8 @@ eden.escript.test -test.run TestEdenScripts/eve_restart
 eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/log_test
 /bin/echo Eden SSH test (06/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ssh
-{{ if or (eq $workflow "large") (eq $workflow "gcp") }}
 /bin/echo Eden Info test (07/{{$tests}})
 eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/info_test
-{{end}}
 /bin/echo Eden Metric test (08/{{$tests}})
 eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/metric_test
 

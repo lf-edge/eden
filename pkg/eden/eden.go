@@ -761,6 +761,12 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 			} else {
 				log.Infof("EVE stopped")
 			}
+			err := StopSWTPM(filepath.Join(imagesDist, "swtpm"))
+			if err != nil {
+				log.Errorf("cannot stop swtpm: %s", err)
+			} else {
+				log.Infof("swtpm is stopping")
+			}
 		}
 	}
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
@@ -787,7 +793,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 }
 
 //StopEden teardown Eden
-func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile string, devModel string, vmName string) {
+func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile, swtpmPidFile, devModel, vmName string) {
 	if err := StopAdam(adamRm); err != nil {
 		log.Infof("cannot stop adam: %s", err)
 	} else {
@@ -827,13 +833,23 @@ func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile
 			} else {
 				log.Infof("EVE stopped")
 			}
+			if swtpmPidFile != "" {
+				err := StopSWTPM(filepath.Dir(swtpmPidFile))
+				if err != nil {
+					log.Infof("cannot stop swtpm: %s", err)
+				} else {
+					log.Infof("swtpm is stopping")
+				}
+			}
 		}
 	}
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID string, configSaved string, remote bool, devModel string, vmName string) (err error) {
-	StopEden(true, true, true, true, remote, evePID, devModel, vmName)
+func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID, configSaved string, remote bool, devModel, vmName string) (err error) {
+	command := "swtpm"
+	swtpmPidFile := filepath.Join(imagesDist, fmt.Sprintf("%s.pid", command))
+	StopEden(true, true, true, true, remote, evePID, swtpmPidFile, devModel, vmName)
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
 			return fmt.Errorf("CleanEden: error in %s delete: %s", eveDist, err)

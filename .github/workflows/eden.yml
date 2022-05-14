@@ -6,7 +6,12 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   integration:
+    name: Integration tests (tpm=${{ matrix.tpm }})
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        tpm: ["true", "false"]
     steps:
       - name: get eden
         uses: actions/checkout@v2
@@ -25,7 +30,8 @@ jobs:
       - name: setup
         run: |
           sudo add-apt-repository ppa:canonical-server/server-backports
-          sudo apt install -y qemu-utils qemu-system-x86 jq
+          sudo add-apt-repository ppa:itrue/swtpm
+          sudo apt install -y qemu-utils qemu-system-x86 jq swtpm
       - name: build eden
         run: |
           make build-tests
@@ -33,6 +39,7 @@ jobs:
         run: |
           ./eden config add default
           ./eden config set default --key=eve.accel --value=false
+          ./eden config set default --key=eve.tpm --value=${{ matrix.tpm }}
           ./eden config set default --key=eve.cpu --value=2
           echo > tests/workflow/testdata/eden_stop.txt
           ./eden test ./tests/workflow -v debug
@@ -68,7 +75,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
-          name: 'eden-report'
+          name: eden-report-tpm-${{ matrix.tpm }}
           path: |
               ${{ github.workspace }}/trace.log
               ${{ github.workspace }}/info.log
