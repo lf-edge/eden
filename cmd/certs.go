@@ -48,7 +48,7 @@ var certsCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, password, apiV1); err != nil {
+		if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, password, grubOptions, apiV1); err != nil {
 			log.Errorf("cannot GenerateEveCerts: %s", err)
 		} else {
 			log.Info("GenerateEveCerts done")
@@ -73,4 +73,5 @@ func certsInit() {
 	certsCmd.Flags().StringVarP(&certsUUID, "uuid", "u", defaults.DefaultUUID, "UUID to use for device")
 	certsCmd.Flags().StringVar(&ssid, "ssid", "", "SSID for wifi")
 	certsCmd.Flags().StringVar(&password, "password", "", "password for wifi")
+	certsCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
 }

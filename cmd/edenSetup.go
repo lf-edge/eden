@@ -52,6 +52,8 @@ var (
 	zedcontrolURL string
 
 	ipxeOverride string
+
+	grubOptions []string
 )
 
 func generateScripts(in string, out string) {
@@ -228,7 +230,7 @@ var setupCmd = &cobra.Command{
 				fmt.Println()
 			}
 			if zedcontrolURL == "" {
-				if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, wifiPSK, apiV1); err != nil {
+				if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, wifiPSK, grubOptions, apiV1); err != nil {
 					log.Errorf("cannot GenerateEveCerts: %s", err)
 				} else {
 					log.Info("GenerateEveCerts done")
@@ -518,4 +520,5 @@ func setupInit() {
 	setupCmd.Flags().StringVar(&zedcontrolURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
 
 	setupCmd.Flags().StringVar(&ipxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
+	setupCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
 }

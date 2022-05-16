@@ -393,7 +393,7 @@ func StatusEServer() (status string, err error) {
 }
 
 //GenerateEveCerts function generates certs for EVE
-func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, password string, apiV1 bool) (err error) {
+func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, password string, grubOptions []string, apiV1 bool) (err error) {
 	model, err := models.GetDevModelByName(devModel)
 	if err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
@@ -491,8 +491,19 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 	}
 	if model.DevModelType() == defaults.DefaultQemuModel && viper.GetString("eve.arch") == "arm64" {
 		// we need to properly set console for qemu arm64
-		if err := ioutil.WriteFile(filepath.Join(certsDir, "grub.cfg"), []byte("set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\""), 0666); err != nil {
-			return fmt.Errorf("GenerateEveCerts: %s", err)
+		grubOptions = append(grubOptions, "set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\"")
+	}
+	if len(grubOptions) > 0 {
+		f, err := os.Create(filepath.Join(certsDir, "grub.cfg"))
+		if err != nil {
+			return fmt.Errorf("GenerateEveCerts: cannot create grub file: %s", err)
+		}
+		defer f.Close()
+		for _, line := range grubOptions {
+			_, err = f.WriteString(line)
+			if err != nil {
+				return fmt.Errorf("GenerateEveCerts: cannot write to grub file: %s", err)
+			}
 		}
 	}
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
