@@ -956,47 +956,47 @@ func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
 		evePID, swtpmPidFile, sdnPID, devModel, vmName)
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", eveDist, err)
+			return fmt.Errorf("1 CleanEden: error in %s delete: %s", eveDist, err)
 		}
 	}
 	if _, err = os.Stat(certsDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(certsDist); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", certsDist, err)
+			return fmt.Errorf("2 CleanEden: error in %s delete: %s", certsDist, err)
 		}
 	}
 	if _, err = os.Stat(imagesDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(imagesDist); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", imagesDist, err)
+			return fmt.Errorf("3 CleanEden: error in %s delete: %s", imagesDist, err)
 		}
 	}
 	if _, err = os.Stat(eserverDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eserverDist); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", eserverDist, err)
+			return fmt.Errorf("4 CleanEden: error in %s delete: %s", eserverDist, err)
 		}
 	}
 	if _, err = os.Stat(adamDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(adamDist); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", adamDist, err)
+			return fmt.Errorf("5 CleanEden: error in %s delete: %s", adamDist, err)
 		}
 	}
 	if _, err = os.Stat(redisDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(redisDist); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", redisDist, err)
+			return fmt.Errorf("6 CleanEden: error in %s delete: %s", redisDist, err)
 		}
 	}
 	if _, err = os.Stat(registryDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(registryDist); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", registryDist, err)
+			return fmt.Errorf("7 CleanEden: error in %s delete: %s", registryDist, err)
 		}
 	}
 	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configDir); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", configDir, err)
+			return fmt.Errorf("8 CleanEden: error in %s delete: %s", configDir, err)
 		}
 	}
 	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configSaved); err != nil {
-			return fmt.Errorf("CleanEden: error in %s delete: %s", configSaved, err)
+			return fmt.Errorf("9 CleanEden: error in %s delete: %s", configSaved, err)
 		}
 	}
 	if err = utils.RemoveGeneratedVolumeOfContainer(defaults.DefaultEServerContainerName); err != nil {

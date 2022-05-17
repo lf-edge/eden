@@ -193,11 +193,11 @@ const (
 	DefaultHWEVELocation         = "/persist/lshw.out"
 
 	//defaults for SDN
-	DefaultSdnTelnetPort    = 6623
-	DefaultSdnSSHPort       = 6622
-	DefaultSdnMgmtPort      = 6666
-	DefaultSdnCpus          = 2
-	DefaultSdnMemory        = 2048
+	DefaultSdnTelnetPort = 6623
+	DefaultSdnSSHPort    = 6622
+	DefaultSdnMgmtPort   = 6666
+	DefaultSdnCpus       = 2
+	DefaultSdnMemory     = 2048
 )
 
 var (

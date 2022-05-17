@@ -114,8 +114,13 @@ eve:
     #eve tag
     tag: '{{parse "eve.tag"}}'
 
-    #port forwarding for EVE VM [(HOST:EVE)] when running without Eden-SDN
-    hostfwd: '{{parse "eve.hostfwd"}}'
+    #forward of ports in qemu [(HOST:EVE)]
+    hostfwd:
+        "2222": "22"
+        "5912": "5902"
+        "5911": "5901"
+        "8027": "8027"
+        "8028": "8028"
 
     #location of eve directory
     dist: '{{parse "eve.dist"}}'

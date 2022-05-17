@@ -1,333 +1,210 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/edensdn"
-	"github.com/lf-edge/eden/pkg/utils"
-	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
 	sdnFwdFromEp string
 )
 
-var sdnCmd = &cobra.Command{
-	Use:   "sdn",
-	Short: "Emulate and manage networks surrounding EVE VM using Eden-SDN",
+func newSdnCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
+	var sdnCmd = &cobra.Command{
+		Use:   "sdn",
+		Short: "Emulate and manage networks surrounding EVE VM using Eden-SDN",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
+			if err != nil {
+				return err
+			}
+			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
+			cfg = viper_cfg
+			return nil
+		},
+	}
+
+	groups := CommandGroups{
+		{
+			Message: "Basic Commands",
+			Commands: []*cobra.Command{
+				newSdnNetModelCmd(cfg),
+				newSdnNetConfigGraphCmd(cfg),
+				newSdnStatusCmd(cfg),
+				newSdnSshCmd(cfg),
+				newSdnLogsCmd(cfg),
+				newSdnMgmtIpCmd(cfg),
+				newSdnEndpointCmd(cfg),
+				newSdnFwdCmd(cfg),
+			},
+		},
+	}
+
+	groups.AddTo(sdnCmd)
+
+	return sdnCmd
 }
 
-var sdnNetModelCmd = &cobra.Command{
-	Use:   "net-model",
-	Short: "Manage network model submitted to Eden-SDN",
+func newSdnNetModelCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnNetModelCmd = &cobra.Command{
+		Use:   "net-model",
+		Short: "Manage network model submitted to Eden-SDN",
+	}
+
+	groups := CommandGroups{
+		{
+			Message: "Basic Commands",
+			Commands: []*cobra.Command{
+				newSdnNetModelApplyCmd(cfg),
+				newSdnModelGetCmd(cfg),
+			},
+		},
+	}
+
+	groups.AddTo(sdnNetModelCmd)
+
+	return sdnNetModelCmd
 }
 
-var sdnNetModelGetCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Get currently applied network model (in JSON)",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		client := &edensdn.SdnClient{
-			SSHPort:    uint16(sdnSSHPort),
-			SSHKeyPath: sdnSSHKeyPath(),
-			MgmtPort:   uint16(sdnMgmtPort),
-		}
-		netModel, err := client.GetNetworkModel()
-		if err != nil {
-			log.Fatalf("Failed to get network model: %v", err)
-		}
-		jsonBytes, err := json.MarshalIndent(netModel, "", "  ")
-		if err != nil {
-			log.Fatalf("Failed to marshal net modem to JSON: %v", err)
-		}
-		fmt.Println(string(jsonBytes))
-	},
-}
-
-var sdnNetModelApplyCmd = &cobra.Command{
-	Use:   "apply <filepath.json|default>",
-	Short: "submit network model into Eden-SDN",
-	Long: `Load network model from a JSON file and submit it to Eden-SDN.
-Use string \"default\" instead of a file path to apply the default network model
-(two eth interfaces inside the same network with DHCP, see DefaultNetModel in pkg/edensdn/netModel.go).`,
-	Args: cobra.MinimumNArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			adamPort = viper.GetInt("adam.port")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		ref := args[0]
-		var err error
-		var newNetModel sdnapi.NetworkModel
-		if ref == "default" {
-			newNetModel, err = edensdn.GetDefaultNetModel()
+func newSdnModelGetCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnNetModelGetCmd = &cobra.Command{
+		Use:   "get",
+		Short: "Get currently applied network model (in JSON)",
+		Run: func(cmd *cobra.Command, args []string) {
+			model, err := openevec.SdnNetModelGet(cfg)
 			if err != nil {
 				log.Fatal(err)
+			} else {
+				fmt.Println(model)
 			}
-		} else {
-			newNetModel, err = edensdn.LoadNetModeFromFile(ref)
-			if err != nil {
-				log.Fatalf("Failed to load network model from file '%s': %v", ref, err)
-			}
-		}
-		newNetModel.Host.ControllerPort = uint16(adamPort)
-		client := &edensdn.SdnClient{
-			SSHPort:    uint16(sdnSSHPort),
-			SSHKeyPath: sdnSSHKeyPath(),
-			MgmtPort:   uint16(sdnMgmtPort),
-		}
-		oldNetModel, err := client.GetNetworkModel()
-		if err != nil {
-			log.Fatalf("Failed to get current network model: %v", err)
-		}
-		vmRunner, err := edensdn.GetSdnVMRunner(devModel, edensdn.SdnVMConfig{})
-		if err != nil {
-			log.Fatalf("Failed to get SDN VM runner: %v", err)
-		}
-		if vmRunner.RequiresVmRestart(oldNetModel, newNetModel) {
-			if ref != "default" && !filepath.IsAbs(ref) {
-				ref = "$(pwd)/" + ref
-			}
-			log.Fatalf("Network model change requires to restart SDN and EVE VMs.\n" +
-				"Run instead:\n" +
-				"  eden eve stop\n" +
-				"  eden eve start --sdn-network-model " + ref + "\n")
-		}
-		err = client.ApplyNetworkModel(newNetModel)
-		if err != nil {
-			log.Fatalf("Failed to apply network model: %v", err)
-		}
-		fmt.Printf("Submitted network model: %s", ref)
-	},
+		},
+	}
+
+	return sdnNetModelGetCmd
 }
 
-var sdnNetConfigGraphCmd = &cobra.Command{
-	Use:   "net-config-graph",
-	Short: "get network config applied by Eden-SDN, visualized using a dependency graph",
-	Long: `Get network config applied by Eden-SDN.
+func newSdnNetModelApplyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnNetModelApplyCmd = &cobra.Command{
+		Use:   "apply <filepath.json|default>",
+		Short: "submit network model into Eden-SDN",
+		Long: `Load network model from a JSON file and submit it to Eden-SDN.
+Use string \"default\" instead of a file path to apply the default network model
+(two eth interfaces inside the same network with DHCP, see DefaultNetModel in pkg/edensdn/netModel.go).`,
+		Args: cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ref := args[0]
+			if err := openevec.SdnNetModelApply(ref, cfg); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+	addSdnPortOpts(sdnNetModelApplyCmd, cfg)
+
+	return sdnNetModelApplyCmd
+}
+
+func newSdnNetConfigGraphCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnNetConfigGraphCmd = &cobra.Command{
+		Use:   "net-config-graph",
+		Short: "get network config applied by Eden-SDN, visualized using a dependency graph",
+		Long: `Get network config applied by Eden-SDN.
 Network config items and their dependencies are depicted using a DOT graph.
 To generate graph image, run: eden sdn net-config-graph | dot -Tsvg > output.svg
 This requires to have Graphviz installed.
 Alternatively, visualize using the online tool: https://dreampuf.github.io/GraphvizOnline/`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		client := &edensdn.SdnClient{
-			SSHPort:    uint16(sdnSSHPort),
-			SSHKeyPath: sdnSSHKeyPath(),
-			MgmtPort:   uint16(sdnMgmtPort),
-		}
-		netConfig, err := client.GetNetworkConfigGraph()
-		if err != nil {
-			log.Fatalf("Failed to get network config: %v", err)
-		}
-		fmt.Println(netConfig)
-	},
-}
-
-var sdnStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Get status of the running Eden-SDN",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		sdnStatus()
-	},
-}
-
-func sdnStatus() {
-	if !isSdnEnabled() {
-		return
+		Run: func(cmd *cobra.Command, args []string) {
+			graph, err := openevec.SdnNetConfigGraph(cfg)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(graph)
+		},
 	}
-	processStatus, err := utils.StatusCommandWithPid(sdnPidFile)
-	if err != nil {
-		log.Errorf("%s cannot obtain status of SDN Qemu process: %s",
-			statusWarn(), err)
-	} else {
-		fmt.Printf("%s SDN on Qemu status: %s\n",
-			representProcessStatus(processStatus), processStatus)
-		fmt.Printf("\tConsole logs for SDN at: %s\n", sdnConsoleLogFile)
-	}
-	client := &edensdn.SdnClient{
-		SSHPort:    uint16(sdnSSHPort),
-		SSHKeyPath: sdnSSHKeyPath(),
-		MgmtPort:   uint16(sdnMgmtPort),
-	}
-	status, err := client.GetSdnStatus()
-	if err != nil {
-		log.Fatalf("Failed to get SDN status: %v", err)
-	}
-	if len(status.ConfigErrors) == 0 {
-		fmt.Printf("\tNo configuration errors.\n")
-	} else {
-		fmt.Printf("\tHave configuration errors: %v\n", status.ConfigErrors)
-	}
-	fmt.Printf("\tManagement IPs: %v\n", strings.Join(status.MgmtIPs, ", "))
+	addSdnPortOpts(sdnNetConfigGraphCmd, cfg)
+	return sdnNetConfigGraphCmd
 }
 
-var sdnSshCmd = &cobra.Command{
-	Use:   "ssh",
-	Short: "SSH into the running Eden-SDN VM",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		client := &edensdn.SdnClient{
-			SSHPort:    uint16(sdnSSHPort),
-			SSHKeyPath: sdnSSHKeyPath(),
-			MgmtPort:   uint16(sdnMgmtPort),
-		}
-		err := client.SSHIntoSdnVM()
-		if err != nil {
-			log.Fatalf("Failed to SSH into SDN VM: %v", err)
-		}
-	},
+func newSdnStatusCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnStatusCmd = &cobra.Command{
+		Use:   "status",
+		Short: "Get status of the running Eden-SDN",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.SdnStatus(cfg); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	addSdnPortOpts(sdnStatusCmd, cfg)
+	addSdnPidOpt(sdnStatusCmd, cfg)
+
+	return sdnStatusCmd
 }
 
-var sdnLogsCmd = &cobra.Command{
-	Use:   "logs",
-	Short: "Get all logs from running Eden-SDN VM",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		client := &edensdn.SdnClient{
-			SSHPort:    uint16(sdnSSHPort),
-			SSHKeyPath: sdnSSHKeyPath(),
-			MgmtPort:   uint16(sdnMgmtPort),
-		}
-		sdnLogs, err := client.GetSdnLogs()
-		if err != nil {
-			log.Fatalf("Failed to get SDN logs: %v", err)
-		}
-		fmt.Println(sdnLogs)
-	},
+func newSdnSshCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnSshCmd = &cobra.Command{
+		Use:   "ssh",
+		Short: "SSH into the running Eden-SDN VM",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.SdnSsh(cfg); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	addSdnPortOpts(sdnSshCmd, cfg)
+
+	return sdnSshCmd
 }
 
-var sdnMgmtIpCmd = &cobra.Command{
-	Use:   "mgmt-ip",
-	Short: "Get IP address assigned to Eden-SDN VM for management",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		client := &edensdn.SdnClient{
-			SSHPort:    uint16(sdnSSHPort),
-			SSHKeyPath: sdnSSHKeyPath(),
-			MgmtPort:   uint16(sdnMgmtPort),
-		}
-		status, err := client.GetSdnStatus()
-		if err != nil {
-			log.Fatalf("Failed to get SDN status: %v", err)
-		}
-		if len(status.MgmtIPs) == 0 {
-			log.Fatalf("No management IP reported by SDN: %v", err)
-		}
-		fmt.Printf(status.MgmtIPs[0])
-	},
+func newSdnLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnLogsCmd = &cobra.Command{
+		Use:   "logs",
+		Short: "Get all logs from running Eden-SDN VM",
+		Run: func(cmd *cobra.Command, args []string) {
+			if logs, err := openevec.SdnLogs(cfg); err != nil {
+				log.Fatal(err)
+			} else {
+				fmt.Println(logs)
+			}
+		},
+	}
+
+	addSdnPortOpts(sdnLogsCmd, cfg)
+
+	return sdnLogsCmd
 }
 
-var sdnEndpointCmd = &cobra.Command{
-	Use:   "endpoint",
-	Short: "Interact with endpoints deployed inside Eden-SDN",
-	Long: `Interact with endpoints deployed inside Eden-SDN.
+func newSdnMgmtIpCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnMgmtIpCmd = &cobra.Command{
+		Use:   "mgmt-ip",
+		Short: "Get IP address assigned to Eden-SDN VM for management",
+		Run: func(cmd *cobra.Command, args []string) {
+			if mgmtIp, err := openevec.SdnMgmtIp(cfg); err != nil {
+				log.Fatal(err)
+			} else {
+				fmt.Println(mgmtIp)
+			}
+		},
+	}
+	addSdnPortOpts(sdnMgmtIpCmd, cfg)
+	return sdnMgmtIpCmd
+}
+
+func newSdnEndpointCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnEndpointCmd = &cobra.Command{
+		Use:   "endpoint",
+		Short: "Interact with endpoints deployed inside Eden-SDN",
+		Long: `Interact with endpoints deployed inside Eden-SDN.
 Endpoints emulate "remote" clients and servers.
 Used to test connectivity between apps running on EVE and remote hosts.
 Endpoint can be for example:
@@ -337,53 +214,46 @@ Endpoint can be for example:
 	- NTP server (used by EVE/app),
 	- etc.
 See sdn/api/endpoints.go to learn about all kinds of supported endpoints.`,
+	}
+
+	sdnEndpointCmd.AddCommand(newSdnEpExecCmd(cfg))
+	addSdnPortOpts(sdnEndpointCmd, cfg)
+
+	return sdnEndpointCmd
 }
 
-var sdnEpExecCmd = &cobra.Command{
-	Use:   "exec <endpoint-name> -- <command> [args...]",
-	Short: "Execute command from inside of the given endpoint",
-	Long: `Execute command from inside of the given endpoint.
+func newSdnEpExecCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnEpExecCmd = &cobra.Command{
+		Use:   "exec <endpoint-name> -- <command> [args...]",
+		Short: "Execute command from inside of the given endpoint",
+		Long: `Execute command from inside of the given endpoint.
 Remember that the command is running inside the Eden-SDN VM and the net namespace of the endpoint.
 References to files present only on the host are therefore not valid!
 Command must be installed in Eden-SDN!
 Also consider using "eden sdn fwd" command instead, especially if you are intending to use
 the EVE's port forwarding capability.`,
-	Args: cobra.MinimumNArgs(2),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			devModel = viper.GetString("eve.devmodel")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if !isSdnEnabled() {
-			log.Fatalf("SDN is not enabled")
-		}
-		epName := args[0]
-		command := args[1]
-		args = args[2:]
-		client := &edensdn.SdnClient{
-			SSHPort:    uint16(sdnSSHPort),
-			SSHKeyPath: sdnSSHKeyPath(),
-			MgmtPort:   uint16(sdnMgmtPort),
-		}
-		err := client.RunCmdFromEndpoint(epName, command, args...)
-		if err != nil {
-			log.Fatalf("Failed to execute command: %v", err)
-		}
-	},
+		Args: cobra.MinimumNArgs(2),
+		Run: func(cmd *cobra.Command, args []string) {
+			epName := args[0]
+			command := args[1]
+			args = args[2:]
+
+			if err := openevec.SdnEpExec(epName, command, args, cfg); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	addSdnPortOpts(sdnEpExecCmd, cfg)
+
+	return sdnEpExecCmd
 }
 
-var sdnFwdCmd = &cobra.Command{
-	Use:   "fwd <target-eve-interface> <target-port> -- <command> [args...]",
-	Short: "Execute command aimed at a given EVE interface and a port",
-	Long: `Execute command aimed at a given EVE interface and a port.
+func newSdnFwdCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var sdnFwdCmd = &cobra.Command{
+		Use:   "fwd <target-eve-interface> <target-port> -- <command> [args...]",
+		Short: "Execute command aimed at a given EVE interface and a port",
+		Long: `Execute command aimed at a given EVE interface and a port.
 Use for example to ssh into EVE, or to access HTTP server running as EVE app, etc.
 Note that you cannot run commands against EVE interfaces from the host directly - there is
 Eden-SDN VM in the way. Even without SDN (i.e. legacy mode with SLIRP networking on QEMU),
@@ -402,290 +272,78 @@ Note that in this case the command must be installed in Eden-SDN VM (see sdn/Doc
 
 The target interface should be referenced by its name inside the kernel of EVE VM (e.g. "eth0").
 This is currently limited to TCP port forwarding (i.e. not working with UDP)!`,
-	Args: cobra.MinimumNArgs(3),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			hostFwd = viper.GetStringMapString("eve.hostfwd")
-			devModel = viper.GetString("eve.devmodel")
-			eveRemote = viper.GetBool("eve.remote")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		eveIfName := args[0]
-		targetPort, err := strconv.Atoi(args[1])
-		if err != nil {
-			log.Fatalf("Failed to parse target port: %v", err)
-		}
-		command := args[2]
-		args = args[3:]
-		err = sdnForwardCmd(sdnFwdFromEp, eveIfName, targetPort, command, args...)
-		if err != nil {
-			log.Fatal(err)
-		}
-	},
-}
-
-func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string,
-	args ...string) error {
-	const fwdIPLabel = "FWD_IP"
-	const fwdPortLabel = "FWD_PORT"
-
-	// Case 1: EVE is running remotely (on Raspberry Pi, GCP, etc.)
-	if eveRemote {
-		// Get IP address used by the target EVE interface.
-		// (look at network info published by EVE)
-		ip := getEVEIP(eveIfName)
-		if ip == "" {
-			return fmt.Errorf("failed to obtain IP address for EVE interface %s", eveIfName)
-		}
-		for i := range args {
-			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, ip)
-			args[i] = strings.ReplaceAll(args[i], fwdPortLabel, strconv.Itoa(targetPort))
-		}
-		err := utils.RunCommandForeground(cmd, args...)
-		if err != nil {
-			return fmt.Errorf("command %s failed: %v", cmd, err)
-		}
-		return nil
-	}
-
-	// Case 2: EVE is running inside VM on this host, but without SDN in between
-	if !isSdnEnabled() {
-		if fromEp != "" {
-			log.Warnf("Cannot execute command from an endpoint without SDN running, " +
-				"argument \"from-ep\" will be ignored")
-		}
-		// Network model is static and consists of two Eve interfaces.
-		if eveIfName != "eth0" && eveIfName != "eth1" {
-			return fmt.Errorf("unknown EVE interface: %s", eveIfName)
-		}
-		// Find out what the targetPort is (statically) mapped to in the host.
-		targetHostPort := -1
-		for k, v := range hostFwd {
-			hostPort, err := strconv.Atoi(k)
+		Args: cobra.MinimumNArgs(3),
+		Run: func(cmd *cobra.Command, args []string) {
+			eveIfName := args[0]
+			targetPort, err := strconv.Atoi(args[1])
 			if err != nil {
-				log.Errorf("failed to parse host port from eve.hostfwd: %v", err)
-				continue
+				log.Fatalf("Failed to parse target port: %v", err)
 			}
-			guestPort, err := strconv.Atoi(v)
+			command := args[2]
+			args = args[3:]
+
+			err = openevec.SdnForwardCmd(sdnFwdFromEp, eveIfName, targetPort, command, cfg, args...)
 			if err != nil {
-				log.Errorf("failed to parse guest port from eve.hostfwd: %v", err)
-				continue
+				log.Fatal(err)
 			}
-			if eveIfName == "eth1" {
-				// For eth1 numbers of forwarded ports are shifted by 10.
-				hostPort += 10
-				guestPort += 10
-			}
-			if guestPort == targetPort {
-				targetHostPort = hostPort
-				break
-			}
-		}
-		if targetHostPort == -1 {
-			return fmt.Errorf("target EVE interface and port (%s, %d) are not port-forwarded "+
-				"by config (see eve.hostfwd)", eveIfName, targetPort)
-		}
-		// Redirect command to localhost and the forwarded port.
-		fwdPort := strconv.Itoa(targetHostPort)
-		for i := range args {
-			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, "127.0.0.1")
-			args[i] = strings.ReplaceAll(args[i], fwdPortLabel, fwdPort)
-		}
-		err := utils.RunCommandForeground(cmd, args...)
-		if err != nil {
-			return fmt.Errorf("command %s failed: %v", cmd, err)
-		}
-		return nil
+		},
 	}
 
-	// Case 3: EVE is running inside VM on this host, with networking provided by SDN VM
-	// TODO: Port forwarding with SDN only works for TCP for now.
-
-	// Get IP address used by the target EVE interface.
-	// (look at the ARP tables inside SDN VM)
-	targetIP := getEVEIP(eveIfName)
-	if targetIP == "" {
-		return fmt.Errorf("no IP address found to be assigned to EVE interface %s",
-			eveIfName)
-	}
-	client := &edensdn.SdnClient{
-		SSHPort:    uint16(sdnSSHPort),
-		SSHKeyPath: sdnSSHKeyPath(),
-		MgmtPort:   uint16(sdnMgmtPort),
-	}
-	if fromEp != "" {
-		// Running command from an endpoint inside SDN VM, no tunneling is needed.
-		fwdPort := strconv.Itoa(targetPort)
-		for i := range args {
-			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, targetIP)
-			args[i] = strings.ReplaceAll(args[i], fwdPortLabel, fwdPort)
-		}
-		err := client.RunCmdFromEndpoint(fromEp, cmd, args...)
-		if err != nil {
-			return fmt.Errorf("command %s %s run inside endpoint %s failed: %v",
-				cmd, strings.Join(args, " "), fromEp, err)
-		}
-		return nil
-	}
-	// Temporarily establish port forwarding using SSH.
-	localPort, err := utils.FindUnusedPort()
-	if err != nil {
-		return fmt.Errorf("failed to find unused port number: %v", err)
-	}
-	closeTunnel, err := client.SSHPortForwarding(localPort, uint16(targetPort), targetIP)
-	if err != nil {
-		return fmt.Errorf("failed to establish SSH port forwarding: %v", err)
-	}
-	defer closeTunnel()
-	// Redirect command to localhost and the forwarded port.
-	fwdPort := strconv.Itoa(int(localPort))
-	for i := range args {
-		args[i] = strings.ReplaceAll(args[i], fwdIPLabel, "127.0.0.1")
-		args[i] = strings.ReplaceAll(args[i], fwdPortLabel, fwdPort)
-	}
-	err = utils.RunCommandForeground(cmd, args...)
-	if err != nil {
-		return fmt.Errorf("command %s %s failed: %v", cmd, strings.Join(args, " "), err)
-	}
-	return nil
-}
-
-func sdnForwardSSHToEve(commandToRun string) error {
-	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
-		"-p FWD_PORT root@FWD_IP %s", eveSSHKey, commandToRun)
-	return sdnForwardCmd("", "eth0", 22, "ssh", strings.Fields(arguments)...)
-}
-
-func sdnForwardSCPFromEve(remoteFilePath, localFilePath string) error {
-	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
-		"-P FWD_PORT root@FWD_IP:%s %s", eveSSHKey, remoteFilePath, localFilePath)
-	return sdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
-}
-
-func sdnSSHKeyPath() string {
-	return filepath.Join(sdnSourceDir, "vm/cert/ssh/id_rsa")
-}
-
-// Run after loading these options from config:
-//   - devModel = viper.GetString("eve.devmodel")
-//   - eveRemote = viper.GetBool("eve.remote")
-//   - loadSdnOptsFromViper()
-func isSdnEnabled() bool {
-	// Only supported with QEMU for now.
-	return !sdnDisable && devModel == defaults.DefaultQemuModel && !eveRemote
-}
-
-func loadSdnOptsFromViper() {
-	sdnImageFile = utils.ResolveAbsPath(viper.GetString("sdn.image-file"))
-	sdnSourceDir = utils.ResolveAbsPath(viper.GetString("sdn.source-dir"))
-	sdnRAM = viper.GetInt("sdn.ram")
-	sdnCPU = viper.GetInt("sdn.cpu")
-	sdnConfigDir = utils.ResolveAbsPath(viper.GetString("sdn.config-dir"))
-	sdnLinuxkitBin = utils.ResolveAbsPath(viper.GetString("sdn.linuxkit-bin"))
-	sdnNetModelFile = utils.ResolveAbsPath(viper.GetString("sdn.network-model"))
-	sdnConsoleLogFile = utils.ResolveAbsPath(viper.GetString("sdn.console-log"))
-	sdnDisable = viper.GetBool("sdn.disable")
-	sdnTelnetPort = viper.GetInt("sdn.telnet-port")
-	sdnSSHPort = viper.GetInt("sdn.ssh-port")
-	sdnMgmtPort = viper.GetInt("sdn.mgmt-port")
-	sdnPidFile = utils.ResolveAbsPath(viper.GetString("sdn.pid"))
-}
-
-func addSdnStartOpts(parentCmd *cobra.Command) {
-	addSdnPidOpt(parentCmd)
-	addSdnConfigDirOpt(parentCmd)
-	addSdnVmOpts(parentCmd)
-	addSdnNetModelOpt(parentCmd)
-	addSdnPortOpts(parentCmd)
-	addSdnLogOpt(parentCmd)
-	addSdnImageOpt(parentCmd)
-	addSdnDisableOpt(parentCmd)
-}
-
-func addSdnPidOpt(parentCmd *cobra.Command) {
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	parentCmd.Flags().StringVarP(&sdnPidFile, "sdn-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "sdn.pid"), "file for saving SDN pid")
-}
-
-func addSdnNetModelOpt(parentCmd *cobra.Command) {
-	parentCmd.Flags().StringVarP(&sdnNetModelFile, "sdn-network-model", "", "", "path to JSON file with network model to apply into SDN")
-}
-
-func addSdnVmOpts(parentCmd *cobra.Command) {
-	parentCmd.Flags().IntVarP(&sdnRAM, "sdn-ram", "", defaults.DefaultSdnMemory, "memory (MB) for SDN VM")
-	parentCmd.Flags().IntVarP(&sdnCPU, "sdn-cpu", "", defaults.DefaultSdnCpus, "CPU count for SDN VM")
-}
-
-func addSdnPortOpts(parentCmd *cobra.Command) {
-	parentCmd.Flags().IntVarP(&sdnTelnetPort, "sdn-telnet-port", "", defaults.DefaultSdnTelnetPort, "port for telnet (console access) to SDN VM")
-	parentCmd.Flags().IntVarP(&sdnMgmtPort, "sdn-mgmt-port", "", defaults.DefaultSdnMgmtPort, "port for access to the management agent running inside SDN VM")
-	parentCmd.Flags().IntVarP(&sdnSSHPort, "sdn-ssh-port", "", defaults.DefaultSdnSSHPort, "port for SSH access to SDN VM")
-}
-
-func addSdnLogOpt(parentCmd *cobra.Command) {
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	parentCmd.Flags().StringVarP(&sdnConsoleLogFile, "sdn-console-log", "", filepath.Join(currentPath, defaults.DefaultDist, "sdn-console.log"), "log file for SDN console output")
-}
-
-func addSdnImageOpt(parentCmd *cobra.Command) {
-	parentCmd.Flags().StringVarP(&sdnImageFile, "sdn-image-file", "", "", "path to SDN image drive, overrides default setting")
-}
-
-func addSdnDisableOpt(parentCmd *cobra.Command) {
-	parentCmd.Flags().BoolVarP(&sdnDisable, "sdn-disable", "", false, "disable Eden-SDN (do not run SDN VM)")
-}
-
-func addSdnSourceDirOpt(parentCmd *cobra.Command) {
-	parentCmd.Flags().StringVarP(&sdnSourceDir, "sdn-source-dir", "", "", "directory with SDN source code")
-}
-
-func addSdnConfigDirOpt(parentCmd *cobra.Command) {
-	parentCmd.Flags().StringVarP(&sdnConfigDir, "sdn-config-dir", "", "", "directory where to put generated SDN-related config files")
-}
-
-func addSdnLinuxkitOpt(parentCmd *cobra.Command) {
-	parentCmd.Flags().StringVarP(&sdnLinuxkitBin, "sdn-linuxkit-bin", "", "", "path to linuxkit binary used to build SDN VM")
-}
-
-func sdnInit() {
-	sdnCmd.AddCommand(sdnNetModelCmd)
-	sdnCmd.AddCommand(sdnNetConfigGraphCmd)
-	sdnCmd.AddCommand(sdnStatusCmd)
-	sdnCmd.AddCommand(sdnSshCmd)
-	sdnCmd.AddCommand(sdnLogsCmd)
-	sdnCmd.AddCommand(sdnMgmtIpCmd)
-	sdnCmd.AddCommand(sdnEndpointCmd)
-	sdnCmd.AddCommand(sdnFwdCmd)
-	sdnNetModelCmd.AddCommand(sdnNetModelApplyCmd)
-	sdnNetModelCmd.AddCommand(sdnNetModelGetCmd)
-	sdnEndpointCmd.AddCommand(sdnEpExecCmd)
-
-	addSdnPidOpt(sdnStatusCmd)
-	addSdnPortOpts(sdnStatusCmd)
-	addSdnPortOpts(sdnNetConfigGraphCmd)
-	addSdnPortOpts(sdnSshCmd)
-	addSdnPortOpts(sdnLogsCmd)
-	addSdnPortOpts(sdnMgmtIpCmd)
-	addSdnPortOpts(sdnEndpointCmd)
-	addSdnPortOpts(sdnNetModelApplyCmd)
-	addSdnPortOpts(sdnNetModelGetCmd)
-	addSdnPortOpts(sdnEpExecCmd)
-	addSdnPortOpts(sdnFwdCmd)
+	addSdnPortOpts(sdnFwdCmd, cfg)
 	sdnFwdCmd.Flags().StringVarP(&sdnFwdFromEp, "from-ep", "", "",
 		"run port-forwarded command from inside of the given Eden-SDN endpoint "+
 			"(referenced by logical label)")
+
+	return sdnFwdCmd
+}
+
+func addSdnPidOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	currentPath, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	parentCmd.Flags().StringVarP(&cfg.Sdn.PidFile, "sdn-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "sdn.pid"), "file for saving SDN pid")
+}
+
+func addSdnNetModelOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().StringVarP(&cfg.Sdn.NetModelFile, "sdn-network-model", "", "", "path to JSON file with network model to apply into SDN")
+}
+
+func addSdnVmOpts(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().IntVarP(&cfg.Sdn.RAM, "sdn-ram", "", defaults.DefaultSdnMemory, "memory (MB) for SDN VM")
+	parentCmd.Flags().IntVarP(&cfg.Sdn.CPU, "sdn-cpu", "", defaults.DefaultSdnCpus, "CPU count for SDN VM")
+}
+
+func addSdnPortOpts(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().IntVarP(&cfg.Sdn.TelnetPort, "sdn-telnet-port", "", defaults.DefaultSdnTelnetPort, "port for telnet (console access) to SDN VM")
+	parentCmd.Flags().IntVarP(&cfg.Sdn.MgmtPort, "sdn-mgmt-port", "", defaults.DefaultSdnMgmtPort, "port for access to the management agent running inside SDN VM")
+	parentCmd.Flags().IntVarP(&cfg.Sdn.SSHPort, "sdn-ssh-port", "", defaults.DefaultSdnSSHPort, "port for SSH access to SDN VM")
+}
+
+func addSdnLogOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	currentPath, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	parentCmd.Flags().StringVarP(&cfg.Sdn.ConsoleLogFile, "sdn-console-log", "", filepath.Join(currentPath, defaults.DefaultDist, "sdn-console.log"), "log file for SDN console output")
+}
+
+func addSdnImageOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().StringVarP(&cfg.Sdn.ImageFile, "sdn-image-file", "", "", "path to SDN image drive, overrides default setting")
+}
+
+func addSdnDisableOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().BoolVarP(&cfg.Sdn.Disable, "sdn-disable", "", false, "disable Eden-SDN (do not run SDN VM)")
+}
+
+func addSdnSourceDirOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().StringVarP(&cfg.Sdn.SourceDir, "sdn-source-dir", "", "", "directory with SDN source code")
+}
+
+func addSdnConfigDirOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().StringVarP(&cfg.Sdn.ConfigDir, "sdn-config-dir", "", "", "directory where to put generated SDN-related config files")
+}
+
+func addSdnLinuxkitOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().StringVarP(&cfg.Sdn.LinuxkitBin, "sdn-linuxkit-bin", "", "", "path to linuxkit binary used to build SDN VM")
 }

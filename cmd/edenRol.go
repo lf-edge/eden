@@ -1,144 +1,102 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/Insei/rolgo"
-	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/utils"
+	"reflect"
+
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"path"
-	"strings"
 )
 
-var (
-	rolProjectID    string
-	rolRentName     string
-	rolModel        string
-	rolManufacturer string
-	rolRentID       string
-	rolIPXEUrl      string
-)
-
-var rolCmd = &cobra.Command{
-	Use:   "rol",
-	Short: `Manage devices in Rack Of Labs`,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if err := rootCmd.PersistentPreRunE(cmd, args); err != nil {
-			return err
-		}
-		assignCobraToViper(cmd)
-
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
-}
-
-var rolRentCmd = &cobra.Command{
-	Use:   "rent",
-	Short: "Manage device rents",
-	Long:  `Manage device rents`,
-}
-
-var createRentCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a new device rent",
-	Long:  `Create a new device rent`,
-
-	Run: func(cmd *cobra.Command, args []string) {
-		assignCobraToViper(cmd)
-
-		client, err := rolgo.NewClient()
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		if rolIPXEUrl == "" {
-			certsEVEIP = viper.GetString("adam.eve-ip")
-			eServerPort := viper.GetString("eden.eserver.port")
-			configPrefix := configName
-			if configName == defaults.DefaultContext {
-				configPrefix = ""
+func newRolCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
+	var rolCmd = &cobra.Command{
+		Use:   "rol",
+		Short: `Manage devices in Rack Of Labs`,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
+			if err != nil {
+				return err
 			}
-			rolIPXEUrl = fmt.Sprintf("http://%s:%s/%s/ipxe.efi.cfg", certsEVEIP, eServerPort, path.Join("eserver", configPrefix))
-			log.Debugf("ipxe-url is empty, will use default one: %s", packetIPXEUrl)
-		}
-		r := &rolgo.DeviceRentCreateRequest{Model: rolModel, Manufacturer: rolManufacturer, Name: rolRentName,
-			IpxeUrl: rolIPXEUrl}
-		rent, err := client.Rents.Create(rolProjectID, r)
-		if err == nil {
-			fmt.Println(rent.Id)
-		} else {
-			log.Fatalf("unable to create device rent: %v", err)
-		}
+			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
+			cfg = viper_cfg
+			return nil
+		},
+	}
 
-	},
+	rolCmd.AddCommand(newRolRentCmd(cfg))
+
+	return rolCmd
 }
 
-var getRentCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Get the device rent",
-	Long:  `Get the device rent`,
-	Run: func(cmd *cobra.Command, args []string) {
-		client, err := rolgo.NewClient()
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		rent, err := client.Rents.Get(rolProjectID, rolRentID)
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		rentJSON, err := json.Marshal(rent)
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		fmt.Println(string(rentJSON))
-	},
-}
+func newRolRentCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var rolProjectID string
 
-var closeRentCmd = &cobra.Command{
-	Use:   "close",
-	Short: "Close the device rent",
-	Long:  `Close the device rent`,
-	Run: func(cmd *cobra.Command, args []string) {
-		client, err := rolgo.NewClient()
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		err = client.Rents.Release(rolProjectID, rolRentID)
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-	},
-}
+	var rolRentCmd = &cobra.Command{
+		Use:   "rent",
+		Short: "Manage device rents",
+		Long:  `Manage device rents`,
+	}
 
-var getRentConsoleOutputCmd = &cobra.Command{
-	Use:   "console-output",
-	Short: "Get device console output",
-	Long:  `Get device console output from uart`,
-	Run: func(cmd *cobra.Command, args []string) {
-		client, err := rolgo.NewClient()
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		consoleOutput, err := client.Rents.GetConsoleOutput(rolProjectID, rolRentID)
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		fmt.Println(strings.Join(consoleOutput, "\n"))
-	},
-}
+	groups := CommandGroups{
+		{
+			Message: "Basic Commands",
+			Commands: []*cobra.Command{
+				newCreateRentCmd(&rolProjectID, cfg),
+				newCloseRentCmd(&rolProjectID),
+				newGetRentCmd(&rolProjectID),
+				newGetRentConsoleOutputCmd(&rolProjectID),
+			},
+		},
+	}
 
-func rolInit() {
-	// rol -> rent
-	rolCmd.AddCommand(rolRentCmd)
+	groups.AddTo(rolRentCmd)
+
 	rolRentCmd.PersistentFlags().StringVarP(&rolProjectID, "project-id", "p", "", "project id")
 	_ = rolRentCmd.MarkPersistentFlagRequired("project-id")
-	// rol -> rent -> create
+
+	return rolRentCmd
+}
+
+func newGetRentConsoleOutputCmd(rolProjectID *string) *cobra.Command {
+	var rolRentID string
+
+	var getRentConsoleOutputCmd = &cobra.Command{
+		Use:   "console-output",
+		Short: "Get device console output",
+		Long:  `Get device console output from uart`,
+		Run: func(cmd *cobra.Command, args []string) {
+			output, err := openevec.GetRentConsoleOutput(*rolProjectID, rolRentID)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(output)
+		},
+	}
+
+	getRentConsoleOutputCmd.Flags().StringVarP(&rolRentID, "id", "i", "", "rent id")
+	_ = getRentConsoleOutputCmd.MarkFlagRequired("id")
+
+	return getRentConsoleOutputCmd
+}
+
+func newCreateRentCmd(rolProjectID *string, cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var rolRentName, rolModel, rolManufacturer, rolIPXEUrl string
+
+	var createRentCmd = &cobra.Command{
+		Use:   "create",
+		Short: "Create a new device rent",
+		Long:  `Create a new device rent`,
+
+		Run: func(cmd *cobra.Command, args []string) {
+			err := openevec.CreateRent(*rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl, cfg)
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
 	createRentCmd.Flags().StringVarP(&rolRentName, "name", "n", "", "rent name")
 	createRentCmd.Flags().StringVar(&rolModel, "model", "", "device model")
 	createRentCmd.Flags().StringVarP(&rolManufacturer, "manufacturer", "m", "", "device manufacturer")
@@ -146,17 +104,46 @@ func rolInit() {
 	_ = createRentCmd.MarkFlagRequired("name")
 	_ = createRentCmd.MarkFlagRequired("model")
 	_ = createRentCmd.MarkFlagRequired("manufacturer")
-	rolRentCmd.AddCommand(createRentCmd)
-	// rol -> rent -> close
-	closeRentCmd.Flags().StringVarP(&rolRentID, "id", "i", "", "rent id")
-	_ = closeRentCmd.MarkFlagRequired("id")
-	rolRentCmd.AddCommand(closeRentCmd)
-	// rol -> rent -> get
+
+	return createRentCmd
+}
+
+func newGetRentCmd(rolProjectID *string) *cobra.Command {
+	var rolRentID string
+
+	var getRentCmd = &cobra.Command{
+		Use:   "get",
+		Short: "Get the device rent",
+		Long:  `Get the device rent`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.GetRent(*rolProjectID, rolRentID); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
 	getRentCmd.Flags().StringVarP(&rolRentID, "id", "i", "", "rent id")
 	_ = getRentCmd.MarkFlagRequired("id")
-	rolRentCmd.AddCommand(getRentCmd)
-	// rol -> rent -> console-output
-	getRentConsoleOutputCmd.Flags().StringVarP(&rolRentID, "id", "i", "", "rent id")
-	_ = getRentConsoleOutputCmd.MarkFlagRequired("id")
-	rolRentCmd.AddCommand(getRentConsoleOutputCmd)
+
+	return getRentCmd
+}
+
+func newCloseRentCmd(rolProjectID *string) *cobra.Command {
+	var rolRentID string
+
+	var closeRentCmd = &cobra.Command{
+		Use:   "close",
+		Short: "Close the device rent",
+		Long:  `Close the device rent`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.CloseRent(*rolProjectID, rolRentID); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	closeRentCmd.Flags().StringVarP(&rolRentID, "id", "i", "", "rent id")
+	_ = closeRentCmd.MarkFlagRequired("id")
+
+	return closeRentCmd
 }

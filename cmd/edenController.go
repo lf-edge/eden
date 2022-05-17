@@ -1,654 +1,288 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/url"
-	"os"
-	"path"
-	"path/filepath"
-	"regexp"
-	"strings"
+	"reflect"
 
-	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/controller/types"
-	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/expect"
-	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var (
-	controllerMode      string
-	baseOSImageActivate bool
-	baseOSVDrive        bool
-	configItems         map[string]string
-	deviceItems         map[string]string
-	baseOSVersion       string
-	edenDist            string
-	fileWithConfig      string
-)
+func newControllerCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
+	var controllerMode string
 
-var controllerCmd = &cobra.Command{
-	Use:   "controller",
-	Short: "interact with controller",
-	Long:  `Interact with controller.`,
-}
-
-var edgeNode = &cobra.Command{
-	Use:   "edge-node",
-	Short: "manage EVE instance",
-	Long:  `Manage EVE instance.`,
-}
-
-var edgeNodeReboot = &cobra.Command{
-	Use:   "reboot",
-	Short: "reboot EVE instance",
-	Long:  `reboot EVE instance.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		dev.Reboot()
-		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev error: %s", err)
-		}
-		log.Info("Reboot request has been sent")
-	},
-}
-
-var edgeNodeShutdown = &cobra.Command{
-	Use:   "shutdown",
-	Short: "shutdown EVE app instances",
-	Long:  `shutdown EVE app instances.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		dev.Shutdown()
-		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev error: %s", err)
-		}
-		log.Info("Shutdown request has been sent")
-	},
-}
-
-func checkIsFileOrURL(pathToCheck string) (isFile bool, pathToRet string, err error) {
-	res, err := url.Parse(pathToCheck)
-	if err != nil {
-		return false, "", err
+	var controllerCmd = &cobra.Command{
+		Use:   "controller",
+		Short: "interact with controller",
+		Long:  `Interact with controller.`,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
+			if err != nil {
+				return err
+			}
+			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
+			cfg = viper_cfg
+			return nil
+		},
 	}
-	switch res.Scheme {
-	case "":
-		return true, pathToCheck, nil
-	case "file":
-		return true, strings.TrimPrefix(pathToCheck, "file://"), nil
-	case "http":
-		return false, pathToCheck, nil
-	case "https":
-		return false, pathToCheck, nil
-	case "oci":
-		return false, pathToCheck, nil
-	case "docker":
-		return false, pathToCheck, nil
-	default:
-		return false, "", fmt.Errorf("%s scheme not supported now", res.Scheme)
+
+	var edgeNode = &cobra.Command{
+		Use:   "edge-node",
+		Short: "manage EVE instance",
+		Long:  `Manage EVE instance.`,
 	}
+
+	groups := CommandGroups{
+		{
+			Message: "Basic Commands",
+			Commands: []*cobra.Command{
+				newEdgeNodeReboot(controllerMode),
+				newEdgeNodeShutdown(controllerMode),
+				newEdgeNodeEVEImageUpdate(controllerMode, cfg.Eve.HostFwd),
+				newEdgeNodeEVEImageRemove(controllerMode, cfg),
+				newEdgeNodeUpdate(controllerMode),
+				newEdgeNodeGetConfig(controllerMode),
+				newEdgeNodeSetConfig(),
+			},
+		},
+	}
+
+	groups.AddTo(edgeNode)
+
+	controllerCmd.AddCommand(edgeNode)
+
+	controllerCmd.PersistentFlags().StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
+
+	return controllerCmd
 }
 
-var edgeNodeEVEImageUpdate = &cobra.Command{
-	Use:   "eveimage-update <image file or url (oci:// or file:// or http(s)://)>",
-	Short: "update EVE image",
-	Long:  `Update EVE image.`,
-	Args:  cobra.ExactArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		if baseOSVersionFlag := cmd.Flags().Lookup("os-version"); baseOSVersionFlag != nil {
-			if err := viper.BindPFlag("eve.base-tag", baseOSVersionFlag); err != nil {
+func newEdgeNodeReboot(controllerMode string) *cobra.Command {
+	var edgeNodeReboot = &cobra.Command{
+		Use:   "reboot",
+		Short: "reboot EVE instance",
+		Long:  `reboot EVE instance.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeReboot(controllerMode); err != nil {
 				log.Fatal(err)
 			}
-		}
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		if viperLoaded {
-			eserverPort = viper.GetInt("eden.eserver.port")
-			edenDist = viper.GetString("eden.dist")
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		var opts []expect.ExpectationOption
-		baseOSImage := args[0]
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		registryToUse := registry
-		switch registry {
-		case "local":
-			registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
-		case "remote":
-			registryToUse = ""
-		}
-		opts = append(opts, expect.WithRegistry(registryToUse))
-		expectation := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "", opts...)
-		if len(qemuPorts) == 0 {
-			qemuPorts = nil
-		}
-		if baseOSVDrive {
-			baseOSImageConfig := expectation.BaseOSConfig(baseOSVersion)
-			dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
-		}
-		baseOS := expectation.BaseOS(baseOSVersion)
-		dev.SetBaseOSActivate(true)
-		dev.SetBaseOSContentTree(baseOS.ContentTreeUuid)
-		dev.SetBaseOSRetryCounter(0)
-
-		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev: %s", err)
-		}
-	},
+		},
+	}
+	return edgeNodeReboot
 }
 
-var edgeNodeEVEImageUpdateRetry = &cobra.Command{
-	Use:   "eveimage-update-retry",
-	Short: "retry update of EVE image",
-	Long:  `Update EVE image retry.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %w", err)
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		dev.SetBaseOSRetryCounter(dev.GetBaseOSRetryCounter() + 1)
+func newEdgeNodeEVEImageUpdateRetry(controllerMode string) *cobra.Command {
+	var edgeNodeEVEImageUpdateRetry = &cobra.Command{
+		Use:   "eveimage-update-retry",
+		Short: "retry update of EVE image",
+		Long:  `Update EVE image retry.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeEVEImageUpdateRetry(controllerMode); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
 
-		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev: %s", err)
-		}
-	},
+	return edgeNodeEVEImageUpdateRetry
 }
 
-var edgeNodeEVEImageRemove = &cobra.Command{
-	Use:   "eveimage-remove <image file or url (oci:// or file:// or http(s)://)>",
-	Short: "remove EVE image",
-	Long:  `Remove EVE image.`,
-	Args:  cobra.ExactArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		if viperLoaded {
-			eserverPort = viper.GetInt("eden.eserver.port")
-			edenDist = viper.GetString("eden.dist")
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		baseOSImage := args[0]
-		isFile, baseOSImage, err := checkIsFileOrURL(baseOSImage)
-		if err != nil {
-			log.Fatalf("checkIsFileOrURL: %s", err)
-		}
-		var rootFsPath string
-		if isFile {
-			rootFsPath, err = utils.GetFileFollowLinks(baseOSImage)
-			if err != nil {
-				log.Fatalf("GetFileFollowLinks: %s", err)
+func newEdgeNodeShutdown(controllerMode string) *cobra.Command {
+	var edgeNodeShutdown = &cobra.Command{
+		Use:   "shutdown",
+		Short: "shutdown EVE app instances",
+		Long:  `shutdown EVE app instances.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeShutdown(controllerMode); err != nil {
+				log.Fatal(err)
 			}
-		} else {
-			r, _ := url.Parse(baseOSImage)
-			switch r.Scheme {
-			case "http", "https":
-				if err = os.MkdirAll(filepath.Join(edenDist, "tmp"), 0755); err != nil {
-					log.Fatalf("cannot create dir for download image %s", err)
-				}
-				rootFsPath = filepath.Join(edenDist, "tmp", path.Base(r.Path))
-				defer os.Remove(rootFsPath)
-				if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
-					log.Fatalf("DownloadFile error: %s", err)
-				}
-			case "oci", "docker":
-				bits := strings.Split(r.Path, ":")
-				if len(bits) == 2 {
-					rootFsPath = "rootfs-" + bits[1] + ".dummy"
-				} else {
-					rootFsPath = "latest.dummy"
-				}
-			default:
-				log.Fatalf("unknown URI scheme: %s", r.Scheme)
-			}
-		}
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
+		},
+	}
 
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-
-		if baseOSVersion == "" {
-			correctionFileName := fmt.Sprintf("%s.ver", rootFsPath)
-			if rootFSFromCorrectionFile, err := ioutil.ReadFile(correctionFileName); err == nil {
-				baseOSVersion = string(rootFSFromCorrectionFile)
-			} else {
-				rootFSName := utils.FileNameWithoutExtension(rootFsPath)
-				rootFSName = strings.TrimPrefix(rootFSName, "rootfs-")
-				re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern)
-				if !re.MatchString(rootFSName) {
-					log.Fatalf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
-				}
-				baseOSVersion = rootFSName
-			}
-		}
-
-		log.Infof("Will use rootfs version %s", baseOSVersion)
-
-		toActivate := true
-		for _, baseOSConfig := range ctrl.ListBaseOSConfig() {
-			if baseOSConfig.BaseOSVersion == baseOSVersion {
-				if ind, found := utils.FindEleInSlice(dev.GetBaseOSConfigs(), baseOSConfig.Uuidandversion.GetUuid()); found {
-					configs := dev.GetBaseOSConfigs()
-					utils.DelEleInSlice(&configs, ind)
-					dev.SetBaseOSConfig(configs)
-					log.Infof("EVE base OS image removed with id %s", baseOSConfig.Uuidandversion.GetUuid())
-				}
-			} else {
-				if toActivate {
-					toActivate = false
-					baseOSConfig.Activate = true //activate another one if exists
-				}
-			}
-		}
-		for _, contentTree := range ctrl.ListContentTree() {
-			if contentTree.DisplayName == baseOSVersion && contentTree.Uuid == dev.GetBaseOSContentTree() {
-				dev.SetBaseOSActivate(false)
-				dev.SetBaseOSRetryCounter(0)
-				dev.SetBaseOSContentTree("")
-			}
-		}
-		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev error: %s", err)
-		}
-	},
+	return edgeNodeShutdown
 }
 
-var edgeNodeUpdate = &cobra.Command{
-	Use:   "update --config key=value --device key=value",
-	Short: "update EVE config",
-	Long:  `Update EVE config.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		if viperLoaded {
-			eserverPort = viper.GetInt("eden.eserver.port")
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
+func newEdgeNodeEVEImageUpdate(controllerMode string, qemuPorts map[string]string) *cobra.Command {
+	var baseOSVersion, registry string
+	var baseOSImageActivate, baseOSVDrive bool
 
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		for key, val := range configItems {
-			dev.SetConfigItem(key, val)
-		}
-		for key, val := range deviceItems {
-			if err := dev.SetDeviceItem(key, val); err != nil {
-				log.Fatalf("SetDeviceItem: %s", err)
+	var edgeNodeEVEImageUpdate = &cobra.Command{
+		Use:   "eveimage-update <image file or url (oci:// or file:// or http(s)://)>",
+		Short: "update EVE image",
+		Long:  `Update EVE image.`,
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			baseOSImage := args[0]
+			if err := openevec.EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode, baseOSImageActivate, baseOSVDrive, qemuPorts); err != nil {
+				log.Fatal(err)
 			}
-		}
+		},
+	}
 
-		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev error: %s", err)
-		}
-	},
-}
-
-var edgeNodeGetConfig = &cobra.Command{
-	Use:   "get-config",
-	Short: "fetch EVE config",
-	Long:  `Fetch EVE config.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-
-		res, err := ctrl.GetConfigBytes(dev, true)
-		if err != nil {
-			log.Fatalf("GetConfigBytes error: %s", err)
-		}
-		if fileWithConfig != "" {
-			if err = ioutil.WriteFile(fileWithConfig, res, 0755); err != nil {
-				log.Fatalf("WriteFile: %s", err)
-			}
-		} else {
-			fmt.Println(string(res))
-		}
-	},
-}
-
-var edgeNodeSetConfig = &cobra.Command{
-	Use:   "set-config",
-	Short: "set EVE config",
-	Long:  `Set EVE config.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		ctrl, err := controller.CloudPrepare()
-		if err != nil {
-			log.Fatalf("CloudPrepare: %s", err)
-		}
-		devFirst, err := ctrl.GetDeviceCurrent()
-		if err != nil {
-			log.Fatalf("GetDeviceCurrent error: %s", err)
-		}
-		devUUID := devFirst.GetID()
-		var newConfig []byte
-		if fileWithConfig != "" {
-			newConfig, err = ioutil.ReadFile(fileWithConfig)
-			if err != nil {
-				log.Fatalf("File reading error: %s", err)
-			}
-		} else if utils.IsInputFromPipe() {
-			newConfig, err = ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				log.Fatalf("Stdin reading error: %s", err)
-			}
-		} else {
-			log.Fatal("Please run command with --file or use it with pipe")
-		}
-		// we should validate config with unmarshal
-		var dConfig config.EdgeDevConfig
-		if err := protojson.Unmarshal(newConfig, &dConfig); err != nil {
-			log.Fatalf("Cannot unmarshal config: %s", err)
-		}
-		// Adam expects json type
-		cfg, err := json.Marshal(&dConfig)
-		if err != nil {
-			log.Fatalf("Cannot marshal config: %s", err)
-		}
-		if err = ctrl.ConfigSet(devUUID, cfg); err != nil {
-			log.Fatalf("ConfigSet: %s", err)
-		}
-		log.Info("Config loaded")
-	},
-}
-
-var edgeNodeGetOptions = &cobra.Command{
-	Use:   "get-options",
-	Short: "fetch EVE options",
-	Long:  `Fetch EVE options.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		res, err := ctrl.GetDeviceOptions(dev.GetID())
-		if err != nil {
-			log.Fatalf("GetDeviceOptions error: %s", err)
-		}
-		data, err := json.MarshalIndent(res, "", "    ")
-		if err != nil {
-			log.Fatalf("Cannot marshal: %s", err)
-		}
-		if fileWithConfig != "" {
-			if err = ioutil.WriteFile(fileWithConfig, data, 0755); err != nil {
-				log.Fatalf("WriteFile: %s", err)
-			}
-		} else {
-			fmt.Println(string(data))
-		}
-	},
-}
-
-var edgeNodeSetOptions = &cobra.Command{
-	Use:   "set-options",
-	Short: "set EVE options",
-	Long:  `Set EVE options.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		var newOptionsBytes []byte
-		if fileWithConfig != "" {
-			newOptionsBytes, err = ioutil.ReadFile(fileWithConfig)
-			if err != nil {
-				log.Fatalf("File reading error: %s", err)
-			}
-		} else if utils.IsInputFromPipe() {
-			newOptionsBytes, err = ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				log.Fatalf("Stdin reading error: %s", err)
-			}
-		} else {
-			log.Fatal("Please run command with --file or use it with pipe")
-		}
-		var devOptions types.DeviceOptions
-		if err := json.Unmarshal(newOptionsBytes, &devOptions); err != nil {
-			log.Fatalf("Cannot unmarshal: %s", err)
-		}
-		if err := ctrl.SetDeviceOptions(dev.GetID(), &devOptions); err != nil {
-			log.Fatalf("Cannot set device options: %s", err)
-		}
-		log.Info("Options loaded")
-	},
-}
-
-var controllerGetOptions = &cobra.Command{
-	Use:   "get-options",
-	Short: "fetch controller options",
-	Long:  `Fetch controller options.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		ctrl, err := controller.CloudPrepare()
-		if err != nil {
-			log.Fatalf("CloudPrepare error: %s", err)
-		}
-		res, err := ctrl.GetGlobalOptions()
-		if err != nil {
-			log.Fatalf("GetGlobalOptions error: %s", err)
-		}
-		data, err := json.MarshalIndent(res, "", "    ")
-		if err != nil {
-			log.Fatalf("Cannot marshal: %s", err)
-		}
-		if fileWithConfig != "" {
-			if err = ioutil.WriteFile(fileWithConfig, data, 0755); err != nil {
-				log.Fatalf("WriteFile: %s", err)
-			}
-		} else {
-			fmt.Println(string(data))
-		}
-	},
-}
-
-var controllerSetOptions = &cobra.Command{
-	Use:   "set-options",
-	Short: "set controller options",
-	Long:  `Set controller options.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		ctrl, err := controller.CloudPrepare()
-		if err != nil {
-			log.Fatalf("CloudPrepare error: %s", err)
-		}
-		var newOptionsBytes []byte
-		if fileWithConfig != "" {
-			newOptionsBytes, err = ioutil.ReadFile(fileWithConfig)
-			if err != nil {
-				log.Fatalf("File reading error: %s", err)
-			}
-		} else if utils.IsInputFromPipe() {
-			newOptionsBytes, err = ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				log.Fatalf("Stdin reading error: %s", err)
-			}
-		} else {
-			log.Fatal("Please run command with --file or use it with pipe")
-		}
-		var globalOptions types.GlobalOptions
-		if err := json.Unmarshal(newOptionsBytes, &globalOptions); err != nil {
-			log.Fatalf("Cannot unmarshal: %s", err)
-		}
-		if err := ctrl.SetGlobalOptions(&globalOptions); err != nil {
-			log.Fatalf("Cannot set global options: %s", err)
-		}
-		log.Info("Options loaded")
-	},
-}
-
-func controllerInit() {
-	controllerCmd.AddCommand(edgeNode)
-	controllerCmd.AddCommand(controllerGetOptions)
-	controllerGetOptions.Flags().StringVar(&fileWithConfig, "file", "", "save options to file")
-	controllerCmd.AddCommand(controllerSetOptions)
-	controllerSetOptions.Flags().StringVar(&fileWithConfig, "file", "", "set options from file")
-	edgeNode.AddCommand(edgeNodeReboot)
-	edgeNode.AddCommand(edgeNodeShutdown)
-	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
-	edgeNode.AddCommand(edgeNodeEVEImageUpdateRetry)
-	edgeNode.AddCommand(edgeNodeEVEImageRemove)
-	edgeNode.AddCommand(edgeNodeUpdate)
-	edgeNode.AddCommand(edgeNodeGetConfig)
-	edgeNodeGetConfig.Flags().StringVar(&fileWithConfig, "file", "", "save config to file")
-	edgeNode.AddCommand(edgeNodeSetConfig)
-	edgeNodeSetConfig.Flags().StringVar(&fileWithConfig, "file", "", "set config from file")
-	edgeNode.AddCommand(edgeNodeGetOptions)
-	edgeNodeGetOptions.Flags().StringVar(&fileWithConfig, "file", "", "save options to file")
-	edgeNode.AddCommand(edgeNodeSetOptions)
-	edgeNodeSetOptions.Flags().StringVar(&fileWithConfig, "file", "", "set options from file")
-	pf := controllerCmd.PersistentFlags()
-	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
 	edgeNodeEVEImageUpdate.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
 	edgeNodeEVEImageUpdate.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	edgeNodeEVEImageUpdate.Flags().BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
-	edgeNodeEVEImageUpdate.Flags().BoolVar(&baseOSVDrive, "drive", true, "provide drive to baseOS")
+	edgeNodeEVEImageUpdate.Flags().BoolVar(&baseOSVDrive, "drive", false, "provide drive to baseOS")
+
+	return edgeNodeEVEImageUpdate
+}
+
+func newEdgeNodeEVEImageRemove(controllerMode string, cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var baseOSVersion string
+
+	var edgeNodeEVEImageRemove = &cobra.Command{
+		Use:   "eveimage-remove <image file or url (oci:// or file:// or http(s)://)>",
+		Short: "remove EVE image",
+		Long:  `Remove EVE image.`,
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			baseOSImage := args[0]
+			if err := openevec.EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, cfg.Eden.Dist); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
 	edgeNodeEVEImageRemove.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
-	edgeNodeEVEImageRemove.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
-	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()
+	// TODO: NOT USED
+	//edgeNodeEVEImageRemove.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
+
+	return edgeNodeEVEImageRemove
+}
+
+func newEdgeNodeUpdate(controllerMode string) *cobra.Command {
+	var deviceItems, configItems map[string]string
+
+	var edgeNodeUpdate = &cobra.Command{
+		Use:   "update --config key=value --device key=value",
+		Short: "update EVE config",
+		Long:  `Update EVE config.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeUpdate(controllerMode, deviceItems, configItems); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
 	configUsage := `set of key=value items.
 Supported keys are defined in https://github.com/lf-edge/eve/blob/master/docs/CONFIG-PROPERTIES.md`
-	edgeNodeUpdateFlags.StringToStringVar(&configItems, "config", make(map[string]string), configUsage)
 	deviceUsage := `set of key=value items.
 Supported keys: global_profile,local_profile_server,profile_server_token`
-	edgeNodeUpdateFlags.StringToStringVar(&deviceItems, "device", make(map[string]string), deviceUsage)
+	edgeNodeUpdate.Flags().StringToStringVar(&configItems, "config", make(map[string]string), configUsage)
+	edgeNodeUpdate.Flags().StringToStringVar(&deviceItems, "device", make(map[string]string), deviceUsage)
+
+	return edgeNodeUpdate
+}
+
+func newEdgeNodeGetOptions(controllerMode string) *cobra.Command {
+	var fileWithConfig string
+
+	var edgeNodeGetOptions = &cobra.Command{
+		Use:   "get-options",
+		Short: "fetch EVE options",
+		Long:  `Fetch EVE options.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeGetOptions(controllerMode, fileWithConfig); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeGetOptions.Flags().StringVar(&fileWithConfig, "file", "", "save options to file")
+
+	return edgeNodeGetOptions
+}
+
+func newEdgeNodeSetOptions(controllerMode string) *cobra.Command {
+	var fileWithConfig string
+
+	var edgeNodeSetOptions = &cobra.Command{
+		Use:   "set-options",
+		Short: "set EVE options",
+		Long:  `Set EVE options.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeSetOptions(controllerMode, fileWithConfig); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeSetOptions.Flags().StringVar(&fileWithConfig, "file", "", "set options from file")
+
+	return edgeNodeSetOptions
+}
+
+func newControllerGetOptions() *cobra.Command {
+	var fileWithConfig string
+
+	var controllerGetOptions = &cobra.Command{
+		Use:   "get-options",
+		Short: "fetch controller options",
+		Long:  `Fetch controller options.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.ControllerGetOptions(fileWithConfig); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	controllerGetOptions.Flags().StringVar(&fileWithConfig, "file", "", "save options to file")
+
+	return controllerGetOptions
+}
+
+func newControllerSetOptions() *cobra.Command {
+	var fileWithConfig string
+
+	var controllerSetOptions = &cobra.Command{
+		Use:   "set-options",
+		Short: "set controller options",
+		Long:  `Set controller options.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.ControllerSetOptions(fileWithConfig); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	controllerSetOptions.Flags().StringVar(&fileWithConfig, "file", "", "set options from file")
+
+	return controllerSetOptions
+}
+
+func newEdgeNodeGetConfig(controllerMode string) *cobra.Command {
+	var fileWithConfig string
+
+	var edgeNodeGetConfig = &cobra.Command{
+		Use:   "get-config",
+		Short: "fetch EVE config",
+		Long:  `Fetch EVE config.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeGetConfig(controllerMode, fileWithConfig); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeGetConfig.Flags().StringVar(&fileWithConfig, "file", "", "save config to file")
+
+	return edgeNodeGetConfig
+}
+
+func newEdgeNodeSetConfig() *cobra.Command {
+	var fileWithConfig string
+
+	var edgeNodeSetConfig = &cobra.Command{
+		Use:   "set-config",
+		Short: "set EVE config",
+		Long:  `Set EVE config.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.EdgeNodeSetConfig(fileWithConfig); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeSetConfig.Flags().StringVar(&fileWithConfig, "file", "", "set config from file")
+
+	return edgeNodeSetConfig
 }

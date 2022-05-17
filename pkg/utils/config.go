@@ -66,6 +66,7 @@ type ConfigVars struct {
 //InitVars loads vars from viper
 func InitVars() (*ConfigVars, error) {
 	loaded := true
+	fmt.Println(viper.ConfigFileUsed())
 	if viper.ConfigFileUsed() == "" {
 		configPath, err := DefaultConfigPath()
 		if err != nil {
@@ -362,8 +363,6 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultEveRegistry
 		case "eve.tag":
 			return defaults.DefaultEVETag
-		case "eve.hostfwd":
-			return fmt.Sprintf("{\"%d\":\"22\",\"5912\":\"5902\",\"5911\":\"5901\",\"8027\":\"8027\",\"8028\":\"8028\"}", defaults.DefaultSSHPort)
 		case "eve.dist":
 			return fmt.Sprintf("%s-%s", context.Current, defaults.DefaultEVEDist)
 		case "eve.qemu-config":

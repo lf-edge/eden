@@ -3,14 +3,15 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	uuid "github.com/satori/go.uuid"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -52,30 +53,6 @@ func (desc EVEDescription) Version() (string, error) {
 	return fmt.Sprintf("%s-%s-%s", desc.Tag, desc.HV, desc.Arch), nil
 }
 
-// UEFIDescription provides information about UEFI to download
-type UEFIDescription struct {
-	Registry string
-	Tag      string
-	Arch     string
-}
-
-// image extracts image tag from UEFIDescription
-func (desc UEFIDescription) image(latest bool) (string, error) {
-	if desc.Registry == "" {
-		desc.Registry = defaults.DefaultEveRegistry
-	}
-	if latest {
-		return fmt.Sprintf("%s-uefi:latest-%s", defaults.DefaultEveRegistry, desc.Arch), nil
-	}
-	if desc.Tag == "" {
-		return "", fmt.Errorf("tag not present")
-	}
-	if desc.Arch == "" {
-		return "", fmt.Errorf("arch not present")
-	}
-	return fmt.Sprintf("%s-uefi:%s-%s", desc.Registry, desc.Tag, desc.Arch), nil
-}
-
 //DownloadEveInstaller pulls EVE installer image from docker
 func DownloadEveInstaller(eve EVEDescription, outputFile string) (err error) {
 	image, err := eve.Image()
@@ -92,24 +69,17 @@ func DownloadEveInstaller(eve EVEDescription, outputFile string) (err error) {
 	return nil
 }
 
-func DownloadUEFI(uefi UEFIDescription, outputDir string) (err error) {
-	efiImage, err := uefi.image(false) //download OVMF
+// DownloadUEFI downloads and extracts uefi from EVE-OS image
+func DownloadUEFI(eve EVEDescription, outputDir string) (err error) {
+	image, err := eve.Image()
 	if err != nil {
 		return err
 	}
-	if err := PullImage(efiImage); err != nil {
-		log.Infof("cannot pull %s", efiImage)
-		efiImage, err = uefi.image(true) //try with latest version of OVMF
-		if err != nil {
-			return err
-		}
-		log.Infof("will retry with %s", efiImage)
-		if err := PullImage(efiImage); err != nil {
-			return fmt.Errorf("ImagePull (%s): %s", efiImage, err)
-		}
+	if err := PullImage(image); err != nil {
+		return fmt.Errorf("ImagePull (%s): %s", image, err)
 	}
-	if err := SaveImageAndExtract(efiImage, outputDir, ""); err != nil {
-		return fmt.Errorf("SaveImage: %s", err)
+	if err := SaveImageAndExtract(image, outputDir, "/bits/firmware"); err != nil {
+		return fmt.Errorf("SaveImageAndExtract: %w", err)
 	}
 	return nil
 }
