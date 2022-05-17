@@ -3,14 +3,16 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"fmt"
 	"io"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 //SHA256SUM calculates sha256 of file
@@ -203,4 +205,12 @@ func SHA256SUMAll(dir string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+//CreateDisk creates empty disk with defined format on diskFile with size bytes capacity
+func CreateDisk(diskFile, format string, size uint64) error {
+	if err := os.MkdirAll(filepath.Dir(diskFile), 0755); err != nil {
+		return err
+	}
+	return RunCommandForeground("qemu-img", "create", "-f", format, diskFile, fmt.Sprintf("%d", size))
 }

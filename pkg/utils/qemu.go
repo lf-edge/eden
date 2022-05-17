@@ -11,6 +11,7 @@ import (
 type QemuSettings struct {
 	DTBDrive   string
 	Firmware   []string
+	Disks      []string
 	MemoryMB   int
 	CPUs       int
 	USBSerials int

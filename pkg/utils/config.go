@@ -400,6 +400,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultEVEImageSize
 		case "eve.tpm":
 			return defaults.DefaultTPMEnabled
+		case "eve.disks":
+			return defaults.DefaultAdditionalDisks
 
 		case "eden.root":
 			return filepath.Join(currentPath, defaults.DefaultDist)
