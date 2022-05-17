@@ -54,6 +54,8 @@ var (
 	ipxeOverride string
 
 	grubOptions []string
+
+	eveDisks int
 )
 
 func generateScripts(in string, out string) {
@@ -157,6 +159,7 @@ var setupCmd = &cobra.Command{
 			qemuCpus = viper.GetInt("eve.cpu")
 			qemuMemory = viper.GetInt("eve.ram")
 			eveImageSizeMB = viper.GetInt("eve.disk")
+			eveDisks = viper.GetInt("eve.disks")
 			//eserver
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 
@@ -182,10 +185,6 @@ var setupCmd = &cobra.Command{
 		}
 		if devModel == defaults.DefaultQemuModel {
 			if _, err := os.Stat(qemuFileToSave); os.IsNotExist(err) {
-				f, err := os.Create(qemuFileToSave)
-				if err != nil {
-					log.Fatal(err)
-				}
 				qemuDTBPathAbsolute := ""
 				if qemuDTBPath != "" {
 					qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
@@ -199,13 +198,26 @@ var setupCmd = &cobra.Command{
 						qemuFirmwareParam = append(qemuFirmwareParam, utils.ResolveAbsPath(el))
 					}
 				}
+				var qemuDisksParam []string
+				for ind := 0; ind < eveDisks; ind++ {
+					diskFile := filepath.Join(filepath.Dir(eveImageFile), fmt.Sprintf("eve-disk-%d.qcow2", ind+1))
+					if err := utils.CreateDisk(diskFile, "qcow2", uint64(eveImageSizeMB*1024*1024)); err != nil {
+						log.Fatal(err)
+					}
+					qemuDisksParam = append(qemuDisksParam, diskFile)
+				}
 				settings := utils.QemuSettings{
 					DTBDrive: qemuDTBPathAbsolute,
 					Firmware: qemuFirmwareParam,
+					Disks:    qemuDisksParam,
 					MemoryMB: qemuMemory,
 					CPUs:     qemuCpus,
 				}
 				conf, err := settings.GenerateQemuConfig()
+				if err != nil {
+					log.Fatal(err)
+				}
+				f, err := os.Create(qemuFileToSave)
 				if err != nil {
 					log.Fatal(err)
 				}

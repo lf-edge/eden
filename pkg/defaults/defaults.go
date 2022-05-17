@@ -27,6 +27,7 @@ const (
 	DefaultConfigHidden     = ".eden-config.yml" //file to save config get --all
 	DefaultConfigSaved      = "config_saved.yml" //file to save config during 'eden setup'
 	DefaultSwtpmSockFile    = "swtpm-sock"       //file to communicate with swtpm
+	DefaultAdditionalDisks  = 0                  //number of disks to use alongside with bootable one
 
 	DefaultContext = "default" //default context name
 
@@ -237,6 +238,7 @@ var (
 		"eve.cpu":          "cpus",
 		"eve.ram":          "memory",
 		"eve.tpm":          "tpm",
+		"eve.disks":        "eve-disks",
 
 		"eve.qemu.monitor-port":       "qemu-monitor-port",
 		"eve.qemu.netdev-socket-port": "qemu-netdev-socket-port",
