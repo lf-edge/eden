@@ -24,12 +24,17 @@ test eden.app.test -test.v -timewait 20m RUNNING {{$app_name}}
 # exec -t 5m bash ssh.sh
 # stdout 'Ubuntu'
 
+# check for the ZDEVICE_STATE_SHUTTING_DOWN state
+test eden.lim.test -test.v -timewait 5m -test.run TestInfo -out InfoContent.dinfo.state 'InfoContent.dinfo.state:ZDEVICE_STATE_SHUTTING_DOWN' &
+
+# wait for HALTED state which indicates that we are shutting down
+test eden.app.test -test.v -timewait 5m HALTED {{$app_name}} &
+
 # send shutdown command
 eden controller edge-node shutdown
 
-# wait for HALTED state which indicates that we are shutting down
-test eden.app.test -test.v -timewait 5m HALTED {{$app_name}}
-# XXX can we check for the SHUTTING_DOWN state? Need check on ZDeviceState
+# wait for detectors
+wait
 
 # now reboot node to bring app back up
 test eden.reboot.test -test.v -timewait=10m -reboot=1 -count=1 &
