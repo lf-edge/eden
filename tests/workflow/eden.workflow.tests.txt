@@ -42,6 +42,8 @@ eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027 8028:8028 8029:8
 eden.escript.test -test.run TestEdenScripts/eden_start
 /bin/echo Eden onboard (03/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_onboard
+/bin/echo Eden template check (03.1/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/template_check
 {{end}}
 
 {{if (ne $setup "y")}}
