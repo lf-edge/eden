@@ -11,7 +11,7 @@ eden eve epoch &
 stdout 'eth[01]'
 
 {{$tpm := EdenConfig "eve.tpm"}}
-{{if eq $tpm "true"}}
+{{if (eq $tpm "true")}}
 eden eve epoch &
 {{$test}} -out InfoContent.dinfo.HSMStatus 'InfoContent.dinfo.HSMStatus:ENABLED'
 stdout 'ENABLED'

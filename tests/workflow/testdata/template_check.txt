@@ -1,0 +1,59 @@
+# check for templates apply inside controller
+
+# note: the test may be run only once per boot
+#       it expects booting state which indicates
+#       that we cannot get config because of wrong
+#       integrity token
+
+{{$tpm := EdenConfig "eve.tpm"}}
+{{if not (eq $tpm "true")}}
+skip 'The test is only for TPM-enabled deployment'
+{{end}}
+
+[!exec:bash] stop
+[!exec:jq] stop
+
+# we expect booting state, skip if not
+# FIXME how to check if no attestation completed from device side explicitly
+exec -t 2m bash check_booting_state.sh
+source .env
+[!env:check_pass] skip 'Only for the first boot'
+
+# wait for 2 minutes for another unexpected state
+! test eden.lim.test -test.v -timewait 2m -test.run TestInfo -out InfoContent.dinfo.state 'InfoContent.dinfo.state:ZDEVICE_STATE_ONLINE'
+eden info --out InfoContent.dinfo.state --tail 1
+stdout 'ZDEVICE_STATE_BOOTING'
+
+# set template received from device to controller
+exec -t 1m bash approve_template.sh
+
+# wait for ZDEVICE_STATE_ONLINE which indicates that we pass attestation and integrity token check
+eden eve epoch &
+test eden.lim.test -test.v -timewait 5m -test.run TestInfo -out InfoContent.dinfo.state 'InfoContent.dinfo.state:ZDEVICE_STATE_ONLINE'
+
+# disable template attestation to not affect the rest of the tests
+exec -t 1m bash set_template_check_enforce.sh false
+
+-- check_booting_state.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+while [ -z $($EDEN info --out InfoContent.dinfo.state --tail 1) ]; do sleep 10; done
+
+if $EDEN info --out InfoContent.dinfo.state --tail 1 | grep -q "ZDEVICE_STATE_BOOTING"; then
+    echo "check_pass=true" >>.env
+else
+    echo "" >>.env
+    $EDEN controller get-options|jq ".enforceTemplateAttestation = false"|$EDEN controller set-options
+fi
+
+-- set_template_check_enforce.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+$EDEN controller get-options|jq ".enforceTemplateAttestation = $1"|$EDEN controller set-options
+$EDEN controller get-options
+
+-- approve_template.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+$EDEN controller get-options|jq ".PCRTemplates = $($EDEN controller edge-node get-options|jq [.receivedPCRTemplate])"|$EDEN controller set-options
+$EDEN controller get-options
