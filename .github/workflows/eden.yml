@@ -6,12 +6,13 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   integration:
-    name: Integration tests (tpm=${{ matrix.tpm }})
+    name: Integration test (tpm=${{ matrix.tpm }};${{ matrix.fs }})
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         tpm: ["true", "false"]
+        fs: ["zfs", "ext4"]
     steps:
       - name: get eden
         uses: actions/checkout@v2
@@ -35,14 +36,22 @@ jobs:
       - name: build eden
         run: |
           make build-tests
-      - name: run
+      - name: configure
         run: |
           ./eden config add default
           ./eden config set default --key=eve.accel --value=false
           ./eden config set default --key=eve.tpm --value=${{ matrix.tpm }}
           ./eden config set default --key=eve.cpu --value=2
-          echo > tests/workflow/testdata/eden_stop.txt
-          ./eden test ./tests/workflow -v debug
+      - name: setup-ext4
+        if: matrix.fs == 'ext4'
+        run: ./eden setup -v debug
+      - name: setup-zfs
+        if: matrix.fs == 'zfs'
+        run: |
+          ./eden config set default --key=eve.disks --value=4
+          ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
+      - name: run
+        run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -v debug
       - name: Collect logs
         if: ${{ always() }}
         run: |
@@ -75,7 +84,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
-          name: eden-report-tpm-${{ matrix.tpm }}
+          name: eden-report-tpm-${{ matrix.tpm }}-${{ matrix.fs }}
           path: |
               ${{ github.workspace }}/trace.log
               ${{ github.workspace }}/info.log

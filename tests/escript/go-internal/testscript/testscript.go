@@ -603,6 +603,23 @@ func (ts *TestScript) condition(cond string) (bool, error) {
 			}).(bool)
 			return ok, nil
 		}
+		if strings.HasPrefix(cond, "stdout:") || strings.HasPrefix(cond, "stderr:") {
+			var pattern, source string
+			switch {
+			case strings.HasPrefix(cond, "stdout:"):
+				pattern = cond[len("stdout:"):]
+				source = ts.stdout
+			case strings.HasPrefix(cond, "stderr:"):
+				pattern = cond[len("stderr:"):]
+				source = ts.stderr
+			default:
+				ts.Fatalf("unexpected prefix in %q", cond)
+				panic("unreachable")
+			}
+			re, err := regexp.Compile(`(?m)` + pattern)
+			ts.Check(err)
+			return re.MatchString(source), nil
+		}
 		if ts.params.Condition != nil {
 			return ts.params.Condition(ts, cond)
 		}

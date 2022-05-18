@@ -6,11 +6,13 @@ on:  # yamllint disable-line rule:truthy
 # yamllint disable rule:line-length
 jobs:
   integration:
+    name: Integration GCP test (tpm=${{ matrix.hv }};${{ matrix.fs }})
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         hv: ["kvm", "xen"]
+        fs: ["zfs", "ext4"]
     steps:
       - name: get eden
         uses: actions/checkout@v2
@@ -51,8 +53,8 @@ jobs:
           create_credentials_file: true
       - name: set firewall & clean
         run: |
-          gcloud compute instances delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q --zone=us-west1-a || echo "not exists"
-          gcloud compute images delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q || echo "not exists"
+          gcloud compute instances delete eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -q --zone=us-west1-a || echo "not exists"
+          gcloud compute images delete eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -q || echo "not exists"
       - name: Connect VPN
         id: connect_vpn
         timeout-minutes: 1
@@ -64,22 +66,30 @@ jobs:
         run: |
           make build
           make build-tests
-      - name: setup
+      - name: pre-setup
         run: |
           ./eden config add default --devmodel GCP
           ./eden config set default --key adam.eve-ip --value ${{ steps.connect_vpn.outputs.tunnel_ip }}
           ./eden config set default --key registry.ip --value ${{ steps.connect_vpn.outputs.tunnel_ip }}
           ./eden config set default --key eve.hv --value ${{ matrix.hv }}
           ./eden config set default --key eve.tpm --value true
-          ./eden utils gcp firewall --source-range ${{ steps.ip.outputs.ipv4 }}/32 --name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}"
-          ./eden setup -v debug
-          ./eden utils gcp image --image-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}" upload
-          ./eden utils gcp vm --image-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} --vm-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}" run
+          ./eden utils gcp firewall --source-range ${{ steps.ip.outputs.ipv4 }}/32 --name eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}"
+      - name: setup-ext4
+        if: matrix.fs == 'ext4'
+        run: ./eden setup -v debug
+      - name: setup-zfs
+        if: matrix.fs == 'zfs'
+        run: |
+          ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
+      - name: post-setup
+        run: |
+          ./eden utils gcp image --image-name eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}" upload
+          ./eden utils gcp vm --image-name eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} --vm-name eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}" run
           ./eden start
           sleep 100
-          BWD=$(./eden utils gcp vm get-ip --vm-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}") || { echo "cannot obtain IP"; exit 1; }
+          BWD=$(./eden utils gcp vm get-ip --vm-name eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}") || { echo "cannot obtain IP"; exit 1; }
           echo "the IP is $BWD"
-          ./eden utils gcp firewall -k "${{ steps.gcpauth.outputs.credentials_file_path }}" --source-range $BWD --name eden-actions-${{ matrix.hv }}-${{github.run_number}} || { echo "cannot set firewall"; exit 1; }
+          ./eden utils gcp firewall -k "${{ steps.gcpauth.outputs.credentials_file_path }}" --source-range $BWD --name eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} || { echo "cannot set firewall"; exit 1; }
           ./eden eve onboard
           echo > tests/workflow/testdata/eden_stop.txt
       - name: Test
@@ -93,15 +103,15 @@ jobs:
           ./eden metric > metric.log || echo "no metric"
           ./eden netstat > netstat.log || echo "no netstat"
           docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
-          ./eden utils gcp vm log --vm-name eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}" > console.log || echo "no device log"
+          ./eden utils gcp vm log --vm-name eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -k "${{ steps.gcpauth.outputs.credentials_file_path }}" > console.log || echo "no device log"
       - name: Clean
         if: ${{ always() }}
         run: |
-          gcloud compute firewall-rules delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} || echo "not exists"
-          gcloud compute firewall-rules delete eden-actions-${{ matrix.hv }}-${{github.run_number}} || echo "not exists"
-          gcloud compute instances delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q --zone=us-west1-a || echo "not exists"
-          gcloud compute images delete eve-eden-actions-${{ matrix.hv }}-${{github.run_number}} -q || echo "not exists"
-          gsutil -o "Credentials:gs_service_key_file=${{ steps.gcpauth.outputs.credentials_file_path }}" rm gs://eve-live/eve-eden-actions-${{ matrix.hv }}-${{github.run_number}}.img.tar.gz || echo "not exists"
+          gcloud compute firewall-rules delete eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} || echo "not exists"
+          gcloud compute firewall-rules delete eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} || echo "not exists"
+          gcloud compute instances delete eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -q --zone=us-west1-a || echo "not exists"
+          gcloud compute images delete eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}} -q || echo "not exists"
+          gsutil -o "Credentials:gs_service_key_file=${{ steps.gcpauth.outputs.credentials_file_path }}" rm gs://eve-live/eve-eden-actions-${{ matrix.hv }}-${{ matrix.fs }}-${{github.run_number}}.img.tar.gz || echo "not exists"
       - name: Log counting
         if: ${{ always() }}
         run: |
@@ -125,7 +135,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
-          name: eden-report-${{ matrix.hv }}
+          name: eden-report-${{ matrix.hv }}-${{ matrix.fs }}
           path: |
             ${{ github.workspace }}/trace.log
             ${{ github.workspace }}/info.log
