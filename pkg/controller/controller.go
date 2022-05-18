@@ -36,6 +36,10 @@ type Controller interface {
 	DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, err error)
 	DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error)
 	GetDeviceCert(device *device.Ctx) (*types.DeviceCert, error)
+	SetDeviceOptions(uuid.UUID, *types.DeviceOptions) error
+	GetDeviceOptions(uuid.UUID) (*types.DeviceOptions, error)
+	SetGlobalOptions(*types.GlobalOptions) error
+	GetGlobalOptions() (*types.GlobalOptions, error)
 	UploadDeviceCert(types.DeviceCert) error
 	OnboardRemove(onboardUUID string) (err error)
 	DeviceRemove(devUUID uuid.UUID) (err error)

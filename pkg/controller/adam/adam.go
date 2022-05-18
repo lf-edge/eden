@@ -356,3 +356,47 @@ func (adam *Ctx) UploadDeviceCert(deviceCert types.DeviceCert) error {
 	}
 	return adam.postObj("/admin/device", body, "text/plain")
 }
+
+//SetDeviceOptions sets options for provided devUUID
+func (adam *Ctx) SetDeviceOptions(devUUID uuid.UUID, options *types.DeviceOptions) error {
+	body, err := json.Marshal(options)
+	if err != nil {
+		return err
+	}
+	return adam.putObj(path.Join("/admin/device", devUUID.String(), "options"), body)
+}
+
+//GetDeviceOptions returns DeviceOptions for provided devUUID
+func (adam *Ctx) GetDeviceOptions(devUUID uuid.UUID) (*types.DeviceOptions, error) {
+	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String(), "options"))
+	if err != nil {
+		return nil, err
+	}
+	var devOptions types.DeviceOptions
+	if err = json.Unmarshal([]byte(devInfo), &devOptions); err != nil {
+		return nil, err
+	}
+	return &devOptions, nil
+}
+
+//SetGlobalOptions sets global options for controller
+func (adam *Ctx) SetGlobalOptions(options *types.GlobalOptions) error {
+	body, err := json.Marshal(options)
+	if err != nil {
+		return err
+	}
+	return adam.putObj("/admin/options", body)
+}
+
+//GetGlobalOptions returns global options from controller
+func (adam *Ctx) GetGlobalOptions() (*types.GlobalOptions, error) {
+	devInfo, err := adam.getObj("/admin/options")
+	if err != nil {
+		return nil, err
+	}
+	var globalOptions types.GlobalOptions
+	if err = json.Unmarshal([]byte(devInfo), &globalOptions); err != nil {
+		return nil, err
+	}
+	return &globalOptions, nil
+}
