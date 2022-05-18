@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -410,8 +411,174 @@ var edgeNodeSetConfig = &cobra.Command{
 	},
 }
 
+var edgeNodeGetOptions = &cobra.Command{
+	Use:   "get-options",
+	Short: "fetch EVE options",
+	Long:  `Fetch EVE options.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		changer, err := changerByControllerMode(controllerMode)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev error: %s", err)
+		}
+		res, err := ctrl.GetDeviceOptions(dev.GetID())
+		if err != nil {
+			log.Fatalf("GetDeviceOptions error: %s", err)
+		}
+		data, err := json.MarshalIndent(res, "", "    ")
+		if err != nil {
+			log.Fatalf("Cannot marshal: %s", err)
+		}
+		if fileWithConfig != "" {
+			if err = ioutil.WriteFile(fileWithConfig, data, 0755); err != nil {
+				log.Fatalf("WriteFile: %s", err)
+			}
+		} else {
+			fmt.Println(string(data))
+		}
+	},
+}
+
+var edgeNodeSetOptions = &cobra.Command{
+	Use:   "set-options",
+	Short: "set EVE options",
+	Long:  `Set EVE options.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		changer, err := changerByControllerMode(controllerMode)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev error: %s", err)
+		}
+		var newOptionsBytes []byte
+		if fileWithConfig != "" {
+			newOptionsBytes, err = ioutil.ReadFile(fileWithConfig)
+			if err != nil {
+				log.Fatalf("File reading error: %s", err)
+			}
+		} else if utils.IsInputFromPipe() {
+			newOptionsBytes, err = ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				log.Fatalf("Stdin reading error: %s", err)
+			}
+		} else {
+			log.Fatal("Please run command with --file or use it with pipe")
+		}
+		var devOptions types.DeviceOptions
+		if err := json.Unmarshal(newOptionsBytes, &devOptions); err != nil {
+			log.Fatalf("Cannot unmarshal: %s", err)
+		}
+		if err := ctrl.SetDeviceOptions(dev.GetID(), &devOptions); err != nil {
+			log.Fatalf("Cannot set device options: %s", err)
+		}
+		log.Info("Options loaded")
+	},
+}
+
+var controllerGetOptions = &cobra.Command{
+	Use:   "get-options",
+	Short: "fetch controller options",
+	Long:  `Fetch controller options.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		ctrl, err := controller.CloudPrepare()
+		if err != nil {
+			log.Fatalf("CloudPrepare error: %s", err)
+		}
+		res, err := ctrl.GetGlobalOptions()
+		if err != nil {
+			log.Fatalf("GetGlobalOptions error: %s", err)
+		}
+		data, err := json.MarshalIndent(res, "", "    ")
+		if err != nil {
+			log.Fatalf("Cannot marshal: %s", err)
+		}
+		if fileWithConfig != "" {
+			if err = ioutil.WriteFile(fileWithConfig, data, 0755); err != nil {
+				log.Fatalf("WriteFile: %s", err)
+			}
+		} else {
+			fmt.Println(string(data))
+		}
+	},
+}
+
+var controllerSetOptions = &cobra.Command{
+	Use:   "set-options",
+	Short: "set controller options",
+	Long:  `Set controller options.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %s", err.Error())
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		ctrl, err := controller.CloudPrepare()
+		if err != nil {
+			log.Fatalf("CloudPrepare error: %s", err)
+		}
+		var newOptionsBytes []byte
+		if fileWithConfig != "" {
+			newOptionsBytes, err = ioutil.ReadFile(fileWithConfig)
+			if err != nil {
+				log.Fatalf("File reading error: %s", err)
+			}
+		} else if utils.IsInputFromPipe() {
+			newOptionsBytes, err = ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				log.Fatalf("Stdin reading error: %s", err)
+			}
+		} else {
+			log.Fatal("Please run command with --file or use it with pipe")
+		}
+		var globalOptions types.GlobalOptions
+		if err := json.Unmarshal(newOptionsBytes, &globalOptions); err != nil {
+			log.Fatalf("Cannot unmarshal: %s", err)
+		}
+		if err := ctrl.SetGlobalOptions(&globalOptions); err != nil {
+			log.Fatalf("Cannot set global options: %s", err)
+		}
+		log.Info("Options loaded")
+	},
+}
+
 func controllerInit() {
 	controllerCmd.AddCommand(edgeNode)
+	controllerCmd.AddCommand(controllerGetOptions)
+	controllerGetOptions.Flags().StringVar(&fileWithConfig, "file", "", "save options to file")
+	controllerCmd.AddCommand(controllerSetOptions)
+	controllerSetOptions.Flags().StringVar(&fileWithConfig, "file", "", "set options from file")
 	edgeNode.AddCommand(edgeNodeReboot)
 	edgeNode.AddCommand(edgeNodeShutdown)
 	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
@@ -421,6 +588,10 @@ func controllerInit() {
 	edgeNodeGetConfig.Flags().StringVar(&fileWithConfig, "file", "", "save config to file")
 	edgeNode.AddCommand(edgeNodeSetConfig)
 	edgeNodeSetConfig.Flags().StringVar(&fileWithConfig, "file", "", "set config from file")
+	edgeNode.AddCommand(edgeNodeGetOptions)
+	edgeNodeGetOptions.Flags().StringVar(&fileWithConfig, "file", "", "save options to file")
+	edgeNode.AddCommand(edgeNodeSetOptions)
+	edgeNodeSetOptions.Flags().StringVar(&fileWithConfig, "file", "", "set options from file")
 	pf := controllerCmd.PersistentFlags()
 	pf.StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
 	edgeNodeEVEImageUpdate.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
