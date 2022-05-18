@@ -151,6 +151,8 @@ are:
 - [link] for whether the OS has hard link support
 - [symlink] for whether the OS has symbolic link support
 - [exec:prog] for whether prog is available for execution (found by exec.LookPath)
+- [env:variable] if the environment variable has a non-empty string value assigned
+- [stdout:pattern] and [stderr:pattern] if stdout/stderr match provided pattern
 ```
 
 A condition can be negated: [!short] means to run the rest of the line when

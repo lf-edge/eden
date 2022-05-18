@@ -124,8 +124,11 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_l
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dhcp
 /bin/echo Eden test dev info (21.7/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/dev_local_info
-/bin/echo Eden location publish test (21.7/{{$tests}})
+/bin/echo Eden location publish test (21.8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
+
+/bin/echo Eden ZFS state check (zfs.1/{{$tests}})
+eden.escript.test -testdata ../zfs/testdata/ -test.run TestEdenScripts/state_check
 
 {{if (eq $usb_pt "y")}}
 /bin/echo Hardware reboot - USB (22/{{$tests}})

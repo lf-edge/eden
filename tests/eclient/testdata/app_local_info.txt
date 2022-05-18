@@ -46,6 +46,7 @@ eden controller edge-node update --device profile_server_token={{template "token
 eden controller edge-node update --device local_profile_server=$app_ip:8888
 
 # STEP 1: Wait for appinfo status
+exec sleep 30
 exec -t 1m bash get-appinfo-status.sh
 stdout 'local-manager'
 ! stdout 'app1'

@@ -1,0 +1,12 @@
+# check for state for zfs-enabled EVE
+
+# skip test if no STORAGE_TYPE_INFO_ZFS
+eden info --out InfoContent.dinfo.StorageInfo.StorageType 'InfoContent.dinfo.StorageInfo.StorageType:\w+' --tail 1
+[!stdout:STORAGE_TYPE_INFO_ZFS] skip 'No zfs type storage'
+
+# check for storage state
+eden info --out InfoContent.dinfo.StorageInfo.StorageState 'InfoContent.dinfo.StorageInfo.StorageState:\w+' --tail 1
+stdout 'STORAGE_STATUS_ONLINE'
+
+# show StorageInfo structure
+eden info --out InfoContent.dinfo.StorageInfo 'InfoContent.dinfo.StorageInfo:\w+' --tail 1
