@@ -358,6 +358,7 @@ func waitFile(ts *TestScript, neg bool, args []string) {
 type fakeT struct {
 	ts       *TestScript
 	failMsgs []string
+	failed   bool
 }
 
 var errAbort = errors.New("abort test")
@@ -367,6 +368,7 @@ func (t *fakeT) Skip(_ ...interface{}) {
 }
 
 func (t *fakeT) Fatal(args ...interface{}) {
+	t.failed = true
 	t.failMsgs = append(t.failMsgs, fmt.Sprint(args...))
 	panic(errAbort)
 }
@@ -387,4 +389,8 @@ func (t *fakeT) Run(_ string, f func(T)) {
 
 func (t *fakeT) Verbose() bool {
 	return false
+}
+
+func (t *fakeT) Failed() bool {
+	return t.failed
 }
