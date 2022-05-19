@@ -46,6 +46,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
+	bundle.appInstanceConfig.StartDelayInSeconds = exp.startDelay
 	for _, d := range exp.disks {
 		mountPoint := ""
 		proccessedLink := d

@@ -84,6 +84,7 @@ var podModifyCmd = &cobra.Command{
 				}
 				opts = append(opts, expect.WithVLANs(vlansParsed))
 				opts = append(opts, expect.WithOldApp(appName))
+				opts = append(opts, expect.WithStartDelay(startDelay))
 				expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, appName, opts...)
 				appInstanceConfig := expectation.Application()
 				needPurge := false
@@ -106,6 +107,9 @@ var podModifyCmd = &cobra.Command{
 						app.Purge = &config.InstanceOpsCmd{Counter: 0}
 					}
 					app.Purge.Counter++
+				}
+				if cmd.Flags().Changed("start-delay") {
+					app.StartDelayInSeconds = appInstanceConfig.StartDelayInSeconds
 				}
 				//now we only change networks
 				app.Interfaces = appInstanceConfig.Interfaces
@@ -148,4 +152,5 @@ With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
 	podModifyCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
+	podModifyCmd.Flags().Uint32Var(&startDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
 }
