@@ -270,3 +270,10 @@ func WithDatastoreOverride(datastoreOverride string) ExpectationOption {
 		expectation.datastoreOverride = datastoreOverride
 	}
 }
+
+//WithStartDelay set start delay option
+func WithStartDelay(startDelay uint32) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.startDelay = startDelay
+	}
+}

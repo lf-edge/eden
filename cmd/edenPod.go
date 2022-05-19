@@ -59,6 +59,8 @@ var (
 	openStackMetadata bool
 	datastoreOverride string
 
+	startDelay uint32
+
 	volumesToPurge []string
 )
 
@@ -192,6 +194,7 @@ var podDeployCmd = &cobra.Command{
 		opts = append(opts, expect.WithOpenStackMetadata(openStackMetadata))
 		opts = append(opts, expect.WithProfiles(profiles))
 		opts = append(opts, expect.WithDatastoreOverride(datastoreOverride))
+		opts = append(opts, expect.WithStartDelay(startDelay))
 		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 		appInstanceConfig := expectation.Application()
 		dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
@@ -661,6 +664,7 @@ To block all traffic define ACL with no endpoints: '<network_name>:'`)
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podDeployCmd.Flags().StringVar(&datastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
+	podDeployCmd.Flags().Uint32Var(&startDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
 	podCmd.AddCommand(podPsCmd)
 	podCmd.AddCommand(podStopCmd)
 	podCmd.AddCommand(podStartCmd)
