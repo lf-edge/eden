@@ -294,6 +294,7 @@ type TestScript struct {
 }
 
 type backgroundCmd struct {
+	name string
 	cmd  *exec.Cmd
 	wait <-chan struct{}
 	neg  bool // if true, cmd should fail
@@ -402,7 +403,7 @@ func (ts *TestScript) run() {
 		if ts.t.Verbose() || hasFailed(ts.t) {
 			// In verbose mode or on test failure, we want to see what happened in the background
 			// processes too.
-			ts.waitBackground(false, false)
+			ts.waitBackground(false)
 		} else {
 			for _, bg := range ts.background {
 				<-bg.wait
