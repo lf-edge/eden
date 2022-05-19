@@ -63,6 +63,7 @@ exec -t 10m bash wait-for-dev-state.sh ONLINE
 ! stderr .
 
 # STEP 4: Request for shutdown. Check that app1 stops before local_manager
+exec -t 10m bash wait-for-app-state.sh app1 HALTED &app1halted&
 exec -t 1m bash put-devinfo-cmd.sh COMMAND_SHUTDOWN &
 exec -t 5m bash wait-for-dev-state.sh SHUTTING_DOWN
 ! stderr .
@@ -72,8 +73,7 @@ exec -t 5m bash wait-for-app-state.sh app1 HALT
 exec -t 1m bash get-appinfo-status.sh local-manager
 stdout 'RUNNING'
 ! stderr .
-exec -t 5m bash wait-for-app-state.sh app1 HALTED
-! stderr .
+wait app1halted
 
 # Did local-manager halt? Can't check by asking local-manager
 exec -t 1m bash eden-pod-ps.sh local-manager

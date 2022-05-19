@@ -55,6 +55,7 @@ var scriptCmds = map[string]func(*TestScript, bool, []string){
 }
 
 var timewait time.Duration
+var backgroundSpecifier = regexp.MustCompile(`^&(\w+&)?$`)
 
 // cd changes to a different directory.
 func (ts *TestScript) cmdCd(neg bool, args []string) {
@@ -213,7 +214,7 @@ func (ts *TestScript) cmdCp(neg bool, args []string) {
 	}
 }
 
-func (ts *TestScript) backgroundHelper(neg bool, command string, args []string) error {
+func (ts *TestScript) backgroundHelper(neg bool, bgName, command string, args []string) error {
 	cmd, _, stdoutBuf, stderrBuf, err := ts.execBackground(command, args...)
 	if err != nil {
 		return err
@@ -237,8 +238,21 @@ func (ts *TestScript) backgroundHelper(neg bool, command string, args []string) 
 			ts.Fatalf("unexpected command success")
 		}
 	}()
-	ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
+	ts.background = append(ts.background, backgroundCmd{bgName, cmd, wait, neg})
 	ts.stdout, ts.stderr = "", ""
+	return nil
+}
+
+func (ts *TestScript) findBackground(bgName string) *backgroundCmd {
+	if bgName == "" {
+		return nil
+	}
+	for i := range ts.background {
+		bg := &ts.background[i]
+		if bg.name == bgName {
+			return bg
+		}
+	}
 	return nil
 }
 
@@ -272,8 +286,12 @@ func (ts *TestScript) cmdEden(neg bool, args []string) {
 	}
 	fmt.Printf("edenProg: %s timewait: %s\n", edenProg, timewait)
 
-	if len(args) > 0 && args[len(args)-1] == "&" {
-		err = ts.backgroundHelper(neg, edenProg, args)
+	if len(args) > 0 && backgroundSpecifier.MatchString(args[len(args)-1]) {
+		bgName := strings.TrimSuffix(strings.TrimPrefix(args[len(args)-1], "&"), "&")
+		if ts.findBackground(bgName) != nil {
+			ts.Fatalf("duplicate background process name %q", bgName)
+		}
+		err = ts.backgroundHelper(neg, bgName, edenProg, args[:len(args)-1])
 	} else {
 		ts.stdout, ts.stderr, err = ts.exec(edenProg, args...)
 		if ts.stdout != "" {
@@ -331,8 +349,12 @@ func (ts *TestScript) cmdTest(neg bool, args []string) {
 		ts.Logf("testProg: %s\n", testProg)
 	}
 
-	if len(args) > 0 && args[len(args)-1] == "&" {
-		err = ts.backgroundHelper(neg, testProg, args)
+	if len(args) > 0 && backgroundSpecifier.MatchString(args[len(args)-1]) {
+		bgName := strings.TrimSuffix(strings.TrimPrefix(args[len(args)-1], "&"), "&")
+		if ts.findBackground(bgName) != nil {
+			ts.Fatalf("duplicate background process name %q", bgName)
+		}
+		err = ts.backgroundHelper(neg, bgName, testProg, args[:len(args)-1])
 	} else {
 		ts.stdout, ts.stderr, err = ts.exec(testProg, args...)
 		if ts.stdout != "" {
@@ -441,8 +463,12 @@ func (ts *TestScript) cmdExec(neg bool, args []string) {
 	}
 	fmt.Printf("exec timewait: %s\n", timewait)
 
-	if len(args) > 0 && args[len(args)-1] == "&" {
-		err = ts.backgroundHelper(neg, args[0], args[1:len(args)-1])
+	if len(args) > 0 && backgroundSpecifier.MatchString(args[len(args)-1]) {
+		bgName := strings.TrimSuffix(strings.TrimPrefix(args[len(args)-1], "&"), "&")
+		if ts.findBackground(bgName) != nil {
+			ts.Fatalf("duplicate background process name %q", bgName)
+		}
+		err = ts.backgroundHelper(neg, bgName, args[0], args[1:len(args)-1])
 	} else {
 		ts.stdout, ts.stderr, err = ts.exec(args[0], args[1:]...)
 		if ts.stdout != "" {
@@ -638,29 +664,67 @@ func (ts *TestScript) cmdSymlink(neg bool, args []string) {
 
 // Tait waits for background commands to exit, setting stderr and stdout to their result.
 func (ts *TestScript) cmdWait(neg bool, args []string) {
+	if len(args) > 1 {
+		ts.Fatalf("usage: wait [name]")
+	}
 	if neg {
 		ts.Fatalf("unsupported: ! wait")
 	}
 	if len(args) > 0 {
-		ts.Fatalf("usage: wait")
+		ts.waitBackgroundOne(args[0])
+	} else {
+		ts.waitBackground(true)
 	}
-	ts.waitBackground(true, neg)
 }
 
-func (ts *TestScript) waitBackground(checkStatus bool, neg bool) {
+func (ts *TestScript) waitBackgroundOne(bgName string) {
+	bg := ts.findBackground(bgName)
+	if bg == nil {
+		ts.Fatalf("unknown background process %q", bgName)
+		return
+	}
+	<-bg.wait
+	ts.stdout = bg.cmd.Stdout.(*strings.Builder).String()
+	ts.stderr = bg.cmd.Stderr.(*strings.Builder).String()
+	if ts.stdout != "" {
+		fmt.Fprintf(&ts.log, "[stdout]\n%s", ts.stdout)
+	}
+	if ts.stderr != "" {
+		fmt.Fprintf(&ts.log, "[stderr]\n%s", ts.stderr)
+	}
+	// Note: ignore bg.neg, which only takes effect on the non-specific
+	// wait command.
+	if bg.cmd.ProcessState.Success() {
+		if bg.neg {
+			ts.Fatalf("unexpected command success")
+		}
+	} else {
+		if ts.ctxt.Err() != nil {
+			ts.Fatalf("test timed out while running command")
+		} else if !bg.neg {
+			ts.Fatalf("command failure")
+		}
+	}
+	// Remove this process from the list of running background processes.
+	for i := range ts.background {
+		if bg == &ts.background[i] {
+			ts.background = append(ts.background[:i], ts.background[i+1:]...)
+			break
+		}
+	}
+}
+
+func (ts *TestScript) waitBackground(checkStatus bool) {
 	var stdouts, stderrs []string
 	for _, bg := range ts.background {
 		<-bg.wait
-
 		args := append([]string{filepath.Base(bg.cmd.Args[0])}, bg.cmd.Args[1:]...)
 		fmt.Fprintf(&ts.log, "[background] %s: %v\n", strings.Join(args, " "), bg.cmd.ProcessState)
-
 		cmdStdout := bg.cmd.Stdout.(*strings.Builder).String()
 		if cmdStdout != "" {
 			fmt.Fprintf(&ts.log, "[stdout]\n%s", cmdStdout)
 			stdouts = append(stdouts, cmdStdout)
 		}
-
 		cmdStderr := bg.cmd.Stderr.(*strings.Builder).String()
 		if cmdStderr != "" {
 			fmt.Fprintf(&ts.log, "[stderr]\n%s", cmdStderr)
@@ -681,7 +745,6 @@ func (ts *TestScript) waitBackground(checkStatus bool, neg bool) {
 			}
 		}
 	}
-
 	ts.stdout = strings.Join(stdouts, "")
 	ts.stderr = strings.Join(stderrs, "")
 	ts.background = nil
