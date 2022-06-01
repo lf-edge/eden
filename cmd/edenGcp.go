@@ -167,6 +167,8 @@ var gcpRun = &cobra.Command{
 
 		if viperLoaded {
 			gcpvTPM = viper.GetBool("eve.tpm")
+			eveDisks = viper.GetInt("eve.disks")
+			eveImageSizeMB = viper.GetInt("eve.disk")
 		}
 
 		return nil
@@ -176,7 +178,11 @@ var gcpRun = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to connect to GCP: %v", err)
 		}
-		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, nil, nil, gcpvTPM, true); err != nil {
+		disks := linuxkit.Disks{}
+		for i := 0; i < eveDisks; i++ {
+			disks = append(disks, linuxkit.DiskConfig{Size: eveImageSizeMB})
+		}
+		if err := gcpClient.CreateInstance(gcpVMName, gcpImageName, gcpZone, gcpMachineType, disks, nil, gcpvTPM, true); err != nil {
 			log.Fatalf("CreateInstance: %s", err)
 		}
 	},

@@ -27,6 +27,7 @@ jobs:
                 echo "$addr overlaps with vpn"; exit 1
               fi
           done
+          sudo df -h
       - name: Public IP
         id: ip
         run: |
@@ -80,6 +81,7 @@ jobs:
       - name: setup-zfs
         if: matrix.fs == 'zfs'
         run: |
+          ./eden config set default --key=eve.disks --value=4
           ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
       - name: post-setup
         run: |
