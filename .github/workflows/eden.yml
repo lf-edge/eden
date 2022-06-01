@@ -28,6 +28,7 @@ jobs:
                 echo "$addr overlaps with test"; exit 1
               fi
           done
+          sudo df -h
       - name: setup
         run: |
           sudo add-apt-repository ppa:canonical-server/server-backports
