@@ -19,7 +19,7 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.15'
+          go-version: '1.18'
       - name: Check
         run: |
           for addr in $(ip addr list|sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
@@ -29,6 +29,8 @@ jobs:
               fi
           done
           sudo df -h
+          sudo swapoff -a
+          sudo free
       - name: setup
         run: |
           sudo add-apt-repository ppa:canonical-server/server-backports
@@ -51,6 +53,8 @@ jobs:
         run: |
           ./eden config set default --key=eve.disks --value=4
           ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
+      - name: clean-docker
+        run: docker system prune -f -a
       - name: run
         run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -v debug
       - name: Collect logs

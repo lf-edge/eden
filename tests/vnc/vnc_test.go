@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
-func setAppName(){
+func setAppName() {
 	if appName == "" { //if previous appName not defined
 		if *name == "" {
 			rand.Seed(time.Now().UnixNano())
@@ -93,12 +93,17 @@ func getVNCPort(edgeNode *device.Ctx, vncDisplay int) int {
 }
 
 //checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
-func checkAppRunning(appName string) projects.ProcInfoFunc {
+func checkAppRunning(t *testing.T, appName string) projects.ProcInfoFunc {
+	lastState := info.ZSwState_INVALID
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
 			if msg.GetAinfo().AppName == appName {
-				if msg.GetAinfo().State == info.ZSwState_RUNNING {
-					return fmt.Errorf("app RUNNING with name %s", appName)
+				if lastState != msg.GetAinfo().State {
+					lastState = msg.GetAinfo().State
+					t.Errorf("\t\tstate: %s received in: %s", lastState, time.Now().Format(time.RFC3339Nano))
+					if lastState == info.ZSwState_RUNNING {
+						return fmt.Errorf("app RUNNING with name %s", appName)
+					}
 				}
 			}
 		}
@@ -141,7 +146,8 @@ func checkVNCAccess() projects.ProcTimerFunc {
 }
 
 //checkAppAbsent check if APP undefined in EVE
-func checkAppAbsent(appName string) projects.ProcInfoFunc {
+func checkAppAbsent(t *testing.T, appName string) projects.ProcInfoFunc {
+	lastState := info.ZSwState_INVALID
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiDevice {
 			for _, app := range msg.GetDinfo().AppInstances {
@@ -150,6 +156,14 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 				}
 			}
 			return fmt.Errorf("no app with %s found", appName)
+		}
+		if msg.Ztype == info.ZInfoTypes_ZiApp {
+			if msg.GetAinfo().AppName == appName {
+				if lastState != msg.GetAinfo().State {
+					lastState = msg.GetAinfo().State
+					t.Errorf("\t\tstate: %s received in: %s", lastState, time.Now().Format(time.RFC3339Nano))
+				}
+			}
 		}
 		return nil
 	}
@@ -211,7 +225,7 @@ func TestVNCVMStart(t *testing.T) {
 
 	t.Log("Add processing of app running messages")
 
-	tc.AddProcInfo(edgeNode, checkAppRunning(appName))
+	tc.AddProcInfo(edgeNode, checkAppRunning(t, appName))
 
 	appID, err := uuid.FromString(appInstanceConfig.Uuidandversion.Uuid)
 	if err != nil {
@@ -343,7 +357,7 @@ func TestVNCVMDelete(t *testing.T) {
 
 	t.Log(utils.AddTimestamp(fmt.Sprintf("Add waiting for app %s absent", appName)))
 
-	tc.AddProcInfo(edgeNode, checkAppAbsent(appName))
+	tc.AddProcInfo(edgeNode, checkAppAbsent(t, appName))
 
 	for id, appUUID := range edgeNode.GetApplicationInstances() {
 		appConfig, _ := tc.GetController().GetApplicationInstanceConfig(appUUID)
