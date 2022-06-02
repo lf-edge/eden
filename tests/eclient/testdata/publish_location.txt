@@ -120,6 +120,10 @@ test eden.app.test -test.v -timewait 15m - app
 eden network delete {{template "network"}}
 test eden.network.test -test.v -timewait 10m - {{template "network"}}
 
+message 'Resetting of EVE'
+eden eve reset
+exec sleep 30
+
 -- wait-ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 HOST=$($EDEN eve ip)
