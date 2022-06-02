@@ -226,15 +226,15 @@ func (ts *TestScript) backgroundHelper(neg bool, bgName, command string, args []
 		if err == context.Canceled {
 			return
 		}
-		outString := stdoutBuf.String()
-		errString := stderrBuf.String()
-		if outString != "" {
-			fmt.Fprintf(&ts.log, "[stdout]\n%s", outString)
-		}
-		if errString != "" {
-			fmt.Fprintf(&ts.log, "[stderr]\n%s", errString)
-		}
 		if err == nil && neg {
+			outString := stdoutBuf.String()
+			errString := stderrBuf.String()
+			if outString != "" {
+				_, _ = fmt.Fprintf(&ts.log, "[stdout]\n%s", outString)
+			}
+			if errString != "" {
+				_, _ = fmt.Fprintf(&ts.log, "[stderr]\n%s", errString)
+			}
 			ts.Fatalf("unexpected command success")
 		}
 	}()

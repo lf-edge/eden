@@ -229,7 +229,7 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	}
 	hash := sha256.Sum256(devConfig)
 	if dev.CheckHash(hash) {
-		fmt.Println(string(devConfig)) //print config only if changed
+		fmt.Println("config changed, to see config run 'eden controller edge-node get-config'")
 		if devConfig, err = VersionIncrement(devConfig); err != nil {
 			return fmt.Errorf("VersionIncrement error: %s", err)
 		}

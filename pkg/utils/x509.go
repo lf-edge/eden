@@ -3,7 +3,6 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"time"
@@ -226,7 +225,6 @@ func parsePrivateKey(keyPEMBlock []byte, passCode string) (interface{}, error) {
 				return nil, fmt.Errorf("Error while decrypting the private key block: %v", err)
 			}
 		}
-		log.Println(keyDERBlock.Type)
 		switch keyDERBlock.Type {
 		case "RSA PRIVATE KEY":
 			privatekey, pErr := x509.ParsePKCS1PrivateKey(pvtKeyBytes) //PKCS1 standard
