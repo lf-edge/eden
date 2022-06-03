@@ -100,7 +100,7 @@ func checkAppRunning(t *testing.T, appName string) projects.ProcInfoFunc {
 			if msg.GetAinfo().AppName == appName {
 				if lastState != msg.GetAinfo().State {
 					lastState = msg.GetAinfo().State
-					t.Errorf("\t\tstate: %s received in: %s", lastState, time.Now().Format(time.RFC3339Nano))
+					t.Logf("\t\tstate: %s received in: %s", lastState, time.Now().Format(time.RFC3339Nano))
 					if lastState == info.ZSwState_RUNNING {
 						return fmt.Errorf("app RUNNING with name %s", appName)
 					}
