@@ -48,7 +48,7 @@ func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
 			Name:        ni.GetDisplayname(),
 			UUID:        ni.Uuidandversion.Uuid,
 			Stats:       "-",
-			AdamState:   "IN_CONFIG",
+			AdamState:   inControllerConfig,
 			EveState:    "UNKNOWN",
 			CIDR:        ni.Ip.Subnet,
 			NetworkType: ni.InstType,
@@ -67,8 +67,8 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 				Name:        im.GetNiinfo().GetDisplayname(),
 				UUID:        im.GetNiinfo().GetNetworkID(),
 				Stats:       "-",
-				AdamState:   "NOT_IN_CONFIG",
-				EveState:    "IN_CONFIG",
+				AdamState:   notInControllerConfig,
+				EveState:    "UNKNOWN",
 				NetworkType: (config.ZNetworkInstType)(int32(im.GetNiinfo().InstType)),
 			}
 			ctx.networks[im.GetNiinfo().GetNetworkID()] = netInstStateObj
@@ -89,12 +89,12 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 		// sends INIT state when deleting network instance
 		if !netInstStateObj.Activated &&
 			im.GetNiinfo().State != info.ZNetworkInstanceState_ZNETINST_STATE_INIT &&
-			netInstStateObj.AdamState == "NOT_IN_CONFIG" {
+			netInstStateObj.AdamState == notInControllerConfig {
 			netInstStateObj.deleted = true
 		}
 
 		if im.GetNiinfo().State == info.ZNetworkInstanceState_ZNETINST_STATE_UNSPECIFIED &&
-			netInstStateObj.AdamState == "NOT_IN_CONFIG" {
+			netInstStateObj.AdamState == notInControllerConfig {
 			netInstStateObj.deleted = true
 		}
 	}

@@ -11,6 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	inControllerConfig    = "IN_CONFIG"
+	notInControllerConfig = "NOT_IN_CONFIG"
+)
+
 //State stores representation of EVE state
 //we should assign InfoCallback and MetricCallback to update state
 type State struct {

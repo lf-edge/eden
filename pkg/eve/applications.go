@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
@@ -31,6 +32,7 @@ type AppInstState struct {
 	macs         []string
 	volumes      map[string]uint32
 	deleted      bool
+	infoTime     time.Time
 }
 
 func appStateHeader() string {
@@ -123,7 +125,7 @@ func (ctx *State) initApplications(ctrl controller.Cloud, dev *device.Ctx) error
 		appStateObj := &AppInstState{
 			Name:         app.Displayname,
 			Image:        imageName,
-			AdamState:    "IN_CONFIG",
+			AdamState:    inControllerConfig,
 			EVEState:     "UNKNOWN",
 			InternalIP:   []string{"-"},
 			ExternalIP:   "-",
@@ -177,7 +179,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 			appStateObj = &AppInstState{
 				Name:      im.GetAinfo().AppName,
 				Image:     "-",
-				AdamState: "NOT_IN_CONFIG",
+				AdamState: notInControllerConfig,
 				UUID:      im.GetAinfo().AppID,
 			}
 			ctx.applications[im.GetAinfo().AppID] = appStateObj
@@ -208,7 +210,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 			appStateObj.macs = []string{}
 		}
 		//check appStateObj not defined in adam
-		if appStateObj.AdamState != "IN_CONFIG" {
+		if appStateObj.AdamState != inControllerConfig {
 			if im.GetAinfo().AppID == appStateObj.UUID {
 				appStateObj.deleted = false //if in recent ZInfoTypes_ZiApp, then not deleted
 			}
@@ -216,6 +218,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 		if im.GetAinfo().State == info.ZSwState_INVALID {
 			appStateObj.deleted = true
 		}
+		appStateObj.infoTime = im.AtTimeStamp.AsTime()
 	case info.ZInfoTypes_ZiNetworkInstance: //try to find ips from NetworkInstances
 		for _, el := range im.GetNiinfo().IpAssignments {
 			for _, appStateObj := range ctx.applications {
@@ -232,7 +235,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 				appStateObj := &AppInstState{
 					Name:      el.Name,
 					Image:     "-",
-					AdamState: "NOT_IN_CONFIG",
+					AdamState: notInControllerConfig,
 					EVEState:  "UNKNOWN",
 					UUID:      el.Uuid,
 				}
@@ -267,11 +270,12 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 				appStateObj.ExternalIP = "127.0.0.1"
 			}
 			//check appStateObj not defined in adam
-			if appStateObj.AdamState != "IN_CONFIG" {
+			if appStateObj.AdamState != inControllerConfig && appStateObj.infoTime.Before(im.AtTimeStamp.AsTime()) {
 				appStateObj.deleted = true
 				for _, el := range im.GetDinfo().AppInstances {
+					//if in recent ZInfoTypes_ZiDevice with timestamp after ZInfoTypes_ZiApp, than not deleted
 					if el.Uuid == appStateObj.UUID {
-						appStateObj.deleted = false //if in recent ZInfoTypes_ZiDevice, than not deleted
+						appStateObj.deleted = false
 					}
 				}
 			}

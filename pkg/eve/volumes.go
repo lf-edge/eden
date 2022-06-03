@@ -82,7 +82,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			UUID:          vi.GetUuid(),
 			Image:         image,
 			VolumeType:    iFormat,
-			AdamState:     "IN_CONFIG",
+			AdamState:     inControllerConfig,
 			EveState:      "UNKNOWN",
 			Size:          "-",
 			MaxSize:       "-",
@@ -105,7 +105,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 			volInstStateObj = &VolInstState{
 				Name:       infoObject.GetDisplayName(),
 				UUID:       infoObject.GetUuid(),
-				AdamState:  "NOT_IN_CONFIG",
+				AdamState:  notInControllerConfig,
 				EveState:   infoObject.State.String(),
 				Size:       "-",
 				MaxSize:    "-",
@@ -115,7 +115,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 			ctx.volumes[infoObject.GetUuid()] = volInstStateObj
 		}
 		volInstStateObj.deleted =
-			infoObject.DisplayName == "" ||	infoObject.State == info.ZSwState_INVALID
+			infoObject.DisplayName == "" || infoObject.State == info.ZSwState_INVALID
 		if volInstStateObj.VolumeType != config.Format_FmtUnknown &&
 			volInstStateObj.VolumeType != config.Format_CONTAINER {
 			//we cannot use limits for container or unknown types
