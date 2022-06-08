@@ -79,6 +79,9 @@ eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/sourc
 /bin/echo Escript fail scenario test (15/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/fail_scenario
 
+/bin/echo Eden ZFS state check (zfs.1/{{$tests}})
+eden.escript.test -testdata ../zfs/testdata/ -test.run TestEdenScripts/state_check
+
 /bin/echo Eden basic network test (16/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_test
 /bin/echo Eden basic VLAN test (16.1/{{$tests}})
@@ -126,9 +129,6 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_d
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/dev_local_info
 /bin/echo Eden location publish test (21.8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
-
-/bin/echo Eden ZFS state check (zfs.1/{{$tests}})
-eden.escript.test -testdata ../zfs/testdata/ -test.run TestEdenScripts/state_check
 
 {{if (eq $usb_pt "y")}}
 /bin/echo Hardware reboot - USB (22/{{$tests}})

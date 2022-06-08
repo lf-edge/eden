@@ -72,8 +72,9 @@ func getUUID(uuidAndVersion uuidCheckable) (uuid.UUID, error) {
 	return uuid.FromString(uuidAndVersion.GetUuidandversion().GetUuid())
 }
 
-//ConfigParse load config into cloud
-func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device.Ctx, err error) {
+// ConfigParse load config into cloud
+//nolint:cyclop
+func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (*device.Ctx, error) {
 	devID, err := getID(config)
 	if err != nil {
 		return nil, fmt.Errorf("problem with uuid field")
@@ -212,6 +213,14 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (device *device
 	dev.SetRemote(cloud.vars.EveRemote)
 	dev.SetRemoteAddr(cloud.vars.EveRemoteAddr)
 	dev.SetCipherContexts(config.CipherContexts)
+
+	if config.Disks != nil {
+		layout, err := device.ParseDiskLayout(config.Disks)
+		if err != nil {
+			log.Errorf("failed to parse layout: %s", err)
+		}
+		dev.SetDiskLayout(layout)
+	}
 
 	res, err := cloud.GetConfigBytes(dev, false)
 	if err != nil {
@@ -433,7 +442,8 @@ func (cloud *CloudCtx) checkDriveDs(drive *config.Drive, dataStores []*config.Da
 	return dataStores, nil
 }
 
-//GetConfigBytes generate json representation of device config
+// GetConfigBytes generate json representation of device config
+//nolint:cyclop,maintidx
 func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error) {
 	var contentTrees []*config.ContentTree
 	var volumes []*config.Volume
@@ -603,6 +613,15 @@ volumeLoop:
 		})
 	}
 
+	var disksConfig *config.DisksConfig
+	if layout := dev.GetDiskLayout(); layout != nil {
+		var err error
+		disksConfig, err = layout.GetDisksConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	rebootCounter, rebootState := dev.GetRebootCounter()
 	rebootCmd := &config.DeviceOpsCmd{Counter: rebootCounter, DesiredState: rebootState}
 	shutdownCounter, shutdownState := dev.GetShutdownCounter()
@@ -634,6 +653,7 @@ volumeLoop:
 		GlobalProfile:      dev.GetGlobalProfile(),
 		LocalProfileServer: dev.GetLocalProfileServer(),
 		ProfileServerToken: dev.GetProfileServerToken(),
+		Disks:              disksConfig,
 	}
 	if pretty {
 		return json.MarshalIndent(devConfig, "", "    ")
