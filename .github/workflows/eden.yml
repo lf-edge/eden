@@ -7,7 +7,7 @@ on:  # yamllint disable-line rule:truthy
 jobs:
   integration:
     name: Integration test (tpm=${{ matrix.tpm }};${{ matrix.fs }})
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -33,8 +33,7 @@ jobs:
           sudo free
       - name: setup
         run: |
-          sudo add-apt-repository ppa:canonical-server/server-backports
-          sudo add-apt-repository ppa:itrue/swtpm
+          sudo add-apt-repository ppa:stefanberger/swtpm-jammy
           sudo apt install -y qemu-utils qemu-system-x86 jq swtpm
       - name: build eden
         run: |
