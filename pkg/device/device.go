@@ -51,6 +51,7 @@ type Ctx struct {
 	globalProfile              string
 	localProfileServer         string
 	profileServerToken         string
+	diskLayout                 *DisksLayout
 }
 
 //CreateEdgeNode generates EdgeNode
@@ -307,6 +308,17 @@ func (cfg *Ctx) SetCipherContexts(contexts []*config.CipherContext) *Ctx {
 //GetCipherContexts get CipherContexts of device
 func (cfg *Ctx) GetCipherContexts() []*config.CipherContext {
 	return cfg.cipherContexts
+}
+
+// SetDiskLayout set DiskLayout for device
+func (cfg *Ctx) SetDiskLayout(diskLayout *DisksLayout) *Ctx {
+	cfg.diskLayout = diskLayout
+	return cfg
+}
+
+// GetDiskLayout get DiskLayout of device
+func (cfg *Ctx) GetDiskLayout() *DisksLayout {
+	return cfg.diskLayout
 }
 
 //SetDeviceItem for setting devConfig fields
