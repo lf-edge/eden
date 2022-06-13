@@ -83,6 +83,9 @@ $(DIRECTORY_EXPORT):
 test: build-tests
 	make -C tests TESTS="$(TESTS)" DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) test
 
+unit-test:
+	go test $(go list ./... | grep -v /eden/tests/)
+
 # create empty drives to use as additional volumes
 $(EMPTY_DRIVE).%:
 	qemu-img create -f $* $@ $(EMPTY_DRIVE_SIZE)
@@ -146,7 +149,11 @@ tests-export: $(DIRECTORY_EXPORT) build-tests
 
 yetus:
 	@echo Running yetus
-	build-tools/src/yetus/test-patch.sh
+	docker run -it --rm -v $(CURDIR):/src:delegated -v /tmp:/tmp apache/yetus:0.14.0 \
+		--basedir=/src \
+		--dirty-workspace \
+		--empty-patch \
+		--plugins=all
 
 validate:
 	@echo Running static validation checks...
