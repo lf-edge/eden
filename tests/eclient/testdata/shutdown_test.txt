@@ -24,14 +24,20 @@ test eden.app.test -test.v -timewait 20m RUNNING {{$app_name}}
 # exec -t 5m bash ssh.sh
 # stdout 'Ubuntu'
 
-# check for the ZDEVICE_STATE_SHUTTING_DOWN state
-test eden.lim.test -test.v -timewait 5m -test.run TestInfo -out InfoContent.dinfo.state 'InfoContent.dinfo.state:ZDEVICE_STATE_SHUTTING_DOWN' &
+# check for the ZDEVICE_STATE_PREPARING_POWEROFF state
+test eden.lim.test -test.v -timewait 5m -test.run TestInfo -out InfoContent.dinfo.state 'InfoContent.dinfo.state:ZDEVICE_STATE_PREPARING_POWEROFF' &
+
+# send shutdown command
+eden controller edge-node shutdown
+
+# wait for detectors
+wait
 
 # wait for HALTED state which indicates that we are shutting down
 test eden.app.test -test.v -timewait 5m HALTED {{$app_name}} &
 
-# send shutdown command
-eden controller edge-node shutdown
+# check for the ZDEVICE_STATE_PREPARED_POWEROFF state
+test eden.lim.test -test.v -timewait 5m -test.run TestInfo -out InfoContent.dinfo.state 'InfoContent.dinfo.state:ZDEVICE_STATE_PREPARED_POWEROFF' &
 
 # wait for detectors
 wait
