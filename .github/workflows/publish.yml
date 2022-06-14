@@ -8,8 +8,20 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
+  check-secrets:
+    runs-on: ubuntu-22.04
+    outputs:
+      available: ${{ steps.secrets.outputs.defined }}
+    steps:
+      - id: secrets
+        if: ${{ env.DOCKERHUB_TOKEN != '' }}
+        run: echo "::set-output name=defined::true"
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   build:
     runs-on: ubuntu-22.04
+    needs: [check-secrets]
+    if: needs.check-secrets.outputs.available == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

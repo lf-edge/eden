@@ -5,9 +5,23 @@ on:  # yamllint disable-line rule:truthy
     branches: [master]
 # yamllint disable rule:line-length
 jobs:
+  check-secrets:
+    runs-on: ubuntu-22.04
+    outputs:
+      available: ${{ steps.secrets.outputs.defined }}
+    steps:
+      - id: secrets
+        if: ${{ (env.OVPN_FILE != '') && (env.GCP_PROJECT_ID != '') && (env.GCP_SA_KEY != '') }}
+        run: echo "::set-output name=defined::true"
+        env:
+          OVPN_FILE: ${{ secrets.OVPN_FILE }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
   integration:
     name: Integration GCP test (${{ matrix.hv }};${{ matrix.fs }})
     runs-on: ubuntu-22.04
+    needs: [check-secrets]
+    if: needs.check-secrets.outputs.available == 'true'
     strategy:
       fail-fast: false
       matrix:
