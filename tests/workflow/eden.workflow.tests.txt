@@ -79,8 +79,8 @@ eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/sourc
 /bin/echo Escript fail scenario test (15/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/fail_scenario
 
-/bin/echo Eden ZFS state check (zfs.1/{{$tests}})
-eden.escript.test -testdata ../zfs/testdata/ -test.run TestEdenScripts/state_check
+/bin/echo Eden ZFS state and layout check (zfs.1/{{$tests}})
+eden.escript.test -testdata ../zfs/testdata/ -test.run TestEdenScripts/state_and_layout_check
 
 /bin/echo Eden basic network test (16/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_test

@@ -17,6 +17,8 @@ eden eve epoch &
 stdout 'ENABLED'
 {{end}}
 
+wait
+
 # Test's config. file
 -- eden-config.yml --
 test:
