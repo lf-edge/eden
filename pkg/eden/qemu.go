@@ -63,14 +63,14 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 				qemuOptions += defaults.DefaultQemuAccelLinuxAmd64
 			}
 		} else {
-			qemuOptions += defaults.DefaultQemulAmd64
+			qemuOptions += defaults.DefaultQemuAmd64
 		}
 	case "arm64":
 		qemuCommand = "qemu-system-aarch64"
 		if qemuAccel {
 			qemuOptions += defaults.DefaultQemuAccelArm64
 		} else {
-			qemuOptions += defaults.DefaultQemulArm64
+			qemuOptions += defaults.DefaultQemuArm64
 		}
 		netDev = "virtio-net-pci"
 		tpmDev = "tpm-tis-device"
