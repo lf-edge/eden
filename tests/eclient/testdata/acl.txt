@@ -38,7 +38,7 @@ eden pod deploy -n curl-acl1 --memory=512MB docker://lfedge/eden-eclient:d9eb23f
 # Second app is only allowed to access $long_domain and $fake_domain.
 eden pod deploy -n curl-acl2 --memory=512MB docker://lfedge/eden-eclient:d9eb23f -p 2224:22 --networks={{$network_name}} --acl={{$network_name}}:{{$long_domain}} --acl={{$network_name}}:{{$fake_domain}}:allow --acl={{$network_name}}:ieee.org:drop
 
-test eden.app.test -test.v -timewait 10m RUNNING curl-acl1 curl-acl2
+test eden.app.test -test.v -timewait 15m RUNNING curl-acl1 curl-acl2
 
 exec -t 10m bash wait_ssh.sh 2223
 exec -t 10m bash wait_ssh.sh 2224

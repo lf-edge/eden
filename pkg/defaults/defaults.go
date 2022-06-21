@@ -52,9 +52,9 @@ const (
 	DefaultRegistryPort         = 5050
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-e77d8e56" // DefaultEVETag tag for EVE image
+	DefaultEVETag               = "0.0.0-master-7ab56bde" // DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "0.0.39"
-	DefaultRedisTag             = "6"
+	DefaultRedisTag             = "7"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
 	DefaultImage                = "library/alpine"
@@ -115,10 +115,10 @@ const (
 
 	DefaultQemuAccelDarwin     = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelLinuxAmd64 = "-machine q35,accel=kvm,dump-guest-core=off,kernel-irqchip=split -cpu host,invtsc=on,kvmclock=off -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
-	DefaultQemulAmd64          = "-machine q35 --cpu SandyBridge "
+	DefaultQemuAmd64           = "-machine q35,smm=on --cpu SandyBridge "
 
 	DefaultQemuAccelArm64 = "-machine virt,accel=kvm,usb=off,dump-guest-core=off -cpu host "
-	DefaultQemulArm64     = "-machine virt,virtualization=true -cpu cortex-a57 "
+	DefaultQemuArm64      = "-machine virt,virtualization=true -cpu cortex-a57 "
 
 	DefaultAppSubnet        = "10.11.12.0/24"
 	DefaultHostOnlyNotation = "host-only-acl"
