@@ -4,10 +4,14 @@ on:  # yamllint disable-line rule:truthy
   pull_request:
     branches: [master]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   integration:
     name: Integration test (tpm=${{ matrix.tpm }};${{ matrix.fs }})
-    runs-on: ubuntu-22.04
+    runs-on: macos-12
     strategy:
       fail-fast: false
       matrix:
@@ -20,30 +24,21 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: '1.18'
-      - name: Check
+      - name: setup docker
+        uses: docker-practice/actions-setup-docker@master
+      - name: Update Homebrew and install
         run: |
-          for addr in $(ip addr list|sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
-          do
-              if echo "$addr" | grep -q -E "10.11.(12|13).[0-9]+"; then
-                echo "$addr overlaps with test"; exit 1
-              fi
-          done
-          sudo df -h
-          sudo swapoff -a
-          sudo free
-      - name: setup
-        run: |
-          sudo add-apt-repository ppa:stefanberger/swtpm-jammy
-          sudo apt install -y qemu-utils qemu-system-x86 jq swtpm
+          brew update --preinstall
+          brew tap spikespaz/jacob
+          brew install qemu make telnet jq swtpm coreutils
       - name: build eden
         run: |
           make build-tests
       - name: configure
         run: |
           ./eden config add default
-          ./eden config set default --key=eve.accel --value=false
           ./eden config set default --key=eve.tpm --value=${{ matrix.tpm }}
-          ./eden config set default --key=eve.cpu --value=2
+          ./eden config set default --key=eve.cpu --value=3
       - name: setup-ext4
         if: matrix.fs == 'ext4'
         run: ./eden setup -v debug
