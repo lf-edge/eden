@@ -52,6 +52,7 @@ test eden.reboot.test -test.v -timewait=20m -reboot=1 -count=1 &
 {{$devmodel := EdenConfig "eve.devmodel"}}
 
 {{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
+exec sleep 20
 # simulate network outage
 eden eve link down
 # sleep without networks for 7 minutes
