@@ -161,7 +161,7 @@ func checkAppAbsent(t *testing.T, appName string) projects.ProcInfoFunc {
 			if msg.GetAinfo().AppName == appName {
 				if lastState != msg.GetAinfo().State {
 					lastState = msg.GetAinfo().State
-					t.Errorf("\t\tstate: %s received in: %s", lastState, time.Now().Format(time.RFC3339Nano))
+					t.Logf("\t\tstate: %s received in: %s", lastState, time.Now().Format(time.RFC3339Nano))
 				}
 			}
 		}
