@@ -1,0 +1,19 @@
+# Copyright (c) 2022 Zededa, Inc.
+# SPDX-License-Identifier: Apache-2.0
+org: lfedge
+image: eden-sdn
+network: yes
+config:
+  binds:
+    - /lib/modules:/lib/modules
+    - /dev:/dev
+    - /etc/resolv.conf:/etc/resolv.conf
+    - /run:/run
+    - /usr/bin/containerd:/usr/bin/containerd
+    - /usr/bin/containerd-shim:/usr/bin/containerd-shim
+    - /usr/bin/containerd-shim-runc-v2:/usr/bin/containerd-shim-runc-v2
+  net: host
+  capabilities:
+    - all
+  pid: host
+  rootfsPropagation: shared
