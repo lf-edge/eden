@@ -1,11 +1,44 @@
 FROM golang:1.16-alpine AS build
 
+# hadolint ignore=DL3018
+RUN apk add --no-cache \
+    musl-dev \
+    automake \
+    make \
+    gcc \
+    patch
+
+COPY patches /patches
+
 WORKDIR /go/src/local_manager
 COPY pkg .
 
-RUN go build -ldflags "-s -w" -o /out/local_manager main.go
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /out/root/local_manager main.go
 
-FROM alpine:3.14.2
+ARG DHCPING_VERSION=1.2
+WORKDIR /
+RUN wget -q "https://www.mavetju.org/download/dhcping-${DHCPING_VERSION}.tar.gz" && \
+    tar -xvf dhcping-${DHCPING_VERSION}.tar.gz
+WORKDIR /dhcping-${DHCPING_VERSION}
+RUN set -e && for patch in "/patches/dhcping-${DHCPING_VERSION}"/*.patch; do \
+        echo "Applying $patch"; \
+        patch -p1 < "$patch"; \
+    done
+RUN case $(uname -m) in \
+    x86_64) \
+        ./configure --prefix=/usr; \
+        ;; \
+    aarch64) \
+        ./configure --build=arm64-unknown-linux-gnu --prefix=/usr; \
+        ;; \
+    esac  && \
+    make && make DESTDIR=/out install
+
+COPY files /out/
+COPY cert/id_rsa* /out/root/.ssh/
+COPY cert/id_rsa.pub /out/root/.ssh/authorized_keys
+
+FROM alpine:3.14.6
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache lshw \
@@ -19,14 +52,9 @@ RUN apk add --no-cache lshw \
     jq \
     setserial \
     avahi \
-    lsblk \
-    dhcping
+    lsblk
 
-COPY cert/id_rsa* /root/.ssh/
-COPY cert/id_rsa.pub /root/.ssh/authorized_keys
-
-COPY files /
-COPY --from=build /out/local_manager /root/
+COPY --from=build /out /
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN mkdir -p /mnt && \

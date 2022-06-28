@@ -1,4 +1,4 @@
-FROM golang:1.15 as builder
+FROM golang:1.16-alpine as builder
 
 WORKDIR /app
 COPY mkconfig /app/mkconfig
