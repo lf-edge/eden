@@ -131,6 +131,9 @@ exec sleep 1m
 eden -t 2m eve start
 ! stderr .
 
+# wait for the next device info to stabilize last reboot reason
+test eden.lim.test -test.v -timewait 10m -test.run TestInfo -out InfoContent.dinfo
+
 -- check_vm_support.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 
