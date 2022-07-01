@@ -156,6 +156,8 @@ func TestReboot(t *testing.T) {
 
 	t.Log(utils.AddTimestamp(fmt.Sprintf("Wait for state of %s", edgeNode.GetID())))
 
+	tc.WaitForState(edgeNode, 60)
+
 	t.Log(utils.AddTimestamp(fmt.Sprintf("timewait: %s", timewait)))
 	t.Log(utils.AddTimestamp(fmt.Sprintf("reboot: %t", *reboot)))
 	t.Log(utils.AddTimestamp(fmt.Sprintf("count: %d", *count)))
