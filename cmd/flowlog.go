@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/thediveo/enumflag"
 )
 
 var netStatCmd = &cobra.Command{
@@ -55,7 +56,7 @@ var netStatCmd = &cobra.Command{
 
 		handleFunc := func(le *flowlog.FlowMessage) bool {
 			if printFields == nil {
-				eflowlog.FlowLogPrn(le)
+				eflowlog.FlowLogPrn(le, outputFormat)
 			} else {
 				eflowlog.FlowLogItemPrint(le, printFields).Print()
 			}
@@ -85,4 +86,8 @@ func netStatInit() {
 	netStatCmd.Flags().UintVar(&logTail, "tail", 0, "Show only last N lines")
 	netStatCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	netStatCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
+	netStatCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 }

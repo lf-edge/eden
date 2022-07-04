@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"strings"
-
-	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/thediveo/enumflag"
 )
 
 var (
@@ -57,11 +58,11 @@ Scans the ADAM Info for correspondence with regular expressions requests to json
 			q[s[0]] = s[1]
 		}
 
-		handleInfo := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+		handleInfo := func(im *info.ZInfoMsg) bool {
 			if printFields == nil {
-				einfo.ZInfoPrn(im, ds)
+				einfo.ZInfoPrn(im, outputFormat)
 			} else {
-				einfo.ZInfoPrint(im, printFields).Print()
+				einfo.ZInfoPrintFiltered(im, printFields).Print()
 			}
 			return false
 		}
@@ -87,4 +88,8 @@ func infoInit() {
 	infoCmd.Flags().UintVar(&infoTail, "tail", 0, "Show only last N lines")
 	infoCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
 	infoCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
+	infoCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 }

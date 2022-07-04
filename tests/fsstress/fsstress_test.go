@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/projects"
@@ -218,7 +219,7 @@ func TestFSStressVMStart(t *testing.T) {
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
-		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(types.OutputFormatJSON, false), eapps.LogExist, 0); err != nil {
 			t.Fatalf("LogAppsChecker: %s", err)
 		}
 		fmt.Println("------")
@@ -269,7 +270,7 @@ func TestAccess(t *testing.T) {
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
-		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(types.OutputFormatJSON, false), eapps.LogExist, 0); err != nil {
 			t.Fatalf("LogAppsChecker: %s", err)
 		}
 		fmt.Println("------")
@@ -327,7 +328,7 @@ func TestRunStress(t *testing.T) {
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
-		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+		if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(types.OutputFormatJSON, false), eapps.LogExist, 0); err != nil {
 			t.Fatalf("LogAppsChecker: %s", err)
 		}
 		fmt.Println("------")

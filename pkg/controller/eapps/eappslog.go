@@ -4,7 +4,6 @@ package eapps
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -21,16 +20,6 @@ import (
 
 //LogCheckerMode is InfoExist, InfoNew and InfoAny
 type LogCheckerMode int
-
-// LogFormat the format to print output logs
-type LogFormat byte
-
-const (
-	//LogLines returns log line by line
-	LogLines LogFormat = iota
-	//LogJSON returns log in JSON format
-	LogJSON
-)
 
 //LogTail returns LogCheckerMode for process only defined count of last messages
 func LogTail(count uint) LogCheckerMode {
@@ -80,7 +69,7 @@ func LogItemFind(le *logs.LogEntry, query map[string]string) bool {
 }
 
 //HandleFactory implements HandlerFunc which prints log in the provided format
-func HandleFactory(format LogFormat, once bool) HandlerFunc {
+func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 	return func(le *logs.LogEntry) bool {
 		LogPrn(le, format)
 		return once
@@ -88,15 +77,15 @@ func HandleFactory(format LogFormat, once bool) HandlerFunc {
 }
 
 //LogPrn print Log data
-func LogPrn(le *logs.LogEntry, format LogFormat) {
+func LogPrn(le *logs.LogEntry, format types.OutputFormat) {
 	switch format {
-	case LogJSON:
+	case types.OutputFormatJSON:
 		b, err := protojson.Marshal(le)
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println(string(b))
-	case LogLines:
+	case types.OutputFormatLines:
 		fmt.Println("source:", le.Source)
 		fmt.Println("severity:", le.Severity)
 		fmt.Println("content:", strings.TrimSpace(le.Content))
@@ -106,12 +95,12 @@ func LogPrn(le *logs.LogEntry, format LogFormat) {
 		fmt.Println("iid:", le.Iid)
 		fmt.Println()
 	default:
-		_, _ = fmt.Fprintf(os.Stderr, "unknown log format requested")
+		log.Errorf("unknown log format requested")
 	}
 }
 
 //LogItemPrint find LogItem elements by paths in 'query'
-func LogItemPrint(le *logs.LogEntry, _ LogFormat, query []string) *types.PrintResult {
+func LogItemPrint(le *logs.LogEntry, _ types.OutputFormat, query []string) *types.PrintResult {
 	result := make(types.PrintResult)
 	for _, v := range query {
 		var n []string

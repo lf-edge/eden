@@ -16,6 +16,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
@@ -174,9 +175,9 @@ func TestLog(t *testing.T) {
 			}
 			t.Log(utils.AddTimestamp(fmt.Sprintf("LOG %d(%d) from %s:\n", items+1, *number, name)))
 			if len(*out) == 0 {
-				elog.LogPrn(log, elog.LogLines)
+				elog.LogPrn(log, types.OutputFormatLines)
 			} else {
-				elog.LogItemPrint(log, elog.LogLines,
+				elog.LogItemPrint(log, types.OutputFormatLines,
 					strings.Split(*out, ":")).Print()
 			}
 
@@ -244,9 +245,9 @@ func TestAppLog(t *testing.T) {
 			}
 			t.Log(utils.AddTimestamp(fmt.Sprintf("APP LOG %d(%d) from %s:\n", items+1, *number, name)))
 			if len(*out) == 0 {
-				eapps.LogPrn(log, eapps.LogLines)
+				eapps.LogPrn(log, types.OutputFormatLines)
 			} else {
-				eapps.LogItemPrint(log, eapps.LogLines,
+				eapps.LogItemPrint(log, types.OutputFormatLines,
 					strings.Split(*out, ":")).Print()
 			}
 
@@ -277,7 +278,7 @@ func TestInfo(t *testing.T) {
 			ei *info.ZInfoMsg) error {
 			name := edgeNode.GetID()
 			if query != nil {
-				if einfo.ZInfoFind(ei, query) != nil {
+				if einfo.ZInfoFind(ei, query) {
 					found = true
 				} else {
 					return nil
@@ -286,9 +287,9 @@ func TestInfo(t *testing.T) {
 
 			t.Log(utils.AddTimestamp(fmt.Sprintf("INFO %d(%d) from %s:\n", items+1, *number, name)))
 			if len(*out) == 0 {
-				einfo.InfoPrn(ei)
+				einfo.ZInfoPrn(ei, types.OutputFormatLines)
 			} else {
-				einfo.ZInfoPrint(ei,
+				einfo.ZInfoPrintFiltered(ei,
 					strings.Split(*out, ":")).Print()
 			}
 			cnt := count("Received %d infos from %s", name.String())
@@ -328,7 +329,7 @@ func TestMetrics(t *testing.T) {
 			t.Log(utils.AddTimestamp(fmt.Sprintf("METRICS %d(%d) from %s:\n",
 				items+1, *number, name)))
 			if len(*out) == 0 {
-				emetric.MetricPrn(mtr)
+				emetric.MetricPrn(mtr, types.OutputFormatLines)
 			} else {
 				emetric.MetricItemPrint(mtr,
 					strings.Split(*out, ":")).Print()
@@ -369,7 +370,7 @@ func TestFlowLog(t *testing.T) {
 			}
 			t.Log(utils.AddTimestamp(fmt.Sprintf("FLOWLOG %d(%d) from %s:\n", items+1, *number, name)))
 			if len(*out) == 0 {
-				eflowlog.FlowLogPrn(flowLog)
+				eflowlog.FlowLogPrn(flowLog, types.OutputFormatLines)
 			} else {
 				eflowlog.FlowLogItemPrint(flowLog, strings.Split(*out, ":")).Print()
 			}

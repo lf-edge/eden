@@ -117,7 +117,7 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 //checkVol wait for info of ZInfoApp type with state
 func checkVol(state string, volNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
-		eveState.InfoCallback()(msg, nil) //feed state with new info
+		eveState.InfoCallback()(msg) //feed state with new info
 		return checkState(eveState, state, volNames)
 	}
 }

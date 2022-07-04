@@ -117,7 +117,7 @@ var podModifyCmd = &cobra.Command{
 					log.Fatalf("setControllerAndDev: %s", err)
 				}
 				if needPurge {
-					processingFunction := func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+					processingFunction := func(im *info.ZInfoMsg) bool {
 						if im.Ztype == info.ZInfoTypes_ZiApp {
 							//waiting for purging state
 							if im.GetAinfo().State == info.ZSwState_PURGING {

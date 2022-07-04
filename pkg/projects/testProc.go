@@ -175,7 +175,7 @@ func (lb *processingBus) getMainProcessorFlowLog(dev *device.Ctx) eflowlog.Handl
 }
 
 func (lb *processingBus) getMainProcessorInfo(dev *device.Ctx) einfo.HandlerFunc {
-	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+	return func(im *info.ZInfoMsg) bool {
 		return lb.process(dev, im)
 	}
 }

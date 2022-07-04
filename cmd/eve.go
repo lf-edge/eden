@@ -11,7 +11,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/eden"
@@ -192,7 +191,7 @@ var versionEveCmd = &cobra.Command{
 			fmt.Println("EVE status: undefined (no onboarded EVE)")
 		} else {
 			var lastDInfo *info.ZInfoMsg
-			var handleInfo = func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+			var handleInfo = func(im *info.ZInfoMsg) bool {
 				if im.GetZtype() == info.ZInfoTypes_ZiDevice {
 					lastDInfo = im
 				}
