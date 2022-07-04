@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/thediveo/enumflag"
 )
 
 var (
@@ -136,7 +137,7 @@ var networkNetstatCmd = &cobra.Command{
 				//logsQ for filtering logs by app
 				logsQ := make(map[string]string)
 				logsQ["scope.netInstUUID"] = ni.Uuidandversion.Uuid
-				if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(false), flowLogType, 0); err != nil {
+				if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(outputFormat, false), flowLogType, 0); err != nil {
 					log.Fatalf("FlowLogChecker: %s", err)
 				}
 				return
@@ -202,6 +203,10 @@ func networkInit() {
 	networkCmd.AddCommand(networkLsCmd)
 	networkCmd.AddCommand(networkDeleteCmd)
 	networkCmd.AddCommand(networkNetstatCmd)
+	networkNetstatCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 	networkCmd.AddCommand(networkCreateCmd)
 	networkCreateCmd.Flags().StringVar(&networkType, "type", "local", "Type of network: local or switch")
 	networkCreateCmd.Flags().StringVarP(&networkName, "name", "n", "", "Name of network (empty for auto generation)")

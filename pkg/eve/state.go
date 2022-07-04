@@ -83,7 +83,7 @@ func (ctx *State) Volumes() []*VolInstState {
 
 //InfoCallback should be assigned to feed new values from info messages into state
 func (ctx *State) InfoCallback() einfo.HandlerFunc {
-	return func(msg *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+	return func(msg *info.ZInfoMsg) bool {
 		ctx.processVolumesByInfo(msg)
 		ctx.processApplicationsByInfo(msg)
 		ctx.processNetworksByInfo(msg)

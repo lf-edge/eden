@@ -95,24 +95,23 @@ func MetricItemFind(mm *metrics.ZMetricMsg, query map[string]string) bool {
 	return matched
 }
 
-//HandleFirst runs once and interrupts the workflow of LogWatch
-func HandleFirst(le *metrics.ZMetricMsg) bool {
-	MetricPrn(le)
-	return true
-}
-
-//HandleAll runs for all Logs selected by LogWatch
-func HandleAll(le *metrics.ZMetricMsg) bool {
-	MetricPrn(le)
-	return false
-}
-
 //MetricPrn print Metric data
-func MetricPrn(le *metrics.ZMetricMsg) {
-	fmt.Printf("DevID: %s", le.DevID)
-	fmt.Printf("\tAtTimeStamp: %s", le.AtTimeStamp.AsTime())
-	fmt.Print("\tDm: ", le.GetDm(), "\tAm: ", le.Am, "\tNm: ", le.Nm, "\tVm: ", le.Vm, "\tPr", le.Pr)
-	fmt.Println()
+func MetricPrn(le *metrics.ZMetricMsg, format types.OutputFormat) {
+	switch format {
+	case types.OutputFormatJSON:
+		b, err := protojson.Marshal(le)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(b))
+	case types.OutputFormatLines:
+		fmt.Printf("DevID: %s", le.DevID)
+		fmt.Printf("\tAtTimeStamp: %s", le.AtTimeStamp.AsTime())
+		fmt.Print("\tDm: ", le.GetDm(), "\tAm: ", le.Am, "\tNm: ", le.Nm, "\tVm: ", le.Vm, "\tPr", le.Pr)
+		fmt.Println()
+	default:
+		log.Errorf("unknown log format requested")
+	}
 }
 
 //HandlerFunc must process ZMetricMsg and return true to exit

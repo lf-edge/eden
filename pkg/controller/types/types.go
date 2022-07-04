@@ -182,3 +182,13 @@ type DeviceOptions struct {
 	Attested            bool                       `json:"attested"`
 	EventLog            []*attest.TpmEventLogEntry `json:"eventLog,omitempty"`
 }
+
+// OutputFormat the format to print output of metrics/logs/info
+type OutputFormat byte
+
+const (
+	//OutputFormatLines returns line by line
+	OutputFormatLines OutputFormat = iota
+	//OutputFormatJSON returns in JSON format
+	OutputFormatJSON
+)

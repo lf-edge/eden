@@ -6,17 +6,23 @@ import (
 
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/elog"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/thediveo/enumflag"
 )
 
 var (
-	logTail       uint
-	logFormatName string
-	logFormat     elog.LogFormat
+	logTail      uint
+	outputFormat types.OutputFormat
 )
+
+var outputFormatIds = map[types.OutputFormat][]string{
+	types.OutputFormatLines: {"lines"},
+	types.OutputFormatJSON:  {"json"},
+}
 
 var logCmd = &cobra.Command{
 	Use:   "log [field:regexp ...]",
@@ -33,14 +39,6 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 			certsIP = viper.GetString("adam.ip")
 			adamPort = viper.GetInt("adam.port")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
-		}
-		switch logFormatName {
-		case "json":
-			logFormat = elog.LogJSON
-		case "lines":
-			logFormat = elog.LogLines
-		default:
-			return fmt.Errorf("unknown log format: %s", logFormatName)
 		}
 		return nil
 	},
@@ -68,9 +66,9 @@ Scans the ADAM logs for correspondence with regular expressions requests to json
 
 		handleFunc := func(le *elog.FullLogEntry) bool {
 			if printFields == nil {
-				elog.LogPrn(le, logFormat)
+				elog.LogPrn(le, outputFormat)
 			} else {
-				elog.LogItemPrint(le, logFormat, printFields).Print()
+				elog.LogItemPrint(le, outputFormat, printFields).Print()
 			}
 			return false
 		}
@@ -98,5 +96,8 @@ func logInit() {
 	logCmd.Flags().UintVar(&logTail, "tail", 0, "Show only last N lines")
 	logCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	logCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected directory")
-	logCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
+	logCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 }

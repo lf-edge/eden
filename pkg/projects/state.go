@@ -100,7 +100,7 @@ func (state *State) processInfo(infoMsg *info.ZInfoMsg) error {
 }
 
 func (state *State) getProcessorInfo() einfo.HandlerFunc {
-	return func(im *info.ZInfoMsg, ds []*einfo.ZInfoMsgInterface) bool {
+	return func(im *info.ZInfoMsg) bool {
 		_ = state.processInfo(im)
 		//process all events from controller
 		return false

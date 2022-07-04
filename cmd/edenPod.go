@@ -22,6 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/thediveo/enumflag"
 )
 
 var (
@@ -50,8 +51,6 @@ var (
 
 	outputTail   uint
 	outputFields []string
-
-	logAppsFormat eapps.LogFormat
 
 	directLoad bool
 	sftpLoad   bool
@@ -498,16 +497,6 @@ var podLogsCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
-		switch logFormatName {
-		case "json":
-			logFormat = elog.LogJSON
-			logAppsFormat = eapps.LogJSON
-		case "lines":
-			logFormat = elog.LogLines
-			logAppsFormat = eapps.LogLines
-		default:
-			return fmt.Errorf("unknown log format: %s", logFormatName)
-		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -539,7 +528,7 @@ var podLogsCmd = &cobra.Command{
 						//logsQ for filtering logs by app
 						logsQ := make(map[string]string)
 						logsQ["msg"] = app.Uuidandversion.Uuid
-						if err = ctrl.LogChecker(dev.GetID(), logsQ, elog.HandleFactory(logFormat, false), logType, 0); err != nil {
+						if err = ctrl.LogChecker(dev.GetID(), logsQ, elog.HandleFactory(outputFormat, false), logType, 0); err != nil {
 							log.Fatalf("LogChecker: %s", err)
 						}
 					case "info":
@@ -556,7 +545,7 @@ var podLogsCmd = &cobra.Command{
 						//infoQ for filtering infos by app
 						infoQ := make(map[string]string)
 						infoQ["InfoContent.Ainfo.AppID"] = app.Uuidandversion.Uuid
-						if err = ctrl.InfoChecker(dev.GetID(), infoQ, einfo.HandleAll, infoType, 0); err != nil {
+						if err = ctrl.InfoChecker(dev.GetID(), infoQ, einfo.HandleFactory(outputFormat, false), infoType, 0); err != nil {
 							log.Fatalf("InfoChecker: %s", err)
 						}
 					case "metric":
@@ -601,7 +590,7 @@ var podLogsCmd = &cobra.Command{
 						//logsQ for filtering logs by app
 						logsQ := make(map[string]string)
 						logsQ["scope.uuid"] = app.Uuidandversion.Uuid
-						if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(false), flowLogType, 0); err != nil {
+						if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(outputFormat, false), flowLogType, 0); err != nil {
 							log.Fatalf("FlowLogChecker: %s", err)
 						}
 					case "app":
@@ -620,7 +609,7 @@ var podLogsCmd = &cobra.Command{
 						if err != nil {
 							log.Fatal(err)
 						}
-						if err = ctrl.LogAppsChecker(dev.GetID(), appID, nil, eapps.HandleFactory(logAppsFormat, false), appLogType, 0); err != nil {
+						if err = ctrl.LogAppsChecker(dev.GetID(), appID, nil, eapps.HandleFactory(outputFormat, false), appLogType, 0); err != nil {
 							log.Fatalf("MetricChecker: %s", err)
 						}
 					}
@@ -673,7 +662,10 @@ You can set access VLAN ID (VID) for a particular network in the format '<networ
 	podCmd.AddCommand(podLogsCmd)
 	podLogsCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
 	podLogsCmd.Flags().StringSliceVar(&outputFields, "fields", []string{"log", "info", "metric", "netstat", "app"}, "Show defined elements")
-	podLogsCmd.Flags().StringVarP(&logFormatName, "format", "", "lines", "Format to print logs, supports: lines, json")
+	podLogsCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 	podCmd.AddCommand(podRestartCmd)
 	podPurgeCmd.Flags().StringSliceVar(&volumesToPurge, "volumes", []string{}, "Explicitly set volume names to purge, purge all if not defined")
 	podCmd.AddCommand(podPurgeCmd)

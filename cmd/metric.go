@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"strings"
-
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/thediveo/enumflag"
 )
 
 var metricTail uint
@@ -57,7 +58,7 @@ Scans the ADAM metrics for correspondence with regular expressions requests to j
 
 		handleFunc := func(le *metrics.ZMetricMsg) bool {
 			if printFields == nil {
-				emetric.MetricPrn(le)
+				emetric.MetricPrn(le, outputFormat)
 			} else {
 				emetric.MetricItemPrint(le, printFields).Print()
 			}
@@ -87,4 +88,8 @@ func metricInit() {
 	metricCmd.Flags().UintVar(&metricTail, "tail", 0, "Show only last N lines")
 	metricCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	metricCmd.Flags().BoolP("follow", "f", false, "Monitor changes in selected metrics")
+	metricCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 }

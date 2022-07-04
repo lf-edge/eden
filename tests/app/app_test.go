@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lf-edge/eden/pkg/controller/eapps"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
@@ -125,7 +126,7 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 //checkApp wait for info of ZInfoApp type with state
 func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
-		eveState.InfoCallback()(msg, nil) //feed state with new info
+		eveState.InfoCallback()(msg) //feed state with new info
 		return checkState(eveState, state, appNames)
 	}
 }
@@ -183,7 +184,7 @@ func TestAppStatus(t *testing.T) {
 								t.Fatal(err)
 							}
 							fmt.Printf("--- app %s logs ---\n", app.Name)
-							if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(eapps.LogJSON, false), eapps.LogExist, 0); err != nil {
+							if err = tc.GetController().LogAppsChecker(edgeNode.GetID(), appID, nil, eapps.HandleFactory(types.OutputFormatJSON, false), eapps.LogExist, 0); err != nil {
 								t.Fatalf("LogAppsChecker: %s", err)
 							}
 							fmt.Println("------")

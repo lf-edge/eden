@@ -76,7 +76,7 @@ func RequestPrn(le *types.APIRequest, format RequestFormat) {
 		fmt.Println("timestamp:", le.Timestamp)
 		fmt.Println()
 	default:
-		_, _ = fmt.Fprintf(os.Stderr, "unknown RequestFormat requested")
+		log.Errorf("unknown log format requested")
 	}
 }
 

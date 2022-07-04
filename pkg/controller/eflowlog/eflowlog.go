@@ -89,17 +89,28 @@ func FlowLogItemFind(le *flowlog.FlowMessage, query map[string]string) bool {
 }
 
 //HandleFactory implements HandlerFunc which prints log in the provided format
-func HandleFactory(once bool) HandlerFunc {
+func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 	return func(le *flowlog.FlowMessage) bool {
-		FlowLogPrn(le)
+		FlowLogPrn(le, format)
 		return once
 	}
 }
 
 //FlowLogPrn print FlowMessage data
-func FlowLogPrn(le *flowlog.FlowMessage) {
-	enc := json.NewEncoder(os.Stdout)
-	_ = enc.Encode(le)
+func FlowLogPrn(le *flowlog.FlowMessage, format types.OutputFormat) {
+	switch format {
+	case types.OutputFormatJSON:
+		enc := json.NewEncoder(os.Stdout)
+		_ = enc.Encode(le)
+	case types.OutputFormatLines:
+		fmt.Println("devId:", le.DevId)
+		fmt.Println("flows:", le.Flows)
+		fmt.Println("scope:", le.Scope)
+		fmt.Println("dnsReqs:", le.DnsReqs)
+		fmt.Println()
+	default:
+		log.Errorf("unknown log format requested")
+	}
 }
 
 //HandlerFunc must process FlowMessage and return true to exit
