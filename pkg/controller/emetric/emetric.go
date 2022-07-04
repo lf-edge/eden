@@ -111,7 +111,7 @@ func HandleAll(le *metrics.ZMetricMsg) bool {
 func MetricPrn(le *metrics.ZMetricMsg) {
 	fmt.Printf("DevID: %s", le.DevID)
 	fmt.Printf("\tAtTimeStamp: %s", le.AtTimeStamp.AsTime())
-	fmt.Print("\tDm: ", le.GetDm(), "\tAm: ", le.Am, "\tNm: ", le.Nm, "\tVm: ", le.Vm)
+	fmt.Print("\tDm: ", le.GetDm(), "\tAm: ", le.Am, "\tNm: ", le.Nm, "\tVm: ", le.Vm, "\tPr", le.Pr)
 	fmt.Println()
 }
 
