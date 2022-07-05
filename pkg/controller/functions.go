@@ -104,7 +104,6 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 			node.SetRemoteAddr(cloud.vars.EveRemoteAddr)
 			if !alreadyRegistered { //new node
 				node.SetConfigItem("timer.config.interval", "5")
-				node.SetConfigItem("timer.metric.interval", "10")
 				node.SetConfigItem("timer.location.app.interval", "10")
 				node.SetConfigItem("timer.location.cloud.interval", "300")
 				node.SetConfigItem("app.allow.vnc", "true")
