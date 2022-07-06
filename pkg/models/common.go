@@ -10,6 +10,7 @@ import (
 
 func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 	var networkConfigs []*config.NetworkConfig
+	proxyCert := "-----BEGIN CERTIFICATE-----\nMIIFIjCCAwqgAwIBAgIILnV2rF6rRj8wDQYJKoZIhvcNAQEMBQAwLzELMAkGA1UE\nBhMCVVMxEDAOBgNVBAoTB2xmLWVkZ2UxDjAMBgNVBAMTBXByb3h5MB4XDTIyMDcw\nODE0MTY0MloXDTMyMDcwNTE0MTY0MlowLzELMAkGA1UEBhMCVVMxEDAOBgNVBAoT\nB2xmLWVkZ2UxDjAMBgNVBAMTBXByb3h5MIICIjANBgkqhkiG9w0BAQEFAAOCAg8A\nMIICCgKCAgEAmz4kI8FwvqQKZ+bcXB9Elme3B1hG6fo0gU7Ej1JpR0grfkiea1Kn\ng06RiGYjUgl5zQ3MmyE9FQs6SSqbohoWfZv5FabnbqWYy6zjHz4cNeFvfV5kHfe4\nUnNUNwLYAYni1InP3iqdVKhCKHS6+5FjvB8iwN5SesBf6yqHKli8+Lm54YIqZRFx\n9yMJyM3qCquuqiQJiKibx+76UIUWuf9Whf64p1NLaAlpbq3tbNmzV32BCzn8Otf9\nMv+wnGvxzQDsPRTfgBskptsPF2K28932iSLMudZTnuXfl6ydaHpYNK6SI/3GmkJa\nViZzIGNsjAz31QTqd/06VTAVL3597fSIwBnXSG3NryjKe1qhulk+7hhXiVui32c0\njvkwgTSrWb1FGuzkgUqWXfdUIiDTT/0rDBIbRq23rlonYOnMPJI9G4PQwmOZTFXi\nkLg8qq28pz/jHTpn8VqKF/XMDUxf/0EFc/vejk8cgzDDAlqkqkvEGee483PyuPi2\netBX9/+ngFoYDSZqCnPgAShYqq9qroIjtg7/cbdr8KiMO4Dj6yHM2OzTXQ6THjCq\nV0As2i64YGDDaMhsavvwB2geznjBXf/extQiVshLEm08RQ8HViRzm0G1p+7nHQDb\nVsY25yg9ETnCRMukiBzUXF6uV8z3JauSj1eIZGqgL0wQ+bIpcX1BaNkCAwEAAaNC\nMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwHQYDVR0OBBYEFGVF\n4X8j3OGihtnFiC3BZ33zqvfjMA0GCSqGSIb3DQEBDAUAA4ICAQATNvl+IgAwz3Gx\ni+6WHiqsVwRWKMifZKY952lcusviq0m6Aa/48ifZ4fc7nOTJ/pEXHDJKF/0ObYYH\n83j8AenkAp5lHEHZXfX9138QEhmMaBFqSS7IH1Vt8rvr3ZUJdq9rRNLLbnmnewdK\nC+YKwFyuqbdjdPMRQJiBWb2WyiWLydn/fMvU8Tsdcriyn4bcJdu2+4iPsb4e1YvA\n/ubGBS5Yt/v7iulNGEu9jp5nxfaBaQrc63HXcvyM4f9Q4kMNuOe+hJ/fDtUVSX67\nGTfXQGwEWUUaT4nI8mbk55KDdCy1Li4Ky5YweVR7rPeBLZ7Z+LW6pN51JYUzD/LQ\nYPhwM/mgEE+cum5jlMOBKkDwqrLpwerThfWJ2Ry+eCeLPb6qxjO7jWZcsL9yhQFX\nyBiq6F+zUKN6kRp4kOKvEM52aN0lpY4WY9xvRfehog1NS6YADQqm2zNdiwzu1RGg\nIwLzYJF6lJfTS8vPK1DNeZS9rvchc+v1ABfaLlyo4eQ2xtl6T4ynDDuRnFGppq7u\n5ZK/cM21U+CmMLs3l1yAuXoCoD+XT1P5kzJPtyjKaImSvNJHA9nKiWamrwmeTNPS\n0J7/B8Zv4EKn8mYTe4Okzn2GmOUF8djEyxWuOyfPdROJG5/oNhOJQtOd16xhnX+4\ni5dPDNhKEZtP3KeY2vQRoldysRSbFA==\n-----END CERTIFICATE-----"
 	if ethCount > 0 {
 		networkConfigs = append(networkConfigs,
 			&config.NetworkConfig{
@@ -18,6 +19,23 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 				Ip: &config.Ipspec{
 					Dhcp:      config.DHCPType_Client,
 					DhcpRange: &config.IpRange{},
+				},
+				EntProxy: &config.ProxyConfig{
+					Proxies: []*config.ProxyServer{
+						{
+							Server: "192.168.120.1",
+							Port:   8080,
+							Proto:  config.ProxyProto_PROXY_HTTP,
+						},
+						{
+							Server: "192.168.120.1",
+							Port:   8080,
+							Proto:  config.ProxyProto_PROXY_HTTPS,
+						},
+					},
+					ProxyCertPEM: [][]byte{
+						[]byte(proxyCert),
+					},
 				},
 				Wireless: nil,
 			})
@@ -29,6 +47,23 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 					Ip: &config.Ipspec{
 						Dhcp:      config.DHCPType_Client,
 						DhcpRange: &config.IpRange{},
+					},
+					EntProxy: &config.ProxyConfig{
+						Proxies: []*config.ProxyServer{
+							{
+								Server: "192.168.120.1",
+								Port:   8080,
+								Proto:  config.ProxyProto_PROXY_HTTP,
+							},
+							{
+								Server: "192.168.120.1",
+								Port:   8080,
+								Proto:  config.ProxyProto_PROXY_HTTPS,
+							},
+						},
+						ProxyCertPEM: [][]byte{
+							[]byte(proxyCert),
+						},
 					},
 					Wireless: nil,
 				})
