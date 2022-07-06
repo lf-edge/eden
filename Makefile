@@ -154,15 +154,19 @@ run-sdn-vm:
 	-chardev socket,id=char0,port=17777,host=localhost,server,nodelay,nowait,telnet,logfile=./dist/sdn.log \
 	-machine q35,accel=kvm,dump-guest-core=off,kernel-irqchip=split -cpu host,invtsc=on,kvmclock=off \
 	-device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 -smbios type=1,serial=31415926 \
-	-netdev user,id=eth0,net=192.168.15.0/24,dhcpstart=192.168.15.10,ipv6=off,hostfwd=tcp::12222-:22 -device e1000,netdev=eth0 \
+	-netdev user,id=eth0,net=192.168.15.0/24,dhcpstart=192.168.15.10,ipv6=off,hostfwd=tcp::12222-:22 -device e1000,netdev=eth0,mac=06:00:00:00:00:00 \
+	-netdev socket,id=eth1,listen=:12500 -device e1000,netdev=eth1,mac=06:00:00:00:00:01 \
+	-netdev socket,id=eth2,listen=:12501 -device e1000,netdev=eth2,mac=06:00:00:00:00:02 \
 	-drive file=./dist/default-images/eden/sdn-efi.qcow2,format=qcow2 \
 	-watchdog-action reset -readconfig /home/mlenco/.eden/default-qemu.conf
 telnet-to-sdn-vm:
 	telnet 127.0.0.1 17777
 ssh-to-sdn-vm:
-	 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i ./sdn/cert/id_rsa root@localhost -p 12222
+	ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i ./sdn/cert/ssh/id_rsa root@localhost -p 12222
 sdn-logs:
-	 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i ./sdn/cert/id_rsa root@localhost -p 12222 cat /run/sdn.log
+	ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i ./sdn/cert/ssh/id_rsa root@localhost -p 12222 cat /run/sdn.log
+build-usb-override:
+	../eve/tools/makeusbconf.sh -d -i -f ./sdn/usb.json -s 8000 ./sdn/usb.img
 
 tests-export: $(DIRECTORY_EXPORT) build-tests
 	@cp -af $(WORKDIR)/tests/* $(DIRECTORY_EXPORT)

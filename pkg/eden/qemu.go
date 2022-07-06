@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strconv"
+	//"strconv"
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -83,15 +83,19 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	if qemuMonitorPort != 0 {
 		qemuOptions += fmt.Sprintf("-monitor tcp:localhost:%d,server,nowait  ", qemuMonitorPort)
 	}
+	/*
 	nets, err := utils.GetSubnetsNotUsed(1)
 	if err != nil {
 		return fmt.Errorf("StartEVEQemu: %s", err)
 	}
 	offset := 0
 	network := nets[0].Subnet
+	*/
 	var ethIndex int
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off",
-		ethIndex, network, nets[0].FirstAddress)
+	socketPort := 12500
+	qemuOptions += fmt.Sprintf("-netdev socket,id=eth%d,connect=:%d",
+		ethIndex, socketPort)
+	/*
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {
@@ -105,12 +109,15 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
+    */
 	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, ethIndex)
-	offset += 10
+	//offset += 10
 	ethIndex++
+	socketPort++
 
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off",
-		ethIndex, network, nets[0].SecondAddress)
+	qemuOptions += fmt.Sprintf("-netdev socket,id=eth%d,connect=:%d",
+		ethIndex, socketPort)
+	/*
 	for k, v := range qemuHostFwd {
 		origPort, err := strconv.Atoi(k)
 		if err != nil {
@@ -124,6 +131,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		}
 		qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+offset, newPort+offset)
 	}
+	*/
 	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, ethIndex)
 	ethIndex++
 
@@ -144,6 +152,9 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 		ethIndex++
 		qemuNetdevSocketPort++
 	}
+
+	//qemuOptions += fmt.Sprintf(" -drive format=raw,file=./sdn/usb.img ")
+
 	if swtpm {
 		tpmSocket := filepath.Join(filepath.Dir(eveImageFile), "swtpm", defaults.DefaultSwtpmSockFile)
 		qemuOptions += fmt.Sprintf("-chardev socket,id=chrtpm,path=%s -tpmdev emulator,id=tpm0,chardev=chrtpm -device %s,tpmdev=tpm0 ", tpmSocket, tpmDev)
