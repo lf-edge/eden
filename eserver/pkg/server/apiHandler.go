@@ -1,9 +1,10 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/lf-edge/eden/eserver/pkg/manager"
-	"net/http"
 )
 
 type apiHandler struct {

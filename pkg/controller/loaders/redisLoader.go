@@ -1,16 +1,18 @@
 package loaders
 
 import (
+	"context"
 	"fmt"
-	"github.com/go-redis/redis/v7"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-redis/redis/v9"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
-	"time"
 )
 
 //RedisLoader implements loader from redis backend of controller
@@ -91,7 +93,7 @@ func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.
 	if !stream {
 		start := "-"
 		for {
-			rr, err := loader.client.XRangeN(OrderStream, start, "+", 10).Result()
+			rr, err := loader.client.XRangeN(context.Background(), OrderStream, start, "+", 10).Result()
 			if err != nil {
 				return false, false, fmt.Errorf("XRange error: %s", err)
 			}
@@ -126,7 +128,7 @@ func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.
 		}
 	} else {
 		start := "$"
-		rr, err := loader.client.XRead(&redis.XReadArgs{
+		rr, err := loader.client.XRead(context.Background(), &redis.XReadArgs{
 			Streams: []string{OrderStream, start},
 			Count:   1,
 			Block:   0,
@@ -159,7 +161,7 @@ func (loader *RedisLoader) process(process ProcessFunction, typeToProcess types.
 		counter, _ := strconv.Atoi(splitted[1])
 		start = fmt.Sprintf("%s-%v", splitted[0], counter+1)
 		for {
-			rr, err := loader.client.XRangeN(OrderStream, start, "+", 100).Result()
+			rr, err := loader.client.XRangeN(context.Background(), OrderStream, start, "+", 100).Result()
 			if err != nil {
 				return false, false, fmt.Errorf("XRange error: %s", err)
 			}
@@ -210,7 +212,7 @@ func (loader *RedisLoader) getOrCreateClient() (*redis.Client, error) {
 			MaxRetryBackoff: defaults.DefaultRepeatTimeout * 2,
 		})
 	}
-	_, err := loader.client.Ping().Result()
+	_, err := loader.client.Ping(context.Background()).Result()
 	return loader.client, err
 }
 
