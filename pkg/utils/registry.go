@@ -10,11 +10,12 @@ import (
 	"strings"
 
 	"github.com/containerd/containerd/remotes"
-	auth "github.com/deislabs/oras/pkg/auth/docker"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	v1tarball "github.com/google/go-containerregistry/pkg/v1/tarball"
+	"oras.land/oras-go/pkg/auth"
+	"oras.land/oras-go/pkg/auth/docker"
 )
 
 //LoadRegistry push image into registry
@@ -95,11 +96,11 @@ type RegistryHTTP struct {
 
 //NewRegistryHTTP creates new RegistryHTTP with plainHTTP resolver
 func NewRegistryHTTP(ctx context.Context) (context.Context, *RegistryHTTP, error) {
-	cli, err := auth.NewClient()
+	cli, err := docker.NewClient()
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get authenticating client to registry: %v", err)
 	}
-	resolver, err := cli.Resolver(ctx, nil, true)
+	resolver, err := cli.ResolverWithOpts(auth.WithResolverPlainHTTP())
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get resolver for registry: %v", err)
 	}

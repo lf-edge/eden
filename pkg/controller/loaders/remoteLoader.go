@@ -3,12 +3,10 @@ package loaders
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"net/http"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -16,6 +14,8 @@ import (
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -31,7 +31,7 @@ type getClient = func() *http.Client
 type RemoteLoader struct {
 	curCount     uint64
 	lastCount    uint64
-	lastTimesamp *timestamp.Timestamp
+	lastTimesamp *timestamppb.Timestamp
 	firstLoad    bool
 	devUUID      uuid.UUID
 	appUUID      uuid.UUID

@@ -7,13 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/logs"
 	"github.com/lf-edge/eve/api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //FileCache object provides caching objects from controller into directory
@@ -31,7 +31,7 @@ func NewFileCache(dirGetters types.DirGetters) *FileCache {
 //CheckAndSave process LoaderObjectType from data
 func (cacher *FileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) error {
 	var pathToCheck string
-	var itemTimeStamp *timestamp.Timestamp
+	var itemTimeStamp *timestamppb.Timestamp
 	var buf bytes.Buffer
 	buf.Write(data)
 	switch typeToProcess {

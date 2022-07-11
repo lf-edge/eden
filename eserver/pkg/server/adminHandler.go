@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/eserver/pkg/manager"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type adminHandler struct {

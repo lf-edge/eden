@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // This context holds all the configuration items in the same
@@ -40,7 +40,7 @@ var (
 
 	tc *projects.TestContext
 
-	lastRebootTime *timestamp.Timestamp
+	lastRebootTime *timestamppb.Timestamp
 )
 
 func checkReboot(t *testing.T, edgeNode *device.Ctx) projects.ProcInfoFunc {

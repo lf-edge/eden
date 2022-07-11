@@ -2,6 +2,10 @@ FROM lfedge/eve-alpine:6.6.0 AS build
 ENV BUILD_PKGS go git openssh-keygen
 RUN eve-alpine-deploy.sh
 
+# FIXME bump eve-alpine to alpine 3.14
+# hadolint ignore=DL3018
+RUN apk --no-cache --repository https://dl-cdn.alpinelinux.org/alpine/v3.14/community add -U --upgrade go && go version
+
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
 

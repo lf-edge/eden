@@ -3,13 +3,13 @@ package projects
 import (
 	"reflect"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type infoState struct {
@@ -25,7 +25,7 @@ type infoState struct {
 	VolumeMetrics          []*metrics.ZMetricVolume
 	DeviceMetrics          *metrics.DeviceMetric
 
-	LastInfoMessageTime *timestamp.Timestamp
+	LastInfoMessageTime *timestamppb.Timestamp
 }
 
 //State aggregates device state
@@ -191,7 +191,7 @@ func (state *State) GetDeviceMetrics() *metrics.DeviceMetric {
 }
 
 //GetLastInfoTime get *timestamp.Timestamp for last received info
-func (state *State) GetLastInfoTime() *timestamp.Timestamp {
+func (state *State) GetLastInfoTime() *timestamppb.Timestamp {
 	return state.deviceInfo.LastInfoMessageTime
 }
 
