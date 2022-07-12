@@ -192,6 +192,13 @@ eden:
         #force eserver rebuild
         force: {{parse "eden.eserver.force"}}
 
+    #eclient is tool we use in tests
+    eclient:
+        #tag of eclient container
+        tag: '{{parse "eden.eclient.tag"}}'
+        #image of eclient container
+        image: '{{parse "eden.eclient.image"}}'
+
     #directory to save certs
     certs-dist: '{{parse "eden.certs-dist"}}'
 
