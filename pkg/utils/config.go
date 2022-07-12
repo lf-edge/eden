@@ -421,6 +421,10 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultEServerTag
 		case "eden.eserver.force":
 			return true
+		case "eden.eclient.tag":
+			return defaults.DefaultEClientTag
+		case "eden.eclient.image":
+			return defaults.DefaultEClientContainerRef
 		case "eden.certs-dist":
 			return certsDist
 		case "eden.bin-dist":

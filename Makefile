@@ -11,10 +11,7 @@ ESERVER_TAG ?= "lfedge/eden-http-server"
 # ESERVER_DIR is the directory with eserver Dockerfile to build
 ESERVER_DIR=$(CURDIR)/eserver
 # ESERVER_VERSION is the version of eserver image to build
-ESERVER_VERSION ?= $(shell git tag -l --contains HEAD)
-ifeq ($(ESERVER_VERSION),)
-	ESERVER_VERSION = $(shell git describe --always)
-endif
+ESERVER_VERSION ?= $(shell git rev-parse --short HEAD:eserver)
 
 # PROCESSING_TAG is the tag for processing image to build
 PROCESSING_TAG ?= "lfedge/eden-processing"
