@@ -6,12 +6,12 @@ import (
 )
 
 // NetworkModel is used to declaratively describe the intended state of the networking
-// around EVE VM for the testing purposes. The model is submitted in the JSON format to Eden-SDN Agent,
-// running inside a separate VM, connected to EVE VM via inter-VM network interfaces, and emulating
+// around EVE VM(s) for the testing purposes. The model is submitted in the JSON format to Eden-SDN Agent,
+// running inside a separate VM, connected to EVE VM(s) via inter-VM network interfaces, and emulating
 // the desired networking using the Linux network stack, network namespaces, netfilter and with
 // the help of several open-source projects, such as dnsmasq, radvd, goproxy, etc.
 type NetworkModel struct {
-	// Ports : network interfaces connecting EVE VM with Eden-SDN VM.
+	// Ports : network interfaces connecting EVE VM(s) with Eden-SDN VM.
 	Ports []Port `json:"ports"`
 	// Bonds are aggregating multiple ports for load-sharing and redundancy purposes.
 	Bonds []Bond `json:"bonds"`
@@ -44,7 +44,7 @@ type Port struct {
 	// Put down to test link-down scenarios on EVE.
 	AdminUP bool `json:"adminUP"`
 	// EVEConnect : plug the other side of the port into a given EVE instance.
-	EVEConnect EVEConnect `json:"eveConnect"`
+	EVEConnect *EVEConnect `json:"eveConnect"`
 }
 
 // EVEConnect : connects Port to a given EVE instance.
@@ -70,8 +70,6 @@ type EVEConnect struct {
 type Bridge struct {
 	// LogicalLabel : logical name used for reference.
 	LogicalLabel string `json:"logicalLabel"`
-	// IfName : bridge interface name in the kernel.
-	IfName string `json:"ifName"`
 	// Logical labels of ports.
 	Ports []string `json:"ports"`
 	// Logical labels of bonds.

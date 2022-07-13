@@ -34,6 +34,7 @@ WORKDIR /out
 RUN mkdir -p ./etc/ssh ./root/.ssh && chmod 0700 ./root/.ssh
 COPY cert/ssh/id_rsa* ./root/.ssh/
 COPY cert/ssh/id_rsa.pub ./root/.ssh/authorized_keys
+RUN chmod 600 ./root/.ssh/id_rsa ./root/.ssh/authorized_keys
 RUN cp /etc/passwd /etc/group ./etc/
 
 ADD ./  /sdn/
@@ -48,11 +49,11 @@ RUN echo "Downloading dependecies" && go mod download && \
     echo "Running go vet" && go vet ./... && \
     echo "Running go fmt" && ERR=$(gofmt -e -l -s $(find . -name \*.go | grep -v /vendor/)) && \
        if [ -n "$ERR" ] ; then echo "go fmt Failed - ERR: "$ERR ; exit 1 ; fi && \
-    go build -ldflags "-s -w" -o /out/bin/sdn-agent ./cmd/agent/... && \
-    go build -ldflags "-s -w" -o /out/bin/dns64proxy ./cmd/dns64proxy/... && \
-    go build -ldflags "-s -w" -o /out/bin/httpsrv ./cmd/httpsrv/... && \
-    go build -ldflags "-s -w" -o /out/bin/goproxy ./cmd/goproxy/... && \
-    go build -ldflags "-s -w" -o /out/bin/netbootsrv ./cmd/netbootsrv/...
+    go build -ldflags "-s -w" -o /out/bin ./cmd/sdnagent/... && \
+    go build -ldflags "-s -w" -o /out/bin ./cmd/dns64proxy/... && \
+    go build -ldflags "-s -w" -o /out/bin ./cmd/httpsrv/... && \
+    go build -ldflags "-s -w" -o /out/bin ./cmd/goproxy/... && \
+    go build -ldflags "-s -w" -o /out/bin ./cmd/netbootsrv/...
 
 FROM scratch
 COPY --from=build /out/ /
