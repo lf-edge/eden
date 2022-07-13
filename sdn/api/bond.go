@@ -10,8 +10,6 @@ import (
 type Bond struct {
 	// LogicalLabel : logical name used for reference.
 	LogicalLabel string
-	// IfName : interface name in the kernel.
-	IfName string
 	// Ports : list of aggregated ports, referenced by logical labels.
 	Ports []string
 	// Mode : bonding policy.

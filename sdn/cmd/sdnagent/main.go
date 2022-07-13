@@ -44,7 +44,7 @@ func main() {
 	router.HandleFunc("/net-model.json", agent.getNetModel).Methods("GET")
 	router.HandleFunc("/net-model.json", agent.applyNetModel).Methods("PUT")
 	router.HandleFunc("/net-config.gv", agent.getNetConfig).Methods("GET")
-	router.HandleFunc("/status.json", agent.getStatus).Methods("GET")
+	router.HandleFunc("/sdn-status.json", agent.getSDNStatus).Methods("GET")
 	// TODO: metrics?
 
 	srv := &http.Server{

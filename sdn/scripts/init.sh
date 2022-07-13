@@ -70,12 +70,8 @@ EOF
 
   echo "Starting Eden SDN mgmt agent..."
   while true; do
-    sdn-agent -debug
+    sdnagent -debug
     echo "Restarting Eden SDN mgmt Agent!!!"
   done
 
-
- #TODO: get rid of lastresort
- #TODO: find out why we cannot load proxy cert via override
- #TODO: find out why lastresort is not disabled (probably due to: https://github.com/lf-edge/eve/pull/2620/files)
 } > /run/sdn.log 2>&1
