@@ -36,7 +36,7 @@ eden network create --type switch --uplink none -n switch
 test eden.network.test -test.v -timewait 10m ACTIVATED nat switch
 
 message 'Starting applications'
-eden pod deploy -v debug -n dhcp-server --memory=512MB --networks=switch --mount=src={{EdenConfig "eden.tests"}}/eclient/testdata/dhcp-server,dst=/app {{template "eclient_image"}}
+eden pod deploy -v debug -n dhcp-server --memory=512MB --networks=switch --mount=src={{EdenConfig "eden.tests"}}/eclient/testdata/dhcp-server,dst=/app docker://lfedge/eden-docker-test:83cfe07
 eden pod deploy -v debug -n eclient --memory=512MB --networks=nat --networks=switch -p {{template "port"}}:22 {{template "eclient_image"}}
 test eden.app.test -test.v -timewait 20m RUNNING dhcp-server eclient
 
