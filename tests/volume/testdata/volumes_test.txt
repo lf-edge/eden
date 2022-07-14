@@ -16,11 +16,31 @@ eden -t 1m volume create -n v-vmdk file://{{EdenConfig "eden.root"}}/empty.vmdk 
 stdout 'create volume v-vmdk with file://{{EdenConfig "eden.root"}}/empty.vmdk request sent'
 eden -t 1m volume create -n v-vhdx file://{{EdenConfig "eden.root"}}/empty.vhdx --format=vhdx --disk-size=8388608
 stdout 'create volume v-vhdx with file://{{EdenConfig "eden.root"}}/empty.vhdx request sent'
-eden -t 1m volume create -n blank-vol blank --disk-size=10MB
 
-# Wait for run
+# Wait for ready
 test eden.vol.test -test.v -timewait 10m DELIVERED v-qcow2 v-docker v-qcow v-vmdk v-vhdx
-test eden.vol.test -test.v -timewait 1m CREATED_VOLUME blank-vol
+
+# measure reported total space of persist
+exec -t 1m bash get-half-total.sh
+source .env
+
+# allocate volume with size of half total space
+eden -t 1m volume create -n blank-vol-1 blank --disk-size=$half_total
+test eden.vol.test -test.v -timewait 1m CREATED_VOLUME blank-vol-1
+
+# allocate background info check for volumeErr contains Remaining word
+test eden.lim.test -test.v -timewait 2m -test.run TestInfo -out InfoContent.vinfo 'InfoContent.vinfo.volumeErr:Remaining' 'InfoContent.vinfo.displayName:blank-vol-2' &errorwait&
+
+# this volume expected to fail because we cannot create two volumes with half of total persist space
+eden -t 1m volume create -n blank-vol-2 blank --disk-size=$half_total
+
+# wait for error from the second volume creation process
+wait errorwait
+
+# delete the first volume to give space for the second one
+eden -t 1m volume delete blank-vol-1
+test eden.vol.test -test.v -timewait 5m - blank-vol-1
+test eden.vol.test -test.v -timewait 5m CREATED_VOLUME blank-vol-2
 
 # Volume detecting
 eden -t 1m volume ls
@@ -30,6 +50,7 @@ grep '^v-qcow2\s*' vol_ls
 grep '^v-qcow\s*' vol_ls
 grep '^v-vmdk\s*' vol_ls
 grep '^v-vhdx\s*' vol_ls
+grep '^blank-vol-2\s*' vol_ls
 
 # Delete by volume's actor
 eden -t 1m volume delete v-docker
@@ -42,18 +63,18 @@ eden -t 1m volume delete v-vmdk
 stdout 'volume v-vmdk delete done'
 eden -t 1m volume delete v-vhdx
 stdout 'volume v-vhdx delete done'
-eden -t 1m volume delete blank-vol
-stdout 'volume blank-vol delete done'
+eden -t 1m volume delete blank-vol-2
+stdout 'volume blank-vol-2 delete done'
 
 # Wait for delete
-test eden.vol.test -test.v -timewait 5m - v-qcow2 v-docker v-qcow v-vmdk v-vhdx blank-vol
+test eden.vol.test -test.v -timewait 5m - v-qcow2 v-docker v-qcow v-vmdk v-vhdx blank-vol-2
 cp stdout vol_ls
 grep 'o volume with v-docker found' vol_ls
 grep 'o volume with v-qcow2 found' vol_ls
 grep 'o volume with v-qcow found' vol_ls
 grep 'o volume with v-vmdk found' vol_ls
 grep 'o volume with v-vhdx found' vol_ls
-grep 'o volume with blank-vol found' vol_ls
+grep 'o volume with blank-vol-2 found' vol_ls
 
 # Volumes detecting
 eden -t 1m volume ls
@@ -63,7 +84,14 @@ cp stdout vol_ls
 ! grep '^v-qcow\s*' vol_ls
 ! grep '^v-vmdk\s*' vol_ls
 ! grep '^v-vhdx\s*' vol_ls
-! grep '^blank-vol\s*' vol_ls
+! grep '^blank-vol-1\s*' vol_ls
+! grep '^blank-vol-2\s*' vol_ls
+
+-- get-half-total.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+TOTAL=$($EDEN metric --tail=1 --format=json|jq -r '.dm.disk[] | select(.mountPath=="/persist") | .total')
+
+echo half_total="$(( TOTAL*1024*1024/2 ))">>.env
 
 # Test's config. file
 -- eden-config.yml --
