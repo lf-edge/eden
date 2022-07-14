@@ -279,6 +279,15 @@ var setupCmd = &cobra.Command{
 			}
 		}
 		imageFormat := model.DiskFormat()
+		eveDesc := utils.EVEDescription{
+			ConfigPath:  certsDir,
+			Arch:        eveArch,
+			HV:          eveHV,
+			Registry:    eveRegistry,
+			Tag:         eveTag,
+			Format:      imageFormat,
+			ImageSizeMB: eveImageSizeMB,
+		}
 		if !download {
 			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
 				if err := eden.CloneFromGit(eveDist, eveRepo, eveTag); err != nil {
@@ -288,7 +297,7 @@ var setupCmd = &cobra.Command{
 				}
 				builedImage := ""
 				builedAdditional := ""
-				if builedImage, builedAdditional, err = eden.MakeEveInRepo(eveDist, certsDir, eveArch, eveHV, imageFormat, false); err != nil {
+				if builedImage, builedAdditional, err = eden.MakeEveInRepo(eveDesc, eveDist); err != nil {
 					log.Errorf("cannot MakeEveInRepo: %s", err)
 				} else {
 					log.Info("MakeEveInRepo done")
@@ -309,15 +318,6 @@ var setupCmd = &cobra.Command{
 				log.Infof("EVE already exists in dir: %s", eveDist)
 			}
 		} else {
-			eveDesc := utils.EVEDescription{
-				ConfigPath:  certsDir,
-				Arch:        eveArch,
-				HV:          eveHV,
-				Registry:    eveRegistry,
-				Tag:         eveTag,
-				Format:      imageFormat,
-				ImageSizeMB: eveImageSizeMB,
-			}
 			uefiDesc := utils.UEFIDescription{
 				Registry: eveRegistry,
 				Tag:      eveUefiTag,
