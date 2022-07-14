@@ -54,4 +54,10 @@ jobs:
           ./eden config add setup --devmodel general
           ./eden --config setup setup
           ./eden --config setup clean
+          ./eden config delete setup          
+          ./eden config add setup
+          
+          # try download and build from repo
+          ./eden --config setup setup --download=false
+          ./eden --config setup clean
           ./eden config delete setup
