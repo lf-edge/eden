@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -466,6 +468,20 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 	log.Debug("generating EVE cert and key")
 	if err := utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
+	}
+	// generate v2tlsbaseroot-certificates.pem as concatenation of default certificate and root-certificate
+	certOut, err := os.Create(filepath.Join(certsDir, "v2tlsbaseroot-certificates.pem"))
+	if err != nil {
+		return err
+	}
+	if _, err := io.WriteString(certOut, defaults.V2TLS); err != nil {
+		return err
+	}
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: rootCert.Raw}); err != nil {
+		return err
+	}
+	if err := certOut.Close(); err != nil {
+		return err
 	}
 	ClientCert, ClientKey := utils.GenServerCertElliptic(rootCert, rootKey, big.NewInt(2), nil, nil, uuid)
 	log.Debug("saving files")
