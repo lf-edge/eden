@@ -99,4 +99,3 @@ func (a *agent) collectLogicalLabels(typeName string, slice interface{}) ([]stri
 	}
 	return labels, nil
 }
-

@@ -54,9 +54,6 @@ func (f IPForwarding) String() string {
 
 // Dependencies returns dependency on the network namespace.
 func (f IPForwarding) Dependencies() (deps []depgraph.Dependency) {
-	if isMainNetNs(f.NetNamespace) {
-		return nil
-	}
 	return []depgraph.Dependency{
 		{
 			RequiredItem: depgraph.ItemRef{
@@ -86,7 +83,7 @@ func (c *IPForwardingConfigurator) Modify(ctx context.Context, oldItem, newItem 
 // Delete disables IP forwarding (default settings).
 func (c *IPForwardingConfigurator) Delete(ctx context.Context, item depgraph.Item) error {
 	f := item.(IPForwarding)
-	return c.setIPForwarding(f.NetNamespace,false, false)
+	return c.setIPForwarding(f.NetNamespace, false, false)
 }
 
 func (c *IPForwardingConfigurator) setIPForwarding(netNs string, v4, v6 bool) error {

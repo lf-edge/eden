@@ -65,18 +65,54 @@ func (a *agent) updateIntendedState() {
 	a.intendedState = dg.New(graphArgs)
 	a.intendedState.PutSubGraph(a.getIntendedPhysIfs())
 	a.intendedState.PutSubGraph(a.getIntendedHostConnectivity())
+	// TODO ...
 }
 
 func (a *agent) getIntendedPhysIfs() dg.Graph {
 	graphArgs := dg.InitArgs{Name: physicalIfsSG}
 	intendedCfg := dg.New(graphArgs)
-	// TODO
+	if netIf, found := a.findHostInterface(); found {
+		intendedCfg.PutItem(configitems.PhysIf{
+			LogicalLabel: hostPortLogicalLabel,
+			MAC:          netIf.MAC,
+		}, nil)
+	}
+	for _, port := range a.netModel.Ports {
+		// MAC address is already validated
+		mac, _ := net.ParseMAC(port.MAC)
+		intendedCfg.PutItem(configitems.PhysIf{
+			LogicalLabel: port.LogicalLabel,
+			MAC:          mac,
+		}, nil)
+	}
 	return intendedCfg
 }
 
 func (a *agent) getIntendedHostConnectivity() dg.Graph {
 	graphArgs := dg.InitArgs{Name: hostConnectivitySG}
 	intendedCfg := dg.New(graphArgs)
-	// TODO
+	netIf, found := a.findHostInterface()
+	if !found {
+		// Without interface connecting SDN with the host it is clearly
+		// not possible to establish host connectivity.
+		return intendedCfg
+	}
+	intendedCfg.PutItem(configitems.NetNamespace{
+		NsName: configitems.MainNsName,
+	}, nil)
+	intendedCfg.PutItem(configitems.IfHandle{
+		PhysIfLL:  hostPortLogicalLabel,
+		PhysIfMAC: netIf.MAC,
+		Usage:     configitems.IfUsageL3,
+		AdminUP:   true,
+	}, nil)
+	intendedCfg.PutItem(configitems.IPForwarding{
+		EnableForIPv4: true,
+	}, nil)
+	intendedCfg.PutItem(configitems.Dhcpcd{
+		PhysIfLL:  hostPortLogicalLabel,
+		PhysIfMAC: netIf.MAC,
+		LogFile:   "/run/dhcpcd.log",
+	}, nil)
 	return intendedCfg
 }

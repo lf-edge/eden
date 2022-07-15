@@ -14,7 +14,9 @@ func RegisterItems(
 	}
 	configurators := []configurator{
 		{c: &IPForwardingConfigurator{}, t: IPForwardingTypename},
-		{c: &ResolvConfConfigurator{}, t: ResolvConfTypename},
+		{c: &NetNamespaceConfigurator{}, t: NetNamespaceTypename},
+		{c: &IfHandleConfigurator{netMonitor: netMonitor}, t: IfHandleTypename},
+		{c: &DhcpcdConfigurator{netMonitor: netMonitor}, t: DhcpcdTypename},
 	}
 	for _, configurator := range configurators {
 		err := registry.Register(configurator.c, configurator.t)
