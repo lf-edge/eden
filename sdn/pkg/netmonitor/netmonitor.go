@@ -13,7 +13,7 @@ import (
 
 const (
 	netlinkSubBufSize = 128 * 1024 // bytes
-	eventChanBufSize = 64 // number of events
+	eventChanBufSize  = 64         // number of events
 )
 
 // NetworkMonitor currently allows to lookup network interfaces and obtain their attributes,
