@@ -9,8 +9,10 @@ const (
 	IfHandleTypename = "Interface-Handle"
 	// NetNamespaceTypename : typename for network namespaces.
 	NetNamespaceTypename = "Network-Namespace"
-	// ResolvConfTypename : typename for singleton item representing resolv.conf.
-	ResolvConfTypename = "Resolv-Conf"
+	// BondTypename : typename for bond interface.
+	BondTypename = "Bond"
+	// BridgeTypename : typename for bridges.
+	BridgeTypename = "Bridge"
 	// IPForwardingTypename : typename for singleton item representing enabled
 	// or disabled IP forwarding.
 	IPForwardingTypename = "IP-Forwarding"

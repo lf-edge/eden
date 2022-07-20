@@ -3,9 +3,13 @@ package netmonitor
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
+	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"syscall"
+	"unsafe"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -38,8 +42,6 @@ type Event interface {
 type NetIfChange struct {
 	// Attrs : interface attributes.
 	Attrs NetIfAttrs
-	// True if this is a newly added interface.
-	Added bool
 	// True if interface was removed.
 	Deleted bool
 }
@@ -48,8 +50,7 @@ func (e NetIfChange) isNetworkEvent() {}
 
 // Equal allows to compare two IfChange events for equality.
 func (e NetIfChange) Equal(e2 NetIfChange) bool {
-	return e.Added == e2.Added &&
-		e.Deleted == e2.Deleted &&
+	return e.Deleted == e2.Deleted &&
 		e.Attrs.Equal(e2.Attrs)
 }
 
@@ -134,6 +135,12 @@ func (m *NetworkMonitor) syncCache() {
 			continue
 		}
 		attrs := m.ifAttrsFromLink(link)
+		mac, err := m.getRealMAC(ifName)
+		if err != nil {
+			log.Warnf("getRealMAC(%s) failed: %v", ifName, err)
+		} else if mac != nil {
+			attrs.MAC = mac
+		}
 		var ips []*net.IPNet
 		ips4, err := netlink.AddrList(link, netlink.FAMILY_V4)
 		if err != nil {
@@ -158,6 +165,60 @@ func (m *NetworkMonitor) syncCache() {
 	}
 	m.netIfsCache = newCache
 	m.staleCache = false
+}
+
+const (
+	SIOCETHTOOL       = 0x8946
+	ETHTOOL_GPERMADDR = 0x20
+)
+
+// Get interface real MAC address - not the one assigned by bonding driver for example.
+func (m *NetworkMonitor) getRealMAC(ifName string) (net.HardwareAddr, error) {
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
+	if err != nil {
+		fd, err = syscall.Socket(syscall.AF_NETLINK, syscall.SOCK_RAW, syscall.NETLINK_GENERIC)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var data struct {
+		cmd  uint32
+		size uint32
+		data [128]byte
+	}
+	var ifr struct {
+		IfrName [16]byte
+		IfrData unsafe.Pointer
+	}
+	data.cmd = ETHTOOL_GPERMADDR
+	data.size = 128
+	copy(ifr.IfrName[:], ifName)
+	ifr.IfrData = unsafe.Pointer(&data)
+	_, _, sysErr := syscall.RawSyscall(syscall.SYS_IOCTL,
+		uintptr(fd), uintptr(SIOCETHTOOL), uintptr(unsafe.Pointer(&ifr)))
+	if sysErr != 0 {
+		return nil, fmt.Errorf("RawSyscall failed with errno %d", sysErr)
+	}
+	// If mac address is all zero, this is a virtual adapter and we ignore it.
+	virtIf := true
+	var i uint32 = 0
+	for i = 0; i < data.size; i++ {
+		if data.data[i] != 0x00 {
+			virtIf = false
+			break
+		}
+	}
+	if virtIf {
+		return nil, nil
+	}
+	mac := strings.ToUpper(hex.EncodeToString(data.data[0:data.size]))
+	if len(mac) > 12 {
+		return nil, nil
+	}
+	for i := 10; i > 0; i = i - 2 {
+		mac = fmt.Sprintf("%s:%s", mac[:i], mac[i:])
+	}
+	return net.ParseMAC(mac)
 }
 
 // ListInterfaces returns all available network interfaces.
@@ -251,11 +312,9 @@ func (m *NetworkMonitor) watcher() {
 			}
 			ifIndex := linkUpdate.Attrs().Index
 			attrs := m.ifAttrsFromLink(linkUpdate)
-			added := linkUpdate.Header.Type == syscall.RTM_NEWLINK
 			deleted := linkUpdate.Header.Type == syscall.RTM_DELLINK
 			event := NetIfChange{
 				Attrs:   attrs,
-				Added:   added,
 				Deleted: deleted,
 			}
 			prevIfChange := lastIfChange[ifIndex]
@@ -280,7 +339,7 @@ func (m *NetworkMonitor) watcher() {
 				Deleted:   !addrUpdate.NewAddr,
 			}
 			m.Lock()
-			m.syncCache()
+			m.staleCache = true
 			m.publishEvent(event)
 			m.Unlock()
 		}

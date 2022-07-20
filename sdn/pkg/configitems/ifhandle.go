@@ -11,6 +11,8 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+const defaultMTU = 1500
+
 // IfUsage : how a network interface is being used.
 type IfUsage uint8
 
@@ -27,10 +29,8 @@ const (
 
 // IfHandle : an item representing *exclusive* allocation and use of a physical interface.
 type IfHandle struct {
-	// PhysIfLL : logical label of the physical interface associated with this handle.
-	PhysIfLL string
-	// PhysIfMAC : MAC address of the physical interface associated with this handle.
-	PhysIfMAC net.HardwareAddr
+	// PhysIf : physical interface associated with this handle.
+	PhysIf PhysIf
 	// Usage : How is the physical network interface being used.
 	Usage IfUsage
 	// ParentLL : Logical label of the parent bridge or bond if the physical interface
@@ -39,16 +39,18 @@ type IfHandle struct {
 	ParentLL string
 	// AdminUP : enable to put the physical interface administratively UP.
 	AdminUP bool
+	// MTU : Maximum transmission unit.
+	MTU uint16
 }
 
 // Name
 func (h IfHandle) Name() string {
-	return h.PhysIfMAC.String()
+	return h.PhysIf.MAC.String()
 }
 
 // Label
 func (h IfHandle) Label() string {
-	return h.PhysIfLL + " (handle)"
+	return h.PhysIf.LogicalLabel + " (handle)"
 }
 
 // Type
@@ -61,7 +63,8 @@ func (h IfHandle) Equal(other depgraph.Item) bool {
 	h2 := other.(IfHandle)
 	return h.Usage == h2.Usage &&
 		h.ParentLL == h2.ParentLL &&
-		h.AdminUP == h2.AdminUP
+		h.AdminUP == h2.AdminUP &&
+		h.MTU == h2.MTU
 }
 
 // External returns false.
@@ -80,7 +83,7 @@ func (h IfHandle) Dependencies() (deps []depgraph.Dependency) {
 		{
 			RequiredItem: depgraph.ItemRef{
 				ItemType: PhysIfTypename,
-				ItemName: h.PhysIfMAC.String(),
+				ItemName: h.PhysIf.MAC.String(),
 			},
 			Description: "Underlying physical network interface must exist",
 		},
@@ -92,19 +95,19 @@ type IfHandleConfigurator struct {
 	netMonitor *netmonitor.NetworkMonitor
 }
 
-// Create sets interface admin state.
+// Create sets interface admin state and MTU.
 func (c *IfHandleConfigurator) Create(ctx context.Context, item depgraph.Item) error {
 	ifHandle := item.(IfHandle)
-	return c.setAdminState(ifHandle.PhysIfMAC, ifHandle.AdminUP)
+	return c.setIfProperties(ifHandle.PhysIf.MAC, ifHandle.AdminUP, ifHandle.MTU)
 }
 
-// Modify is able to change interface admin status.
+// Modify is able to change interface admin status and MTU.
 func (c *IfHandleConfigurator) Modify(ctx context.Context, oldItem, newItem depgraph.Item) (err error) {
 	ifHandle := newItem.(IfHandle)
-	return c.setAdminState(ifHandle.PhysIfMAC, ifHandle.AdminUP)
+	return c.setIfProperties(ifHandle.PhysIf.MAC, ifHandle.AdminUP, ifHandle.MTU)
 }
 
-func (c *IfHandleConfigurator) setAdminState(mac net.HardwareAddr, up bool) error {
+func (c *IfHandleConfigurator) setIfProperties(mac net.HardwareAddr, up bool, mtu uint16) error {
 	netIf, found := c.netMonitor.LookupInterfaceByMAC(mac)
 	if !found {
 		err := fmt.Errorf("failed to get physical interface with MAC %v", mac)
@@ -122,21 +125,33 @@ func (c *IfHandleConfigurator) setAdminState(mac net.HardwareAddr, up bool) erro
 		if err != nil {
 			err = fmt.Errorf("netlink.LinkSetUp(%s) failed: %v", link.Attrs().Name, err)
 			log.Error(err)
+			return err
 		}
 	} else {
 		err = netlink.LinkSetDown(link)
 		if err != nil {
 			err = fmt.Errorf("netlink.LinkSetDown(%s) failed: %v", link.Attrs().Name, err)
 			log.Error(err)
+			return err
 		}
 	}
-	return err
+	if mtu == 0 {
+		mtu = defaultMTU
+	}
+	err = netlink.LinkSetMTU(link, int(mtu))
+	if err != nil {
+		err = fmt.Errorf("netlink.LinkSetMTU(%s, %d) failed: %v",
+			link.Attrs().Name, mtu, err)
+		log.Error(err)
+		return err
+	}
+	return nil
 }
 
 // Delete sets interface DOWN.
 func (c *IfHandleConfigurator) Delete(ctx context.Context, item depgraph.Item) error {
 	ifHandle := item.(IfHandle)
-	return c.setAdminState(ifHandle.PhysIfMAC, false)
+	return c.setIfProperties(ifHandle.PhysIf.MAC, false, 0)
 }
 
 // NeedsRecreate returns true if the usage of PhysIf changed.

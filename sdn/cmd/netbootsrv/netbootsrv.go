@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	fmt.Println("HTTP(S) server: hello world")
+	fmt.Println("Netboot server: hello world")
 	time.Sleep(time.Hour)
 }

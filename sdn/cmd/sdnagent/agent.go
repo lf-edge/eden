@@ -30,8 +30,8 @@ type agent struct {
 	netMonitor *netmonitor.NetworkMonitor
 
 	// Network model
-	netModel    api.NetworkModel
-	newNetModel chan api.NetworkModel
+	netModel    parsedNetModel
+	newNetModel chan parsedNetModel
 
 	// Configuration state
 	currentState  dg.Graph
@@ -55,12 +55,12 @@ func (a *agent) init() error {
 		return err
 	}
 	a.registry = registry
-	a.newNetModel = make(chan api.NetworkModel, 10)
+	a.newNetModel = make(chan parsedNetModel, 10)
 	a.failingItems = make(map[dg.ItemRef]error)
 	// Initially start with an empty network model.
 	// Ever-present config items will get created.
 	// (e.g. DHCP client for the interface connecting SDN with the host)
-	a.netModel = api.NetworkModel{}
+	a.netModel = parsedNetModel{}
 	a.updateCurrentState()
 	a.updateIntendedState()
 	a.reconcile()
@@ -75,6 +75,7 @@ func (a *agent) run(netEvents <-chan netmonitor.Event) {
 			// Network model is already validated, applying...
 			a.Lock()
 			a.netModel = netModel
+			a.updateCurrentState()
 			a.updateIntendedState()
 			a.reconcile()
 			a.Unlock()
@@ -85,23 +86,21 @@ func (a *agent) run(netEvents <-chan netmonitor.Event) {
 			a.Unlock()
 
 		case event := <-netEvents:
-			log.Debugf("Network event: %+v", event)
+			log.Tracef("Network event: %+v", event)
 			switch ev := event.(type) {
 			case netmonitor.NetIfChange:
-				if ev.Added || ev.Deleted {
-					a.Lock()
-					changed := a.updateCurrentState()
-					if a.isHostPort(ev.Attrs) {
-						// Intended state for SDN<->Host connectivity changes
-						// when the "host port" (dis)appears.
-						a.updateIntendedState()
-						changed = true
-					}
-					if changed {
-						a.reconcile()
-					}
-					a.Unlock()
+				a.Lock()
+				changed := a.updateCurrentState()
+				if a.isHostPort(ev.Attrs) {
+					// Intended state for SDN<->Host connectivity changes
+					// when the "host port" (dis)appears.
+					a.updateIntendedState()
+					changed = true
 				}
+				if changed {
+					a.reconcile()
+				}
+				a.Unlock()
 			}
 
 		case <-a.ctx.Done():
@@ -197,7 +196,7 @@ func (a *agent) isHostPort(netIfAttrs netmonitor.NetIfAttrs) bool {
 
 func (a *agent) getNetModel(w http.ResponseWriter, r *http.Request) {
 	a.Lock()
-	resp, err := json.Marshal(a.netModel)
+	resp, err := json.Marshal(a.netModel.NetworkModel)
 	a.Unlock()
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to marshal network model to JSON: %v", err)
@@ -228,14 +227,15 @@ func (a *agent) applyNetModel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	err = a.validateNetModel(netModel)
+	parsedNetModel, err := a.parseNetModel(netModel)
 	if err != nil {
 		errMsg := fmt.Sprintf("Network model is invalid: %v", err)
 		log.Error(errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	a.newNetModel <- netModel
+	log.Debugf("Parsed network model: %+v", parsedNetModel)
+	a.newNetModel <- parsedNetModel
 	w.WriteHeader(http.StatusOK)
 }
 

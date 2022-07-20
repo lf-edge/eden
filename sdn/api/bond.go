@@ -9,55 +9,79 @@ import (
 // Also known as Link aggregation group (LAG).
 type Bond struct {
 	// LogicalLabel : logical name used for reference.
-	LogicalLabel string
+	LogicalLabel string `json:"logicalLabel"`
 	// Ports : list of aggregated ports, referenced by logical labels.
-	Ports []string
+	Ports []string `json:"ports"`
 	// Mode : bonding policy.
-	Mode BondMode
+	Mode BondMode `json:"mode"`
 	// LacpRate : LACPDU packets transmission rate.
 	// Applicable for BondMode802Dot3AD only.
-	LacpRate LacpRate
+	LacpRate LacpRate `json:"lacpRate"`
 	// MIIMonitor : MII link state monitoring.
 	// Link monitoring is either disabled or one of the monitors
 	// is enabled (MII or ARP), never both at the same time.
-	MIIMonitor BondMIIMonitor
+	MIIMonitor BondMIIMonitor `json:"miiMonitor"`
 	// ARPMonitor : ARP-based link state monitoring.
 	// Link monitoring is either disabled or one of the monitors
 	// is enabled (MII or ARP), never both at the same time.
-	ARPMonitor BondArpMonitor
+	ARPMonitor BondArpMonitor `json:"arpMonitor"`
+}
+
+// ItemType
+func (b Bond) ItemType() string {
+	return "bond"
+}
+
+// ItemLogicalLabel
+func (b Bond) ItemLogicalLabel() string {
+	return b.LogicalLabel
+}
+
+// ReferencesFromItem
+func (b Bond) ReferencesFromItem() []LogicalLabelRef {
+	var refs []LogicalLabelRef
+	for _, port := range b.Ports {
+		refs = append(refs, LogicalLabelRef{
+			ItemType:         Port{}.ItemType(),
+			ItemLogicalLabel: port,
+			// Same as what bridge uses to enforce exclusive access to the port.
+			RefKey: PortMasterRef,
+		})
+	}
+	return refs
 }
 
 // BondMIIMonitor : MII link monitoring parameters.
 type BondMIIMonitor struct {
 	// Enabled : set to true to enable MII.
-	Enabled bool
+	Enabled bool `json:"enabled"`
 	// Interval specifies the MII link monitoring frequency in milliseconds.
 	// This determines how often the link state of each bond slave is inspected
 	// for link failures.
-	Interval uint32
+	Interval uint32 `json:"interval"`
 	// UpDelay specifies the time, in milliseconds, to wait before enabling
 	// a bond slave after a link recovery has been detected.
 	// The UpDelay value should be a multiple of the monitoring interval; if not,
 	// it will be rounded down to the nearest multiple.
 	// The default value is 0.
-	UpDelay uint32
+	UpDelay uint32 `json:"upDelay"`
 	// DownDelay specifies the time, in milliseconds, to wait before disabling a bond
 	// slave after a link failure has been detected.
 	// The DownDelay value should be a multiple of the monitoring interval; if not,
 	// it will be rounded down to the nearest multiple.
 	// The default value is 0.
-	DownDelay uint32
+	DownDelay uint32 `json:"downDelay"`
 }
 
 // BondArpMonitor : ARP-based link monitoring parameters.
 type BondArpMonitor struct {
 	// Enabled : set to true to enable ARP-based link monitoring.
-	Enabled bool
+	Enabled bool `json:"enabled"`
 	// Interval specifies the ARP link monitoring frequency in milliseconds.
-	Interval uint32
+	Interval uint32 `json:"interval"`
 	// IPTargets specifies the IPv4 addresses to use as ARP monitoring peers.
 	// These are the targets of ARP requests sent to determine the health of links.
-	IPTargets []string
+	IPTargets []string `json:"ipTargets"`
 }
 
 // LacpRate specifies the rate in which bond driver will ask LACP link partners

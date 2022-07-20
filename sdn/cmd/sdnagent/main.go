@@ -28,10 +28,11 @@ func main() {
 	flag.Parse()
 
 	if *debug {
-		log.SetLevel(log.TraceLevel)
+		log.SetLevel(log.DebugLevel)
 	} else {
 		log.SetLevel(log.InfoLevel)
 	}
+	log.SetReportCaller(true)
 
 	agent := &agent{}
 	if err := agent.init(); err != nil {

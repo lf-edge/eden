@@ -2,7 +2,9 @@ package main
 
 import (
 	"net"
+	"strings"
 
+	"github.com/lf-edge/eden/sdn/api"
 	"github.com/lf-edge/eden/sdn/pkg/configitems"
 	dg "github.com/lf-edge/eve/libs/depgraph"
 	"github.com/lf-edge/eve/libs/reconciler"
@@ -14,6 +16,7 @@ const (
 	configGraphName    = "SDN-Config"
 	physicalIfsSG      = "Physical-Interfaces"
 	hostConnectivitySG = "Host-Connectivity"
+	bridgesSG          = "Bridges"
 )
 
 // Update external items inside the graph with the current state.
@@ -28,7 +31,6 @@ func (a *agent) updateCurrentState() (changed bool) {
 	if netIf, found := a.findHostInterface(); found {
 		currentPhysIfs.PutItem(configitems.PhysIf{
 			LogicalLabel: hostPortLogicalLabel,
-			IfName:       netIf.IfName,
 			MAC:          netIf.MAC,
 		}, &reconciler.ItemStateData{
 			State:         reconciler.ItemStateCreated,
@@ -39,10 +41,9 @@ func (a *agent) updateCurrentState() (changed bool) {
 	for _, port := range a.netModel.Ports {
 		// MAC address is already validated
 		mac, _ := net.ParseMAC(port.MAC)
-		if netIf, found := a.netMonitor.LookupInterfaceByMAC(mac); found {
+		if _, found := a.netMonitor.LookupInterfaceByMAC(mac); found {
 			currentPhysIfs.PutItem(configitems.PhysIf{
 				LogicalLabel: port.LogicalLabel,
-				IfName:       netIf.IfName,
 				MAC:          mac,
 			}, &reconciler.ItemStateData{
 				State:         reconciler.ItemStateCreated,
@@ -65,6 +66,7 @@ func (a *agent) updateIntendedState() {
 	a.intendedState = dg.New(graphArgs)
 	a.intendedState.PutSubGraph(a.getIntendedPhysIfs())
 	a.intendedState.PutSubGraph(a.getIntendedHostConnectivity())
+	a.intendedState.PutSubGraph(a.getIntendedBridges())
 	// TODO ...
 }
 
@@ -101,10 +103,12 @@ func (a *agent) getIntendedHostConnectivity() dg.Graph {
 		NsName: configitems.MainNsName,
 	}, nil)
 	intendedCfg.PutItem(configitems.IfHandle{
-		PhysIfLL:  hostPortLogicalLabel,
-		PhysIfMAC: netIf.MAC,
-		Usage:     configitems.IfUsageL3,
-		AdminUP:   true,
+		PhysIf: configitems.PhysIf{
+			MAC:          netIf.MAC,
+			LogicalLabel: hostPortLogicalLabel,
+		},
+		Usage:   configitems.IfUsageL3,
+		AdminUP: true,
 	}, nil)
 	intendedCfg.PutItem(configitems.IPForwarding{
 		EnableForIPv4: true,
@@ -115,4 +119,102 @@ func (a *agent) getIntendedHostConnectivity() dg.Graph {
 		LogFile:   "/run/dhcpcd.log",
 	}, nil)
 	return intendedCfg
+}
+
+func (a *agent) getIntendedBridges() dg.Graph {
+	graphArgs := dg.InitArgs{Name: bridgesSG}
+	intendedCfg := dg.New(graphArgs)
+	for _, port := range a.netModel.Ports {
+		labeledItem := a.netModel.items.getItem(api.Port{}.ItemType(), port.LogicalLabel)
+		masterID, hasMaster := labeledItem.referencedBy[api.PortMasterRef]
+		if !hasMaster {
+			// Port is not really used.
+			continue
+		}
+		mac, _ := net.ParseMAC(port.MAC) // already validated
+		var usage configitems.IfUsage
+		switch masterID.typename {
+		case api.Bridge{}.ItemType():
+			usage = configitems.IfUsageBridged
+		case api.Bond{}.ItemType():
+			usage = configitems.IfUsageAggregated
+		}
+		intendedCfg.PutItem(configitems.IfHandle{
+			PhysIf: configitems.PhysIf{
+				MAC:          mac,
+				LogicalLabel: port.LogicalLabel,
+			},
+			ParentLL: masterID.logicalLabel,
+			Usage:    usage,
+			AdminUP:  port.AdminUP,
+			MTU:      port.MTU,
+		}, nil)
+	}
+	for _, bond := range a.netModel.Bonds {
+		labeledItem := a.netModel.items.getItem(api.Bond{}.ItemType(), bond.LogicalLabel)
+		var aggrPhysIfs []configitems.PhysIf
+		for _, ref := range labeledItem.referencing {
+			if ref.refKey == api.PortMasterRef {
+				port := a.netModel.items[ref.itemID].LabeledItem
+				mac, _ := net.ParseMAC(port.(api.Port).MAC)
+				aggrPhysIfs = append(aggrPhysIfs, configitems.PhysIf{
+					MAC:          mac,
+					LogicalLabel: ref.logicalLabel,
+				})
+			}
+		}
+		intendedCfg.PutItem(configitems.Bond{
+			Bond:              bond,
+			IfName:            a.bondIfName(bond.LogicalLabel),
+			AggregatedPhysIfs: aggrPhysIfs,
+		}, nil)
+	}
+	for _, bridge := range a.netModel.Bridges {
+		var vlans []uint16
+		labeledItem := a.netModel.items.getItem(api.Bridge{}.ItemType(), bridge.LogicalLabel)
+		for refKey, refBy := range labeledItem.referencedBy {
+			if strings.HasPrefix(refKey, api.NetworkBridgeRefPrefix) {
+				network := a.netModel.items[refBy].LabeledItem
+				if vlanID := network.(api.Network).VlanID; vlanID != 0 {
+					vlans = append(vlans, vlanID)
+				}
+			}
+		}
+		var physIfs []configitems.PhysIf
+		var bonds []string
+		for _, ref := range labeledItem.referencing {
+			if ref.refKey != api.PortMasterRef {
+				continue
+			}
+			switch ref.typename {
+			case api.Port{}.ItemType():
+				port := a.netModel.items[ref.itemID].LabeledItem
+				mac, _ := net.ParseMAC(port.(api.Port).MAC)
+				physIfs = append(physIfs, configitems.PhysIf{
+					MAC:          mac,
+					LogicalLabel: ref.logicalLabel,
+				})
+			case api.Bond{}.ItemType():
+				bonds = append(bonds, a.bondIfName(ref.logicalLabel))
+			}
+		}
+		intendedCfg.PutItem(configitems.Bridge{
+			IfName:       a.bridgeIfName(bridge.LogicalLabel),
+			LogicalLabel: bridge.LogicalLabel,
+			PhysIfs:      physIfs,
+			BondIfs:      bonds,
+			VLANs:        vlans,
+		}, nil)
+	}
+	return intendedCfg
+}
+
+func (a *agent) bondIfName(logicalLabel string) string {
+	// TODO: make sure it is not longer than 15 characters
+	return "bond-" + logicalLabel
+}
+
+func (a *agent) bridgeIfName(logicalLabel string) string {
+	// TODO: make sure it is not longer than 15 characters
+	return "br-" + logicalLabel
 }
