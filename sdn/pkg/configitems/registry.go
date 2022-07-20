@@ -17,6 +17,8 @@ func RegisterItems(
 		{c: &NetNamespaceConfigurator{}, t: NetNamespaceTypename},
 		{c: &IfHandleConfigurator{netMonitor: netMonitor}, t: IfHandleTypename},
 		{c: &DhcpcdConfigurator{netMonitor: netMonitor}, t: DhcpcdTypename},
+		{c: &BondConfigurator{netMonitor: netMonitor}, t: BondTypename},
+		{c: &BridgeConfigurator{netMonitor: netMonitor}, t: BridgeTypename},
 	}
 	for _, configurator := range configurators {
 		err := registry.Register(configurator.c, configurator.t)

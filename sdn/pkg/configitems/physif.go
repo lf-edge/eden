@@ -10,8 +10,6 @@ import (
 // PhysIf : physical network interface.
 // External item used to represent a presence (or lack) of a NIC.
 type PhysIf struct {
-	// IfName : Interface name assigned by the OS.
-	IfName string
 	// MAC address assigned by Eden.
 	MAC net.HardwareAddr
 	// LogicalLabel : label used within the network model.
@@ -36,7 +34,7 @@ func (p PhysIf) Type() string {
 // Equal is a comparison method for two PhysIf instances.
 func (p PhysIf) Equal(other depgraph.Item) bool {
 	p2 := other.(PhysIf)
-	return p.IfName == p2.IfName && p.LogicalLabel == p2.LogicalLabel
+	return p.LogicalLabel == p2.LogicalLabel
 }
 
 // External returns true because we learn about a presence of a physical interface

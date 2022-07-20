@@ -1,0 +1,39 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "my-eve0",
+      "mac": "06:00:00:00:00:01",
+      "adminUP": true,
+      "eveConnect": {
+        "ifOrder": 0,
+        "mac": "06:00:00:00:00:11"
+      }
+    },
+    {
+      "logicalLabel": "my-eve1",
+      "mac": "06:00:00:00:00:02",
+      "adminUP": true,
+      "eveConnect": {
+        "ifOrder": 0,
+        "mac": "06:00:00:00:00:12"
+      }
+    }
+  ],
+  "bonds": [
+    {
+      "logicalLabel": "my-bond0",
+      "ports": ["my-eve0", "my-eve1"],
+      "mode": "active-backup"
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "my-bridge0",
+      "bonds": ["my-bond0"]
+    }
+  ],
+  "host": {
+    "hostIPs": ["10.10.10.102"],
+    "networkType": "ipv4-only"
+  }
+}

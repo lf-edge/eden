@@ -173,6 +173,8 @@ get-sdn-config:
 get-sdn-model:
 	@curl localhost:19999/net-model.json
 	@echo
+put-sdn-model:
+	@curl -X PUT -H 'Content-Type: application/json' -d @./sdn/sdn-model.json localhost:19999/net-model.json
 build-usb-override:
 	../eve/tools/makeusbconf.sh -d -i -f ./sdn/usb.json -s 8000 ./sdn/usb.img
 

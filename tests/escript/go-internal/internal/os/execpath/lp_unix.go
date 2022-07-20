@@ -54,5 +54,5 @@ func Look(file string, getenv func(string) string) (string, error) {
 			return path, nil
 		}
 	}
-	return "", &Error{Name: file, Err:ErrNotFound}
+	return "", &Error{Name: file, Err: ErrNotFound}
 }
