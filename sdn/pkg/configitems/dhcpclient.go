@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -13,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lf-edge/eden/sdn/pkg/netmonitor"
+	"github.com/lf-edge/eden/sdn/pkg/maclookup"
 	"github.com/lf-edge/eve/libs/depgraph"
 	"github.com/lf-edge/eve/libs/reconciler"
 	log "github.com/sirupsen/logrus"
@@ -25,56 +24,54 @@ const (
 	dhcpcdStopTimeout  = 30 * time.Second
 )
 
-// Dhcpcd : DHCP client (https://wiki.archlinux.org/title/dhcpcd).
+// DhcpClient : DHCP client (this one: https://wiki.archlinux.org/title/dhcpcd).
 // Can be only used with physical network interface (not with virtual interfaces like VETH).
-type Dhcpcd struct {
-	// PhysIfLL : logical label of the physical interface to associate dhcpcd with.
-	PhysIfLL string
-	// PhysIfMAC : MAC address of the physical interface to associate dhcpcd with.
-	PhysIfMAC net.HardwareAddr
+type DhcpClient struct {
+	// PhysIf : physical interface to associate the client with.
+	PhysIf PhysIf
 	// LogFile : where to put dhcpcd logs.
 	LogFile string
 }
 
 // Name
-func (c Dhcpcd) Name() string {
-	return c.PhysIfMAC.String()
+func (c DhcpClient) Name() string {
+	return c.PhysIf.MAC.String()
 }
 
 // Label
-func (c Dhcpcd) Label() string {
-	return "dhcpcd for " + c.PhysIfLL
+func (c DhcpClient) Label() string {
+	return "DHCP client for " + c.PhysIf.LogicalLabel
 }
 
 // Type
-func (c Dhcpcd) Type() string {
-	return DhcpcdTypename
+func (c DhcpClient) Type() string {
+	return DhcpClientTypename
 }
 
-// Equal is a comparison method for two equally-named Dhcpcd instances.
-func (c Dhcpcd) Equal(other depgraph.Item) bool {
-	c2 := other.(Dhcpcd)
-	return c.PhysIfLL == c2.PhysIfLL &&
+// Equal is a comparison method for two equally-named DhcpClient instances.
+func (c DhcpClient) Equal(other depgraph.Item) bool {
+	c2 := other.(DhcpClient)
+	return c.PhysIf.Equal(c2.PhysIf) &&
 		c.LogFile == c2.LogFile
 }
 
 // External returns false.
-func (c Dhcpcd) External() bool {
+func (c DhcpClient) External() bool {
 	return false
 }
 
 // String describes the DHCP client config.
-func (c Dhcpcd) String() string {
+func (c DhcpClient) String() string {
 	return fmt.Sprintf("DHCP Client: %#+v", c)
 }
 
 // Dependencies lists the IfHandle as the only dependency of the DHCP client.
-func (c Dhcpcd) Dependencies() (deps []depgraph.Dependency) {
+func (c DhcpClient) Dependencies() (deps []depgraph.Dependency) {
 	return []depgraph.Dependency{
 		{
 			RequiredItem: depgraph.ItemRef{
 				ItemType: IfHandleTypename,
-				ItemName: c.PhysIfMAC.String(),
+				ItemName: c.PhysIf.MAC.String(),
 			},
 			MustSatisfy: func(item depgraph.Item) bool {
 				ifHandle := item.(IfHandle)
@@ -85,16 +82,16 @@ func (c Dhcpcd) Dependencies() (deps []depgraph.Dependency) {
 	}
 }
 
-// IfHandleConfigurator implements Configurator interface for Dhcpcd.
-type DhcpcdConfigurator struct {
-	netMonitor *netmonitor.NetworkMonitor
+// DhcpClientConfigurator implements Configurator interface for DhcpClient.
+type DhcpClientConfigurator struct {
+	MacLookup *maclookup.MacLookup
 }
 
 // Create starts dhcpcd.
-func (c *DhcpcdConfigurator) Create(ctx context.Context, item depgraph.Item) error {
-	config := item.(Dhcpcd)
-	mac := config.PhysIfMAC
-	netIf, found := c.netMonitor.LookupInterfaceByMAC(mac)
+func (c *DhcpClientConfigurator) Create(ctx context.Context, item depgraph.Item) error {
+	config := item.(DhcpClient)
+	mac := config.PhysIf.MAC
+	netIf, found := c.MacLookup.GetInterfaceByMAC(mac, false)
 	if !found {
 		err := fmt.Errorf("failed to get physical interface with MAC %v", mac)
 		log.Error(err)
@@ -104,7 +101,7 @@ func (c *DhcpcdConfigurator) Create(ctx context.Context, item depgraph.Item) err
 	done := reconciler.ContinueInBackground(ctx)
 
 	go func() {
-		if c.dhcpcdExists(ifName) {
+		if c.isDhcpcdRunning(ifName) {
 			err := fmt.Errorf("dhcpcd for interface %s is already running", ifName)
 			log.Error(err)
 			done(err)
@@ -127,7 +124,7 @@ func (c *DhcpcdConfigurator) Create(ctx context.Context, item depgraph.Item) err
 			}
 		}()
 		// Wait for a bit then give up.
-		for !c.dhcpcdExists(ifName) {
+		for !c.isDhcpcdRunning(ifName) {
 			if time.Since(startTime) > dhcpcdStartTimeout {
 				err := fmt.Errorf("dhcpcd for interface %s failed to start in time",
 					ifName)
@@ -145,15 +142,15 @@ func (c *DhcpcdConfigurator) Create(ctx context.Context, item depgraph.Item) err
 }
 
 // Modify is not implemented.
-func (c *DhcpcdConfigurator) Modify(ctx context.Context, oldItem, newItem depgraph.Item) (err error) {
+func (c *DhcpClientConfigurator) Modify(ctx context.Context, oldItem, newItem depgraph.Item) (err error) {
 	return errors.New("not implemented")
 }
 
 // Delete stops dhcpcd.
-func (c *DhcpcdConfigurator) Delete(ctx context.Context, item depgraph.Item) error {
-	config := item.(Dhcpcd)
-	mac := config.PhysIfMAC
-	netIf, found := c.netMonitor.LookupInterfaceByMAC(mac)
+func (c *DhcpClientConfigurator) Delete(ctx context.Context, item depgraph.Item) error {
+	config := item.(DhcpClient)
+	mac := config.PhysIf.MAC
+	netIf, found := c.MacLookup.GetInterfaceByMAC(mac, false)
 	if !found {
 		err := fmt.Errorf("failed to get physical interface with MAC %v", mac)
 		log.Error(err)
@@ -175,7 +172,7 @@ func (c *DhcpcdConfigurator) Delete(ctx context.Context, item depgraph.Item) err
 				log.Errorf("dhcpcd release failed for interface %s: %v, elapsed time %v",
 					ifName, err, time.Since(startTime))
 			}
-			if !c.dhcpcdExists(ifName) {
+			if !c.isDhcpcdRunning(ifName) {
 				break
 			}
 			if time.Since(startTime) > dhcpcdStopTimeout {
@@ -205,7 +202,7 @@ func (c *DhcpcdConfigurator) Delete(ctx context.Context, item depgraph.Item) err
 			done(err)
 			return
 		}
-		if !c.dhcpcdExists(ifName) {
+		if !c.isDhcpcdRunning(ifName) {
 			log.Infof("dhcpcd for interface %s is gone after exit, elapsed time %v",
 				ifName, time.Since(startTime))
 			done(nil)
@@ -220,7 +217,7 @@ func (c *DhcpcdConfigurator) Delete(ctx context.Context, item depgraph.Item) err
 	return nil
 }
 
-func (c *DhcpcdConfigurator) dhcpcdExists(ifName string) bool {
+func (c *DhcpClientConfigurator) isDhcpcdRunning(ifName string) bool {
 	pidFile := fmt.Sprintf("/run/dhcpcd-%s.pid", ifName)
 	pidBytes, err := ioutil.ReadFile(pidFile)
 	if err != nil {
@@ -229,25 +226,25 @@ func (c *DhcpcdConfigurator) dhcpcdExists(ifName string) bool {
 	pidStr := strings.TrimSpace(string(pidBytes))
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
-		log.Errorf("dhcpcdExists(%s): strconv.Atoi of %s failed %s; ignored\n",
+		log.Errorf("isDhcpcdRunning(%s): strconv.Atoi of %s failed %s; ignored\n",
 			ifName, pidStr, err)
 		return true // guess since we don't know
 	}
 	// Does the pid exist?
 	p, err := os.FindProcess(pid)
 	if err != nil {
-		log.Errorf("dhcpcdExists(%s): process not found %s", ifName, err)
+		log.Errorf("isDhcpcdRunning(%s): process not found %s", ifName, err)
 		return false
 	}
 	err = p.Signal(syscall.Signal(0))
 	if err != nil {
-		log.Errorf("dhcpcdExists(%s): signal failed %s", ifName, err)
+		log.Errorf("isDhcpcdRunning(%s): signal failed %s", ifName, err)
 		return false
 	}
 	return true
 }
 
 // NeedsRecreate always returns true - Modify is not implemented.
-func (c *DhcpcdConfigurator) NeedsRecreate(oldItem, newItem depgraph.Item) (recreate bool) {
+func (c *DhcpClientConfigurator) NeedsRecreate(oldItem, newItem depgraph.Item) (recreate bool) {
 	return true
 }

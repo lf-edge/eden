@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	"github.com/lf-edge/eden/sdn/api"
-	"github.com/lf-edge/eden/sdn/pkg/netmonitor"
+	"github.com/lf-edge/eden/sdn/pkg/maclookup"
 	"github.com/lf-edge/eve/libs/depgraph"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -77,7 +77,7 @@ func (b Bond) Dependencies() (deps []depgraph.Dependency) {
 
 // BondConfigurator implements Configurator interface for bond interfaces.
 type BondConfigurator struct {
-	netMonitor *netmonitor.NetworkMonitor
+	MacLookup *maclookup.MacLookup
 }
 
 // Create adds new Bond interface.
@@ -153,7 +153,7 @@ func (c *BondConfigurator) Create(ctx context.Context, item depgraph.Item) error
 
 func (c *BondConfigurator) aggregateInterface(bond *netlink.Bond,
 	aggrIfMAC net.HardwareAddr) error {
-	netIf, found := c.netMonitor.LookupInterfaceByMAC(aggrIfMAC)
+	netIf, found := c.MacLookup.GetInterfaceByMAC(aggrIfMAC, false)
 	if !found {
 		err := fmt.Errorf("failed to get physical interface with MAC %v", aggrIfMAC)
 		log.Error(err)
@@ -180,7 +180,7 @@ func (c *BondConfigurator) aggregateInterface(bond *netlink.Bond,
 }
 
 func (c *BondConfigurator) disaggregateInterface(aggrIfMAC net.HardwareAddr) error {
-	netIf, found := c.netMonitor.LookupInterfaceByMAC(aggrIfMAC)
+	netIf, found := c.MacLookup.GetInterfaceByMAC(aggrIfMAC, false)
 	if !found {
 		err := fmt.Errorf("failed to get physical interface with MAC %v", aggrIfMAC)
 		log.Error(err)

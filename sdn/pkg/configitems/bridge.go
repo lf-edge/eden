@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/lf-edge/eden/sdn/pkg/netmonitor"
+	"github.com/lf-edge/eden/sdn/pkg/maclookup"
 	"github.com/lf-edge/eve/libs/depgraph"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -16,7 +16,7 @@ import (
 type Bridge struct {
 	// IfName : name of the Bridge in the OS.
 	IfName string
-	// LogicalLabel : logical name used for reference.
+	// LogicalLabel : label used within the network model.
 	LogicalLabel string
 	// PhysIfs : physical interfaces to put under the bridge.
 	PhysIfs []PhysIf
@@ -92,7 +92,7 @@ func (b Bridge) Dependencies() (deps []depgraph.Dependency) {
 
 // BridgeConfigurator implements Configurator interface for bond interfaces.
 type BridgeConfigurator struct {
-	netMonitor *netmonitor.NetworkMonitor
+	MacLookup *maclookup.MacLookup
 }
 
 // Create adds new Bridge.
@@ -243,7 +243,7 @@ func (c *BridgeConfigurator) handleModify(oldBridgeCfg, newBridgeCfg Bridge) (er
 			}
 		}
 		if !keepBridged {
-			netIf, found := c.netMonitor.LookupInterfaceByMAC(oldPhysIf.MAC)
+			netIf, found := c.MacLookup.GetInterfaceByMAC(oldPhysIf.MAC, false)
 			if !found {
 				err := fmt.Errorf("failed to get physical interface with MAC %v",
 					oldPhysIf.MAC)
@@ -279,7 +279,7 @@ func (c *BridgeConfigurator) handleModify(oldBridgeCfg, newBridgeCfg Bridge) (er
 	}
 	// Add interfaces newly configured to be under this Bridge.
 	for _, newPhysIf := range newBridgeCfg.PhysIfs {
-		netIf, foundPhysIf := c.netMonitor.LookupInterfaceByMAC(newPhysIf.MAC)
+		netIf, foundPhysIf := c.MacLookup.GetInterfaceByMAC(newPhysIf.MAC, false)
 		if !foundPhysIf {
 			err := fmt.Errorf("failed to get physical interface with MAC %v",
 				newPhysIf.MAC)

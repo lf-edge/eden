@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/lf-edge/eve/libs/depgraph"
 	log "github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 )
 
 const (
@@ -36,6 +39,55 @@ func namespacedCmd(netNs string, cmd string, args ...string) *exec.Cmd {
 	newArgs = append(newArgs, cmd)
 	newArgs = append(newArgs, args...)
 	return exec.Command("ip", newArgs...)
+}
+
+func moveLinkToNamespace(link netlink.Link, netNs string) (err error) {
+	nsHandle, err := netns.GetFromName(netNs)
+	if err != nil {
+		return err
+	}
+	if err := netlink.LinkSetNsFd(link, int(nsHandle)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func switchToNamespace(netNs string) (revert func(), err error) {
+	// Save the current network namespace.
+	origNs, err := netns.Get()
+	if err != nil {
+		return func() {}, err
+	}
+	closeNs := func(ns netns.NsHandle) {
+		if err := ns.Close(); err != nil {
+			log.Warnf("closing NsHandle (%v) failed: %v", ns, err)
+		}
+	}
+	// Get network namespace file descriptor.
+	nsHandle, err := netns.GetFromName(netNs)
+	if err != nil {
+		closeNs(origNs)
+		return func() {}, err
+	}
+	defer closeNs(nsHandle)
+
+	// Lock the OS Thread so we don't accidentally switch namespaces later.
+	runtime.LockOSThread()
+
+	// Switch the namespace.
+	if err := netns.Set(nsHandle); err != nil {
+		runtime.UnlockOSThread()
+		closeNs(origNs)
+		return func() {}, err
+	}
+
+	return func() {
+		if err := netns.Set(origNs); err != nil {
+			log.Errorf("Failed to switch to original Linux network namespace: %v", err)
+		}
+		closeNs(origNs)
+		runtime.UnlockOSThread()
+	}, nil
 }
 
 // NetNamespace : an item representing named network namespace.
@@ -94,10 +146,7 @@ func (c *NetNamespaceConfigurator) Create(ctx context.Context, item depgraph.Ite
 		// Nothing to do, already exists.
 		return nil
 	}
-	err := os.MkdirAll(namedNsDir, 0755)
-	if err != nil {
-		err = fmt.Errorf("failed to create directory %s: %w", namedNsDir, err)
-		log.Error(err)
+	if err := ensureDir(namedNsDir); err != nil {
 		return err
 	}
 	out, err := exec.Command("ip", "netns", "add", nsName).CombinedOutput()
@@ -142,4 +191,14 @@ func (c *NetNamespaceConfigurator) Delete(ctx context.Context, item depgraph.Ite
 // NeedsRecreate is not actually used (no attributes to Modify).
 func (c *NetNamespaceConfigurator) NeedsRecreate(oldItem, newItem depgraph.Item) (recreate bool) {
 	return false
+}
+
+func ensureDir(dirname string) error {
+	err := os.MkdirAll(dirname, 0755)
+	if err != nil {
+		err = fmt.Errorf("failed to create directory %s: %w", dirname, err)
+		log.Error(err)
+		return err
+	}
+	return nil
 }
