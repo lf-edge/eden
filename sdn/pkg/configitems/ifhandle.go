@@ -3,9 +3,9 @@ package configitems
 import (
 	"context"
 	"fmt"
+	"github.com/lf-edge/eden/sdn/pkg/maclookup"
 	"net"
 
-	"github.com/lf-edge/eden/sdn/pkg/netmonitor"
 	"github.com/lf-edge/eve/libs/depgraph"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -92,7 +92,7 @@ func (h IfHandle) Dependencies() (deps []depgraph.Dependency) {
 
 // IfHandleConfigurator implements Configurator interface for IfHandle.
 type IfHandleConfigurator struct {
-	netMonitor *netmonitor.NetworkMonitor
+	MacLookup *maclookup.MacLookup
 }
 
 // Create sets interface admin state and MTU.
@@ -108,7 +108,7 @@ func (c *IfHandleConfigurator) Modify(ctx context.Context, oldItem, newItem depg
 }
 
 func (c *IfHandleConfigurator) setIfProperties(mac net.HardwareAddr, up bool, mtu uint16) error {
-	netIf, found := c.netMonitor.LookupInterfaceByMAC(mac)
+	netIf, found := c.MacLookup.GetInterfaceByMAC(mac, false)
 	if !found {
 		err := fmt.Errorf("failed to get physical interface with MAC %v", mac)
 		log.Error(err)

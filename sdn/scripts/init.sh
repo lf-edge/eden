@@ -1,13 +1,6 @@
 #!/bin/sh
 
 {
-  # TODO: do this from the agent?
-#  echo "Configuring basic connectivity"
-#  echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-#  echo 1 > /proc/sys/net/ipv4/ip_forward
-#  ip link set dev eth0 up
-#  dhcpcd -w -j /run/dhcpcd.log eth0
-
   echo "Starting SSH daemon..."
   /usr/sbin/sshd -h /root/.ssh/id_rsa
 

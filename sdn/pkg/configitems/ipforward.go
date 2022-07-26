@@ -14,7 +14,8 @@ const (
 
 // IPForwarding : item representing IP forwarding settings inside a given net namespace.
 type IPForwarding struct {
-	NetNamespace  string // network namespace name
+	// NetNamespace : network namespace name
+	NetNamespace  string
 	EnableForIPv4 bool
 	EnableForIPv6 bool
 }

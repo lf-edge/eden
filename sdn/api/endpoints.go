@@ -1,5 +1,10 @@
 package api
 
+import (
+	"fmt"
+	"strings"
+)
+
 // Endpoints simulate "remote" clients and servers.
 type Endpoints struct {
 	// Clients : list of clients. Can be used to run requests towards EVE.
@@ -81,14 +86,56 @@ func (e DNSServer) ItemCategory() string {
 	return "dns-server"
 }
 
+// ReferencesFromItem
+func (e DNSServer) ReferencesFromItem() []LogicalLabelRef {
+	var refs []LogicalLabelRef
+	for i, entry := range e.StaticEntries {
+		if strings.HasPrefix(entry.FQDN, EndpointFQDNRefPrefix) {
+			refKey := fmt.Sprintf("dns-server-%s-entry-%d-fqdn", e.LogicalLabel, i)
+			logicalLabel := strings.TrimPrefix(entry.FQDN, EndpointFQDNRefPrefix)
+			refs = append(refs, LogicalLabelRef{
+				ItemType:         Endpoint{}.ItemType(),
+				ItemLogicalLabel: logicalLabel,
+				RefKey:           refKey,
+			})
+		}
+		if strings.HasPrefix(entry.IP, EndpointIPRefPrefix) {
+			refKey := fmt.Sprintf("dns-server-%s-entry-%d-ip", e.LogicalLabel, i)
+			logicalLabel := strings.TrimPrefix(entry.IP, EndpointIPRefPrefix)
+			refs = append(refs, LogicalLabelRef{
+				ItemType:         Endpoint{}.ItemType(),
+				ItemLogicalLabel: logicalLabel,
+				RefKey:           refKey,
+			})
+		}
+	}
+	return refs
+}
+
+const (
+	// EndpointFQDNRefPrefix : prefix used to symbolically reference endpoint FQDN
+	// (instead of directly entering the FQDN).
+	// Can be used in DNSEntry.FQDN.
+	EndpointFQDNRefPrefix = "endpoint-fqdn." // Followed by the endpoint logical label.
+	// EndpointIPRefPrefix : prefix used to symbolically reference endpoint IP
+	// (instead of directly entering the IP address).
+	// Can be used in DNSEntry.IP.
+	EndpointIPRefPrefix = "endpoint-ip." // Followed by the endpoint logical label.
+	// AdamIPRef : string used to symbolically reference adam IP address.
+	// Can be used in DNSEntry.IP.
+	AdamIPRef = "adam-ip"
+)
+
 // DNSEntry : Mapping between FQDN and an IP address.
 type DNSEntry struct {
 	// FQDN : Fully qualified domain name.
+	// Can be a reference to endpoint FQDN:
+	//  - "endpoint-fqdn.<endpoint-logical-label>" - translated to endpoint's FQDN by Eden-SDN
 	FQDN string `json:"fqdn"`
-	// IP address or a special value that Eden SDN will automatically translate
+	// IP address or a special value that Eden-SDN will automatically translate
 	// to the corresponding IP address:
-	//  - "endpoint.<endpoint-logical-label>" - translated to IP address of the endpoint
-	//  - "adam" - translated to IP address on which Adam (open-source controller) is deployed and accessible
+	//  - "endpoint-ip.<endpoint-logical-label>" - translated to IP address of the endpoint
+	//  - "adam-ip" - translated to IP address on which Adam (open-source controller) is deployed and accessible
 	IP string `json:"ip"`
 }
 
@@ -126,7 +173,7 @@ func (e HTTPServer) ReferencesFromItem() []LogicalLabelRef {
 			ItemType:         Endpoint{}.ItemType(),
 			ItemCategory:     DNSServer{}.ItemCategory(),
 			ItemLogicalLabel: dns,
-			// Avoids duplicate DNS servers for the same HTTP server.
+			// Avoids duplicate DNS servers within the same HTTP server.
 			RefKey: "http-server-" + e.LogicalLabel,
 		})
 	}
@@ -187,7 +234,7 @@ func (e ExplicitProxy) ReferencesFromItem() []LogicalLabelRef {
 			ItemType:         Endpoint{}.ItemType(),
 			ItemCategory:     DNSServer{}.ItemCategory(),
 			ItemLogicalLabel: dns,
-			// Avoids duplicate DNS servers for the same explicit proxy.
+			// Avoids duplicate DNS servers within the same explicit proxy.
 			RefKey: "explicit-proxy-" + e.LogicalLabel,
 		})
 	}

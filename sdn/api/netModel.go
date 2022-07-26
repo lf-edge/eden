@@ -271,7 +271,7 @@ type DHCP struct {
 	// Not applicable for IPv6.
 	IPRange IPRange `json:"ipRange"`
 	// DomainName : name of the domain assigned to the network.
-	// It is propagated to clients using the DHCP option 15.
+	// It is propagated to clients using the DHCP option 15 (24 in DHCPv6).
 	DomainName string `json:"domainName"`
 	// DNSClientConfig : DNS configuration passed to clients via DHCP.
 	DNSClientConfig
@@ -389,7 +389,7 @@ type HostConfig struct {
 type IPRange struct {
 	// FromIP : start of the range (includes the address itself).
 	FromIP string `json:"fromIP"`
-	// FromIP : end of the range (includes the address itself).
+	// ToIP : end of the range (includes the address itself).
 	ToIP string `json:"toIP"`
 }
 
