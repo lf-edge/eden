@@ -54,19 +54,16 @@ eden controller edge-node update --device local_profile_server=$app_ip:8888
 # STEP 1: Wait for radio status
 exec -t 2m bash wait-radio-status.sh false
 stdout 'radio-silence=false'
-! stderr .
 
 # STEP 2: Enable Radio-silence
 exec -t 2m bash toggle-radio-silence.sh ON
 exec -t 2m bash wait-radio-status.sh true
 stdout 'radio-silence=true'
-! stderr .
 
 # STEP 3: Disable Radio-silence mode
 exec -t 2m bash toggle-radio-silence.sh OFF
 exec -t 2m bash wait-radio-status.sh false
 stdout 'radio-silence=false'
-! stderr .
 
 # STEP 4: Undeploy local-manager
 eden pod delete local-manager
