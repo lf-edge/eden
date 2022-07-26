@@ -74,9 +74,7 @@ exec -t 1m bash get-appinfo-status.sh app1
 ! stderr .
 exec -t 1m bash put-appinfo-cmd.sh app1 123 COMMAND_PURGE &
 exec -t 5m bash wait-for-app-state.sh app1 PURGING
-! stderr .
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
-! stderr .
 exec -t 5m bash wait-for-volume.sh app1
 stdout DELIVERED
 ! stderr .
@@ -95,9 +93,7 @@ exec -t 5m bash wait-ssh.sh {{template "app_port"}}
 exec -t 1m bash create-file-in-app1.sh /root/purge_test
 eden pod purge app1
 exec -t 5m bash wait-for-app-state.sh app1 PURGING
-! stderr .
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
-! stderr .
 exec -t 5m bash wait-for-volume.sh app1
 stdout DELIVERED
 ! stderr .
@@ -114,9 +110,7 @@ exec -t 1m bash create-file-in-app1.sh /run/restart_test
 exec -t 1m bash create-file-in-app1.sh /root/purge_test
 exec -t 1m bash put-appinfo-cmd.sh app1 456 COMMAND_RESTART &
 exec -t 5m bash wait-for-app-state.sh app1 RESTARTING
-! stderr .
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
-! stderr .
 exec -t 1m bash get-appinfo-status.sh app1
 stdout '"lastCmdTimestamp": "456"'
 ! stderr .
@@ -130,9 +124,7 @@ exec -t 1m bash create-file-in-app1.sh /run/restart_test
 exec -t 1m bash create-file-in-app1.sh /root/purge_test
 eden pod restart app1
 exec -t 5m bash wait-for-app-state.sh app1 RESTARTING
-! stderr .
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
-! stderr .
 exec -t 1m bash get-appinfo-status.sh app1
 stdout '"lastCmdTimestamp": "456"'
 ! stderr .
