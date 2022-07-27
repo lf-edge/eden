@@ -137,7 +137,7 @@ func rolInit() {
 	// rol -> rent
 	rolCmd.AddCommand(rolRentCmd)
 	rolRentCmd.PersistentFlags().StringVarP(&rolProjectID, "project-id", "p", "", "project id")
-	_ = rolRentCmd.MarkFlagRequired("project-id")
+	_ = rolRentCmd.MarkPersistentFlagRequired("project-id")
 	// rol -> rent -> create
 	createRentCmd.Flags().StringVarP(&rolRentName, "name", "n", "", "rent name")
 	createRentCmd.Flags().StringVar(&rolModel, "model", "", "device model")
