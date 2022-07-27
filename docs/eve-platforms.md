@@ -158,7 +158,8 @@ We can use this system for running tests on RPi4.
 3. Create device rent in RoL.
 4. Waiting for device will be ready.
 5. Onboard eve (use `eden eve onboard`)
-6. Close device rent in RoL.
+6. Get the logs from the UART console.
+7. Close device rent in RoL.
 
 Since the controller (Adam) runs on the Manager, and it needs to be accessible
 from the running EVE device, ensure that the Manager is accessible from your GCP
@@ -200,5 +201,8 @@ instance. This means that the Manager must be one of:
 
    `eden rol rent get -i "$rent_id" -p "$PROJECT_ID" | jq -r .machineState`
 5. Onboard eve (use `eden eve onboard`)
-6. When you no longer need the device, you need to close the rent.
+6. Let's get the logs from the UART console, so we can write them to a file for further analysis.
+
+   `eden rol rent console-output -i "$rent_id" -p "$PROJECT_ID" > uart.log`
+7. When you no longer need the device, you need to close the rent.
    `eden rol rent close -i "$rent_id" -p "$PROJECT_ID"`
