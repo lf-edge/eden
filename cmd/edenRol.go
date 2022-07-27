@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"path"
+	"strings"
 )
 
 var (
@@ -17,8 +18,8 @@ var (
 	rolRentName     string
 	rolModel        string
 	rolManufacturer string
-	rolRentID		string
-	rolIPXEUrl		string
+	rolRentID       string
+	rolIPXEUrl      string
 )
 
 var rolCmd = &cobra.Command{
@@ -115,6 +116,23 @@ var closeRentCmd = &cobra.Command{
 	},
 }
 
+var getRentConsoleOutputCmd = &cobra.Command{
+	Use:   "console-output",
+	Short: "Get device console output",
+	Long:  `Get device console output from uart`,
+	Run: func(cmd *cobra.Command, args []string) {
+		client, err := rolgo.NewClient()
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		consoleOutput, err := client.Rents.GetConsoleOutput(rolProjectID, rolRentID)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		fmt.Println(strings.Join(consoleOutput, "\n"))
+	},
+}
+
 func rolInit() {
 	// rol -> rent
 	rolCmd.AddCommand(rolRentCmd)
@@ -137,4 +155,8 @@ func rolInit() {
 	getRentCmd.Flags().StringVarP(&rolRentID, "id", "i", "", "rent id")
 	_ = getRentCmd.MarkFlagRequired("id")
 	rolRentCmd.AddCommand(getRentCmd)
+	// rol -> rent -> console-output
+	getRentConsoleOutputCmd.Flags().StringVarP(&rolRentID, "id", "i", "", "rent id")
+	_ = getRentConsoleOutputCmd.MarkFlagRequired("id")
+	rolRentCmd.AddCommand(getRentConsoleOutputCmd)
 }

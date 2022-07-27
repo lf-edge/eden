@@ -3,7 +3,7 @@ module github.com/lf-edge/eden
 go 1.16
 
 require (
-	github.com/Insei/rolgo v0.0.1
+	github.com/Insei/rolgo v0.0.2
 	github.com/amitbet/vncproxy v0.0.0-20200118084310-ea8f9b510913
 	github.com/bugsnag/bugsnag-go v1.5.3 // indirect
 	github.com/bugsnag/panicwrap v1.2.0 // indirect
