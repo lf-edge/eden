@@ -22,18 +22,13 @@ import (
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/nerd2/gexto"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
-
-//LinkState of an EVE uplink interface.
-type LinkState struct {
-	InterfaceName string
-	IsUP          bool
-}
 
 //StartRedis function run redis in docker with mounted redisPath:/data
 //if redisForce is set, it recreates container
@@ -619,7 +614,8 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 
 //GenerateEVEConfig function copy certs to EVE config folder
 //if ip is empty will not fill hosts file
-func GenerateEVEConfig(eveConfig string, domain string, ip string, port int, apiV1 bool, softserial string) (err error) {
+func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, port int,
+	apiV1 bool, softserial string) (err error) {
 	if _, err = os.Stat(eveConfig); os.IsNotExist(err) {
 		if err = os.MkdirAll(eveConfig, 0755); err != nil {
 			return fmt.Errorf("GenerateEVEConfig: %s", err)
@@ -633,13 +629,15 @@ func GenerateEVEConfig(eveConfig string, domain string, ip string, port int, api
 		}
 	}
 	if ip != "" {
-		/*
-		if _, err = os.Stat(filepath.Join(eveConfig, "hosts")); os.IsNotExist(err) {
-			if err = ioutil.WriteFile(filepath.Join(eveConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
-				return fmt.Errorf("GenerateEVEConfig: %s", err)
+		if devModel != defaults.DefaultQemuModel {
+			// Without SDN there is no DNS server that can translate adam's domain name.
+			// Put static entry to /config/hosts.
+			if _, err = os.Stat(filepath.Join(eveConfig, "hosts")); os.IsNotExist(err) {
+				if err = ioutil.WriteFile(filepath.Join(eveConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
+					return fmt.Errorf("GenerateEVEConfig: %s", err)
+				}
 			}
 		}
-		 */
 		if _, err = os.Stat(filepath.Join(eveConfig, "server")); os.IsNotExist(err) {
 			if err = ioutil.WriteFile(filepath.Join(eveConfig, "server"), []byte(fmt.Sprintf("%s:%d\n", domain, port)), 0666); err != nil {
 				return fmt.Errorf("GenerateEVEConfig: %s", err)
@@ -814,7 +812,8 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 }
 
 //StopEden teardown Eden
-func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile, swtpmPidFile, devModel, vmName string) {
+func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool,
+	evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string) {
 	if err := StopAdam(adamRm); err != nil {
 		log.Infof("cannot stop adam: %s", err)
 	} else {
@@ -836,41 +835,63 @@ func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool, evePidFile
 		log.Infof("eserver stopped")
 	}
 	if !eveRemote {
-		if devModel == defaults.DefaultVBoxModel {
-			if err := StopEVEVBox(vmName); err != nil {
-				log.Infof("cannot stop EVE: %s", err)
-			} else {
-				log.Infof("EVE stopped")
-			}
-		} else if devModel == defaults.DefaultParallelsModel {
-			if err := StopEVEParallels(vmName); err != nil {
-				log.Infof("cannot stop EVE: %s", err)
-			} else {
-				log.Infof("EVE stopped")
-			}
+		StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName)
+	}
+}
+
+// StopEve stops EVE, vTPM and SDN.
+func StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string) {
+	if devModel == defaults.DefaultVBoxModel {
+		if err := StopEVEVBox(vmName); err != nil {
+			log.Infof("cannot stop EVE: %s", err)
 		} else {
-			if err := StopEVEQemu(evePidFile); err != nil {
-				log.Infof("cannot stop EVE: %s", err)
+			log.Infof("EVE stopped")
+		}
+	} else if devModel == defaults.DefaultParallelsModel {
+		if err := StopEVEParallels(vmName); err != nil {
+			log.Infof("cannot stop EVE: %s", err)
+		} else {
+			log.Infof("EVE stopped")
+		}
+	} else {
+		if err := StopEVEQemu(evePidFile); err != nil {
+			log.Infof("cannot stop EVE: %s", err)
+		} else {
+			log.Infof("EVE stopped")
+		}
+		if swtpmPidFile != "" {
+			err := StopSWTPM(filepath.Dir(swtpmPidFile))
+			if err != nil {
+				log.Infof("cannot stop swtpm: %s", err)
 			} else {
-				log.Infof("EVE stopped")
+				log.Infof("swtpm is stopping")
 			}
-			if swtpmPidFile != "" {
-				err := StopSWTPM(filepath.Dir(swtpmPidFile))
-				if err != nil {
-					log.Infof("cannot stop swtpm: %s", err)
-				} else {
-					log.Infof("swtpm is stopping")
-				}
-			}
+		}
+		sdnConfig := edensdn.SdnVMConfig{
+			PidFile: sdnPidFile,
+			// Nothing else needed to stop the VM.
+		}
+		sdnVmRunner, err := edensdn.GetSdnVMRunner(devModel, sdnConfig)
+		if err != nil {
+			log.Fatalf("failed to get SDN VM runner: %v", err)
+		}
+		err = sdnVmRunner.Stop()
+		if err != nil {
+			log.Errorf("cannot stop SDN: %v", err)
+		} else {
+			log.Infof("SDN stopped")
 		}
 	}
 }
 
 //CleanEden teardown Eden and cleanup
-func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist, registryDist, configDir, evePID, configSaved string, remote bool, devModel, vmName string) (err error) {
+func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
+	registryDist, configDir, evePID, sdnPID, configSaved string, remote bool,
+	devModel, vmName string) (err error) {
 	command := "swtpm"
 	swtpmPidFile := filepath.Join(imagesDist, fmt.Sprintf("%s.pid", command))
-	StopEden(true, true, true, true, remote, evePID, swtpmPidFile, devModel, vmName)
+	StopEden(true, true, true, true, remote,
+		evePID, swtpmPidFile, sdnPID, devModel, vmName)
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
 			return fmt.Errorf("CleanEden: error in %s delete: %s", eveDist, err)

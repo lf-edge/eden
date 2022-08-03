@@ -101,6 +101,8 @@ func init() {
 	rolInit()
 	rootCmd.AddCommand(disksCmd)
 	disksInit()
+	rootCmd.AddCommand(sdnCmd)
+	sdnInit()
 }
 
 // Execute primary function for cobra

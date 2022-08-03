@@ -2,7 +2,6 @@ package main
 
 import (
 	"hash/fnv"
-	"log"
 	"net"
 	"strings"
 	"syscall"
@@ -11,6 +10,7 @@ import (
 	"github.com/lf-edge/eden/sdn/pkg/configitems"
 	dg "github.com/lf-edge/eve/libs/depgraph"
 	"github.com/lf-edge/eve/libs/reconciler"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -139,8 +139,11 @@ func (a *agent) getIntendedHostConnectivity() dg.Graph {
 		Usage:   configitems.IfUsageL3,
 		AdminUP: true,
 	}, nil)
-	intendedCfg.PutItem(configitems.IPForwarding{
-		EnableForIPv4: true,
+	intendedCfg.PutItem(configitems.Sysctl{
+		EnableIPv4Forwarding:  true,
+		EnableIPv6Forwarding:  true,
+		BridgeNfCallIptables:  false,
+		BridgeNfCallIp6tables: false,
 	}, nil)
 	intendedCfg.PutItem(configitems.DhcpClient{
 		PhysIf: configitems.PhysIf{
@@ -294,11 +297,13 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			IfName:       rtInIfName,
 			NetNamespace: nsName,
 			IPAddresses:  []*net.IPNet{inIP},
+			MTU:          maxMTU, // do not limit MTU on this link
 		},
 		Peer2: configitems.VethPeer{
 			IfName:       rtOutIfName,
 			NetNamespace: configitems.MainNsName,
 			IPAddresses:  []*net.IPNet{outIP},
+			MTU:          maxMTU, // do not limit MTU on this link
 		},
 	}, nil)
 
@@ -385,6 +390,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 					VethName:       epVethName,
 					VethPeerIfName: epOutIfName,
 				},
+				GwIP: net.ParseIP(ep.IP),
 			}, nil)
 		} else {
 			intendedCfg.PutItem(configitems.Route{
@@ -402,6 +408,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			strListContains(network.Router.ReachableNetworks, network2.LogicalLabel)
 		if reachable {
 			net2VethName, _, net2OutIfName := a.networkRtVethName(network2.LogicalLabel)
+			net2InIP, _ := a.genVethIPsForNetwork(network2.LogicalLabel, isIPv6)
 			intendedCfg.PutItem(configitems.Route{
 				NetNamespace: configitems.MainNsName,
 				Table:        rt,
@@ -410,6 +417,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 					VethName:       net2VethName,
 					VethPeerIfName: net2OutIfName,
 				},
+				GwIP: net2InIP.IP,
 			}, nil)
 		} else {
 			intendedCfg.PutItem(configitems.Route{
@@ -520,12 +528,28 @@ func (a *agent) putEpCommonConfig(graph dg.Graph, ep api.Endpoint) {
 			IfName:       inIfName,
 			NetNamespace: nsName,
 			IPAddresses:  []*net.IPNet{epIP},
+			MTU:          ep.MTU,
 		},
 		Peer2: configitems.VethPeer{
 			IfName:       outIfName,
 			NetNamespace: configitems.MainNsName,
 			IPAddresses:  []*net.IPNet{gwIP},
+			MTU:          ep.MTU,
 		},
+	}, nil)
+	defaultDst := allIPv4
+	isIPv6 := len(subnet.IP) == net.IPv6len
+	if isIPv6 {
+		defaultDst = allIPv6
+	}
+	graph.PutItem(configitems.Route{
+		NetNamespace: nsName,
+		DstNet:       defaultDst,
+		OutputIf: configitems.RouteOutIf{
+			VethName:       vethName,
+			VethPeerIfName: inIfName,
+		},
+		GwIP: gwIP.IP,
 	}, nil)
 }
 

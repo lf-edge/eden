@@ -269,3 +269,18 @@ func UploadFile(client *http.Client, url, filePath, prefix string) (result *http
 		return resp, nil
 	}
 }
+
+// FindUnusedPort : find port number not currently used by the host.
+func FindUnusedPort() (uint16, error) {
+	// We let the kernel to find the port for us.
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer l.Close()
+	return uint16(l.Addr().(*net.TCPAddr).Port), nil
+}

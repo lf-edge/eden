@@ -99,12 +99,10 @@ func (a *agent) validatePorts(netModel *parsedNetModel) (err error) {
 				port.LogicalLabel)
 			return
 		}
-		if port.EVEConnect != nil {
-			if _, err = net.ParseMAC(port.EVEConnect.MAC); err != nil {
-				err = fmt.Errorf("EVE-side of port %s has invalid MAC address: %v",
-					port.LogicalLabel, err)
-				return
-			}
+		if _, err = net.ParseMAC(port.EVEConnect.MAC); err != nil {
+			err = fmt.Errorf("EVE-side of port %s has invalid MAC address: %v",
+				port.LogicalLabel, err)
+			return
 		}
 	}
 

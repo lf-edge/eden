@@ -1,6 +1,0 @@
-{
-  "host": {
-    "hostIPs": ["10.10.10.102"],
-    "networkType": "ipv4-only"
-  }
-}

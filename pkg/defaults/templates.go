@@ -101,7 +101,8 @@ eve:
     #eve tag
     tag: '{{parse "eve.tag"}}'
 
-    #forward of ports in qemu [(HOST:EVE)]
+    #port forwarding for EVE VM when run with Parallels or VBOX [(HOST:EVE)]
+    #not used for QEMU anymore, instead use command 'eden sdn fwd'
     hostfwd: '{{parse "eve.hostfwd"}}'
 
     #location of eve directory
@@ -247,6 +248,30 @@ registry:
 
     # dist path to store registry data
     dist: '{{parse "registry.dist"}}'
+
+sdn:
+    #live image of SDN
+    image-file: '{{parse "sdn.image-file"}}'
+
+    #SDN pid file
+    pid: '{{parse "sdn.pid"}}'
+
+    #SDN file where console output is logged
+    #Not as useful as logs from the SDN mgmt agent (get with: eden sdn logs)
+    console-log: '{{parse "sdn.console-log"}}'
+
+    #port for telnet (console access) to SDN VM
+    telnet-port: {{parse "sdn.telnet-port"}}
+
+    #port for SSH access to SDN VM
+    ssh-port: {{parse "sdn.ssh-port"}}
+
+    #port for access to the management agent running inside SDN VM
+    mgmt-port: {{parse "sdn.mgmt-port"}}
+
+    #path to JSON file with network model to apply into SDN
+    #leave empty for default network model
+    network-model: '{{parse "sdn.network-model"}}'
 `
 
 //DefaultQemuTemplate is configuration template for qemu

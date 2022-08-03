@@ -44,7 +44,7 @@ const (
 	DefaultTelnetPort           = 7777
 	DefaultQemuMonitorPort      = 7788
 	DefaultQemuNetdevSocketPort = 7790
-	DefaultSSHPort              = 2222
+	DefaultSSHPort              = 22
 	DefaultEVEHost              = "127.0.0.1"
 	DefaultRedisHost            = "localhost"
 	DefaultRedisPort            = 6379
@@ -187,6 +187,12 @@ const (
 	DefaultPerfEVELocation       = "/persist/perf.data"
 	DefaultPerfScriptEVELocation = "/persist/perf.script.out"
 	DefaultHWEVELocation         = "/persist/lshw.out"
+
+	//defaults for SDN
+	DefaultSdnTelnetPort    = 6623
+	DefaultSdnSSHPort       = 6622
+	DefaultSdnMgmtPort      = 6666
+
 )
 
 var (
@@ -261,5 +267,13 @@ var (
 		"eden.test-scenario": "scenario",
 
 		"config": "config",
+
+		"sdn.image-file":    "sdn-image-file",
+		"sdn.pid":           "sdn-pid",
+		"sdn.console-log":   "sdn-console-log",
+		"sdn.telnet-port":   "sdn-telnet-port",
+		"sdn.ssh-port":      "sdn-ssh-port",
+		"sdn.mgmt-port":     "sdn-mgmt-port",
+		"sdn.network-model": "sdn-network-model",
 	}
 )

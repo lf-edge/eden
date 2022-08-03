@@ -260,13 +260,13 @@ var setupCmd = &cobra.Command{
 		}
 
 		if zedcontrolURL == "" {
-			if err := eden.GenerateEVEConfig(certsDir, certsDomain, certsEVEIP, adamPort, apiV1, softserial); err != nil {
+			if err := eden.GenerateEVEConfig(devModel, certsDir, certsDomain, certsEVEIP, adamPort, apiV1, softserial); err != nil {
 				log.Errorf("cannot GenerateEVEConfig: %s", err)
 			} else {
 				log.Info("GenerateEVEConfig done")
 			}
 		} else {
-			if err := eden.GenerateEVEConfig(certsDir, zedcontrolURL, "", 0, false, softserial); err != nil {
+			if err := eden.GenerateEVEConfig(devModel, certsDir, zedcontrolURL, "", 0, false, softserial); err != nil {
 				log.Errorf("cannot GenerateEVEConfig: %s", err)
 			} else {
 				log.Info("GenerateEVEConfig done")
@@ -482,6 +482,7 @@ var setupCmd = &cobra.Command{
 				log.Printf("To onboard EVE onto %s", zedcontrolURL)
 			}
 		}
+		// TODO: build SDN VM image
 	},
 }
 
@@ -533,4 +534,5 @@ func setupInit() {
 
 	setupCmd.Flags().StringVar(&ipxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
 	setupCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
+	addSdnImageOpt(setupCmd)
 }

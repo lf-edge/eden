@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -336,7 +337,7 @@ func setLinkStateVbox(vmName, ifName string, up bool) error {
 
 // GetLinkStateVbox returns the link state of the interface.
 // If interface name is undefined, link state of all interfaces is returned.
-func GetLinkStateVbox(vmName, ifName string) (linkStates []LinkState, err error) {
+func GetLinkStateVbox(vmName, ifName string) (linkStates []edensdn.LinkState, err error) {
 	out, _, err := utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("showvminfo %s", vmName))...)
 	if err != nil {
 		return nil, err
@@ -355,9 +356,9 @@ func GetLinkStateVbox(vmName, ifName string) (linkStates []LinkState, err error)
 				continue
 			}
 			isUp := match[2] == "on"
-			linkStates = append(linkStates, LinkState{
-				InterfaceName: nicName,
-				IsUP:          isUp,
+			linkStates = append(linkStates, edensdn.LinkState{
+				EveIfName: nicName,
+				IsUP:      isUp,
 			})
 		}
 	}

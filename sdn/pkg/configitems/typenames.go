@@ -15,9 +15,9 @@ const (
 	BridgeTypename = "Bridge"
 	// BridgeTypename : typename for veths.
 	VethTypename = "Veth"
-	// IPForwardingTypename : typename for singleton item representing enabled
-	// or disabled IP forwarding.
-	IPForwardingTypename = "IP-Forwarding"
+	// SysctlTypename : typename for item representing kernel
+	// parameters set using sysctl for a given net namespace.
+	SysctlTypename = "Sysctl"
 	// DhcpClientTypename : typename for DHCP/DHCPv6 client.
 	DhcpClientTypename = "DHCP-Client"
 	// DhcpServerTypename : typename for DHCP/DHCPv6 server.
