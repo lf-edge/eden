@@ -394,12 +394,14 @@ func (a *agent) getHostGwIP(ipv6 bool) net.IP {
 		if nlRoute.Gw == nil {
 			continue
 		}
-		if nlRoute.Dst != nil {
-			ones, _ := nlRoute.Dst.Mask.Size()
-			if ones == 0 && nlRoute.Dst.IP.IsUnspecified() {
-				// Default route matching all IPs.
-				return nlRoute.Gw
-			}
+		if nlRoute.Dst == nil {
+			// Nil destination can be used by the default route.
+			return nlRoute.Gw
+		}
+		ones, _ := nlRoute.Dst.Mask.Size()
+		if ones == 0 && nlRoute.Dst.IP.IsUnspecified() {
+			// Default route matching all IPs.
+			return nlRoute.Gw
 		}
 	}
 	return nil

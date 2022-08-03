@@ -35,6 +35,8 @@ type VethPeer struct {
 	// IPAddresses : IP addresses to assign to the veth peer.
 	// The peer should be in the L3 mode, not under a bridge.
 	IPAddresses []*net.IPNet
+	// MTU : Maximum transmission unit.
+	MTU uint16
 }
 
 // MasterBridge : master bridge for a veth peer.
@@ -71,7 +73,8 @@ func (v Veth) Equal(other depgraph.Item) bool {
 // Equal compares two veth peers for equality.
 func (v VethPeer) Equal(v2 VethPeer) bool {
 	if v.IfName != v2.IfName ||
-		v.NetNamespace != v2.NetNamespace {
+		v.NetNamespace != v2.NetNamespace ||
+		v.MTU != v2.MTU {
 		return false
 	}
 	if !equalIPNetLists(v.IPAddresses, v2.IPAddresses) {
@@ -209,6 +212,18 @@ func (c *VethConfigurator) configurePeer(peer VethPeer) error {
 			return fmt.Errorf("failed to add addr %v to veth peer %s: %v",
 				ipNet, peer.IfName, err)
 		}
+	}
+	// Set MTU.
+	mtu := peer.MTU
+	if mtu == 0 {
+		mtu = defaultMTU
+	}
+	err = netlink.LinkSetMTU(link, int(mtu))
+	if err != nil {
+		err = fmt.Errorf("netlink.LinkSetMTU(%s, %d) failed: %v",
+			link.Attrs().Name, mtu, err)
+		log.Error(err)
+		return err
 	}
 	return nil
 }

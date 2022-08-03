@@ -232,6 +232,7 @@ var statusCmd = &cobra.Command{
 						eveStatusParallels()
 					} else {
 						eveStatusQEMU()
+						sdnStatus()
 					}
 				}
 				if statusAdam != "container doesn't exist" {
@@ -252,6 +253,8 @@ func statusInit() {
 	statusCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	statusCmd.Flags().BoolVar(&allConfigs, "all", true, "show status for all configs")
 	statusCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	addSdnPidOpt(statusCmd)
+	addSdnPortOpts(statusCmd)
 }
 
 // lastWord get last work in string

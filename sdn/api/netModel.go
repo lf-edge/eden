@@ -7,12 +7,19 @@ import (
 )
 
 // NetworkModel is used to declaratively describe the intended state of the networking
-// around EVE VM(s) for the testing purposes. The model is submitted in the JSON format to Eden-SDN Agent,
-// running inside a separate VM, connected to EVE VM(s) via inter-VM network interfaces, and emulating
-// the desired networking using the Linux network stack, network namespaces, netfilter and with
-// the help of several open-source projects, such as dnsmasq, radvd, goproxy, etc.
+// around EVE VM(s) for the testing purposes. The model is submitted in the JSON format
+// to Eden-SDN Agent, running inside a separate VM, connected to EVE VM(s) via inter-VM
+// network interfaces, and emulating the desired networking using the Linux network stack,
+// network namespaces, netfilter and with the help of several open-source projects,
+// such as dnsmasq, radvd, goproxy, etc.
 type NetworkModel struct {
 	// Ports : network interfaces connecting EVE VM(s) with Eden-SDN VM.
+	// Each port is essentially an interconnected pair of network interfaces, with one side
+	// inserted into the EVE VM and the other to Eden-SDN. These interface pairs are created
+	// in both VMs in the order as listed here. This means that Ports[0] will appear
+	// as the first interface in EVE (likely named "eth0" by the kernel) and likewise
+	// as the first interface in Eden-SDN. Note that Eden-SDN will have one more extra
+	// interface, added as last and used for management (for eden to talk to SDN mgmt agent).
 	Ports []Port `json:"ports"`
 	// Bonds are aggregating multiple ports for load-sharing and redundancy purposes.
 	Bonds []Bond `json:"bonds"`
@@ -30,6 +37,16 @@ type NetworkModel struct {
 	// to the controller and beyond to the Internet.
 	// If not defined (nil pointer), Eden will try to detect host config automatically.
 	Host *HostConfig `json:"host,omitempty"`
+}
+
+// GetPortByMAC : lookup port by MAC address.
+func (m NetworkModel) GetPortByMAC(mac string) *Port {
+	for _, port := range m.Ports {
+		if port.MAC == mac {
+			return &port
+		}
+	}
+	return nil
 }
 
 // LabeledItem is implemented by anything that has logical label associated with it.
@@ -78,7 +95,7 @@ type Port struct {
 	// Put down to test link-down scenarios on EVE.
 	AdminUP bool `json:"adminUP"`
 	// EVEConnect : plug the other side of the port into a given EVE instance.
-	EVEConnect *EVEConnect `json:"eveConnect"`
+	EVEConnect EVEConnect `json:"eveConnect"`
 }
 
 // ItemType
@@ -106,10 +123,6 @@ type EVEConnect struct {
 	// For the time being it is therefore expected that this field is empty
 	// and EVEConnect refers to the one and only EVE instance.
 	EVEInstance string `json:"eveInstance"`
-	// IfOrder determines order of ports connected to the same EVE instance.
-	// Port with the lowest IfOrder will be first (eth0), port with the second
-	// lowest IfOrder will appear as second (eth1), etc.
-	IfOrder uint8 `json:"ifOrder"`
 	// MAC address assigned to the interface on the EVE side.
 	// If not specified by the user, Eden will generate a random MAC address.
 	MAC string `json:"mac"`

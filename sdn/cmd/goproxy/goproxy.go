@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
 
 	"github.com/elazarl/goproxy"
+	log "github.com/sirupsen/logrus"
 )
 
 // TODO: can we use TPROXY? https://github.com/FarFetchd/simple_tproxy_example

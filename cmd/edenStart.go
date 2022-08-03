@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/eden"
 	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -15,19 +15,26 @@ import (
 )
 
 var (
-	adamDist         string
-	adamPort         int
-	adamForce        bool
-	eserverForce     bool
-	eserverImageDist string
-	eserverPort      int
-	eserverTag       string
-	evePidFile       string
-	eveLogFile       string
-	eveRemote        bool
-	vmName           string
-	cpus             int
-	mem              int
+	adamDist          string
+	adamPort          int
+	adamForce         bool
+	eserverForce      bool
+	eserverImageDist  string
+	eserverPort       int
+	eserverTag        string
+	evePidFile        string
+	eveLogFile        string
+	eveRemote         bool
+	vmName            string
+	cpus              int
+	mem               int
+	sdnImageFile      string
+	sdnPidFile        string
+	sdnConsoleLogFile string
+	sdnTelnetPort     int
+	sdnSSHPort        int
+	sdnMgmtPort       int
+	sdnNetModelFile   string
 )
 
 var startCmd = &cobra.Command{
@@ -76,6 +83,7 @@ var startCmd = &cobra.Command{
 			cpus = viper.GetInt("eve.cpu")
 			mem = viper.GetInt("eve.ram")
 			gcpvTPM = viper.GetBool("eve.tpm")
+			loadSdnOptsFromViper()
 		}
 		return nil
 	},
@@ -119,21 +127,7 @@ var startCmd = &cobra.Command{
 				log.Infof("EVE is starting in Virtual Box")
 			}
 		} else {
-			if gcpvTPM {
-				err := eden.StartSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
-				if err != nil {
-					log.Errorf("cannot start swtpm: %s", err)
-				} else {
-					log.Infof("swtpm is starting")
-				}
-			}
-			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
-				qemuMonitorPort, qemuNetdevSocketPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile,
-				evePidFile, tapInterface, eveEthLoops, gcpvTPM, false); err != nil {
-				log.Errorf("cannot start eve: %s", err)
-			} else {
-				log.Infof("EVE is starting")
-			}
+			startEveQemu()
 		}
 	},
 }
@@ -173,5 +167,5 @@ func startInit() {
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path to image drive, overrides default setting")
 	startCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
-	startCmd.Flags().IntVarP(&eveEthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
+	addSdnStartOpts(startCmd)
 }

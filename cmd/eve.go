@@ -9,17 +9,22 @@ import (
 	"sort"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
+	sdnapi "github.com/lf-edge/eden/sdn/api"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+const sdnStartTimeout = time.Minute
 
 var (
 	qemuARCH             string
@@ -38,7 +43,6 @@ var (
 	eveConfigFromFile    bool
 	eveInterfaceName     string
 	tapInterface         string
-	eveEthLoops          int
 )
 
 var eveCmd = &cobra.Command{
@@ -71,6 +75,7 @@ var startEveCmd = &cobra.Command{
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
 			devModel = viper.GetString("eve.devmodel")
 			gcpvTPM = viper.GetBool("eve.tpm")
+			loadSdnOptsFromViper()
 		}
 		return nil
 	},
@@ -78,7 +83,6 @@ var startEveCmd = &cobra.Command{
 		if eveRemote {
 			return
 		}
-
 		if devModel == defaults.DefaultVBoxModel {
 			if err := eden.StartEVEVBox(vmName, eveImageFile, cpus, mem, hostFwd); err != nil {
 				log.Errorf("cannot start eve: %s", err)
@@ -92,21 +96,7 @@ var startEveCmd = &cobra.Command{
 				log.Infof("EVE is starting in Parallels")
 			}
 		} else {
-			if gcpvTPM {
-				err := eden.StartSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
-				if err != nil {
-					log.Errorf("cannot start swtpm: %s", err)
-				} else {
-					log.Infof("swtpm is starting")
-				}
-			}
-			if err := eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
-				qemuMonitorPort, qemuNetdevSocketPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile,
-				evePidFile, tapInterface, eveEthLoops, gcpvTPM, false); err != nil {
-				log.Errorf("cannot start eve: %s", err)
-			} else {
-				log.Infof("EVE is starting")
-			}
+			startEveQemu()
 		}
 	},
 }
@@ -127,6 +117,7 @@ var stopEveCmd = &cobra.Command{
 			devModel = viper.GetString("eve.devmodel")
 			gcpvTPM = viper.GetBool("eve.tpm")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+			loadSdnOptsFromViper()
 		}
 		return nil
 	},
@@ -135,34 +126,17 @@ var stopEveCmd = &cobra.Command{
 			log.Debug("Cannot stop remote EVE")
 			return
 		}
-		if devModel == defaults.DefaultVBoxModel {
-			if err := eden.StopEVEVBox(vmName); err != nil {
-				log.Errorf("cannot stop eve: %s", err)
-			} else {
-				log.Infof("EVE is stopping in Virtual Box")
-			}
-		} else if devModel == defaults.DefaultParallelsModel {
-			if err := eden.StopEVEParallels(vmName); err != nil {
-				log.Errorf("cannot stop eve: %s", err)
-			} else {
-				log.Infof("EVE is stopping in Virtual Box")
-			}
-		} else {
-			if err := eden.StopEVEQemu(evePidFile); err != nil {
-				log.Errorf("cannot stop eve: %s", err)
-			} else {
-				log.Infof("EVE is stopping")
-			}
-			if gcpvTPM {
-				err := eden.StopSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
-				if err != nil {
-					log.Errorf("cannot stop swtpm: %s", err)
-				} else {
-					log.Infof("swtpm is stopping")
-				}
-			}
-		}
+		eden.StopEve(evePidFile, swtpmPidFile(), sdnPidFile, devModel, vmName)
 	},
+}
+
+func swtpmPidFile() string {
+	if gcpvTPM {
+		command := "swtpm"
+		return filepath.Join(filepath.Join(filepath.Dir(eveImageFile), command),
+			fmt.Sprintf("%s.pid", command))
+	}
+	return ""
 }
 
 var versionEveCmd = &cobra.Command{
@@ -237,6 +211,7 @@ var statusEveCmd = &cobra.Command{
 				eveStatusParallels()
 			} else {
 				eveStatusQEMU()
+				sdnStatus()
 			}
 		}
 		if err == nil && statusAdam != "container doesn't exist" {
@@ -245,40 +220,67 @@ var statusEveCmd = &cobra.Command{
 	},
 }
 
-func getEVEIP() string {
+func getEVEIP(ifName string) string {
+	if !eveRemote && devModel == defaults.DefaultQemuModel {
+		// EVE VM is behind SDN VM.
+		if ifName == "" {
+			ifName = "eth0"
+		}
+		client := &edensdn.SdnClient{
+			SSHPort:  uint16(sdnSSHPort),
+			MgmtPort: uint16(sdnMgmtPort),
+		}
+		ip, err := client.GetEveIfIP(ifName)
+		if err != nil {
+			log.Errorf("Failed to get EVE IP address: %v", err)
+			return ""
+		}
+		return ip
+	}
+	// XXX ifName argument is not supported below
 	if runtime.GOOS == "darwin" {
 		if !eveRemote {
 			return "127.0.0.1"
 		}
-		changer := &adamChanger{}
-		ctrl, dev, err := changer.getControllerAndDev()
+		networks, err := getEveNetworkInfo()
 		if err != nil {
-			log.Errorf("getControllerAndDev: %s", err)
+			log.Error(err)
 			return ""
 		}
-		eveState := eve.Init(ctrl, dev)
-		if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
-			log.Errorf("Fail in get InfoLastCallback: %s", err)
+		var ips []string
+		for _, nw := range networks {
+			ips = append(ips, nw.IPAddrs...)
 		}
-		if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
-			log.Errorf("Fail in get InfoLastCallback: %s", err)
+		if len(ips) == 0 {
+			return ""
 		}
-		if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
-			var ips []string
-			for _, nw := range lastDInfo.Network {
-				ips = append(ips, nw.IPAddrs...)
-			}
-			if len(ips) == 0 {
-				return ""
-			}
-			return ips[0]
-		}
-		return ""
+		return ips[0]
 	}
 	if ip, err := eveLastRequests(); err == nil && ip != "" {
 		return ip
 	}
 	return ""
+}
+
+func getEveNetworkInfo() (networks []*info.ZInfoNetwork, err error) {
+	changer := &adamChanger{}
+	ctrl, dev, err := changer.getControllerAndDev()
+	if err != nil {
+		return nil, fmt.Errorf("getControllerAndDev failed: %s", err)
+	}
+	eveState := eve.Init(ctrl, dev)
+	if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
+		return nil, fmt.Errorf("InfoLastCallback failed: %s", err)
+	}
+	if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
+		return nil, fmt.Errorf("MetricLastCallback failed: %s", err)
+	}
+	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
+		for _, nw := range lastDInfo.Network {
+			networks = append(networks, nw)
+		}
+	}
+	return networks, nil
 }
 
 var ipEveCmd = &cobra.Command{
@@ -297,7 +299,7 @@ var ipEveCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(getEVEIP())
+		fmt.Println(getEVEIP("eth0"))
 	},
 }
 
@@ -352,13 +354,18 @@ var sshEveCmd = &cobra.Command{
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			if !cmd.Flags().Changed("eve-host") {
-				eveHost = getEVEIP()
-			}
-			arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s", eveSSHKey, eveSSHPort, eveHost, commandToRun)
-			log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
-			if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
-				log.Fatalf("ssh error: %s", err)
+			if eveRemote {
+				if !cmd.Flags().Changed("eve-host") {
+					eveHost = getEVEIP("eth0")
+				}
+				arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s",
+					eveSSHKey, eveSSHPort, eveHost, commandToRun)
+				log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
+				if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
+					log.Fatalf("ssh error: %s", err)
+				}
+			} else {
+				sdnForwardSSHToEve(commandToRun)
 			}
 		} else {
 			log.Fatalf("SSH key problem: %s", err)
@@ -515,6 +522,7 @@ var linkEveCmd = &cobra.Command{
 			eveRemote = viper.GetBool("eve.remote")
 			qemuMonitorPort = viper.GetInt("eve.qemu.monitor-port")
 			devModel = viper.GetString("eve.devmodel")
+			loadSdnOptsFromViper()
 		}
 		return nil
 	},
@@ -533,7 +541,11 @@ var linkEveCmd = &cobra.Command{
 			case defaults.DefaultVBoxModel:
 				err = eden.SetLinkStateVbox(vmName, eveInterfaceName, bringUp)
 			case defaults.DefaultQemuModel:
-				err = eden.SetLinkStateQemu(qemuMonitorPort, eveInterfaceName, bringUp)
+				client := &edensdn.SdnClient{
+					SSHPort:  uint16(sdnSSHPort),
+					MgmtPort: uint16(sdnMgmtPort),
+				}
+				err = client.SetLinkState(eveInterfaceName, bringUp)
 			default:
 				log.Fatalf("Link operations are not supported for devmodel '%s'", devModel)
 			}
@@ -545,12 +557,16 @@ var linkEveCmd = &cobra.Command{
 			eveInterfaceName = ""
 		}
 
-		var linkStates []eden.LinkState
+		var linkStates []edensdn.LinkState
 		switch devModel {
 		case defaults.DefaultVBoxModel:
 			linkStates, err = eden.GetLinkStateVbox(vmName, eveInterfaceName)
 		case defaults.DefaultQemuModel:
-			linkStates, err = eden.GetLinkStateQemu(qemuMonitorPort, eveInterfaceName)
+			client := &edensdn.SdnClient{
+				SSHPort:  uint16(sdnSSHPort),
+				MgmtPort: uint16(sdnMgmtPort),
+			}
+			linkStates, err = client.GetLinkState(eveInterfaceName)
 		default:
 			log.Fatalf("Link operations are not supported for devmodel '%s'", devModel)
 		}
@@ -565,14 +581,14 @@ var linkEveCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		sort.SliceStable(linkStates, func(i, j int) bool {
-			return linkStates[i].InterfaceName < linkStates[j].InterfaceName
+			return linkStates[i].EveIfName < linkStates[j].EveIfName
 		})
 		for _, linkState := range linkStates {
 			state := "UP"
 			if !linkState.IsUP {
 				state = "DOWN"
 			}
-			if _, err := fmt.Fprintln(w, linkState.InterfaceName+"\t"+state); err != nil {
+			if _, err := fmt.Fprintln(w, linkState.EveIfName+"\t"+state); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -580,6 +596,101 @@ var linkEveCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 	},
+}
+
+func startEveQemu() {
+	// Load network model and prepare SDN config.
+	var err error
+	var netModel sdnapi.NetworkModel
+	if sdnNetModelFile == "" {
+		netModel = edensdn.GetDefaultNetModel()
+	} else {
+		netModel, err = edensdn.LoadNetModeFromFile(sdnNetModelFile)
+		if err != nil {
+			log.Fatalf("Failed to load network model from file '%s': %v",
+				sdnNetModelFile, err)
+		}
+	}
+	if netModel.Host == nil {
+		hostIP, err := utils.GetIPForDockerAccess()
+		if err != nil {
+			log.Fatalf("Failed to find suitable host IP: %v", err)
+		}
+		netModel.Host = &sdnapi.HostConfig{
+			HostIPs:     []string{hostIP},
+			NetworkType: sdnapi.Ipv4Only, // XXX For now everything is IPv4 only
+		}
+	}
+	nets, err := utils.GetSubnetsNotUsed(1)
+	if err != nil {
+		log.Fatalf("Failed to get unused IP subnet: %s", err)
+	}
+	sdnConfig := edensdn.SdnVMConfig{
+		Architecture: qemuARCH,
+		Acceleration: qemuAccel,
+		HostOS:       qemuOS,
+		ImagePath:    sdnImageFile,
+		ConfigFile:   qemuConfigFile,
+		NetModel:     netModel,
+		TelnetPort:   uint16(sdnTelnetPort),
+		SSHPort:      uint16(sdnSSHPort),
+		MgmtPort:     uint16(sdnMgmtPort),
+		MgmtSubnet: edensdn.SdnMgmtSubnet{
+			IPNet:     nets[0].Subnet,
+			DHCPStart: nets[0].FirstAddress,
+		},
+		NetDevBasePort: uint16(qemuNetdevSocketPort),
+		PidFile:        sdnPidFile,
+		ConsoleLogFile: sdnConsoleLogFile,
+	}
+	sdnVmRunner, err := edensdn.GetSdnVMRunner(devModel, sdnConfig)
+	if err != nil {
+		log.Fatalf("failed to get SDN VM runner: %v", err)
+	}
+	// Start SDN.
+	err = sdnVmRunner.Start()
+	if err != nil {
+		log.Fatalf("Cannot start SDN: %v", err)
+	} else {
+		log.Infof("SDN is starting")
+	}
+	// Wait for SDN to start and apply network model.
+	startTime := time.Now()
+	client := &edensdn.SdnClient{
+		SSHPort:  uint16(sdnSSHPort),
+		MgmtPort: uint16(sdnMgmtPort),
+	}
+	for time.Since(startTime) < sdnStartTimeout {
+		time.Sleep(2 * time.Second)
+		if _, err = client.GetSdnStatus(); err == nil {
+			break
+		}
+	}
+	if err != nil {
+		log.Fatalf("Timeout waiting for SDN to start: %v", err)
+	}
+	err = client.ApplyNetworkModel(netModel)
+	if err != nil {
+		log.Fatalf("Failed to apply network model: %v", err)
+	}
+	log.Infof("SDN started, network model was submitted.")
+	// Start vTPM.
+	if gcpvTPM {
+		err = eden.StartSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
+		if err != nil {
+			log.Errorf("cannot start swtpm: %s", err)
+		} else {
+			log.Infof("swtpm is starting")
+		}
+	}
+	// Start EVE VM.
+	if err = eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
+		qemuMonitorPort, qemuNetdevSocketPort, qemuAccel, qemuConfigFile, eveLogFile,
+		evePidFile, netModel, tapInterface, gcpvTPM, false); err != nil {
+		log.Errorf("cannot start eve: %s", err)
+	} else {
+		log.Infof("EVE is starting")
+	}
 }
 
 func eveInit() {
@@ -614,18 +725,23 @@ func eveInit() {
 	startEveCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
 	startEveCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
-	startEveCmd.Flags().IntVarP(&eveEthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
+	addSdnStartOpts(startEveCmd)
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	stopEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	addSdnPidOpt(stopEveCmd)
 	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	statusEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	addSdnPidOpt(statusEveCmd)
+	addSdnPortOpts(statusEveCmd)
 	sshEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	sshEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
+	addSdnPortOpts(sshEveCmd)
 	consoleEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	epochEveCmd.Flags().BoolVar(&eveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
 	linkEveCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	linkEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "name of the EVE VBox VM")
 	linkEveCmd.Flags().StringVarP(&eveInterfaceName, "interface-name", "i", "", "EVE interface to get/change the link state of")
+	addSdnPortOpts(linkEveCmd)
 }

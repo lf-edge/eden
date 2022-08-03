@@ -13,7 +13,7 @@ func RegisterItems(
 		t string
 	}
 	configurators := []configurator{
-		{c: &IPForwardingConfigurator{}, t: IPForwardingTypename},
+		{c: &SysctlConfigurator{}, t: SysctlTypename},
 		{c: &NetNamespaceConfigurator{}, t: NetNamespaceTypename},
 		{c: &IfHandleConfigurator{MacLookup: macLookup}, t: IfHandleTypename},
 		{c: &DhcpClientConfigurator{MacLookup: macLookup}, t: DhcpClientTypename},

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultPort = 9999
+	defaultPort = 6666
 	defaultIP   = "0.0.0.0"
 )
 

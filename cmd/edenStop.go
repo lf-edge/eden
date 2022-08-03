@@ -34,16 +34,13 @@ var stopCmd = &cobra.Command{
 			devModel = viper.GetString("eve.devmodel")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			gcpvTPM = viper.GetBool("eve.tpm")
+			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		swtpmPidFile := ""
-		if gcpvTPM {
-			command := "swtpm"
-			swtpmPidFile = filepath.Join(filepath.Join(filepath.Dir(eveImageFile), command), fmt.Sprintf("%s.pid", command))
-		}
-		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote, evePidFile, swtpmPidFile, devModel, vmName)
+		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote, evePidFile,
+			swtpmPidFile(), sdnPidFile, devModel, vmName)
 	},
 }
 
@@ -58,4 +55,5 @@ func stopInit() {
 	stopCmd.Flags().BoolVarP(&eserverRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	stopCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	addSdnPidOpt(stopCmd)
 }

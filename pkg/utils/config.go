@@ -459,6 +459,22 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return ip
 		case "registry.dist":
 			return defaults.DefaultRegistryDist
+
+		case "sdn.image-file":
+			return filepath.Join(imageDist, "eden", "sdn-efi.qcow2")
+		case "sdn.pid":
+			return filepath.Join(currentPath, defaults.DefaultDist, "sdn.pid")
+		case "sdn.console-log":
+			return filepath.Join(currentPath, defaults.DefaultDist, "sdn-console.log")
+		case "sdn.telnet-port":
+			return defaults.DefaultSdnTelnetPort
+		case "sdn.ssh-port":
+			return defaults.DefaultSdnSSHPort
+		case "sdn.mgmt-port":
+			return defaults.DefaultSdnMgmtPort
+		case "sdn.network-model":
+			return ""
+
 		default:
 			log.Fatalf("Not found argument %s in config", inp)
 		}

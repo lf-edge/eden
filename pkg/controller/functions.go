@@ -109,7 +109,8 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 				node.SetConfigItem("app.allow.vnc", "true")
 				node.SetConfigItem("newlog.allow.fastupload", "true")
 				node.SetConfigItem("timer.download.retry", "60")
-				node.SetConfigItem("network.fallback.any.eth", "disabled")
+				// TODO: allow to enable/disable:
+				//node.SetConfigItem("network.fallback.any.eth", "disabled")
 				log.Debugf("will apply devModel %s", node.GetDevModel())
 				deviceModel, err := models.GetDevModelByName(node.GetDevModel())
 				if err != nil {
