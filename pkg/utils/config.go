@@ -402,6 +402,10 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultTPMEnabled
 		case "eve.disks":
 			return defaults.DefaultAdditionalDisks
+		case "eve.bootstrap-file":
+			return ""
+		case "eve.usbnetconf-file":
+			return ""
 
 		case "eden.root":
 			return filepath.Join(currentPath, defaults.DefaultDist)

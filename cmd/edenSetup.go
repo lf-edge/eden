@@ -43,7 +43,8 @@ var (
 
 	eveImageSizeMB int
 
-	eveConfigDir string
+	eveConfigDir     string
+	eveBootstrapFile string
 
 	netboot   bool
 	installer bool
@@ -164,6 +165,7 @@ var setupCmd = &cobra.Command{
 			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
 
 			devModel = viper.GetString("eve.devmodel")
+			eveBootstrapFile = utils.ResolveAbsPath(viper.GetString("eve.bootstrap-file"))
 
 			ssid = viper.GetString("eve.ssid")
 		}
@@ -260,13 +262,17 @@ var setupCmd = &cobra.Command{
 		}
 
 		if zedcontrolURL == "" {
-			if err := eden.GenerateEVEConfig(devModel, certsDir, certsDomain, certsEVEIP, adamPort, apiV1, softserial); err != nil {
+			err := eden.GenerateEVEConfig(devModel, certsDir, certsDomain, certsEVEIP,
+				adamPort, apiV1, softserial, eveBootstrapFile)
+			if err != nil {
 				log.Errorf("cannot GenerateEVEConfig: %s", err)
 			} else {
 				log.Info("GenerateEVEConfig done")
 			}
 		} else {
-			if err := eden.GenerateEVEConfig(devModel, certsDir, zedcontrolURL, "", 0, false, softserial); err != nil {
+			err := eden.GenerateEVEConfig(devModel, certsDir, zedcontrolURL, "", 0,
+				false, softserial, eveBootstrapFile)
+			if err != nil {
 				log.Errorf("cannot GenerateEVEConfig: %s", err)
 			} else {
 				log.Info("GenerateEVEConfig done")
@@ -516,7 +522,6 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", "", "file to save qemu config")
 	setupCmd.Flags().BoolVarP(&download, "download", "", true, "download EVE or build")
 	setupCmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
-
 	setupCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
 	setupCmd.Flags().StringVarP(&binDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")
 	setupCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
@@ -524,7 +529,7 @@ func setupInit() {
 	setupCmd.Flags().BoolVarP(&apiV1, "api-v1", "", true, "use v1 api")
 
 	setupCmd.Flags().IntVar(&eveImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
-
+	setupCmd.Flags().StringVar(&eveBootstrapFile, "eve-bootstrap-file", "", "path to device config (in JSON) for bootstrapping")
 	setupCmd.Flags().StringVar(&eveConfigDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
 
 	setupCmd.Flags().BoolVar(&netboot, "netboot", false, "Setup for use with network boot")

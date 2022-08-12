@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/utils"
 	model "github.com/lf-edge/eden/sdn/api"
@@ -182,20 +183,25 @@ func (client *SdnClient) SSHIntoSdnVM() error {
 // Close the tunnel by running returned "close" function.
 func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 	targetIP string) (close func(), err error) {
+	fwdArgs := fmt.Sprintf("%d:%s:%d", localPort, targetIP, targetPort)
 	cmd := exec.Command("ssh",
-		client.sshArgs("-T", "-L", fmt.Sprintf("%d:%s:%d", localPort, targetIP, targetPort),
-			"tail", "-f", "/dev/null")...)
+		client.sshArgs("-T", "-L", fwdArgs, "tail", "-f", "/dev/null")...)
 	err = cmd.Start()
 	if err != nil {
 		return nil, err
 	}
-	return func() {
+	close = func() {
 		err = cmd.Process.Kill()
 		if err != nil {
 			log.Errorf("failed to kill %s: %v", cmd, err)
+		} else {
+			_ = cmd.Wait()
 		}
-		_ = cmd.Wait()
-	}, nil
+	}
+	// Give tunnel some time to open.
+	// TODO: how to determine when the tunnel is ready and avoid sleeping with hard-coded time?
+	time.Sleep(2 * time.Second)
+	return close, nil
 }
 
 // RunCmdFromEndpoint : execute command from inside of an endpoint deployed in Eden-SDN.

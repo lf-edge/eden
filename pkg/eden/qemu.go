@@ -39,7 +39,8 @@ func StopSWTPM(stateDir string) error {
 func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string,
 	eveTelnetPort, qemuMonitorPort, netDevBasePort int,
 	qemuAccel bool, qemuConfigFile, logFile, pidFile string,
-	netModel sdnapi.NetworkModel, tapInterface string, swtpm, foreground bool) (err error) {
+	netModel sdnapi.NetworkModel, tapInterface, usbImagePath string,
+	swtpm, foreground bool) (err error) {
 	qemuCommand := ""
 	qemuOptions := "-display none -nodefaults -no-user-config "
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logappend=on,logfile=%s ", eveTelnetPort, logFile)
@@ -96,9 +97,6 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string,
 		qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d ", netDev, tapIdx)
 	}
 
-	// TODO: allow to test usb.json
-	//qemuOptions += fmt.Sprintf(" -drive format=raw,file=./sdn/usb.img ")
-
 	if swtpm {
 		tpmSocket := filepath.Join(filepath.Dir(eveImageFile), "swtpm", defaults.DefaultSwtpmSockFile)
 		qemuOptions += fmt.Sprintf("-chardev socket,id=chrtpm,path=%s -tpmdev emulator,id=tpm0,chardev=chrtpm -device %s,tpmdev=tpm0 ", tpmSocket, tpmDev)
@@ -116,6 +114,11 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string,
 	if qemuConfigFile != "" {
 		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
+
+	if usbImagePath != "" {
+		qemuOptions += fmt.Sprintf(" -drive format=raw,file=%s ", usbImagePath)
+	}
+
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
 	if foreground {
 		if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {

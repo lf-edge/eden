@@ -57,11 +57,13 @@ const (
 	DefaultRedisTag             = "7"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
+	DefaultMkimageTag           = "8.5.0"
 	DefaultImage                = "library/alpine"
 	DefaultAdamContainerRef     = "lfedge/adam"
 	DefaultRedisContainerRef    = "redis"
 	DefaultRegistryContainerRef = "library/registry"
 	DefaultProcContainerRef     = "lfedge/eden-processing"
+	DefaultMkimageContainerRef  = "lfedge/eve-mkimage-raw-efi"
 	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
 	DefaultEveRegistry          = "lfedge/eve"
 	DefaultRegistry             = "docker.io"
@@ -248,6 +250,9 @@ var (
 		"eve.ram":          "memory",
 		"eve.tpm":          "tpm",
 		"eve.disks":        "eve-disks",
+
+		"eve.bootstrap-file":  "eve-bootstrap-file",
+		"eve.usbnetconf-file": "eve-usbnetconf-file",
 
 		"eve.qemu.monitor-port":       "qemu-monitor-port",
 		"eve.qemu.netdev-socket-port": "qemu-netdev-socket-port",

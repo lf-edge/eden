@@ -15,26 +15,27 @@ import (
 )
 
 var (
-	adamDist          string
-	adamPort          int
-	adamForce         bool
-	eserverForce      bool
-	eserverImageDist  string
-	eserverPort       int
-	eserverTag        string
-	evePidFile        string
-	eveLogFile        string
-	eveRemote         bool
-	vmName            string
-	cpus              int
-	mem               int
-	sdnImageFile      string
-	sdnPidFile        string
-	sdnConsoleLogFile string
-	sdnTelnetPort     int
-	sdnSSHPort        int
-	sdnMgmtPort       int
-	sdnNetModelFile   string
+	adamDist           string
+	adamPort           int
+	adamForce          bool
+	eserverForce       bool
+	eserverImageDist   string
+	eserverPort        int
+	eserverTag         string
+	evePidFile         string
+	eveLogFile         string
+	eveRemote          bool
+	eveUsbNetConfFile  string
+	vmName             string
+	cpus               int
+	mem                int
+	sdnImageFile       string
+	sdnPidFile         string
+	sdnConsoleLogFile  string
+	sdnTelnetPort      int
+	sdnSSHPort         int
+	sdnMgmtPort        int
+	sdnNetModelFile    string
 )
 
 var startCmd = &cobra.Command{
@@ -77,6 +78,7 @@ var startCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
+			eveUsbNetConfFile = viper.GetString("eve.usbnetconf-file")
 			hostFwd = viper.GetStringMapString("eve.hostfwd")
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
 			apiV1 = viper.GetBool("adam.v1")
@@ -167,5 +169,6 @@ func startInit() {
 	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path to image drive, overrides default setting")
 	startCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startCmd.Flags().StringVarP(&eveUsbNetConfFile, "eve-usbnetconf-file", "", "", "path to device network config (aka usb.json) applied in runtime using a USB stick")
 	addSdnStartOpts(startCmd)
 }
