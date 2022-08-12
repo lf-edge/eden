@@ -19,6 +19,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/go-redis/redis/v9 v9.0.0-beta.1
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-containerregistry v0.10.0
 	github.com/google/uuid v1.3.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
@@ -63,3 +64,5 @@ require (
 replace github.com/lf-edge/eden/sdn => ./sdn
 
 replace github.com/lf-edge/eve/libs/depgraph => github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496
+
+replace github.com/lf-edge/eve/api/go => github.com/milan-zededa/eve/api/go v0.0.0-20220823085700-482fb4b20aaa

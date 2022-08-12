@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
@@ -86,7 +85,10 @@ Use string \"default\" instead of a file path to apply the default network model
 		var err error
 		var newNetModel sdnapi.NetworkModel
 		if ref == "default" {
-			newNetModel = edensdn.GetDefaultNetModel()
+			newNetModel, err = edensdn.GetDefaultNetModel()
+			if err != nil {
+				log.Fatal(err)
+			}
 		} else {
 			newNetModel, err = edensdn.LoadNetModeFromFile(ref)
 			if err != nil {
@@ -350,7 +352,8 @@ The command can also be run from an endpoint deployed inside Eden-SDN, for examp
 	eden sdn fwd --from-ep my-client eth0 2222 nc FWD_IP FWD_PORT
 Note that in this case the command must be installed in Eden-SDN VM (see sdn/Dockerfile)!
 
-The target interface should be referenced by its name inside the kernel of EVE VM (e.g. "eth0").`,
+The target interface should be referenced by its name inside the kernel of EVE VM (e.g. "eth0").
+This is currently limited to TCP port forwarding (i.e. not working with UDP)!`,
 	Args: cobra.MinimumNArgs(3),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		assignCobraToViper(cmd)
@@ -433,6 +436,8 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		return
 	}
+	// TODO: Port forwarding with SDN only works for TCP for now.
+
 	// Get IP address used by the target EVE interface.
 	targetIP := getEVEIP(eveIfName)
 	if targetIP == "" {
@@ -453,8 +458,6 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		log.Fatalf("failed to establish SSH port forwarding: %v", err)
 	}
 	defer closeTunnel()
-	// TODO: wait for tunnel to open
-	time.Sleep(time.Second)
 	// Redirect command to localhost and the forwarded port.
 	fwdPort := strconv.Itoa(int(localPort))
 	for i := range args {

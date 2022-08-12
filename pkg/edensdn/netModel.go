@@ -8,13 +8,14 @@ import (
 	"net"
 	"os"
 
-	model "github.com/lf-edge/eden/sdn/api"
+	"github.com/lf-edge/eden/pkg/utils"
+	sdnapi "github.com/lf-edge/eden/sdn/api"
 )
 
 // defaultNetModel : default network model.
 // More or less corresponds to the static network config used before Eden-SDN was implemented.
-var defaultNetModel = model.NetworkModel{
-	Ports: []model.Port{
+var defaultNetModel = sdnapi.NetworkModel{
+	Ports: []sdnapi.Port{
 		{
 			LogicalLabel: "eth0",
 			AdminUP:      true,
@@ -24,35 +25,35 @@ var defaultNetModel = model.NetworkModel{
 			AdminUP:      true,
 		},
 	},
-	Bridges: []model.Bridge{
+	Bridges: []sdnapi.Bridge{
 		{
 			LogicalLabel: "bridge0",
 			Ports:        []string{"eth0", "eth1"},
 		},
 	},
-	Networks: []model.Network{
+	Networks: []sdnapi.Network{
 		{
 			LogicalLabel: "network0",
 			Bridge:       "bridge0",
 			Subnet:       "172.22.1.0/24",
 			GwIP:         "172.22.1.1",
-			DHCP: model.DHCP{
+			DHCP: sdnapi.DHCP{
 				Enable: true,
-				IPRange: model.IPRange{
+				IPRange: sdnapi.IPRange{
 					FromIP: "172.22.1.10",
 					ToIP:   "172.22.1.20",
 				},
 				DomainName: "sdn",
-				DNSClientConfig: model.DNSClientConfig{
+				DNSClientConfig: sdnapi.DNSClientConfig{
 					PrivateDNS: []string{"dns-server0"},
 				},
 			},
 		},
 	},
-	Endpoints: model.Endpoints{
-		Clients: []model.Client{
+	Endpoints: sdnapi.Endpoints{
+		Clients: []sdnapi.Client{
 			{
-				Endpoint: model.Endpoint{
+				Endpoint: sdnapi.Endpoint{
 					LogicalLabel: "client0",
 					FQDN:         "client0.sdn",
 					Subnet:       "10.17.17.0/24",
@@ -60,15 +61,15 @@ var defaultNetModel = model.NetworkModel{
 				},
 			},
 		},
-		DNSServers: []model.DNSServer{
+		DNSServers: []sdnapi.DNSServer{
 			{
-				Endpoint: model.Endpoint{
+				Endpoint: sdnapi.Endpoint{
 					LogicalLabel: "dns-server0",
 					FQDN:         "dns-server0.sdn",
 					Subnet:       "10.18.18.0/24",
 					IP:           "10.18.18.2",
 				},
-				StaticEntries: []model.DNSEntry{
+				StaticEntries: []sdnapi.DNSEntry{
 					{
 						// See config item "adam.domain".
 						FQDN: "mydomain.adam",
@@ -86,15 +87,16 @@ var defaultNetModel = model.NetworkModel{
 
 // GetDefaultNetModel : get default network model.
 // Used unless the user selects custom network model.
-func GetDefaultNetModel() model.NetworkModel {
-	model := defaultNetModel
+func GetDefaultNetModel() (model sdnapi.NetworkModel, err error) {
+	model = defaultNetModel
 	addMissingMACs(&model)
-	return model
+	err = addMissingHostConfig(&model)
+	return
 }
 
 // LoadNetModeFromFile loads network model stored inside a JSON file.
-func LoadNetModeFromFile(filepath string) (model.NetworkModel, error) {
-	var model model.NetworkModel
+func LoadNetModeFromFile(filepath string) (sdnapi.NetworkModel, error) {
+	var model sdnapi.NetworkModel
 	content, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		err = fmt.Errorf("failed to read net model from file '%s': %w",
@@ -108,7 +110,8 @@ func LoadNetModeFromFile(filepath string) (model.NetworkModel, error) {
 		return model, err
 	}
 	addMissingMACs(&model)
-	return model, nil
+	err = addMissingHostConfig(&model)
+	return model, err
 }
 
 // GenerateSdnMgmtMAC (deterministically) generates MAC address for interface
@@ -153,7 +156,7 @@ func generatePortMAC(logicalLabel string, sdnSide bool) string {
 
 // addMissingMACs generates and inserts MAC addresses into the model for ports
 // which were defined without MAC address included.
-func addMissingMACs(model *model.NetworkModel) {
+func addMissingMACs(model *sdnapi.NetworkModel) {
 	for i, port := range model.Ports {
 		if port.MAC == "" {
 			model.Ports[i].MAC = generatePortMAC(port.LogicalLabel, true)
@@ -162,4 +165,18 @@ func addMissingMACs(model *model.NetworkModel) {
 			model.Ports[i].EVEConnect.MAC = generatePortMAC(port.LogicalLabel, false)
 		}
 	}
+}
+
+func addMissingHostConfig(netModel *sdnapi.NetworkModel) error {
+	if netModel.Host == nil {
+		hostIP, err := utils.GetIPForDockerAccess()
+		if err != nil {
+			return fmt.Errorf("failed to find suitable host IP: %v", err)
+		}
+		netModel.Host = &sdnapi.HostConfig{
+			HostIPs:     []string{hostIP},
+			NetworkType: sdnapi.Ipv4Only, // XXX For now everything is IPv4 only
+		}
+	}
+	return nil
 }

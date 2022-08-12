@@ -1,0 +1,27 @@
+{
+    "Version": 1,
+    "Ports": [
+        {
+            "Dhcp": 4,
+            "Free": true,
+            "IfName": "eth0",
+            "Name": "Management",
+            "IsMgmt": true,
+            "NetworkProxyEnable": false,
+            "NetworkProxyURL": "",
+            "Proxies": [ { "Server": "192.168.120.1", "Port": 8080, "Type": 1 },
+                         { "Server": "192.168.120.1", "Port": 8080, "Type": 0 } ]
+        },
+        {
+            "Dhcp": 4,
+            "Free": true,
+            "IfName": "eth1",
+            "Name": "AppShared",
+            "IsMgmt": false,
+            "NetworkProxyEnable": false,
+            "NetworkProxyURL": "",
+            "Proxies": [ { "Server": "192.168.120.1", "Port": 8080, "Type": 1 },
+                         { "Server": "192.168.120.1", "Port": 8080, "Type": 0 } ]
+        }
+    ]
+}

@@ -72,6 +72,7 @@ var startEveCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")
+			eveUsbNetConfFile = viper.GetString("eve.usbnetconf-file")
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
 			devModel = viper.GetString("eve.devmodel")
 			gcpvTPM = viper.GetBool("eve.tpm")
@@ -603,22 +604,15 @@ func startEveQemu() {
 	var err error
 	var netModel sdnapi.NetworkModel
 	if sdnNetModelFile == "" {
-		netModel = edensdn.GetDefaultNetModel()
+		netModel, err = edensdn.GetDefaultNetModel()
+		if err != nil {
+			log.Fatal(err)
+		}
 	} else {
 		netModel, err = edensdn.LoadNetModeFromFile(sdnNetModelFile)
 		if err != nil {
 			log.Fatalf("Failed to load network model from file '%s': %v",
 				sdnNetModelFile, err)
-		}
-	}
-	if netModel.Host == nil {
-		hostIP, err := utils.GetIPForDockerAccess()
-		if err != nil {
-			log.Fatalf("Failed to find suitable host IP: %v", err)
-		}
-		netModel.Host = &sdnapi.HostConfig{
-			HostIPs:     []string{hostIP},
-			NetworkType: sdnapi.Ipv4Only, // XXX For now everything is IPv4 only
 		}
 	}
 	nets, err := utils.GetSubnetsNotUsed(1)
@@ -674,6 +668,19 @@ func startEveQemu() {
 		log.Fatalf("Failed to apply network model: %v", err)
 	}
 	log.Infof("SDN started, network model was submitted.")
+	// Create USB network config override image if requested.
+	var usbImagePath string
+	if eveUsbNetConfFile != "" {
+		currentPath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+		usbImagePath = filepath.Join(currentPath, defaults.DefaultDist, "usb.img")
+		err = utils.CreateUsbNetConfImg(eveUsbNetConfFile, usbImagePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	// Start vTPM.
 	if gcpvTPM {
 		err = eden.StartSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
@@ -686,7 +693,7 @@ func startEveQemu() {
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
 		qemuMonitorPort, qemuNetdevSocketPort, qemuAccel, qemuConfigFile, eveLogFile,
-		evePidFile, netModel, tapInterface, gcpvTPM, false); err != nil {
+		evePidFile, netModel, tapInterface, usbImagePath, gcpvTPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err)
 	} else {
 		log.Infof("EVE is starting")
@@ -725,6 +732,7 @@ func eveInit() {
 	startEveCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
 	startEveCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startEveCmd.Flags().StringVarP(&eveUsbNetConfFile, "eve-usbnetconf-file", "",  "", "path to device network config (aka usb.json) applied in runtime using a USB stick")
 	addSdnStartOpts(startEveCmd)
 	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	stopEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")

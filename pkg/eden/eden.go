@@ -19,16 +19,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/certs"
+	"github.com/lf-edge/eve/api/go/config"
 	"github.com/nerd2/gexto"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+const bootstrapFilename = "bootstrap-config.pb"
 
 //StartRedis function run redis in docker with mounted redisPath:/data
 //if redisForce is set, it recreates container
@@ -615,7 +622,7 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 //GenerateEVEConfig function copy certs to EVE config folder
 //if ip is empty will not fill hosts file
 func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, port int,
-	apiV1 bool, softserial string) (err error) {
+	apiV1 bool, softserial string, bootstrapFile string) (err error) {
 	if _, err = os.Stat(eveConfig); os.IsNotExist(err) {
 		if err = os.MkdirAll(eveConfig, 0755); err != nil {
 			return fmt.Errorf("GenerateEVEConfig: %s", err)
@@ -653,6 +660,50 @@ func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, por
 	if softserial != "" {
 		if err := ioutil.WriteFile(filepath.Join(eveConfig, "soft_serial"), []byte(softserial), 0666); err != nil {
 			return fmt.Errorf("GenerateEVEConfig: %s", err)
+		}
+	}
+	if bootstrapFile != "" {
+		bootstrapBytes, err := ioutil.ReadFile(bootstrapFile)
+		if err != nil {
+			return fmt.Errorf("failed to read bootstrap config (%s): %v", bootstrapFile, err)
+		}
+		var devConf config.EdgeDevConfig
+		if err := protojson.Unmarshal(bootstrapBytes, &devConf); err != nil {
+			return fmt.Errorf("failed to unmarshal bootstrap config: %s", err)
+		}
+		devConf.ConfigTimestamp = timestamppb.New(time.Now())
+		devConfPbuf, err := proto.Marshal(&devConf)
+		if err != nil {
+			log.Printf("error converting bootstrap config to pbuf: %v", err)
+		}
+		// Put an envelope with a signature around it.
+		edenHome, err := utils.DefaultEdenDir()
+		if err != nil {
+			return fmt.Errorf("failed to get eden home directory: %s", err)
+		}
+		globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+		signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
+		signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
+		signedDevConf, err := utils.PrepareAuthContainer(devConfPbuf, signingCertPath, signingKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to wrap bootstrap with auth envelope: %v", err)
+		}
+		controllerCerts, err := utils.LoadCertChain(
+			signingCertPath, certs.ZCertType_CERT_TYPE_CONTROLLER_SIGNING)
+		if err != nil {
+			return fmt.Errorf("failed to load controller certificates: %v", err)
+		}
+		bootstrapConf := &config.BootstrapConfig{
+			SignedConfig:    signedDevConf,
+			ControllerCerts: controllerCerts,
+		}
+		bootstrapConfPbuf, err := proto.Marshal(bootstrapConf)
+		if err != nil {
+			log.Printf("error converting bootstrap config to pbuf: %v", err)
+		}
+		err = ioutil.WriteFile(filepath.Join(eveConfig, bootstrapFilename), bootstrapConfPbuf, 0666)
+		if err != nil {
+			return fmt.Errorf("failed to write %s: %s", bootstrapFilename, err)
 		}
 	}
 	return nil

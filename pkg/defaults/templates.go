@@ -62,6 +62,19 @@ eve:
     #devmodel file overwrite
     devmodelfile: '{{parse "eve.devmodelfile"}}'
 
+    #Path to a file with JSON-formatted device config (EdgeDevConfig, but mostly just networking),
+    #used to bootstrap device (i.e. establish connectivity with the controller and onboard).
+    #The config will be reformatted to binary proto, signed and embedded into the EVE image.
+    #Note: for legacy override.json use "eve-config-dir" arg of "eden setup".
+    bootstrap-file: '{{parse "eve.bootstrap-file"}}'
+
+    #Path to a file with JSON-formatted network config (modeled by DevicePortConfig
+    #struct from EVE repo), applied in runtime using a specially formatted USB stick.
+    #Also known as "usb.json".
+    #Typically used for device bootstrapping as a second step after EVE installation.
+    #This is a legacy method soon to be replaced by EdgeDevConfig-based bootstrapping.
+    usbnetconf-file: '{{parse "eve.usbnetconf-file"}}'
+
     #EVE arch (amd64/arm64)
     arch: '{{parse "eve.arch"}}'
 

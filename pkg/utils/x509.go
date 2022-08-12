@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -331,4 +333,37 @@ func calculateSymmetricKeyForEcdhAES(deviceCert, controllerPrivateKey []byte) ([
 		return nil, err
 	}
 	return symmetricKey[:], nil
+}
+
+func computeSignatureWithCertAndKey(shaOfPayload, certPem, keyPem []byte) ([]byte, error) {
+	var signature []byte
+	var rsCombErr error
+
+	cert, err := tls.X509KeyPair(certPem, keyPem)
+	if err != nil {
+		return nil, fmt.Errorf("computeSignatureWithCertAndKey X509KeyPair: %v", err)
+	}
+	switch key := cert.PrivateKey.(type) {
+
+	case *ecdsa.PrivateKey:
+		r, s, err := ecdsa.Sign(rand.Reader, key, shaOfPayload)
+		if err != nil {
+			return nil, err
+		}
+		signature, rsCombErr = rsCombinedBytes(r.Bytes(), s.Bytes(), &key.PublicKey)
+		if rsCombErr != nil {
+			return nil, rsCombErr
+		}
+
+	case *rsa.PrivateKey:
+		var sErr error
+		signature, sErr = rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, shaOfPayload)
+		if sErr != nil {
+			return nil, sErr
+		}
+	default:
+		return nil, fmt.Errorf("signAuthData: privatekey default")
+
+	}
+	return signature, nil
 }
