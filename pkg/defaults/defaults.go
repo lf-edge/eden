@@ -75,7 +75,7 @@ const (
 	DefaultEServerTag          = "6e2bfa9"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
-	DefaultEClientTag          = "6e2bfa9"
+	DefaultEClientTag          = "8e676c6"
 	DefaultEClientContainerRef = "lfedge/eden-eclient"
 
 	//DefaultRepeatCount is repeat count for requests
