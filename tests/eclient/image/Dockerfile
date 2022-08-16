@@ -9,9 +9,10 @@ COPY files /out/
 COPY cert/id_rsa* /out/root/.ssh/
 COPY cert/id_rsa.pub /out/root/.ssh/authorized_keys
 
-FROM alpine:3.14.6
+FROM alpine:3.14.8
 
 # use patched version of dhcping 1.2-r2+
+# use patched version of sysbench 1.0.20-r1+
 # hadolint ignore=DL3018
 RUN apk add --no-cache lshw \
     curl \
@@ -25,7 +26,7 @@ RUN apk add --no-cache lshw \
     setserial \
     avahi \
     lsblk && \
-    apk --no-cache --repository https://dl-cdn.alpinelinux.org/alpine/edge/community add -U --upgrade dhcping
+    apk --no-cache --repository https://dl-cdn.alpinelinux.org/alpine/edge/community add -U --upgrade dhcping sysbench
 
 COPY --from=build /out /
 
