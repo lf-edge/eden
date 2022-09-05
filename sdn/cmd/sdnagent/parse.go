@@ -2,6 +2,12 @@ package main
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
@@ -204,7 +210,7 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 	for _, network := range netModel.Networks {
 		if network.TransparentProxy != nil {
 			proxy := network.TransparentProxy
-			if err = a.validateCertPEM(proxy.CACertPEM, proxy.CAKeyPEM); err != nil {
+			if err = a.validateCertPEM(proxy.CACertPEM, proxy.CAKeyPEM, true); err != nil {
 				return
 			}
 			ruleHosts := make(map[string]struct{})
@@ -225,10 +231,6 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 
 func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 	// TODO
-	//  - ExplicitProxy:
-	//      - non-zero HTTP, HTTPS port should be different
-	//      - parsable private DNS IPs
-	//      - non-empty username, password
 	//  - NetbootArtifacts:
 	//      - exactly one is entrypoint, Filename and URL are non-empty
 	for _, client := range netModel.Endpoints.Clients {
@@ -270,6 +272,33 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 		if err = a.validateEndpoint(proxy.Endpoint); err != nil {
 			return
 		}
+		for _, dns := range proxy.PublicDNS {
+			if dnsIP := net.ParseIP(dns); dnsIP == nil {
+				err = fmt.Errorf("proxy %s has invalid public DNS server IP (%s)",
+					proxy.LogicalLabel, dns)
+				return
+			}
+		}
+		for _, user := range proxy.Users {
+			if user.Username == ""{
+				err = fmt.Errorf("Proxy %s with empty username",
+					proxy.LogicalLabel)
+				return
+			}
+		}
+		if proxy.CACertPEM != "" {
+			if err = a.validateCertPEM(proxy.CACertPEM, proxy.CAKeyPEM, true); err != nil {
+				return
+			}
+		}
+		ruleHosts := make(map[string]struct{})
+		for _, rule := range proxy.ProxyRules {
+			if _, duplicate := ruleHosts[rule.ReqHost]; duplicate {
+				err = fmt.Errorf("proxy %s has duplicate rules", proxy.LogicalLabel)
+				return
+			}
+			ruleHosts[rule.ReqHost] = struct{}{}
+		}
 	}
 	for _, httpSrv := range netModel.Endpoints.HTTPServers {
 		if err = a.validateEndpoint(httpSrv.Endpoint); err != nil {
@@ -288,7 +317,7 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 			}
 		}
 		if httpSrv.CertPEM != "" {
-			if err = a.validateCertPEM(httpSrv.CertPEM, httpSrv.KeyPEM); err != nil {
+			if err = a.validateCertPEM(httpSrv.CertPEM, httpSrv.KeyPEM, false); err != nil {
 				return
 			}
 		} else if httpSrv.HTTPSPort != 0 {
@@ -387,10 +416,82 @@ func (a *agent) validateHostConfig(netModel *parsedNetModel) (err error) {
 	return nil
 }
 
-func (a *agent) validateCertPEM(certPem, keyPem string) error {
-	// TODO : should be parsable and correspond with each other
+func (a *agent) validateCertPEM(certPem, keyPem string, isCA bool) error {
+	// Check that certificate can be parsed.
+	block, _ := pem.Decode([]byte(certPem))
+	if block == nil {
+		return errors.New("failed to decode PEM certificate")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse PEM certificate: %v", err)
+	}
+	if isCA != cert.IsCA {
+		return fmt.Errorf("invalid certificate purpose (IsCA=%t)", cert.IsCA)
+	}
+	// Check that private key can be parsed.
+	block, _ = pem.Decode([]byte(keyPem))
+	if block == nil {
+		return errors.New("failed to decode PEM private key")
+	}
+	privateKey, err := a.parsePrivateKey(block.Bytes)
+	if err != nil {
+		return err
+	}
+	// Check that the public key and the private key correspond with each other.
+	switch pub := cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		rsaKey, ok := privateKey.(*rsa.PrivateKey)
+		if !ok {
+			return errors.New("private key type does not match public key type")
+		}
+		if pub.N.Cmp(rsaKey.N) != 0 {
+			return errors.New("private key does not match public key")
+		}
+	case *ecdsa.PublicKey:
+		ecdsaKey, ok := privateKey.(*ecdsa.PrivateKey)
+		if !ok {
+			return errors.New("private key type does not match public key type")
+		}
+		if pub.X.Cmp(ecdsaKey.X) != 0 || pub.Y.Cmp(ecdsaKey.Y) != 0 {
+			return errors.New("private key does not match public key")
+		}
+	case ed25519.PublicKey:
+		ed25519Key, ok := privateKey.(ed25519.PrivateKey)
+		if !ok {
+			return errors.New("private key type does not match public key type")
+		}
+		if !bytes.Equal(ed25519Key.Public().(ed25519.PublicKey), pub) {
+			return errors.New("private key does not match public key")
+		}
+	default:
+		return errors.New("unknown public key algorithm")
+	}
 	return nil
 }
+
+// Attempt to parse the given private key DER block. OpenSSL 0.9.8 generates
+// PKCS #1 private keys by default, while OpenSSL 1.0.0 generates PKCS #8 keys.
+// OpenSSL ecparam generates SEC1 EC private keys for ECDSA. We try all three.
+func (a *agent) parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
+	if key, err := x509.ParsePKCS1PrivateKey(der); err == nil {
+		return key, nil
+	}
+	if key, err := x509.ParsePKCS8PrivateKey(der); err == nil {
+		switch key := key.(type) {
+		case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
+			return key, nil
+		default:
+			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")
+		}
+	}
+	if key, err := x509.ParseECPrivateKey(der); err == nil {
+		return key, nil
+	}
+
+	return nil, errors.New("failed to parse private key")
+}
+
 
 func (a *agent) parseLabeledItems(items []api.LabeledItem) (labeledItems, error) {
 	parsedItems := make(labeledItems)

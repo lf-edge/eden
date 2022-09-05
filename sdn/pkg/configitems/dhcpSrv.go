@@ -293,17 +293,34 @@ func startDnsmasq(srvName, netNamespace string) error {
 		"-C",
 		cfgPath,
 	}
+	pidFile := dnsmasqPidFile(srvName)
+	// Do not run in background - dnsmasq will detach itself.
+	return startProcess(netNamespace, cmd, args, pidFile, dnsmasqStartTimeout, false)
+}
+
+func startProcess(netNamespace, cmd string, args []string, pidFile string,
+	timeout time.Duration, background bool) error {
 	startTime := time.Now()
-	out, err := namespacedCmd(netNamespace, cmd, args...).CombinedOutput()
-	if err != nil {
-		err = fmt.Errorf("failed to start dnsmasq for config %s: %s", cfgPath, out)
-		log.Error(err)
-		return err
+	execCmd := namespacedCmd(netNamespace, cmd, args...)
+	if background {
+		err := execCmd.Start()
+		if err != nil {
+			err = fmt.Errorf("failed to start command %s (args: %v): %v", cmd, args, err)
+			log.Error(err)
+			return err
+		}
+	} else {
+		out, err := execCmd.CombinedOutput()
+		if err != nil {
+			err = fmt.Errorf("failed to start command %s (args: %v): %s", cmd, args, out)
+			log.Error(err)
+			return err
+		}
 	}
 	// Wait for the process to start.
-	for !isDnsmasqRunning(srvName) {
-		if time.Since(startTime) > dnsmasqStartTimeout {
-			err := fmt.Errorf("dnsmasq %s failed to start in time", srvName)
+	for !isProcessRunning(pidFile) {
+		if time.Since(startTime) > timeout {
+			err := fmt.Errorf("command %s (args: %v) failed to start in time", cmd, args)
 			log.Error(err)
 			return err
 		}
@@ -357,23 +374,29 @@ func removeDnsmasqLeaseFile(srvName string) error {
 }
 
 func stopDnsmasq(srvName string) error {
-	process := getDnsmasqProcess(srvName)
+	pidFile := dnsmasqPidFile(srvName)
+	return stopProcess(pidFile, dnsmasqStopTimeout)
+}
+
+func stopProcess(pidFile string, timeout time.Duration) error {
+	process := getProcess(pidFile)
 	if process == nil {
-		err := fmt.Errorf("dnsmasq %s is not running", srvName)
+		err := fmt.Errorf("process pid-file=%s is not running", pidFile)
 		log.Error(err)
 		return err
 	}
 	stopTime := time.Now()
 	err := process.Signal(syscall.SIGTERM)
 	if err != nil {
-		err := fmt.Errorf("SIGTERM signal sent to dnsmasq %s failed: %w", srvName, err)
+		err := fmt.Errorf("SIGTERM signal sent to process pid-file=%s failed: %w",
+			pidFile, err)
 		log.Error(err)
 		return err
 	}
 	// Wait for the process to stop.
-	for isDnsmasqRunning(srvName) {
-		if time.Since(stopTime) > dnsmasqStopTimeout {
-			err := fmt.Errorf("dnsmasq %s failed to stop in time", srvName)
+	for isProcessRunning(pidFile) {
+		if time.Since(stopTime) > timeout {
+			err := fmt.Errorf("process pid-file=%s failed to stop in time", pidFile)
 			log.Error(err)
 			return err
 		}
@@ -382,20 +405,20 @@ func stopDnsmasq(srvName string) error {
 	return nil
 }
 
-func isDnsmasqRunning(srvName string) bool {
-	process := getDnsmasqProcess(srvName)
+func isProcessRunning(pidFile string) bool {
+	process := getProcess(pidFile)
 	if process == nil {
 		return false
 	}
 	err := process.Signal(syscall.Signal(0))
 	if err != nil {
+		log.Errorf("isProcessRunning(%s): signal failed %s", pidFile, err)
 		return false
 	}
 	return true
 }
 
-func getDnsmasqProcess(srvName string) (process *os.Process) {
-	pidFile := dnsmasqPidFile(srvName)
+func getProcess(pidFile string) (process *os.Process) {
 	pidBytes, err := ioutil.ReadFile(pidFile)
 	if err != nil {
 		// Not running, return nil.
@@ -404,14 +427,14 @@ func getDnsmasqProcess(srvName string) (process *os.Process) {
 	pidStr := strings.TrimSpace(string(pidBytes))
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
-		log.Errorf("getDnsmasqProcess(%s): strconv.Atoi of %s failed: %v",
-			srvName, pidStr, err)
+		log.Errorf("getProcess(%s): strconv.Atoi of %s failed: %v",
+			pidFile, pidStr, err)
 		return nil
 	}
 	p, err := os.FindProcess(pid)
 	if err != nil {
-		log.Errorf("getDnsmasqProcess(%s): process PID=%d not found: %v",
-			srvName, pid, err)
+		log.Errorf("getProcess(%s): process PID=%d not found: %v",
+			pidFile, pid, err)
 		return nil
 	}
 	return p
