@@ -4,12 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"os/exec"
-	"strconv"
-	"strings"
-	"syscall"
 	"time"
 
 	"github.com/lf-edge/eden/sdn/pkg/maclookup"
@@ -101,7 +96,7 @@ func (c *DhcpClientConfigurator) Create(ctx context.Context, item depgraph.Item)
 	done := reconciler.ContinueInBackground(ctx)
 
 	go func() {
-		if c.isDhcpcdRunning(ifName) {
+		if isDhcpcdRunning(ifName) {
 			err := fmt.Errorf("dhcpcd for interface %s is already running", ifName)
 			log.Error(err)
 			done(err)
@@ -114,25 +109,11 @@ func (c *DhcpClientConfigurator) Create(ctx context.Context, item depgraph.Item)
 		}
 		args = append(args, "-t", "0") // wait for release forever
 		args = append(args, ifName)
-		startTime := time.Now()
-		cmd := exec.Command(dhcpcdBinary, args...)
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-		go func() {
-			if err := cmd.Run(); err != nil {
-				log.Errorf("dhcpcd %v: failed: %s", args, err)
-			}
-		}()
-		// Wait for a bit then give up.
-		for !c.isDhcpcdRunning(ifName) {
-			if time.Since(startTime) > dhcpcdStartTimeout {
-				err := fmt.Errorf("dhcpcd for interface %s failed to start in time",
-					ifName)
-				log.Error(err)
-				done(err)
-				return
-			}
-			time.Sleep(1 * time.Second)
+		err := startProcess(MainNsName, dhcpcdBinary, args, dhcpcdPidFile(ifName),
+			dhcpcdStartTimeout, true)
+		if err != nil {
+			done(err)
+			return
 		}
 		log.Debugf("dhcpcd for interface %s is running", ifName)
 		done(nil)
@@ -172,7 +153,7 @@ func (c *DhcpClientConfigurator) Delete(ctx context.Context, item depgraph.Item)
 				log.Errorf("dhcpcd release failed for interface %s: %v, elapsed time %v",
 					ifName, err, time.Since(startTime))
 			}
-			if !c.isDhcpcdRunning(ifName) {
+			if !isDhcpcdRunning(ifName) {
 				break
 			}
 			if time.Since(startTime) > dhcpcdStopTimeout {
@@ -202,7 +183,7 @@ func (c *DhcpClientConfigurator) Delete(ctx context.Context, item depgraph.Item)
 			done(err)
 			return
 		}
-		if !c.isDhcpcdRunning(ifName) {
+		if !isDhcpcdRunning(ifName) {
 			log.Infof("dhcpcd for interface %s is gone after exit, elapsed time %v",
 				ifName, time.Since(startTime))
 			done(nil)
@@ -217,31 +198,13 @@ func (c *DhcpClientConfigurator) Delete(ctx context.Context, item depgraph.Item)
 	return nil
 }
 
-func (c *DhcpClientConfigurator) isDhcpcdRunning(ifName string) bool {
-	pidFile := fmt.Sprintf("/run/dhcpcd-%s.pid", ifName)
-	pidBytes, err := ioutil.ReadFile(pidFile)
-	if err != nil {
-		return false
-	}
-	pidStr := strings.TrimSpace(string(pidBytes))
-	pid, err := strconv.Atoi(pidStr)
-	if err != nil {
-		log.Errorf("isDhcpcdRunning(%s): strconv.Atoi of %s failed %s; ignored\n",
-			ifName, pidStr, err)
-		return true // guess since we don't know
-	}
-	// Does the pid exist?
-	p, err := os.FindProcess(pid)
-	if err != nil {
-		log.Errorf("isDhcpcdRunning(%s): process not found %s", ifName, err)
-		return false
-	}
-	err = p.Signal(syscall.Signal(0))
-	if err != nil {
-		log.Errorf("isDhcpcdRunning(%s): signal failed %s", ifName, err)
-		return false
-	}
-	return true
+func dhcpcdPidFile(ifName string) string {
+	return fmt.Sprintf("/run/dhcpcd-%s.pid", ifName)
+}
+
+func isDhcpcdRunning(ifName string) bool {
+	pidFile := dhcpcdPidFile(ifName)
+	return isProcessRunning(pidFile)
 }
 
 // NeedsRecreate always returns true - Modify is not implemented.

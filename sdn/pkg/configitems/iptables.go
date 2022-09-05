@@ -80,7 +80,7 @@ func (ch IptablesChain) String() string {
 	return str
 }
 
-// Dependencies lists all referenced chains as dependencies.
+// Dependencies lists all referenced chains + net namespace as dependencies.
 func (ch IptablesChain) Dependencies() (deps []depgraph.Dependency) {
 	for _, referredChain := range ch.RefersChains {
 		deps = append(deps, depgraph.Dependency{
@@ -92,6 +92,13 @@ func (ch IptablesChain) Dependencies() (deps []depgraph.Dependency) {
 			}),
 		})
 	}
+	deps = append(deps, depgraph.Dependency{
+		RequiredItem: depgraph.ItemRef{
+			ItemType: NetNamespaceTypename,
+			ItemName: normNetNsName(ch.NetNamespace),
+		},
+		Description: "Network namespace must exist",
+	})
 	return deps
 }
 

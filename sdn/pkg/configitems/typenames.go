@@ -32,4 +32,6 @@ const (
 	IPtablesChainTypename = "Iptables-Chain"
 	// IP6tablesChainTypename : typename for a single ip6tables chain (IPv6).
 	IP6tablesChainTypename = "Ip6tables-Chain"
+	// HTTPProxyTypename : typename for HTTP proxy.
+	HTTPProxyTypename = "HTTP-Proxy"
 )

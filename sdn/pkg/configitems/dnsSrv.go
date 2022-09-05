@@ -84,7 +84,7 @@ func (s DnsServer) External() bool {
 	return false
 }
 
-// String describes the DNS server client.
+// String describes the DNS server.
 func (s DnsServer) String() string {
 	return fmt.Sprintf("DNS Server: %#+v", s)
 }

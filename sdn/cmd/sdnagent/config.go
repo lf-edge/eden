@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"hash/fnv"
 	"net"
 	"strings"
@@ -96,7 +97,11 @@ func (a *agent) updateIntendedState() {
 	for _, dnsSrv := range a.netModel.Endpoints.DNSServers {
 		a.intendedState.PutSubGraph(a.getIntendedDNSSrvEp(dnsSrv))
 	}
-	// TODO (firewall, proxies, http servers, ntp servers, netboot servers)
+	for _, proxy := range a.netModel.Endpoints.ExplicitProxies {
+		a.intendedState.PutSubGraph(a.getIntendedProxyEp(proxy))
+	}
+
+	// TODO (firewall, http servers, ntp servers, netboot servers)
 }
 
 func (a *agent) getIntendedPhysIfs() dg.Graph {
@@ -452,13 +457,50 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 		DstNet:       defaultDst,
 		Metric:       ^uint32(0), // Lowest prio.
 	}, nil)
+
+	// Transparent proxy.
+	if network.TransparentProxy != nil {
+		proxyIP := gwIP.IP
+		intendedCfg.PutItem(configitems.HttpProxy{
+			Proxy:        *network.TransparentProxy,
+			ProxyName:    a.networkTProxyName(network.LogicalLabel),
+			NetNamespace: nsName,
+			VethName:     brVethName,
+			ListenIP:     proxyIP,
+			ListenPort:   8080,
+		}, nil)
+		// iptables to transparently redirect traffic into the proxy
+		intendedCfg.PutItem(configitems.IptablesChain{
+			NetNamespace: nsName,
+			ChainName:    "PREROUTING",
+			Table:        "nat",
+			ForIPv6:      false,
+			Rules: []configitems.IptablesRule{
+				{
+					Args: []string{"-s", proxyIP.String(), "-p", "tcp", "--dport", "8080",
+						"-j", "ACCEPT"},
+					Description: "Traffic sent out from proxy should not go back into the proxy",
+				},
+				{
+					Args: []string{"-p", "tcp", "--dport", "80", "-j", "DNAT",
+						"--to-destination", fmt.Sprintf("%s:8080", proxyIP.String())},
+					Description: "Send HTTP traffic into the proxy",
+				},
+				{
+					Args: []string{"-p", "tcp", "--dport", "443", "-j", "DNAT",
+						"--to-destination", fmt.Sprintf("%s:8080", proxyIP.String())},
+					Description: "Send HTTPS traffic into the proxy",
+				},
+			},
+		}, nil)
+	}
 	return intendedCfg
 }
 
 func (a *agent) getIntendedClientEp(client api.Client) dg.Graph {
 	graphArgs := dg.InitArgs{Name: endpointSGPrefix + client.LogicalLabel}
 	intendedCfg := dg.New(graphArgs)
-	a.putEpCommonConfig(intendedCfg, client.Endpoint)
+	a.putEpCommonConfig(intendedCfg, client.Endpoint, nil)
 	// Nothing running inside...
 	return intendedCfg
 }
@@ -466,7 +508,7 @@ func (a *agent) getIntendedClientEp(client api.Client) dg.Graph {
 func (a *agent) getIntendedDNSSrvEp(dnsSrv api.DNSServer) dg.Graph {
 	graphArgs := dg.InitArgs{Name: endpointSGPrefix + dnsSrv.LogicalLabel}
 	intendedCfg := dg.New(graphArgs)
-	a.putEpCommonConfig(intendedCfg, dnsSrv.Endpoint)
+	a.putEpCommonConfig(intendedCfg, dnsSrv.Endpoint, nil)
 	var (
 		upstreamServers []net.IP
 		staticEntries   []configitems.DnsEntry
@@ -513,15 +555,49 @@ func (a *agent) getIntendedDNSSrvEp(dnsSrv api.DNSServer) dg.Graph {
 	return intendedCfg
 }
 
-func (a *agent) putEpCommonConfig(graph dg.Graph, ep api.Endpoint) {
+func (a *agent) getIntendedProxyEp(proxy api.ExplicitProxy) dg.Graph {
+	graphArgs := dg.InitArgs{Name: endpointSGPrefix + proxy.LogicalLabel}
+	intendedCfg := dg.New(graphArgs)
+	a.putEpCommonConfig(intendedCfg, proxy.Endpoint, &proxy.DNSClientConfig)
+	nsName := a.endpointNsName(proxy.LogicalLabel)
+	vethName, _, _ := a.endpointVethName(proxy.LogicalLabel)
+	epIP := net.ParseIP(proxy.IP)
+	intendedCfg.PutItem(configitems.HttpProxy{
+		Proxy:        proxy.Proxy,
+		ProxyName:    proxy.LogicalLabel,
+		NetNamespace: nsName,
+		VethName:     vethName,
+		ListenIP:     epIP,
+		ListenPort:   proxy.Port,
+		Users:        proxy.Users,
+	}, nil)
+	return intendedCfg
+}
+
+func (a *agent) putEpCommonConfig(graph dg.Graph, ep api.Endpoint, dnsClient *api.DNSClientConfig) {
 	vethName, inIfName, outIfName := a.endpointVethName(ep.LogicalLabel)
 	_, subnet, _ := net.ParseCIDR(ep.Subnet) // already validated
 	epIP := &net.IPNet{IP: net.ParseIP(ep.IP), Mask: subnet.Mask}
 	gwIP := a.genEndpointGwIP(subnet, epIP.IP)
 	nsName := a.endpointNsName(ep.LogicalLabel)
-	graph.PutItem(configitems.NetNamespace{
+	netNs := configitems.NetNamespace{
 		NsName: nsName,
-	}, nil)
+	}
+	if dnsClient != nil {
+		var dnsServers []net.IP
+		for _, dnsServer := range dnsClient.PublicDNS {
+			dnsServers = append(dnsServers, net.ParseIP(dnsServer))
+		}
+		for _, dnsServer := range dnsClient.PrivateDNS {
+			ep := a.getEndpoint(dnsServer)
+			dnsServers = append(dnsServers, net.ParseIP(ep.IP))
+		}
+		netNs.ResolvConf = configitems.ResolvConf{
+			Create:     true,
+			DNSServers: dnsServers,
+		}
+	}
+	graph.PutItem(netNs, nil)
 	graph.PutItem(configitems.Veth{
 		VethName: vethName,
 		Peer1: configitems.VethPeer{
@@ -583,6 +659,10 @@ func (a *agent) networkRtVethName(logicalLabel string) (
 	inIfName = a.genIfName("net-rt-in-", logicalLabel)
 	outIfName = a.genIfName("net-rt-out-", logicalLabel)
 	return
+}
+
+func (a *agent) networkTProxyName(logicalLabel string) string {
+	return "tproxy-" + logicalLabel
 }
 
 func (a *agent) endpointVethName(logicalLabel string) (
