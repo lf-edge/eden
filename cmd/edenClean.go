@@ -71,7 +71,8 @@ var cleanCmd = &cobra.Command{
 				log.Infof("Adam is running and accessible on port %d", adamPort)
 			}
 			eveUUID := viper.GetString("eve.uuid")
-			if err := eden.CleanContext(eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID, vmName, configSaved, eveRemote); err != nil {
+			if err := eden.CleanContext(eveDist, certsDir, filepath.Dir(eveImageFile), evePidFile, eveUUID,
+				sdnPidFile, vmName, configSaved, eveRemote); err != nil {
 				log.Fatalf("cannot CleanContext: %s", err)
 			}
 		} else {

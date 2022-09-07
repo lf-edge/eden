@@ -114,8 +114,7 @@ eve:
     #eve tag
     tag: '{{parse "eve.tag"}}'
 
-    #port forwarding for EVE VM when run with Parallels or VBOX [(HOST:EVE)]
-    #not used for QEMU anymore, instead use command 'eden sdn fwd'
+    #port forwarding for EVE VM [(HOST:EVE)] when running without Eden-SDN
     hostfwd: '{{parse "eve.hostfwd"}}'
 
     #location of eve directory
@@ -263,6 +262,9 @@ registry:
     dist: '{{parse "registry.dist"}}'
 
 sdn:
+    # Disable SDN
+    disable: '{{parse "sdn.disable"}}'
+
     #live image of SDN
     image-file: '{{parse "sdn.image-file"}}'
 

@@ -41,11 +41,15 @@ var sdnNetModelGetCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		client := &edensdn.SdnClient{
 			SSHPort:  uint16(sdnSSHPort),
 			MgmtPort: uint16(sdnMgmtPort),
@@ -76,11 +80,15 @@ Use string \"default\" instead of a file path to apply the default network model
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		ref := args[0]
 		var err error
 		var newNetModel sdnapi.NetworkModel
@@ -136,11 +144,15 @@ Alternatively, visualize using the online tool: https://dreampuf.github.io/Graph
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		client := &edensdn.SdnClient{
 			SSHPort:  uint16(sdnSSHPort),
 			MgmtPort: uint16(sdnMgmtPort),
@@ -163,16 +175,23 @@ var sdnStatusCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		sdnStatus()
 	},
 }
 
 func sdnStatus() {
+	if !isSdnEnabled() {
+		return
+	}
 	processStatus, err := utils.StatusCommandWithPid(sdnPidFile)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of SDN Qemu process: %s",
@@ -208,11 +227,15 @@ var sdnSshCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		client := &edensdn.SdnClient{
 			SSHPort:  uint16(sdnSSHPort),
 			MgmtPort: uint16(sdnMgmtPort),
@@ -234,11 +257,15 @@ var sdnLogsCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		client := &edensdn.SdnClient{
 			SSHPort:  uint16(sdnSSHPort),
 			MgmtPort: uint16(sdnMgmtPort),
@@ -261,11 +288,15 @@ var sdnMgmtIpCmd = &cobra.Command{
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		client := &edensdn.SdnClient{
 			SSHPort:  uint16(sdnSSHPort),
 			MgmtPort: uint16(sdnMgmtPort),
@@ -313,11 +344,15 @@ the EVE's port forwarding capability.`,
 			return fmt.Errorf("error reading config: %s", err.Error())
 		}
 		if viperLoaded {
+			devModel = viper.GetString("eve.devmodel")
 			loadSdnOptsFromViper()
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isSdnEnabled() {
+			log.Fatalf("SDN is not enabled")
+		}
 		epName := args[0]
 		command := args[1]
 		args = args[2:]
@@ -387,8 +422,7 @@ This is currently limited to TCP port forwarding (i.e. not working with UDP)!`,
 func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, args ...string) {
 	const fwdIPLabel = "FWD_IP"
 	const fwdPortLabel = "FWD_PORT"
-	if devModel != defaults.DefaultQemuModel {
-		// SDN is not being used.
+	if !isSdnEnabled() {
 		if fromEp != "" {
 			log.Warnf("Cannot execute command from an endpoint without SDN running, " +
 				"argument \"from-ep\" will be ignored")
@@ -482,10 +516,19 @@ func sdnForwardSCPFromEve(remoteFilePath, localFilePath string) {
 	sdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
 }
 
+// Run after loading these options from config:
+//   - devModel = viper.GetString("eve.devmodel")
+//   - loadSdnOptsFromViper()
+func isSdnEnabled() bool {
+	// Only supported with QEMU for now.
+	return !sdnDisable && devModel == defaults.DefaultQemuModel
+}
+
 func loadSdnOptsFromViper() {
 	sdnImageFile = utils.ResolveAbsPath(viper.GetString("sdn.image-file"))
 	sdnNetModelFile = utils.ResolveAbsPath(viper.GetString("sdn.network-model"))
 	sdnConsoleLogFile = utils.ResolveAbsPath(viper.GetString("sdn.console-log"))
+	sdnDisable = viper.GetBool("sdn.disable")
 	sdnTelnetPort = viper.GetInt("sdn.telnet-port")
 	sdnSSHPort = viper.GetInt("sdn.ssh-port")
 	sdnMgmtPort = viper.GetInt("sdn.mgmt-port")
@@ -528,6 +571,10 @@ func addSdnLogOpt(parentCmd *cobra.Command) {
 
 func addSdnImageOpt(parentCmd *cobra.Command) {
 	parentCmd.Flags().StringVarP(&sdnImageFile, "sdn-image-file", "", "", "path to SDN image drive, overrides default setting")
+}
+
+func addSdnDisableOpt(parentCmd *cobra.Command) {
+	parentCmd.Flags().BoolVarP(&sdnDisable, "sdn-disable", "", false, "disable Eden-SDN (do not run SDN VM)")
 }
 
 func sdnInit() {

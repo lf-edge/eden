@@ -273,6 +273,7 @@ var (
 
 		"config": "config",
 
+		"sdn.disable":       "sdn-disable",
 		"sdn.image-file":    "sdn-image-file",
 		"sdn.pid":           "sdn-pid",
 		"sdn.console-log":   "sdn-console-log",

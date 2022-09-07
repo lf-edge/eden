@@ -39,8 +39,8 @@ var stopCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote, evePidFile,
-			swtpmPidFile(), sdnPidFile, devModel, vmName)
+		eden.StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote,
+			evePidFile, swtpmPidFile(), sdnPidFile, devModel, vmName)
 	},
 }
 

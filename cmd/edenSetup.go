@@ -540,4 +540,5 @@ func setupInit() {
 	setupCmd.Flags().StringVar(&ipxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
 	setupCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
 	addSdnImageOpt(setupCmd)
+	addSdnDisableOpt(setupCmd)
 }

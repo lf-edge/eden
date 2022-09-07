@@ -542,11 +542,15 @@ var linkEveCmd = &cobra.Command{
 			case defaults.DefaultVBoxModel:
 				err = eden.SetLinkStateVbox(vmName, eveInterfaceName, bringUp)
 			case defaults.DefaultQemuModel:
-				client := &edensdn.SdnClient{
-					SSHPort:  uint16(sdnSSHPort),
-					MgmtPort: uint16(sdnMgmtPort),
+				if isSdnEnabled() {
+					client := &edensdn.SdnClient{
+						SSHPort:  uint16(sdnSSHPort),
+						MgmtPort: uint16(sdnMgmtPort),
+					}
+					err = client.SetLinkState(eveInterfaceName, bringUp)
+				} else {
+					err = eden.SetLinkStateQemu(qemuMonitorPort, eveInterfaceName, bringUp)
 				}
-				err = client.SetLinkState(eveInterfaceName, bringUp)
 			default:
 				log.Fatalf("Link operations are not supported for devmodel '%s'", devModel)
 			}
@@ -563,11 +567,15 @@ var linkEveCmd = &cobra.Command{
 		case defaults.DefaultVBoxModel:
 			linkStates, err = eden.GetLinkStateVbox(vmName, eveInterfaceName)
 		case defaults.DefaultQemuModel:
-			client := &edensdn.SdnClient{
-				SSHPort:  uint16(sdnSSHPort),
-				MgmtPort: uint16(sdnMgmtPort),
+			if isSdnEnabled() {
+				client := &edensdn.SdnClient{
+					SSHPort:  uint16(sdnSSHPort),
+					MgmtPort: uint16(sdnMgmtPort),
+				}
+				linkStates, err = client.GetLinkState(eveInterfaceName)
+			} else {
+				linkStates, err = eden.GetLinkStateQemu(qemuMonitorPort, eveInterfaceName)
 			}
-			linkStates, err = client.GetLinkState(eveInterfaceName)
 		default:
 			log.Fatalf("Link operations are not supported for devmodel '%s'", devModel)
 		}
@@ -603,7 +611,7 @@ func startEveQemu() {
 	// Load network model and prepare SDN config.
 	var err error
 	var netModel sdnapi.NetworkModel
-	if sdnNetModelFile == "" {
+	if !isSdnEnabled() || sdnNetModelFile == "" {
 		netModel, err = edensdn.GetDefaultNetModel()
 		if err != nil {
 			log.Fatal(err)
@@ -615,59 +623,61 @@ func startEveQemu() {
 				sdnNetModelFile, err)
 		}
 	}
-	nets, err := utils.GetSubnetsNotUsed(1)
-	if err != nil {
-		log.Fatalf("Failed to get unused IP subnet: %s", err)
-	}
-	sdnConfig := edensdn.SdnVMConfig{
-		Architecture: qemuARCH,
-		Acceleration: qemuAccel,
-		HostOS:       qemuOS,
-		ImagePath:    sdnImageFile,
-		ConfigFile:   qemuConfigFile,
-		NetModel:     netModel,
-		TelnetPort:   uint16(sdnTelnetPort),
-		SSHPort:      uint16(sdnSSHPort),
-		MgmtPort:     uint16(sdnMgmtPort),
-		MgmtSubnet: edensdn.SdnMgmtSubnet{
-			IPNet:     nets[0].Subnet,
-			DHCPStart: nets[0].FirstAddress,
-		},
-		NetDevBasePort: uint16(qemuNetdevSocketPort),
-		PidFile:        sdnPidFile,
-		ConsoleLogFile: sdnConsoleLogFile,
-	}
-	sdnVmRunner, err := edensdn.GetSdnVMRunner(devModel, sdnConfig)
-	if err != nil {
-		log.Fatalf("failed to get SDN VM runner: %v", err)
-	}
-	// Start SDN.
-	err = sdnVmRunner.Start()
-	if err != nil {
-		log.Fatalf("Cannot start SDN: %v", err)
-	} else {
-		log.Infof("SDN is starting")
-	}
-	// Wait for SDN to start and apply network model.
-	startTime := time.Now()
-	client := &edensdn.SdnClient{
-		SSHPort:  uint16(sdnSSHPort),
-		MgmtPort: uint16(sdnMgmtPort),
-	}
-	for time.Since(startTime) < sdnStartTimeout {
-		time.Sleep(2 * time.Second)
-		if _, err = client.GetSdnStatus(); err == nil {
-			break
+	if isSdnEnabled() {
+		nets, err := utils.GetSubnetsNotUsed(1)
+		if err != nil {
+			log.Fatalf("Failed to get unused IP subnet: %s", err)
 		}
+		sdnConfig := edensdn.SdnVMConfig{
+			Architecture: qemuARCH,
+			Acceleration: qemuAccel,
+			HostOS:       qemuOS,
+			ImagePath:    sdnImageFile,
+			ConfigFile:   qemuConfigFile,
+			NetModel:     netModel,
+			TelnetPort:   uint16(sdnTelnetPort),
+			SSHPort:      uint16(sdnSSHPort),
+			MgmtPort:     uint16(sdnMgmtPort),
+			MgmtSubnet: edensdn.SdnMgmtSubnet{
+				IPNet:     nets[0].Subnet,
+				DHCPStart: nets[0].FirstAddress,
+			},
+			NetDevBasePort: uint16(qemuNetdevSocketPort),
+			PidFile:        sdnPidFile,
+			ConsoleLogFile: sdnConsoleLogFile,
+		}
+		sdnVmRunner, err := edensdn.GetSdnVMRunner(devModel, sdnConfig)
+		if err != nil {
+			log.Fatalf("failed to get SDN VM runner: %v", err)
+		}
+		// Start SDN.
+		err = sdnVmRunner.Start()
+		if err != nil {
+			log.Fatalf("Cannot start SDN: %v", err)
+		} else {
+			log.Infof("SDN is starting")
+		}
+		// Wait for SDN to start and apply network model.
+		startTime := time.Now()
+		client := &edensdn.SdnClient{
+			SSHPort:  uint16(sdnSSHPort),
+			MgmtPort: uint16(sdnMgmtPort),
+		}
+		for time.Since(startTime) < sdnStartTimeout {
+			time.Sleep(2 * time.Second)
+			if _, err = client.GetSdnStatus(); err == nil {
+				break
+			}
+		}
+		if err != nil {
+			log.Fatalf("Timeout waiting for SDN to start: %v", err)
+		}
+		err = client.ApplyNetworkModel(netModel)
+		if err != nil {
+			log.Fatalf("Failed to apply network model: %v", err)
+		}
+		log.Infof("SDN started, network model was submitted.")
 	}
-	if err != nil {
-		log.Fatalf("Timeout waiting for SDN to start: %v", err)
-	}
-	err = client.ApplyNetworkModel(netModel)
-	if err != nil {
-		log.Fatalf("Failed to apply network model: %v", err)
-	}
-	log.Infof("SDN started, network model was submitted.")
 	// Create USB network config override image if requested.
 	var usbImagePath string
 	if eveUsbNetConfFile != "" {
@@ -692,8 +702,8 @@ func startEveQemu() {
 	}
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
-		qemuMonitorPort, qemuNetdevSocketPort, qemuAccel, qemuConfigFile, eveLogFile,
-		evePidFile, netModel, tapInterface, usbImagePath, gcpvTPM, false); err != nil {
+		qemuMonitorPort, qemuNetdevSocketPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile,
+		evePidFile, netModel, isSdnEnabled(), tapInterface, usbImagePath, gcpvTPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err)
 	} else {
 		log.Infof("EVE is starting")
