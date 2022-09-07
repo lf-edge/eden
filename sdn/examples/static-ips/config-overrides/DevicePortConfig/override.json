@@ -1,0 +1,18 @@
+{
+    "TimePriority": "2000-01-01T00:00:00Z",
+    "Version": 1,
+    "Ports": [
+        {
+            "IfName": "eth0",
+            "IsMgmt": true,
+            "Free": true,
+            "Dhcp": 1,
+            "Type": 4,
+            "AddrSubnet": "172.22.12.10/24",
+            "Gateway": "172.22.12.1",
+            "DnsServers": [
+                "10.16.16.25"
+            ]
+        }
+    ]
+}
