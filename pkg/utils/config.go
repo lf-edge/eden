@@ -464,6 +464,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "registry.dist":
 			return defaults.DefaultRegistryDist
 
+		case "sdn.disable":
+			return false
 		case "sdn.image-file":
 			return filepath.Join(imageDist, "eden", "sdn-efi.qcow2")
 		case "sdn.pid":

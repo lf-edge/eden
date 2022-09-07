@@ -29,6 +29,7 @@ var (
 	vmName             string
 	cpus               int
 	mem                int
+	sdnDisable         bool
 	sdnImageFile       string
 	sdnPidFile         string
 	sdnConsoleLogFile  string

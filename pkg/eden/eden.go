@@ -766,7 +766,7 @@ func MakeEveInRepo(desc utils.EVEDescription, dist string) (image, additional st
 }
 
 //CleanContext cleanup only context data
-func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string, configSaved string, remote bool) (err error) {
+func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmName string, configSaved string, remote bool) (err error) {
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
 		return fmt.Errorf("CleanContext: %s", err)
@@ -807,7 +807,9 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 		}
 	}
 	if !remote {
-		if viper.GetString("eve.devModel") == defaults.DefaultVBoxModel {
+		devModel := viper.GetString("eve.devModel")
+		switch devModel {
+		case defaults.DefaultVBoxModel:
 			if err := StopEVEVBox(vmName); err != nil {
 				log.Infof("cannot stop EVE: %s", err)
 			} else {
@@ -816,7 +818,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 			if err := DeleteEVEVBox(vmName); err != nil {
 				log.Infof("cannot delete EVE: %s", err)
 			}
-		} else if viper.GetString("eve.devModel") == defaults.DefaultParallelsModel {
+		case defaults.DefaultParallelsModel:
 			if err := StopEVEParallels(vmName); err != nil {
 				log.Infof("cannot stop EVE: %s", err)
 			} else {
@@ -825,7 +827,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 			if err := DeleteEVEParallels(vmName); err != nil {
 				log.Infof("cannot delete EVE: %s", err)
 			}
-		} else {
+		default:
 			if err := StopEVEQemu(evePID); err != nil {
 				log.Infof("cannot stop EVE: %s", err)
 			} else {
@@ -838,6 +840,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, vmName string
 				log.Infof("swtpm is stopping")
 			}
 		}
+		StopSDN(devModel, sdnPID)
 	}
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
@@ -918,20 +921,28 @@ func StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string) {
 				log.Infof("swtpm is stopping")
 			}
 		}
-		sdnConfig := edensdn.SdnVMConfig{
-			PidFile: sdnPidFile,
-			// Nothing else needed to stop the VM.
-		}
-		sdnVmRunner, err := edensdn.GetSdnVMRunner(devModel, sdnConfig)
-		if err != nil {
-			log.Fatalf("failed to get SDN VM runner: %v", err)
-		}
-		err = sdnVmRunner.Stop()
-		if err != nil {
-			log.Errorf("cannot stop SDN: %v", err)
-		} else {
-			log.Infof("SDN stopped")
-		}
+	}
+	StopSDN(devModel, sdnPidFile)
+}
+
+func StopSDN(devModel, sdnPidFile string) {
+	if devModel != defaults.DefaultQemuModel || viper.GetBool("sdn.disable") {
+		// SDN is not running, nothing to do
+		return
+	}
+	sdnConfig := edensdn.SdnVMConfig{
+		PidFile: sdnPidFile,
+		// Nothing else needed to stop the VM.
+	}
+	sdnVmRunner, err := edensdn.GetSdnVMRunner(defaults.DefaultQemuModel, sdnConfig)
+	if err != nil {
+		log.Fatalf("failed to get SDN VM runner: %v", err)
+	}
+	err = sdnVmRunner.Stop()
+	if err != nil {
+		log.Errorf("cannot stop SDN: %v", err)
+	} else {
+		log.Infof("SDN stopped")
 	}
 }
 
