@@ -1,0 +1,71 @@
+{
+  "deviceIoList": [
+    {
+      "ptype": 1,
+      "phylabel": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "eth0",
+      "assigngrp": "eth0",
+      "usage": 1,
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    }
+  ],
+  "networks": [
+    {
+      "id": "6605d17b-3273-4108-8e6e-4965441ebe01",
+      "type": 4,
+      "ip": {
+        "dhcp": 1,
+        "subnet": "172.22.12.0/24",
+        "gateway": "172.22.12.1",
+        "dns": ["10.16.16.25"]
+      }
+    }
+  ],
+  "systemAdapterList": [
+    {
+      "name": "eth0",
+      "uplink": true,
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01",
+      "addr": "172.22.12.10"
+    }
+  ],
+  "configItems": [
+    {
+      "key": "network.fallback.any.eth",
+      "value": "disabled"
+    },
+    {
+      "key": "newlog.allow.fastupload",
+      "value": "true"
+    },
+    {
+      "key": "timer.config.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.location.app.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.location.cloud.interval",
+      "value": "300"
+    },
+    {
+      "key": "app.allow.vnc",
+      "value": "true"
+    },
+    {
+      "key": "timer.download.retry",
+      "value": "60"
+    },
+    {
+      "key": "debug.default.loglevel",
+      "value": "debug"
+    }
+  ]
+}

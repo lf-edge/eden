@@ -1,0 +1,76 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "ports": ["eveport0"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network0",
+      "bridge": "bridge0",
+      "subnet": "172.22.12.0/24",
+      "gwIP": "172.22.12.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.1.10",
+          "toIP": "172.22.1.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": "my-dns-server"
+      },
+      "transparentProxy": {
+        "caCertPEM": "-----BEGIN CERTIFICATE-----\nMIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL\nBQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM\nDVNhbiBGcmFuY2lzY28wHhcNMjIwOTA3MTcwMDE0WhcNMzIwNjA2MTcwMDE0WjA6\nMRMwEQYDVQQDDAp6ZWRlZGEuY29tMQswCQYDVQQGEwJVUzEWMBQGA1UEBwwNU2Fu\nIEZyYW5jaXNjbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALQsi7IG\nM8KApujL71MJXbuPQNn/g+RItQeehaFRcqcCcpFW4k1YveMNdf5HReKlAfufFtaa\nIF368t33UlleblopLM8m8r9Ev1sSJOS1yYgU1HABjyw54LXBqT4tAf0xjlRaLn4L\nQBUAS0TTywTppGXtNwXpxqdDuQdigNskqzEFaGI52IQezfGt7L2CeeJ/YJNcbImR\neCXMPwTatUHLLE29Qv8GQQfy7TpCXdXVLvQAyfZJi7lY7DjPqBab5ocnVTRcEpKz\nFwH2+KTokQkU1UF614IveRF3ZOqqmrQvy1AdSvekFLIz2uP7xsfy3I3HNQcPJ4DI\n5vNzBaE/hF5xK40CAwEAAaNTMFEwHQYDVR0OBBYEFPxOB5cxsf89x6KdFSTTFV2L\nwta1MB8GA1UdIwQYMBaAFPxOB5cxsf89x6KdFSTTFV2Lwta1MA8GA1UdEwEB/wQF\nMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAFXqCJuq4ifMw3Hre7+X23q25jOb1nzd\n8qs+1Tij8osUC5ekD21x/k9g+xHvacoJIOzsAmpAPSnwXKMnvVdAeX6Scg1Bvejj\nTdXfNEJ7jcvDROUNjlWYjwiY+7ahDkj56nahwGjjUQdgCCzRiSYPOq6N1tRkn97a\ni6+jB8DnTSDnv5j8xiPDbWJ+nv2O1NNsoHS91UrTqkVXxNItrCdPPh21hzrTJxs4\noSf4wbaF5n3E2cPpSAaXBEyxBdXAqUCIhP0q9/pgBTYuJ+eW467u4xWqUVi4iBtN\nwVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=\n-----END CERTIFICATE-----",
+        "caKeyPEM": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC0LIuyBjPCgKbo\ny+9TCV27j0DZ/4PkSLUHnoWhUXKnAnKRVuJNWL3jDXX+R0XipQH7nxbWmiBd+vLd\n91JZXm5aKSzPJvK/RL9bEiTktcmIFNRwAY8sOeC1wak+LQH9MY5UWi5+C0AVAEtE\n08sE6aRl7TcF6canQ7kHYoDbJKsxBWhiOdiEHs3xrey9gnnif2CTXGyJkXglzD8E\n2rVByyxNvUL/BkEH8u06Ql3V1S70AMn2SYu5WOw4z6gWm+aHJ1U0XBKSsxcB9vik\n6JEJFNVBeteCL3kRd2Tqqpq0L8tQHUr3pBSyM9rj+8bH8tyNxzUHDyeAyObzcwWh\nP4RecSuNAgMBAAECggEAazt75Pd2BNQHAtSlWplfdQq8gUJm4A452BAL3kgYYbe+\nMiwwwfIICcNwL2eB+3NTq8syj4TpsKVzuJHDLDdcnEKXTa8TmKy06uHwnUJocJpd\nGVCEQsErsWFSdhPZdDTzTdbihtfxSs6C/bLDyOe5lYRKVDWfqttOm0uP/11imehq\n5CbnirPJF80i7SSR3ft743SbE9NMXy7IYlGZ9NDUaKcPVhH+oxEB81DodnIxk7BD\nIiPa44m2XyCbDFWY9gmKGCr838tG8DG9at4SldG18JwobJsjFgOTJTIrPZEd8aUS\nWx21YITEzQG4RMp3/RvNNiWNgvqSPuuoov5qS0O8TQKBgQDkm5RRQGAr2f4Giodr\n+CaSrOdTB2wGTS/w5xKktkOa/0ZVW4QOgKu04bSp8BJ88JvOfwdX8WuAqa+4ZQa1\nd76Ya0nGotY125ZQ5RYgKaaFaWUJy/CAquet7cr7mbGWYhGbngL1qWQMkxcZlJnL\nZSR83c8oSUMNIsA2ZXnjh1+iBwKBgQDJw0mcpnrvOgf5MP7NSjiAMrt+YgRCcx2D\nKPIZuxn6t0N9+HRnQC5EN3twSXp5HE2XjPn8jG1xl345E/Ev2t3vzbe8iabzcEne\nw9/6Wqd5ENmk/Qib3T2RZshl1zymSRdSVZexcjd9f1nmsq1JyhEk5s4ZsIkk5U0Z\n/3SM6NrQywKBgFaFm6j02HFAXChVndN7Y/33esWt9XCdHhvrGN9GLGgpXZFIxb5H\nbLVVB2+Z8SVgW1fYNAtQ0AMuNddwRQ3BeF1vnciUMMbJiSaszab2nJO5xAflK+1G\nwdDOQxjenpvwGgHv1+bqaXdo5EFGQL7+VMT9nj39HGeIU39DANLglY1ZAoGBALrU\n4sJzix0hoKaJTzmsg/t6fxJ+EzGxRV/iN6XKEzmOIKpyut+tl+pFckG9WPLzWYp/\n2jGZm/L29MRICixlQOTBm2W0FewRS+ZDfZFoBvLdvpzATwt96HhPNDzR/fCBeF4e\nslR3zpigqBAv3rWYrx17uNgjGCwZRbdQTY36Rj3XAoGAOKrgsJkWPNV08Sw9DX6R\nSyODv0NpdCKlGcDZX/LZc/imic0eCUww64ZqPFHHdRkIEj3cVtSTryqfXPFheVxB\nJA/5Rtu/UAatNxhUwA3NT1WJewBsTQyds75Vwz0TBvqr0VWEi5GbxlZReLu7v5gj\nrt3dAPD3c4Szs8PbWB9pGso=\n-----END PRIVATE KEY-----",
+        "proxyRules": [
+          {
+            "host": "zededa.com",
+            "action": "reject"
+          },
+          {
+            "action": "mitm"
+          }
+        ]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["my-client", "my-dns-server"]
+      }
+    }
+  ],
+  "endpoints": {
+    "clients": [
+      {
+        "logicalLabel": "my-client",
+        "fqdn": "my-client.sdn",
+        "subnet": "10.15.15.0/24",
+        "ip": "10.15.15.10"
+      }
+    ],
+    "dnsServers": [
+      {
+        "logicalLabel": "my-dns-server",
+        "fqdn": "my-dns-server.sdn",
+        "subnet": "10.16.16.0/24",
+        "ip": "10.16.16.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          }
+        ],
+        "upstreamServers": [
+          "1.1.1.1",
+          "8.8.8.8"
+        ]
+      }
+    ]
+  }
+}
