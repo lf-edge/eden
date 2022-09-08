@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/rsa"
 	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -280,7 +280,7 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 			}
 		}
 		for _, user := range proxy.Users {
-			if user.Username == ""{
+			if user.Username == "" {
 				err = fmt.Errorf("Proxy %s with empty username",
 					proxy.LogicalLabel)
 				return
@@ -491,7 +491,6 @@ func (a *agent) parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 
 	return nil, errors.New("failed to parse private key")
 }
-
 
 func (a *agent) parseLabeledItems(items []api.LabeledItem) (labeledItems, error) {
 	parsedItems := make(labeledItems)

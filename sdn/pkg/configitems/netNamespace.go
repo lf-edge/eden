@@ -176,7 +176,6 @@ func (n NetNamespace) Dependencies() (deps []depgraph.Dependency) {
 	return nil
 }
 
-
 // NetNamespaceConfigurator implements Configurator interface for NetNamespace.
 type NetNamespaceConfigurator struct{}
 
@@ -199,7 +198,7 @@ func (c *NetNamespaceConfigurator) Create(ctx context.Context, item depgraph.Ite
 	}
 	// Create network-namespace specific resolv.conf file if requested.
 	if ns.ResolvConf.Create {
-		err := c.generateResolvConf(nsConfigDir + "resolv.conf", ns.ResolvConf)
+		err := c.generateResolvConf(nsConfigDir+"resolv.conf", ns.ResolvConf)
 		if err != nil {
 			err = fmt.Errorf("failed to create resolv.conf: %s", err)
 			log.Error(err)
@@ -254,12 +253,11 @@ func (c *NetNamespaceConfigurator) generateResolvConf(path string, config Resolv
 	return nil
 }
 
-
 // Modify is able to update resolv.conf content.
 func (c *NetNamespaceConfigurator) Modify(ctx context.Context, oldItem, newItem depgraph.Item) (err error) {
 	ns := newItem.(NetNamespace)
 	nsConfigDir := getNetNsConfigDir(ns.NsName)
-	err = c.generateResolvConf(nsConfigDir + "resolv.conf", ns.ResolvConf)
+	err = c.generateResolvConf(nsConfigDir+"resolv.conf", ns.ResolvConf)
 	if err != nil {
 		err = fmt.Errorf("failed to modify resolv.conf: %s", err)
 		log.Error(err)
