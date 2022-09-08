@@ -61,6 +61,10 @@ DIRECTORY_EXPORT ?= $(CURDIR)/export
 ZARCH ?= $(HOSTARCH)
 export ZARCH
 
+LINUXKIT=$(WORKDIR)/bin/linuxkit
+LINUXKIT_VERSION=fc060cac15e6bb3b5977c78996a0a7bd60b4a024
+LINUXKIT_SOURCE=https://github.com/linuxkit/linuxkit.git
+
 .DEFAULT_GOAL := help
 
 clean: config stop
@@ -91,16 +95,26 @@ build-tests: build testbin
 install: build
 	CGO_ENABLED=0 go install .
 
-build: $(BIN) $(EMPTY_DRIVE).raw $(EMPTY_DRIVE).qcow2 $(EMPTY_DRIVE).qcow $(EMPTY_DRIVE).vmdk $(EMPTY_DRIVE).vhdx
+build: $(BIN) $(EMPTY_DRIVE).raw $(EMPTY_DRIVE).qcow2 $(EMPTY_DRIVE).qcow $(EMPTY_DRIVE).vmdk $(EMPTY_DRIVE).vhdx $(LINUXKIT)
 $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-s -w" -o $@ .
 	mkdir -p dist/scripts/shell
 	cp -r shell-scripts/* dist/scripts/shell/
 
+build-tools: $(LINUXKIT)
+	@echo Done building $<
+
 $(BIN): $(LOCALBIN)
 	ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@
 	ln -sf $(LOCALBIN) $@
 	ln -sf bin/$@ $(WORKDIR)/$@
+
+$(LINUXKIT):
+	@rm -rf /tmp/linuxkit
+	@git clone $(LINUXKIT_SOURCE) /tmp/linuxkit
+	@cd /tmp/linuxkit && git checkout $(LINUXKIT_VERSION)
+	@cd /tmp/linuxkit/src/cmd/linuxkit && GO111MODULE=on CGO_ENABLED=0 go build -o $@ -mod=vendor .
+	@rm -rf /tmp/linuxkit
 
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
@@ -139,20 +153,6 @@ push-multi-arch-processing:
 
 build-docker: push-multi-arch-processing push-multi-arch-eserver push-multi-arch-eden
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) DOCKER_TARGET=$(DOCKER_TARGET) DOCKER_PLATFORM=$(DOCKER_PLATFORM) build-docker
-
-# TODO: remove this, instead automatically (re)build with "eden setup" if needed
-SDN_TAG = $(shell linuxkit pkg show-tag ./sdn | cut -d ":" -f 2)
-build-sdn:
-	linuxkit -v pkg build --force -build-yml build.yml ./sdn
-build-sdn-vm: build-sdn
-	mkdir -p ./dist/default-images/eden
-	sed "s/SDN_TAG/$(SDN_TAG)/g" ./sdn/vm.yml.in > ./sdn/vm.yml
-	sed -i "s/EDEN_VERSION/$(EDEN_VERSION)/g" ./sdn/vm.yml
-	linuxkit -v build -format qcow2-efi --disable-content-trust -dir ./dist/default-images/eden/ -name sdn ./sdn/vm.yml
-
-#TODO: allow to build usb.img using "eden setup"
-#build-usb-override:
-#	../eve/tools/makeusbconf.sh -d -i -f ./sdn/usb.json -s 8000 ./sdn/usb.img
 
 tests-export: $(DIRECTORY_EXPORT) build-tests
 	@cp -af $(WORKDIR)/tests/* $(DIRECTORY_EXPORT)
