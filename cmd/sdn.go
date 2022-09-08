@@ -541,6 +541,7 @@ func addSdnStartOpts(parentCmd *cobra.Command) {
 	addSdnPortOpts(parentCmd)
 	addSdnLogOpt(parentCmd)
 	addSdnImageOpt(parentCmd)
+	addSdnDisableOpt(parentCmd)
 }
 
 func addSdnPidOpt(parentCmd *cobra.Command) {

@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -146,6 +147,7 @@ var setupCmd = &cobra.Command{
 			qemuFirmware = viper.GetStringSlice("eve.firmware")
 			qemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
 			qemuDTBPath = utils.ResolveAbsPath(viper.GetString("eve.dtb-part"))
+			qemuOS = viper.GetString("eve.os")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
 			certsUUID = viper.GetString("eve.uuid")
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
@@ -168,6 +170,7 @@ var setupCmd = &cobra.Command{
 			eveBootstrapFile = utils.ResolveAbsPath(viper.GetString("eve.bootstrap-file"))
 
 			ssid = viper.GetString("eve.ssid")
+			loadSdnOptsFromViper()
 		}
 
 		return nil
@@ -488,7 +491,65 @@ var setupCmd = &cobra.Command{
 				log.Printf("To onboard EVE onto %s", zedcontrolURL)
 			}
 		}
-		// TODO: build SDN VM image
+		// Build Eden-SDN VM image unless the SDN is disabled.
+		if isSdnEnabled() {
+			currentPath, err := os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			sdnPkg := filepath.Join(currentPath, "sdn")
+			linuxkitBinary := filepath.Join(currentPath, defaults.DefaultDist,
+				defaults.DefaultBinDist, "linuxkit")
+			output, err := exec.Command(linuxkitBinary, "pkg", "show-tag", sdnPkg).Output()
+			if err != nil {
+				var stderr string
+				if ee, ok := err.(*exec.ExitError); ok {
+					stderr = string(ee.Stderr)
+				} else {
+					stderr = err.Error()
+				}
+				log.Fatalf("linuxkit pkg show-tag failed: %v", stderr)
+			}
+			// Build or preferably pull eden-sdn container.
+			sdnTag := strings.Split(string(output), ":")[1]
+			sdnTag = strings.TrimSpace(sdnTag)
+			sdnImage := fmt.Sprintf("%s:%s-%s", defaults.DefaultEdenSDNContainerRef, sdnTag, eveArch)
+			err = utils.PullImage(sdnImage)
+			if err != nil {
+				log.Warnf("failed to pull eden-sdn image (%s, err: %v), " +
+					"trying to build locally instead...", sdnImage, err)
+				platform := fmt.Sprintf("%s/%s", qemuOS, eveArch)
+				cmdArgs := []string{"pkg", "build", "--force", "--platforms", platform,
+					"--docker", "--build-yml", "build.yml", sdnPkg}
+				err := utils.RunCommandForeground(linuxkitBinary, cmdArgs...)
+				if err != nil {
+					log.Fatalf("Failed to build eden-sdn container: %v", err)
+				}
+			}
+			// Build Eden-SDN VM qcow2 image.
+			imageDir := filepath.Dir(sdnImageFile)
+			_ = os.MkdirAll(imageDir, 0777)
+			vmYmlIn, err := ioutil.ReadFile(filepath.Join(sdnPkg, "vm.yml.in"))
+			if err != nil {
+				log.Fatalf("Failed to read eden-sdn vm.yml.in: %v", err)
+			}
+			vmYml := strings.ReplaceAll(string(vmYmlIn), "SDN_TAG", sdnTag)
+			cmdArgs := []string{"build", "-arch", eveArch, "-format", "qcow2-efi",
+				"-dir", imageDir, "-name", "sdn", "-"}
+			err = utils.RunCommandForegroundWithStdin(linuxkitBinary, vmYml, cmdArgs...)
+			if err != nil {
+				log.Fatalf("Failed to build eden-sdn VM image: %v", err)
+			}
+			// This image filename is given by linuxkit.
+			imageFilename := filepath.Join(imageDir, "sdn-efi.qcow2")
+			if imageFilename != sdnImageFile {
+				err = os.Rename(imageFilename, sdnImageFile)
+				if err != nil {
+					log.Fatalf("Failed to rename eden-sdn VM image to requested " +
+						"filepath %s: %v", sdnImageFile, err)
+				}
+			}
+		}
 	},
 }
 

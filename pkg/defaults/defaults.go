@@ -64,6 +64,7 @@ const (
 	DefaultRegistryContainerRef = "library/registry"
 	DefaultProcContainerRef     = "lfedge/eden-processing"
 	DefaultMkimageContainerRef  = "lfedge/eve-mkimage-raw-efi"
+	DefaultEdenSDNContainerRef  = "lfedge/eden-sdn"
 	DefaultEveRepo              = "https://github.com/lf-edge/eve.git"
 	DefaultEveRegistry          = "lfedge/eve"
 	DefaultRegistry             = "docker.io"

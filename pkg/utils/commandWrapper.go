@@ -155,6 +155,15 @@ func StatusCommandWithPid(pidFile string) (status string, err error) {
 
 //RunCommandForeground command run in foreground
 func RunCommandForeground(name string, args ...string) (err error) {
+	return runCommandForeground(name, os.Stdin, args...)
+}
+
+//RunCommandForeground command run in foreground
+func RunCommandForegroundWithStdin(name, stdin string, args ...string) (err error) {
+	return runCommandForeground(name, strings.NewReader(stdin), args...)
+}
+
+func runCommandForeground(name string, stdin io.Reader, args ...string) (err error) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan,
 		syscall.SIGHUP,
@@ -162,7 +171,7 @@ func RunCommandForeground(name string, args ...string) (err error) {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	cmd := exec.Command(name, args...)
-	cmd.Stdin = os.Stdin
+	cmd.Stdin = stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	go func() {
@@ -192,15 +201,4 @@ func RunCommandWithLogAndWait(name string, logLevel log.Level, args ...string) (
 		cmd.Stderr = logWriter
 	}
 	return cmd.Run()
-}
-
-//RunCommandWithSTDINAndWait run process in foreground with stdin passed as arg
-func RunCommandWithSTDINAndWait(name string, stdin string, args ...string) (stdout string, stderr string, err error) {
-	var stdoutBuffer bytes.Buffer
-	var stderrBuffer bytes.Buffer
-	cmd := exec.Command(name, args...)
-	cmd.Stdin = strings.NewReader(stdin)
-	cmd.Stdout = &stdoutBuffer
-	cmd.Stderr = &stderrBuffer
-	return stdoutBuffer.String(), stderrBuffer.String(), cmd.Run()
 }
