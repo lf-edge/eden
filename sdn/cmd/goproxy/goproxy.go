@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	"github.com/elazarl/goproxy"
-	sdnapi "github.com/lf-edge/eden/sdn/api"
 	"github.com/elazarl/goproxy/ext/auth"
+	sdnapi "github.com/lf-edge/eden/sdn/api"
 	"github.com/lf-edge/eden/sdn/cmd/goproxy/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -130,7 +130,7 @@ func forwardHTTP(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http
 
 func rejectHTTP(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	return req, goproxy.NewResponse(req,
-		goproxy.ContentTypeText, http.StatusForbidden,"Forbidden by proxy!")
+		goproxy.ContentTypeText, http.StatusForbidden, "Forbidden by proxy!")
 }
 
 func main() {
@@ -153,7 +153,7 @@ func main() {
 	// Read and parse config file.
 	configBytes, err := ioutil.ReadFile(*configFile)
 	if err != nil {
-		log.Fatalf("failed to read config file %s: %v", configFile, err)
+		log.Fatalf("failed to read config file %s: %v", *configFile, err)
 	}
 	var proxyConfig config.ProxyConfig
 	if err = json.Unmarshal(configBytes, &proxyConfig); err != nil {
@@ -215,6 +215,6 @@ func main() {
 	}
 
 	// Run HTTP(S) proxy.
-	proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP)
+	proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, proxyConfig.ListenPort)
 	log.Fatal(http.ListenAndServe(proxyAddr, proxy))
 }

@@ -6,16 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
 	sdnapi "github.com/lf-edge/eden/sdn/api"
+	goproxycfg "github.com/lf-edge/eden/sdn/cmd/goproxy/config"
 	"github.com/lf-edge/eve/libs/depgraph"
 	"github.com/lf-edge/eve/libs/reconciler"
 	log "github.com/sirupsen/logrus"
-	goproxycfg "github.com/lf-edge/eden/sdn/cmd/goproxy/config"
 )
 
 const (

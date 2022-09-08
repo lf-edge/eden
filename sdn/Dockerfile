@@ -1,5 +1,3 @@
-# Copyright (c) 2022 Zededa, Inc.
-# SPDX-License-Identifier: Apache-2.0
 FROM lfedge/eve-alpine:6.7.0 as build
 
 ENV BUILD_PKGS git gcc go make wget libc-dev linux-headers
@@ -20,15 +18,16 @@ RUN wget https://thekelleys.org.uk/dnsmasq/dnsmasq-${DNSMASQ_VERSION}.tar.gz && 
     cd dnsmasq-${DNSMASQ_VERSION} && \
     make && make install DESTDIR=/out
 
-ARG NTP_VERSION=4.2
-ARG NTP_VERSION_PATCH=8p15
-RUN mkdir -p /ntp
-WORKDIR /ntp
-RUN wget https://archive.ntp.org/ntp4/ntp-${NTP_VERSION}/ntp-${NTP_VERSION}.${NTP_VERSION_PATCH}.tar.gz && \
-    tar xvzf ntp-${NTP_VERSION}.${NTP_VERSION_PATCH}.tar.gz && \
-    cd ntp-${NTP_VERSION}.${NTP_VERSION_PATCH} && \
-    ./configure --prefix=/out && \
-    make && make install
+#TODO: uncomment once SDN-Agent supports NTP server endpoints
+#ARG NTP_VERSION=4.2
+#ARG NTP_VERSION_PATCH=8p15
+#RUN mkdir -p /ntp
+#WORKDIR /ntp
+#RUN wget https://archive.ntp.org/ntp4/ntp-${NTP_VERSION}/ntp-${NTP_VERSION}.${NTP_VERSION_PATCH}.tar.gz && \
+#    tar xvzf ntp-${NTP_VERSION}.${NTP_VERSION_PATCH}.tar.gz && \
+#    cd ntp-${NTP_VERSION}.${NTP_VERSION_PATCH} && \
+#    ./configure --prefix=/out && \
+#    make && make install
 
 WORKDIR /out
 RUN mkdir -p ./etc/ssh ./root/.ssh && chmod 0700 ./root/.ssh
@@ -41,7 +40,6 @@ ADD ./  /sdn/
 WORKDIR /sdn
 RUN cp scripts/*sh /out/bin/
 
-ARG GOOS=linux
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
 
