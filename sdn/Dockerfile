@@ -60,6 +60,7 @@ RUN sed -i 's/#*PubkeyAuthentication yes/PubkeyAuthentication yes/g' /etc/ssh/ss
     sed -i 's/#*PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config && \
     sed -i 's/AllowTcpForwarding no/AllowTcpForwarding yes/g' /etc/ssh/sshd_config
 
+RUN chown -R root:root /root/.ssh/
 
 SHELL ["/bin/sh", "-c"]
 WORKDIR /

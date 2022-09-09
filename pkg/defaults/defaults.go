@@ -44,7 +44,7 @@ const (
 	DefaultTelnetPort           = 7777
 	DefaultQemuMonitorPort      = 7788
 	DefaultQemuNetdevSocketPort = 7790
-	DefaultSSHPort              = 22
+	DefaultSSHPort              = 2222
 	DefaultEVEHost              = "127.0.0.1"
 	DefaultRedisHost            = "localhost"
 	DefaultRedisPort            = 6379

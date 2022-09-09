@@ -622,7 +622,7 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 //GenerateEVEConfig function copy certs to EVE config folder
 //if ip is empty will not fill hosts file
 func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, port int,
-	apiV1 bool, softserial string, bootstrapFile string) (err error) {
+	apiV1 bool, softserial string, bootstrapFile string, withSDN bool) (err error) {
 	if _, err = os.Stat(eveConfig); os.IsNotExist(err) {
 		if err = os.MkdirAll(eveConfig, 0755); err != nil {
 			return fmt.Errorf("GenerateEVEConfig: %s", err)
@@ -636,7 +636,7 @@ func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, por
 		}
 	}
 	if ip != "" {
-		if devModel != defaults.DefaultQemuModel {
+		if !withSDN {
 			// Without SDN there is no DNS server that can translate adam's domain name.
 			// Put static entry to /config/hosts.
 			if _, err = os.Stat(filepath.Join(eveConfig, "hosts")); os.IsNotExist(err) {

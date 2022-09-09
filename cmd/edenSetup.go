@@ -266,7 +266,7 @@ var setupCmd = &cobra.Command{
 
 		if zedcontrolURL == "" {
 			err := eden.GenerateEVEConfig(devModel, certsDir, certsDomain, certsEVEIP,
-				adamPort, apiV1, softserial, eveBootstrapFile)
+				adamPort, apiV1, softserial, eveBootstrapFile, isSdnEnabled())
 			if err != nil {
 				log.Errorf("cannot GenerateEVEConfig: %s", err)
 			} else {
@@ -274,7 +274,7 @@ var setupCmd = &cobra.Command{
 			}
 		} else {
 			err := eden.GenerateEVEConfig(devModel, certsDir, zedcontrolURL, "", 0,
-				false, softserial, eveBootstrapFile)
+				false, softserial, eveBootstrapFile, isSdnEnabled())
 			if err != nil {
 				log.Errorf("cannot GenerateEVEConfig: %s", err)
 			} else {
