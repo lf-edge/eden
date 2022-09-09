@@ -2,7 +2,7 @@
 
 {
   echo "Starting SSH daemon..."
-  /usr/sbin/sshd -h /root/.ssh/id_rsa
+  /usr/sbin/sshd -E /run/sshd.log -h /root/.ssh/id_rsa
 
   echo "Starting Eden SDN mgmt agent..."
   while true; do
