@@ -498,8 +498,8 @@ var setupCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			sdnPkg := filepath.Join(currentPath, "sdn")
-			linuxkitBinary := filepath.Join(currentPath, defaults.DefaultDist,
-				defaults.DefaultBinDist, "linuxkit")
+			linuxkitBinary := filepath.Join(
+				currentPath, defaults.DefaultBuildtoolsDir, "linuxkit")
 			output, err := exec.Command(linuxkitBinary, "pkg", "show-tag", sdnPkg).Output()
 			if err != nil {
 				var stderr string

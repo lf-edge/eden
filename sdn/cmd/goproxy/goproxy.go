@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/elazarl/goproxy"
@@ -24,7 +24,22 @@ const (
 )
 
 var proxy *goproxy.ProxyHttpServer
-var isHTTP = goproxy.ReqHostMatches(regexp.MustCompile("^.*:80$"))
+
+func dstPortIs(port uint16) goproxy.ReqConditionFunc {
+	return func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
+		dstHost := strings.Split(req.URL.Host, ":")
+		if len(dstHost) > 1 {
+			dstPort, err := strconv.Atoi(dstHost[1])
+			if err != nil {
+				log.Errorf("Failed to convert dst port: %v", err)
+				return false
+			}
+			log.Debugf("dstPortIs %v: %d vs. %d", req, dstPort, port)
+			return dstPort == int(port)
+		}
+		return false
+	}
+}
 
 func dstHostIs(host string) goproxy.ReqConditionFunc {
 	return func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
@@ -33,28 +48,43 @@ func dstHostIs(host string) goproxy.ReqConditionFunc {
 			return true
 		}
 		dstHost := strings.Split(req.URL.Host, ":")[0]
+		log.Debugf("dstHostIs %v: %s vs. %s", req, dstHost, host)
 		return dstHost == host
 	}
 }
 
-func methodIs(method string) goproxy.ReqConditionFunc {
-	return func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
-		return req.Method == method
-	}
+func isConnect(req *http.Request, ctx *goproxy.ProxyCtx) bool {
+	_, hasConnectMark := ctx.UserData.(connectMark)
+	log.Debugf("isConnect %v: %t", req, hasConnectMark)
+	return hasConnectMark
 }
 
 func forwardConnect(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+	log.Debugf("forwardConnect: %s", host)
 	return goproxy.OkConnect, host
 }
 
 func mitmHTTPConnect(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+	log.Debugf("mitmHTTPConnect: %s", host)
 	return goproxy.HTTPMitmConnect, host
+}
+
+type connectMark struct {
+	session int64
+}
+
+func markConnect(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+	ctx.UserData = connectMark{
+		session: ctx.Session,
+	}
+	return nil, host // continue with other handlers
 }
 
 func basicAuthForConnect(f func(user, passwd string) bool) goproxy.HttpsHandler {
 	authHandler := auth.BasicConnect(authRealm, f)
 	return goproxy.FuncHttpsHandler(
 		func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+			log.Debugf("basicAuthForConnect: %s", host)
 			action, host := authHandler.HandleConnect(host, ctx)
 			if action == goproxy.OkConnect {
 				// Return nil action, do not overshadow other handlers in the queue.
@@ -62,6 +92,22 @@ func basicAuthForConnect(f func(user, passwd string) bool) goproxy.HttpsHandler 
 			}
 			return action, host
 		})
+}
+
+func forwardHTTP(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	log.Debugf("forwardHTTP: %v", req)
+	resp, err := ctx.RoundTrip(req)
+	if err != nil {
+		return req, goproxy.NewResponse(req,
+			goproxy.ContentTypeText, http.StatusInternalServerError, err.Error())
+	}
+	return req, resp
+}
+
+func rejectHTTP(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	log.Debugf("rejectHTTP: %v", req)
+	return req, goproxy.NewResponse(req,
+		goproxy.ContentTypeText, http.StatusForbidden, "Forbidden by proxy!")
 }
 
 func setCA(caCert, caKey string) error {
@@ -85,13 +131,13 @@ func setCA(caCert, caKey string) error {
 }
 
 func installHandler(rule sdnapi.ProxyRule) {
-	isConnect := methodIs("CONNECT")
-	notConnect := goproxy.Not(isConnect)
-	notHTTP := goproxy.Not(isHTTP)
+	notConnect := goproxy.Not(goproxy.ReqConditionFunc(isConnect))
+	isHTTP := dstPortIs(80)
+	isHTTPS := goproxy.Not(isHTTP)
 	switch rule.Action {
 	case sdnapi.PxForward:
 		// Forward CONNECT (works for both HTTP and HTTPS)
-		proxy.OnRequest(dstHostIs(rule.ReqHost), isConnect).HandleConnect(
+		proxy.OnRequest(dstHostIs(rule.ReqHost)).HandleConnect(
 			goproxy.FuncHttpsHandler(forwardConnect))
 		// Forward HTTP GET, POST, etc. (but not CONNECT)
 		proxy.OnRequest(dstHostIs(rule.ReqHost), notConnect).DoFunc(
@@ -99,7 +145,7 @@ func installHandler(rule sdnapi.ProxyRule) {
 
 	case sdnapi.PxReject:
 		// Reject CONNECT
-		proxy.OnRequest(dstHostIs(rule.ReqHost), isConnect).HandleConnect(
+		proxy.OnRequest(dstHostIs(rule.ReqHost)).HandleConnect(
 			goproxy.AlwaysReject)
 		// Reject HTTP GET, POST, etc. (but not CONNECT)
 		proxy.OnRequest(dstHostIs(rule.ReqHost), notConnect).DoFunc(
@@ -107,30 +153,16 @@ func installHandler(rule sdnapi.ProxyRule) {
 
 	case sdnapi.PxMITM:
 		// CONNECT is plain HTTP tunneling
-		proxy.OnRequest(dstHostIs(rule.ReqHost), isConnect, isHTTP).HandleConnect(
+		proxy.OnRequest(dstHostIs(rule.ReqHost), isHTTP).HandleConnect(
 			goproxy.FuncHttpsHandler(mitmHTTPConnect))
 		// CONNECT is TLS
-		proxy.OnRequest(dstHostIs(rule.ReqHost), isConnect, notHTTP).HandleConnect(
+		proxy.OnRequest(dstHostIs(rule.ReqHost), isHTTPS).HandleConnect(
 			goproxy.AlwaysMitm)
-		// non-CONNECT methods cannot be MITM-proxied
+		// non-CONNECT methods are simply forwarded
 		proxy.OnRequest(dstHostIs(rule.ReqHost), notConnect).DoFunc(
-			rejectHTTP)
+			forwardHTTP)
 
 	}
-}
-
-func forwardHTTP(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-	resp, err := ctx.RoundTrip(req)
-	if err != nil {
-		return req, goproxy.NewResponse(req,
-			goproxy.ContentTypeText, http.StatusInternalServerError, err.Error())
-	}
-	return req, resp
-}
-
-func rejectHTTP(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-	return req, goproxy.NewResponse(req,
-		goproxy.ContentTypeText, http.StatusForbidden, "Forbidden by proxy!")
 }
 
 func main() {
@@ -149,6 +181,7 @@ func main() {
 		req.URL.Host = req.Host
 		proxy.ServeHTTP(w, req)
 	})
+	proxy.Logger = log.StandardLogger()
 
 	// Read and parse config file.
 	configBytes, err := ioutil.ReadFile(*configFile)
@@ -183,6 +216,7 @@ func main() {
 		defer os.Remove(proxyConfig.PidFile)
 	}
 	if proxyConfig.CACertPEM != "" {
+		log.Infof("Installing CA cert and key")
 		if err = setCA(proxyConfig.CACertPEM, proxyConfig.CAKeyPEM); err != nil {
 			log.Fatal(err)
 		}
@@ -197,11 +231,13 @@ func main() {
 			// No such user.
 			return false
 		}
+		log.Infof("Installing handlers for basic auth")
 		proxy.OnRequest().Do(auth.Basic(authRealm, userAuth))
 		proxy.OnRequest().HandleConnect(basicAuthForConnect(userAuth))
 	}
 
 	// Prepare proxy handlers.
+	proxy.OnRequest().HandleConnect(goproxy.FuncHttpsHandler(markConnect))
 	var defaultRule *sdnapi.ProxyRule
 	for _, rule := range proxyConfig.ProxyRules {
 		if rule.ReqHost == "" {
@@ -216,5 +252,6 @@ func main() {
 
 	// Run HTTP(S) proxy.
 	proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, proxyConfig.ListenPort)
+	log.Infof("Proxy listening on the address %s", proxyAddr)
 	log.Fatal(http.ListenAndServe(proxyAddr, proxy))
 }

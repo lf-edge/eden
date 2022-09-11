@@ -396,6 +396,8 @@ type HostConfig struct {
 	// is not supported. In other words, to test EVE with IPv4, it is required for the host
 	// to use IPv4 (single or dual stack).
 	NetworkType NetworkType `json:"networkType"`
+	// ControllerPort : port on which controller listens for device requests.
+	ControllerPort uint16 `json:"controllerPort"`
 }
 
 // IPRange : a range of IP addresses.

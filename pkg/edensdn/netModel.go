@@ -176,6 +176,7 @@ func addMissingHostConfig(netModel *sdnapi.NetworkModel) error {
 		netModel.Host = &sdnapi.HostConfig{
 			HostIPs:     []string{hostIP},
 			NetworkType: sdnapi.Ipv4Only, // XXX For now everything is IPv4 only
+			// ControllerPort is not know at this level, must be filled in by the caller
 		}
 	}
 	return nil
