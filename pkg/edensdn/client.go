@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -88,8 +89,16 @@ func (client *SdnClient) ApplyNetworkModel(netModel model.NetworkModel) (err err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("request to PUT network model failed with resp: %s",
-			resp.Status)
+		var respBytes []byte
+		var response string
+		respBytes, err = io.ReadAll(resp.Body)
+		if err == nil {
+			response = string(respBytes)
+		} else {
+			response = fmt.Sprintf("failed to read response: %v", err)
+		}
+		err = fmt.Errorf("request to PUT network model failed with code=%d, " +
+			"response: %s",	resp.StatusCode, response)
 		return
 	}
 	return

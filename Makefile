@@ -53,6 +53,7 @@ WORKDIR=$(CURDIR)/dist
 BINDIR := dist/bin
 BIN := eden
 LOCALBIN := $(BINDIR)/$(BIN)-$(OS)-$(ARCH)
+BUILDTOOLS_DIR := $(CURDIR)/build-tools
 EMPTY_DRIVE := $(WORKDIR)/empty
 EMPTY_DRIVE_SIZE := 10M
 
@@ -61,7 +62,7 @@ DIRECTORY_EXPORT ?= $(CURDIR)/export
 ZARCH ?= $(HOSTARCH)
 export ZARCH
 
-LINUXKIT=$(WORKDIR)/bin/linuxkit
+LINUXKIT=$(BUILDTOOLS_DIR)/linuxkit
 LINUXKIT_VERSION=fc060cac15e6bb3b5977c78996a0a7bd60b4a024
 LINUXKIT_SOURCE=https://github.com/linuxkit/linuxkit.git
 
@@ -79,6 +80,9 @@ $(BINDIR):
 	mkdir -p $@
 
 $(DIRECTORY_EXPORT):
+	mkdir -p $@
+
+$(BUILDTOOLS_DIR):
 	mkdir -p $@
 
 test: build-tests
@@ -109,7 +113,7 @@ $(BIN): $(LOCALBIN)
 	ln -sf $(LOCALBIN) $@
 	ln -sf bin/$@ $(WORKDIR)/$@
 
-$(LINUXKIT):
+$(LINUXKIT): $(BUILDTOOLS_DIR)
 	@rm -rf /tmp/linuxkit
 	@git clone $(LINUXKIT_SOURCE) /tmp/linuxkit
 	@cd /tmp/linuxkit && git checkout $(LINUXKIT_VERSION)
@@ -191,6 +195,7 @@ help:
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo "   build-docker  build all docker images of EDEN"
+	@echo "   build-tools   builds linuxkit (used to build SDN VM)"
 	@echo
 	@echo "You can use some parameters:"
 	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""

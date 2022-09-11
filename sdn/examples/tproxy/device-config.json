@@ -32,7 +32,7 @@
     {
       "name": "eth0",
       "uplink": true,
-      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01",
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01"
     }
   ],
   "configItems": [

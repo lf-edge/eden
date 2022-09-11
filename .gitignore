@@ -19,6 +19,7 @@
 dist
 Config.in
 /eden
+build-tools
 
 # workflow flavours
 tests/workflow/workflow.default.txt

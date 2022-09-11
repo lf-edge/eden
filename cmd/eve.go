@@ -76,6 +76,7 @@ var startEveCmd = &cobra.Command{
 			eveTelnetPort = viper.GetInt("eve.telnet-port")
 			devModel = viper.GetString("eve.devmodel")
 			gcpvTPM = viper.GetBool("eve.tpm")
+			adamPort = viper.GetInt("adam.port")
 			loadSdnOptsFromViper()
 		}
 		return nil
@@ -623,6 +624,7 @@ func startEveQemu() {
 				sdnNetModelFile, err)
 		}
 	}
+	netModel.Host.ControllerPort = uint16(adamPort)
 	if isSdnEnabled() {
 		nets, err := utils.GetSubnetsNotUsed(1)
 		if err != nil {

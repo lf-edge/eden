@@ -19,6 +19,7 @@ const (
 	DefaultCertsDist        = "certs"            //directory for certs inside dist
 	DefaultBinDist          = "bin"              //directory for binaries inside dist
 	DefaultEdenHomeDir      = ".eden"            //directory inside HOME directory for configs
+	DefaultBuildtoolsDir    = "build-tools"      //directory to store tools needed for building (e.g. linuxkit)
 	DefaultCurrentDirConfig = "eden-config.yml"  //file for search config in current directory
 	DefaultContextFile      = "context.yml"      //file for saving current context inside DefaultEdenHomeDir
 	DefaultContextDirectory = "contexts"         //directory for saving contexts inside DefaultEdenHomeDir

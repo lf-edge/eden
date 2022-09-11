@@ -81,6 +81,7 @@ Use string \"default\" instead of a file path to apply the default network model
 		}
 		if viperLoaded {
 			devModel = viper.GetString("eve.devmodel")
+			adamPort = viper.GetInt("adam.port")
 			loadSdnOptsFromViper()
 		}
 		return nil
@@ -103,6 +104,7 @@ Use string \"default\" instead of a file path to apply the default network model
 				log.Fatalf("Failed to load network model from file '%s': %v", ref, err)
 			}
 		}
+		newNetModel.Host.ControllerPort = uint16(adamPort)
 		client := &edensdn.SdnClient{
 			SSHPort:  uint16(sdnSSHPort),
 			MgmtPort: uint16(sdnMgmtPort),
@@ -116,6 +118,9 @@ Use string \"default\" instead of a file path to apply the default network model
 			log.Fatalf("Failed to get SDN VM runner: %v", err)
 		}
 		if vmRunner.RequiresVmRestart(oldNetModel, newNetModel) {
+			if ref != "default" && !filepath.IsAbs(ref) {
+				ref = "$(pwd)/" + ref
+			}
 			log.Fatalf("Network model change requires to restart SDN and EVE VMs.\n" +
 				"Run instead:\n" +
 				"  eden eve stop\n" +

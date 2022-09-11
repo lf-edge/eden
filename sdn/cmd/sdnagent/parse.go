@@ -413,6 +413,10 @@ func (a *agent) validateHostConfig(netModel *parsedNetModel) (err error) {
 		err = errors.New("eden SDN requires at least one routable host IP address")
 		return
 	}
+	if netModel.Host.ControllerPort == 0 {
+		err = errors.New("missing controller port")
+		return
+	}
 	return nil
 }
 

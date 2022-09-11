@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -470,6 +471,11 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			ListenPort:   8080,
 		}, nil)
 		// iptables to transparently redirect traffic into the proxy
+		proxiedPorts := []string{"80", "443"}
+		controllerPort := a.netModel.Host.ControllerPort
+		if controllerPort != 80 && controllerPort != 443 {
+			proxiedPorts = append(proxiedPorts, strconv.Itoa(int(controllerPort)))
+		}
 		intendedCfg.PutItem(configitems.IptablesChain{
 			NetNamespace: nsName,
 			ChainName:    "PREROUTING",
@@ -477,19 +483,14 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			ForIPv6:      false,
 			Rules: []configitems.IptablesRule{
 				{
-					Args: []string{"-s", proxyIP.String(), "-p", "tcp", "--dport", "8080",
-						"-j", "ACCEPT"},
+					Args:        []string{"-s", proxyIP.String(), "-p", "tcp", "-j", "ACCEPT"},
 					Description: "Traffic sent out from proxy should not go back into the proxy",
 				},
 				{
-					Args: []string{"-p", "tcp", "--dport", "80", "-j", "DNAT",
+					Args: []string{"-p", "tcp", "-m", "multiport", "--dports",
+						strings.Join(proxiedPorts, ","), "-j", "DNAT",
 						"--to-destination", fmt.Sprintf("%s:8080", proxyIP.String())},
-					Description: "Send HTTP traffic into the proxy",
-				},
-				{
-					Args: []string{"-p", "tcp", "--dport", "443", "-j", "DNAT",
-						"--to-destination", fmt.Sprintf("%s:8080", proxyIP.String())},
-					Description: "Send HTTPS traffic into the proxy",
+					Description: "Send HTTP(S) traffic into the proxy",
 				},
 			},
 		}, nil)

@@ -1,7 +1,8 @@
 FROM lfedge/eve-alpine:6.7.0 as build
 
 ENV BUILD_PKGS git gcc go make wget libc-dev linux-headers
-ENV PKGS bash iptables ip6tables iproute2 dhcpcd ipset curl radvd ethtool jq tcpdump strace openssh-client openssh-server vim ca-certificates
+ENV PKGS bash iptables ip6tables iproute2 dhcpcd ipset curl radvd ethtool jq tcpdump \
+         strace openssh-client openssh-server vim ca-certificates
 RUN eve-alpine-deploy.sh
 
 ARG DEV=n
@@ -51,7 +52,8 @@ RUN echo "Downloading dependecies" && go mod download && \
     go build -ldflags "-s -w" -o /out/bin ./cmd/dns64proxy/... && \
     go build -ldflags "-s -w" -o /out/bin ./cmd/httpsrv/... && \
     go build -ldflags "-s -w" -o /out/bin ./cmd/goproxy/... && \
-    go build -ldflags "-s -w" -o /out/bin ./cmd/netbootsrv/...
+    go build -ldflags "-s -w" -o /out/bin ./cmd/netbootsrv/... && \
+    go build -ldflags "-s -w" -o /out/bin ./cmd/conntrack/...
 
 FROM scratch
 COPY --from=build /out/ /
