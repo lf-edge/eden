@@ -273,9 +273,25 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 	_, subnet, _ := net.ParseCIDR(network.Subnet) // already validated
 	gwIP := &net.IPNet{IP: net.ParseIP(network.GwIP), Mask: subnet.Mask}
 	nsName := a.networkNsName(network.LogicalLabel)
-	intendedCfg.PutItem(configitems.NetNamespace{
+	netNs := configitems.NetNamespace{
 		NsName: nsName,
-	}, nil)
+	}
+	if network.TransparentProxy != nil {
+		// DNS config for the proxy.
+		var dnsServers []net.IP
+		for _, dnsServer := range network.TransparentProxy.PublicDNS {
+			dnsServers = append(dnsServers, net.ParseIP(dnsServer))
+		}
+		for _, dnsServer := range network.TransparentProxy.PrivateDNS {
+			ep := a.getEndpoint(dnsServer)
+			dnsServers = append(dnsServers, net.ParseIP(ep.IP))
+		}
+		netNs.ResolvConf = configitems.ResolvConf{
+			Create:     true,
+			DNSServers: dnsServers,
+		}
+	}
+	intendedCfg.PutItem(netNs, nil)
 	intendedCfg.PutItem(configitems.Veth{
 		VethName: brVethName,
 		Peer1: configitems.VethPeer{
@@ -462,37 +478,42 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 	// Transparent proxy.
 	if network.TransparentProxy != nil {
 		proxyIP := gwIP.IP
+		httpsPorts := []uint16{443}
+		controllerPort := a.netModel.Host.ControllerPort
+		if controllerPort != 443 {
+			httpsPorts = append(httpsPorts, controllerPort)
+		}
 		intendedCfg.PutItem(configitems.HttpProxy{
 			Proxy:        *network.TransparentProxy,
 			ProxyName:    a.networkTProxyName(network.LogicalLabel),
 			NetNamespace: nsName,
 			VethName:     brVethName,
 			ListenIP:     proxyIP,
-			ListenPort:   8080,
+			HTTPPort:     80,
+			HTTPSPorts:   httpsPorts,
+			Transparent:  true,
 		}, nil)
 		// iptables to transparently redirect traffic into the proxy
-		proxiedPorts := []string{"80", "443"}
-		controllerPort := a.netModel.Host.ControllerPort
-		if controllerPort != 80 && controllerPort != 443 {
-			proxiedPorts = append(proxiedPorts, strconv.Itoa(int(controllerPort)))
+		dnatRules := []configitems.IptablesRule{
+			{
+				Args: []string{"-p", "tcp", "--dport", "80", "-j", "DNAT",
+					"--to-destination", proxyIP.String()},
+				Description: "Send HTTP traffic into the proxy",
+			},
+		}
+		for _, port := range httpsPorts {
+			dnatRules = append(dnatRules, configitems.IptablesRule{
+				Args: []string{"-p", "tcp", "--dport", strconv.Itoa(int(port)),
+					"-j", "DNAT", "--to-destination", proxyIP.String()},
+				Description: fmt.Sprintf("Send HTTPS traffic (port %d) into the proxy", port),
+			})
 		}
 		intendedCfg.PutItem(configitems.IptablesChain{
 			NetNamespace: nsName,
 			ChainName:    "PREROUTING",
 			Table:        "nat",
 			ForIPv6:      false,
-			Rules: []configitems.IptablesRule{
-				{
-					Args:        []string{"-s", proxyIP.String(), "-p", "tcp", "-j", "ACCEPT"},
-					Description: "Traffic sent out from proxy should not go back into the proxy",
-				},
-				{
-					Args: []string{"-p", "tcp", "-m", "multiport", "--dports",
-						strings.Join(proxiedPorts, ","), "-j", "DNAT",
-						"--to-destination", fmt.Sprintf("%s:8080", proxyIP.String())},
-					Description: "Send HTTP(S) traffic into the proxy",
-				},
-			},
+			Rules:        dnatRules,
 		}, nil)
 	}
 	return intendedCfg
@@ -563,13 +584,18 @@ func (a *agent) getIntendedProxyEp(proxy api.ExplicitProxy) dg.Graph {
 	nsName := a.endpointNsName(proxy.LogicalLabel)
 	vethName, _, _ := a.endpointVethName(proxy.LogicalLabel)
 	epIP := net.ParseIP(proxy.IP)
+	var httpsPorts []uint16
+	if proxy.HTTPSPort != 0 {
+		httpsPorts = append(httpsPorts, proxy.HTTPSPort)
+	}
 	intendedCfg.PutItem(configitems.HttpProxy{
 		Proxy:        proxy.Proxy,
 		ProxyName:    proxy.LogicalLabel,
 		NetNamespace: nsName,
 		VethName:     vethName,
 		ListenIP:     epIP,
-		ListenPort:   proxy.Port,
+		HTTPPort:     proxy.HTTPPort,
+		HTTPSPorts:   httpsPorts,
 		Users:        proxy.Users,
 	}, nil)
 	return intendedCfg

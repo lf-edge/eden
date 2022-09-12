@@ -279,6 +279,18 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 				return
 			}
 		}
+		if proxy.HTTPPort == 0 && proxy.HTTPSPort == 0 {
+			err = fmt.Errorf("Proxy %s without port numbers",
+				proxy.LogicalLabel)
+			return
+		}
+		if proxy.HTTPPort != 0 && proxy.HTTPSPort != 0 {
+			if proxy.HTTPPort == proxy.HTTPSPort {
+				err = fmt.Errorf("proxy %s with colliding ports",
+					proxy.LogicalLabel)
+				return
+			}
+		}
 		for _, user := range proxy.Users {
 			if user.Username == "" {
 				err = fmt.Errorf("Proxy %s with empty username",

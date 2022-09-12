@@ -209,10 +209,12 @@ type ExplicitProxy struct {
 	Endpoint
 	// Proxy configuration (common to transparent and explicit proxies).
 	Proxy
-	// DNSClientConfig : DNS configuration to be applied for the proxy.
-	DNSClientConfig
-	// Port : port on which the proxy listens for both HTTP and HTTPS.
-	Port uint16 `json:"port"`
+	// HTTPPort : HTTP proxy port.
+	// Zero value can be used to disable HTTP proxy.
+	HTTPPort uint16 `json:"httpPort"`
+	// HTTPSPort : HTTPS proxy port.
+	// Zero value can be used to disable HTTPS proxy.
+	HTTPSPort uint16 `json:"httpsPort"`
 	// Users : define for username/password authentication, leave empty otherwise.
 	Users []UserCredentials `json:"users"`
 }

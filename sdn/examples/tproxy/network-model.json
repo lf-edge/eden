@@ -37,7 +37,8 @@
           {
             "action": "mitm"
           }
-        ]
+        ],
+        "privateDNS": ["my-dns-server"]
       },
       "router": {
         "outsideReachability": true,
