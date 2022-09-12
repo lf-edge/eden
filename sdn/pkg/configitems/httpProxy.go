@@ -42,8 +42,14 @@ type HttpProxy struct {
 	// Can be empty to listen on all available interfaces instead of just
 	// the interface with the given host address
 	ListenIP net.IP
-	// ListenPort : Port on which the proxy listens for both HTTP and HTTPS.
-	ListenPort uint16
+	// HTTPPort : HTTP proxy port.
+	// Zero value can be used to disable HTTP proxy.
+	HTTPPort uint16
+	// HTTPSPorts : HTTPS proxy port(s).
+	// Empty list can be used to disable HTTPS proxy.
+	HTTPSPorts []uint16
+	// Transparent : enable for transparent proxy (not known to the client).
+	Transparent bool
 	// Users : define for username/password authentication, leave empty otherwise.
 	Users []sdnapi.UserCredentials
 }
@@ -82,10 +88,19 @@ func (p HttpProxy) Equal(other depgraph.Item) bool {
 			return false
 		}
 	}
+	if len(p.HTTPSPorts) != len(p2.HTTPSPorts) {
+		return false
+	}
+	for i := range p.HTTPSPorts {
+		if p.HTTPSPorts[i] != p2.HTTPSPorts[i] {
+			return false
+		}
+	}
 	return p.NetNamespace == p2.NetNamespace &&
 		p.VethName == p2.VethName &&
 		p.ListenIP.Equal(p2.ListenIP) &&
-		p.ListenPort == p2.ListenPort &&
+		p.HTTPPort == p2.HTTPPort &&
+		p.Transparent == p2.Transparent &&
 		p.CACertPEM == p2.CACertPEM &&
 		p.CAKeyPEM == p2.CAKeyPEM
 }
@@ -149,15 +164,17 @@ func (c *HttpProxyConfigurator) createGoproxyConfFile(proxy HttpProxy) error {
 		listenIP = proxy.ListenIP.String()
 	}
 	config := goproxycfg.ProxyConfig{
-		ListenIP:   listenIP,
-		ListenPort: proxy.ListenPort,
-		LogFile:    goproxyLogFile(proxyName),
-		PidFile:    goproxyPidFile(proxyName),
-		Verbose:    true,
-		CACertPEM:  proxy.CACertPEM,
-		CAKeyPEM:   proxy.CAKeyPEM,
-		ProxyRules: proxy.ProxyRules,
-		Users:      proxy.Users,
+		ListenIP:    listenIP,
+		HTTPPort:    proxy.HTTPPort,
+		HTTPSPorts:  proxy.HTTPSPorts,
+		Transparent: proxy.Transparent,
+		LogFile:     goproxyLogFile(proxyName),
+		PidFile:     goproxyPidFile(proxyName),
+		Verbose:     true,
+		CACertPEM:   proxy.CACertPEM,
+		CAKeyPEM:    proxy.CAKeyPEM,
+		ProxyRules:  proxy.ProxyRules,
+		Users:       proxy.Users,
 	}
 	configBytes, err := json.MarshalIndent(config, "", " ")
 	if err != nil {

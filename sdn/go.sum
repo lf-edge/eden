@@ -18,6 +18,8 @@ github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
 github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
+github.com/inconshreveable/go-vhost v1.0.0 h1:IK4VZTlXL4l9vz2IZoiSFbYaaqUW7dXJAiPriUN5Ur8=
+github.com/inconshreveable/go-vhost v1.0.0/go.mod h1:aA6DnFhALT3zH0y+A39we+zbrdMC2N0X/q21e6FI0LU=
 github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496 h1:txHCOKhVsKIZKvKWzyIMe3J+ATKk61o4bADhsdLk42Y=
 github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496/go.mod h1:8gtCaEwMJftnaP8PjjgRStLhOoHquzzlmYzj441QwpU=
 github.com/lf-edge/eve/libs/reconciler v0.0.0-20220711144346-0659e3b03496 h1:oNI+oOPPgh/t71AKftDHxT8g+z1u5d5HjB+TbeT+nko=

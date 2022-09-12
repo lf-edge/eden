@@ -270,6 +270,18 @@ func (n Network) ReferencesFromItem() []LogicalLabelRef {
 			})
 		}
 	}
+	// References from inside the TransparentProxy config.
+	if n.TransparentProxy != nil {
+		for _, dns := range n.TransparentProxy.PrivateDNS {
+			refs = append(refs, LogicalLabelRef{
+				ItemType:         Endpoint{}.ItemType(),
+				ItemCategory:     DNSServer{}.ItemCategory(),
+				ItemLogicalLabel: dns,
+				// Avoids duplicate DNS servers for the same tproxy.
+				RefKey: "dns-for-network-tproxy-" + n.LogicalLabel,
+			})
+		}
+	}
 	return refs
 }
 
@@ -324,6 +336,8 @@ type DNSClientConfig struct {
 
 // Proxy can be either transparent or configured explicitly.
 type Proxy struct {
+	// DNSClientConfig : DNS configuration to be applied for the proxy.
+	DNSClientConfig
 	// CertPEM : Proxy certificate of the certificate authority in the PEM format.
 	// Proxy will use CA cert to sign certificate that it generates for itself.
 	// EVE should be configured to trust CA certificate.

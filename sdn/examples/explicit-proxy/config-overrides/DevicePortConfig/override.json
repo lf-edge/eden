@@ -17,7 +17,7 @@
                 {
                     "Type": 1,
                     "Server": "my-proxy.sdn",
-                    "Port": 9090
+                    "Port": 9091
                 }
             ],
             "ProxyCertPEM": [

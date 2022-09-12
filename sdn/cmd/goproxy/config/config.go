@@ -11,8 +11,14 @@ type ProxyConfig struct {
 	// Leave empty to listen on all available interfaces instead of just
 	// the interface with the given host address.
 	ListenIP string `json:"listenIP"`
-	// ListenPort : Port on which the proxy listens for both HTTP and HTTPS.
-	ListenPort uint16 `json:"listenPort"`
+	// HTTPPort : HTTP proxy port.
+	// Zero value can be used to disable HTTP proxy.
+	HTTPPort uint16 `json:"httpPort"`
+	// HTTPSPorts : HTTPS proxy port(s).
+	// Empty list can be used to disable HTTPS proxy.
+	HTTPSPorts []uint16 `json:"httpsPorts"`
+	// Transparent : enable for transparent proxy (not known to the client).
+	Transparent bool `json:"transparent"`
 	// LogFile : file to write all log messages into.
 	LogFile string `json:"logFile"`
 	// PidFile : file to write goproxy process PID.
