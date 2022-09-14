@@ -25,6 +25,7 @@ type VolInstState struct {
 	MaxSize       string
 	AdamState     string
 	EveState      string
+	LastError     string
 	Ref           string
 	contentTreeID string
 	MountPoint    string
@@ -37,10 +38,14 @@ func volInstStateHeader() string {
 }
 
 func (volInstStateObj *VolInstState) toString() string {
+	state := volInstStateObj.EveState
+	if volInstStateObj.LastError != "" {
+		state = fmt.Sprintf("%s: %s", volInstStateObj.EveState, volInstStateObj.LastError)
+	}
 	return fmt.Sprintf("%s\t%s\t%s\t%s\t%v\t%s\t%s\t%s\t%s\t%s",
 		volInstStateObj.Name, volInstStateObj.UUID, volInstStateObj.Ref, volInstStateObj.Image,
 		volInstStateObj.VolumeType, volInstStateObj.Size, volInstStateObj.MaxSize, volInstStateObj.MountPoint,
-		volInstStateObj.AdamState, volInstStateObj.EveState)
+		volInstStateObj.AdamState, state)
 }
 
 func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
@@ -127,21 +132,23 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 			}
 		}
 		if infoObject.GetVolumeErr() != nil {
-			volInstStateObj.EveState = fmt.Sprintf("%s: %s", infoObject.State.String(), infoObject.GetVolumeErr().String())
+			volInstStateObj.LastError = infoObject.GetVolumeErr().String()
 		} else {
-			if volInstStateObj.originType == config.VolumeContentOriginType_VCOT_BLANK {
-				volInstStateObj.EveState = infoObject.GetState().String()
-			}
+			volInstStateObj.LastError = ""
+		}
+		if volInstStateObj.originType == config.VolumeContentOriginType_VCOT_BLANK {
+			volInstStateObj.EveState = infoObject.GetState().String()
 		}
 	case info.ZInfoTypes_ZiContentTree:
 		infoObject := im.GetCinfo()
 		for _, el := range ctx.volumes {
 			if infoObject.Uuid == el.contentTreeID {
+				el.EveState = infoObject.GetState().String()
 				if infoObject.GetErr() != nil {
-					el.EveState = fmt.Sprintf("%s: %s", infoObject.State.String(), infoObject.GetErr().String())
+					el.LastError = infoObject.GetErr().String()
 					continue
 				}
-				el.EveState = infoObject.State.String()
+				el.LastError = ""
 				if infoObject.State == info.ZSwState_DOWNLOAD_STARTED {
 					el.EveState = fmt.Sprintf("%s (%d%%)", el.EveState, infoObject.ProgressPercentage)
 				}
