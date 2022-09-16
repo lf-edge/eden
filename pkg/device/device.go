@@ -27,6 +27,9 @@ type Ctx struct {
 	hash                       [32]byte
 	id                         uuid.UUID
 	configVersion              int
+	baseOSContentTree          string
+	baseOSActivate             bool
+	baseOSRetryCounter         uint32
 	baseOSConfigs              []string
 	networkInstances           []string
 	adaptersForSwitch          []string
@@ -76,6 +79,15 @@ func (cfg *Ctx) GetConfigVersion() int { return cfg.configVersion }
 
 //SetConfigVersion set configVersion of device
 func (cfg *Ctx) SetConfigVersion(version int) { cfg.configVersion = version }
+
+//GetBaseOSContentTree return baseOSContentTree of device
+func (cfg *Ctx) GetBaseOSContentTree() string { return cfg.baseOSContentTree }
+
+//GetBaseOSActivate return baseOSActivate of device
+func (cfg *Ctx) GetBaseOSActivate() bool { return cfg.baseOSActivate }
+
+//GetBaseOSRetryCounter return baseOSRetryCounter of device
+func (cfg *Ctx) GetBaseOSRetryCounter() uint32 { return cfg.baseOSRetryCounter }
 
 //GetBaseOSConfigs return baseOSConfigs of device
 func (cfg *Ctx) GetBaseOSConfigs() []string { return cfg.baseOSConfigs }
@@ -136,6 +148,24 @@ func (cfg *Ctx) GetAdaptersForSwitch() []string {
 //SetAdaptersForSwitch set adaptersForSwitch of device
 func (cfg *Ctx) SetAdaptersForSwitch(adaptersForSwitch []string) {
 	cfg.adaptersForSwitch = adaptersForSwitch
+}
+
+//SetBaseOSContentTree set baseOSContentTree by contentTreeID from cloud
+func (cfg *Ctx) SetBaseOSContentTree(contentTreeID string) *Ctx {
+	cfg.baseOSContentTree = contentTreeID
+	return cfg
+}
+
+//SetBaseOSActivate set baseOSActivate
+func (cfg *Ctx) SetBaseOSActivate(baseOSActivate bool) *Ctx {
+	cfg.baseOSActivate = baseOSActivate
+	return cfg
+}
+
+//SetBaseOSRetryCounter set baseOSRetryCounter
+func (cfg *Ctx) SetBaseOSRetryCounter(baseOSRetryCounter uint32) *Ctx {
+	cfg.baseOSRetryCounter = baseOSRetryCounter
+	return cfg
 }
 
 //SetBaseOSConfig set BaseOSConfig by configIDs from cloud

@@ -43,11 +43,22 @@ func (exp *AppExpectation) getBaseOSVersion() string {
 }
 
 //checkBaseOSConfig checks if provided BaseOSConfig match expectation
-func (exp *AppExpectation) checkBaseOSConfig(baseOS *config.BaseOSConfig) bool {
+func (exp *AppExpectation) checkBaseOS(baseOS *config.BaseOS) bool {
 	if baseOS == nil {
 		return false
 	}
-	if baseOS.BaseOSVersion == exp.getBaseOSVersion() {
+	if ct, _ := exp.ctrl.GetContentTree(baseOS.GetContentTreeUuid()); ct != nil && ct.DisplayName == exp.getBaseOSVersion() {
+		return true
+	}
+	return false
+}
+
+//checkBaseOSConfig checks if provided BaseOSConfig match expectation
+func (exp *AppExpectation) checkBaseOSConfig(baseOSConfig *config.BaseOSConfig) bool {
+	if baseOSConfig == nil {
+		return false
+	}
+	if baseOSConfig.BaseOSVersion == exp.getBaseOSVersion() {
 		return true
 	}
 	return false
@@ -73,11 +84,10 @@ func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 	return baseOSConfig, nil
 }
 
-//BaseOSImage expectation gets or creates Image definition,
-//gets BaseOSConfig and returns it or creates BaseOSConfig, adds it into internal controller and returns it
-//if version is not empty will use it as BaseOSVersion
-//if withDrive set will only create drive and content tree
-func (exp *AppExpectation) BaseOSImage(baseOSVersion string, withDrive bool) (baseOSConfig *config.BaseOSConfig) {
+//	BaseOSConfig expectation gets or creates BaseOSConfig definition,
+//	adds it into internal controller and returns it
+//	if version is not empty will use it as BaseOSVersion
+func (exp *AppExpectation) BaseOSConfig(baseOSVersion string) (baseOSConfig *config.BaseOSConfig) {
 	exp.baseOSVersion = baseOSVersion
 	var err error
 	if exp.appType == fileApp {
@@ -105,17 +115,26 @@ func (exp *AppExpectation) BaseOSImage(baseOSVersion string, withDrive bool) (ba
 		log.Infof("new base os created %s", baseOSConfig.Uuidandversion.Uuid)
 	}
 
-	// provision content tree and volume in addition to Drive record in config
-	if withDrive && len(baseOSConfig.Drives) == 1 {
-		contentTree := exp.imageToContentTree(image, image.Name)
-		_ = exp.ctrl.AddContentTree(contentTree)
-		exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), contentTree.Uuid))
+	return
+}
 
-		volume := exp.driveToVolume(baseOSConfig.Drives[0], 0, contentTree)
-		_ = exp.ctrl.AddVolume(volume)
-		exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), volume.Uuid))
-
-		baseOSConfig.VolumeID = volume.Uuid
+//	BaseOS expectation gets or creates BaseOS definition,
+//	adds it into internal controller and returns it
+//	if version is not empty will use it as BaseOSVersion
+func (exp *AppExpectation) BaseOS(baseOSVersion string) (baseOS *config.BaseOS) {
+	exp.baseOSVersion = baseOSVersion
+	var err error
+	if exp.appType == fileApp {
+		if exp.appURL, err = utils.GetFileFollowLinks(exp.appURL); err != nil {
+			log.Fatalf("GetFileFollowLinks: %s", err)
+		}
+	}
+	image := exp.Image()
+	contentTree := exp.imageToContentTree(image, exp.getBaseOSVersion())
+	_ = exp.ctrl.AddContentTree(contentTree)
+	exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), contentTree.Uuid))
+	baseOS = &config.BaseOS{
+		ContentTreeUuid: contentTree.GetUuid(),
 	}
 
 	return

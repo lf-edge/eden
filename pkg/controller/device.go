@@ -110,6 +110,14 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (*device.Ctx, e
 	}
 	dev.SetBaseOSConfig(baseOSs)
 
+	if config.Baseos != nil {
+		dev.SetBaseOSContentTree(config.Baseos.ContentTreeUuid)
+		dev.SetBaseOSActivate(config.Baseos.Activate)
+		if config.Baseos.RetryUpdate != nil {
+			dev.SetBaseOSRetryCounter(config.Baseos.RetryUpdate.Counter)
+		}
+	}
+
 	var physIOIDs []string
 	for _, el := range config.DeviceIoList {
 		id, err := uuid.NewV4()
@@ -447,9 +455,34 @@ func (cloud *CloudCtx) checkDriveDs(drive *config.Drive, dataStores []*config.Da
 func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error) {
 	var contentTrees []*config.ContentTree
 	var volumes []*config.Volume
-	var baseOS []*config.BaseOSConfig
+	var baseOSConfigs []*config.BaseOSConfig
+	baseOS := &config.BaseOS{
+		Activate: dev.GetBaseOSActivate(),
+	}
 	var dataStores []*config.DatastoreConfig
-baseOSLoop:
+	var err error
+	if dev.GetBaseOSContentTree() != "" {
+		if contentTreeConfig, _ := cloud.GetContentTree(dev.GetBaseOSContentTree()); contentTreeConfig != nil {
+			for _, contentTree := range contentTrees {
+				if contentTree.Uuid == contentTreeConfig.Uuid {
+					contentTreeConfig = nil
+					break
+				}
+			}
+			if contentTreeConfig != nil {
+				// add required datastores
+				dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
+				if err != nil {
+					return nil, err
+				}
+				contentTrees = append(contentTrees, contentTreeConfig)
+			}
+		}
+		baseOS.ContentTreeUuid = dev.GetBaseOSContentTree()
+	}
+	if dev.GetBaseOSRetryCounter() != 0 {
+		baseOS.RetryUpdate = &config.DeviceOpsCmd{Counter: dev.GetBaseOSRetryCounter()}
+	}
 	for _, baseOSConfigID := range dev.GetBaseOSConfigs() {
 		baseOSConfig, err := cloud.GetBaseOSConfig(baseOSConfigID)
 		if err != nil {
@@ -464,38 +497,7 @@ baseOSLoop:
 			}
 		}
 
-		baseOS = append(baseOS, baseOSConfig)
-
-		if baseOSConfig.VolumeID != "" {
-			volumeConfig, err := cloud.GetVolume(baseOSConfig.VolumeID)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, v := range volumes {
-				if v.Uuid == baseOSConfig.VolumeID {
-					continue baseOSLoop
-				}
-			}
-			volumes = append(volumes, volumeConfig)
-
-			if contentTreeConfig, err := cloud.GetContentTree(volumeConfig.Origin.DownloadContentTreeID); err == nil {
-				for _, contentTree := range contentTrees {
-					if contentTree.Uuid == contentTreeConfig.Uuid {
-						contentTreeConfig = nil
-						break
-					}
-				}
-				if contentTreeConfig != nil {
-					//add required datastores
-					dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
-					if err != nil {
-						return nil, err
-					}
-					contentTrees = append(contentTrees, contentTreeConfig)
-				}
-			}
-		}
+		baseOSConfigs = append(baseOSConfigs, baseOSConfig)
 	}
 volumeLoop:
 	//we must add volumes and contentTrees into EdgeDevConfig
@@ -636,7 +638,8 @@ volumeLoop:
 		Apps:               applicationInstances,
 		Networks:           networkConfigs,
 		Datastores:         dataStores,
-		Base:               baseOS,
+		Baseos:             baseOS,
+		Base:               baseOSConfigs,
 		Reboot:             rebootCmd,
 		Shutdown:           shutdownCmd,
 		Backup:             nil,

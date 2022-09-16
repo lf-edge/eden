@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/expect"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -583,59 +582,6 @@ var linkEveCmd = &cobra.Command{
 	},
 }
 
-var updateEveCmd = &cobra.Command{
-	Use:   "update <image file or url (oci:// or file:// or http(s)://)>",
-	Short: "Update EVE image.",
-	Long:  `Update EVE image.`,
-	Args:  cobra.ExactArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		if baseOSVersionFlag := cmd.Flags().Lookup("os-version"); baseOSVersionFlag != nil {
-			if err := viper.BindPFlag("eve.base-tag", baseOSVersionFlag); err != nil {
-				log.Fatal(err)
-			}
-		}
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading configFile: %s", err.Error())
-		}
-		if viperLoaded {
-			eserverPort = viper.GetInt("eden.eserver.port")
-			edenDist = viper.GetString("eden.dist")
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		var opts []expect.ExpectationOption
-		baseOSImage := args[0]
-		changer, err := changerByControllerMode(controllerMode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ctrl, dev, err := changer.getControllerAndDev()
-		if err != nil {
-			log.Fatalf("getControllerAndDev error: %s", err)
-		}
-		registryToUse := registry
-		switch registry {
-		case "local":
-			registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
-		case "remote":
-			registryToUse = ""
-		}
-		opts = append(opts, expect.WithRegistry(registryToUse))
-		expectation := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "", opts...)
-		if len(qemuPorts) == 0 {
-			qemuPorts = nil
-		}
-		baseOSImageConfig := expectation.BaseOSImage(baseOSVersion, baseOSVDrive)
-		dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
-		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-			log.Fatalf("setControllerAndDev: %s", err)
-		}
-	},
-}
-
 func eveInit() {
 	eveCmd.AddCommand(startEveCmd)
 	eveCmd.AddCommand(stopEveCmd)
@@ -648,7 +594,6 @@ func eveInit() {
 	eveCmd.AddCommand(versionEveCmd)
 	eveCmd.AddCommand(epochEveCmd)
 	eveCmd.AddCommand(linkEveCmd)
-	eveCmd.AddCommand(updateEveCmd)
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -683,5 +628,4 @@ func eveInit() {
 	linkEveCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	linkEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "name of the EVE VBox VM")
 	linkEveCmd.Flags().StringVarP(&eveInterfaceName, "interface-name", "i", "", "EVE interface to get/change the link state of")
-	updateEveCmd.Flags()
 }

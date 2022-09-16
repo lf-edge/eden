@@ -25,7 +25,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67
 	github.com/lf-edge/edge-containers v0.0.0-20220320131500-9d9f95d81e2c
-	github.com/lf-edge/eve/api/go v0.0.0-20220711144346-0659e3b03496
+	github.com/lf-edge/eve/api/go v0.0.0-20220922050101-e6c69cc97282
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/sys/mount v0.3.3 // indirect
