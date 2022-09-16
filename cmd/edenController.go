@@ -172,8 +172,15 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		if len(qemuPorts) == 0 {
 			qemuPorts = nil
 		}
-		baseOSImageConfig := expectation.BaseOSImage(baseOSVersion, baseOSVDrive)
-		dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
+		if baseOSVDrive {
+			baseOSImageConfig := expectation.BaseOSConfig(baseOSVersion)
+			dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
+		}
+		baseOS := expectation.BaseOS(baseOSVersion)
+		dev.SetBaseOSActivate(true)
+		dev.SetBaseOSContentTree(baseOS.ContentTreeUuid)
+		dev.SetBaseOSRetryCounter(0)
+
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev: %s", err)
 		}
@@ -273,6 +280,13 @@ var edgeNodeEVEImageRemove = &cobra.Command{
 					toActivate = false
 					baseOSConfig.Activate = true //activate another one if exists
 				}
+			}
+		}
+		for _, contentTree := range ctrl.ListContentTree() {
+			if contentTree.DisplayName == baseOSVersion && contentTree.Uuid == dev.GetBaseOSContentTree() {
+				dev.SetBaseOSActivate(false)
+				dev.SetBaseOSRetryCounter(0)
+				dev.SetBaseOSContentTree("")
 			}
 		}
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
@@ -597,7 +611,7 @@ func controllerInit() {
 	edgeNodeEVEImageUpdate.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
 	edgeNodeEVEImageUpdate.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	edgeNodeEVEImageUpdate.Flags().BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
-	edgeNodeEVEImageUpdate.Flags().BoolVar(&baseOSVDrive, "drive", false, "provide drive to baseOS")
+	edgeNodeEVEImageUpdate.Flags().BoolVar(&baseOSVDrive, "drive", true, "provide drive to baseOS")
 	edgeNodeEVEImageRemove.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
 	edgeNodeEVEImageRemove.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	edgeNodeUpdateFlags := edgeNodeUpdate.Flags()

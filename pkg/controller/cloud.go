@@ -16,7 +16,7 @@ type CloudCtx struct {
 	images               []*config.Image
 	contentTrees         []*config.ContentTree
 	volumes              []*config.Volume
-	baseOS               []*config.BaseOSConfig
+	baseOSConfigs        []*config.BaseOSConfig
 	networkInstances     []*config.NetworkInstanceConfig
 	networks             []*config.NetworkConfig
 	physicalIOs          map[string]*config.PhysicalIO
