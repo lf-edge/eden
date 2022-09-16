@@ -51,8 +51,9 @@ var sdnNetModelGetCmd = &cobra.Command{
 			log.Fatalf("SDN is not enabled")
 		}
 		client := &edensdn.SdnClient{
-			SSHPort:  uint16(sdnSSHPort),
-			MgmtPort: uint16(sdnMgmtPort),
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath(),
+			MgmtPort:   uint16(sdnMgmtPort),
 		}
 		netModel, err := client.GetNetworkModel()
 		if err != nil {
@@ -106,8 +107,9 @@ Use string \"default\" instead of a file path to apply the default network model
 		}
 		newNetModel.Host.ControllerPort = uint16(adamPort)
 		client := &edensdn.SdnClient{
-			SSHPort:  uint16(sdnSSHPort),
-			MgmtPort: uint16(sdnMgmtPort),
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath(),
+			MgmtPort:   uint16(sdnMgmtPort),
 		}
 		oldNetModel, err := client.GetNetworkModel()
 		if err != nil {
@@ -159,8 +161,9 @@ Alternatively, visualize using the online tool: https://dreampuf.github.io/Graph
 			log.Fatalf("SDN is not enabled")
 		}
 		client := &edensdn.SdnClient{
-			SSHPort:  uint16(sdnSSHPort),
-			MgmtPort: uint16(sdnMgmtPort),
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath(),
+			MgmtPort:   uint16(sdnMgmtPort),
 		}
 		netConfig, err := client.GetNetworkConfigGraph()
 		if err != nil {
@@ -207,8 +210,9 @@ func sdnStatus() {
 		fmt.Printf("\tConsole logs for SDN at: %s\n", sdnConsoleLogFile)
 	}
 	client := &edensdn.SdnClient{
-		SSHPort:  uint16(sdnSSHPort),
-		MgmtPort: uint16(sdnMgmtPort),
+		SSHPort:    uint16(sdnSSHPort),
+		SSHKeyPath: sdnSSHKeyPath(),
+		MgmtPort:   uint16(sdnMgmtPort),
 	}
 	status, err := client.GetSdnStatus()
 	if err != nil {
@@ -242,8 +246,9 @@ var sdnSshCmd = &cobra.Command{
 			log.Fatalf("SDN is not enabled")
 		}
 		client := &edensdn.SdnClient{
-			SSHPort:  uint16(sdnSSHPort),
-			MgmtPort: uint16(sdnMgmtPort),
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath(),
+			MgmtPort:   uint16(sdnMgmtPort),
 		}
 		err := client.SSHIntoSdnVM()
 		if err != nil {
@@ -272,8 +277,9 @@ var sdnLogsCmd = &cobra.Command{
 			log.Fatalf("SDN is not enabled")
 		}
 		client := &edensdn.SdnClient{
-			SSHPort:  uint16(sdnSSHPort),
-			MgmtPort: uint16(sdnMgmtPort),
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath(),
+			MgmtPort:   uint16(sdnMgmtPort),
 		}
 		sdnLogs, err := client.GetSdnLogs()
 		if err != nil {
@@ -303,8 +309,9 @@ var sdnMgmtIpCmd = &cobra.Command{
 			log.Fatalf("SDN is not enabled")
 		}
 		client := &edensdn.SdnClient{
-			SSHPort:  uint16(sdnSSHPort),
-			MgmtPort: uint16(sdnMgmtPort),
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath(),
+			MgmtPort:   uint16(sdnMgmtPort),
 		}
 		status, err := client.GetSdnStatus()
 		if err != nil {
@@ -362,8 +369,9 @@ the EVE's port forwarding capability.`,
 		command := args[1]
 		args = args[2:]
 		client := &edensdn.SdnClient{
-			SSHPort:  uint16(sdnSSHPort),
-			MgmtPort: uint16(sdnMgmtPort),
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath(),
+			MgmtPort:   uint16(sdnMgmtPort),
 		}
 		err := client.RunCmdFromEndpoint(epName, command, args...)
 		if err != nil {
@@ -489,8 +497,9 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		log.Fatalf("failed to find unused port number: %v", err)
 	}
 	client := &edensdn.SdnClient{
-		SSHPort:  uint16(sdnSSHPort),
-		MgmtPort: uint16(sdnMgmtPort),
+		SSHPort:    uint16(sdnSSHPort),
+		SSHKeyPath: sdnSSHKeyPath(),
+		MgmtPort:   uint16(sdnMgmtPort),
 	}
 	closeTunnel, err := client.SSHPortForwarding(localPort, uint16(targetPort), targetIP)
 	if err != nil {
@@ -521,6 +530,10 @@ func sdnForwardSCPFromEve(remoteFilePath, localFilePath string) {
 	sdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
 }
 
+func sdnSSHKeyPath() string {
+	return filepath.Join(sdnSourceDir, "cert/ssh/id_rsa")
+}
+
 // Run after loading these options from config:
 //   - devModel = viper.GetString("eve.devmodel")
 //   - loadSdnOptsFromViper()
@@ -531,6 +544,11 @@ func isSdnEnabled() bool {
 
 func loadSdnOptsFromViper() {
 	sdnImageFile = utils.ResolveAbsPath(viper.GetString("sdn.image-file"))
+	sdnSourceDir = utils.ResolveAbsPath(viper.GetString("sdn.source-dir"))
+	sdnRAM = viper.GetInt("sdn.ram")
+	sdnCPU = viper.GetInt("sdn.cpu")
+	sdnConfigDir = utils.ResolveAbsPath(viper.GetString("sdn.config-dir"))
+	sdnLinuxkitBin = utils.ResolveAbsPath(viper.GetString("sdn.linuxkit-bin"))
 	sdnNetModelFile = utils.ResolveAbsPath(viper.GetString("sdn.network-model"))
 	sdnConsoleLogFile = utils.ResolveAbsPath(viper.GetString("sdn.console-log"))
 	sdnDisable = viper.GetBool("sdn.disable")
@@ -542,6 +560,8 @@ func loadSdnOptsFromViper() {
 
 func addSdnStartOpts(parentCmd *cobra.Command) {
 	addSdnPidOpt(parentCmd)
+	addSdnConfigDirOpt(parentCmd)
+	addSdnVmOpts(parentCmd)
 	addSdnNetModelOpt(parentCmd)
 	addSdnPortOpts(parentCmd)
 	addSdnLogOpt(parentCmd)
@@ -559,6 +579,11 @@ func addSdnPidOpt(parentCmd *cobra.Command) {
 
 func addSdnNetModelOpt(parentCmd *cobra.Command) {
 	parentCmd.Flags().StringVarP(&sdnNetModelFile, "sdn-network-model", "", "", "path to JSON file with network model to apply into SDN")
+}
+
+func addSdnVmOpts(parentCmd *cobra.Command) {
+	parentCmd.Flags().IntVarP(&sdnRAM, "sdn-ram", "", defaults.DefaultSdnMemory, "memory (MB) for SDN VM")
+	parentCmd.Flags().IntVarP(&sdnCPU, "sdn-cpu", "", defaults.DefaultSdnCpus, "CPU count for SDN VM")
 }
 
 func addSdnPortOpts(parentCmd *cobra.Command) {
@@ -581,6 +606,18 @@ func addSdnImageOpt(parentCmd *cobra.Command) {
 
 func addSdnDisableOpt(parentCmd *cobra.Command) {
 	parentCmd.Flags().BoolVarP(&sdnDisable, "sdn-disable", "", false, "disable Eden-SDN (do not run SDN VM)")
+}
+
+func addSdnSourceDirOpt(parentCmd *cobra.Command) {
+	parentCmd.Flags().StringVarP(&sdnSourceDir, "sdn-source-dir", "", "", "directory with SDN source code")
+}
+
+func addSdnConfigDirOpt(parentCmd *cobra.Command) {
+	parentCmd.Flags().StringVarP(&sdnConfigDir, "sdn-config-dir", "", "", "directory where to put generated SDN-related config files")
+}
+
+func addSdnLinuxkitOpt(parentCmd *cobra.Command) {
+	parentCmd.Flags().StringVarP(&sdnLinuxkitBin, "sdn-linuxkit-bin", "", "", "path to linuxkit binary used to build SDN VM")
 }
 
 func sdnInit() {

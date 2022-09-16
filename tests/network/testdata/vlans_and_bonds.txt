@@ -4,7 +4,7 @@
 [!exec:curl] stop
 [!exec:sleep] stop
 
-# TODO: rewrite this test for Eden-SDN
+skip 'TODO: completely rewrite this test for Eden-SDN'
 
 {{$srvimage := "docker://lfedge/eden-docker-test:83cfe07"}}
 {{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@{{end}}

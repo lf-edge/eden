@@ -179,19 +179,7 @@ func StatusEVEQemu(pidFile string) (status string, err error) {
 }
 
 //SetLinkStateQemu changes the link state of the given interface.
-//If interface name is undefined, the function changes the link state of every uplink interface.
-//This is only called when SLIRP networking is used and SDN is disabled.
 func SetLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
-	if ifName == "" {
-		if err := setLinkStateQemu(qemuMonitorPort, "eth0", up); err != nil {
-			return err
-		}
-		return setLinkStateQemu(qemuMonitorPort, "eth1", up)
-	}
-	return setLinkStateQemu(qemuMonitorPort, ifName, up)
-}
-
-func setLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
 	tcpAddr, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", qemuMonitorPort))
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
@@ -225,16 +213,18 @@ func setLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
 	return nil
 }
 
-//GetLinkStateQemu returns the link state of the interface.
-//If interface name is undefined, link state of all interfaces is returned.
-//This is only called when SLIRP networking is used and SDN is disabled.
-func GetLinkStateQemu(qemuMonitorPort int, ifName string) (linkStates []edensdn.LinkState, err error) {
+//GetLinkStatesQemu returns link states for the given set of EVE interfaces.
+func GetLinkStatesQemu(qemuMonitorPort int, ifNames []string) (linkStates []edensdn.LinkState, err error) {
 	// Unfortunately QEMU Monitor doesn't provide command to obtain
 	// the current link state of interfaces.
 	// All we can do is to traverse through the command history,
 	// find the last invocation of set_link command for every interface and assume
 	// that it succeeded.
-	var linkStateMap = map[string]bool{"eth0": true, "eth1": true} // initial state
+	var linkStateMap = make(map[string]bool)
+	for _, ifName := range ifNames {
+		// initial state
+		linkStateMap[ifName] = true
+	}
 	tcpAddr, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", qemuMonitorPort))
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
@@ -266,9 +256,6 @@ func GetLinkStateQemu(qemuMonitorPort int, ifName string) (linkStates []edensdn.
 		return nil, fmt.Errorf("failed to read response from QEMU monitor: %v", scanner.Err())
 	}
 	for nicName, isUP := range linkStateMap {
-		if ifName != "" && ifName != nicName {
-			continue
-		}
 		linkStates = append(linkStates, edensdn.LinkState{EveIfName: nicName, IsUP: isUP})
 	}
 	return linkStates, nil

@@ -305,18 +305,7 @@ func StatusEVEVBox(vmName string) (status string, err error) {
 }
 
 // SetLinkStateVbox changes the link state of the given interface.
-// If interface name is undefined, the function changes the link state of every uplink interface.
 func SetLinkStateVbox(vmName, ifName string, up bool) error {
-	if ifName == "" {
-		if err := setLinkStateVbox(vmName, "eth0", up); err != nil {
-			return err
-		}
-		return setLinkStateVbox(vmName, "eth1", up)
-	}
-	return setLinkStateVbox(vmName, ifName, up)
-}
-
-func setLinkStateVbox(vmName, ifName string, up bool) error {
 	var ifIdx int
 	switch ifName {
 	case "eth0":
@@ -335,9 +324,8 @@ func setLinkStateVbox(vmName, ifName string, up bool) error {
 	return err
 }
 
-// GetLinkStateVbox returns the link state of the interface.
-// If interface name is undefined, link state of all interfaces is returned.
-func GetLinkStateVbox(vmName, ifName string) (linkStates []edensdn.LinkState, err error) {
+// GetLinkStatesVbox returns link states for the given set of EVE interfaces.
+func GetLinkStatesVbox(vmName string, ifNames []string) (linkStates []edensdn.LinkState, err error) {
 	out, _, err := utils.RunCommandAndWait("VBoxManage", strings.Fields(fmt.Sprintf("showvminfo %s", vmName))...)
 	if err != nil {
 		return nil, err
@@ -352,7 +340,14 @@ func GetLinkStateVbox(vmName, ifName string) (linkStates []edensdn.LinkState, er
 				continue
 			}
 			nicName := fmt.Sprintf("eth%d", nicIdx-1)
-			if ifName != "" && ifName != nicName {
+			var requested bool
+			for _, ifName := range ifNames {
+				if ifName == nicName {
+					requested = true
+					break
+				}
+			}
+			if !requested {
 				continue
 			}
 			isUp := match[2] == "on"

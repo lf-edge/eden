@@ -262,11 +262,26 @@ registry:
     dist: '{{parse "registry.dist"}}'
 
 sdn:
-    # Disable SDN
+    #disable SDN
     disable: '{{parse "sdn.disable"}}'
+
+    #directory with SDN source code
+    source-dir: '{{parse "sdn.source-dir"}}'
+
+    #directory where to put generated SDN-related config files
+    config-dir: '{{parse "sdn.config-dir"}}'
 
     #live image of SDN
     image-file: '{{parse "sdn.image-file"}}'
+
+    #path to linuxkit binary used to build SDN VM
+    linuxkit-bin: '{{parse "sdn.linuxkit-bin"}}'
+
+    #CPU count for SDN VM
+    cpu: {{parse "sdn.cpu"}}
+
+    #memory (MB) for SDN VM
+    ram: {{parse "sdn.ram"}}
 
     #SDN pid file
     pid: '{{parse "sdn.pid"}}'

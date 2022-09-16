@@ -100,6 +100,8 @@ func NewTestContext() *TestContext {
 	return tstCtx
 }
 
+// TODO: add method to forward traffic into EVE
+
 //GetNodeDescriptions returns list of nodes from config
 func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	if eveList := viper.GetStringMap("test.eve"); len(eveList) > 0 {
