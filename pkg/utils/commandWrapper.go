@@ -153,17 +153,38 @@ func StatusCommandWithPid(pidFile string) (status string, err error) {
 	return fmt.Sprintf("running with pid %d", pid), nil
 }
 
+//CommandOpt allows to modify Cmd config.
+type CommandOpt func(cmd *exec.Cmd)
+
+//SetCommandStdin sets the given string as the standard input for the command.
+func SetCommandStdin(stdin string) CommandOpt {
+	return func(cmd *exec.Cmd) {
+		cmd.Stdin = strings.NewReader(stdin)
+	}
+}
+
+//SetCommandEnvVars sets the given list of key=value strings as the environment
+//variables for the command.
+func SetCommandEnvVars(vars []string) CommandOpt {
+	return func(cmd *exec.Cmd) {
+		cmd.Env = vars
+	}
+}
+
 //RunCommandForeground command run in foreground
 func RunCommandForeground(name string, args ...string) (err error) {
-	return runCommandForeground(name, os.Stdin, args...)
+	setThisProcessStdin := func(cmd *exec.Cmd) {
+		cmd.Stdin = os.Stdin
+	}
+	return runCommandForeground(name, args, []CommandOpt{setThisProcessStdin})
 }
 
 //RunCommandForeground command run in foreground
-func RunCommandForegroundWithStdin(name, stdin string, args ...string) (err error) {
-	return runCommandForeground(name, strings.NewReader(stdin), args...)
+func RunCommandForegroundWithOpts(name string, args []string, opts ...CommandOpt) (err error) {
+	return runCommandForeground(name, args, opts)
 }
 
-func runCommandForeground(name string, stdin io.Reader, args ...string) (err error) {
+func runCommandForeground(name string, args []string, opts []CommandOpt) (err error) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan,
 		syscall.SIGHUP,
@@ -171,9 +192,11 @@ func runCommandForeground(name string, stdin io.Reader, args ...string) (err err
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	cmd := exec.Command(name, args...)
-	cmd.Stdin = stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	for _, opt := range opts {
+		opt(cmd)
+	}
 	go func() {
 		<-sigChan
 		_ = cmd.Process.Kill()

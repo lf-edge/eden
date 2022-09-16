@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+// TODO: Update for SDN
+
 // This test deploys the docker://nginx app into EVE with port forwarding 8028->80
 // wait for the RUNNING state and checks access to HTTP endpoint
 // and removes app from EVE

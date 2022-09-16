@@ -24,6 +24,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TODO: Update this to work SDN
+
 // This test deploys the VM with image https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-ARCH.img
 // with ARCH from config and vncDisplay into EVE
 // waits for the RUNNING state and checks access to VNC and SSH console

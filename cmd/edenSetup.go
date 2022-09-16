@@ -469,6 +469,8 @@ var setupCmd = &cobra.Command{
 				cfgDir := home + "/.eden/"
 				_, err = os.Stat(cfgDir)
 				if err != nil {
+					// Most likely running from inside of "eden test" which sets home directory
+					// to "/no-home".
 					fmt.Printf("Directory %s access error: %s\n",
 						cfgDir, err)
 				} else {
@@ -493,14 +495,12 @@ var setupCmd = &cobra.Command{
 		}
 		// Build Eden-SDN VM image unless the SDN is disabled.
 		if isSdnEnabled() {
-			currentPath, err := os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			if err = os.MkdirAll(sdnConfigDir, 0777); err != nil {
+				log.Fatalf("Failed to create directory for SDN config files: %v", err)
 			}
-			sdnPkg := filepath.Join(currentPath, "sdn")
-			linuxkitBinary := filepath.Join(
-				currentPath, defaults.DefaultBuildtoolsDir, "linuxkit")
-			output, err := exec.Command(linuxkitBinary, "pkg", "show-tag", sdnPkg).Output()
+			// Get Eden-SDN version.
+			cmdArgs := []string{"pkg", "show-tag", sdnSourceDir}
+			output, err := exec.Command(sdnLinuxkitBin, cmdArgs...).Output()
 			if err != nil {
 				var stderr string
 				if ee, ok := err.(*exec.ExitError); ok {
@@ -510,18 +510,21 @@ var setupCmd = &cobra.Command{
 				}
 				log.Fatalf("linuxkit pkg show-tag failed: %v", stderr)
 			}
-			// Build or preferably pull eden-sdn container.
 			sdnTag := strings.Split(string(output), ":")[1]
 			sdnTag = strings.TrimSpace(sdnTag)
+			// Build or preferably pull eden-sdn container.
+			homeDir := filepath.Join(edenRoot, "linuxkit-home")
+			envVars := append(os.Environ(), fmt.Sprintf("HOME=%s", homeDir))
 			sdnImage := fmt.Sprintf("%s:%s-%s", defaults.DefaultEdenSDNContainerRef, sdnTag, eveArch)
 			err = utils.PullImage(sdnImage)
 			if err != nil {
 				log.Warnf("failed to pull eden-sdn image (%s, err: %v), " +
 					"trying to build locally instead...", sdnImage, err)
 				platform := fmt.Sprintf("%s/%s", qemuOS, eveArch)
-				cmdArgs := []string{"pkg", "build", "--force", "--platforms", platform,
-					"--docker", "--build-yml", "build.yml", sdnPkg}
-				err := utils.RunCommandForeground(linuxkitBinary, cmdArgs...)
+				cmdArgs = []string{"pkg", "build", "--force", "--platforms", platform,
+					"--docker", "--build-yml", "build.yml", sdnSourceDir}
+				err := utils.RunCommandForegroundWithOpts(sdnLinuxkitBin, cmdArgs,
+					utils.SetCommandEnvVars(envVars))
 				if err != nil {
 					log.Fatalf("Failed to build eden-sdn container: %v", err)
 				}
@@ -529,14 +532,15 @@ var setupCmd = &cobra.Command{
 			// Build Eden-SDN VM qcow2 image.
 			imageDir := filepath.Dir(sdnImageFile)
 			_ = os.MkdirAll(imageDir, 0777)
-			vmYmlIn, err := ioutil.ReadFile(filepath.Join(sdnPkg, "vm.yml.in"))
+			vmYmlIn, err := ioutil.ReadFile(filepath.Join(sdnSourceDir, "vm.yml.in"))
 			if err != nil {
 				log.Fatalf("Failed to read eden-sdn vm.yml.in: %v", err)
 			}
 			vmYml := strings.ReplaceAll(string(vmYmlIn), "SDN_TAG", sdnTag)
-			cmdArgs := []string{"build", "-arch", eveArch, "-format", "qcow2-efi",
-				"-dir", imageDir, "-name", "sdn", "-"}
-			err = utils.RunCommandForegroundWithStdin(linuxkitBinary, vmYml, cmdArgs...)
+			cmdArgs = []string{"build", "--arch", eveArch, "--format", "qcow2-efi",
+				"--docker", "--dir", imageDir, "--name", "sdn", "-"}
+			err = utils.RunCommandForegroundWithOpts(sdnLinuxkitBin, cmdArgs,
+				utils.SetCommandStdin(vmYml), utils.SetCommandEnvVars(envVars))
 			if err != nil {
 				log.Fatalf("Failed to build eden-sdn VM image: %v", err)
 			}
@@ -600,6 +604,9 @@ func setupInit() {
 
 	setupCmd.Flags().StringVar(&ipxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
 	setupCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
+	addSdnConfigDirOpt(setupCmd)
 	addSdnImageOpt(setupCmd)
 	addSdnDisableOpt(setupCmd)
+	addSdnSourceDirOpt(setupCmd)
+	addSdnLinuxkitOpt(setupCmd)
 }

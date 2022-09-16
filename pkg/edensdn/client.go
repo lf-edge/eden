@@ -1,6 +1,7 @@
 package edensdn
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -17,8 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const sshKeyPath = "./sdn/cert/ssh/id_rsa"
-
 //LinkState of an EVE uplink interface.
 type LinkState struct {
 	EveIfName string
@@ -29,8 +28,9 @@ type LinkState struct {
 // It also allows to SSH into SDN VM, establish SSH port forwarding with SDN VM
 // and to run command from inside of an endpoint deployed in Eden-SDN.
 type SdnClient struct {
-	SSHPort  uint16
-	MgmtPort uint16
+	SSHPort    uint16
+	SSHKeyPath string
+	MgmtPort   uint16
 }
 
 // GetNetworkModel : get network model currently applied to Eden-SDN.
@@ -168,8 +168,11 @@ func (client *SdnClient) GetSdnStatus() (status model.SDNStatus, err error) {
 }
 
 func (client *SdnClient) sshArgs(extra ...string) (sshArgs []string) {
+	if client.SSHKeyPath == "" {
+		log.Fatal("SDN client with undefined SSHKeyPath")
+	}
 	allArgs := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no "+
-		"-i %s -p %d root@localhost", sshKeyPath, client.SSHPort)
+		"-i %s -p %d root@localhost", client.SSHKeyPath, client.SSHPort)
 	return append(strings.Fields(allArgs), extra...)
 }
 
@@ -193,12 +196,43 @@ func (client *SdnClient) SSHIntoSdnVM() error {
 func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 	targetIP string) (close func(), err error) {
 	fwdArgs := fmt.Sprintf("%d:%s:%d", localPort, targetIP, targetPort)
-	cmd := exec.Command("ssh",
-		client.sshArgs("-T", "-L", fwdArgs, "tail", "-f", "/dev/null")...)
+	args := client.sshArgs("-v", "-T", "-L", fwdArgs, "tail", "-f", "/dev/null")
+	cmd := exec.Command("ssh", args...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	cmd.Stderr = cmd.Stdout
 	err = cmd.Start()
 	if err != nil {
 		return nil, err
 	}
+	tunnelReadyCh := make(chan bool, 1)
+	go func(tunnelReadyCh chan<- bool) {
+		var listenerReady, fwdReady, sshReady bool
+		fwdMsg := fmt.Sprintf("Local connections to LOCALHOST:%d " +
+			"forwarded to remote address %s:%d", localPort, targetIP, targetPort)
+		listenMsg := fmt.Sprintf("Local forwarding listening on 127.0.0.1 port %d",
+			localPort)
+		sshReadyMsg := "Entering interactive session"
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.Contains(line, fwdMsg) {
+				fwdReady = true
+			}
+			if strings.Contains(line, listenMsg) {
+				listenerReady = true
+			}
+			if strings.Contains(line, sshReadyMsg) {
+				sshReady = true
+			}
+			if listenerReady && fwdReady && sshReady {
+				tunnelReadyCh <- true
+				return
+			}
+		}
+	}(tunnelReadyCh)
 	close = func() {
 		err = cmd.Process.Kill()
 		if err != nil {
@@ -208,9 +242,15 @@ func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 		}
 	}
 	// Give tunnel some time to open.
-	// TODO: how to determine when the tunnel is ready and avoid sleeping with hard-coded time?
-	time.Sleep(2 * time.Second)
-	return close, nil
+	select {
+	case <-tunnelReadyCh:
+		// Just an extra cushion for the tunnel to establish.
+		time.Sleep(500 * time.Millisecond)
+		return close, nil
+	case <-time.After(10 * time.Second):
+		close()
+		return nil, fmt.Errorf("failed to create SSH tunnel %s in time", fwdArgs)
+	}
 }
 
 // RunCmdFromEndpoint : execute command from inside of an endpoint deployed in Eden-SDN.
@@ -219,61 +259,6 @@ func (client *SdnClient) RunCmdFromEndpoint(epLogicalLabel, cmd string, args ...
 	ipNetns = append(ipNetns, cmd)
 	ipNetns = append(ipNetns, args...)
 	return utils.RunCommandForeground("ssh", client.sshArgs(ipNetns...)...)
-}
-
-// SetLinkState : set the link state of an EVE interface by bringing the other (SDN)
-// side UP or DOWN.
-func (client *SdnClient) SetLinkState(eveIfName string, up bool) (err error) {
-	netModel, err := client.GetNetworkModel()
-	if err != nil {
-		err = fmt.Errorf("failed to get network model: %v", err)
-		return
-	}
-	var eveIfIndex int
-	eveIfIndex, err = client.getEveIfIndex(eveIfName)
-	if err != nil {
-		return
-	}
-	if eveIfIndex < 0 || eveIfIndex >= len(netModel.Ports) {
-		err = fmt.Errorf("EVE interface index is out-of-range: %d <%d-%d)",
-			eveIfIndex, 0, len(netModel.Ports))
-		return
-	}
-	netModel.Ports[eveIfIndex].AdminUP = up
-	err = client.ApplyNetworkModel(netModel)
-	if err != nil {
-		err = fmt.Errorf("failed to apply updated network model: %v", err)
-		return
-	}
-	return nil
-}
-
-// GetLinkState : get link state of an EVE interface.
-// If the interface name is not specified (empty string), then the link state of every
-// EVE interface is returned.
-// This is determined by the admin state of the interface on the other (SDN) side.
-func (client *SdnClient) GetLinkState(eveIfName string) (linkStates []LinkState, err error) {
-	eveIfIndex := -1
-	if eveIfName != "" {
-		eveIfIndex, err = client.getEveIfIndex(eveIfName)
-		if err != nil {
-			return
-		}
-	}
-	netModel, err := client.GetNetworkModel()
-	if err != nil {
-		err = fmt.Errorf("failed to get network model: %v", err)
-		return
-	}
-	for i, port := range netModel.Ports {
-		if eveIfIndex == -1 || eveIfIndex == i {
-			linkStates = append(linkStates, LinkState{
-				EveIfName: fmt.Sprintf("eth%d", i),
-				IsUP:      port.AdminUP,
-			})
-		}
-	}
-	return
 }
 
 // GetEveIfMAC : get MAC address assigned to the given EVE interface.

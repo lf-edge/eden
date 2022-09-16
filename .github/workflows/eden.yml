@@ -66,6 +66,8 @@ jobs:
           ./eden netstat --format json > netstat.log || echo "no netstat"
           cp dist/default-eve.log console.log || echo "no device log"
           docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
+          cp dist/sdn-console.log sdn-console.log || echo "no sdn console log"
+          ./eden sdn logs > sdn.log || echo "no sdn log"
       - name: Log counting
         if: ${{ always() }}
         run: |
@@ -97,3 +99,5 @@ jobs:
               ${{ github.workspace }}/netstat.log
               ${{ github.workspace }}/console.log
               ${{ github.workspace }}/adam.log
+              ${{ github.workspace }}/sdn-console.log
+              ${{ github.workspace }}/sdn.log

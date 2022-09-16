@@ -466,8 +466,18 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 
 		case "sdn.disable":
 			return false
+		case "sdn.source-dir":
+			return filepath.Join(currentPath, "sdn")
+		case "sdn.config-dir":
+			return filepath.Join(edenDir, fmt.Sprintf("%s-sdn", context.Current))
 		case "sdn.image-file":
 			return filepath.Join(imageDist, "eden", "sdn-efi.qcow2")
+		case "sdn.linuxkit-bin":
+			return filepath.Join(currentPath, defaults.DefaultBuildtoolsDir, "linuxkit")
+		case "sdn.cpu":
+			return defaults.DefaultSdnCpus
+		case "sdn.ram":
+			return defaults.DefaultSdnMemory
 		case "sdn.pid":
 			return filepath.Join(currentPath, defaults.DefaultDist, "sdn.pid")
 		case "sdn.console-log":

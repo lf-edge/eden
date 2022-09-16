@@ -26,10 +26,14 @@ type SdnVMConfig struct {
 	Acceleration   bool
 	HostOS         string // darwin, linux, etc.
 	ImagePath      string
-	ConfigFile     string
+	ConfigDir      string
+	CPU            int
+	RAM            int // in MB
+	Firmware       []string
 	NetModel       model.NetworkModel
 	TelnetPort     uint16
 	SSHPort        uint16
+	SSHKeyPath     string
 	MgmtPort       uint16
 	MgmtSubnet     SdnMgmtSubnet
 	NetDevBasePort uint16 // QEMU-specific

@@ -196,7 +196,8 @@ const (
 	DefaultSdnTelnetPort    = 6623
 	DefaultSdnSSHPort       = 6622
 	DefaultSdnMgmtPort      = 6666
-
+	DefaultSdnCpus          = 2
+	DefaultSdnMemory        = 2048
 )
 
 var (
@@ -276,7 +277,12 @@ var (
 		"config": "config",
 
 		"sdn.disable":       "sdn-disable",
+		"sdn.source-dir":    "sdn-source-dir",
+		"sdn.config-dir":    "sdn-config-dir",
 		"sdn.image-file":    "sdn-image-file",
+		"sdn.linuxkit-bin":  "sdn-linuxkit-bin",
+		"sdn.cpu":           "sdn-cpu",
+		"sdn.ram":           "sdn-ram",
 		"sdn.pid":           "sdn-pid",
 		"sdn.console-log":   "sdn-console-log",
 		"sdn.telnet-port":   "sdn-telnet-port",

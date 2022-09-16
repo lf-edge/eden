@@ -26,6 +26,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// TODO: Update this test to work with SDN
+
 // This test deploys the VM with image https://cloud-images.ubuntu.com/releases/impish/release-20220201/ubuntu-21.10-server-cloudimg-ARCH.img
 // waits for the RUNNING state and checks access to SSH console
 // and removes app from EVE

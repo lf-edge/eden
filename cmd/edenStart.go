@@ -24,19 +24,24 @@ var (
 	eserverTag         string
 	evePidFile         string
 	eveLogFile         string
-	eveRemote          bool
-	eveUsbNetConfFile  string
-	vmName             string
-	cpus               int
-	mem                int
-	sdnDisable         bool
-	sdnImageFile       string
-	sdnPidFile         string
-	sdnConsoleLogFile  string
-	sdnTelnetPort      int
-	sdnSSHPort         int
-	sdnMgmtPort        int
-	sdnNetModelFile    string
+	eveRemote         bool
+	eveUsbNetConfFile string
+	vmName            string
+	cpus              int
+	mem               int
+	sdnDisable        bool
+	sdnSourceDir      string
+	sdnConfigDir      string
+	sdnImageFile      string
+	sdnLinuxkitBin    string
+	sdnCPU            int
+	sdnRAM            int
+	sdnPidFile        string
+	sdnConsoleLogFile string
+	sdnTelnetPort     int
+	sdnSSHPort        int
+	sdnMgmtPort       int
+	sdnNetModelFile   string
 )
 
 var startCmd = &cobra.Command{
@@ -76,6 +81,7 @@ var startCmd = &cobra.Command{
 			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
 			qemuMonitorPort = viper.GetInt("eve.qemu.monitor-port")
 			qemuNetdevSocketPort = viper.GetInt("eve.qemu.netdev-socket-port")
+			qemuFirmware = viper.GetStringSlice("eve.firmware")
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
 			eveRemote = viper.GetBool("eve.remote")

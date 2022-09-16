@@ -152,6 +152,7 @@ var statusCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 			devModel = viper.GetString("eve.devmodel")
+			loadSdnOptsFromViper()
 		}
 		return nil
 	},

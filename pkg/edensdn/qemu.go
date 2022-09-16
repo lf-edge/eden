@@ -3,6 +3,7 @@ package edensdn
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -26,7 +27,7 @@ func NewSdnVMQemuRunner(config SdnVMConfig) *SdnVMQemuRunner {
 func (vm *SdnVMQemuRunner) Start() error {
 	var qemuCommand string
 	qemuOptions := "-display none -nodefaults -no-user-config "
-	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d," +
+	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,"+
 		"host=localhost,server,nodelay,nowait,telnet,logfile=%s ",
 		vm.TelnetPort, vm.ConsoleLogFile)
 	netDev := "e1000"
@@ -74,18 +75,35 @@ func (vm *SdnVMQemuRunner) Start() error {
 	}
 
 	// Management port.
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off," +
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off,"+
 		"hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:6666", len(vm.NetModel.Ports), vm.MgmtSubnet.String(),
 		vm.MgmtSubnet.DHCPStart.String(), vm.SSHPort, vm.MgmtPort)
 	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d,mac=%s ", netDev,
 		len(vm.NetModel.Ports), GenerateSdnMgmtMAC())
-	_ = os.Chmod(sshKeyPath, 0600)
+	_ = os.Chmod(vm.SSHKeyPath, 0600)
 
+	// Image
 	qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", vm.ImagePath)
+
+	// Watchdog
 	qemuOptions += "-watchdog-action reset "
-	if vm.ConfigFile != "" {
-		qemuOptions += fmt.Sprintf("-readconfig %s ", vm.ConfigFile)
+
+	// QEMU config
+	qemuConfigPath := filepath.Join(vm.ConfigDir, "qemu.conf")
+	settings := utils.QemuSettings{
+		Firmware: vm.Firmware,
+		MemoryMB: vm.RAM,
+		CPUs:     vm.CPU,
 	}
+	conf, err := settings.GenerateQemuConfig()
+	if err != nil {
+		fmt.Errorf("failed to generate QEMU config: %v", err)
+	}
+	err = os.WriteFile(qemuConfigPath, conf, 0664)
+	if err != nil {
+		return fmt.Errorf("failed to write QEMU config file: %v", err)
+	}
+	qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigPath)
 	log.Infof("Start SDN: %s %s", qemuCommand, qemuOptions)
 	log.Infof("With pid: %s ; console log: %s", vm.PidFile, vm.ConsoleLogFile)
 	return utils.RunCommandNohup(qemuCommand, vm.ConsoleLogFile, vm.PidFile,
