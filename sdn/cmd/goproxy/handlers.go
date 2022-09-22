@@ -93,9 +93,10 @@ func installProxyHandlers(proxyConfig config.ProxyConfig, tls, transparent bool,
 		}
 		installProxyHandler(rule, tls, proxy)
 	}
-	if defaultRule != nil {
-		installProxyHandler(*defaultRule, tls, proxy)
+	if defaultRule == nil {
+		defaultRule = &sdnapi.ProxyRule{Action: sdnapi.PxForward}
 	}
+	installProxyHandler(*defaultRule, tls, proxy)
 }
 
 func dstPortIs(port, defaultPort uint16) goproxy.ReqConditionFunc {
