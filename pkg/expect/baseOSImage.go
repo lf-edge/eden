@@ -119,7 +119,7 @@ func (exp *AppExpectation) BaseOSConfig(baseOSVersion string) (baseOSConfig *con
 }
 
 //	BaseOS expectation gets or creates BaseOS definition,
-//	adds it into internal controller and returns it
+//	adds contentTree into internal controller and returns BaseOS
 //	if version is not empty will use it as BaseOSVersion
 func (exp *AppExpectation) BaseOS(baseOSVersion string) (baseOS *config.BaseOS) {
 	exp.baseOSVersion = baseOSVersion

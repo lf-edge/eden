@@ -187,6 +187,35 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 	},
 }
 
+var edgeNodeEVEImageUpdateRetry = &cobra.Command{
+	Use:   "eveimage-update-retry",
+	Short: "retry update of EVE image",
+	Long:  `Update EVE image retry.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		assignCobraToViper(cmd)
+		_, err := utils.LoadConfigFile(configFile)
+		if err != nil {
+			return fmt.Errorf("error reading configFile: %w", err)
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		changer, err := changerByControllerMode(controllerMode)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ctrl, dev, err := changer.getControllerAndDev()
+		if err != nil {
+			log.Fatalf("getControllerAndDev error: %s", err)
+		}
+		dev.SetBaseOSRetryCounter(dev.GetBaseOSRetryCounter() + 1)
+
+		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+			log.Fatalf("setControllerAndDev: %s", err)
+		}
+	},
+}
+
 var edgeNodeEVEImageRemove = &cobra.Command{
 	Use:   "eveimage-remove <image file or url (oci:// or file:// or http(s)://)>",
 	Short: "remove EVE image",
@@ -596,6 +625,7 @@ func controllerInit() {
 	edgeNode.AddCommand(edgeNodeReboot)
 	edgeNode.AddCommand(edgeNodeShutdown)
 	edgeNode.AddCommand(edgeNodeEVEImageUpdate)
+	edgeNode.AddCommand(edgeNodeEVEImageUpdateRetry)
 	edgeNode.AddCommand(edgeNodeEVEImageRemove)
 	edgeNode.AddCommand(edgeNodeUpdate)
 	edgeNode.AddCommand(edgeNodeGetConfig)
