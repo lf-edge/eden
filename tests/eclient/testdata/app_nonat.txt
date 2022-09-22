@@ -81,8 +81,8 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 
 echo $EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} sysctl net.ipv4.conf.eth1.rp_filter=2
 $EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} sysctl net.ipv4.conf.eth1.rp_filter=2
-echo $EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} ping -I eth1 -c 50 www.google.com
-$EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} ping -I eth1 -c 50 www.google.com
+echo $EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} ping -I eth1 -c 10 www.google.com
+$EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} ping -I eth1 -c 10 www.google.com
 
 -- eden-config.yml --
 {{/* Test's config. file */}}

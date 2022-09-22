@@ -92,7 +92,7 @@ stdout 'ieee.org'
 # Cleanup - undeploy applications
 eden pod delete curl-acl1
 eden pod delete curl-acl2
-test eden.app.test -test.v -timewait 10m - curl-acl1 curl-acl2
+test eden.app.test -test.v -timewait 20m - curl-acl1 curl-acl2
 
 # Cleanup - remove network
 eden network delete {{$network_name}}

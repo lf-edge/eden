@@ -19,8 +19,6 @@ import (
 	"time"
 )
 
-// TODO: Update for SDN
-
 // This test deploys the docker://nginx app into EVE with port forwarding 8028->80
 // wait for the RUNNING state and checks access to HTTP endpoint
 // and removes app from EVE
@@ -109,16 +107,26 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 }
 
 //checkAppAccess try to access APP with timer
-func checkAppAccess() projects.ProcTimerFunc {
+func checkAppAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
-		if externalIP == "" {
-			return nil
+		if edgeNode.GetRemote() {
+			if externalIP == "" {
+				return nil
+			}
+			res, err := utils.RequestHTTPWithTimeout(fmt.Sprintf("http://%s:%d", externalIP, *externalPort), time.Second)
+			if err != nil {
+				return nil
+			}
+			return fmt.Errorf(res)
 		}
-		res, err := utils.RequestHTTPWithTimeout(fmt.Sprintf("http://%s:%d", externalIP, *externalPort), time.Second)
-		if err != nil {
-			return nil
-		}
-		return fmt.Errorf(res)
+		return tc.PortForwardCommand(func(fwdPort uint16) error {
+			res, err := utils.RequestHTTPWithTimeout(
+				fmt.Sprintf("http://127.0.0.1:%d", fwdPort), time.Second)
+			if err != nil {
+				return nil
+			}
+			return fmt.Errorf(res)
+		}, "eth0", uint16(*externalPort))
 	}
 }
 
@@ -199,7 +207,7 @@ func TestDockerStart(t *testing.T) {
 
 	if *externalPort != 0 {
 
-		tc.AddProcTimer(edgeNode, checkAppAccess())
+		tc.AddProcTimer(edgeNode, checkAppAccess(edgeNode))
 
 	}
 

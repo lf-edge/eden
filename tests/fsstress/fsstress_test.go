@@ -134,21 +134,36 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 //and returns success if less than 1 minutes left
 //also it checks existence of fsstress process on VM
 //and in case of not existence or some issues with connection it fails test immediately
-func CheckTimeWorkOfTest(t *testing.T, timeStart time.Time) projects.ProcTimerFunc {
+func CheckTimeWorkOfTest(t *testing.T, edgeNode *device.Ctx, timeStart time.Time) projects.ProcTimerFunc {
 	return func() error {
 		df := time.Since(timeStart)
 		if df >= *timewait-time.Minute {
 			return fmt.Errorf("stress test is stable, end test")
 		}
-		if externalIP == "" {
-			return nil
-		}
-		sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "pgrep fsstress", true)
+		sendSSHCommand := sshCommand(edgeNode, "pgrep fsstress")
 		result := sendSSHCommand()
 		if result == nil {
 			t.Fatal(utils.AddTimestamp("cannot find fsstress process or connection problem"))
 		}
 		return nil
+	}
+}
+
+func sshCommand(edgeNode *device.Ctx, command string) projects.ProcTimerFunc {
+	return func() error {
+		if edgeNode.GetRemote() {
+			if externalIP == "" {
+				return nil
+			}
+			sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, command, true)
+			return sendSSHCommand()
+		}
+		return tc.PortForwardCommand(func(fwdPort uint16) error {
+			localhostIP := "127.0.0.1"
+			sshPort := int(fwdPort)
+			sendSSHCommand := projects.SendCommandSSH(&localhostIP, &sshPort, "ubuntu", *password, command, true)
+			return sendSSHCommand()
+		}, "eth0", uint16(*sshPort))
 	}
 }
 
@@ -268,7 +283,7 @@ func TestAccess(t *testing.T) {
 
 	t.Log(utils.AddTimestamp("Add trying to access SSH of app"))
 
-	tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "exit", true))
+	tc.AddProcTimer(edgeNode, sshCommand(edgeNode, "exit"))
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)
@@ -315,18 +330,18 @@ func TestRunStress(t *testing.T) {
 	}
 
 	t.Log(utils.AddTimestamp("Add options for running"))
-	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "chmod +x ~/run-script.sh", true)()
+	result = sshCommand(edgeNode, "chmod +x ~/run-script.sh")()
 	if result == nil {
 		t.Fatal(utils.AddTimestamp("Error in chmod"))
 	}
 
 	t.Log(utils.AddTimestamp("Run script on guest VM"))
-	result = projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, "~/run-script.sh", true)()
+	result = sshCommand(edgeNode, "~/run-script.sh")()
 	if result == nil {
 		t.Fatal(utils.AddTimestamp("Error in running script"))
 	}
 
-	tc.AddProcTimer(edgeNode, CheckTimeWorkOfTest(t, timeTestStart))
+	tc.AddProcTimer(edgeNode, CheckTimeWorkOfTest(t, edgeNode, timeTestStart))
 
 	callback := func() {
 		fmt.Printf("--- app %s logs ---\n", appInstanceConfig.Displayname)

@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const sdnStartTimeout = time.Minute
+const sdnStartTimeout = 3 * time.Minute
 
 var (
 	qemuARCH             string
@@ -199,6 +199,7 @@ var statusEveCmd = &cobra.Command{
 			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
 			eveRemote = viper.GetBool("eve.remote")
 			devModel = viper.GetString("eve.devmodel")
+			loadSdnOptsFromViper()
 		}
 		return nil
 	},
