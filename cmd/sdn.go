@@ -550,10 +550,11 @@ func sdnSSHKeyPath() string {
 
 // Run after loading these options from config:
 //   - devModel = viper.GetString("eve.devmodel")
+//   - eveRemote = viper.GetBool("eve.remote")
 //   - loadSdnOptsFromViper()
 func isSdnEnabled() bool {
 	// Only supported with QEMU for now.
-	return !sdnDisable && devModel == defaults.DefaultQemuModel
+	return !sdnDisable && devModel == defaults.DefaultQemuModel && !eveRemote
 }
 
 func loadSdnOptsFromViper() {

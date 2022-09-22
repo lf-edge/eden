@@ -247,7 +247,7 @@ func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 		// Just an extra cushion for the tunnel to establish.
 		time.Sleep(500 * time.Millisecond)
 		return close, nil
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		close()
 		return nil, fmt.Errorf("failed to create SSH tunnel %s in time", fwdArgs)
 	}

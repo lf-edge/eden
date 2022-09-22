@@ -24,8 +24,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// TODO: Update this to work SDN
-
 // This test deploys the VM with image https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-ARCH.img
 // with ARCH from config and vncDisplay into EVE
 // waits for the RUNNING state and checks access to VNC and SSH console
@@ -88,11 +86,8 @@ func setAppName() {
 //getVNCPort calculate port for vnc
 //for qemu it is forwarded
 //for rpi it is direct
-func getVNCPort(edgeNode *device.Ctx, vncDisplay int) int {
-	if edgeNode.GetRemote() {
-		return 5900 + vncDisplay
-	}
-	return 5910 + vncDisplay //forwarded by qemu ports
+func getVNCPort(vncDisplay int) int {
+	return 5900 + vncDisplay
 }
 
 //checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
@@ -135,16 +130,43 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 }
 
 //checkVNCAccess try to access APP via VNC with timer
-func checkVNCAccess() projects.ProcTimerFunc {
+func checkVNCAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
-		if externalIP == "" {
-			return nil
+		if edgeNode.GetRemote() {
+			if externalIP == "" {
+				return nil
+			}
+			desktopName, err := utils.GetDesktopName(fmt.Sprintf("%s:%d", externalIP, externalPort), *vncPassword)
+			if err != nil {
+				return nil
+			}
+			return fmt.Errorf("VNC DesktopName: %s. You can access it via VNC on %s:%d with password %s", desktopName, externalIP, externalPort, *vncPassword)
 		}
-		desktopName, err := utils.GetDesktopName(fmt.Sprintf("%s:%d", externalIP, externalPort), *vncPassword)
-		if err != nil {
-			return nil
+		return tc.PortForwardCommand(func(fwdPort uint16) error {
+			desktopName, err := utils.GetDesktopName(fmt.Sprintf("127.0.0.1:%d", fwdPort), *vncPassword)
+			if err != nil {
+				return nil
+			}
+			return fmt.Errorf("VNC DesktopName: %s. You can access it via VNC on %s:%d with password %s", desktopName, externalIP, externalPort, *vncPassword)
+		}, "eth0", uint16(externalPort))
+	}
+}
+
+func sshCommand(edgeNode *device.Ctx, command string, foreground bool) projects.ProcTimerFunc {
+	return func() error {
+		if edgeNode.GetRemote() {
+			if externalIP == "" {
+				return nil
+			}
+			sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", command, foreground)
+			return sendSSHCommand()
 		}
-		return fmt.Errorf("VNC DesktopName: %s. You can access it via VNC on %s:%d with password %s", desktopName, externalIP, externalPort, *vncPassword)
+		return tc.PortForwardCommand(func(fwdPort uint16) error {
+			localhostIP := "127.0.0.1"
+			sshPort := int(fwdPort)
+			sendSSHCommand := projects.SendCommandSSH(&localhostIP, &sshPort, "ubuntu", "passw0rd", command, foreground)
+			return sendSSHCommand()
+		}, "eth0", uint16(*sshPort))
 	}
 }
 
@@ -218,7 +240,7 @@ func TestVNCVMStart(t *testing.T) {
 
 	appInstanceConfig := expectation.Application()
 
-	externalPort = getVNCPort(edgeNode, *vncDisplay)
+	externalPort = getVNCPort(*vncDisplay)
 
 	t.Log("Add app to list")
 
@@ -284,13 +306,13 @@ func TestAccess(t *testing.T) {
 
 	t.Log(utils.AddTimestamp("Add trying to access VNC of app"))
 
-	externalPort = getVNCPort(edgeNode, *vncDisplay)
+	externalPort = getVNCPort(*vncDisplay)
 
-	tc.AddProcTimer(edgeNode, checkVNCAccess())
+	tc.AddProcTimer(edgeNode, checkVNCAccess(edgeNode))
 
 	t.Log(utils.AddTimestamp("Add trying to access SSH of app"))
 
-	tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "exit", true))
+	tc.AddProcTimer(edgeNode, sshCommand(edgeNode, "exit", true))
 
 	tc.ExpandOnSuccess(int(expand.Seconds()))
 
@@ -323,7 +345,7 @@ func TestAppLogs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	panicCmd := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "sudo su -c 'echo c > /proc/sysrq-trigger'", false)
+	panicCmd := sshCommand(edgeNode, "sudo su -c 'echo c > /proc/sysrq-trigger'", false)
 	if *doLogger {
 		fmt.Println("will wait for uptime logs in test")
 		callback := func() {
@@ -332,7 +354,7 @@ func TestAppLogs(t *testing.T) {
 			}
 		}
 		tc.AddProcTimer(edgeNode, tc.CheckMessageInAppLog(edgeNode, appID, "uptime: ", callback))
-		tc.AddProcTimer(edgeNode, projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", "sudo su -c 'echo uptime: `uptime`>/dev/console'", true)) //prints uptime to /dev/console
+		tc.AddProcTimer(edgeNode, sshCommand(edgeNode, "sudo su -c 'echo uptime: `uptime`>/dev/console'", true)) //prints uptime to /dev/console
 	}
 	if *doPanic {
 		fmt.Println("will fire kernel panic in test")

@@ -45,6 +45,6 @@ for i in `seq 20`
 do
   sleep 20
   # Test SSH-access to container
-  echo $i\) $EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} grep Ubuntu /etc/issue
-  $EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} grep Ubuntu /etc/issue && break
+  echo $i\) $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep Ubuntu /etc/issue
+  $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep Ubuntu /etc/issue && break
 done
