@@ -491,15 +491,29 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		log.Fatalf("no IP address found to be assigned to EVE interface %s",
 			eveIfName)
 	}
-	// Temporarily establish port forwarding using SSH.
-	localPort, err := utils.FindUnusedPort()
-	if err != nil {
-		log.Fatalf("failed to find unused port number: %v", err)
-	}
 	client := &edensdn.SdnClient{
 		SSHPort:    uint16(sdnSSHPort),
 		SSHKeyPath: sdnSSHKeyPath(),
 		MgmtPort:   uint16(sdnMgmtPort),
+	}
+	if fromEp != "" {
+		// Running command from an endpoint inside SDN VM, no tunneling is needed.
+		fwdPort := strconv.Itoa(targetPort)
+		for i := range args {
+			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, targetIP)
+			args[i] = strings.ReplaceAll(args[i], fwdPortLabel, fwdPort)
+		}
+		err := client.RunCmdFromEndpoint(fromEp, cmd, args...)
+		if err != nil {
+			log.Fatalf("command %s %s run inside endpoint %s failed: %v",
+				cmd, strings.Join(args, " "), fromEp, err)
+		}
+		return
+	}
+	// Temporarily establish port forwarding using SSH.
+	localPort, err := utils.FindUnusedPort()
+	if err != nil {
+		log.Fatalf("failed to find unused port number: %v", err)
 	}
 	closeTunnel, err := client.SSHPortForwarding(localPort, uint16(targetPort), targetIP)
 	if err != nil {
