@@ -44,6 +44,7 @@ jobs:
           ./eden config set default --key=eve.accel --value=false
           ./eden config set default --key=eve.tpm --value=${{ matrix.tpm }}
           ./eden config set default --key=eve.cpu --value=2
+          ./eden config set default --key=sdn.disable --value=true
       - name: setup-ext4
         if: matrix.fs == 'ext4'
         run: ./eden setup -v debug
