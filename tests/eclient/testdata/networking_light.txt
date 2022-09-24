@@ -1,4 +1,4 @@
-# Test for internal TCP clien/server interconnection
+# Test for internal TCP client/server interconnection
 
 {{$test_msg := "This is a test"}}
 {{define "port"}}2223{{end}}
