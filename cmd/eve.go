@@ -639,18 +639,22 @@ func startEveQemu() {
 				sdnNetModelFile, err)
 		}
 	}
-	netModel.Host.ControllerPort = uint16(adamPort)
+	if customInstallerPath == "" {
+		netModel.Host.ControllerPort = uint16(adamPort)
+	} else {
+		// With custom EVE installer it is assumed that controller other
+		// than Adam is being used.
+		netModel.Host.ControllerPort = 443
+	}
 	if isSdnEnabled() {
 		nets, err := utils.GetSubnetsNotUsed(1)
 		if err != nil {
 			log.Fatalf("Failed to get unused IP subnet: %s", err)
 		}
-		// Reuse firmware installed for EVE VM.
-		var firmware []string
-		for _, line := range qemuFirmware {
-			for _, el := range strings.Split(line, " ") {
-				firmware = append(firmware, utils.ResolveAbsPath(el))
-			}
+		imageDir := filepath.Dir(sdnImageFile)
+		firmware := []string{"OVMF_CODE.fd", "OVMF_VARS.fd"}
+		for i := range firmware {
+			firmware[i] = utils.ResolveAbsPath(filepath.Join(imageDir, firmware[i]))
 		}
 		sdnConfig := edensdn.SdnVMConfig{
 			Architecture: qemuARCH,
@@ -719,9 +723,18 @@ func startEveQemu() {
 			log.Fatal(err)
 		}
 	}
+	// Prepare for EVE installation if requested.
+	isInstaller := false
+	imageFile := eveImageFile
+	imageFormat := "qcow2"
+	if customInstallerPath != "" {
+		isInstaller = true
+		imageFile = customInstallerPath
+		imageFormat = customInstallerFormat
+	}
 	// Start vTPM.
 	if gcpvTPM {
-		err = eden.StartSWTPM(filepath.Join(filepath.Dir(eveImageFile), "swtpm"))
+		err = eden.StartSWTPM(filepath.Join(filepath.Dir(imageFile), "swtpm"))
 		if err != nil {
 			log.Errorf("cannot start swtpm: %s", err)
 		} else {
@@ -729,7 +742,7 @@ func startEveQemu() {
 		}
 	}
 	// Start EVE VM.
-	if err = eden.StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial, eveTelnetPort,
+	if err = eden.StartEVEQemu(qemuARCH, qemuOS, imageFile, imageFormat, isInstaller, qemuSMBIOSSerial, eveTelnetPort,
 		qemuMonitorPort, qemuNetdevSocketPort, hostFwd, qemuAccel, qemuConfigFile, eveLogFile,
 		evePidFile, netModel, isSdnEnabled(), tapInterface, usbImagePath, gcpvTPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err)

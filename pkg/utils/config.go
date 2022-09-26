@@ -372,6 +372,10 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return id.String()
 		case "eve.image-file":
 			return filepath.Join(imageDist, "eve", "live.img")
+		case "eve.custom-installer.path":
+			return ""
+		case "eve.custom-installer.format":
+			return ""
 		case "eve.dtb-part":
 			return ""
 		case "eve.config-part":

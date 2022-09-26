@@ -92,6 +92,8 @@ var startCmd = &cobra.Command{
 			cpus = viper.GetInt("eve.cpu")
 			mem = viper.GetInt("eve.ram")
 			gcpvTPM = viper.GetBool("eve.tpm")
+			customInstallerPath = utils.ResolveAbsPath(viper.GetString("eve.custom-installer.path"))
+			customInstallerFormat = viper.GetString("eve.custom-installer.format")
 			loadSdnOptsFromViper()
 		}
 		return nil

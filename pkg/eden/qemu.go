@@ -42,14 +42,13 @@ func StopSWTPM(stateDir string) error {
 }
 
 //StartEVEQemu function run EVE in qemu
-func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string,
-	eveTelnetPort, qemuMonitorPort, netDevBasePort int, qemuHostFwd map[string]string,
-	qemuAccel bool, qemuConfigFile, logFile, pidFile string,
+func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstaller bool,
+	qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort, netDevBasePort int,
+	qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile, pidFile string,
 	netModel sdnapi.NetworkModel, withSDN bool, tapInterface, usbImagePath string,
 	swtpm, foreground bool) (err error) {
-	qemuCommand := ""
-	qemuOptions := "-display none -nodefaults -no-user-config "
-	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logappend=on,logfile=%s ", eveTelnetPort, logFile)
+	var qemuCommand, qemuOptions string
+	qemuOptions += "-nodefaults -no-user-config "
 	netDev := "e1000"
 	tpmDev := "tpm-tis"
 	if qemuARCH == "" {
@@ -144,14 +143,35 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string,
 	if qemuOS != "linux" && qemuOS != "darwin" {
 		return fmt.Errorf("StartEVEQemu: OS not supported: %s", qemuOS)
 	}
-	qemuOptions += fmt.Sprintf("-drive file=%s,format=qcow2 ", eveImageFile)
 	qemuOptions += "-watchdog-action reset "
 	if qemuConfigFile != "" {
 		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
 
+	if isInstaller {
+		// Run EVE installer, then start EVE VM again but without the installer image.
+		consoleOpts := "-serial stdio "
+		installerOptions := consoleOpts + qemuOptions
+		installerOptions += fmt.Sprintf("-drive file=%s,format=%s ",
+			eveImageFile, imageFormat)
+		log.Infof("Start EVE installer: %s %s", qemuCommand, installerOptions)
+		if err := utils.RunCommandForeground(qemuCommand, strings.Fields(installerOptions)...); err != nil {
+			return fmt.Errorf("StartEVEQemu: %s", err)
+		}
+		// TODO: create a file in dist to mark EVE as installed to avoid running installer on restart
+		// (with "eden eve stop && eden eve start)
+	}
+
+	consoleOps := "-display none "
+	consoleOps += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d," +
+		"host=localhost,server,nodelay,nowait,telnet,logappend=on,logfile=%s ",
+		eveTelnetPort, logFile)
+	qemuOptions = consoleOps + qemuOptions
+	if !isInstaller {
+		qemuOptions += fmt.Sprintf("-drive file=%s,format=%s ", eveImageFile, imageFormat)
+	}
 	if usbImagePath != "" {
-		qemuOptions += fmt.Sprintf(" -drive format=raw,file=%s ", usbImagePath)
+		qemuOptions += fmt.Sprintf("-drive format=raw,file=%s ", usbImagePath)
 	}
 
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
