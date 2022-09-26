@@ -5,7 +5,9 @@ and [Adam](https://github.com/lf-edge/adam).
 
 Eden is a management harness that provides two layers of management.
 
-* infrastructure: deploy and/or delete nodes running [EVE](https://github.com/lf-edge/eve) and a controller [Adam](https://github.com/lf-edge/adam)
+* infrastructure: deploy and/or delete nodes running [EVE](https://github.com/lf-edge/eve),
+  controller [Adam](https://github.com/lf-edge/adam) and [software-defined networks](./sdn/README.md)
+  between EVE and the controller
 * tasks: execute on EVE, via the controller, one or more tasks
 
 Eden is particularly suited to running tests and test suites. These tests must
@@ -34,7 +36,7 @@ It has multiple sub-commands and options. Run `eden help` to see sub-commands.
 You need at least two devices, either or both of which can be virtual:
 
 * Edge: this is the device on which you will run EVE, and launch tasks such as tests.
-* Manager: this is where you will Eden and, optionally, all of the management components.
+* Manager: this is where you will run Eden and, optionally, all of the management components.
 
 A typical eden workflow is:
 
@@ -81,6 +83,7 @@ The manager hosts:
 
 * Eden - control layer CLI
 * Adam - the controller, running as a daemon process
+* SDN - software-defined networking between EVE (in Qemu) and the controller (to emulate various connectivity scenarios)
 * Redis - the log database, running as a daemon process
 * Eserver - the image/file database to expose http and ftp content for downloading to the edge device
 * Registry - an OCI-compliant registry to expose images for downloading to the edge device
@@ -135,6 +138,8 @@ All of the quickstart guides get you running quickly, and assume you already hav
 eden installed.
 They start the official [nginx](https://hub.docker.com/_/nginx) image as a container,
 serving the content of [./data/helloeve/](./data/helloeve ) on port 8028. You will be able to access it via `http://<EVE IP>:8028`.
+Note that if you are running EVE as virtual device in Qemu with SDN enabled, you will not be able to
+access EVE IP and your apps directly, instead `eden sdn fwd` command must be used (run with no arguments to print help).
 Feel free to change the content in [./data/helloeve/](./data/helloeve) and redeploy the pod.
 
 At any time, to get the status of what is running and where, including `<EVE IP>`, run:
@@ -152,7 +157,11 @@ eden start
 eden eve onboard
 eden pod deploy docker://nginx -p 8028:80 --mount=src=./data/helloeve,dst=/usr/share/nginx/html
 eden status
+
+# if SDN is disabled (sdn.disable=true)
 curl http://<EVE IP>:8028
+# if SDN is enabled (sdn.disable=false)
+eden sdn fwd eth0 8028 curl http://FWD_IP:FWD_PORT
 ```
 
 When done be sure to clean up:
