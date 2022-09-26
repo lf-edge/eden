@@ -60,13 +60,18 @@ var downloadEVECmd = &cobra.Command{
 			Format:      format,
 			ImageSizeMB: eveImageSizeMB,
 		}
-		uefiDesc := utils.UEFIDescription{
-			Registry: eveRegistry,
-			Tag:      eveUefiTag,
-			Arch:     eveArch,
-		}
-		if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
+		if err := utils.DownloadEveLive(eveDesc, eveImageFile); err != nil {
 			log.Fatal(err)
+		}
+		if format == "qcow2" {
+			uefiDesc := utils.UEFIDescription{
+				Registry: eveRegistry,
+				Tag:      eveUefiTag,
+				Arch:     eveArch,
+			}
+			if err := utils.DownloadUEFI(uefiDesc, filepath.Dir(eveImageFile)); err != nil {
+				log.Fatal(err)
+			}
 		}
 		log.Infof(model.DiskReadyMessage(), eveImageFile)
 		fmt.Println(eveImageFile)

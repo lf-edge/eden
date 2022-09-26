@@ -254,6 +254,9 @@ var (
 		"eve.tpm":          "tpm",
 		"eve.disks":        "eve-disks",
 
+		"eve.custom-installer.path":   "custom-installer-path",
+		"eve.custom-installer.format": "custom-installer-format",
+
 		"eve.bootstrap-file":  "eve-bootstrap-file",
 		"eve.usbnetconf-file": "eve-usbnetconf-file",
 

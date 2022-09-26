@@ -44,6 +44,9 @@ var (
 
 	eveImageSizeMB int
 
+	customInstallerPath   string
+	customInstallerFormat string
+
 	eveConfigDir     string
 	eveBootstrapFile string
 
@@ -149,6 +152,8 @@ var setupCmd = &cobra.Command{
 			qemuDTBPath = utils.ResolveAbsPath(viper.GetString("eve.dtb-part"))
 			qemuOS = viper.GetString("eve.os")
 			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
+			customInstallerPath = utils.ResolveAbsPath(viper.GetString("eve.custom-installer.path"))
+			customInstallerFormat = viper.GetString("eve.custom-installer.format")
 			certsUUID = viper.GetString("eve.uuid")
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
 			eveRepo = viper.GetString("eve.repo")
@@ -176,10 +181,6 @@ var setupCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		model, err := models.GetDevModelByName(devModel)
-		if err != nil {
-			log.Fatalf("GetDevModelByName: %s", err)
-		}
 		if netboot && installer {
 			log.Fatal("Please use netboot or installer flag, not both")
 		}
@@ -189,372 +190,433 @@ var setupCmd = &cobra.Command{
 			}
 		}
 		if devModel == defaults.DefaultQemuModel {
-			if _, err := os.Stat(qemuFileToSave); os.IsNotExist(err) {
-				qemuDTBPathAbsolute := ""
-				if qemuDTBPath != "" {
-					qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-				var qemuFirmwareParam []string
-				for _, line := range qemuFirmware {
-					for _, el := range strings.Split(line, " ") {
-						qemuFirmwareParam = append(qemuFirmwareParam, utils.ResolveAbsPath(el))
-					}
-				}
-				var qemuDisksParam []string
-				for ind := 0; ind < eveDisks; ind++ {
-					diskFile := filepath.Join(filepath.Dir(eveImageFile), fmt.Sprintf("eve-disk-%d.qcow2", ind+1))
-					if err := utils.CreateDisk(diskFile, "qcow2", uint64(eveImageSizeMB*1024*1024)); err != nil {
-						log.Fatal(err)
-					}
-					qemuDisksParam = append(qemuDisksParam, diskFile)
-				}
-				settings := utils.QemuSettings{
-					DTBDrive: qemuDTBPathAbsolute,
-					Firmware: qemuFirmwareParam,
-					Disks:    qemuDisksParam,
-					MemoryMB: qemuMemory,
-					CPUs:     qemuCpus,
-				}
-				conf, err := settings.GenerateQemuConfig()
-				if err != nil {
-					log.Fatal(err)
-				}
-				f, err := os.Create(qemuFileToSave)
-				if err != nil {
-					log.Fatal(err)
-				}
-				_, err = f.Write(conf)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if err := f.Close(); err != nil {
-					log.Fatal(err)
-				}
-				log.Infof("QEMU config file generated: %s", qemuFileToSave)
-			} else {
-				log.Debugf("QEMU config already exists: %s", qemuFileToSave)
-			}
-		}
-		if _, err := os.Stat(filepath.Join(certsDir, "root-certificate.pem")); os.IsNotExist(err) {
-			wifiPSK := ""
-			if ssid != "" {
-				fmt.Printf("Enter password for wifi %s: ", ssid)
-				pass, _ := term.ReadPassword(0)
-				wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
-				fmt.Println()
-			}
-			if zedcontrolURL == "" {
-				if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID, devModel, ssid, wifiPSK, grubOptions, apiV1); err != nil {
-					log.Errorf("cannot GenerateEveCerts: %s", err)
-				} else {
-					log.Info("GenerateEveCerts done")
-				}
-			} else {
-				if err := eden.PutEveCerts(certsDir, devModel, ssid, wifiPSK); err != nil {
-					log.Errorf("cannot GenerateEveCerts: %s", err)
-				} else {
-					log.Info("GenerateEveCerts done")
-				}
-			}
-		} else {
-			log.Info("GenerateEveCerts done")
-			log.Infof("Certs already exists in certs dir: %s", certsDir)
+			setupQemuConfig()
 		}
 
-		if zedcontrolURL == "" {
-			err := eden.GenerateEVEConfig(devModel, certsDir, certsDomain, certsEVEIP,
-				adamPort, apiV1, softserial, eveBootstrapFile, isSdnEnabled())
-			if err != nil {
-				log.Errorf("cannot GenerateEVEConfig: %s", err)
-			} else {
-				log.Info("GenerateEVEConfig done")
-			}
-		} else {
-			err := eden.GenerateEVEConfig(devModel, certsDir, zedcontrolURL, "", 0,
-				false, softserial, eveBootstrapFile, isSdnEnabled())
-			if err != nil {
-				log.Errorf("cannot GenerateEVEConfig: %s", err)
-			} else {
-				log.Info("GenerateEVEConfig done")
-			}
+		if customInstallerPath == "" {
+			setupConfigDir()
 		}
-		if _, err := os.Lstat(configDir); !os.IsNotExist(err) {
-			//put files from config folder to generated directory
-			if err := utils.CopyFolder(utils.ResolveAbsPath(eveConfigDir), certsDir); err != nil {
-				log.Errorf("CopyFolder: %s", err)
-			}
-		}
-		imageFormat := model.DiskFormat()
-		eveDesc := utils.EVEDescription{
-			ConfigPath:  certsDir,
-			Arch:        eveArch,
-			HV:          eveHV,
-			Registry:    eveRegistry,
-			Tag:         eveTag,
-			Format:      imageFormat,
-			ImageSizeMB: eveImageSizeMB,
-		}
-		if !download {
-			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-				if err := eden.CloneFromGit(eveDist, eveRepo, eveTag); err != nil {
-					log.Errorf("cannot clone EVE: %s", err)
-				} else {
-					log.Info("clone EVE done")
-				}
-				builedImage := ""
-				builedAdditional := ""
-				if builedImage, builedAdditional, err = eden.MakeEveInRepo(eveDesc, eveDist); err != nil {
-					log.Errorf("cannot MakeEveInRepo: %s", err)
-				} else {
-					log.Info("MakeEveInRepo done")
-				}
-				if err = utils.CopyFile(builedImage, eveImageFile); err != nil {
-					log.Fatal(err)
-				}
-				builedAdditionalSplitted := strings.Split(builedAdditional, ",")
-				for _, additionalFile := range builedAdditionalSplitted {
-					if additionalFile != "" {
-						if err = utils.CopyFile(additionalFile, filepath.Join(filepath.Dir(eveImageFile), filepath.Base(additionalFile))); err != nil {
-							log.Fatal(err)
-						}
-					}
-				}
-				log.Infof(model.DiskReadyMessage(), eveImageFile)
-			} else {
-				log.Infof("EVE already exists in dir: %s", eveDist)
-			}
-		} else {
-			uefiDesc := utils.UEFIDescription{
-				Registry: eveRegistry,
-				Tag:      eveUefiTag,
-				Arch:     eveArch,
-			}
-			imageTag, err := eveDesc.Image()
-			if err != nil {
-				log.Fatal(err)
-			}
-			if netboot {
-				if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(eveImageFile)); err != nil {
-					log.Errorf("cannot download EVE: %s", err)
-				} else {
-					if err := eden.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
-						log.Errorf("cannot start eserver: %s", err)
-					} else {
-						log.Infof("Eserver is running and accessible on port %d", eserverPort)
-					}
-					eServerIP := certsEVEIP
-					eServerPort := viper.GetString("eden.eserver.port")
-					server := &eden.EServer{
-						EServerIP:   eServerIP,
-						EServerPort: eServerPort,
-					}
-					// we should uncompress kernel for arm64
-					if eveArch == "arm64" {
-						// rename to temp file
-						if err := os.Rename(filepath.Join(filepath.Dir(eveImageFile), "kernel"),
-							filepath.Join(filepath.Dir(eveImageFile), "kernel.old")); err != nil {
-							// probably naming changed, give up
-							log.Warnf("Cannot rename kernel: %v", err)
-						} else {
-							r, err := os.Open(filepath.Join(filepath.Dir(eveImageFile), "kernel.old"))
-							if err != nil {
-								log.Fatalf("Open kernel.old: %v", err)
-							}
-							uncompressedStream, err := gzip.NewReader(r)
-							if err != nil {
-								// in case of non-gz rename back
-								log.Errorf("gzip: NewReader failed: %v", err)
-								if err := os.Rename(filepath.Join(filepath.Dir(eveImageFile), "kernel.old"),
-									filepath.Join(filepath.Dir(eveImageFile), "kernel")); err != nil {
-									log.Fatalf("Cannot rename kernel: %v", err)
-								}
-							} else {
-								defer uncompressedStream.Close()
-								out, err := os.Create(filepath.Join(filepath.Dir(eveImageFile), "kernel"))
-								if err != nil {
-									log.Fatalf("Cannot create file to save: %v", err)
-								}
-								if _, err := io.Copy(out, uncompressedStream); err != nil {
-									log.Fatalf("Cannot copy to decompressed file: %v", err)
-								}
-								if err := out.Close(); err != nil {
-									log.Fatalf("Cannot close file: %v", err)
-								}
-							}
-						}
-					}
-					configPrefix := configName
-					if configPrefix == defaults.DefaultContext {
-						//in case of default context we use empty prefix to keep compatibility
-						configPrefix = ""
-					}
-					items, _ := ioutil.ReadDir(filepath.Dir(eveImageFile))
-					for _, item := range items {
-						if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
-							if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), item.Name()), configPrefix); err != nil {
-								log.Fatalf("AddFileIntoEServer: %s", err)
-							}
-						}
-					}
-					ipxeFile := filepath.Join(filepath.Dir(eveImageFile), "ipxe.efi.cfg")
-					ipxeFileBytes, err := ioutil.ReadFile(ipxeFile)
-					if err != nil {
-						log.Fatalf("Cannot read ipxe file: %v", err)
-					}
-					re := regexp.MustCompile("# set url .*")
-					ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
-						[]byte(fmt.Sprintf("set url http://%s:%d/%s/", eServerIP, eserverPort, path.Join("eserver", configPrefix))))
-					if softserial != "" {
-						ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
-							"eve_soft_serial=${mac:hexhyp}",
-							fmt.Sprintf("eve_soft_serial=%s", softserial)))
-					}
-					ipxeOverrideSlice := strings.Split(ipxeOverride, "||")
-					if len(ipxeOverrideSlice) > 1 {
-						fmt.Println(ipxeOverrideSlice)
 
-						for i := 0; ; i += 2 {
-							if i+1 >= len(ipxeOverrideSlice) {
-								break
-							}
-							re := regexp.MustCompile(ipxeOverrideSlice[i])
-							ipxeFileReplaced = re.ReplaceAll(ipxeFileReplaced, []byte(ipxeOverrideSlice[i+1]))
-						}
-					}
-					_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
-					ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
-					_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
-					i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configPrefix)
-					if err != nil {
-						log.Fatalf("AddFileIntoEServer: %s", err)
-					}
-					log.Infof("download EVE done: %s", imageTag)
-					log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
-					log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/%s). Use it to boot your EVE via network", eServerIP, eServerPort, i.FileName)
-					log.Infof("EVE already exists: %s", filepath.Dir(eveImageFile))
-				}
-			} else if installer {
-				if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-					if err := utils.DownloadEveInstaller(eveDesc, eveImageFile); err != nil {
-						log.Errorf("cannot download EVE: %s", err)
-					} else {
-						log.Infof("download EVE done: %s", imageTag)
-						log.Infof(model.DiskReadyMessage(), eveImageFile)
-					}
-				} else {
-					log.Infof("download EVE done: %s", imageTag)
-					log.Infof("EVE already exists: %s", eveImageFile)
-				}
-			} else {
-				if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
-					if err := utils.DownloadEveLive(eveDesc, uefiDesc, eveImageFile); err != nil {
-						log.Errorf("cannot download EVE: %s", err)
-					} else {
-						log.Infof("download EVE done: %s", imageTag)
-						log.Infof(model.DiskReadyMessage(), eveImageFile)
-					}
-				} else {
-					log.Infof("download EVE done: %s", imageTag)
-					log.Infof("EVE already exists: %s", eveImageFile)
-				}
-			}
+		setupEve()
 
-			home, err := os.UserHomeDir()
-			if err != nil {
-				log.Error(err)
-			} else {
-				cfgDir := home + "/.eden/"
-				_, err = os.Stat(cfgDir)
-				if err != nil {
-					// Most likely running from inside of "eden test" which sets home directory
-					// to "/no-home".
-					fmt.Printf("Directory %s access error: %s\n",
-						cfgDir, err)
-				} else {
-					shPath := viper.GetString("eden.root") + "/scripts/shell/"
-					generateScripts(shPath+"activate.sh.tmpl",
-						cfgDir+"activate.sh")
-					generateScripts(shPath+"activate.csh.tmpl",
-						cfgDir+"activate.csh")
-					fmt.Println("To activate EDEN settings run:")
-					fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
-					fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
-					fmt.Println("To deactivate them -- eden_deactivate")
-				}
-			}
-			if zedcontrolURL != "" {
-				log.Printf("Please use %s as Onboarding Key", defaults.OnboardUUID)
-				if softserial != "" {
-					log.Printf("use %s as Serial Number", softserial)
-				}
-				log.Printf("To onboard EVE onto %s", zedcontrolURL)
-			}
-		}
+		setupEdenScripts()
+
 		// Build Eden-SDN VM image unless the SDN is disabled.
 		if isSdnEnabled() {
-			if err = os.MkdirAll(sdnConfigDir, 0777); err != nil {
-				log.Fatalf("Failed to create directory for SDN config files: %v", err)
-			}
-			// Get Eden-SDN version.
-			cmdArgs := []string{"pkg", "show-tag", sdnSourceDir}
-			output, err := exec.Command(sdnLinuxkitBin, cmdArgs...).Output()
-			if err != nil {
-				var stderr string
-				if ee, ok := err.(*exec.ExitError); ok {
-					stderr = string(ee.Stderr)
-				} else {
-					stderr = err.Error()
-				}
-				log.Fatalf("linuxkit pkg show-tag failed: %v", stderr)
-			}
-			sdnTag := strings.Split(string(output), ":")[1]
-			sdnTag = strings.TrimSpace(sdnTag)
-			// Build or preferably pull eden-sdn container.
-			homeDir := filepath.Join(edenRoot, "linuxkit-home")
-			envVars := append(os.Environ(), fmt.Sprintf("HOME=%s", homeDir))
-			sdnImage := fmt.Sprintf("%s:%s-%s", defaults.DefaultEdenSDNContainerRef, sdnTag, eveArch)
-			err = utils.PullImage(sdnImage)
-			if err != nil {
-				log.Warnf("failed to pull eden-sdn image (%s, err: %v), " +
-					"trying to build locally instead...", sdnImage, err)
-				platform := fmt.Sprintf("%s/%s", qemuOS, eveArch)
-				cmdArgs = []string{"pkg", "build", "--force", "--platforms", platform,
-					"--docker", "--build-yml", "build.yml", sdnSourceDir}
-				err := utils.RunCommandForegroundWithOpts(sdnLinuxkitBin, cmdArgs,
-					utils.SetCommandEnvVars(envVars))
-				if err != nil {
-					log.Fatalf("Failed to build eden-sdn container: %v", err)
-				}
-			}
-			// Build Eden-SDN VM qcow2 image.
-			imageDir := filepath.Dir(sdnImageFile)
-			_ = os.MkdirAll(imageDir, 0777)
-			vmYmlIn, err := ioutil.ReadFile(filepath.Join(sdnSourceDir, "vm.yml.in"))
-			if err != nil {
-				log.Fatalf("Failed to read eden-sdn vm.yml.in: %v", err)
-			}
-			vmYml := strings.ReplaceAll(string(vmYmlIn), "SDN_TAG", sdnTag)
-			cmdArgs = []string{"build", "--arch", eveArch, "--format", "qcow2-efi",
-				"--docker", "--dir", imageDir, "--name", "sdn", "-"}
-			err = utils.RunCommandForegroundWithOpts(sdnLinuxkitBin, cmdArgs,
-				utils.SetCommandStdin(vmYml), utils.SetCommandEnvVars(envVars))
-			if err != nil {
-				log.Fatalf("Failed to build eden-sdn VM image: %v", err)
-			}
-			// This image filename is given by linuxkit.
-			imageFilename := filepath.Join(imageDir, "sdn-efi.qcow2")
-			if imageFilename != sdnImageFile {
-				err = os.Rename(imageFilename, sdnImageFile)
-				if err != nil {
-					log.Fatalf("Failed to rename eden-sdn VM image to requested " +
-						"filepath %s: %v", sdnImageFile, err)
-				}
-			}
+			setupSdn()
 		}
 	},
+}
+
+func setupQemuConfig() {
+	var err error
+	if _, err = os.Stat(qemuFileToSave); err == nil || !os.IsNotExist(err) {
+		log.Debugf("QEMU config already exists: %s", qemuFileToSave)
+	}
+	qemuDTBPathAbsolute := ""
+	if qemuDTBPath != "" {
+		qemuDTBPathAbsolute, err = filepath.Abs(qemuDTBPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	var qemuFirmwareParam []string
+	for _, line := range qemuFirmware {
+		for _, el := range strings.Split(line, " ") {
+			qemuFirmwareParam = append(qemuFirmwareParam, utils.ResolveAbsPath(el))
+		}
+	}
+	if customInstallerPath != "" && eveDisks == 0 {
+		log.Fatal("EVE installer requires at least one disK")
+	}
+	var qemuDisksParam []string
+	for ind := 0; ind < eveDisks; ind++ {
+		diskFile := filepath.Join(filepath.Dir(eveImageFile), fmt.Sprintf("eve-disk-%d.qcow2", ind+1))
+		if err := utils.CreateDisk(diskFile, "qcow2", uint64(eveImageSizeMB*1024*1024)); err != nil {
+			log.Fatal(err)
+		}
+		qemuDisksParam = append(qemuDisksParam, diskFile)
+	}
+	settings := utils.QemuSettings{
+		DTBDrive: qemuDTBPathAbsolute,
+		Firmware: qemuFirmwareParam,
+		Disks:    qemuDisksParam,
+		MemoryMB: qemuMemory,
+		CPUs:     qemuCpus,
+	}
+	conf, err := settings.GenerateQemuConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+	f, err := os.Create(qemuFileToSave)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = f.Write(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("QEMU config file generated: %s", qemuFileToSave)
+}
+
+func setupConfigDir() {
+	if _, err := os.Stat(filepath.Join(certsDir, "root-certificate.pem")); os.IsNotExist(err) {
+		wifiPSK := ""
+		if ssid != "" {
+			fmt.Printf("Enter password for wifi %s: ", ssid)
+			pass, _ := term.ReadPassword(0)
+			wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(ssid), 4096, 32, sha1.New)))
+			fmt.Println()
+		}
+		if zedcontrolURL == "" {
+			if err := eden.GenerateEveCerts(certsDir, certsDomain, certsIP, certsEVEIP, certsUUID,
+				devModel, ssid, wifiPSK, grubOptions, apiV1); err != nil {
+				log.Errorf("cannot GenerateEveCerts: %s", err)
+			} else {
+				log.Info("GenerateEveCerts done")
+			}
+		} else {
+			if err := eden.PutEveCerts(certsDir, devModel, ssid, wifiPSK); err != nil {
+				log.Errorf("cannot GenerateEveCerts: %s", err)
+			} else {
+				log.Info("GenerateEveCerts done")
+			}
+		}
+	} else {
+		log.Info("GenerateEveCerts done")
+		log.Infof("Certs already exists in certs dir: %s", certsDir)
+	}
+	if zedcontrolURL == "" {
+		err := eden.GenerateEVEConfig(devModel, certsDir, certsDomain, certsEVEIP,
+			adamPort, apiV1, softserial, eveBootstrapFile, isSdnEnabled())
+		if err != nil {
+			log.Errorf("cannot GenerateEVEConfig: %s", err)
+		} else {
+			log.Info("GenerateEVEConfig done")
+		}
+	} else {
+		err := eden.GenerateEVEConfig(devModel, certsDir, zedcontrolURL, "", 0,
+			false, softserial, eveBootstrapFile, isSdnEnabled())
+		if err != nil {
+			log.Errorf("cannot GenerateEVEConfig: %s", err)
+		} else {
+			log.Info("GenerateEVEConfig done")
+		}
+	}
+	if _, err := os.Lstat(configDir); !os.IsNotExist(err) {
+		//put files from config folder to generated directory
+		if err := utils.CopyFolder(utils.ResolveAbsPath(eveConfigDir), certsDir); err != nil {
+			log.Errorf("CopyFolder: %s", err)
+		}
+	}
+	if zedcontrolURL != "" {
+		log.Printf("Please use %s as Onboarding Key", defaults.OnboardUUID)
+		if softserial != "" {
+			log.Printf("use %s as Serial Number", softserial)
+		}
+		log.Printf("To onboard EVE onto %s", zedcontrolURL)
+	}
+}
+
+func setupEve() {
+	model, err := models.GetDevModelByName(devModel)
+	if err != nil {
+		log.Fatalf("GetDevModelByName: %s", err)
+	}
+	imageFormat := model.DiskFormat()
+	uefiDesc := utils.UEFIDescription{
+		Registry: eveRegistry,
+		Tag:      eveUefiTag,
+		Arch:     eveArch,
+	}
+	if customInstallerPath != "" {
+		// With installer image already prepared, install only UEFI.
+		if imageFormat == "qcow2" {
+			if err := utils.DownloadUEFI(uefiDesc, filepath.Dir(eveImageFile)); err != nil {
+				log.Errorf("cannot download UEFI: %v", err)
+			} else {
+				log.Infof("download UEFI done: %s", eveUefiTag)
+			}
+		}
+		return
+	}
+	eveDesc := utils.EVEDescription{
+		ConfigPath:  certsDir,
+		Arch:        eveArch,
+		HV:          eveHV,
+		Registry:    eveRegistry,
+		Tag:         eveTag,
+		Format:      imageFormat,
+		ImageSizeMB: eveImageSizeMB,
+	}
+	if !download {
+		if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
+			if err := eden.CloneFromGit(eveDist, eveRepo, eveTag); err != nil {
+				log.Errorf("cannot clone EVE: %s", err)
+			} else {
+				log.Info("clone EVE done")
+			}
+			builedImage := ""
+			builedAdditional := ""
+			if builedImage, builedAdditional, err = eden.MakeEveInRepo(eveDesc, eveDist); err != nil {
+				log.Errorf("cannot MakeEveInRepo: %s", err)
+			} else {
+				log.Info("MakeEveInRepo done")
+			}
+			if err = utils.CopyFile(builedImage, eveImageFile); err != nil {
+				log.Fatal(err)
+			}
+			builedAdditionalSplitted := strings.Split(builedAdditional, ",")
+			for _, additionalFile := range builedAdditionalSplitted {
+				if additionalFile != "" {
+					if err = utils.CopyFile(additionalFile, filepath.Join(filepath.Dir(eveImageFile), filepath.Base(additionalFile))); err != nil {
+						log.Fatal(err)
+					}
+				}
+			}
+			log.Infof(model.DiskReadyMessage(), eveImageFile)
+		} else {
+			log.Infof("EVE already exists in dir: %s", eveDist)
+		}
+	} else { // download
+		imageTag, err := eveDesc.Image()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if netboot {
+			if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(eveImageFile)); err != nil {
+				log.Errorf("cannot download EVE: %s", err)
+			} else {
+				if err := eden.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
+					log.Errorf("cannot start eserver: %s", err)
+				} else {
+					log.Infof("Eserver is running and accessible on port %d", eserverPort)
+				}
+				eServerIP := certsEVEIP
+				eServerPort := viper.GetString("eden.eserver.port")
+				server := &eden.EServer{
+					EServerIP:   eServerIP,
+					EServerPort: eServerPort,
+				}
+				// we should uncompress kernel for arm64
+				if eveArch == "arm64" {
+					// rename to temp file
+					if err := os.Rename(filepath.Join(filepath.Dir(eveImageFile), "kernel"),
+						filepath.Join(filepath.Dir(eveImageFile), "kernel.old")); err != nil {
+						// probably naming changed, give up
+						log.Warnf("Cannot rename kernel: %v", err)
+					} else {
+						r, err := os.Open(filepath.Join(filepath.Dir(eveImageFile), "kernel.old"))
+						if err != nil {
+							log.Fatalf("Open kernel.old: %v", err)
+						}
+						uncompressedStream, err := gzip.NewReader(r)
+						if err != nil {
+							// in case of non-gz rename back
+							log.Errorf("gzip: NewReader failed: %v", err)
+							if err := os.Rename(filepath.Join(filepath.Dir(eveImageFile), "kernel.old"),
+								filepath.Join(filepath.Dir(eveImageFile), "kernel")); err != nil {
+								log.Fatalf("Cannot rename kernel: %v", err)
+							}
+						} else {
+							defer uncompressedStream.Close()
+							out, err := os.Create(filepath.Join(filepath.Dir(eveImageFile), "kernel"))
+							if err != nil {
+								log.Fatalf("Cannot create file to save: %v", err)
+							}
+							if _, err := io.Copy(out, uncompressedStream); err != nil {
+								log.Fatalf("Cannot copy to decompressed file: %v", err)
+							}
+							if err := out.Close(); err != nil {
+								log.Fatalf("Cannot close file: %v", err)
+							}
+						}
+					}
+				}
+				configPrefix := configName
+				if configPrefix == defaults.DefaultContext {
+					//in case of default context we use empty prefix to keep compatibility
+					configPrefix = ""
+				}
+				items, _ := ioutil.ReadDir(filepath.Dir(eveImageFile))
+				for _, item := range items {
+					if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
+						if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(eveImageFile), item.Name()), configPrefix); err != nil {
+							log.Fatalf("AddFileIntoEServer: %s", err)
+						}
+					}
+				}
+				ipxeFile := filepath.Join(filepath.Dir(eveImageFile), "ipxe.efi.cfg")
+				ipxeFileBytes, err := ioutil.ReadFile(ipxeFile)
+				if err != nil {
+					log.Fatalf("Cannot read ipxe file: %v", err)
+				}
+				re := regexp.MustCompile("# set url .*")
+				ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
+					[]byte(fmt.Sprintf("set url http://%s:%d/%s/", eServerIP, eserverPort, path.Join("eserver", configPrefix))))
+				if softserial != "" {
+					ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
+						"eve_soft_serial=${mac:hexhyp}",
+						fmt.Sprintf("eve_soft_serial=%s", softserial)))
+				}
+				ipxeOverrideSlice := strings.Split(ipxeOverride, "||")
+				if len(ipxeOverrideSlice) > 1 {
+					fmt.Println(ipxeOverrideSlice)
+
+					for i := 0; ; i += 2 {
+						if i+1 >= len(ipxeOverrideSlice) {
+							break
+						}
+						re := regexp.MustCompile(ipxeOverrideSlice[i])
+						ipxeFileReplaced = re.ReplaceAll(ipxeFileReplaced, []byte(ipxeOverrideSlice[i+1]))
+					}
+				}
+				_ = os.MkdirAll(filepath.Join(filepath.Dir(eveImageFile), "tftp"), 0777)
+				ipxeConfigFile := filepath.Join(filepath.Dir(eveImageFile), "tftp", "ipxe.efi.cfg")
+				_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
+				i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configPrefix)
+				if err != nil {
+					log.Fatalf("AddFileIntoEServer: %s", err)
+				}
+				log.Infof("download EVE done: %s", imageTag)
+				log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
+				log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/%s). Use it to boot your EVE via network", eServerIP, eServerPort, i.FileName)
+				log.Infof("EVE already exists: %s", filepath.Dir(eveImageFile))
+			}
+		} else if installer {
+			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
+				if err := utils.DownloadEveInstaller(eveDesc, eveImageFile); err != nil {
+					log.Errorf("cannot download EVE: %s", err)
+				} else {
+					log.Infof("download EVE done: %s", imageTag)
+					log.Infof(model.DiskReadyMessage(), eveImageFile)
+				}
+			} else {
+				log.Infof("download EVE done: %s", imageTag)
+				log.Infof("EVE already exists: %s", eveImageFile)
+			}
+		} else { // download EVE live image
+			if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
+				if err := utils.DownloadEveLive(eveDesc, eveImageFile); err != nil {
+					log.Errorf("cannot download EVE: %s", err)
+				} else {
+					log.Infof("download EVE done: %s", imageTag)
+					log.Infof(model.DiskReadyMessage(), eveImageFile)
+				}
+				if imageFormat == "qcow2" {
+					if err := utils.DownloadUEFI(uefiDesc, filepath.Dir(eveImageFile)); err != nil {
+						log.Errorf("cannot download UEFI: %v", err)
+					} else {
+						log.Infof("download UEFI done: %s", eveUefiTag)
+					}
+				}
+			} else {
+				log.Infof("download EVE done: %s", imageTag)
+				log.Infof("EVE already exists: %s", eveImageFile)
+			}
+		}
+	}
+}
+
+func setupEdenScripts() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Error(err)
+	} else {
+		cfgDir := home + "/.eden/"
+		_, err = os.Stat(cfgDir)
+		if err != nil {
+			// Most likely running from inside of "eden test" which sets home directory
+			// to "/no-home".
+			fmt.Printf("Directory %s access error: %s\n",
+				cfgDir, err)
+		} else {
+			shPath := viper.GetString("eden.root") + "/scripts/shell/"
+			generateScripts(shPath+"activate.sh.tmpl",
+				cfgDir+"activate.sh")
+			generateScripts(shPath+"activate.csh.tmpl",
+				cfgDir+"activate.csh")
+			fmt.Println("To activate EDEN settings run:")
+			fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
+			fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
+			fmt.Println("To deactivate them -- eden_deactivate")
+		}
+	}
+}
+
+func setupSdn() {
+	if err := os.MkdirAll(sdnConfigDir, 0777); err != nil {
+		log.Fatalf("Failed to create directory for SDN config files: %v", err)
+	}
+	// Get Eden-SDN version.
+	cmdArgs := []string{"pkg", "show-tag", sdnSourceDir}
+	output, err := exec.Command(sdnLinuxkitBin, cmdArgs...).Output()
+	if err != nil {
+		var stderr string
+		if ee, ok := err.(*exec.ExitError); ok {
+			stderr = string(ee.Stderr)
+		} else {
+			stderr = err.Error()
+		}
+		log.Fatalf("linuxkit pkg show-tag failed: %v", stderr)
+	}
+	sdnTag := strings.Split(string(output), ":")[1]
+	sdnTag = strings.TrimSpace(sdnTag)
+	// Build or preferably pull eden-sdn container.
+	homeDir := filepath.Join(edenRoot, "linuxkit-home")
+	envVars := append(os.Environ(), fmt.Sprintf("HOME=%s", homeDir))
+	sdnImage := fmt.Sprintf("%s:%s-%s", defaults.DefaultEdenSDNContainerRef, sdnTag, eveArch)
+	err = utils.PullImage(sdnImage)
+	if err != nil {
+		log.Warnf("failed to pull eden-sdn image (%s, err: %v), "+
+			"trying to build locally instead...", sdnImage, err)
+		platform := fmt.Sprintf("%s/%s", qemuOS, eveArch)
+		cmdArgs = []string{"pkg", "build", "--force", "--platforms", platform,
+			"--docker", "--build-yml", "build.yml", sdnSourceDir}
+		err := utils.RunCommandForegroundWithOpts(sdnLinuxkitBin, cmdArgs,
+			utils.SetCommandEnvVars(envVars))
+		if err != nil {
+			log.Fatalf("Failed to build eden-sdn container: %v", err)
+		}
+	}
+	// Build Eden-SDN VM qcow2 image.
+	imageDir := filepath.Dir(sdnImageFile)
+	_ = os.MkdirAll(imageDir, 0777)
+	vmYmlIn, err := ioutil.ReadFile(filepath.Join(sdnSourceDir, "vm.yml.in"))
+	if err != nil {
+		log.Fatalf("Failed to read eden-sdn vm.yml.in: %v", err)
+	}
+	vmYml := strings.ReplaceAll(string(vmYmlIn), "SDN_TAG", sdnTag)
+	cmdArgs = []string{"build", "--arch", eveArch, "--format", "qcow2-efi",
+		"--docker", "--dir", imageDir, "--name", "sdn", "-"}
+	err = utils.RunCommandForegroundWithOpts(sdnLinuxkitBin, cmdArgs,
+		utils.SetCommandStdin(vmYml), utils.SetCommandEnvVars(envVars))
+	if err != nil {
+		log.Fatalf("Failed to build eden-sdn VM image: %v", err)
+	}
+	// This image filename is given by linuxkit.
+	imageFilename := filepath.Join(imageDir, "sdn-efi.qcow2")
+	if imageFilename != sdnImageFile {
+		err = os.Rename(imageFilename, sdnImageFile)
+		if err != nil {
+			log.Fatalf("Failed to rename eden-sdn VM image to requested "+
+				"filepath %s: %v", sdnImageFile, err)
+		}
+	}
+	// Build UEFI for SDN VM
+	uefiDesc := utils.UEFIDescription{
+		Registry: eveRegistry,
+		Tag:      eveUefiTag,
+		Arch:     eveArch,
+	}
+	if err := utils.DownloadUEFI(uefiDesc, imageDir); err != nil {
+		log.Errorf("cannot download UEFI (for SDN): %v", err)
+	} else {
+		log.Infof("download UEFI (for SDN) done: %s", eveUefiTag)
+	}
 }
 
 func setupInit() {

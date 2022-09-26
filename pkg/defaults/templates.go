@@ -129,6 +129,16 @@ eve:
     #live image of EVE
     image-file: '{{parse "eve.image-file"}}'
 
+    #custom pre-built EVE installer
+    #It is assumed that the installer is configured for the zedcloud controller
+    #(or another 3rd party controller, but not Adam)
+    custom-installer:
+        #path to the installer image file
+        path: '{{parse "eve.custom-installer.path"}}'
+
+        #format of the installer image (should be "raw" or "iso")
+        format: '{{parse "eve.custom-installer.format"}}'
+
     #dtb directory of EVE
     dtb-part: '{{parse "eve.dtb-part"}}'
 

@@ -92,12 +92,30 @@ func DownloadEveInstaller(eve EVEDescription, outputFile string) (err error) {
 	return nil
 }
 
-//DownloadEveLive pulls EVE live image from docker
-func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string) (err error) {
+func DownloadUEFI(uefi UEFIDescription, outputDir string) (err error) {
 	efiImage, err := uefi.image(false) //download OVMF
 	if err != nil {
 		return err
 	}
+	if err := PullImage(efiImage); err != nil {
+		log.Infof("cannot pull %s", efiImage)
+		efiImage, err = uefi.image(true) //try with latest version of OVMF
+		if err != nil {
+			return err
+		}
+		log.Infof("will retry with %s", efiImage)
+		if err := PullImage(efiImage); err != nil {
+			return fmt.Errorf("ImagePull (%s): %s", efiImage, err)
+		}
+	}
+	if err := SaveImageAndExtract(efiImage, outputDir, ""); err != nil {
+		return fmt.Errorf("SaveImage: %s", err)
+	}
+	return nil
+}
+
+//DownloadEveLive pulls EVE live image from docker
+func DownloadEveLive(eve EVEDescription, outputFile string) (err error) {
 	image, err := eve.Image()
 	if err != nil {
 		return err
@@ -114,20 +132,6 @@ func DownloadEveLive(eve EVEDescription, uefi UEFIDescription, outputFile string
 	size := 0
 	if eve.Format == "qcow2" {
 		size = eve.ImageSizeMB
-		if err := PullImage(efiImage); err != nil {
-			log.Infof("cannot pull %s", efiImage)
-			efiImage, err = uefi.image(true) //try with latest version of OVMF
-			if err != nil {
-				return err
-			}
-			log.Infof("will retry with %s", efiImage)
-			if err := PullImage(efiImage); err != nil {
-				return fmt.Errorf("ImagePull (%s): %s", efiImage, err)
-			}
-		}
-		if err := SaveImageAndExtract(efiImage, filepath.Dir(outputFile), ""); err != nil {
-			return fmt.Errorf("SaveImage: %s", err)
-		}
 	}
 	if eve.Format == "gcp" || eve.Format == "vdi" || eve.Format == "parallels" {
 		size = eve.ImageSizeMB
