@@ -195,7 +195,7 @@ help:
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo "   build-docker  build all docker images of EDEN"
-	@echo "   build-tools   builds linuxkit (used to build SDN VM)"
+	@echo "   build-tools   build linuxkit (used to build SDN VM)"
 	@echo
 	@echo "You can use some parameters:"
 	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""
