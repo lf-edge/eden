@@ -45,7 +45,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, qemuSMBIOSSerial string, eveTe
 	qemuConfigFile, logFile, pidFile string, tapInterface string, ethLoops int, swtpm, foreground bool) (err error) {
 	qemuCommand := ""
 	qemuOptions := "-display none -nodefaults -no-user-config "
-	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logfile=%s ", eveTelnetPort, logFile)
+	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,host=localhost,server,nodelay,nowait,telnet,logappend=on,logfile=%s ", eveTelnetPort, logFile)
 	netDev := "e1000"
 	tpmDev := "tpm-tis"
 	if qemuARCH == "" {
