@@ -8,11 +8,6 @@ build or deploy EVE, or run `eden` commands, with additional considerations.
 EVE uses virtualization; to run in VM-based environments, including most cloud
 instances, see [virtual EVE](./virtual-eve.md).
 
-## arm64
-
-When running on arm64, including Raspberry Pi 4, you may need to specify the
-UEFI build explicitly to eden, via `eve setup --eve-uefi-tag`.
-
 ## VirtualBox support
 
 Eden can be used with VirtualBox.

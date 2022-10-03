@@ -236,7 +236,6 @@ var (
 		"eve.repo":         "eve-repo",
 		"eve.registry":     "eve-registry",
 		"eve.tag":          "eve-tag",
-		"eve.uefi-tag":     "eve-uefi-tag",
 		"eve.hostfwd":      "eve-hostfwd",
 		"eve.dist":         "eve-dist",
 		"eve.base-dist":    "eve-base-dist",
