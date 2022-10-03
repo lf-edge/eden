@@ -41,7 +41,6 @@ test eden.app.test -test.v -timewait 10m - ping-nw ping-fw pong
 -- wait_ssh.sh --
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-HOST=$($EDEN eve ip)
 for p in $*
 do
   for i in `seq 20`
@@ -61,7 +60,6 @@ cat env
 . ./env
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-HOST=$($EDEN eve ip)
 
 echo $EDEN sdn fwd eth0 $1 -- {{template "ssh"}} ping -c 5 "$PONG_IP"
 $EDEN sdn fwd eth0 $1 -- {{template "ssh"}} ping -c 5 "$PONG_IP"

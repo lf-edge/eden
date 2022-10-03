@@ -418,9 +418,6 @@ This is currently limited to TCP port forwarding (i.e. not working with UDP)!`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if eveRemote {
-			log.Fatal("Eden command is not supported in the Remote mode")
-		}
 		eveIfName := args[0]
 		targetPort, err := strconv.Atoi(args[1])
 		if err != nil {
@@ -435,6 +432,27 @@ This is currently limited to TCP port forwarding (i.e. not working with UDP)!`,
 func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, args ...string) {
 	const fwdIPLabel = "FWD_IP"
 	const fwdPortLabel = "FWD_PORT"
+
+	// Case 1: EVE is running remotely (on Raspberry Pi, GCP, etc.)
+	if eveRemote {
+		// Get IP address used by the target EVE interface.
+		// (look at network info published by EVE)
+		ip := getEVEIP(eveIfName)
+		if ip == "" {
+			log.Fatalf("Failed to obtain IP address for EVE interface %s", eveIfName)
+		}
+		for i := range args {
+			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, ip)
+			args[i] = strings.ReplaceAll(args[i], fwdPortLabel, strconv.Itoa(targetPort))
+		}
+		err := utils.RunCommandForeground(cmd, args...)
+		if err != nil {
+			log.Fatalf("Command %s failed: %v", cmd, err)
+		}
+		return
+	}
+
+	// Case 2: EVE is running inside VM on this host, but without SDN in between
 	if !isSdnEnabled() {
 		if fromEp != "" {
 			log.Warnf("Cannot execute command from an endpoint without SDN running, " +
@@ -479,13 +497,16 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := utils.RunCommandForeground(cmd, args...)
 		if err != nil {
-			log.Fatalf("command %s failed: %v", cmd, err)
+			log.Fatalf("Command %s failed: %v", cmd, err)
 		}
 		return
 	}
+
+	// Case 3: EVE is running inside VM on this host, with networking provided by SDN VM
 	// TODO: Port forwarding with SDN only works for TCP for now.
 
 	// Get IP address used by the target EVE interface.
+	// (look at the ARP tables inside SDN VM)
 	targetIP := getEVEIP(eveIfName)
 	if targetIP == "" {
 		log.Fatalf("no IP address found to be assigned to EVE interface %s",
@@ -505,7 +526,7 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := client.RunCmdFromEndpoint(fromEp, cmd, args...)
 		if err != nil {
-			log.Fatalf("command %s %s run inside endpoint %s failed: %v",
+			log.Fatalf("Command %s %s run inside endpoint %s failed: %v",
 				cmd, strings.Join(args, " "), fromEp, err)
 		}
 		return
@@ -528,7 +549,7 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	}
 	err = utils.RunCommandForeground(cmd, args...)
 	if err != nil {
-		log.Fatalf("command %s %s failed: %v", cmd, strings.Join(args, " "), err)
+		log.Fatalf("Command %s %s failed: %v", cmd, strings.Join(args, " "), err)
 	}
 }
 
