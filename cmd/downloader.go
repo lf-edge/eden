@@ -14,10 +14,9 @@ import (
 )
 
 var (
-	eveArch    string
-	eveTag     string
-	eveUefiTag string
-	outputDir  string
+	eveArch   string
+	eveTag    string
+	outputDir string
 )
 
 var downloaderCmd = &cobra.Command{
@@ -36,7 +35,6 @@ var downloadEVECmd = &cobra.Command{
 		if viperLoaded {
 			eveRegistry = viper.GetString("eve.registry")
 			eveTag = viper.GetString("eve.tag")
-			eveUefiTag = viper.GetString("eve.uefi-tag")
 			eveArch = viper.GetString("eve.arch")
 			eveHV = viper.GetString("eve.hv")
 			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
@@ -63,15 +61,8 @@ var downloadEVECmd = &cobra.Command{
 		if err := utils.DownloadEveLive(eveDesc, eveImageFile); err != nil {
 			log.Fatal(err)
 		}
-		if format == "qcow2" {
-			uefiDesc := utils.UEFIDescription{
-				Registry: eveRegistry,
-				Tag:      eveUefiTag,
-				Arch:     eveArch,
-			}
-			if err := utils.DownloadUEFI(uefiDesc, filepath.Dir(eveImageFile)); err != nil {
-				log.Fatal(err)
-			}
+		if err := utils.DownloadUEFI(eveDesc, filepath.Dir(eveImageFile)); err != nil {
+			log.Fatal(err)
 		}
 		log.Infof(model.DiskReadyMessage(), eveImageFile)
 		fmt.Println(eveImageFile)
@@ -119,7 +110,6 @@ var downloadEVERootFSCmd = &cobra.Command{
 func downloaderInit() {
 	downloaderCmd.AddCommand(downloadEVECmd)
 	downloadEVECmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "tag to download eve")
-	downloadEVECmd.Flags().StringVarP(&eveUefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "tag to download eve UEFI")
 	downloadEVECmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloadEVECmd.Flags().StringVarP(&eveHV, "eve-hv", "", defaults.DefaultEVEHV, "HV of EVE (kvm or xen)")
 	downloadEVECmd.Flags().StringVarP(&eveImageFile, "image-file", "i", "", "path for image drive")

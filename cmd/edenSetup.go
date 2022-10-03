@@ -160,7 +160,6 @@ var setupCmd = &cobra.Command{
 			eveRepo = viper.GetString("eve.repo")
 			eveRegistry = viper.GetString("eve.registry")
 			eveTag = viper.GetString("eve.tag")
-			eveUefiTag = viper.GetString("eve.uefi-tag")
 			eveHV = viper.GetString("eve.hv")
 			eveArch = viper.GetString("eve.arch")
 			hostFwd = viper.GetStringMapString("eve.hostfwd")
@@ -328,22 +327,6 @@ func setupEve() {
 		log.Fatalf("GetDevModelByName: %s", err)
 	}
 	imageFormat := model.DiskFormat()
-	uefiDesc := utils.UEFIDescription{
-		Registry: eveRegistry,
-		Tag:      eveUefiTag,
-		Arch:     eveArch,
-	}
-	if customInstallerPath != "" {
-		// With installer image already prepared, install only UEFI.
-		if imageFormat == "qcow2" {
-			if err := utils.DownloadUEFI(uefiDesc, filepath.Dir(eveImageFile)); err != nil {
-				log.Errorf("cannot download UEFI: %v", err)
-			} else {
-				log.Infof("download UEFI done: %s", eveUefiTag)
-			}
-		}
-		return
-	}
 	eveDesc := utils.EVEDescription{
 		ConfigPath:  certsDir,
 		Arch:        eveArch,
@@ -352,6 +335,17 @@ func setupEve() {
 		Tag:         eveTag,
 		Format:      imageFormat,
 		ImageSizeMB: eveImageSizeMB,
+	}
+	if customInstallerPath != "" {
+		// With installer image already prepared, install only UEFI.
+		if imageFormat == "qcow2" {
+			if err := utils.DownloadUEFI(eveDesc, filepath.Dir(eveImageFile)); err != nil {
+				log.Errorf("cannot download UEFI: %v", err)
+			} else {
+				log.Infof("download UEFI done")
+			}
+		}
+		return
 	}
 	if !download {
 		if _, err := os.Lstat(eveImageFile); os.IsNotExist(err) {
@@ -508,10 +502,10 @@ func setupEve() {
 					log.Infof(model.DiskReadyMessage(), eveImageFile)
 				}
 				if imageFormat == "qcow2" {
-					if err := utils.DownloadUEFI(uefiDesc, filepath.Dir(eveImageFile)); err != nil {
+					if err := utils.DownloadUEFI(eveDesc, filepath.Dir(eveImageFile)); err != nil {
 						log.Errorf("cannot download UEFI: %v", err)
 					} else {
-						log.Infof("download UEFI done: %s", eveUefiTag)
+						log.Infof("download UEFI done")
 					}
 				}
 			} else {
@@ -609,15 +603,19 @@ func setupSdn() {
 		}
 	}
 	// Build UEFI for SDN VM
-	uefiDesc := utils.UEFIDescription{
-		Registry: eveRegistry,
-		Tag:      eveUefiTag,
-		Arch:     eveArch,
+	eveDesc := utils.EVEDescription{
+		ConfigPath:  certsDir,
+		Arch:        eveArch,
+		HV:          eveHV,
+		Registry:    eveRegistry,
+		Tag:         eveTag,
+		Format:      imageFormat,
+		ImageSizeMB: eveImageSizeMB,
 	}
-	if err := utils.DownloadUEFI(uefiDesc, imageDir); err != nil {
+	if err := utils.DownloadUEFI(eveDesc, imageDir); err != nil {
 		log.Errorf("cannot download UEFI (for SDN): %v", err)
 	} else {
-		log.Infof("download UEFI (for SDN) done: %s", eveUefiTag)
+		log.Infof("download UEFI (for SDN) done")
 	}
 }
 
@@ -645,7 +643,6 @@ func setupInit() {
 	setupCmd.Flags().StringVarP(&eveRepo, "eve-repo", "", defaults.DefaultEveRepo, "EVE repo")
 	setupCmd.Flags().StringVarP(&eveRegistry, "eve-registry", "", defaults.DefaultEveRegistry, "EVE registry")
 	setupCmd.Flags().StringVarP(&eveTag, "eve-tag", "", defaults.DefaultEVETag, "EVE tag")
-	setupCmd.Flags().StringVarP(&eveUefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "EVE UEFI tag")
 	setupCmd.Flags().StringVarP(&eveArch, "eve-arch", "", runtime.GOARCH, "EVE arch")
 	setupCmd.Flags().StringToStringVarP(&hostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	setupCmd.Flags().StringVarP(&qemuFileToSave, "qemu-config", "", "", "file to save qemu config")
