@@ -242,27 +242,18 @@ func getEVEIP(ifName string) string {
 		}
 		return ip
 	}
-	// XXX ifName argument is not supported below
-	if runtime.GOOS == "darwin" {
-		if !eveRemote {
-			return "127.0.0.1"
-		}
-		networks, err := getEveNetworkInfo()
-		if err != nil {
-			log.Error(err)
-			return ""
-		}
-		var ips []string
-		for _, nw := range networks {
-			ips = append(ips, nw.IPAddrs...)
-		}
-		if len(ips) == 0 {
-			return ""
-		}
-		return ips[0]
+	networks, err := getEveNetworkInfo()
+	if err != nil {
+		log.Error(err)
+		return ""
 	}
-	if ip, err := eveLastRequests(); err == nil && ip != "" {
-		return ip
+	for _, nw := range networks {
+		if nw.LocalName == ifName {
+			if len(nw.IPAddrs) == 0 {
+				return ""
+			}
+			return nw.IPAddrs[0]
+		}
 	}
 	return ""
 }

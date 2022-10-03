@@ -103,9 +103,19 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 			return fmt.Errorf("StartEVEQemu: %s", err)
 		}
 		network := nets[0].Subnet
+		var ip net.IP
 		for i, port := range netModel.Ports {
+			switch i {
+			case 0:
+				ip = nets[0].FirstAddress
+			case 1:
+				ip = nets[0].SecondAddress
+			default:
+				return fmt.Errorf("unexpected number of ports (in non-SDN mode): %d",
+					len(netModel.Ports))
+			}
 			qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off",
-				i, network, nets[0].FirstAddress)
+				i, network, ip)
 			for k, v := range qemuHostFwd {
 				origPort, err := strconv.Atoi(k)
 				if err != nil {
@@ -119,7 +129,6 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 				}
 				qemuOptions += fmt.Sprintf(",hostfwd=tcp::%d-:%d", origPort+(i*10), newPort+(i*10))
 			}
-
 			qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d,mac=%s ", netDev, i,
 				port.EVEConnect.MAC)
 		}

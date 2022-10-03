@@ -49,7 +49,6 @@ test:
 -- ssh.sh --
 port=$1
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-HOST=$($EDEN eve ip)
 for i in `seq 20`
 do
  sleep 20

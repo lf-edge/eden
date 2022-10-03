@@ -39,7 +39,6 @@ test eden.app.test -test.v -timewait 10m - eclient {{$server}}
 
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-HOST=$($EDEN eve ip)
 
 for i in `seq 20`
 do

@@ -208,7 +208,6 @@ APP="${1}"
 EXPSTATE="${2}"
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-HOST=$($EDEN eve ip)
 
 while true; do
     APPINFO="$($EDEN sdn fwd eth0 {{template "mngr_port"}} -- {{template "ssh"}} "cat {{template "app_info_status_file"}}")"
@@ -228,7 +227,6 @@ $EDEN sdn fwd eth0 {{template "app_port"}} -- {{template "ssh"}} "touch \"$FILEP
 FILEPATH="${1}"
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-HOST=$($EDEN eve ip)
 
 $EDEN sdn fwd eth0 {{template "app_port"}} -- {{template "ssh"}} "test -f \"$FILEPATH\""
 
