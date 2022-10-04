@@ -35,6 +35,7 @@ To test this approach using eden, run (from the repo root directory):
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden setup --eve-bootstrap-file $(pwd)/sdn/examples/static-ips/device-config.json
 ./eden start --sdn-network-model $(pwd)/sdn/examples/static-ips/network-model.json 
 ./eden eve onboard
@@ -59,6 +60,7 @@ To test this approach using eden, run (from the repo root directory):
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden setup --eve-config-dir $(pwd)/sdn/examples/static-ips/config-overrides
 ./eden start --sdn-network-model $(pwd)/sdn/examples/static-ips/network-model.json 
 ./eden eve onboard
@@ -84,6 +86,7 @@ To test this approach using eden, run (from the repo root directory):
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden setup 
 ./eden start --sdn-network-model $(pwd)/sdn/examples/static-ips/network-model.json \
              --eve-usbnetconf-file $(pwd)/sdn/examples/static-ips/config-overrides/DevicePortConfig/override.json
@@ -118,6 +121,7 @@ eth0 IP: 172.22.12.10
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden config set default --key eve.disks --value 1
 ./eden config set default --key eve.disk --value 4096
 ./eden config set default --key eve.custom-installer.path --value "$(pwd)/installer.raw"

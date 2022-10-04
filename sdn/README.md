@@ -99,6 +99,15 @@ can be modeled by the network model.
 
 ## Configuration
 
+Note that Eden-SDN is currently **disabled by default**.
+This is only temporary until the SDN implementation is stabilized and tests are passing reliably.
+
+To enable Eden-SDN, edit [eden configuration](../docs/config.md) as follows:
+
+```
+eden config set $EDEN_CONFIG --key sdn.disable --value false
+```
+
 The network model is configurable in the same way as the device model - using a configuration option
 pointing to a JSON file:
 
@@ -118,15 +127,16 @@ We recommend to start from the provided [examples](./examples) (each has its own
 Refer to the [underlying Go definition](./api/netModel.go) for in-line comments explaining all available 
 model items and their parameters.
 
-Apart from network model, there are several more configuration options available for Eden-SDN.
-For example, it is possible to disable Eden-SDN completely with:
+There are several more configuration options available for Eden-SDN.
+For example, it is possible to change the port used for the SSH access into the SDN VM.
+This may be useful if the default port `6622` is already used by another application.
 
 ```
-eden config set default --key sdn.disable --value true
+eden config set $EDEN_CONFIG --key sdn.ssh-port --value 11122
 ```
 
-Please refer to the in-line comments inside the section "sdn" of the [eden config](../docs/config.md)
-to get a complete list of available options.
+Please refer to the in-line comments inside the section "sdn" of the eden config for the complete list
+of available options.
 
 ## Command-line Interface
 

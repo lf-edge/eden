@@ -99,7 +99,7 @@ func NewTestContext() *TestContext {
 			sdnSSHPort := viper.GetInt("sdn.ssh-port")
 			sdnMgmtPort := viper.GetInt("sdn.mgmt-port")
 			sdnSourceDir := utils.ResolveAbsPath(viper.GetString("sdn.source-dir"))
-			sdnSSHKeyPath := filepath.Join(sdnSourceDir, "cert/ssh/id_rsa")
+			sdnSSHKeyPath := filepath.Join(sdnSourceDir, "vm/cert/ssh/id_rsa")
 			sdnClient = &edensdn.SdnClient{
 				SSHPort:    uint16(sdnSSHPort),
 				SSHKeyPath: sdnSSHKeyPath,

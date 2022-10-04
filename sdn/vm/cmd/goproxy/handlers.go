@@ -8,8 +8,8 @@ import (
 
 	"github.com/elazarl/goproxy"
 	"github.com/elazarl/goproxy/ext/auth"
-	sdnapi "github.com/lf-edge/eden/sdn/api"
-	"github.com/lf-edge/eden/sdn/cmd/goproxy/config"
+	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
+	"github.com/lf-edge/eden/sdn/vm/cmd/goproxy/config"
 	log "github.com/sirupsen/logrus"
 )
 

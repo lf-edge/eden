@@ -11,7 +11,7 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/utils"
-	sdnapi "github.com/lf-edge/eden/sdn/api"
+	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -425,11 +425,15 @@ This is currently limited to TCP port forwarding (i.e. not working with UDP)!`,
 		}
 		command := args[2]
 		args = args[3:]
-		sdnForwardCmd(sdnFwdFromEp, eveIfName, targetPort, command, args...)
+		err = sdnForwardCmd(sdnFwdFromEp, eveIfName, targetPort, command, args...)
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
-func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, args ...string) {
+func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string,
+	args ...string) error {
 	const fwdIPLabel = "FWD_IP"
 	const fwdPortLabel = "FWD_PORT"
 
@@ -439,7 +443,7 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		// (look at network info published by EVE)
 		ip := getEVEIP(eveIfName)
 		if ip == "" {
-			log.Fatalf("Failed to obtain IP address for EVE interface %s", eveIfName)
+			return fmt.Errorf("failed to obtain IP address for EVE interface %s", eveIfName)
 		}
 		for i := range args {
 			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, ip)
@@ -447,9 +451,9 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := utils.RunCommandForeground(cmd, args...)
 		if err != nil {
-			log.Fatalf("Command %s failed: %v", cmd, err)
+			return fmt.Errorf("command %s failed: %v", cmd, err)
 		}
-		return
+		return nil
 	}
 
 	// Case 2: EVE is running inside VM on this host, but without SDN in between
@@ -460,7 +464,7 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		// Network model is static and consists of two Eve interfaces.
 		if eveIfName != "eth0" && eveIfName != "eth1" {
-			log.Fatalf("Unknown EVE interface: %s", eveIfName)
+			return fmt.Errorf("unknown EVE interface: %s", eveIfName)
 		}
 		// Find out what the targetPort is (statically) mapped to in the host.
 		targetHostPort := -1
@@ -486,7 +490,7 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 			}
 		}
 		if targetHostPort == -1 {
-			log.Fatalf("Target EVE interface and port (%s, %d) are not port-forwarded "+
+			return fmt.Errorf("target EVE interface and port (%s, %d) are not port-forwarded "+
 				"by config (see eve.hostfwd)", eveIfName, targetPort)
 		}
 		// Redirect command to localhost and the forwarded port.
@@ -497,9 +501,9 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := utils.RunCommandForeground(cmd, args...)
 		if err != nil {
-			log.Fatalf("Command %s failed: %v", cmd, err)
+			return fmt.Errorf("command %s failed: %v", cmd, err)
 		}
-		return
+		return nil
 	}
 
 	// Case 3: EVE is running inside VM on this host, with networking provided by SDN VM
@@ -509,7 +513,7 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	// (look at the ARP tables inside SDN VM)
 	targetIP := getEVEIP(eveIfName)
 	if targetIP == "" {
-		log.Fatalf("no IP address found to be assigned to EVE interface %s",
+		return fmt.Errorf("no IP address found to be assigned to EVE interface %s",
 			eveIfName)
 	}
 	client := &edensdn.SdnClient{
@@ -526,19 +530,19 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := client.RunCmdFromEndpoint(fromEp, cmd, args...)
 		if err != nil {
-			log.Fatalf("Command %s %s run inside endpoint %s failed: %v",
+			return fmt.Errorf("command %s %s run inside endpoint %s failed: %v",
 				cmd, strings.Join(args, " "), fromEp, err)
 		}
-		return
+		return nil
 	}
 	// Temporarily establish port forwarding using SSH.
 	localPort, err := utils.FindUnusedPort()
 	if err != nil {
-		log.Fatalf("failed to find unused port number: %v", err)
+		return fmt.Errorf("failed to find unused port number: %v", err)
 	}
 	closeTunnel, err := client.SSHPortForwarding(localPort, uint16(targetPort), targetIP)
 	if err != nil {
-		log.Fatalf("failed to establish SSH port forwarding: %v", err)
+		return fmt.Errorf("failed to establish SSH port forwarding: %v", err)
 	}
 	defer closeTunnel()
 	// Redirect command to localhost and the forwarded port.
@@ -549,24 +553,25 @@ func sdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	}
 	err = utils.RunCommandForeground(cmd, args...)
 	if err != nil {
-		log.Fatalf("Command %s %s failed: %v", cmd, strings.Join(args, " "), err)
+		return fmt.Errorf("command %s %s failed: %v", cmd, strings.Join(args, " "), err)
 	}
+	return nil
 }
 
-func sdnForwardSSHToEve(commandToRun string) {
+func sdnForwardSSHToEve(commandToRun string) error {
 	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
 		"-p FWD_PORT root@FWD_IP %s", eveSSHKey, commandToRun)
-	sdnForwardCmd("", "eth0", 22, "ssh", strings.Fields(arguments)...)
+	return sdnForwardCmd("", "eth0", 22, "ssh", strings.Fields(arguments)...)
 }
 
-func sdnForwardSCPFromEve(remoteFilePath, localFilePath string) {
+func sdnForwardSCPFromEve(remoteFilePath, localFilePath string) error {
 	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
 		"-P FWD_PORT root@FWD_IP:%s %s", eveSSHKey, remoteFilePath, localFilePath)
-	sdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
+	return sdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
 }
 
 func sdnSSHKeyPath() string {
-	return filepath.Join(sdnSourceDir, "cert/ssh/id_rsa")
+	return filepath.Join(sdnSourceDir, "vm/cert/ssh/id_rsa")
 }
 
 // Run after loading these options from config:

@@ -25,7 +25,7 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67
-	github.com/lf-edge/eden/sdn v0.0.0-00010101000000-000000000000
+	github.com/lf-edge/eden/sdn/vm v0.0.0-00010101000000-000000000000
 	github.com/lf-edge/edge-containers v0.0.0-20220320131500-9d9f95d81e2c
 	github.com/lf-edge/eve/api/go v0.0.0-20220922050101-e6c69cc97282
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
@@ -61,6 +61,6 @@ require (
 	oras.land/oras-go v1.2.0
 )
 
-replace github.com/lf-edge/eden/sdn => ./sdn
+replace github.com/lf-edge/eden/sdn/vm => ./sdn/vm
 
 replace github.com/lf-edge/eve/libs/depgraph => github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496

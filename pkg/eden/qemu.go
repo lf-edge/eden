@@ -15,7 +15,7 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/utils"
-	sdnapi "github.com/lf-edge/eden/sdn/api"
+	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
 	log "github.com/sirupsen/logrus"
 )
 

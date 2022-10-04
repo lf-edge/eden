@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/lf-edge/eden/sdn/pkg/maclookup"
+	"github.com/lf-edge/eden/sdn/vm/pkg/maclookup"
 	"github.com/lf-edge/eve/libs/depgraph"
 	"github.com/lf-edge/eve/libs/reconciler"
 	log "github.com/sirupsen/logrus"

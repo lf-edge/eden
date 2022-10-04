@@ -155,6 +155,7 @@ var setupCmd = &cobra.Command{
 			customInstallerPath = utils.ResolveAbsPath(viper.GetString("eve.custom-installer.path"))
 			customInstallerFormat = viper.GetString("eve.custom-installer.format")
 			certsUUID = viper.GetString("eve.uuid")
+			edenRoot = viper.GetString("eden.root")
 			eveDist = utils.ResolveAbsPath(viper.GetString("eve.dist"))
 			eveRepo = viper.GetString("eve.repo")
 			eveRegistry = viper.GetString("eve.registry")
@@ -552,7 +553,8 @@ func setupSdn() {
 		log.Fatalf("Failed to create directory for SDN config files: %v", err)
 	}
 	// Get Eden-SDN version.
-	cmdArgs := []string{"pkg", "show-tag", sdnSourceDir}
+	sdnVmSrcDir := filepath.Join(sdnSourceDir, "vm")
+	cmdArgs := []string{"pkg", "show-tag", sdnVmSrcDir}
 	output, err := exec.Command(sdnLinuxkitBin, cmdArgs...).Output()
 	if err != nil {
 		var stderr string
@@ -575,7 +577,7 @@ func setupSdn() {
 			"trying to build locally instead...", sdnImage, err)
 		platform := fmt.Sprintf("%s/%s", qemuOS, eveArch)
 		cmdArgs = []string{"pkg", "build", "--force", "--platforms", platform,
-			"--docker", "--build-yml", "build.yml", sdnSourceDir}
+			"--docker", "--build-yml", "build.yml", sdnVmSrcDir}
 		err := utils.RunCommandForegroundWithOpts(sdnLinuxkitBin, cmdArgs,
 			utils.SetCommandEnvVars(envVars))
 		if err != nil {
@@ -585,7 +587,7 @@ func setupSdn() {
 	// Build Eden-SDN VM qcow2 image.
 	imageDir := filepath.Dir(sdnImageFile)
 	_ = os.MkdirAll(imageDir, 0777)
-	vmYmlIn, err := ioutil.ReadFile(filepath.Join(sdnSourceDir, "vm.yml.in"))
+	vmYmlIn, err := ioutil.ReadFile(filepath.Join(sdnSourceDir, "sdn-vm.yml.in"))
 	if err != nil {
 		log.Fatalf("Failed to read eden-sdn vm.yml.in: %v", err)
 	}

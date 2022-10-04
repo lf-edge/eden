@@ -18,5 +18,5 @@ services:
   - name: eden-sdn
     image: lfedge/eden-sdn:SDN_TAG
 files:
-  - path: /etc/eden-version
-    contents: "EDEN_VERSION"
+  - path: /etc/sdn-version
+    contents: "SDN_TAG"

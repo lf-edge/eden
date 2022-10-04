@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/lf-edge/eden/sdn/cmd/goproxy/config"
+	"github.com/lf-edge/eden/sdn/vm/cmd/goproxy/config"
 	log "github.com/sirupsen/logrus"
 )
 

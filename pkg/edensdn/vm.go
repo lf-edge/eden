@@ -5,7 +5,7 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"net"
 
-	model "github.com/lf-edge/eden/sdn/api"
+	model "github.com/lf-edge/eden/sdn/vm/api"
 )
 
 // SdnVMRunner is implemented for every virtualization technology on which Eden-SDN

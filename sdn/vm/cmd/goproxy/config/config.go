@@ -1,7 +1,7 @@
 package config
 
 import (
-	sdnapi "github.com/lf-edge/eden/sdn/api"
+	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
 )
 
 // ProxyConfig : proxy configuration formatted with JSON and passed to goproxy
