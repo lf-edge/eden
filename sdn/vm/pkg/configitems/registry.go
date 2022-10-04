@@ -1,7 +1,7 @@
 package configitems
 
 import (
-	"github.com/lf-edge/eden/sdn/pkg/maclookup"
+	"github.com/lf-edge/eden/sdn/vm/pkg/maclookup"
 	"github.com/lf-edge/eve/libs/reconciler"
 )
 

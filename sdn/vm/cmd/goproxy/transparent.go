@@ -11,7 +11,7 @@ import (
 
 	"github.com/elazarl/goproxy"
 	"github.com/inconshreveable/go-vhost"
-	"github.com/lf-edge/eden/sdn/cmd/goproxy/config"
+	"github.com/lf-edge/eden/sdn/vm/cmd/goproxy/config"
 	log "github.com/sirupsen/logrus"
 )
 

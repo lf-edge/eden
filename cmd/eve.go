@@ -17,7 +17,7 @@ import (
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
-	sdnapi "github.com/lf-edge/eden/sdn/api"
+	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -352,18 +352,8 @@ var sshEveCmd = &cobra.Command{
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			if eveRemote {
-				if !cmd.Flags().Changed("eve-host") {
-					eveHost = getEVEIP("eth0")
-				}
-				arguments := fmt.Sprintf("-o ConnectTimeout=5 -oStrictHostKeyChecking=no -i %s -p %d root@%s %s",
-					eveSSHKey, eveSSHPort, eveHost, commandToRun)
-				log.Debugf("Try to ssh %s:%d with key %s and command %s", eveHost, eveSSHPort, eveSSHKey, arguments)
-				if err := utils.RunCommandForeground("ssh", strings.Fields(arguments)...); err != nil {
-					log.Fatalf("ssh error: %s", err)
-				}
-			} else {
-				sdnForwardSSHToEve(commandToRun)
+			if err = sdnForwardSSHToEve(commandToRun); err != nil {
+				log.Fatal(err)
 			}
 		} else {
 			log.Fatalf("SSH key problem: %s", err)

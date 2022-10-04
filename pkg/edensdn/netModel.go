@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/lf-edge/eden/pkg/utils"
-	sdnapi "github.com/lf-edge/eden/sdn/api"
+	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
 )
 
 // defaultNetModel : default network model.

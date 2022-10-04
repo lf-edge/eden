@@ -53,6 +53,7 @@ To test this approach using eden, run (from the repo root directory):
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden setup --eve-bootstrap-file $(pwd)/sdn/examples/explicit-proxy/device-config.json
 ./eden start --sdn-network-model $(pwd)/sdn/examples/explicit-proxy/network-model.json 
 ./eden eve onboard
@@ -77,6 +78,7 @@ To test this approach using eden, run (from the repo root directory):
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden setup --eve-config-dir $(pwd)/sdn/examples/explicit-proxy/config-overrides
 ./eden start --sdn-network-model $(pwd)/sdn/examples/explicit-proxy/network-model.json 
 ./eden eve onboard
@@ -102,6 +104,7 @@ To test this approach using eden, run (from the repo root directory):
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden setup 
 ./eden start --sdn-network-model $(pwd)/sdn/examples/explicit-proxy/network-model.json \
              --eve-usbnetconf-file $(pwd)/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json
@@ -155,6 +158,7 @@ wVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=
 ```
 make clean && make build-tests
 ./eden config add default
+./eden config set default --key sdn.disable --value false
 ./eden config set default --key eve.disks --value 1
 ./eden config set default --key eve.disk --value 4096
 ./eden config set default --key eve.custom-installer.path --value "$(pwd)/installer.raw"

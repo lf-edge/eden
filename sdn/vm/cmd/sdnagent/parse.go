@@ -14,7 +14,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/lf-edge/eden/sdn/api"
+	"github.com/lf-edge/eden/sdn/vm/api"
 	log "github.com/sirupsen/logrus"
 )
 

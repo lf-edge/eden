@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"net"
 
-	"github.com/lf-edge/eden/sdn/pkg/configitems"
+	"github.com/lf-edge/eden/sdn/vm/pkg/configitems"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -7,8 +7,8 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/lf-edge/eden/sdn/api"
-	"github.com/lf-edge/eden/sdn/pkg/maclookup"
+	"github.com/lf-edge/eden/sdn/vm/api"
+	"github.com/lf-edge/eden/sdn/vm/pkg/maclookup"
 	"github.com/lf-edge/eve/libs/depgraph"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"

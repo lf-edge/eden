@@ -9,7 +9,7 @@ import (
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
-	model "github.com/lf-edge/eden/sdn/api"
+	model "github.com/lf-edge/eden/sdn/vm/api"
 	log "github.com/sirupsen/logrus"
 )
 

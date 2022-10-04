@@ -469,7 +469,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultRegistryDist
 
 		case "sdn.disable":
-			return false
+			return true
 		case "sdn.source-dir":
 			return filepath.Join(currentPath, "sdn")
 		case "sdn.config-dir":
