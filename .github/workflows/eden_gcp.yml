@@ -12,7 +12,7 @@ jobs:
     steps:
       - id: secrets
         if: ${{ (env.OVPN_FILE != '') && (env.GCP_PROJECT_ID != '') && (env.GCP_SA_KEY != '') }}
-        run: echo "::set-output name=defined::true"
+        run: echo "defined=true" >> $GITHUB_OUTPUT
         env:
           OVPN_FILE: ${{ secrets.OVPN_FILE }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -53,7 +53,7 @@ jobs:
         run: |
           PUBLIC_IP=$(curl -s https://api.ipify.org/?format=text)
           if [[ ! $PUBLIC_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then exit 1; fi
-          echo "::set-output name=ipv4::$PUBLIC_IP"
+          echo "ipv4=$PUBLIC_IP" >> $GITHUB_OUTPUT
       - name: setup packages
         run: |
           sudo apt update
@@ -82,7 +82,7 @@ jobs:
         run: |
           sudo openvpn --config ./config.ovpn --daemon
           until ip -f inet addr show tun0; do sleep 5; ip a; done
-          echo ::set-output name=tunnel_ip::$(ip -f inet addr show tun0 | sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
+          echo "tunnel_ip=$(ip -f inet addr show tun0 | sed -En -e 's/.*inet ([0-9.]+).*/\1/p')" >> $GITHUB_OUTPUT
       - name: build eden
         run: |
           make build
