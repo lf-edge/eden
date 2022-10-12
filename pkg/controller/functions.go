@@ -47,6 +47,25 @@ func (cloud *CloudCtx) SetVars(vars *utils.ConfigVars) {
 	cloud.vars = vars
 }
 
+//ResetDev to initial config in controller
+func (cloud *CloudCtx) ResetDev(node *device.Ctx) error {
+	vars := cloud.GetVars()
+	node.SetApplicationInstanceConfig(nil)
+	node.SetBaseOSConfig(nil)
+	node.SetBaseOSContentTree("")
+	node.SetBaseOSRetryCounter(0)
+	node.SetBaseOSVersion("")
+	node.SetBaseOSActivate(false)
+	node.SetNetworkInstanceConfig(nil)
+	node.SetVolumeConfigs(nil)
+	node.SetSerial(vars.EveSerial)
+	node.SetOnboardKey(vars.EveCert)
+	node.SetDevModel(vars.DevModel)
+	node.SetGlobalProfile("")
+	node.SetLocalProfileServer("")
+	return cloud.OnBoardDev(node)
+}
+
 //OnBoardDev in controller
 func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 	edenDir, err := utils.DefaultEdenDir()

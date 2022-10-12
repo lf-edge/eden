@@ -113,6 +113,7 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (*device.Ctx, e
 	if config.Baseos != nil {
 		dev.SetBaseOSContentTree(config.Baseos.ContentTreeUuid)
 		dev.SetBaseOSActivate(config.Baseos.Activate)
+		dev.SetBaseOSVersion(config.Baseos.BaseOsVersion)
 		if config.Baseos.RetryUpdate != nil {
 			dev.SetBaseOSRetryCounter(config.Baseos.RetryUpdate.Counter)
 		}
@@ -456,9 +457,7 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 	var contentTrees []*config.ContentTree
 	var volumes []*config.Volume
 	var baseOSConfigs []*config.BaseOSConfig
-	baseOS := &config.BaseOS{
-		Activate: dev.GetBaseOSActivate(),
-	}
+	var baseOS *config.BaseOS
 	var dataStores []*config.DatastoreConfig
 	var err error
 	if dev.GetBaseOSContentTree() != "" {
@@ -478,10 +477,14 @@ func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, err
 				contentTrees = append(contentTrees, contentTreeConfig)
 			}
 		}
-		baseOS.ContentTreeUuid = dev.GetBaseOSContentTree()
-	}
-	if dev.GetBaseOSRetryCounter() != 0 {
-		baseOS.RetryUpdate = &config.DeviceOpsCmd{Counter: dev.GetBaseOSRetryCounter()}
+		baseOS = &config.BaseOS{
+			Activate:        dev.GetBaseOSActivate(),
+			BaseOsVersion:   dev.GetBaseOSVersion(),
+			ContentTreeUuid: dev.GetBaseOSContentTree(),
+		}
+		if dev.GetBaseOSRetryCounter() != 0 {
+			baseOS.RetryUpdate = &config.DeviceOpsCmd{Counter: dev.GetBaseOSRetryCounter()}
+		}
 	}
 	for _, baseOSConfigID := range dev.GetBaseOSConfigs() {
 		baseOSConfig, err := cloud.GetBaseOSConfig(baseOSConfigID)

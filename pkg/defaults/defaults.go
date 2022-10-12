@@ -53,8 +53,8 @@ const (
 	DefaultRegistryPort         = 5050
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-85e61f8e" // DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.40"
+	DefaultEVETag               = "0.0.0-master-072272e8" // DefaultEVETag tag for EVE image
+	DefaultAdamTag              = "0.0.41"
 	DefaultRedisTag             = "7"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
@@ -76,10 +76,10 @@ const (
 
 	DefaultRedisPasswordFile = "redis.pass"
 
-	DefaultEServerTag          = "6e2bfa9"
+	DefaultEServerTag          = "4b71e2c"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
-	DefaultEClientTag          = "8e676c6"
+	DefaultEClientTag          = "b1c1de6"
 	DefaultEClientContainerRef = "lfedge/eden-eclient"
 
 	//DefaultRepeatCount is repeat count for requests
@@ -193,11 +193,11 @@ const (
 	DefaultHWEVELocation         = "/persist/lshw.out"
 
 	//defaults for SDN
-	DefaultSdnTelnetPort    = 6623
-	DefaultSdnSSHPort       = 6622
-	DefaultSdnMgmtPort      = 6666
-	DefaultSdnCpus          = 2
-	DefaultSdnMemory        = 2048
+	DefaultSdnTelnetPort = 6623
+	DefaultSdnSSHPort    = 6622
+	DefaultSdnMgmtPort   = 6666
+	DefaultSdnCpus       = 2
+	DefaultSdnMemory     = 2048
 )
 
 var (
