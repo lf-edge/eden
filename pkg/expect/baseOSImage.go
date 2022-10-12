@@ -47,10 +47,7 @@ func (exp *AppExpectation) checkBaseOS(baseOS *config.BaseOS) bool {
 	if baseOS == nil {
 		return false
 	}
-	if ct, _ := exp.ctrl.GetContentTree(baseOS.GetContentTreeUuid()); ct != nil && ct.DisplayName == exp.getBaseOSVersion() {
-		return true
-	}
-	return false
+	return baseOS.BaseOsVersion == exp.getBaseOSVersion()
 }
 
 //checkBaseOSConfig checks if provided BaseOSConfig match expectation
@@ -130,11 +127,12 @@ func (exp *AppExpectation) BaseOS(baseOSVersion string) (baseOS *config.BaseOS) 
 		}
 	}
 	image := exp.Image()
-	contentTree := exp.imageToContentTree(image, exp.getBaseOSVersion())
+	contentTree := exp.imageToContentTree(image, image.Name)
 	_ = exp.ctrl.AddContentTree(contentTree)
 	exp.device.SetContentTreeConfig(append(exp.device.GetContentTrees(), contentTree.Uuid))
 	baseOS = &config.BaseOS{
 		ContentTreeUuid: contentTree.GetUuid(),
+		BaseOsVersion:   exp.getBaseOSVersion(),
 	}
 
 	return

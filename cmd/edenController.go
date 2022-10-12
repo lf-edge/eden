@@ -180,6 +180,7 @@ var edgeNodeEVEImageUpdate = &cobra.Command{
 		dev.SetBaseOSActivate(true)
 		dev.SetBaseOSContentTree(baseOS.ContentTreeUuid)
 		dev.SetBaseOSRetryCounter(0)
+		dev.SetBaseOSVersion(baseOS.BaseOsVersion)
 
 		if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 			log.Fatalf("setControllerAndDev: %s", err)

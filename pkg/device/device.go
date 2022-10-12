@@ -30,6 +30,7 @@ type Ctx struct {
 	baseOSContentTree          string
 	baseOSActivate             bool
 	baseOSRetryCounter         uint32
+	baseOSVersion              string
 	baseOSConfigs              []string
 	networkInstances           []string
 	adaptersForSwitch          []string
@@ -88,6 +89,9 @@ func (cfg *Ctx) GetBaseOSActivate() bool { return cfg.baseOSActivate }
 
 //GetBaseOSRetryCounter return baseOSRetryCounter of device
 func (cfg *Ctx) GetBaseOSRetryCounter() uint32 { return cfg.baseOSRetryCounter }
+
+//GetBaseOSVersion returns baseOSVersion
+func (cfg *Ctx) GetBaseOSVersion() string { return cfg.baseOSVersion }
 
 //GetBaseOSConfigs return baseOSConfigs of device
 func (cfg *Ctx) GetBaseOSConfigs() []string { return cfg.baseOSConfigs }
@@ -165,6 +169,12 @@ func (cfg *Ctx) SetBaseOSActivate(baseOSActivate bool) *Ctx {
 //SetBaseOSRetryCounter set baseOSRetryCounter
 func (cfg *Ctx) SetBaseOSRetryCounter(baseOSRetryCounter uint32) *Ctx {
 	cfg.baseOSRetryCounter = baseOSRetryCounter
+	return cfg
+}
+
+//SetBaseOSVersion set baseOSVersion
+func (cfg *Ctx) SetBaseOSVersion(baseOSVersion string) *Ctx {
+	cfg.baseOSVersion = baseOSVersion
 	return cfg
 }
 
