@@ -21,7 +21,7 @@ jobs:
           sudo add-apt-repository ppa:longsleep/golang-backports
           sudo apt install -y golang jq expect
       - name: Get eden
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Create ubuntu server on packet hosting
         id: ubuntu
         run: |
@@ -109,7 +109,7 @@ jobs:
           PACKET_TOKEN: ${{ secrets.PACKET_TOKEN }}
       - name: Store raw test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: eden-packet${{ matrix.conf_eden_server }}---eve-packet${{ matrix.conf_eve_server }}-${{ matrix.hv }}
           path: |
