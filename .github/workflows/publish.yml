@@ -15,7 +15,7 @@ jobs:
     steps:
       - id: secrets
         if: ${{ env.DOCKERHUB_TOKEN != '' }}
-        run: echo "::set-output name=defined::true"
+        run: echo "defined=true" >> $GITHUB_OUTPUT
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   build:
