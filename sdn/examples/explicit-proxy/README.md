@@ -12,12 +12,10 @@ the controller - unless it uses the provided HTTP/HTTPS proxy (logical label `my
 This proxy is able to access the outside world (no firewall rules defined, i.e. all is allowed)
 and furthermore it is using a different DNS server than the device, logically labeled
 as `dns-server-for-proxy`, which is able to translate Adam's domain name.\
-Note that DNS server used by the device (`dns-server-for-device`) is able to translate
-only the domain name of the proxy. This is sufficient, because with explicitly configured
-proxy DNS resolution of a destination address is being done by the proxy (which learns
-the address from the header of the HTTPS CONNECT or HTTP GET/POST/etc. request),
-not by the device. Destination IP address of requests coming out from the device is that
-of the proxy.\
+With explicitly configured proxy, DNS resolution of a destination address is being done
+by the proxy (which learns the address from the header of the HTTPS CONNECT or HTTP
+GET/POST/etc. request), not by the device. Destination IP address of requests coming out
+from the device is that of the proxy.\
 Also, the network to which the device is connected is configured to have a route leading
 towards the proxy: `"reachableEndpoints": ["my-client", "dns-server-for-device", "my-proxy"]`.
 The proxy performs MITM proxying for all destinations (including the Adam controller),
@@ -50,7 +48,7 @@ to be manually edited, but rather exported from the controller).
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -75,7 +73,7 @@ which would not provide working controller connectivity in this example anyway
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -101,7 +99,7 @@ can be used here as well.
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -125,7 +123,7 @@ controller, follow these steps:
    and ports `9090` and `9091`, respectively. Import the following certificate as the CA
    certificate of the proxy:
 
-```
+```text
 -----BEGIN CERTIFICATE-----
 MIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL
 BQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM
@@ -155,7 +153,7 @@ wVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=
 3. Assuming that the path to the installer is `$(pwd)/installer.raw`, run the following
    command to start your virtual device using eden:
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -171,6 +169,112 @@ Note that traffic coming out from EVE VM will go through the SDN VM (where it wi
 then it will be S-NATed on the exit from the VM, continue into the host networking and out
 into the Internet towards the zedcloud.
 
+
+## Test proxy manually
+
+### Proxy listening on HTTP port (original variant)
+
+```shell
+./eden eve ssh
+
+# Inside EVE VM enter the pillar container
+eve enter
+
+# Make proxy trustworthy.
+echo -e "-----BEGIN CERTIFICATE-----\nMIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL\nBQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM\nDVNhbiBGcmFuY2lzY28wHhcNMjIwOTA3MTcwMDE0WhcNMzIwNjA2MTcwMDE0WjA6\nMRMwEQYDVQQDDAp6ZWRlZGEuY29tMQswCQYDVQQGEwJVUzEWMBQGA1UEBwwNU2Fu\nIEZyYW5jaXNjbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALQsi7IG\nM8KApujL71MJXbuPQNn/g+RItQeehaFRcqcCcpFW4k1YveMNdf5HReKlAfufFtaa\nIF368t33UlleblopLM8m8r9Ev1sSJOS1yYgU1HABjyw54LXBqT4tAf0xjlRaLn4L\nQBUAS0TTywTppGXtNwXpxqdDuQdigNskqzEFaGI52IQezfGt7L2CeeJ/YJNcbImR\neCXMPwTatUHLLE29Qv8GQQfy7TpCXdXVLvQAyfZJi7lY7DjPqBab5ocnVTRcEpKz\nFwH2+KTokQkU1UF614IveRF3ZOqqmrQvy1AdSvekFLIz2uP7xsfy3I3HNQcPJ4DI\n5vNzBaE/hF5xK40CAwEAAaNTMFEwHQYDVR0OBBYEFPxOB5cxsf89x6KdFSTTFV2L\nwta1MB8GA1UdIwQYMBaAFPxOB5cxsf89x6KdFSTTFV2Lwta1MA8GA1UdEwEB/wQF\nMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAFXqCJuq4ifMw3Hre7+X23q25jOb1nzd\n8qs+1Tij8osUC5ekD21x/k9g+xHvacoJIOzsAmpAPSnwXKMnvVdAeX6Scg1Bvejj\nTdXfNEJ7jcvDROUNjlWYjwiY+7ahDkj56nahwGjjUQdgCCzRiSYPOq6N1tRkn97a\ni6+jB8DnTSDnv5j8xiPDbWJ+nv2O1NNsoHS91UrTqkVXxNItrCdPPh21hzrTJxs4\noSf4wbaF5n3E2cPpSAaXBEyxBdXAqUCIhP0q9/pgBTYuJ+eW467u4xWqUVi4iBtN\nwVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=\n-----END CERTIFICATE-----" > /usr/local/share/ca-certificates/proxy.crt
+update-ca-certificates
+
+# Test HTTP proxying
+curl --verbose --interface eth0 --proxy "http://my-proxy.sdn:9090" "http://www.example.com"
+echo $?
+
+# Test HTTPS proxy
+curl --verbose --interface eth0 --proxy "http://my-proxy.sdn:9091" "https://mydomain.adam:3333/api/v2/edgedevice/ping"
+echo $?
+```
+
+### Proxy listening on HTTPS port (requires change to network model)
+
+First, change network model and device config as follows:
+
+```diff
+diff --git a/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json b/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json
+index 10894a2..7ad52d5 100644
+--- a/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json
++++ b/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json
+@@ -11,12 +11,12 @@
+             "Proxies": [
+                 {
+                     "Type": 0,
+-                    "Server": "http://my-proxy.sdn",
++                    "Server": "https://my-proxy.sdn",
+                     "Port": 9090
+                 },
+                 {
+                     "Type": 1,
+-                    "Server": "http://my-proxy.sdn",
++                    "Server": "https://my-proxy.sdn",
+                     "Port": 9091
+                 }
+             ],
+diff --git a/sdn/examples/explicit-proxy/device-config.json b/sdn/examples/explicit-proxy/device-config.json
+index 01d7ffa..1c970a2 100644
+--- a/sdn/examples/explicit-proxy/device-config.json
++++ b/sdn/examples/explicit-proxy/device-config.json
+@@ -25,12 +25,12 @@
+         "proxies": [
+           {
+             "proto": 0,
+-            "server": "http://my-proxy.sdn",
++            "server": "https://my-proxy.sdn",
+             "port": 9090
+           },
+           {
+             "proto": 1,
+-            "server": "http://my-proxy.sdn",
++            "server": "https://my-proxy.sdn",
+             "port": 9091
+           }
+         ],
+diff --git a/sdn/examples/explicit-proxy/network-model.json b/sdn/examples/explicit-proxy/network-model.json
+index f8c732a..b2b70cc 100644
+--- a/sdn/examples/explicit-proxy/network-model.json
++++ b/sdn/examples/explicit-proxy/network-model.json
+@@ -83,11 +83,11 @@
+         "ip": "10.18.18.40",
+         "httpProxy": {
+           "port": 9090,
+-          "listenProto": "http"
++          "listenProto": "https"
+         },
+         "httpsProxy": {
+           "port": 9091,
+-          "listenProto": "http"
++          "listenProto": "https"
+         },
+         "privateDNS": ["dns-server-for-proxy"],
+```
+
+Restart the example and run:
+
+```shell
+./eden eve ssh
+
+# Inside EVE VM enter the pillar container
+eve enter
+
+# Make proxy trustworthy.
+echo -e "-----BEGIN CERTIFICATE-----\nMIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL\nBQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM\nDVNhbiBGcmFuY2lzY28wHhcNMjIwOTA3MTcwMDE0WhcNMzIwNjA2MTcwMDE0WjA6\nMRMwEQYDVQQDDAp6ZWRlZGEuY29tMQswCQYDVQQGEwJVUzEWMBQGA1UEBwwNU2Fu\nIEZyYW5jaXNjbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALQsi7IG\nM8KApujL71MJXbuPQNn/g+RItQeehaFRcqcCcpFW4k1YveMNdf5HReKlAfufFtaa\nIF368t33UlleblopLM8m8r9Ev1sSJOS1yYgU1HABjyw54LXBqT4tAf0xjlRaLn4L\nQBUAS0TTywTppGXtNwXpxqdDuQdigNskqzEFaGI52IQezfGt7L2CeeJ/YJNcbImR\neCXMPwTatUHLLE29Qv8GQQfy7TpCXdXVLvQAyfZJi7lY7DjPqBab5ocnVTRcEpKz\nFwH2+KTokQkU1UF614IveRF3ZOqqmrQvy1AdSvekFLIz2uP7xsfy3I3HNQcPJ4DI\n5vNzBaE/hF5xK40CAwEAAaNTMFEwHQYDVR0OBBYEFPxOB5cxsf89x6KdFSTTFV2L\nwta1MB8GA1UdIwQYMBaAFPxOB5cxsf89x6KdFSTTFV2Lwta1MA8GA1UdEwEB/wQF\nMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAFXqCJuq4ifMw3Hre7+X23q25jOb1nzd\n8qs+1Tij8osUC5ekD21x/k9g+xHvacoJIOzsAmpAPSnwXKMnvVdAeX6Scg1Bvejj\nTdXfNEJ7jcvDROUNjlWYjwiY+7ahDkj56nahwGjjUQdgCCzRiSYPOq6N1tRkn97a\ni6+jB8DnTSDnv5j8xiPDbWJ+nv2O1NNsoHS91UrTqkVXxNItrCdPPh21hzrTJxs4\noSf4wbaF5n3E2cPpSAaXBEyxBdXAqUCIhP0q9/pgBTYuJ+eW467u4xWqUVi4iBtN\nwVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=\n-----END CERTIFICATE-----" > /usr/local/share/ca-certificates/proxy.crt
+update-ca-certificates
+
+# Test HTTP proxy
+curl --verbose --interface eth0 --proxy "https://my-proxy.sdn:9090" "http://www.example.com"
+echo $?
+
+# Test HTTPS proxy
+curl --verbose --interface eth0 --proxy "https://my-proxy.sdn:9091" "https://mydomain.adam:3333/api/v2/edgedevice/ping"
+echo $?
+```
 
 [override-json]: ./config-overrides/DevicePortConfig/override.json
 [global-json]: ./config-overrides/GlobalConfig/global.json

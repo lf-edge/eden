@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -209,14 +211,26 @@ type ExplicitProxy struct {
 	Endpoint
 	// Proxy configuration (common to transparent and explicit proxies).
 	Proxy
-	// HTTPPort : HTTP proxy port.
-	// Zero value can be used to disable HTTP proxy.
-	HTTPPort uint16 `json:"httpPort"`
-	// HTTPSPort : HTTPS proxy port.
-	// Zero value can be used to disable HTTPS proxy.
-	HTTPSPort uint16 `json:"httpsPort"`
+	// HTTPProxy : enable HTTP proxy (i.e. proxying of HTTP traffic) and specify
+	// on which port+protocol to listen for proxy requests (can be HTTP or HTTPS).
+	// Zero port number can be used to disable HTTP proxy.
+	HTTPProxy ProxyPort `json:"httpProxy"`
+	// HTTPSProxy : enable HTTPS proxy (i.e. proxying of HTTPS traffic) and specify
+	// on which port+protocol to listen for proxy requests (can be HTTP or HTTPS).
+	// Zero port number can be used to disable HTTPS proxy.
+	HTTPSProxy ProxyPort `json:"httpsProxy"`
 	// Users : define for username/password authentication, leave empty otherwise.
 	Users []UserCredentials `json:"users"`
+}
+
+// ProxyPort : port+protocol used to *listen* for incoming request for proxying.
+// Note that it can differ from protocol that is being proxied.
+type ProxyPort struct {
+	// Port : port number on which the HTTP/HTTPS proxy listens.
+	Port uint16 `json:"port"`
+	// ListenProto : protocol used to listen for incoming request for proxying
+	// (not necessary the protocol which is then being proxied)
+	ListenProto ProxyListenProto `json:"listenProto"`
 }
 
 // ItemCategory
@@ -306,4 +320,51 @@ type NetbootArtifact struct {
 	// If enabled, this file is then announced to netboot clients using DHCP
 	// option 67 (59 in DHCPv6).
 	Entrypoint bool `json:"entrypoint"`
+}
+
+// ProxyListenProto : protocol used to listen for incoming requests for proxying.
+type ProxyListenProto uint8
+
+const (
+	// ProxyListenProtoUnspecified : protocol is not specified.
+	// Used for transparent proxy where the protocol is implicit.
+	// With explicit proxy Eden-SDN assumes HTTP as the default.
+	ProxyListenProtoUnspecified ProxyListenProto = iota
+	// ProxyListenProtoHTTP : proxy listens on HTTP for new proxy requests.
+	ProxyListenProtoHTTP
+	// ProxyListenProtoHTTPS : proxy listens on HTTPS for new proxy requests.
+	ProxyListenProtoHTTPS
+)
+
+// ProxyListenProtoToString : convert ProxyListenProto to string representation
+// used in JSON.
+var ProxyListenProtoToString = map[ProxyListenProto]string{
+	ProxyListenProtoUnspecified: "",
+	ProxyListenProtoHTTP:        "http",
+	ProxyListenProtoHTTPS:       "https",
+}
+
+// ProxyListenProtoToID : get ProxyListenProto from a string representation.
+var ProxyListenProtoToID = map[string]ProxyListenProto{
+	"":      ProxyListenProtoUnspecified,
+	"http":  ProxyListenProtoHTTP,
+	"https": ProxyListenProtoHTTPS,
+}
+
+// MarshalJSON marshals the enum as a quoted json string.
+func (s ProxyListenProto) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(ProxyListenProtoToString[s])
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+// UnmarshalJSON un-marshals a quoted json string to the enum value.
+func (s *ProxyListenProto) UnmarshalJSON(b []byte) error {
+	var j string
+	if err := json.Unmarshal(b, &j); err != nil {
+		return err
+	}
+	*s = ProxyListenProtoToID[j]
+	return nil
 }

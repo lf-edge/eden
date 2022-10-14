@@ -25,12 +25,12 @@
         "proxies": [
           {
             "proto": 0,
-            "server": "my-proxy.sdn",
+            "server": "http://my-proxy.sdn",
             "port": 9090
           },
           {
             "proto": 1,
-            "server": "my-proxy.sdn",
+            "server": "http://my-proxy.sdn",
             "port": 9091
           }
         ],

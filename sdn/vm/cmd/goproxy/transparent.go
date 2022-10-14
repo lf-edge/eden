@@ -15,27 +15,31 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type tproxyResponseWriter struct {
-	net.Conn
-}
-
-func (w tproxyResponseWriter) Header() http.Header {
-	panic("Header() should not be called on this ResponseWriter")
-}
-
-func (w tproxyResponseWriter) Write(buf []byte) (int, error) {
-	if bytes.Equal(buf, []byte("HTTP/1.0 200 OK\r\n\r\n")) {
-		return len(buf), nil // throw away the HTTP OK response from the faux CONNECT request
+func runTransparentProxy(proxyConfig config.ProxyConfig) {
+	// Run HTTP proxy.
+	httpPort := proxyConfig.HTTPPort.Port
+	if httpPort != 0 {
+		httpProxy := newProxy(proxyConfig)
+		installProxyHandlers(proxyConfig, false, true, httpProxy)
+		proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, httpPort)
+		go func() {
+			log.Fatalln(http.ListenAndServe(proxyAddr, httpProxy))
+		}()
 	}
-	return w.Conn.Write(buf)
-}
 
-func (w tproxyResponseWriter) WriteHeader(code int) {
-	panic("WriteHeader() should not be called on this ResponseWriter")
-}
-
-func (w tproxyResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return w, bufio.NewReadWriter(bufio.NewReader(w), bufio.NewWriter(w)), nil
+	// Run HTTPS proxy(ies).
+	for _, port := range proxyConfig.HTTPSPorts {
+		httpsProxy := newProxy(proxyConfig)
+		installProxyHandlers(proxyConfig, true, true, httpsProxy)
+		go func(port uint16) {
+			proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, port)
+			listener, err := net.Listen("tcp", proxyAddr)
+			if err != nil {
+				log.Fatalf("Error listening for HTTPS connections: %v", err)
+			}
+			tproxyListener(listener, port, httpsProxy)
+		}(port.Port)
+	}
 }
 
 func tproxyListener(listener net.Listener, port uint16, httpsProxy *goproxy.ProxyHttpServer) {
@@ -75,30 +79,25 @@ func tproxyListener(listener net.Listener, port uint16, httpsProxy *goproxy.Prox
 	}
 }
 
-func runTransparentProxy(proxyConfig config.ProxyConfig) {
-	// Run HTTP proxy.
-	if proxyConfig.HTTPPort != 0 {
-		httpProxy := newProxy(proxyConfig)
-		installProxyHandlers(proxyConfig, false, true, httpProxy)
-		proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, proxyConfig.HTTPPort)
-		go func() {
-			log.Fatalln(http.ListenAndServe(proxyAddr, httpProxy))
-		}()
-	}
+type tproxyResponseWriter struct {
+	net.Conn
+}
 
-	// Run HTTPS proxy(ies).
-	if len(proxyConfig.HTTPSPorts) > 0 {
-		for _, port := range proxyConfig.HTTPSPorts {
-			httpsProxy := newProxy(proxyConfig)
-			installProxyHandlers(proxyConfig, true, true, httpsProxy)
-			go func(port uint16) {
-				proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, port)
-				listener, err := net.Listen("tcp", proxyAddr)
-				if err != nil {
-					log.Fatalf("Error listening for HTTPS connections: %v", err)
-				}
-				tproxyListener(listener, port, httpsProxy)
-			}(port)
-		}
+func (w tproxyResponseWriter) Header() http.Header {
+	panic("Header() should not be called on this ResponseWriter")
+}
+
+func (w tproxyResponseWriter) Write(buf []byte) (int, error) {
+	if bytes.Equal(buf, []byte("HTTP/1.0 200 OK\r\n\r\n")) {
+		return len(buf), nil // throw away the HTTP OK response from the faux CONNECT request
 	}
+	return w.Conn.Write(buf)
+}
+
+func (w tproxyResponseWriter) WriteHeader(code int) {
+	panic("WriteHeader() should not be called on this ResponseWriter")
+}
+
+func (w tproxyResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return w, bufio.NewReadWriter(bufio.NewReader(w), bufio.NewWriter(w)), nil
 }
