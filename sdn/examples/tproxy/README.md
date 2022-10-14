@@ -48,7 +48,7 @@ to be manually edited, but rather exported from the controller).
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -74,7 +74,7 @@ successful onboarding, but it is recommended).
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -100,7 +100,7 @@ for the [override method](#2-using-overridejson) can be used here as well.
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -122,7 +122,7 @@ controller, follow these steps:
    Enable and configure only `eth0` interface. It should be used for both management and applications.\
    Assign network to `eth0` with the following (transparent) proxy CA certificate:
 
-```
+```text
 -----BEGIN CERTIFICATE-----
 MIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL
 BQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM
@@ -152,7 +152,7 @@ wVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=
 3. Assuming that the path to the installer is `$(pwd)/installer.raw`, run the following
    command to start your virtual device using eden:
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false

@@ -11,12 +11,12 @@
             "Proxies": [
                 {
                     "Type": 0,
-                    "Server": "my-proxy.sdn",
+                    "Server": "http://my-proxy.sdn",
                     "Port": 9090
                 },
                 {
                     "Type": 1,
-                    "Server": "my-proxy.sdn",
+                    "Server": "http://my-proxy.sdn",
                     "Port": 9091
                 }
             ],

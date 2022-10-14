@@ -478,10 +478,10 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 	// Transparent proxy.
 	if network.TransparentProxy != nil {
 		proxyIP := gwIP.IP
-		httpsPorts := []uint16{443}
+		httpsPorts := []api.ProxyPort{{Port: 443}}
 		controllerPort := a.netModel.Host.ControllerPort
 		if controllerPort != 443 {
-			httpsPorts = append(httpsPorts, controllerPort)
+			httpsPorts = append(httpsPorts, api.ProxyPort{Port: controllerPort})
 		}
 		intendedCfg.PutItem(configitems.HttpProxy{
 			Proxy:        *network.TransparentProxy,
@@ -489,7 +489,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			NetNamespace: nsName,
 			VethName:     brVethName,
 			ListenIP:     proxyIP,
-			HTTPPort:     80,
+			HTTPPort:     api.ProxyPort{Port: 80},
 			HTTPSPorts:   httpsPorts,
 			Transparent:  true,
 		}, nil)
@@ -501,11 +501,12 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 				Description: "Send HTTP traffic into the proxy",
 			},
 		}
-		for _, port := range httpsPorts {
+		for _, httpsPort := range httpsPorts {
 			dnatRules = append(dnatRules, configitems.IptablesRule{
-				Args: []string{"-p", "tcp", "--dport", strconv.Itoa(int(port)),
+				Args: []string{"-p", "tcp", "--dport", strconv.Itoa(int(httpsPort.Port)),
 					"-j", "DNAT", "--to-destination", proxyIP.String()},
-				Description: fmt.Sprintf("Send HTTPS traffic (port %d) into the proxy", port),
+				Description: fmt.Sprintf("Send HTTPS traffic (port %d) into the proxy",
+					httpsPort.Port),
 			})
 		}
 		intendedCfg.PutItem(configitems.IptablesChain{
@@ -584,17 +585,19 @@ func (a *agent) getIntendedProxyEp(proxy api.ExplicitProxy) dg.Graph {
 	nsName := a.endpointNsName(proxy.LogicalLabel)
 	vethName, _, _ := a.endpointVethName(proxy.LogicalLabel)
 	epIP := net.ParseIP(proxy.IP)
-	var httpsPorts []uint16
-	if proxy.HTTPSPort != 0 {
-		httpsPorts = append(httpsPorts, proxy.HTTPSPort)
+	var httpsPorts []api.ProxyPort
+	if proxy.HTTPSProxy.Port != 0 {
+		httpsPorts = append(httpsPorts, proxy.HTTPSProxy)
 	}
+	httpPort := proxy.HTTPProxy
 	intendedCfg.PutItem(configitems.HttpProxy{
 		Proxy:        proxy.Proxy,
 		ProxyName:    proxy.LogicalLabel,
 		NetNamespace: nsName,
 		VethName:     vethName,
 		ListenIP:     epIP,
-		HTTPPort:     proxy.HTTPPort,
+		Hostname:     proxy.FQDN,
+		HTTPPort:     httpPort,
 		HTTPSPorts:   httpsPorts,
 		Users:        proxy.Users,
 	}, nil)

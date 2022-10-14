@@ -279,13 +279,13 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 				return
 			}
 		}
-		if proxy.HTTPPort == 0 && proxy.HTTPSPort == 0 {
+		if proxy.HTTPProxy.Port == 0 && proxy.HTTPSProxy.Port == 0 {
 			err = fmt.Errorf("Proxy %s without port numbers",
 				proxy.LogicalLabel)
 			return
 		}
-		if proxy.HTTPPort != 0 && proxy.HTTPSPort != 0 {
-			if proxy.HTTPPort == proxy.HTTPSPort {
+		if proxy.HTTPProxy.Port != 0 && proxy.HTTPSProxy.Port != 0 {
+			if proxy.HTTPProxy.Port == proxy.HTTPSProxy.Port {
 				err = fmt.Errorf("proxy %s with colliding ports",
 					proxy.LogicalLabel)
 				return
