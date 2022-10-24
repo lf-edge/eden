@@ -36,4 +36,4 @@ jobs:
              docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
       - name: Build and push
         run: |
-          make DOCKER_TARGET=push DOCKER_PLATFORM=linux/arm64,linux/amd64 build-docker
+          make DOCKER_TARGET=push LINUXKIT_TARGET=push DOCKER_PLATFORM=linux/arm64,linux/amd64 build-docker
