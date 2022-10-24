@@ -27,8 +27,8 @@ jobs:
           go-version: '1.18'
       - name: build docker images
         run: |
-          make DOCKER_PLATFORM=linux/arm64 build-docker
-          make DOCKER_PLATFORM=linux/amd64 build-docker
+          make LINUXKIT_TARGET=build DOCKER_PLATFORM=linux/arm64 build-docker
+          make LINUXKIT_TARGET=build DOCKER_PLATFORM=linux/amd64 build-docker
       - name: build eden
         run: |
           make clean
