@@ -27,6 +27,7 @@ func RegisterItems(
 		{c: &IptablesChainConfigurator{}, t: IPtablesChainTypename},
 		{c: &IptablesChainConfigurator{}, t: IP6tablesChainTypename},
 		{c: &HttpProxyConfigurator{}, t: HTTPProxyTypename},
+		{c: &HttpServerConfigurator{}, t: HTTPServerTypename},
 	}
 	for _, configurator := range configurators {
 		err := registry.Register(configurator.c, configurator.t)

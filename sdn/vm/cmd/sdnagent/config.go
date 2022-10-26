@@ -101,8 +101,11 @@ func (a *agent) updateIntendedState() {
 	for _, proxy := range a.netModel.Endpoints.ExplicitProxies {
 		a.intendedState.PutSubGraph(a.getIntendedProxyEp(proxy))
 	}
+	for _, httpSrv := range a.netModel.Endpoints.HTTPServers {
+		a.intendedState.PutSubGraph(a.getIntendedHttpSrvEp(httpSrv))
+	}
 
-	// TODO (firewall, http servers, ntp servers, netboot servers)
+	// TODO (firewall, ntp servers, netboot servers)
 }
 
 func (a *agent) getIntendedPhysIfs() dg.Graph {
@@ -600,6 +603,27 @@ func (a *agent) getIntendedProxyEp(proxy api.ExplicitProxy) dg.Graph {
 		HTTPPort:     httpPort,
 		HTTPSPorts:   httpsPorts,
 		Users:        proxy.Users,
+	}, nil)
+	return intendedCfg
+}
+
+func (a *agent) getIntendedHttpSrvEp(httpSrv api.HTTPServer) dg.Graph {
+	graphArgs := dg.InitArgs{Name: endpointSGPrefix + httpSrv.LogicalLabel}
+	intendedCfg := dg.New(graphArgs)
+	a.putEpCommonConfig(intendedCfg, httpSrv.Endpoint, &httpSrv.DNSClientConfig)
+	nsName := a.endpointNsName(httpSrv.LogicalLabel)
+	vethName, _, _ := a.endpointVethName(httpSrv.LogicalLabel)
+	epIP := net.ParseIP(httpSrv.IP)
+	intendedCfg.PutItem(configitems.HttpServer{
+		ServerName:   httpSrv.LogicalLabel,
+		NetNamespace: nsName,
+		VethName:     vethName,
+		ListenIP:     epIP,
+		HTTPPort:     httpSrv.HTTPPort,
+		HTTPSPort:    httpSrv.HTTPSPort,
+		CertPEM:      httpSrv.CertPEM,
+		KeyPEM:       httpSrv.KeyPEM,
+		Paths:        httpSrv.Paths,
 	}, nil)
 	return intendedCfg
 }
