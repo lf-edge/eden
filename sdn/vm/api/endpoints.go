@@ -157,8 +157,7 @@ type HTTPServer struct {
 	CertPEM string `json:"certPEM"`
 	// KeyPEM : Server key in the PEM format. Required for HTTPS.
 	KeyPEM string `json:"keyPEM"`
-	// Maps URL Path to a content to be returned inside the HTTP(s) response body
-	// (text/plain content type).
+	// Maps URL Path to a content to be returned inside the HTTP(s) response body.
 	Paths map[string]HTTPContent `json:"paths"`
 }
 
