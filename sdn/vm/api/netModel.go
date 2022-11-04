@@ -186,9 +186,16 @@ type Network struct {
 	GwIP string `json:"gwIP"`
 	// DHCP configuration.
 	DHCP DHCP `json:"dhcp"`
-	// TransparentProxy is a proxy that both HTTP and HTTPS traffic is forwarded through
-	// transparently, before it reaches router, endpoints, firewall, etc.
-	TransparentProxy *Proxy `json:"transparentProxy,omitempty"`
+	// TransparentProxy : Logical label of a TransparentProxy endpoint, performing
+	// proxying of both HTTP and HTTPS traffic transparently.
+	// Traffic will flow as follows:
+	//   EVE -> Network -> Router -> Firewall -> TransparentProxy -> Router -> Firewall ...
+	//    ... -> Endpoint
+	//        OR
+	//        -> another Network
+	//        OR
+	//        -> Outside-of-SDN-VM
+	TransparentProxy string `json:"transparentProxy,omitempty"`
 	// Router configuration. Every network has a separate routing context.
 	// Undefined (nil) means that everything should be routed and accessible.
 	// That includes all networks, endpoints and the outside of Eden SDN.
@@ -270,17 +277,14 @@ func (n Network) ReferencesFromItem() []LogicalLabelRef {
 			})
 		}
 	}
-	// References from inside the TransparentProxy config.
-	if n.TransparentProxy != nil {
-		for _, dns := range n.TransparentProxy.PrivateDNS {
-			refs = append(refs, LogicalLabelRef{
-				ItemType:         Endpoint{}.ItemType(),
-				ItemCategory:     DNSServer{}.ItemCategory(),
-				ItemLogicalLabel: dns,
-				// Avoids duplicate DNS servers for the same tproxy.
-				RefKey: "dns-for-network-tproxy-" + n.LogicalLabel,
-			})
-		}
+	// Reference to a TransparentProxy.
+	if n.TransparentProxy != "" {
+		refs = append(refs, LogicalLabelRef{
+			ItemType:         Endpoint{}.ItemType(),
+			ItemCategory:     TransparentProxy{}.ItemCategory(),
+			ItemLogicalLabel: n.TransparentProxy,
+			RefKey:           "network-tproxy-" + n.LogicalLabel,
+		})
 	}
 	return refs
 }
@@ -334,36 +338,6 @@ type DNSClientConfig struct {
 	PrivateDNS []string `json:"privateDNS"`
 }
 
-// Proxy can be either transparent or configured explicitly.
-type Proxy struct {
-	// DNSClientConfig : DNS configuration to be applied for the proxy.
-	DNSClientConfig
-	// CertPEM : Proxy certificate of the certificate authority in the PEM format.
-	// Proxy will use CA cert to sign certificate that it generates for itself.
-	// EVE should be configured to trust CA certificate.
-	// Not needed if proxy is just forwarding all flows (i.e. not terminating TLS).
-	CACertPEM string `json:"caCertPEM"`
-	// CAKeyPEM : Proxy key of the certificate authority in the PEM format.
-	// Proxy will use CA cert to sign certificate that it generates for itself.
-	// EVE should be configured to trust CA certificate.
-	// Not needed if proxy is just forwarding all flows (i.e. not terminating TLS).
-	CAKeyPEM string `json:"caKeyPEM"`
-	// ProxyRules : a set of rules that decides what to do with proxied traffic.
-	// By default (no rules defined), proxy will just forward all the flows.
-	ProxyRules []ProxyRule `json:"proxyRules"`
-}
-
-// ProxyRule : rule used by a proxy, which, if matches a given flow, decides what
-// to do with it.
-type ProxyRule struct {
-	// ReqHost : host from HTTP request header (or from the SNI value in the TLS ClientHello)
-	// to match this rule with (e.g. "google.com").
-	// Empty ReqHost should be used with the default rule (put one at most).
-	ReqHost string `json:"reqHost"`
-	// Action to take.
-	Action ProxyAction `json:"action"`
-}
-
 // Router routing traffic for a network based on the reachability requirements.
 type Router struct {
 	// OutsideReachability : If enabled then it is possible to use the network to access
@@ -376,21 +350,34 @@ type Router struct {
 	ReachableNetworks []string `json:"reachableNetworks"`
 }
 
+// Firewall : network firewall.
 // Note that traffic not matched by any rule is allowed!
 type Firewall struct {
 	// Rules : firewall rules applied in the order as configured.
+	// Applied to traffic going <from> -> <to>:
+	//   - network (EVE ports) -> another network
+	//   - network (EVE ports) -> endpoint
+	//   - network (EVE ports) -> outside of SDN VM (controller, Internet)
+	//   - endpoint -> network (EVE ports)
+	//   - endpoint -> another endpoint
+	//   - endpoint -> outside of SDN VM (controller, Internet)
+	// Note that once a connection is allowed, established and related traffic
+	// (going in the opposite direction) is automatically allowed as well.
 	Rules []FwRule `json:"rules"`
 }
 
 // FwRule : a firewall rule.
 type FwRule struct {
 	// SrcSubnet : subnet to match the source IP address with.
+	// Can be empty to disable filtering based on source IP address.
 	SrcSubnet string `json:"srcSubnet"`
 	// DstSubnet : subnet to match the destination IP address with.
+	// Can be empty to disable filtering based on destination IP address.
 	DstSubnet string `json:"dstSubnet"`
 	// Protocol : filter by protocol.
 	Protocol FwProto `json:"protocol"`
 	// Ports : list of destination port to which the rule applies.
+	// For a non empty list, Protocol must be either TCP or UDP.
 	// Empty = any.
 	Ports []uint16 `json:"ports"`
 	// Action to take.
@@ -467,72 +454,34 @@ func (s *NetworkType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// ProxyAction : proxy action.
-type ProxyAction uint8
-
-const (
-	// PxForward : just forward proxied traffic.
-	PxForward ProxyAction = iota
-	// PxReject : reject (block) proxied traffic.
-	PxReject
-	// PxMITM : act as a man-in-the-middle (split TLS tunnel in two).
-	PxMITM
-)
-
-// ProxyActionToString : convert ProxyAction to string representation used in JSON.
-var ProxyActionToString = map[ProxyAction]string{
-	PxForward: "forward",
-	PxReject:  "reject",
-	PxMITM:    "mitm",
-}
-
-// ProxyActionToID : get ProxyAction from a string representation.
-var ProxyActionToID = map[string]ProxyAction{
-	"":        PxForward, // default value
-	"forward": PxForward,
-	"reject":  PxReject,
-	"mitm":    PxMITM,
-}
-
-// MarshalJSON marshals the enum as a quoted json string.
-func (s ProxyAction) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	buffer.WriteString(ProxyActionToString[s])
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
-}
-
-// UnmarshalJSON un-marshals a quoted json string to the enum value.
-func (s *ProxyAction) UnmarshalJSON(b []byte) error {
-	var j string
-	if err := json.Unmarshal(b, &j); err != nil {
-		return err
-	}
-	*s = ProxyActionToID[j]
-	return nil
-}
-
 // FwAction : firewall action.
 type FwAction uint8
 
 const (
-	// Allow traffic.
+	// FwAllow : allow traffic.
 	FwAllow FwAction = iota
-	// Deny traffic.
-	FwDeny
+	// FwReject : reject traffic.
+	// The sender will be informed using an ICMP packet that the destination
+	// is blocked/unavailable.
+	FwReject
+	// FwDrop : drop traffic.
+	// Traffic is silently dropped.
+	FwDrop
 )
 
 // FwActionToString : convert FwAction to string representation used in JSON.
 var FwActionToString = map[FwAction]string{
-	FwAllow: "allow",
-	FwDeny:  "deny",
+	FwAllow:  "allow",
+	FwReject: "reject",
+	FwDrop:   "drop",
 }
 
 // FwActionToID : get FwAction from a string representation.
 var FwActionToID = map[string]FwAction{
-	"":      FwAllow, // default value
-	"allow": FwAllow,
-	"deny":  FwDeny,
+	"":       FwAllow, // default value
+	"allow":  FwAllow,
+	"reject": FwReject,
+	"drop":   FwDrop,
 }
 
 // MarshalJSON marshals the enum as a quoted json string.

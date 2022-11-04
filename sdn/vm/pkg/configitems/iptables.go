@@ -22,6 +22,8 @@ type IptablesChain struct {
 	// We could probably extract this from IptablesRule.Args, but let's keep things
 	// simple and not dive into the iptables semantics too much.
 	RefersChains []string
+	// RefersVeths : names of VETH interfaces referred from rules.
+	RefersVeths []string
 	// PreCreated : a custom chain which already exists (as empty).
 	PreCreated bool
 }
@@ -90,6 +92,15 @@ func (ch IptablesChain) Dependencies() (deps []depgraph.Dependency) {
 				Table:        ch.Table,
 				ForIPv6:      ch.ForIPv6,
 			}),
+		})
+	}
+	for _, referredVeth := range ch.RefersVeths {
+		deps = append(deps, depgraph.Dependency{
+			RequiredItem: depgraph.ItemRef{
+				ItemType: VethTypename,
+				ItemName: referredVeth,
+			},
+			Description: "veth interface must exist",
 		})
 	}
 	deps = append(deps, depgraph.Dependency{

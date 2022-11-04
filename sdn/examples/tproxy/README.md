@@ -3,11 +3,11 @@
 Network model for this example is described by [network-model.json](./network-model.json).
 Notice that EVE is connected into a single network (logical label `network0`), with 
 transparent proxying enabled. As a result, every HTTP/HTTPS request sent from the device
-will get transparently redirected into a proxy. The proxy performs MITM proxying for all
-destinations (including the Adam controller), except for the `zededa.com` destination
-(which is only added as an example and not really accessed by the device) - see `proxyRules`
-configured for `transparentProxy`.
-Both the device and the proxy use the same DNS server `my-dns-server`. In fact, for ever
+will get transparently redirected into a proxy (logical label `my-tproxy`). The proxy
+performs MITM proxying for all destinations (including the Adam controller), except for
+the `zededa.com` destination (which is only added as an example and not really accessed
+by the device) - see `proxyRules` configured for `transparentProxy`.
+Both the device and the proxy use the same DNS server `my-dns-server`. In fact, for every
 HTTP/HTTPS request, the destination address will be translated twice - first by the device
 (which is made redundant by the redirection) and then by the proxy.
 
@@ -167,8 +167,6 @@ make clean && make build-tests
 Note that traffic coming out from EVE VM will go through the SDN VM (where it will be proxied),
 then it will be S-NATed on the exit from the VM, continue into the host networking and out
 into the Internet towards the zedcloud.
-
-
 
 [DPC]: https://github.com/lf-edge/eve/blob/8.10/pkg/pillar/types/zedroutertypes.go#L473-L487
 [override-template]: https://github.com/lf-edge/eve/blob/8.10/conf/DevicePortConfig/override.json.template

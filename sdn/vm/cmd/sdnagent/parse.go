@@ -60,7 +60,7 @@ func (a *agent) parseNetModel(netModel api.NetworkModel) (parsedModel parsedNetM
 	eps := netModel.Endpoints
 	items := a.slicesToLabeledItems(netModel.Ports, netModel.Bonds, netModel.Bridges,
 		netModel.Networks, eps.DNSServers, eps.NTPServers, eps.NetbootServers,
-		eps.HTTPServers, eps.ExplicitProxies, eps.Clients)
+		eps.HTTPServers, eps.ExplicitProxies, eps.TransparentProxies, eps.Clients)
 	parsedModel.items, err = a.parseLabeledItems(items)
 	if err != nil {
 		return
@@ -206,25 +206,6 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 		}
 	}
 
-	// Validate transparent proxy.
-	for _, network := range netModel.Networks {
-		if network.TransparentProxy != nil {
-			proxy := network.TransparentProxy
-			if err = a.validateCertPEM(proxy.CACertPEM, proxy.CAKeyPEM, true); err != nil {
-				return
-			}
-			ruleHosts := make(map[string]struct{})
-			for _, rule := range proxy.ProxyRules {
-				if _, duplicate := ruleHosts[rule.ReqHost]; duplicate {
-					err = fmt.Errorf("network %s with transparent proxy "+
-						"which has duplicate rules", network.LogicalLabel)
-					return
-				}
-				ruleHosts[rule.ReqHost] = struct{}{}
-			}
-		}
-	}
-
 	// TODO: check that within a network it is IPv4 or IPv6, not both (for now)
 	return nil
 }
@@ -295,6 +276,31 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 			if user.Username == "" {
 				err = fmt.Errorf("Proxy %s with empty username",
 					proxy.LogicalLabel)
+				return
+			}
+		}
+		if proxy.CACertPEM != "" {
+			if err = a.validateCertPEM(proxy.CACertPEM, proxy.CAKeyPEM, true); err != nil {
+				return
+			}
+		}
+		ruleHosts := make(map[string]struct{})
+		for _, rule := range proxy.ProxyRules {
+			if _, duplicate := ruleHosts[rule.ReqHost]; duplicate {
+				err = fmt.Errorf("proxy %s has duplicate rules", proxy.LogicalLabel)
+				return
+			}
+			ruleHosts[rule.ReqHost] = struct{}{}
+		}
+	}
+	for _, proxy := range netModel.Endpoints.TransparentProxies {
+		if err = a.validateEndpoint(proxy.Endpoint); err != nil {
+			return
+		}
+		for _, dns := range proxy.PublicDNS {
+			if dnsIP := net.ParseIP(dns); dnsIP == nil {
+				err = fmt.Errorf("proxy %s has invalid public DNS server IP (%s)",
+					proxy.LogicalLabel, dns)
 				return
 			}
 		}
@@ -388,15 +394,26 @@ func (a *agent) validateEndpoint(endpoint api.Endpoint) (err error) {
 
 func (a *agent) validateFirewall(netModel *parsedNetModel) (err error) {
 	for _, rule := range netModel.Firewall.Rules {
-		if _, _, err = net.ParseCIDR(rule.SrcSubnet); err != nil {
-			err = fmt.Errorf("firewall rule with invalid subnet '%s': %w",
-				rule.SrcSubnet, err)
-			return
+		if rule.SrcSubnet != "" {
+			if _, _, err = net.ParseCIDR(rule.SrcSubnet); err != nil {
+				err = fmt.Errorf("firewall rule with invalid subnet '%s': %w",
+					rule.SrcSubnet, err)
+				return
+			}
 		}
-		if _, _, err = net.ParseCIDR(rule.DstSubnet); err != nil {
-			err = fmt.Errorf("firewall rule with invalid subnet '%s': %w",
-				rule.SrcSubnet, err)
-			return
+		if rule.DstSubnet != "" {
+			if _, _, err = net.ParseCIDR(rule.DstSubnet); err != nil {
+				err = fmt.Errorf("firewall rule with invalid subnet '%s': %w",
+					rule.DstSubnet, err)
+				return
+			}
+		}
+		if len(rule.Ports) > 0 {
+			if rule.Protocol != api.TCP && rule.Protocol != api.UDP {
+				err = fmt.Errorf("firewall rule with non-empty set of ports (%v) "+
+					" but protocol is neither TCP nor UDP (%v)", rule.Ports, rule.Protocol)
+				return
+			}
 		}
 	}
 	return nil
