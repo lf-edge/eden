@@ -22,9 +22,39 @@ type Endpoints struct {
 	// Consider using together with NetworkModel.Firewall, configured to block HTTP(s)
 	// traffic that tries to bypass a proxy.
 	ExplicitProxies []ExplicitProxy `json:"explicitProxies,omitempty"`
+	// TransparentProxies are proxying both HTTP and HTTPS traffic transparently.
+	TransparentProxies []TransparentProxy `json:"transparentProxies,omitempty"`
 	// NetbootServers : HTTP/TFTP servers providing artifacts needed to boot EVE OS
 	// over a network (using netboot/PXE + iPXE).
 	NetbootServers []NetbootServer `json:"netbootServers,omitempty"`
+}
+
+// GetAll : returns all endpoints as one list.
+// Returned list items are of type Endpoint, which is a common struct embedded
+// inside each endpoint.
+func (eps Endpoints) GetAll() (all []Endpoint) {
+	for _, client := range eps.Clients {
+		all = append(all, client.Endpoint)
+	}
+	for _, dnsSrv := range eps.DNSServers {
+		all = append(all, dnsSrv.Endpoint)
+	}
+	for _, ntpSrv := range eps.NTPServers {
+		all = append(all, ntpSrv.Endpoint)
+	}
+	for _, httpSrv := range eps.HTTPServers {
+		all = append(all, httpSrv.Endpoint)
+	}
+	for _, exProxy := range eps.ExplicitProxies {
+		all = append(all, exProxy.Endpoint)
+	}
+	for _, tProxy := range eps.TransparentProxies {
+		all = append(all, tProxy.Endpoint)
+	}
+	for _, netBootSrv := range eps.NetbootServers {
+		all = append(all, netBootSrv.Endpoint)
+	}
+	return all
 }
 
 // Endpoint simulates "remote" client or a server.
@@ -252,12 +282,71 @@ func (e ExplicitProxy) ReferencesFromItem() []LogicalLabelRef {
 	return refs
 }
 
+// Proxy can be either transparent or configured explicitly.
+type Proxy struct {
+	// DNSClientConfig : DNS configuration to be applied for the proxy.
+	DNSClientConfig
+	// CertPEM : Proxy certificate of the certificate authority in the PEM format.
+	// Proxy will use CA cert to sign certificate that it generates for itself.
+	// EVE should be configured to trust CA certificate.
+	// Not needed if proxy is just forwarding all flows (i.e. not terminating TLS).
+	CACertPEM string `json:"caCertPEM"`
+	// CAKeyPEM : Proxy key of the certificate authority in the PEM format.
+	// Proxy will use CA cert to sign certificate that it generates for itself.
+	// EVE should be configured to trust CA certificate.
+	// Not needed if proxy is just forwarding all flows (i.e. not terminating TLS).
+	CAKeyPEM string `json:"caKeyPEM"`
+	// ProxyRules : a set of rules that decides what to do with proxied traffic.
+	// By default (no rules defined), proxy will just forward all the flows.
+	ProxyRules []ProxyRule `json:"proxyRules"`
+}
+
+// ProxyRule : rule used by a proxy, which, if matches a given flow, decides what
+// to do with it.
+type ProxyRule struct {
+	// ReqHost : host from HTTP request header (or from the SNI value in the TLS ClientHello)
+	// to match this rule with (e.g. "google.com").
+	// Empty ReqHost should be used with the default rule (put one at most).
+	ReqHost string `json:"reqHost"`
+	// Action to take.
+	Action ProxyAction `json:"action"`
+}
+
 // UserCredentials : User credentials for an explicit proxy.
 type UserCredentials struct {
 	// Username
 	Username string `json:"username"`
 	// Password
 	Password string `json:"password"`
+}
+
+// TransparentProxy is a proxy that both HTTP and HTTPS traffic is forwarded through
+// transparently.
+type TransparentProxy struct {
+	// Endpoint configuration.
+	Endpoint
+	// Proxy configuration (common to transparent and explicit proxies).
+	Proxy
+}
+
+// ItemCategory categorizes the item within Endpoints.
+func (e TransparentProxy) ItemCategory() string {
+	return "transparent-proxy"
+}
+
+// ReferencesFromItem lists references to private DNS servers (if there are any).
+func (e TransparentProxy) ReferencesFromItem() []LogicalLabelRef {
+	refs := make([]LogicalLabelRef, 0, len(e.PrivateDNS))
+	for _, dns := range e.PrivateDNS {
+		refs = append(refs, LogicalLabelRef{
+			ItemType:         Endpoint{}.ItemType(),
+			ItemCategory:     DNSServer{}.ItemCategory(),
+			ItemLogicalLabel: dns,
+			// Avoids duplicate DNS servers within the same transparent proxy.
+			RefKey: "transparent-proxy-" + e.LogicalLabel,
+		})
+	}
+	return refs
 }
 
 // NetbootServer provides HTTP and TFTP server endpoints, serving all artifacts
@@ -319,6 +408,51 @@ type NetbootArtifact struct {
 	// If enabled, this file is then announced to netboot clients using DHCP
 	// option 67 (59 in DHCPv6).
 	Entrypoint bool `json:"entrypoint"`
+}
+
+// ProxyAction : proxy action.
+type ProxyAction uint8
+
+const (
+	// PxForward : just forward proxied traffic.
+	PxForward ProxyAction = iota
+	// PxReject : reject (block) proxied traffic.
+	PxReject
+	// PxMITM : act as a man-in-the-middle (split TLS tunnel in two).
+	PxMITM
+)
+
+// ProxyActionToString : convert ProxyAction to string representation used in JSON.
+var ProxyActionToString = map[ProxyAction]string{
+	PxForward: "forward",
+	PxReject:  "reject",
+	PxMITM:    "mitm",
+}
+
+// ProxyActionToID : get ProxyAction from a string representation.
+var ProxyActionToID = map[string]ProxyAction{
+	"":        PxForward, // default value
+	"forward": PxForward,
+	"reject":  PxReject,
+	"mitm":    PxMITM,
+}
+
+// MarshalJSON marshals the enum as a quoted json string.
+func (s ProxyAction) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(ProxyActionToString[s])
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+// UnmarshalJSON un-marshals a quoted json string to the enum value.
+func (s *ProxyAction) UnmarshalJSON(b []byte) error {
+	var j string
+	if err := json.Unmarshal(b, &j); err != nil {
+		return err
+	}
+	*s = ProxyActionToID[j]
+	return nil
 }
 
 // ProxyListenProto : protocol used to listen for incoming requests for proxying.

@@ -15,7 +15,7 @@ import (
 
 const (
 	dhcpcdBinary       = "/sbin/dhcpcd"
-	dhcpcdStartTimeout = 3 * time.Second
+	dhcpcdStartTimeout = 5 * time.Second
 	dhcpcdStopTimeout  = 30 * time.Second
 )
 
@@ -199,7 +199,7 @@ func (c *DhcpClientConfigurator) Delete(ctx context.Context, item depgraph.Item)
 }
 
 func dhcpcdPidFile(ifName string) string {
-	return fmt.Sprintf("/run/dhcpcd-%s.pid", ifName)
+	return fmt.Sprintf("/run/%s.pid", ifName)
 }
 
 func isDhcpcdRunning(ifName string) bool {

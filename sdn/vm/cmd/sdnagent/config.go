@@ -22,8 +22,12 @@ const (
 	physicalIfsSG      = "Physical-Interfaces"
 	hostConnectivitySG = "Host-Connectivity"
 	bridgesSG          = "Bridges"
+	firewallSG         = "Firewall"
 	networkSGPrefix    = "Network-"
 	endpointSGPrefix   = "Endpoint-"
+
+	// Iptables chain used to implement firewall rules.
+	fwIptablesChain = "firewall"
 
 	// ifNameMaxLen is a limit for interface names in the Linux kernel (IFNAMSIZ).
 	ifNameMaxLen = 15
@@ -89,6 +93,7 @@ func (a *agent) updateIntendedState() {
 	a.intendedState.PutSubGraph(a.getIntendedPhysIfs())
 	a.intendedState.PutSubGraph(a.getIntendedHostConnectivity())
 	a.intendedState.PutSubGraph(a.getIntendedBridges())
+	a.intendedState.PutSubGraph(a.getIntendedFirewall())
 	for _, network := range a.netModel.Networks {
 		a.intendedState.PutSubGraph(a.getIntendedNetwork(network))
 	}
@@ -99,13 +104,16 @@ func (a *agent) updateIntendedState() {
 		a.intendedState.PutSubGraph(a.getIntendedDNSSrvEp(dnsSrv))
 	}
 	for _, proxy := range a.netModel.Endpoints.ExplicitProxies {
-		a.intendedState.PutSubGraph(a.getIntendedProxyEp(proxy))
+		a.intendedState.PutSubGraph(a.getIntendedExProxyEp(proxy))
+	}
+	for _, proxy := range a.netModel.Endpoints.TransparentProxies {
+		a.intendedState.PutSubGraph(a.getIntendedTProxyEp(proxy))
 	}
 	for _, httpSrv := range a.netModel.Endpoints.HTTPServers {
 		a.intendedState.PutSubGraph(a.getIntendedHttpSrvEp(httpSrv))
 	}
 
-	// TODO (firewall, ntp servers, netboot servers)
+	// TODO (ntp servers, netboot servers)
 }
 
 func (a *agent) getIntendedPhysIfs() dg.Graph {
@@ -278,21 +286,6 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 	nsName := a.networkNsName(network.LogicalLabel)
 	netNs := configitems.NetNamespace{
 		NsName: nsName,
-	}
-	if network.TransparentProxy != nil {
-		// DNS config for the proxy.
-		var dnsServers []net.IP
-		for _, dnsServer := range network.TransparentProxy.PublicDNS {
-			dnsServers = append(dnsServers, net.ParseIP(dnsServer))
-		}
-		for _, dnsServer := range network.TransparentProxy.PrivateDNS {
-			ep := a.getEndpoint(dnsServer)
-			dnsServers = append(dnsServers, net.ParseIP(ep.IP))
-		}
-		netNs.ResolvConf = configitems.ResolvConf{
-			Create:     true,
-			DNSServers: dnsServers,
-		}
 	}
 	intendedCfg.PutItem(netNs, nil)
 	intendedCfg.PutItem(configitems.Veth{
@@ -479,35 +472,25 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 	}, nil)
 
 	// Transparent proxy.
-	if network.TransparentProxy != nil {
-		proxyIP := gwIP.IP
+	if network.TransparentProxy != "" {
+		ep := a.getEndpoint(network.TransparentProxy)
 		httpsPorts := []api.ProxyPort{{Port: 443}}
 		controllerPort := a.netModel.Host.ControllerPort
 		if controllerPort != 443 {
 			httpsPorts = append(httpsPorts, api.ProxyPort{Port: controllerPort})
 		}
-		intendedCfg.PutItem(configitems.HttpProxy{
-			Proxy:        *network.TransparentProxy,
-			ProxyName:    a.networkTProxyName(network.LogicalLabel),
-			NetNamespace: nsName,
-			VethName:     brVethName,
-			ListenIP:     proxyIP,
-			HTTPPort:     api.ProxyPort{Port: 80},
-			HTTPSPorts:   httpsPorts,
-			Transparent:  true,
-		}, nil)
 		// iptables to transparently redirect traffic into the proxy
 		dnatRules := []configitems.IptablesRule{
 			{
 				Args: []string{"-p", "tcp", "--dport", "80", "-j", "DNAT",
-					"--to-destination", proxyIP.String()},
+					"--to-destination", ep.IP},
 				Description: "Send HTTP traffic into the proxy",
 			},
 		}
 		for _, httpsPort := range httpsPorts {
 			dnatRules = append(dnatRules, configitems.IptablesRule{
 				Args: []string{"-p", "tcp", "--dport", strconv.Itoa(int(httpsPort.Port)),
-					"-j", "DNAT", "--to-destination", proxyIP.String()},
+					"-j", "DNAT", "--to-destination", ep.IP},
 				Description: fmt.Sprintf("Send HTTPS traffic (port %d) into the proxy",
 					httpsPort.Port),
 			})
@@ -521,6 +504,96 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 		}, nil)
 	}
 	return intendedCfg
+}
+
+func (a *agent) getIntendedFirewall() dg.Graph {
+	graphArgs := dg.InitArgs{Name: firewallSG}
+	intendedCfg := dg.New(graphArgs)
+	iptablesRules := make([]configitems.IptablesRule, 0, 2+len(a.netModel.Firewall.Rules))
+	// Allow any subsequent traffic that results from an already allowed connection.
+	iptablesRules = append(iptablesRules, configitems.IptablesRule{
+		Args: []string{"-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"},
+	})
+	// Add explicitly configured firewall rules.
+	for _, rule := range a.netModel.Firewall.Rules {
+		iptablesRules = append(iptablesRules, a.getIntendedFwRule(rule))
+	}
+	// Implicitly allow everything not matched by the rules above.
+	allowTheRest := api.FwRule{Action: api.FwAllow}
+	iptablesRules = append(iptablesRules, a.getIntendedFwRule(allowTheRest))
+	intendedCfg.PutItem(configitems.IptablesChain{
+		NetNamespace: configitems.MainNsName,
+		ChainName:    fwIptablesChain,
+		Table:        "filter",
+		ForIPv6:      false,
+		Rules:        iptablesRules,
+	}, nil)
+	// Link the firewall chain with every network and endpoint (outside) interface.
+	veths := make([]string, 0, len(a.netModel.Networks)+len(a.netModel.Endpoints.GetAll()))
+	iptablesRules = nil
+	for _, network := range a.netModel.Networks {
+		rtVethName, _, rtOutIfName := a.networkRtVethName(network.LogicalLabel)
+		veths = append(veths, rtVethName)
+		iptablesRules = append(iptablesRules, configitems.IptablesRule{
+			Args: []string{"-i", rtOutIfName, "-j", fwIptablesChain},
+		})
+	}
+	for _, ep := range a.netModel.Endpoints.GetAll() {
+		epVethName, _, epOutIfName := a.endpointVethName(ep.LogicalLabel)
+		veths = append(veths, epVethName)
+		iptablesRules = append(iptablesRules, configitems.IptablesRule{
+			Args: []string{"-i", epOutIfName, "-j", fwIptablesChain},
+		})
+	}
+	intendedCfg.PutItem(configitems.IptablesChain{
+		NetNamespace: configitems.MainNsName,
+		ChainName:    "FORWARD",
+		Table:        "filter",
+		ForIPv6:      false,
+		Rules:        iptablesRules,
+		RefersVeths:  veths,
+		RefersChains: []string{fwIptablesChain},
+	}, nil)
+	return intendedCfg
+}
+
+func (a *agent) getIntendedFwRule(rule api.FwRule) configitems.IptablesRule {
+	var ruleArgs []string
+	if rule.SrcSubnet != "" {
+		ruleArgs = append(ruleArgs, "-s", rule.SrcSubnet)
+	}
+	if rule.DstSubnet != "" {
+		ruleArgs = append(ruleArgs, "-d", rule.DstSubnet)
+	}
+	switch rule.Protocol {
+	case api.AnyProto:
+		ruleArgs = append(ruleArgs, "-p", "all")
+	case api.ICMP:
+		ruleArgs = append(ruleArgs, "-p", "icmp")
+	case api.TCP:
+		ruleArgs = append(ruleArgs, "-p", "tcp")
+	case api.UDP:
+		ruleArgs = append(ruleArgs, "-p", "udp")
+	}
+	if len(rule.Ports) > 0 {
+		var ports []string
+		for _, port := range rule.Ports {
+			ports = append(ports, strconv.Itoa(int(port)))
+		}
+		ruleArgs = append(ruleArgs, "--match", "multiport",
+			"--dport", strings.Join(ports, ","))
+	}
+	switch rule.Action {
+	case api.FwAllow:
+		ruleArgs = append(ruleArgs, "-j", "ACCEPT")
+	case api.FwReject:
+		ruleArgs = append(ruleArgs, "-j", "REJECT")
+	case api.FwDrop:
+		ruleArgs = append(ruleArgs, "-j", "DROP")
+	}
+	return configitems.IptablesRule{
+		Args: ruleArgs,
+	}
 }
 
 func (a *agent) getIntendedClientEp(client api.Client) dg.Graph {
@@ -581,7 +654,7 @@ func (a *agent) getIntendedDNSSrvEp(dnsSrv api.DNSServer) dg.Graph {
 	return intendedCfg
 }
 
-func (a *agent) getIntendedProxyEp(proxy api.ExplicitProxy) dg.Graph {
+func (a *agent) getIntendedExProxyEp(proxy api.ExplicitProxy) dg.Graph {
 	graphArgs := dg.InitArgs{Name: endpointSGPrefix + proxy.LogicalLabel}
 	intendedCfg := dg.New(graphArgs)
 	a.putEpCommonConfig(intendedCfg, proxy.Endpoint, &proxy.DNSClientConfig)
@@ -603,6 +676,31 @@ func (a *agent) getIntendedProxyEp(proxy api.ExplicitProxy) dg.Graph {
 		HTTPPort:     httpPort,
 		HTTPSPorts:   httpsPorts,
 		Users:        proxy.Users,
+	}, nil)
+	return intendedCfg
+}
+
+func (a *agent) getIntendedTProxyEp(proxy api.TransparentProxy) dg.Graph {
+	graphArgs := dg.InitArgs{Name: endpointSGPrefix + proxy.LogicalLabel}
+	intendedCfg := dg.New(graphArgs)
+	a.putEpCommonConfig(intendedCfg, proxy.Endpoint, &proxy.DNSClientConfig)
+	nsName := a.endpointNsName(proxy.LogicalLabel)
+	vethName, _, _ := a.endpointVethName(proxy.LogicalLabel)
+	epIP := net.ParseIP(proxy.IP)
+	httpsPorts := []api.ProxyPort{{Port: 443}}
+	controllerPort := a.netModel.Host.ControllerPort
+	if controllerPort != 443 {
+		httpsPorts = append(httpsPorts, api.ProxyPort{Port: controllerPort})
+	}
+	intendedCfg.PutItem(configitems.HttpProxy{
+		Proxy:        proxy.Proxy,
+		ProxyName:    proxy.LogicalLabel,
+		NetNamespace: nsName,
+		VethName:     vethName,
+		ListenIP:     epIP,
+		HTTPPort:     api.ProxyPort{Port: 80},
+		HTTPSPorts:   httpsPorts,
+		Transparent:  true,
 	}, nil)
 	return intendedCfg
 }
@@ -715,10 +813,6 @@ func (a *agent) networkRtVethName(logicalLabel string) (
 	return
 }
 
-func (a *agent) networkTProxyName(logicalLabel string) string {
-	return "tproxy-" + logicalLabel
-}
-
 func (a *agent) endpointVethName(logicalLabel string) (
 	vethName, inIfName, outIfName string) {
 	vethName = "ep-" + logicalLabel
@@ -750,6 +844,8 @@ func (a *agent) labeledItemToEndpoint(item *labeledItem) api.Endpoint {
 		return item.LabeledItem.(api.HTTPServer).Endpoint
 	case api.ExplicitProxy{}.ItemCategory():
 		return item.LabeledItem.(api.ExplicitProxy).Endpoint
+	case api.TransparentProxy{}.ItemCategory():
+		return item.LabeledItem.(api.TransparentProxy).Endpoint
 	case api.NetbootServer{}.ItemCategory():
 		return item.LabeledItem.(api.NetbootServer).Endpoint
 	default:

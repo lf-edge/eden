@@ -169,7 +169,6 @@ Note that traffic coming out from EVE VM will go through the SDN VM (where it wi
 then it will be S-NATed on the exit from the VM, continue into the host networking and out
 into the Internet towards the zedcloud.
 
-
 ## Test proxy manually
 
 ### Proxy listening on HTTP port (original variant)
@@ -275,6 +274,121 @@ echo $?
 curl --verbose --interface eth0 --proxy "https://my-proxy.sdn:9091" "https://mydomain.adam:3333/api/v2/edgedevice/ping"
 echo $?
 ```
+
+## Example variations
+
+### Firewall used to block non-proxied traffic
+
+In the original variant of this example, the router + the DNS server of `network0` are
+used to enforce the use of proxy for the EVE management traffic, simply by not providing
+a route to the endpoints outside the SDN VM (`"outsideReachability": false`) and by not being
+able to resolve the controller's domain name, respectively.
+
+An alternative solution for proxy enforcement, is to configure the firewall such that it
+will allow traffic coming out of `network0` only if it is headed towards the proxy, or if
+it is a DNS request. If EVE tries to access the controller directly, it will be blocked
+by the firewall.
+
+Apply the following network model change and restart the example (also try the same but with
+the proxy removed from the device config):
+
+```diff
+diff --git a/sdn/examples/explicit-proxy/network-model.json b/sdn/examples/explicit-proxy/network-model.json
+index f8c732a..643fe7e 100644
+--- a/sdn/examples/explicit-proxy/network-model.json
++++ b/sdn/examples/explicit-proxy/network-model.json
+@@ -24,11 +24,11 @@
+           "toIP": "172.22.12.20"
+         },
+         "domainName": "sdn",
+-        "privateDNS": ["dns-server-for-device"]
++        "privateDNS": ["my-dns-server"]
+       },
+       "router": {
+-        "outsideReachability": false,
+-        "reachableEndpoints": ["my-client", "dns-server-for-device", "my-proxy"]
++        "outsideReachability": true,
++        "reachableEndpoints": ["my-client", "my-dns-server", "my-proxy"]
+       }
+     }
+   ],
+@@ -43,30 +43,18 @@
+     ],
+     "dnsServers": [
+       {
+-        "logicalLabel": "dns-server-for-device",
+-        "fqdn": "dns-server-for-device.sdn",
++        "logicalLabel": "my-dns-server",
++        "fqdn": "my-dns-server.sdn",
+         "subnet": "10.16.16.0/24",
+         "ip": "10.16.16.25",
+-        "staticEntries": [
+-          {
+-            "fqdn": "endpoint-fqdn.my-proxy",
+-            "ip": "endpoint-ip.my-proxy"
+-          }
+-        ],
+-        "upstreamServers": [
+-          "1.1.1.1",
+-          "8.8.8.8"
+-        ]
+-      },
+-      {
+-        "logicalLabel": "dns-server-for-proxy",
+-        "fqdn": "dns-server-for-proxy.sdn",
+-        "subnet": "10.17.17.0/24",
+-        "ip": "10.17.17.25",
+         "staticEntries": [
+           {
+             "fqdn": "mydomain.adam",
+             "ip": "adam-ip"
++          },
++          {
++            "fqdn": "endpoint-fqdn.my-proxy",
++            "ip": "endpoint-ip.my-proxy"
+           }
+         ],
+         "upstreamServers": [
+@@ -89,7 +77,7 @@
+           "port": 9091,
+           "listenProto": "http"
+         },
+-        "privateDNS": ["dns-server-for-proxy"],
++        "privateDNS": ["my-dns-server"],
+@@ -101,7 +89,25 @@
+             "action": "mitm"
+           }
+         ]
+-
++      }
++    ]
++  },
++  "firewall": {
++    "rules": [
++      {
++        "srcSubnet": "172.22.12.0/24",
++        "protocol": "udp",
++        "ports": [53],
++        "action": "allow"
++      },
++      {
++        "srcSubnet": "172.22.12.0/24",
++        "dstSubnet": "10.18.18.0/24",
++        "action": "allow"
++      },
++      {
++        "srcSubnet": "172.22.12.0/24",
++        "action": "reject"
+       }
+     ]
+   }
+```
+
+Also, feel free to experiment by changing the action of the last firewall rule between
+`reject` and `drop`. In the former case, EVE will be informed that the connection
+was blocked, printing `ECONNREFUSED` as the error on the console, while in the second
+case the connection request will be simply dropped and EVE will fail with connection
+timeout (`context deadline exceeded (Client.Timeout exceeded while awaiting headers)`).
 
 [override-json]: ./config-overrides/DevicePortConfig/override.json
 [global-json]: ./config-overrides/GlobalConfig/global.json
