@@ -34,4 +34,6 @@ const (
 	IP6tablesChainTypename = "Ip6tables-Chain"
 	// HTTPProxyTypename : typename for HTTP proxy.
 	HTTPProxyTypename = "HTTP-Proxy"
+	// HTTPServerTypename : typename for HTTP server.
+	HTTPServerTypename = "HTTP-Server"
 )

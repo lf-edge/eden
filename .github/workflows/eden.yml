@@ -15,9 +15,9 @@ jobs:
         fs: ["zfs", "ext4"]
     steps:
       - name: get eden
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: '1.18'
       - name: Check
@@ -44,7 +44,6 @@ jobs:
           ./eden config set default --key=eve.accel --value=false
           ./eden config set default --key=eve.tpm --value=${{ matrix.tpm }}
           ./eden config set default --key=eve.cpu --value=2
-          ./eden config set default --key=sdn.disable --value=true
       - name: setup-ext4
         if: matrix.fs == 'ext4'
         run: ./eden setup -v debug
@@ -88,7 +87,7 @@ jobs:
           echo "::endgroup::"
       - name: Store raw test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: eden-report-tpm-${{ matrix.tpm }}-${{ matrix.fs }}
           path: |

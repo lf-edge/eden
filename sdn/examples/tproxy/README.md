@@ -3,11 +3,11 @@
 Network model for this example is described by [network-model.json](./network-model.json).
 Notice that EVE is connected into a single network (logical label `network0`), with 
 transparent proxying enabled. As a result, every HTTP/HTTPS request sent from the device
-will get transparently redirected into a proxy. The proxy performs MITM proxying for all
-destinations (including the Adam controller), except for the `zededa.com` destination
-(which is only added as an example and not really accessed by the device) - see `proxyRules`
-configured for `transparentProxy`.
-Both the device and the proxy use the same DNS server `my-dns-server`. In fact, for ever
+will get transparently redirected into a proxy (logical label `my-tproxy`). The proxy
+performs MITM proxying for all destinations (including the Adam controller), except for
+the `zededa.com` destination (which is only added as an example and not really accessed
+by the device) - see `proxyRules` configured for `transparentProxy`.
+Both the device and the proxy use the same DNS server `my-dns-server`. In fact, for every
 HTTP/HTTPS request, the destination address will be translated twice - first by the device
 (which is made redundant by the redirection) and then by the proxy.
 
@@ -48,7 +48,7 @@ to be manually edited, but rather exported from the controller).
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -74,7 +74,7 @@ successful onboarding, but it is recommended).
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -100,7 +100,7 @@ for the [override method](#2-using-overridejson) can be used here as well.
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -122,7 +122,7 @@ controller, follow these steps:
    Enable and configure only `eth0` interface. It should be used for both management and applications.\
    Assign network to `eth0` with the following (transparent) proxy CA certificate:
 
-```
+```text
 -----BEGIN CERTIFICATE-----
 MIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL
 BQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM
@@ -152,7 +152,7 @@ wVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=
 3. Assuming that the path to the installer is `$(pwd)/installer.raw`, run the following
    command to start your virtual device using eden:
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -167,8 +167,6 @@ make clean && make build-tests
 Note that traffic coming out from EVE VM will go through the SDN VM (where it will be proxied),
 then it will be S-NATed on the exit from the VM, continue into the host networking and out
 into the Internet towards the zedcloud.
-
-
 
 [DPC]: https://github.com/lf-edge/eve/blob/8.10/pkg/pillar/types/zedroutertypes.go#L473-L487
 [override-template]: https://github.com/lf-edge/eve/blob/8.10/conf/DevicePortConfig/override.json.template

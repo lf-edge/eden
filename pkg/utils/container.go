@@ -463,8 +463,10 @@ func ExtractFilesFromDocker(u io.ReadCloser, directory string, prefixDirectory s
 	return nil
 }
 
-//if prefixDirectory is empty, extract all
+// if prefixDirectory is empty, extract all
 func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory string) error {
+	// path inside tar is relative
+	prefixDirectory = strings.TrimLeft(prefixDirectory, "/")
 	pathBuilder := func(oldPath string) string {
 		return path.Join(directory, strings.TrimPrefix(oldPath, prefixDirectory))
 	}
@@ -478,7 +480,7 @@ func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory stri
 			return fmt.Errorf("ExtractFilesFromDocker: Next() failed: %s", err.Error())
 		}
 		//extract only from directory of interest
-		if prefixDirectory != "" && strings.TrimLeft(header.Name, prefixDirectory) == header.Name {
+		if prefixDirectory != "" && strings.TrimPrefix(header.Name, prefixDirectory) == header.Name {
 			continue
 		}
 		switch header.Typeflag {
@@ -503,7 +505,7 @@ func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory stri
 			if err := outFile.Close(); err != nil {
 				return fmt.Errorf("ExtractFilesFromDocker: outFile.Close() failed: %s", err.Error())
 			}
-		case tar.TypeSymlink:
+		case tar.TypeLink, tar.TypeSymlink:
 			if _, err := os.Lstat(pathBuilder(header.Name)); err == nil {
 				err = os.Remove(pathBuilder(header.Name))
 				if err != nil {

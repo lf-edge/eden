@@ -35,11 +35,6 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 		},
 	}
 
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	setupCmd.Flags().BoolVarP(&cfg.Eden.Download, "download", "", cfg.Eden.Download, "download EVE or build")
 	// TODO: NOT SURE WHICH dryRun
 	setupCmd.Flags().BoolVarP(&cfg.Runtime.DryRun, "dry-run", "", false, "")

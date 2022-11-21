@@ -42,12 +42,16 @@ type HttpProxy struct {
 	// Can be empty to listen on all available interfaces instead of just
 	// the interface with the given host address
 	ListenIP net.IP
-	// HTTPPort : HTTP proxy port.
-	// Zero value can be used to disable HTTP proxy.
-	HTTPPort uint16
-	// HTTPSPorts : HTTPS proxy port(s).
-	// Empty list can be used to disable HTTPS proxy.
-	HTTPSPorts []uint16
+	// Hostname : domain name of the proxy.
+	Hostname string
+	// HTTPPort : specify on which port+protocol to listen for requests
+	// to proxy HTTP traffic.
+	// Zero port number can be used to disable HTTP proxying.
+	HTTPPort sdnapi.ProxyPort
+	// HTTPSPorts : specify on which port(s)+protocol(s) to listen
+	// for requests to proxy HTTPS traffic.
+	// Empty list can be used to disable HTTPS proxying.
+	HTTPSPorts []sdnapi.ProxyPort
 	// Transparent : enable for transparent proxy (not known to the client).
 	Transparent bool
 	// Users : define for username/password authentication, leave empty otherwise.
@@ -99,6 +103,7 @@ func (p HttpProxy) Equal(other depgraph.Item) bool {
 	return p.NetNamespace == p2.NetNamespace &&
 		p.VethName == p2.VethName &&
 		p.ListenIP.Equal(p2.ListenIP) &&
+		p.Hostname == p2.Hostname &&
 		p.HTTPPort == p2.HTTPPort &&
 		p.Transparent == p2.Transparent &&
 		p.CACertPEM == p2.CACertPEM &&
@@ -165,6 +170,7 @@ func (c *HttpProxyConfigurator) createGoproxyConfFile(proxy HttpProxy) error {
 	}
 	config := goproxycfg.ProxyConfig{
 		ListenIP:    listenIP,
+		Hostname:    proxy.Hostname,
 		HTTPPort:    proxy.HTTPPort,
 		HTTPSPorts:  proxy.HTTPSPorts,
 		Transparent: proxy.Transparent,

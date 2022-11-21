@@ -12,12 +12,10 @@ the controller - unless it uses the provided HTTP/HTTPS proxy (logical label `my
 This proxy is able to access the outside world (no firewall rules defined, i.e. all is allowed)
 and furthermore it is using a different DNS server than the device, logically labeled
 as `dns-server-for-proxy`, which is able to translate Adam's domain name.\
-Note that DNS server used by the device (`dns-server-for-device`) is able to translate
-only the domain name of the proxy. This is sufficient, because with explicitly configured
-proxy DNS resolution of a destination address is being done by the proxy (which learns
-the address from the header of the HTTPS CONNECT or HTTP GET/POST/etc. request),
-not by the device. Destination IP address of requests coming out from the device is that
-of the proxy.\
+With explicitly configured proxy, DNS resolution of a destination address is being done
+by the proxy (which learns the address from the header of the HTTPS CONNECT or HTTP
+GET/POST/etc. request), not by the device. Destination IP address of requests coming out
+from the device is that of the proxy.\
 Also, the network to which the device is connected is configured to have a route leading
 towards the proxy: `"reachableEndpoints": ["my-client", "dns-server-for-device", "my-proxy"]`.
 The proxy performs MITM proxying for all destinations (including the Adam controller),
@@ -50,7 +48,7 @@ to be manually edited, but rather exported from the controller).
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -75,7 +73,7 @@ which would not provide working controller connectivity in this example anyway
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -101,7 +99,7 @@ can be used here as well.
 
 To test this approach using eden, run (from the repo root directory):
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -125,7 +123,7 @@ controller, follow these steps:
    and ports `9090` and `9091`, respectively. Import the following certificate as the CA
    certificate of the proxy:
 
-```
+```text
 -----BEGIN CERTIFICATE-----
 MIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL
 BQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM
@@ -155,7 +153,7 @@ wVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=
 3. Assuming that the path to the installer is `$(pwd)/installer.raw`, run the following
    command to start your virtual device using eden:
 
-```
+```shell
 make clean && make build-tests
 ./eden config add default
 ./eden config set default --key sdn.disable --value false
@@ -171,6 +169,226 @@ Note that traffic coming out from EVE VM will go through the SDN VM (where it wi
 then it will be S-NATed on the exit from the VM, continue into the host networking and out
 into the Internet towards the zedcloud.
 
+## Test proxy manually
+
+### Proxy listening on HTTP port (original variant)
+
+```shell
+./eden eve ssh
+
+# Inside EVE VM enter the pillar container
+eve enter
+
+# Make proxy trustworthy.
+echo -e "-----BEGIN CERTIFICATE-----\nMIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL\nBQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM\nDVNhbiBGcmFuY2lzY28wHhcNMjIwOTA3MTcwMDE0WhcNMzIwNjA2MTcwMDE0WjA6\nMRMwEQYDVQQDDAp6ZWRlZGEuY29tMQswCQYDVQQGEwJVUzEWMBQGA1UEBwwNU2Fu\nIEZyYW5jaXNjbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALQsi7IG\nM8KApujL71MJXbuPQNn/g+RItQeehaFRcqcCcpFW4k1YveMNdf5HReKlAfufFtaa\nIF368t33UlleblopLM8m8r9Ev1sSJOS1yYgU1HABjyw54LXBqT4tAf0xjlRaLn4L\nQBUAS0TTywTppGXtNwXpxqdDuQdigNskqzEFaGI52IQezfGt7L2CeeJ/YJNcbImR\neCXMPwTatUHLLE29Qv8GQQfy7TpCXdXVLvQAyfZJi7lY7DjPqBab5ocnVTRcEpKz\nFwH2+KTokQkU1UF614IveRF3ZOqqmrQvy1AdSvekFLIz2uP7xsfy3I3HNQcPJ4DI\n5vNzBaE/hF5xK40CAwEAAaNTMFEwHQYDVR0OBBYEFPxOB5cxsf89x6KdFSTTFV2L\nwta1MB8GA1UdIwQYMBaAFPxOB5cxsf89x6KdFSTTFV2Lwta1MA8GA1UdEwEB/wQF\nMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAFXqCJuq4ifMw3Hre7+X23q25jOb1nzd\n8qs+1Tij8osUC5ekD21x/k9g+xHvacoJIOzsAmpAPSnwXKMnvVdAeX6Scg1Bvejj\nTdXfNEJ7jcvDROUNjlWYjwiY+7ahDkj56nahwGjjUQdgCCzRiSYPOq6N1tRkn97a\ni6+jB8DnTSDnv5j8xiPDbWJ+nv2O1NNsoHS91UrTqkVXxNItrCdPPh21hzrTJxs4\noSf4wbaF5n3E2cPpSAaXBEyxBdXAqUCIhP0q9/pgBTYuJ+eW467u4xWqUVi4iBtN\nwVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=\n-----END CERTIFICATE-----" > /usr/local/share/ca-certificates/proxy.crt
+update-ca-certificates
+
+# Test HTTP proxying
+curl --verbose --interface eth0 --proxy "http://my-proxy.sdn:9090" "http://www.example.com"
+echo $?
+
+# Test HTTPS proxy
+curl --verbose --interface eth0 --proxy "http://my-proxy.sdn:9091" "https://mydomain.adam:3333/api/v2/edgedevice/ping"
+echo $?
+```
+
+### Proxy listening on HTTPS port (requires change to network model)
+
+First, change network model and device config as follows:
+
+```diff
+diff --git a/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json b/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json
+index 10894a2..7ad52d5 100644
+--- a/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json
++++ b/sdn/examples/explicit-proxy/config-overrides/DevicePortConfig/override.json
+@@ -11,12 +11,12 @@
+             "Proxies": [
+                 {
+                     "Type": 0,
+-                    "Server": "http://my-proxy.sdn",
++                    "Server": "https://my-proxy.sdn",
+                     "Port": 9090
+                 },
+                 {
+                     "Type": 1,
+-                    "Server": "http://my-proxy.sdn",
++                    "Server": "https://my-proxy.sdn",
+                     "Port": 9091
+                 }
+             ],
+diff --git a/sdn/examples/explicit-proxy/device-config.json b/sdn/examples/explicit-proxy/device-config.json
+index 01d7ffa..1c970a2 100644
+--- a/sdn/examples/explicit-proxy/device-config.json
++++ b/sdn/examples/explicit-proxy/device-config.json
+@@ -25,12 +25,12 @@
+         "proxies": [
+           {
+             "proto": 0,
+-            "server": "http://my-proxy.sdn",
++            "server": "https://my-proxy.sdn",
+             "port": 9090
+           },
+           {
+             "proto": 1,
+-            "server": "http://my-proxy.sdn",
++            "server": "https://my-proxy.sdn",
+             "port": 9091
+           }
+         ],
+diff --git a/sdn/examples/explicit-proxy/network-model.json b/sdn/examples/explicit-proxy/network-model.json
+index f8c732a..b2b70cc 100644
+--- a/sdn/examples/explicit-proxy/network-model.json
++++ b/sdn/examples/explicit-proxy/network-model.json
+@@ -83,11 +83,11 @@
+         "ip": "10.18.18.40",
+         "httpProxy": {
+           "port": 9090,
+-          "listenProto": "http"
++          "listenProto": "https"
+         },
+         "httpsProxy": {
+           "port": 9091,
+-          "listenProto": "http"
++          "listenProto": "https"
+         },
+         "privateDNS": ["dns-server-for-proxy"],
+```
+
+Restart the example and run:
+
+```shell
+./eden eve ssh
+
+# Inside EVE VM enter the pillar container
+eve enter
+
+# Make proxy trustworthy.
+echo -e "-----BEGIN CERTIFICATE-----\nMIIDVTCCAj2gAwIBAgIUPGtlx1k08RmWd9RxiCKTXYnAUkIwDQYJKoZIhvcNAQEL\nBQAwOjETMBEGA1UEAwwKemVkZWRhLmNvbTELMAkGA1UEBhMCVVMxFjAUBgNVBAcM\nDVNhbiBGcmFuY2lzY28wHhcNMjIwOTA3MTcwMDE0WhcNMzIwNjA2MTcwMDE0WjA6\nMRMwEQYDVQQDDAp6ZWRlZGEuY29tMQswCQYDVQQGEwJVUzEWMBQGA1UEBwwNU2Fu\nIEZyYW5jaXNjbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALQsi7IG\nM8KApujL71MJXbuPQNn/g+RItQeehaFRcqcCcpFW4k1YveMNdf5HReKlAfufFtaa\nIF368t33UlleblopLM8m8r9Ev1sSJOS1yYgU1HABjyw54LXBqT4tAf0xjlRaLn4L\nQBUAS0TTywTppGXtNwXpxqdDuQdigNskqzEFaGI52IQezfGt7L2CeeJ/YJNcbImR\neCXMPwTatUHLLE29Qv8GQQfy7TpCXdXVLvQAyfZJi7lY7DjPqBab5ocnVTRcEpKz\nFwH2+KTokQkU1UF614IveRF3ZOqqmrQvy1AdSvekFLIz2uP7xsfy3I3HNQcPJ4DI\n5vNzBaE/hF5xK40CAwEAAaNTMFEwHQYDVR0OBBYEFPxOB5cxsf89x6KdFSTTFV2L\nwta1MB8GA1UdIwQYMBaAFPxOB5cxsf89x6KdFSTTFV2Lwta1MA8GA1UdEwEB/wQF\nMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAFXqCJuq4ifMw3Hre7+X23q25jOb1nzd\n8qs+1Tij8osUC5ekD21x/k9g+xHvacoJIOzsAmpAPSnwXKMnvVdAeX6Scg1Bvejj\nTdXfNEJ7jcvDROUNjlWYjwiY+7ahDkj56nahwGjjUQdgCCzRiSYPOq6N1tRkn97a\ni6+jB8DnTSDnv5j8xiPDbWJ+nv2O1NNsoHS91UrTqkVXxNItrCdPPh21hzrTJxs4\noSf4wbaF5n3E2cPpSAaXBEyxBdXAqUCIhP0q9/pgBTYuJ+eW467u4xWqUVi4iBtN\nwVfYelYC2v03Rn433kv624oJDQ7MM5bDUv3nqPtkUys0ARwxs8tQCgg=\n-----END CERTIFICATE-----" > /usr/local/share/ca-certificates/proxy.crt
+update-ca-certificates
+
+# Test HTTP proxy
+curl --verbose --interface eth0 --proxy "https://my-proxy.sdn:9090" "http://www.example.com"
+echo $?
+
+# Test HTTPS proxy
+curl --verbose --interface eth0 --proxy "https://my-proxy.sdn:9091" "https://mydomain.adam:3333/api/v2/edgedevice/ping"
+echo $?
+```
+
+## Example variations
+
+### Firewall used to block non-proxied traffic
+
+In the original variant of this example, the router + the DNS server of `network0` are
+used to enforce the use of proxy for the EVE management traffic, simply by not providing
+a route to the endpoints outside the SDN VM (`"outsideReachability": false`) and by not being
+able to resolve the controller's domain name, respectively.
+
+An alternative solution for proxy enforcement, is to configure the firewall such that it
+will allow traffic coming out of `network0` only if it is headed towards the proxy, or if
+it is a DNS request. If EVE tries to access the controller directly, it will be blocked
+by the firewall.
+
+Apply the following network model change and restart the example (also try the same but with
+the proxy removed from the device config):
+
+```diff
+diff --git a/sdn/examples/explicit-proxy/network-model.json b/sdn/examples/explicit-proxy/network-model.json
+index f8c732a..643fe7e 100644
+--- a/sdn/examples/explicit-proxy/network-model.json
++++ b/sdn/examples/explicit-proxy/network-model.json
+@@ -24,11 +24,11 @@
+           "toIP": "172.22.12.20"
+         },
+         "domainName": "sdn",
+-        "privateDNS": ["dns-server-for-device"]
++        "privateDNS": ["my-dns-server"]
+       },
+       "router": {
+-        "outsideReachability": false,
+-        "reachableEndpoints": ["my-client", "dns-server-for-device", "my-proxy"]
++        "outsideReachability": true,
++        "reachableEndpoints": ["my-client", "my-dns-server", "my-proxy"]
+       }
+     }
+   ],
+@@ -43,30 +43,18 @@
+     ],
+     "dnsServers": [
+       {
+-        "logicalLabel": "dns-server-for-device",
+-        "fqdn": "dns-server-for-device.sdn",
++        "logicalLabel": "my-dns-server",
++        "fqdn": "my-dns-server.sdn",
+         "subnet": "10.16.16.0/24",
+         "ip": "10.16.16.25",
+-        "staticEntries": [
+-          {
+-            "fqdn": "endpoint-fqdn.my-proxy",
+-            "ip": "endpoint-ip.my-proxy"
+-          }
+-        ],
+-        "upstreamServers": [
+-          "1.1.1.1",
+-          "8.8.8.8"
+-        ]
+-      },
+-      {
+-        "logicalLabel": "dns-server-for-proxy",
+-        "fqdn": "dns-server-for-proxy.sdn",
+-        "subnet": "10.17.17.0/24",
+-        "ip": "10.17.17.25",
+         "staticEntries": [
+           {
+             "fqdn": "mydomain.adam",
+             "ip": "adam-ip"
++          },
++          {
++            "fqdn": "endpoint-fqdn.my-proxy",
++            "ip": "endpoint-ip.my-proxy"
+           }
+         ],
+         "upstreamServers": [
+@@ -89,7 +77,7 @@
+           "port": 9091,
+           "listenProto": "http"
+         },
+-        "privateDNS": ["dns-server-for-proxy"],
++        "privateDNS": ["my-dns-server"],
+@@ -101,7 +89,25 @@
+             "action": "mitm"
+           }
+         ]
+-
++      }
++    ]
++  },
++  "firewall": {
++    "rules": [
++      {
++        "srcSubnet": "172.22.12.0/24",
++        "protocol": "udp",
++        "ports": [53],
++        "action": "allow"
++      },
++      {
++        "srcSubnet": "172.22.12.0/24",
++        "dstSubnet": "10.18.18.0/24",
++        "action": "allow"
++      },
++      {
++        "srcSubnet": "172.22.12.0/24",
++        "action": "reject"
+       }
+     ]
+   }
+```
+
+Also, feel free to experiment by changing the action of the last firewall rule between
+`reject` and `drop`. In the former case, EVE will be informed that the connection
+was blocked, printing `ECONNREFUSED` as the error on the console, while in the second
+case the connection request will be simply dropped and EVE will fail with connection
+timeout (`context deadline exceeded (Client.Timeout exceeded while awaiting headers)`).
 
 [override-json]: ./config-overrides/DevicePortConfig/override.json
 [global-json]: ./config-overrides/GlobalConfig/global.json

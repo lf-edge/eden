@@ -41,31 +41,29 @@ func newDownloadEVERootFSCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "download eve rootfs image from docker",
 		Long:  `Download eve rootfs image from docker.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			cfg.Eve.Tag = viper.GetString("eve.tag")
-			cfg.Eve.Arch = viper.GetString("eve.arch")
-			cfg.Eve.HV = viper.GetString("eve.hv")
-			cfg.Eve.Registry = viper.GetString("eve.registry")
-
-			if outputDir == "" {
-				outputDir = filepath.Dir(cfg.Eve.ImageFile)
-			}
-
-			eveDesc := utils.EVEDescription{
-				ConfigPath:  cfg.Eden.CertsDir,
-				Arch:        cfg.Eve.Arch,
-				HV:          cfg.Eve.HV,
-				Registry:    cfg.Eve.Registry,
-				Tag:         cfg.Eve.Tag,
-				Format:      cfg.Runtime.ImageFormat,
-				ImageSizeMB: cfg.Eve.ImageSizeMB,
-			}
-
-			image, err := utils.DownloadEveRootFS(eveDesc, outputDir)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Println(image)
-		},
+      model, err := models.GetDevModelByName(cfg.Eve.DevModel)
+      if err != nil {
+        log.Fatalf("GetDevModelByName: %s", err)
+      }
+      format := model.DiskFormat()
+      eveDesc := utils.EVEDescription{
+        ConfigPath:  cfg.Adam.Dist,
+        Arch:        cfg.Eve.Arch,
+        HV:          cfg.Eve.HV,
+        Registry:    cfg.Eve.Registry,
+        Tag:         cfg.Eve.Tag,
+        Format:      format,
+        ImageSizeMB: cfg.Eve.ImageSizeMB,
+      }
+      if err := utils.DownloadEveLive(eveDesc, eveImageFile); err != nil {
+        log.Fatal(err)
+      }
+      if err := utils.DownloadUEFI(eveDesc, filepath.Dir(eveImageFile)); err != nil {
+        log.Fatal(err)
+      }
+      log.Infof(model.DiskReadyMessage(), eveImageFile)
+      fmt.Println(eveImageFile)
+    },
 	}
 
 	downloadEVERootFSCmd.Flags().StringVarP(&cfg.Eve.Tag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
@@ -95,6 +93,4 @@ func newDownloadEVECmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	downloadEVECmd.Flags().StringVarP(&cfg.Eve.ImageFile, "image-file", "i", "", "path for image drive")
 	downloadEVECmd.Flags().StringVarP(&cfg.Adam.Dist, "adam-dist", "", cfg.Adam.Dist, "adam dist to start")
 	downloadEVECmd.Flags().IntVar(&cfg.Eve.ImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
-
-	return downloadEVECmd
 }

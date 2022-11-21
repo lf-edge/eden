@@ -82,7 +82,6 @@ func newEdgeNodeEVEImageUpdateRetry(controllerMode string) *cobra.Command {
 			}
 		},
 	}
-
 	return edgeNodeEVEImageUpdateRetry
 }
 

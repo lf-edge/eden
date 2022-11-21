@@ -21,7 +21,7 @@ jobs:
           sudo add-apt-repository ppa:longsleep/golang-backports
           sudo apt install -y golang jq expect
       - name: Get eden
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Create ubuntu server on packet hosting
         id: ubuntu
         run: |
@@ -29,8 +29,8 @@ jobs:
           packet_ubuntu_ip=$(./shell-scripts/packet/wait-eth0.sh $packet_ubuntu_id 100)
           echo "Packet server ID: ${packet_ubuntu_id}"
           echo "Packet server IP: ${packet_ubuntu_ip}"
-          echo "::set-output name=id::$packet_ubuntu_id"
-          echo "::set-output name=ip::$packet_ubuntu_ip"
+          echo "id=$packet_ubuntu_id" >> $GITHUB_OUTPUT
+          echo "ip=$packet_ubuntu_ip" >> $GITHUB_OUTPUT
           echo "Waiting for the deployment to complete"
           ./shell-scripts/packet/wait-provisioning.sh $packet_ubuntu_id
           sleep 100
@@ -79,7 +79,7 @@ jobs:
           device_ip=$(ssh root@${{steps.ubuntu.outputs.ip}} 'cd eden && export PACKET_TOKEN='"$PACKET_TOKEN"' && ./shell-scripts/packet/wait-eth0.sh '"$device_id"' 200')
           echo "Packet EVE ID: $device_id"
           echo "Packet EVE IP: $device_ip"
-          echo "::set-output name=id::$device_id"
+          echo "id=$device_id" >> $GITHUB_OUTPUT
           echo "Waiting for the deployment to complete"
           ssh root@${{steps.ubuntu.outputs.ip}} 'cd eden && export PACKET_TOKEN='"$PACKET_TOKEN"' && ./shell-scripts/packet/wait-provisioning.sh '"$device_id"
           sleep 100
@@ -109,7 +109,7 @@ jobs:
           PACKET_TOKEN: ${{ secrets.PACKET_TOKEN }}
       - name: Store raw test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: eden-packet${{ matrix.conf_eden_server }}---eve-packet${{ matrix.conf_eve_server }}-${{ matrix.hv }}
           path: |

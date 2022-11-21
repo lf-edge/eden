@@ -15,7 +15,7 @@ jobs:
     steps:
       - id: secrets
         if: ${{ env.DOCKERHUB_TOKEN != '' }}
-        run: echo "::set-output name=defined::true"
+        run: echo "defined=true" >> $GITHUB_OUTPUT
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   build:
@@ -24,11 +24,11 @@ jobs:
     if: needs.check-secrets.outputs.available == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       - name: Login to DockerHUB
         id: login
         run: |
@@ -36,4 +36,4 @@ jobs:
              docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
       - name: Build and push
         run: |
-          make DOCKER_TARGET=push DOCKER_PLATFORM=linux/arm64,linux/amd64 build-docker
+          make DOCKER_TARGET=push LINUXKIT_TARGET=push DOCKER_PLATFORM=linux/arm64,linux/amd64 build-docker

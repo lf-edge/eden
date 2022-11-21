@@ -53,8 +53,8 @@ const (
 	DefaultRegistryPort         = 5050
 
 	//tags, versions, repos
-	DefaultEVETag               = "0.0.0-master-85e61f8e" // DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.40"
+	DefaultEVETag               = "0.0.0-master-1c8a8a4f" // DefaultEVETag tag for EVE image
+	DefaultAdamTag              = "0.0.41"
 	DefaultRedisTag             = "7"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
@@ -76,10 +76,10 @@ const (
 
 	DefaultRedisPasswordFile = "redis.pass"
 
-	DefaultEServerTag          = "6e2bfa9"
+	DefaultEServerTag          = "4b71e2c"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
-	DefaultEClientTag          = "8e676c6"
+	DefaultEClientTag          = "b1c1de6"
 	DefaultEClientContainerRef = "lfedge/eden-eclient"
 
 	//DefaultRepeatCount is repeat count for requests
@@ -236,7 +236,6 @@ var (
 		"eve.repo":         "eve-repo",
 		"eve.registry":     "eve-registry",
 		"eve.tag":          "eve-tag",
-		"eve.uefi-tag":     "eve-uefi-tag",
 		"eve.hostfwd":      "eve-hostfwd",
 		"eve.dist":         "eve-dist",
 		"eve.base-dist":    "eve-base-dist",

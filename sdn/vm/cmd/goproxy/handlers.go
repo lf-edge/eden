@@ -13,14 +13,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func installProxyHandler(rule sdnapi.ProxyRule, tls bool, proxy *goproxy.ProxyHttpServer) {
+func installProxyHandler(rule sdnapi.ProxyRule, https bool, proxy *goproxy.ProxyHttpServer) {
 	notConnect := goproxy.Not(goproxy.ReqConditionFunc(isConnect))
+
 	switch rule.Action {
 	case sdnapi.PxForward:
 		// Forward HTTP/HTTPS CONNECT
 		proxy.OnRequest(dstHostIs(rule.ReqHost)).HandleConnect(
 			goproxy.FuncHttpsHandler(forwardConnect))
-		if !tls {
+		if !https {
 			// Forward HTTP GET, POST, etc. (but not CONNECT)
 			proxy.OnRequest(dstHostIs(rule.ReqHost), notConnect).DoFunc(
 				forwardHTTP)
@@ -30,14 +31,14 @@ func installProxyHandler(rule sdnapi.ProxyRule, tls bool, proxy *goproxy.ProxyHt
 		// Reject HTTP/HTTPS CONNECT
 		proxy.OnRequest(dstHostIs(rule.ReqHost)).HandleConnect(
 			goproxy.AlwaysReject)
-		if !tls {
+		if !https {
 			// Reject HTTP GET, POST, etc. (but not CONNECT)
 			proxy.OnRequest(dstHostIs(rule.ReqHost), notConnect).DoFunc(
 				rejectHTTP)
 		}
 
 	case sdnapi.PxMITM:
-		if tls {
+		if https {
 			// CONNECT before establishing TLS tunnel
 			proxy.OnRequest(dstHostIs(rule.ReqHost)).HandleConnect(
 				goproxy.AlwaysMitm)
@@ -52,7 +53,7 @@ func installProxyHandler(rule sdnapi.ProxyRule, tls bool, proxy *goproxy.ProxyHt
 	}
 }
 
-func installProxyHandlers(proxyConfig config.ProxyConfig, tls, transparent bool,
+func installProxyHandlers(proxyConfig config.ProxyConfig, https, transparent bool,
 	proxy *goproxy.ProxyHttpServer) {
 	// Add mark to differentiate between CONNECT and other HTTP methods.
 	proxy.OnRequest().HandleConnect(goproxy.FuncHttpsHandler(markConnect))
@@ -74,7 +75,7 @@ func installProxyHandlers(proxyConfig config.ProxyConfig, tls, transparent bool,
 	}
 	// Make sure HTTP and HTTPS are not mixed.
 	matchTraffic := dstPortIs(80, 80)
-	if tls {
+	if https {
 		matchTraffic = goproxy.Not(dstPortIs(80, 443))
 	}
 	proxy.OnRequest(goproxy.Not(matchTraffic)).DoFunc(rejectHTTP)
@@ -91,12 +92,12 @@ func installProxyHandlers(proxyConfig config.ProxyConfig, tls, transparent bool,
 			defaultRule = &rule
 			continue
 		}
-		installProxyHandler(rule, tls, proxy)
+		installProxyHandler(rule, https, proxy)
 	}
 	if defaultRule == nil {
 		defaultRule = &sdnapi.ProxyRule{Action: sdnapi.PxForward}
 	}
-	installProxyHandler(*defaultRule, tls, proxy)
+	installProxyHandler(*defaultRule, https, proxy)
 }
 
 func dstPortIs(port, defaultPort uint16) goproxy.ReqConditionFunc {

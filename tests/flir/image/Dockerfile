@@ -7,14 +7,14 @@ ARG FLEDGELINK="http://archives.fledge-iot.org/${FLEDGEVERSION}/${OPERATINGSYSTE
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-    rsyslog=8.32.0-1ubuntu4 \
-    curl=7.58.0-2ubuntu3.10 \
-    wget=1.19.4-1ubuntu2.2 \
-    jq=1.5+dfsg-2 \
-    procps=2:3.3.12-3ubuntu1.2 \
-    python3-wheel=0.30.0-0.2 \
-    automake=1:1.15.1-3ubuntu2 \
-    make=4.1-9.1ubuntu1 && \
+    rsyslog=8.32.* \
+    curl=7.58.* \
+    wget=1.19.* \
+    jq=1.5* \
+    procps=2:3.3.* \
+    python3-wheel=0.30.* \
+    automake=1:1.15.* \
+    make=4.1-9* && \
     wget ${FLEDGELINK}/fledge-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
     wget ${FLEDGELINK}/fledge-gui-${FLEDGEVERSION}.deb && \
     wget ${FLEDGELINK}/fledge-south-modbus-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
