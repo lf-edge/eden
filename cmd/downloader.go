@@ -6,11 +6,11 @@ import (
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/openevec"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func newDownloaderCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
@@ -41,29 +41,29 @@ func newDownloadEVERootFSCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "download eve rootfs image from docker",
 		Long:  `Download eve rootfs image from docker.`,
 		Run: func(cmd *cobra.Command, args []string) {
-      model, err := models.GetDevModelByName(cfg.Eve.DevModel)
-      if err != nil {
-        log.Fatalf("GetDevModelByName: %s", err)
-      }
-      format := model.DiskFormat()
-      eveDesc := utils.EVEDescription{
-        ConfigPath:  cfg.Adam.Dist,
-        Arch:        cfg.Eve.Arch,
-        HV:          cfg.Eve.HV,
-        Registry:    cfg.Eve.Registry,
-        Tag:         cfg.Eve.Tag,
-        Format:      format,
-        ImageSizeMB: cfg.Eve.ImageSizeMB,
-      }
-      if err := utils.DownloadEveLive(eveDesc, eveImageFile); err != nil {
-        log.Fatal(err)
-      }
-      if err := utils.DownloadUEFI(eveDesc, filepath.Dir(eveImageFile)); err != nil {
-        log.Fatal(err)
-      }
-      log.Infof(model.DiskReadyMessage(), eveImageFile)
-      fmt.Println(eveImageFile)
-    },
+			model, err := models.GetDevModelByName(cfg.Eve.DevModel)
+			if err != nil {
+				log.Fatalf("GetDevModelByName: %s", err)
+			}
+			format := model.DiskFormat()
+			eveDesc := utils.EVEDescription{
+				ConfigPath:  cfg.Adam.Dist,
+				Arch:        cfg.Eve.Arch,
+				HV:          cfg.Eve.HV,
+				Registry:    cfg.Eve.Registry,
+				Tag:         cfg.Eve.Tag,
+				Format:      format,
+				ImageSizeMB: cfg.Eve.ImageSizeMB,
+			}
+			if err := utils.DownloadEveLive(eveDesc, eveImageFile); err != nil {
+				log.Fatal(err)
+			}
+			if err := utils.DownloadUEFI(eveDesc, filepath.Dir(eveImageFile)); err != nil {
+				log.Fatal(err)
+			}
+			log.Infof(model.DiskReadyMessage(), eveImageFile)
+			fmt.Println(eveImageFile)
+		},
 	}
 
 	downloadEVERootFSCmd.Flags().StringVarP(&cfg.Eve.Tag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
@@ -93,4 +93,6 @@ func newDownloadEVECmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	downloadEVECmd.Flags().StringVarP(&cfg.Eve.ImageFile, "image-file", "i", "", "path for image drive")
 	downloadEVECmd.Flags().StringVarP(&cfg.Adam.Dist, "adam-dist", "", cfg.Adam.Dist, "adam dist to start")
 	downloadEVECmd.Flags().IntVar(&cfg.Eve.ImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
+
+	return downloadEVECmd
 }
