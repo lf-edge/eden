@@ -1,6 +1,7 @@
 package openevec
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,19 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+// optionsWithMapTypeList contains options that should be encoded
+var optionsWithMapTypeList = []string{"eve.hostfwd"}
+
+func isEncodingNeeded(contextKeySet string) bool {
+	for _, k := range optionsWithMapTypeList {
+		if contextKeySet != k {
+			continue
+		}
+		return true
+	}
+	return false
+}
 
 func ReloadConfigDetails(cfg *EdenSetupArgs) {
 	viperLoaded, err := utils.LoadConfigFile(cfg.ConfigFile)
@@ -143,6 +157,18 @@ func ConfigList() error {
 	return nil
 }
 
+func processConfigKeyValue(contextKeySet, contextValueSet string) (interface{}, error) {
+	if isEncodingNeeded(contextKeySet) {
+		obj := make(map[string]interface{})
+		err := json.Unmarshal([]byte(contextValueSet), &obj)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode %s: %s", contextKeySet, err)
+		}
+		return obj, nil
+	}
+	return contextValueSet, nil
+}
+
 func ConfigSet(target, contextKeySet, contextValueSet string) error {
 	context, err := utils.ContextLoad()
 	if err != nil {
@@ -151,6 +177,10 @@ func ConfigSet(target, contextKeySet, contextValueSet string) error {
 	oldContext := context.Current
 	if contextKeySet != "" {
 		defer context.SetContext(oldContext) //restore context after modifications
+	}
+	objToStore, err := processConfigKeyValue(contextKeySet, contextValueSet)
+	if err != nil {
+		return fmt.Errorf("processConfigKeyValue error: %s", err)
 	}
 	contexts := context.ListContexts()
 	for _, el := range contexts {
@@ -161,7 +191,7 @@ func ConfigSet(target, contextKeySet, contextValueSet string) error {
 				if err != nil {
 					return fmt.Errorf("error reading config: %s", err.Error())
 				}
-				viper.Set(contextKeySet, contextValueSet)
+				viper.Set(contextKeySet, objToStore)
 				if err = utils.GenerateConfigFileFromViper(); err != nil {
 					return fmt.Errorf("error writing config: %s", err)
 				}
@@ -257,7 +287,17 @@ func ConfigGet(target string, contextKeyGet string, contextAllGet bool) error {
 	if contextKeyGet == "" && !contextAllGet {
 		fmt.Println(context.Current)
 	} else if contextKeyGet != "" {
-		fmt.Println(viper.Get(contextKeyGet))
+
+		item := viper.Get(contextKeyGet)
+		if isEncodingNeeded(contextKeyGet) {
+			result, err := json.Marshal(item)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(string(result))
+		} else {
+			fmt.Println(item)
+		}
 	} else if contextAllGet {
 		if err = viper.WriteConfigAs(defaults.DefaultConfigHidden); err != nil {
 			return err
