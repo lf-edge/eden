@@ -287,7 +287,7 @@ func newGcpCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: `Manage images and VMs in Google Cloud Platform`,
 		Long:  `Manage images and VMs in Google Cloud Platform (you need to provide a key, set it in config in gcp.key or use a gcloud login)`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			gcpKey = cfg.Gcp.Key
+			// gcpKey = cfg.Gcp.Key
 
 			if gcpKey == "" {
 				context, err := utils.ContextLoad()
