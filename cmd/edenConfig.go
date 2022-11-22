@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
-	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -78,29 +76,6 @@ func newConfigAddCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			return nil
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			var err error
-			if cfg.ConfigFile == "" {
-				cfg.ConfigFile, err = utils.DefaultConfigPath()
-				if err != nil {
-					log.Fatalf("fail in DefaultConfigPath: %s", err)
-				}
-			}
-			if _, err := os.Stat(cfg.ConfigFile); !os.IsNotExist(err) {
-				if force {
-					if err := os.Remove(cfg.ConfigFile); err != nil {
-						log.Fatal(err)
-					}
-				} else {
-					log.Debugf("current config already exists: %s", cfg.ConfigFile)
-				}
-			}
-			if _, err = os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
-				if err = utils.GenerateConfigFile(cfg.ConfigFile); err != nil {
-					log.Fatalf("fail in generate yaml: %s", err.Error())
-				}
-				log.Infof("Config file generated: %s", cfg.ConfigFile)
-			}
-			openevec.ReloadConfigDetails(cfg)
 			return nil
 		},
 

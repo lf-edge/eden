@@ -62,6 +62,10 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 			return fmt.Errorf("fail in DefaultConfigPath: %s", err)
 		}
 	}
+	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
+	if err != nil {
+		return fmt.Errorf("GetDevModelByName: %s", err)
+	}
 	if _, err := os.Stat(cfg.ConfigFile); !os.IsNotExist(err) {
 		if force {
 			if err := os.Remove(cfg.ConfigFile); err != nil {
@@ -79,10 +83,6 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 	}
 	ReloadConfigDetails(cfg)
 
-	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
-	if err != nil {
-		return fmt.Errorf("GetDevModelByName: %s", err)
-	}
 	context, err := utils.ContextLoad()
 	if err != nil {
 		return fmt.Errorf("Load context error: %s", err)
@@ -112,21 +112,23 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 	context.SetContext(context.Current)
 	ReloadConfigDetails(cfg)
 
-	// TODO: This is dead end for code we set this vars in command
-	/*
-		if cfg.Eve.Arch != "" {
-			imageDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist)
-			switch cfg.Eve.Arch {
-			case "amd64":
-				// this is []string type
-				cfg.Eve.QemuFirmware = fmt.Sprintf("[%s %s]",
-					filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
-					filepath.Join(imageDist, "eve", "OVMF_VARS.fd"))
-			case "arm64":
-				cfg.Eve.Firmware = fmt.Sprintf("[%s]", filepath.Join(imageDist, "eve", "OVMF.fd"))
-			}
+	// we prepare viper config here from EdenSetupArgs
+	// to feed into GenerateConfigFileFromViper
+
+	if cfg.Eve.Arch != "" {
+		viper.Set("eve.arch", cfg.Eve.Arch)
+		imageDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist)
+		switch cfg.Eve.Arch {
+		case "amd64":
+			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
+				filepath.Join(imageDist, "eve", "OVMF_VARS.fd")})
+		case "arm64":
+			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "OVMF.fd")})
 		}
-	*/
+	}
+	if cfg.Eve.Ssid != "" {
+		viper.Set("eve.ssid", cfg.Eve.Ssid)
+	}
 
 	for k, v := range model.Config() {
 		viper.Set(k, v)
