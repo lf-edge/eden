@@ -157,6 +157,14 @@ func ConfigList() error {
 	return nil
 }
 
+func ValidateConfigFromViper() error {
+	cfg := &EdenSetupArgs{}
+	if err := viper.Unmarshal(cfg); err != nil {
+		return fmt.Errorf("unable to decode into config struct, %v", err)
+	}
+	return nil
+}
+
 func processConfigKeyValue(contextKeySet, contextValueSet string) (interface{}, error) {
 	if isEncodingNeeded(contextKeySet) {
 		obj := make(map[string]interface{})
@@ -192,6 +200,9 @@ func ConfigSet(target, contextKeySet, contextValueSet string) error {
 					return fmt.Errorf("error reading config: %s", err.Error())
 				}
 				viper.Set(contextKeySet, objToStore)
+				if err = ValidateConfigFromViper(); err != nil {
+					return fmt.Errorf("ValidateConfigFromViper: %s", err)
+				}
 				if err = utils.GenerateConfigFileFromViper(); err != nil {
 					return fmt.Errorf("error writing config: %s", err)
 				}
