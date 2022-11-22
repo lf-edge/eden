@@ -84,49 +84,54 @@ type CustomInstallerConfig struct {
 	Format string `mapstructure:"path"`
 }
 
+type QemuConfig struct {
+	MonitorPort      int `mapstructure:"monitor-port" cobraflag:"qemu-monitor-port"`
+	NetdevSocketPort int `mapstructure:"netdev-socket-port" cobraflag:"qemu-netdev-socket-port"`
+}
+
 type EveConfig struct {
 	CustomInstaller CustomInstallerConfig `mapstructure:"custom-installer"`
+	QemuConfig      QemuConfig            `mapstructure:"qemu"`
 
-	QemuFirmware     []string          `mapstructure:"firmware" cobraflag:"eve-firmware"`
-	QemuConfigPath   string            `mapstructure:"config-part" cobraflag:"config-path" resolvepath`
-	QemuDTBPath      string            `mapstructure:"dtb-part" cobraflag:"dtb-part" resolvepath`
-	QemuOS           string            `mapstructure:"os" cobraflag:"eve-os"`
-	ImageFile        string            `mapstructure:"image-file" cobraflag:"image-file" resolvepath`
-	CertsUUID        string            `mapstructure:"uuid" cobraflag:"uuid"`
-	Dist             string            `mapstructure:"dist" cobraflag:"eve-dist" resolvepath`
-	Repo             string            `mapstructure:"repo" cobraflag:"eve-repo"`
-	Registry         string            `mapstructure:"registry" cobraflag:"eve-registry"`
-	Tag              string            `mapstructure:"tag" cobraflag:"eve-tag"`
-	UefiTag          string            `mapstructure:"uefi-tag" cobraflag:"eve-uefi-tag"`
-	HV               string            `mapstructure:"hv" cobraflag:"eve-hv"`
-	Arch             string            `mapstructure:"arch" cobraflag:"eve-arch"`
-	HostFwd          map[string]string `mapstructure:"hostfwd" cobraflag:"eve-hostfwd"`
-	QemuFileToSave   string            `mapstructure:"qemu-config" cobraflag:"qemu-config" resolvepath`
-	QemuCpus         int               `mapstructure:"cpu" cobraflag:"cpus"`
-	QemuMemory       int               `mapstructure:"ram" cobraflag:""memory`
-	ImageSizeMB      int               `mapstructure:"disk" cobraflag:"image-size"`
-	DevModel         string            `mapstructure:"devmodel" cobraflag:"devmodel"`
-	DevModelFile     string            `mapstructure:"devmodelfile"`
-	Ssid             string            `mapstructure:"ssid" cobraflag:"ssid"`
-	Password         string            `mapstructure:"password" cobraflag:"password"`
-	Serial           string            `mapstructure:"serial" cobraflag:"eve-serial"`
-	Accel            bool              `mapstructure:"accel" cobraflag:"eve-accel"`
-	QemuMonitorPort  int               `mapstructure:"eve.qemu-monitor-port" cobraflag:"qemu-monitor-port"` // TODO: ??
-	Pid              string            `mapstructure:"pid" cobraflag:"eve-pid" resolvepath`
-	Log              string            `mapstructure:"log" cobraflag:"eve-log" resolvepath`
-	TelnetPort       int               `mapstructure:"eve.telnet-port" cobraflag:"eve-telnet-port"` // TODO: ??
-	Remote           bool              `mapstructure:"remote"`
-	RemoteAddr       string            `mapstructure:"remote-addr"`
-	NetdevSocketPort int               `mapstructure:"qemu.netdev-socket-port" cobraflag:"netdev-socket-port"` // TODO: ??
-	ModelFile        string            `mapstructure:"devmodelfile" cobraflag:"devmodel-file"`
-	Cert             string            `mapstructure:"cert"`
-	DeviceCert       string            `mapstructure:"device-cert"`
-	Name             string            `mapstructure:"name"`
-	AdamLogLevel     string            `mapstructure:"adam-log-level"`
-	LogLevel         string            `mapstructure:"log-level"`
-	Disks            int               `mapstructure:"disks"`
-	BootstrapFile    string            `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`
-	UsbNetConfFile   string            `mapstructure:"usbnetconf-file" cobraflag:"eve-usbnetconf-file"`
+	QemuFirmware   []string          `mapstructure:"firmware" cobraflag:"eve-firmware"`
+	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path" resolvepath`
+	QemuDTBPath    string            `mapstructure:"dtb-part" cobraflag:"dtb-part" resolvepath`
+	QemuOS         string            `mapstructure:"os" cobraflag:"eve-os"`
+	ImageFile      string            `mapstructure:"image-file" cobraflag:"image-file" resolvepath`
+	CertsUUID      string            `mapstructure:"uuid" cobraflag:"uuid"`
+	Dist           string            `mapstructure:"dist" cobraflag:"eve-dist" resolvepath`
+	Repo           string            `mapstructure:"repo" cobraflag:"eve-repo"`
+	Registry       string            `mapstructure:"registry" cobraflag:"eve-registry"`
+	Tag            string            `mapstructure:"tag" cobraflag:"eve-tag"`
+	UefiTag        string            `mapstructure:"uefi-tag" cobraflag:"eve-uefi-tag"`
+	HV             string            `mapstructure:"hv" cobraflag:"eve-hv"`
+	Arch           string            `mapstructure:"arch" cobraflag:"eve-arch"`
+	HostFwd        map[string]string `mapstructure:"hostfwd" cobraflag:"eve-hostfwd"`
+	QemuFileToSave string            `mapstructure:"qemu-config" cobraflag:"qemu-config" resolvepath`
+	QemuCpus       int               `mapstructure:"cpu" cobraflag:"cpus"`
+	QemuMemory     int               `mapstructure:"ram" cobraflag:""memory`
+	ImageSizeMB    int               `mapstructure:"disk" cobraflag:"image-size"`
+	DevModel       string            `mapstructure:"devmodel" cobraflag:"devmodel"`
+	DevModelFile   string            `mapstructure:"devmodelfile"`
+	Ssid           string            `mapstructure:"ssid" cobraflag:"ssid"`
+	Password       string            `mapstructure:"password" cobraflag:"password"`
+	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
+	Accel          bool              `mapstructure:"accel" cobraflag:"eve-accel"`
+
+	Pid            string `mapstructure:"pid" cobraflag:"eve-pid" resolvepath`
+	Log            string `mapstructure:"log" cobraflag:"eve-log" resolvepath`
+	TelnetPort     int    `mapstructure:"telnet-port" cobraflag:"eve-telnet-port"`
+	Remote         bool   `mapstructure:"remote"`
+	RemoteAddr     string `mapstructure:"remote-addr"`
+	ModelFile      string `mapstructure:"devmodelfile" cobraflag:"devmodel-file"`
+	Cert           string `mapstructure:"cert"`
+	DeviceCert     string `mapstructure:"device-cert"`
+	Name           string `mapstructure:"name"`
+	AdamLogLevel   string `mapstructure:"adam-log-level"`
+	LogLevel       string `mapstructure:"log-level"`
+	Disks          int    `mapstructure:"disks"`
+	BootstrapFile  string `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`
+	UsbNetConfFile string `mapstructure:"usbnetconf-file" cobraflag:"eve-usbnetconf-file"`
 
 	// Runtime options?
 	QemuUsbSerials int

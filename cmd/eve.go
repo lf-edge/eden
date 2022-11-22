@@ -92,8 +92,8 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startEveCmd.Flags().BoolVarP(&cfg.Eve.QemuForeground, "foreground", "", false, "run in foreground")
-	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
-	startEveCmd.Flags().IntVarP(&cfg.Eve.NetdevSocketPort, "qemu-netdev-socket-port", "", defaults.DefaultQemuNetdevSocketPort, "Base port for socket-based ethernet interfaces used in QEMU")
+	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
+	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.NetdevSocketPort, "qemu-netdev-socket-port", "", defaults.DefaultQemuNetdevSocketPort, "Base port for socket-based ethernet interfaces used in QEMU")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
@@ -328,7 +328,7 @@ func newLinkEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		},
 	}
 
-	linkEveCmd.Flags().IntVarP(&cfg.Eve.QemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
+	linkEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	linkEveCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "name of the EVE VBox VM")
 	linkEveCmd.Flags().StringVarP(&eveInterfaceName, "interface-name", "i", "", "EVE interface to get/change the link state of")
 

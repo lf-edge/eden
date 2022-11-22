@@ -67,7 +67,7 @@ func newStartCmd(configName, verbosity *string) *cobra.Command {
 	startCmd.Flags().BoolVarP(&cfg.Eve.Accel, "eve-accel", "", cfg.Eve.Accel, "use acceleration")
 	startCmd.Flags().StringVarP(&cfg.Eve.Serial, "eve-serial", "", defaults.DefaultEVESerial, "SMBIOS serial")
 	startCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "config file to use")
-	startCmd.Flags().IntVarP(&cfg.Eve.QemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
+	startCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	startCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startCmd.Flags().StringVarP(&cfg.Eve.ImageFile, "image-file", "", cfg.Eve.ImageFile, "path to image drive, overrides default setting")

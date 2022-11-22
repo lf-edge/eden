@@ -100,7 +100,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 				IPNet:     nets[0].Subnet,
 				DHCPStart: nets[0].FirstAddress,
 			},
-			NetDevBasePort: uint16(cfg.Eve.NetdevSocketPort),
+			NetDevBasePort: uint16(cfg.Eve.QemuConfig.NetdevSocketPort),
 			PidFile:        cfg.Sdn.PidFile,
 			ConsoleLogFile: cfg.Sdn.ConsoleLogFile,
 		}
@@ -169,7 +169,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	}
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
-		cfg.Eve.QemuMonitorPort, cfg.Eve.NetdevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
+		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetdevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
 		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), cfg.Eve.TapInterface, usbImagePath, cfg.Eve.GcpvTPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err)
 	} else {
@@ -457,7 +457,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 			}
 		case defaults.DefaultQemuModel:
 			for _, ifName := range eveIfNames {
-				err = eden.SetLinkStateQemu(cfg.Eve.QemuMonitorPort, ifName, bringUp)
+				err = eden.SetLinkStateQemu(cfg.Eve.QemuConfig.MonitorPort, ifName, bringUp)
 			}
 		default:
 			return fmt.Errorf("Link operations are not supported for devmodel '%s'", cfg.Eve.DevModel)
@@ -475,7 +475,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 	case defaults.DefaultVBoxModel:
 		linkStates, err = eden.GetLinkStatesVbox(cfg.Runtime.VmName, eveIfNames)
 	case defaults.DefaultQemuModel:
-		linkStates, err = eden.GetLinkStatesQemu(cfg.Eve.QemuMonitorPort, eveIfNames)
+		linkStates, err = eden.GetLinkStatesQemu(cfg.Eve.QemuConfig.MonitorPort, eveIfNames)
 	default:
 		return fmt.Errorf("Link operations are not supported for devmodel '%s'", cfg.Eve.DevModel)
 	}
