@@ -51,6 +51,9 @@ func generateScripts(in string, out string, configFile string) {
 }
 
 func SetupEden(configName string, cfg EdenSetupArgs) error {
+
+	configCheck(configName)
+
 	if cfg.Runtime.Netboot && cfg.Runtime.Installer {
 		log.Fatal("Please use netboot or installer flag, not both")
 	}

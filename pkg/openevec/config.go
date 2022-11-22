@@ -324,8 +324,6 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 		configName = configName[:pos]
 	}
 
-	configCheck(configName)
-
 	viper.SetConfigName(configName)
 
 	return cfg, nil
