@@ -250,13 +250,15 @@ func Merge(dst, src reflect.Value, flags *pflag.FlagSet) {
 			Merge(dst.Field(i), src.Field(i), flags)
 		}
 		if dst.Type().Field(i).Tag != "" {
-			tag := dst.Type().Field(i).Tag.Get("cobraflag")
-			if tag != "" && flags.Changed(tag) {
-				if dst.CanSet() {
-					dst.Set(src)
-				} else {
-					dst = src
-				}
+			cobraFlagTag := dst.Type().Field(i).Tag.Get("cobraflag")
+			if cobraFlagTag == "" {
+				continue
+			}
+			mapStructureTag := dst.Type().Field(i).Tag.Get("mapstructure")
+			// if no mapStructureTag define we are not able to load it from config
+			// so set from flag
+			if mapStructureTag == "" || flags.Changed(cobraFlagTag) {
+				dst.Field(i).Set(src.Field(i))
 			}
 		}
 	}
