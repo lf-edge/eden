@@ -75,7 +75,7 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
-			if err := openevec.Test(*configName, *verbosity, cfg, &tstCfg); err != nil {
+			if err := openevec.Test(cfg.ConfigFile, *verbosity, cfg, &tstCfg); err != nil {
 				log.Fatal(err)
 			}
 		},
