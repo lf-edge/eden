@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"reflect"
-
 	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -13,18 +11,10 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 	var controllerMode string
 
 	var controllerCmd = &cobra.Command{
-		Use:   "controller",
-		Short: "interact with controller",
-		Long:  `Interact with controller.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "controller",
+		Short:             "interact with controller",
+		Long:              `Interact with controller.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	var edgeNode = &cobra.Command{

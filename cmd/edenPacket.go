@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"reflect"
-
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -18,13 +16,10 @@ func newPacketCmd(configName, verbosity *string) *cobra.Command {
 		Use:   "packet",
 		Short: `Manage VMs in Equinix Metal Platform`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			var err error
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
+			err := preRunViperLoadFunction(cfg, configName, verbosity)(cmd, args)
 			if err != nil {
 				return err
 			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
 
 			if cfg != nil {
 				packetKey = cfg.Packet.Key

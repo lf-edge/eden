@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
@@ -14,18 +13,10 @@ import (
 func newStatusCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var statusCmd = &cobra.Command{
-		Use:   "status",
-		Short: "status of harness",
-		Long:  `Status of harness.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "status",
+		Short:             "status of harness",
+		Long:              `Status of harness.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.Status(cfg); err != nil {
 				log.Fatal(err)

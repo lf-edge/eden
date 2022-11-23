@@ -4,7 +4,10 @@
 package cmd
 
 import (
+	"reflect"
+
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -60,6 +63,18 @@ func NewEdenCommand() *cobra.Command {
 	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", log.InfoLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
 
 	return rootCmd
+}
+
+func preRunViperLoadFunction(cfg *openevec.EdenSetupArgs, configName, verbosity *string) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		viperCfg, err := openevec.FromViper(*configName, *verbosity)
+		if err != nil {
+			return err
+		}
+		openevec.Merge(reflect.ValueOf(viperCfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
+		*cfg = *viperCfg
+		return nil
+	}
 }
 
 // Execute primary function for cobra

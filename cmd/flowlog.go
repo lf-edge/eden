@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"reflect"
-
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
@@ -18,15 +16,7 @@ func newNetStatCmd(configName, verbosity *string) *cobra.Command {
 		Short: "Get logs of network packets from a running EVE device",
 		Long: `Scans the ADAM flow messages for correspondence with regular expressions to show network flow statistics
 (TCP and UDP flows with IP addresses, port numbers, counters, whether dropped or accepted)`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.EdenStat(cfg, outputFormat, args); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)

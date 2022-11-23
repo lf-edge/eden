@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"reflect"
-
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -20,16 +18,8 @@ var (
 func newPodCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var podCmd = &cobra.Command{
-		Use: "pod",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "pod",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	groups := CommandGroups{

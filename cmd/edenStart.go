@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -15,18 +14,10 @@ import (
 func newStartCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var startCmd = &cobra.Command{
-		Use:   "start",
-		Short: "start harness",
-		Long:  `Start harness.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "start",
+		Short:             "start harness",
+		Long:              `Start harness.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.StartEden(cfg, cfg.Registry.Dist, cfg.Runtime.VmName, cfg.Eve.TapInterface); err != nil {
 				log.Fatalf("Start eden failed: %s", err)

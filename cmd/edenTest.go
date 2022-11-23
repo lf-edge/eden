@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
@@ -27,16 +26,8 @@ test <test_dir> -o
 test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 
 `,
-		Args: cobra.MaximumNArgs(1),
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Args:              cobra.MaximumNArgs(1),
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			if len(args) != 0 {

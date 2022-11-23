@@ -3,31 +3,21 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/spf13/cobra"
 )
 
 func newStopCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var stopCmd = &cobra.Command{
-		Use:   "stop",
-		Short: "stop harness",
-		Long:  `Stop harness.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "stop",
+		Short:             "stop harness",
+		Long:              `Stop harness.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			eden.StopEden(
 				cfg.Runtime.AdamRm, cfg.Runtime.RedisRm,

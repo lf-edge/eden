@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"reflect"
-
-	"github.com/lf-edge/eden/pkg/eden"
-	"github.com/lf-edge/eden/pkg/openevec"
 
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -15,16 +13,8 @@ import (
 func newRegistryCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var registryCmd = &cobra.Command{
-		Use: "registry",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "registry",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	groups := CommandGroups{

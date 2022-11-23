@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -16,18 +15,10 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 
 	var setupCmd = &cobra.Command{
-		Use:   "setup",
-		Short: "setup harness",
-		Long:  `Setup harness.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "setup",
+		Short:             "setup harness",
+		Long:              `Setup harness.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.SetupEden(*configName, *cfg); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)

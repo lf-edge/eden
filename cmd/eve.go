@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 
-	"github.com/lf-edge/eden/pkg/openevec"
-
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -18,16 +16,8 @@ import (
 func newEveCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var eveCmd = &cobra.Command{
-		Use: "eve",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			*cfg = *viper_cfg
-			return nil
-		},
+		Use:               "eve",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 	groups := CommandGroups{
 		{

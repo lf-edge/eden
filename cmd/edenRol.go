@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
@@ -12,17 +11,9 @@ import (
 func newRolCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var rolCmd = &cobra.Command{
-		Use:   "rol",
-		Short: `Manage devices in Rack Of Labs`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "rol",
+		Short:             `Manage devices in Rack Of Labs`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	rolCmd.AddCommand(newRolRentCmd(cfg))

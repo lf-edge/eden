@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 
 	"github.com/lf-edge/eden/pkg/openevec"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -17,18 +16,10 @@ func newUtilsCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 
 	var utilsCmd = &cobra.Command{
-		Use:   "utils",
-		Short: "Eden utilities",
-		Long:  `Additional utilities for EDEN.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "utils",
+		Short:             "Eden utilities",
+		Long:              `Additional utilities for EDEN.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	groups := CommandGroups{

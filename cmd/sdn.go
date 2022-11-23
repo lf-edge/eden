@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -20,17 +19,9 @@ var (
 func newSdnCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var sdnCmd = &cobra.Command{
-		Use:   "sdn",
-		Short: "Emulate and manage networks surrounding EVE VM using Eden-SDN",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		Use:               "sdn",
+		Short:             "Emulate and manage networks surrounding EVE VM using Eden-SDN",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	groups := CommandGroups{

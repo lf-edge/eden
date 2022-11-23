@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"reflect"
-
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
@@ -18,15 +16,7 @@ func newMetricCmd(configName, verbosity *string) *cobra.Command {
 		Short: "Get metrics from a running EVE device",
 		Long: `
 Scans the ADAM metrics for correspondence with regular expressions requests to json fields.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			viper_cfg, err := openevec.FromViper(*configName, *verbosity)
-			if err != nil {
-				return err
-			}
-			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
-			return nil
-		},
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO: Add ouputFormat to the func
 			if err := openevec.EdenMetric(cfg, outputFormat, args); err != nil {
