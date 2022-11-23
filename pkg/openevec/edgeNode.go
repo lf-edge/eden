@@ -59,7 +59,7 @@ func EdgeNodeShutdown(controllerMode string) error {
 }
 
 func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode string,
-	baseOSImageActivate, baseOSVDrive bool, qemuPorts map[string]string) error {
+	baseOSImageActivate, baseOSVDrive bool) error {
 
 	var opts []expect.ExpectationOption
 	changer, err := changerByControllerMode(controllerMode)
@@ -79,18 +79,16 @@ func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode
 	}
 	opts = append(opts, expect.WithRegistry(registryToUse))
 	expectation := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "", opts...)
-	if len(qemuPorts) == 0 {
-		qemuPorts = nil
-	}
 	if baseOSVDrive {
 		baseOSImageConfig := expectation.BaseOSConfig(baseOSVersion)
 		dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
 	}
 
 	baseOS := expectation.BaseOS(baseOSVersion)
-	dev.SetBaseOSActivate(true)
+	dev.SetBaseOSActivate(baseOSImageActivate)
 	dev.SetBaseOSContentTree(baseOS.ContentTreeUuid)
 	dev.SetBaseOSRetryCounter(0)
+	dev.SetBaseOSVersion(baseOS.BaseOsVersion)
 
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 		return fmt.Errorf("setControllerAndDev: %s", err)

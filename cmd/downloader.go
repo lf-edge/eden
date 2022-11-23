@@ -41,6 +41,9 @@ func newDownloadEVERootFSCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "download eve rootfs image from docker",
 		Long:  `Download eve rootfs image from docker.`,
 		Run: func(cmd *cobra.Command, args []string) {
+			if outputDir == "" {
+				outputDir = filepath.Dir(cfg.Eve.ImageFile)
+			}
 			model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 			if err != nil {
 				log.Fatalf("GetDevModelByName: %s", err)
@@ -55,14 +58,11 @@ func newDownloadEVERootFSCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 				Format:      format,
 				ImageSizeMB: cfg.Eve.ImageSizeMB,
 			}
-			if err := utils.DownloadEveLive(eveDesc, eveImageFile); err != nil {
+			image, err := utils.DownloadEveRootFS(eveDesc, outputDir)
+			if err != nil {
 				log.Fatal(err)
 			}
-			if err := utils.DownloadUEFI(eveDesc, filepath.Dir(eveImageFile)); err != nil {
-				log.Fatal(err)
-			}
-			log.Infof(model.DiskReadyMessage(), eveImageFile)
-			fmt.Println(eveImageFile)
+			fmt.Println(image)
 		},
 	}
 

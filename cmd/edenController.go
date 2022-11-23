@@ -29,7 +29,7 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 			Commands: []*cobra.Command{
 				newEdgeNodeReboot(controllerMode),
 				newEdgeNodeShutdown(controllerMode),
-				newEdgeNodeEVEImageUpdate(controllerMode, cfg.Eve.HostFwd),
+				newEdgeNodeEVEImageUpdate(controllerMode, cfg),
 				newEdgeNodeEVEImageRemove(controllerMode, cfg),
 				newEdgeNodeEVEImageUpdateRetry(controllerMode),
 				newEdgeNodeUpdate(controllerMode),
@@ -96,7 +96,7 @@ func newEdgeNodeShutdown(controllerMode string) *cobra.Command {
 	return edgeNodeShutdown
 }
 
-func newEdgeNodeEVEImageUpdate(controllerMode string, qemuPorts map[string]string) *cobra.Command {
+func newEdgeNodeEVEImageUpdate(controllerMode string, cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var baseOSVersion, registry string
 	var baseOSImageActivate, baseOSVDrive bool
 
@@ -107,7 +107,7 @@ func newEdgeNodeEVEImageUpdate(controllerMode string, qemuPorts map[string]strin
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			baseOSImage := args[0]
-			if err := openevec.EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode, baseOSImageActivate, baseOSVDrive, qemuPorts); err != nil {
+			if err := openevec.EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode, baseOSImageActivate, baseOSVDrive); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -116,7 +116,7 @@ func newEdgeNodeEVEImageUpdate(controllerMode string, qemuPorts map[string]strin
 	edgeNodeEVEImageUpdate.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
 	edgeNodeEVEImageUpdate.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	edgeNodeEVEImageUpdate.Flags().BoolVarP(&baseOSImageActivate, "activate", "", true, "activate image")
-	edgeNodeEVEImageUpdate.Flags().BoolVar(&baseOSVDrive, "drive", false, "provide drive to baseOS")
+	edgeNodeEVEImageUpdate.Flags().BoolVar(&baseOSVDrive, "drive", true, "provide drive to baseOS")
 
 	return edgeNodeEVEImageUpdate
 }
