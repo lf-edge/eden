@@ -20,7 +20,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Clean harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
+			configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", *configName, defaults.DefaultConfigSaved))
 			if err := openevec.EdenClean(*cfg, configSaved, *configName); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)
 			}
