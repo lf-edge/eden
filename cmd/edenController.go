@@ -41,9 +41,12 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 				newEdgeNodeShutdown(controllerMode),
 				newEdgeNodeEVEImageUpdate(controllerMode, cfg.Eve.HostFwd),
 				newEdgeNodeEVEImageRemove(controllerMode, cfg),
+				newEdgeNodeEVEImageUpdateRetry(controllerMode),
 				newEdgeNodeUpdate(controllerMode),
 				newEdgeNodeGetConfig(controllerMode),
 				newEdgeNodeSetConfig(),
+				newEdgeNodeGetOptions(controllerMode),
+				newEdgeNodeSetOptions(controllerMode),
 			},
 		},
 	}
@@ -51,6 +54,9 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 	groups.AddTo(edgeNode)
 
 	controllerCmd.AddCommand(edgeNode)
+
+	controllerCmd.AddCommand(newControllerGetOptions())
+	controllerCmd.AddCommand(newControllerSetOptions())
 
 	controllerCmd.PersistentFlags().StringVarP(&controllerMode, "mode", "m", "", "mode to use [file|proto|adam|zedcloud]://<URL> (default is adam)")
 
