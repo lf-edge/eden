@@ -7,7 +7,6 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/linuxkit"
 	"github.com/lf-edge/eden/pkg/openevec"
-	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -278,35 +277,21 @@ func newGcpAddFirewallRule(gcpKey, gcpProjectName *string) *cobra.Command {
 }
 
 func newGcpCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var gcpProjectName, gcpKey string
+	var gcpProjectName string
 
 	var gcpCmd = &cobra.Command{
 		Use:   "gcp",
 		Short: `Manage images and VMs in Google Cloud Platform`,
 		Long:  `Manage images and VMs in Google Cloud Platform (you need to provide a key, set it in config in gcp.key or use a gcloud login)`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// gcpKey = cfg.Gcp.Key
-
-			if gcpKey == "" {
-				context, err := utils.ContextLoad()
-				if err != nil { //we have no current context
-					log.Warn(`You didn't specify the '--key' argument. Something might break`)
-				} else {
-					log.Warnf(`You didn't specify the '--key' argument, or set it wia 'eden config set %s --key gcp.key --value YOUR_PATH_TO_KEY'. Something might break`, context.Current)
-				}
-			}
-
-			return nil
-		},
 	}
 
 	groups := CommandGroups{
 		{
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
-				newGcpImageCmd(cfg, &gcpKey, &gcpProjectName),
-				newGcpVMCmd(cfg, &gcpKey, &gcpProjectName),
-				newGcpAddFirewallRule(&gcpKey, &gcpProjectName),
+				newGcpImageCmd(cfg, &cfg.Gcp.Key, &gcpProjectName),
+				newGcpVMCmd(cfg, &cfg.Gcp.Key, &gcpProjectName),
+				newGcpAddFirewallRule(&cfg.Gcp.Key, &gcpProjectName),
 			},
 		},
 	}
@@ -314,7 +299,7 @@ func newGcpCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	groups.AddTo(gcpCmd)
 
 	gcpCmd.PersistentFlags().StringVarP(&gcpProjectName, "project", "p", defaults.DefaultGcpProjectName, "project name on gcp")
-	gcpCmd.PersistentFlags().StringVarP(&gcpKey, "key", "k", "", "gcp key file")
+	gcpCmd.PersistentFlags().StringVarP(&cfg.Gcp.Key, "key", "k", "", "gcp key file")
 
 	return gcpCmd
 }

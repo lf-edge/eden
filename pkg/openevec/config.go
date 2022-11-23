@@ -205,11 +205,11 @@ type RuntimeConfig struct {
 }
 
 type PacketConfig struct {
-	Key string `mapstructure:"key"`
+	Key string `mapstructure:"key" cobraflag:"key"`
 }
 
 type GcpConfig struct {
-	Key string `mapstructure:"key"`
+	Key string `mapstructure:"key" cobraflag:"key"`
 }
 
 type SdnConfig struct {

@@ -3,43 +3,22 @@ package cmd
 import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
-	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 func newPacketCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
-	var packetProjectName, packetKey string
+	var packetProjectName string
 
 	var packetCmd = &cobra.Command{
 		Use:   "packet",
 		Short: `Manage VMs in Equinix Metal Platform`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			err := preRunViperLoadFunction(cfg, configName, verbosity)(cmd, args)
-			if err != nil {
-				return err
-			}
-
-			if cfg != nil {
-				packetKey = cfg.Packet.Key
-			}
-
-			if packetKey == "" {
-				context, err := utils.ContextLoad()
-				if err != nil { //we have no current context
-					log.Warn(`You didn't specify the '--key' argument. Something might break`)
-				} else {
-					log.Warnf(`You didn't specify the '--key' argument, or set it wia 'eden config set %s --key packet.key --value YOUR_PATH_TO_KEY'. Something might break`, context.Current)
-				}
-			}
-			return nil
-		},
 	}
 
-	packetCmd.AddCommand(newPacketVMCmd(cfg, &packetKey, &packetProjectName))
+	packetCmd.AddCommand(newPacketVMCmd(cfg, &cfg.Packet.Key, &packetProjectName))
 
-	packetCmd.PersistentFlags().StringVarP(&packetKey, "key", "k", "", "packet key file")
+	packetCmd.PersistentFlags().StringVarP(&cfg.Packet.Key, "key", "k", "", "packet key file")
 	packetCmd.PersistentFlags().StringVarP(&packetProjectName, "project", "p", defaults.DefaultPacketProjectName, "project name on packet")
 
 	return packetCmd
