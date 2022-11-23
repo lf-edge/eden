@@ -97,10 +97,10 @@ func newNetworkCreateCmd() *cobra.Command {
 		Short: "Create network instance in EVE",
 		Args:  cobra.RangeArgs(0, 1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 1 {
-				log.Fatal("You must define subnet as first arg for local network")
+			subnet := ""
+			if len(args) == 1 {
+				subnet = args[0]
 			}
-			subnet := args[0]
 			if err := openevec.NetworkCreate(subnet, networkType, networkName, uplinkAdapter, staticDNSEntries); err != nil {
 				log.Fatal(err)
 			}

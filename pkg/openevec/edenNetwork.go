@@ -95,7 +95,10 @@ func NetworkNetstat(niName string, outputFormat types.OutputFormat, outputTail u
 
 func NetworkCreate(subnet, networkType, networkName, uplinkAdapter string, staticDNSEntries []string) error {
 	if networkType != "local" && networkType != "switch" {
-		return fmt.Errorf("Network type %s not supported now", networkType)
+		return fmt.Errorf("network type %s not supported now", networkType)
+	}
+	if networkType == "local" && subnet == "" {
+		return fmt.Errorf("you must define subnet as first arg for local network")
 	}
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
