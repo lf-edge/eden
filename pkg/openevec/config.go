@@ -2,7 +2,6 @@ package openevec
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -287,13 +286,14 @@ func FromViper(configName, verbosity string) (*EdenSetupArgs, error) {
 		return nil, err
 	}
 
-	if err := setUpLogs(os.Stdout, verbosity); err != nil {
+	if err := SetUpLogs(verbosity); err != nil {
 		return nil, err
 	}
 	return cfg, nil
 }
-func setUpLogs(out io.Writer, level string) error {
-	log.SetOutput(out)
+
+func SetUpLogs(level string) error {
+	log.SetOutput(os.Stdout)
 	lvl, err := log.ParseLevel(level)
 	if err != nil {
 		return err

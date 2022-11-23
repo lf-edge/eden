@@ -17,6 +17,9 @@ func NewEdenCommand() *cobra.Command {
 
 	rootCmd := &cobra.Command{
 		Use: "eden",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return openevec.SetUpLogs(verbosity)
+		},
 	}
 
 	groups := CommandGroups{
