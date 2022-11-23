@@ -44,7 +44,7 @@ func newEveCmd(configName, verbosity *string) *cobra.Command {
 }
 
 func swtpmPidFile(cfg *openevec.EdenSetupArgs) string {
-	if cfg.Eve.GcpvTPM {
+	if cfg.Eve.TPM {
 		command := "swtpm"
 		return filepath.Join(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), command),
 			fmt.Sprintf("%s.pid", command))
@@ -177,6 +177,11 @@ func newConsoleEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "telnet into eve",
 		Long:  `Telnet into eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
+			// do we have any ideas how to provide defaults?
+			// ot should we set Host in config as well as an option
+			if cfg.Eve.Host == "" {
+				cfg.Eve.Host = defaults.DefaultEVEHost
+			}
 			if err := openevec.ConsoleEve(cfg); err != nil {
 				log.Fatal(err)
 			}

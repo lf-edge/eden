@@ -159,7 +159,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 		imageFormat = cfg.Eve.CustomInstaller.Format
 	}
 	// Start vTPM.
-	if cfg.Eve.GcpvTPM {
+	if cfg.Eve.TPM {
 		err = eden.StartSWTPM(filepath.Join(filepath.Dir(imageFile), "swtpm"))
 		if err != nil {
 			log.Errorf("cannot start swtpm: %s", err)
@@ -170,7 +170,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
 		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetdevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
-		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), cfg.Eve.TapInterface, usbImagePath, cfg.Eve.GcpvTPM, false); err != nil {
+		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), cfg.Eve.TapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err)
 	} else {
 		log.Infof("EVE is starting")
@@ -201,7 +201,7 @@ func StopEve(vmName string, cfg *EdenSetupArgs) error {
 		} else {
 			log.Infof("EVE is stopping")
 		}
-		if cfg.Eve.GcpvTPM {
+		if cfg.Eve.TPM {
 			err := eden.StopSWTPM(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "swtpm"))
 			if err != nil {
 				log.Errorf("cannot stop swtpm: %s", err)
@@ -319,11 +319,11 @@ func eveLastRequests() (string, error) {
 
 func ConsoleEve(cfg *EdenSetupArgs) error {
 	if cfg.Eve.Remote {
-		return fmt.Errorf("Cannot telnet to remote EVE")
+		return fmt.Errorf("cannot telnet to remote EVE")
 	}
 	log.Infof("Try to telnet %s:%d", cfg.Eve.Host, cfg.Eve.TelnetPort)
 	if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", cfg.Eve.Host, cfg.Eve.TelnetPort))...); err != nil {
-		return fmt.Errorf("telnet error: ", err)
+		return fmt.Errorf("telnet error: %s", err)
 	}
 	return nil
 }

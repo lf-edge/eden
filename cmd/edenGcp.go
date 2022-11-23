@@ -77,13 +77,12 @@ func newGcpImageListCmd(gcpKey, gcpProjectName *string) *cobra.Command {
 }
 func newGcpImageUploadCmd(cfg *openevec.EdenSetupArgs, gcpKey, gcpProjectName *string) *cobra.Command {
 	var gcpImageName, gcpBucketName string
-	var gcpvTPM bool
 
 	var gcpImageUpload = &cobra.Command{
 		Use:   "upload",
 		Short: "upload image to gcp",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := openevec.GcpImageUpload(*gcpKey, *gcpProjectName, gcpImageName, gcpBucketName, cfg.Eve.ImageFile, gcpvTPM)
+			err := openevec.GcpImageUpload(*gcpKey, *gcpProjectName, gcpImageName, gcpBucketName, cfg.Eve.ImageFile, cfg.Eve.TPM)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -93,7 +92,7 @@ func newGcpImageUploadCmd(cfg *openevec.EdenSetupArgs, gcpKey, gcpProjectName *s
 	gcpImageUpload.Flags().StringVar(&gcpImageName, "image-name", defaults.DefaultGcpImageName, "image name")
 	gcpImageUpload.Flags().StringVar(&cfg.Eve.ImageFile, "image-file", "", "image file to upload")
 	gcpImageUpload.Flags().StringVar(&gcpBucketName, "bucket-name", defaults.DefaultGcpBucketName, "bucket name to upload into")
-	gcpImageUpload.Flags().BoolVar(&gcpvTPM, "tpm", defaults.DefaultTPMEnabled, "enable UEFI to support vTPM for image")
+	gcpImageUpload.Flags().BoolVar(&cfg.Eve.TPM, "tpm", defaults.DefaultTPMEnabled, "enable UEFI to support vTPM for image")
 
 	return gcpImageUpload
 }
@@ -124,13 +123,12 @@ func newGcpVMCmd(cfg *openevec.EdenSetupArgs, gcpKey, gcpProjectName *string) *c
 
 func newGcpRunCmd(cfg *openevec.EdenSetupArgs, gcpKey, gcpProjectName *string) *cobra.Command {
 	var gcpVMName, gcpImageName, gcpZone, gcpMachineType string
-	var gcpvTPM bool
 
 	var gcpRun = &cobra.Command{
 		Use:   "run",
 		Short: "run vm in gcp",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := openevec.GcpRun(*gcpKey, *gcpProjectName, gcpImageName, gcpVMName, gcpZone, gcpMachineType, gcpvTPM, cfg.Eve.Disks, cfg.Eve.ImageSizeMB)
+			err := openevec.GcpRun(*gcpKey, *gcpProjectName, gcpImageName, gcpVMName, gcpZone, gcpMachineType, cfg.Eve.TPM, cfg.Eve.Disks, cfg.Eve.ImageSizeMB)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -141,7 +139,7 @@ func newGcpRunCmd(cfg *openevec.EdenSetupArgs, gcpKey, gcpProjectName *string) *
 	gcpRun.Flags().StringVar(&gcpVMName, "vm-name", defaults.DefaultGcpImageName, "vm name")
 	gcpRun.Flags().StringVar(&gcpZone, "zone", defaults.DefaultGcpZone, "gcp zone")
 	gcpRun.Flags().StringVar(&gcpMachineType, "machine-type", defaults.DefaultGcpMachineType, "gcp machine type")
-	gcpRun.Flags().BoolVar(&gcpvTPM, "tpm", defaults.DefaultTPMEnabled, "enable vTPM for VM")
+	gcpRun.Flags().BoolVar(&cfg.Eve.TPM, "tpm", defaults.DefaultTPMEnabled, "enable vTPM for VM")
 
 	return gcpRun
 }
