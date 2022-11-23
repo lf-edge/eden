@@ -24,7 +24,7 @@ type EserverConfig struct {
 }
 
 type ImagesConfig struct {
-	EserverImageDist string `mapstructure:"dist", cobraflag:"image-dist", resolvepath`
+	EserverImageDist string `mapstructure:"dist" cobraflag:"image-dist" resolvepath`
 }
 
 type EdenConfig struct {
@@ -213,20 +213,19 @@ type GcpConfig struct {
 }
 
 type SdnConfig struct {
-	ImageFile      string `mapstructure:"image-file", resolvepath`
-	SourceDir      string `mapstructure:"source-dir", resolvepath`
-	RAM            int    `mapstructure:"ram"`
-	CPU            int    `mapstructure:"cpu"`
-	ConfigDir      string `mapstructure:"config-dir", resolvepath`
-	LinuxkitBin    string `mapstructure:"linuxkit-bin", resolvepath`
-	NetModelFile   string `mapstructure:"network-model", resolvepath`
-	ConsoleLogFile string `mapstructure:"console-log", resolvepath`
-	Disable        bool   `mapstructure:"disable"`
-	TelnetPort     int    `mapstructure:"telnet-port"`
-	MgmtPort       int    `mapstructure:"mgmt-port"`
-	PidFile        string `mapstructure:"pid", resolvepath`
-	SSHPort        int    `mapstructure:"ssh-port"`
-	FwdFromEp      string
+	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file" resolvepath`
+	SourceDir      string `mapstructure:"source-dir" cobraflag:"sdn-source-dir" resolvepath`
+	RAM            int    `mapstructure:"ram" cobraflag:"sdn-ram"`
+	CPU            int    `mapstructure:"cpu" cobraflag:"sdn-cpu"`
+	ConfigDir      string `mapstructure:"config-dir" cobraflag:"sdn-config-dir" resolvepath`
+	LinuxkitBin    string `mapstructure:"linuxkit-bin" cobraflag:"sdn-linuxkit-bin" resolvepath`
+	NetModelFile   string `mapstructure:"network-model" cobraflag:"sdn-network-model" resolvepath`
+	ConsoleLogFile string `mapstructure:"console-log" cobraflag:"sdn-console-log" resolvepath`
+	Disable        bool   `mapstructure:"disable" cobraflag:"sdn-disable"`
+	TelnetPort     int    `mapstructure:"telnet-port" cobraflag:"sdn-telnet-port"`
+	MgmtPort       int    `mapstructure:"mgmt-port" cobraflag:"sdn-mgmt-port"`
+	PidFile        string `mapstructure:"pid" cobraflag:"sdn-pid" resolvepath`
+	SSHPort        int    `mapstructure:"ssh-port" cobraflag:"sdn-ssh-port"`
 }
 
 type EdenSetupArgs struct {
