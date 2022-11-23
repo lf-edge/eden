@@ -68,7 +68,6 @@ type ConfigVars struct {
 //InitVars loads vars from viper
 func InitVars() (*ConfigVars, error) {
 	loaded := true
-	fmt.Println(viper.ConfigFileUsed())
 	if viper.ConfigFileUsed() == "" {
 		configPath, err := DefaultConfigPath()
 		if err != nil {
