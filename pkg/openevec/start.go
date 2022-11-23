@@ -96,7 +96,7 @@ func StartEden(cfg *EdenSetupArgs, registryDist, vmName, tapInterface string) er
 	if err := StartRegistry(*cfg, registryDist); err != nil {
 		return fmt.Errorf("Cannot start registry %s", err)
 	} else {
-		log.Info("Registry is running and accesible on port %d", cfg.Registry.Port)
+		log.Infof("Registry is running and accesible on port %d", cfg.Registry.Port)
 	}
 
 	if err := StartEServer(*cfg); err != nil {
@@ -110,7 +110,7 @@ func StartEden(cfg *EdenSetupArgs, registryDist, vmName, tapInterface string) er
 	if err := StartEve(vmName, cfg); err != nil {
 		return fmt.Errorf("Cannot start eve %s", err)
 	} else {
-		log.Info("Registry is running and accesible on port %d", cfg.Registry.Port)
+		log.Infof("EVE is starting")
 	}
 	return nil
 }
