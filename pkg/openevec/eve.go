@@ -329,7 +329,7 @@ func ConsoleEve(cfg *EdenSetupArgs) error {
 }
 
 func SshEve(commandToRun string, cfg *EdenSetupArgs) error {
-	if _, err := os.Stat(cfg.Eve.SshKey); !os.IsNotExist(err) {
+	if _, err := os.Stat(cfg.Eden.SshKey); !os.IsNotExist(err) {
 		changer := &adamChanger{}
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {

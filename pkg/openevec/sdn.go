@@ -16,14 +16,23 @@ import (
 
 func SdnForwardSSHToEve(commandToRun string, cfg *EdenSetupArgs) error {
 	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
-		"-p FWD_PORT root@FWD_IP %s", cfg.Eve.SshKey, commandToRun)
+		"-p FWD_PORT root@FWD_IP %s", sdnSSSHKeyPrivate(cfg.Eden.SshKey), commandToRun)
 	return SdnForwardCmd("", "eth0", 22, "ssh", cfg, strings.Fields(arguments)...)
 }
 
 func SdnForwardSCPFromEve(remoteFilePath, localFilePath string, cfg *EdenSetupArgs) error {
 	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
-		"-P FWD_PORT root@FWD_IP:%s %s", cfg.Eve.SshKey, remoteFilePath, localFilePath)
+		"-P FWD_PORT root@FWD_IP:%s %s", sdnSSSHKeyPrivate(cfg.Eden.SshKey), remoteFilePath, localFilePath)
 	return SdnForwardCmd("", "eth0", 22, "scp", cfg, strings.Fields(arguments)...)
+}
+
+func sdnSSSHKeyPrivate(sshKeyPub string) string {
+	extension := filepath.Ext(sshKeyPub)
+	// we store the pub key in config
+	if extension == ".pub" {
+		return strings.TrimRight(sshKeyPub, extension)
+	}
+	return sshKeyPub
 }
 
 func sdnSSHKeyPath(sdnSourceDir string) string {

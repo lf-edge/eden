@@ -63,7 +63,7 @@ func newDebugStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "start",
 		Short: "start perf in EVE",
 		Run: func(cmd *cobra.Command, args []string) {
-			if _, err := os.Stat(cfg.Eve.SshKey); !os.IsNotExist(err) {
+			if _, err := os.Stat(cfg.Eden.SshKey); !os.IsNotExist(err) {
 				commandToRun := fmt.Sprintf("perf record %s -o %s", perfOptions, perfLocation)
 				commandToRun = fmt.Sprintf("sh -c 'nohup %s > /dev/null 2>&1 &'", commandToRun)
 				if err = openevec.SdnForwardSSHToEve(commandToRun, cfg); err != nil {

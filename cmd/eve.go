@@ -25,7 +25,7 @@ func newEveCmd(configName, verbosity *string) *cobra.Command {
 				return err
 			}
 			openevec.Merge(reflect.ValueOf(viper_cfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
-			cfg = viper_cfg
+			*cfg = *viper_cfg
 			return nil
 		},
 	}
@@ -220,7 +220,7 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		log.Fatal(err)
 	}
 
-	sshEveCmd.Flags().StringVarP(&cfg.Eve.SshKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
+	sshEveCmd.Flags().StringVarP(&cfg.Eden.SshKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	sshEveCmd.Flags().StringVarP(&cfg.Eve.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	sshEveCmd.Flags().IntVarP(&cfg.Eve.SshPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 

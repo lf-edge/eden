@@ -34,7 +34,7 @@ type EdenConfig struct {
 	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath`
 	Dist         string `mapstructure:"dist"`
 	Root         string `mapstructure:"root"`
-	SshKey       string `mapstructure:"ssh-key"`
+	SshKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key" resolvepath`
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
@@ -143,7 +143,6 @@ type EveConfig struct {
 	EthLoops       int
 	TapInterface   string
 	Host           string
-	SshKey         string
 	SshPort        int
 }
 
