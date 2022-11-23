@@ -369,7 +369,7 @@ func setupConfigDir(cfg EdenSetupArgs) {
 		}
 		if cfg.Runtime.ZedcontrolURL == "" {
 			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
-				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, cfg.Eve.GrubOptions, cfg.Adam.ApiV1); err != nil {
+				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, cfg.Runtime.GrubOptions, cfg.Adam.ApiV1); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")

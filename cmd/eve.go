@@ -81,14 +81,13 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	startEveCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, "qemu.conf"), "config file to use")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
-	startEveCmd.Flags().BoolVarP(&cfg.Eve.QemuForeground, "foreground", "", false, "run in foreground")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.NetdevSocketPort, "qemu-netdev-socket-port", "", defaults.DefaultQemuNetdevSocketPort, "Base port for socket-based ethernet interfaces used in QEMU")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
-	startEveCmd.Flags().StringVarP(&cfg.Eve.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
-	startEveCmd.Flags().IntVarP(&cfg.Eve.EthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
+	startEveCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startEveCmd.Flags().IntVarP(&cfg.Runtime.EthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
 
 	return startEveCmd
 }
@@ -177,18 +176,13 @@ func newConsoleEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "telnet into eve",
 		Long:  `Telnet into eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// do we have any ideas how to provide defaults?
-			// ot should we set Host in config as well as an option
-			if cfg.Eve.Host == "" {
-				cfg.Eve.Host = defaults.DefaultEVEHost
-			}
 			if err := openevec.ConsoleEve(cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
 
-	consoleEveCmd.Flags().StringVarP(&cfg.Eve.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
+	consoleEveCmd.Flags().StringVarP(&cfg.Runtime.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 
 	return consoleEveCmd
@@ -216,8 +210,8 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	}
 
 	sshEveCmd.Flags().StringVarP(&cfg.Eden.SshKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
-	sshEveCmd.Flags().StringVarP(&cfg.Eve.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
-	sshEveCmd.Flags().IntVarP(&cfg.Eve.SshPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
+	sshEveCmd.Flags().StringVarP(&cfg.Runtime.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
+	sshEveCmd.Flags().IntVarP(&cfg.Runtime.SshPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 
 	return sshEveCmd
 }

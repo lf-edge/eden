@@ -137,12 +137,6 @@ type EveConfig struct {
 	QemuUsbSerials int
 	QemuUsbTablets int
 	QemuSocketPath string
-	QemuForeground bool
-	GrubOptions    []string
-	EthLoops       int
-	TapInterface   string
-	Host           string
-	SshPort        int
 }
 
 type RegistryConfig struct {
@@ -204,6 +198,10 @@ type RuntimeConfig struct {
 	AppAdapters       []string `cobraflag:"adapters"`
 	AclOnlyHost       bool     `cobraflag:"only-host"`
 	StartDelay        uint32   `cobraflag:"start-delay"`
+	Host              string   `cobraflag:"eve-host"`
+	SshPort           int      `cobraflag:"eve-ssh-port"`
+	TapInterface      string   `cobraflag:"with-tap"`
+	EthLoops          int      `cobraflag:"with-eth-loops"`
 }
 
 type PacketConfig struct {
