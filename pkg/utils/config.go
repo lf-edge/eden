@@ -562,7 +562,7 @@ func generateConfigFileFromViperTemplate(filePath string, templateString string)
 	parseMap := func(inp string) interface{} {
 		result, err := json.Marshal(parse(inp))
 		if err != nil {
-			log.Fatal("cannot parse %s: %s", inp, err)
+			log.Fatalf("cannot parse %s: %s", inp, err)
 		}
 		return string(result)
 	}

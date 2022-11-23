@@ -153,9 +153,6 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		return fmt.Errorf("StartEVEQemu: OS not supported: %s", qemuOS)
 	}
 	qemuOptions += "-watchdog-action reset "
-	if qemuConfigFile != "" {
-		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
-	}
 
 	if isInstaller {
 		// Run EVE installer, then start EVE VM again but without the installer image.
@@ -172,7 +169,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	}
 
 	consoleOps := "-display none "
-	consoleOps += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d," +
+	consoleOps += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,"+
 		"host=localhost,server,nodelay,nowait,telnet,logappend=on,logfile=%s ",
 		eveTelnetPort, logFile)
 	qemuOptions = consoleOps + qemuOptions
@@ -181,6 +178,11 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	}
 	if usbImagePath != "" {
 		qemuOptions += fmt.Sprintf("-drive format=raw,file=%s ", usbImagePath)
+	}
+
+	// keep readconfig after -drive as we locate additional disks in qemuConfigFile
+	if qemuConfigFile != "" {
+		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
 
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)

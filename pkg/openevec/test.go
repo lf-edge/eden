@@ -95,19 +95,19 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	return &cv, nil
 }
 
-func Test(configFile, verbosity string, cfg *EdenSetupArgs, tstCfg *TestArgs) error {
+func Test(tstCfg *TestArgs) error {
 
 	switch {
 	case tstCfg.TestList != "":
-		tests.RunTest(tstCfg.TestProg, []string{"-test.list", tstCfg.TestList}, "", tstCfg.TestTimeout, tstCfg.FailScenario, configFile, verbosity)
+		tests.RunTest(tstCfg.TestProg, []string{"-test.list", tstCfg.TestList}, "", tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
 	case tstCfg.TestOpts:
-		tests.RunTest(tstCfg.TestProg, []string{"-h"}, "", tstCfg.TestTimeout, tstCfg.FailScenario, configFile, verbosity)
+		tests.RunTest(tstCfg.TestProg, []string{"-h"}, "", tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
 	case tstCfg.TestEscript != "":
-		tests.RunTest("eden.escript.test", []string{"-test.run", "TestEdenScripts/" + tstCfg.TestEscript}, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, configFile, verbosity)
+		tests.RunTest("eden.escript.test", []string{"-test.run", "TestEdenScripts/" + tstCfg.TestEscript}, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
 	case tstCfg.TestRun != "":
-		tests.RunTest(tstCfg.TestProg, []string{"-test.run", tstCfg.TestRun}, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, configFile, verbosity)
+		tests.RunTest(tstCfg.TestProg, []string{"-test.run", tstCfg.TestRun}, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
 	default:
-		tests.RunScenario(tstCfg.TestScenario, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, configFile, verbosity)
+		tests.RunScenario(tstCfg.TestScenario, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
 	}
 
 	if tstCfg.CurDir != "" {

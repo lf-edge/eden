@@ -108,7 +108,7 @@ type EveConfig struct {
 	HostFwd        map[string]string `mapstructure:"hostfwd" cobraflag:"eve-hostfwd"`
 	QemuFileToSave string            `mapstructure:"qemu-config" cobraflag:"qemu-config" resolvepath`
 	QemuCpus       int               `mapstructure:"cpu" cobraflag:"cpus"`
-	QemuMemory     int               `mapstructure:"ram" cobraflag:""memory`
+	QemuMemory     int               `mapstructure:"ram" cobraflag:"memory"`
 	ImageSizeMB    int               `mapstructure:"disk" cobraflag:"image-size"`
 	DevModel       string            `mapstructure:"devmodel" cobraflag:"devmodel"`
 	DevModelFile   string            `mapstructure:"devmodelfile"`

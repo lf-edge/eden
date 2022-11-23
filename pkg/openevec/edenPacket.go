@@ -15,7 +15,7 @@ func PacketRun(packetKey, packetProjectName, packetVMName, packetZone, packetMac
 		if cfg.ConfigName == defaults.DefaultContext {
 			configPrefix = ""
 		}
-		packetIPXEUrl = fmt.Sprintf("http://%s:%s/%s/ipxe.efi.cfg", cfg.Adam.CertsEVEIP, cfg.Eden.Eserver.Port, path.Join("eserver", configPrefix))
+		packetIPXEUrl = fmt.Sprintf("http://%s:%d/%s/ipxe.efi.cfg", cfg.Adam.CertsEVEIP, cfg.Eden.Eserver.Port, path.Join("eserver", configPrefix))
 		log.Debugf("ipxe-url is empty, will use default one: %s", packetIPXEUrl)
 	}
 

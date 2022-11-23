@@ -9,23 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	qemuFileToSave string
-	qemuCpus       int
-	qemuMemory     int
-	qemuFirmware   []string
-	qemuConfigPath string
-	eveImageFile   string
-	qemuDTBPath    string
-	hostFwd        map[string]string
-	qemuSocketPath string
-	qemuUsbSerials int
-	qemuUsbTablets int
-	contextFile    string
-	ssid           string
-	password       string
-)
-
 func newConfigCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var configCmd = &cobra.Command{

@@ -11,10 +11,6 @@ import (
 	"github.com/thediveo/enumflag"
 )
 
-var (
-	pc openevec.PodConfig
-)
-
 func newPodCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var podCmd = &cobra.Command{

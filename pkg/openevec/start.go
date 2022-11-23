@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/lf-edge/eden/pkg/eden"
-	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -30,14 +29,6 @@ func StartAdam(cfg EdenSetupArgs) error {
 }
 
 func stopAdam(configFile string) error {
-	viperLoaded, err := utils.LoadConfigFile(configFile)
-	if err != nil {
-		return fmt.Errorf("error reading config : %s", err.Error())
-	}
-	if !viperLoaded {
-		return fmt.Errorf("stopAdam: viper cannot be loaded")
-	}
-
 	adamRm := viper.GetBool("adam-rm")
 
 	if err := eden.StopAdam(adamRm); err != nil {
@@ -64,9 +55,8 @@ func StartRedis(cfg EdenSetupArgs) error {
 	}
 }
 
-func StartRegistry(cfg EdenSetupArgs, registryDist string) error {
-
-	if err := eden.StartRegistry(cfg.Registry.Port, cfg.Registry.Tag, registryDist); err != nil {
+func StartRegistry(cfg EdenSetupArgs) error {
+	if err := eden.StartRegistry(cfg.Registry.Port, cfg.Registry.Tag, cfg.Registry.Dist); err != nil {
 		log.Errorf("cannot start registry: %s", err)
 	} else {
 		log.Infof("registry is running and accesible on port %d", cfg.Registry.Port)
@@ -83,7 +73,7 @@ func StartEServer(cfg EdenSetupArgs) error {
 	}
 }
 
-func StartEden(cfg *EdenSetupArgs, registryDist, vmName, tapInterface string) error {
+func StartEden(cfg *EdenSetupArgs, vmName string) error {
 
 	if err := StartRedis(*cfg); err != nil {
 		return fmt.Errorf("Cannot start redis %s", err)
@@ -93,7 +83,7 @@ func StartEden(cfg *EdenSetupArgs, registryDist, vmName, tapInterface string) er
 		return fmt.Errorf("Cannot start adam %s", err)
 	}
 
-	if err := StartRegistry(*cfg, registryDist); err != nil {
+	if err := StartRegistry(*cfg); err != nil {
 		return fmt.Errorf("Cannot start registry %s", err)
 	} else {
 		log.Infof("Registry is running and accesible on port %d", cfg.Registry.Port)

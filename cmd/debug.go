@@ -12,13 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	perfOptions  string
-	perfLocation string
-	hwLocation   string
-	short        bool
-)
-
 func newDebugCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var debugCmd = &cobra.Command{
 		Use: "debug",
@@ -36,6 +29,7 @@ func newDebugCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 					eveSSHPort = 22
 				}
 			}
+		}
 	*/
 
 	groups := CommandGroups{

@@ -62,11 +62,13 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 			if tstCfg.TestScenario == "" && tstCfg.TestProg == "" && tstCfg.TestRun == "" {
 				return fmt.Errorf("Please set the --scenario option or environment variable eden.test-scenario in the EDEN configuration.")
 			}
+			tstCfg.ConfigFile = cfg.ConfigFile
+			tstCfg.Verbosity = *verbosity
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
-			if err := openevec.Test(cfg.ConfigFile, *verbosity, cfg, &tstCfg); err != nil {
+			if err := openevec.Test(&tstCfg); err != nil {
 				log.Fatal(err)
 			}
 		},

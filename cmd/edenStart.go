@@ -19,7 +19,7 @@ func newStartCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Start harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.StartEden(cfg, cfg.Registry.Dist, cfg.Runtime.VmName, cfg.Runtime.TapInterface); err != nil {
+			if err := openevec.StartEden(cfg, cfg.Runtime.VmName); err != nil {
 				log.Fatalf("Start eden failed: %s", err)
 			}
 		},

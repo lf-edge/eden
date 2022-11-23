@@ -266,7 +266,7 @@ func setupEve(cfg EdenSetupArgs) error {
 				}
 				re := regexp.MustCompile("# set url .*")
 				ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
-					[]byte(fmt.Sprintf("set url http://%s:%d/%s/", eServerIP, eServerPort, path.Join("eserver", configPrefix))))
+					[]byte(fmt.Sprintf("set url http://%s:%s/%s/", eServerIP, eServerPort, path.Join("eserver", configPrefix))))
 				if cfg.Runtime.Softserial != "" {
 					ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
 						"eve_soft_serial=${mac:hexhyp}",

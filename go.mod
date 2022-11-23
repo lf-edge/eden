@@ -19,7 +19,6 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/go-redis/redis/v9 v9.0.0-beta.1
-	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-containerregistry v0.10.0
 	github.com/google/uuid v1.3.0

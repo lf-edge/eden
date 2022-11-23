@@ -29,6 +29,3 @@ tests/workflow/workflow.large.txt
 eve-config-dir/*
 
 export
-
-# Vim swap files
-*.swp
