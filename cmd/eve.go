@@ -82,7 +82,7 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
-	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.NetdevSocketPort, "qemu-netdev-socket-port", "", defaults.DefaultQemuNetdevSocketPort, "Base port for socket-based ethernet interfaces used in QEMU")
+	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.NetDevSocketPort, "qemu-netdev-socket-port", "", defaults.DefaultQemuNetdevSocketPort, "Base port for socket-based ethernet interfaces used in QEMU")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
@@ -163,7 +163,7 @@ func newIpEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "ip of eve",
 		Long:  `Get IP of eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(openevec.GetEveIp("eth0", cfg))
+			fmt.Println(openevec.GetEveIP("eth0", cfg))
 		},
 	}
 
@@ -198,7 +198,7 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			if err := openevec.SshEve(commandToRun, cfg); err != nil {
+			if err := openevec.SSHEve(commandToRun, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -209,7 +209,7 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		log.Fatal(err)
 	}
 
-	sshEveCmd.Flags().StringVarP(&cfg.Eden.SshKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
+	sshEveCmd.Flags().StringVarP(&cfg.Eden.SSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
 	sshEveCmd.Flags().StringVarP(&cfg.Runtime.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	sshEveCmd.Flags().IntVarP(&cfg.Runtime.SshPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 
@@ -237,7 +237,7 @@ func newResetEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "Reset EVE to initial config",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.ResetEve(cfg.Eve.CertsUUID); err != nil {
-				log.Fatalf("Eve reset failed: %s", err)
+				log.Fatalf("EVE reset failed: %s", err)
 			}
 		},
 	}
@@ -251,7 +251,7 @@ func newEpochEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "Set new epoch of EVE",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.NewEpochEve(cfg.Runtime.EveConfigFromFile); err != nil {
-				log.Fatalf("Eve new epoch failed: %s", err)
+				log.Fatalf("EVE new epoch failed: %s", err)
 			}
 		},
 	}
@@ -312,7 +312,7 @@ func newLinkEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 				command = args[0]
 			}
 			if err := openevec.NewLinkEve(command, eveInterfaceName, cfg); err != nil {
-				log.Fatalf("Eve new link failed: %s", err)
+				log.Fatalf("EVE new link failed: %s", err)
 			}
 		},
 	}

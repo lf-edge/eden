@@ -33,7 +33,7 @@ func newSdnCmd(configName, verbosity *string) *cobra.Command {
 				newSdnStatusCmd(cfg),
 				newSdnSshCmd(cfg),
 				newSdnLogsCmd(cfg),
-				newSdnMgmtIpCmd(cfg),
+				newSdnMgmtIPCmd(cfg),
 				newSdnEndpointCmd(cfg),
 				newSdnFwdCmd(cfg),
 			},
@@ -175,7 +175,7 @@ func newSdnLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return sdnLogsCmd
 }
 
-func newSdnMgmtIpCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newSdnMgmtIPCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var sdnMgmtIpCmd = &cobra.Command{
 		Use:   "mgmt-ip",
 		Short: "Get IP address assigned to Eden-SDN VM for management",

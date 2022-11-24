@@ -35,11 +35,11 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	// TODO: NOT SURE WHICH dryRun
 	setupCmd.Flags().BoolVarP(&cfg.Runtime.DryRun, "dry-run", "", false, "")
 	setupCmd.Flags().StringVar(&cfg.Runtime.EveConfigDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
-	setupCmd.Flags().BoolVar(&cfg.Runtime.Netboot, "netboot", false, "Setup for use with network boot")
+	setupCmd.Flags().BoolVar(&cfg.Runtime.NetBoot, "netboot", false, "Setup for use with network boot")
 	setupCmd.Flags().BoolVar(&cfg.Runtime.Installer, "installer", false, "Setup for create installer")
-	setupCmd.Flags().StringVar(&cfg.Runtime.Softserial, "soft-serial", "", "Use provided serial instead of hardware one, please use chars and numbers here")
-	setupCmd.Flags().StringVar(&cfg.Runtime.ZedcontrolURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
-	setupCmd.Flags().StringVar(&cfg.Runtime.IpxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
+	setupCmd.Flags().StringVar(&cfg.Runtime.SoftSerial, "soft-serial", "", "Use provided serial instead of hardware one, please use chars and numbers here")
+	setupCmd.Flags().StringVar(&cfg.Runtime.ZedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
+	setupCmd.Flags().StringVar(&cfg.Runtime.IPXEOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
 	setupCmd.Flags().StringArrayVar(&cfg.Runtime.GrubOptions, "grub-options", []string{}, "append lines to grub options")
 
 	setupCmd.Flags().StringVarP(&cfg.Eden.CertsDir, "certs-dist", "o", cfg.Eden.CertsDir, "directory with certs")
@@ -66,11 +66,11 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	setupCmd.Flags().StringVarP(&cfg.Eve.QemuFileToSave, "qemu-config", "", cfg.Eve.QemuFileToSave, "file to save qemu config")
 	setupCmd.Flags().StringVarP(&cfg.Eve.HV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
 
-	setupCmd.Flags().StringVarP(&cfg.Eden.Images.EserverImageDist, "image-dist", "", cfg.Eden.Images.EserverImageDist, "image dist for eserver")
+	setupCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", cfg.Eden.Images.EServerImageDist, "image dist for eserver")
 	setupCmd.Flags().StringVarP(&cfg.Eden.BinDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")
 	// TODO: NOT SURE WHICH Force
 	setupCmd.Flags().BoolVarP(&cfg.Adam.Force, "force", "", cfg.Adam.Force, "force overwrite config file")
-	setupCmd.Flags().BoolVarP(&cfg.Adam.ApiV1, "api-v1", "", cfg.Adam.ApiV1, "use v1 api")
+	setupCmd.Flags().BoolVarP(&cfg.Adam.APIv1, "api-v1", "", cfg.Adam.APIv1, "use v1 api")
 
 	setupCmd.Flags().IntVar(&cfg.Eve.ImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
 

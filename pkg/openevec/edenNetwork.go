@@ -16,14 +16,14 @@ func NetworkLs() error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	state := eve.Init(ctrl, dev)
 	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
-		return fmt.Errorf("fail in get InfoLastCallback: %s", err)
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
 	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
-		return fmt.Errorf("fail in get MetricLastCallback: %s", err)
+		return fmt.Errorf("fail in get MetricLastCallback: %w", err)
 	}
 	if err := state.NetList(); err != nil {
 		return err
@@ -35,19 +35,19 @@ func NetworkDelete(niName string) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for id, el := range dev.GetNetworkInstances() {
 		ni, err := ctrl.GetNetworkInstanceConfig(el)
 		if err != nil {
-			return fmt.Errorf("no network in cloud %s: %s", el, err)
+			return fmt.Errorf("no network in cloud %s: %w", el, err)
 		}
 		if ni.Displayname == niName {
 			configs := dev.GetNetworkInstances()
 			utils.DelEleInSlice(&configs, id)
 			dev.SetNetworkInstanceConfig(configs)
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			log.Infof("network %s delete done", niName)
 			return nil
@@ -61,7 +61,7 @@ func NetworkNetstat(niName string, outputFormat types.OutputFormat, outputTail u
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetNetworkInstances() {
 		ni, err := ctrl.GetNetworkInstanceConfig(el)
@@ -69,21 +69,21 @@ func NetworkNetstat(niName string, outputFormat types.OutputFormat, outputTail u
 			return fmt.Errorf("no network in cloud %s: %s", el, err)
 		}
 		if ni.Displayname == niName {
-			//block for process FlowLog
+			// block for process FlowLog
 			fmt.Printf("netstat list for network %s:\n", ni.Uuidandversion.Uuid)
-			//process only existing elements
+			// process only existing elements
 			flowLogType := eflowlog.FlowLogExist
 
 			if outputTail > 0 {
-				//process only outputTail elements from end
+				// process only outputTail elements from end
 				flowLogType = eflowlog.FlowLogTail(outputTail)
 			}
 
-			//logsQ for filtering logs by app
+			// logsQ for filtering logs by app
 			logsQ := make(map[string]string)
 			logsQ["scope.netInstUUID"] = ni.Uuidandversion.Uuid
 			if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(outputFormat, false), flowLogType, 0); err != nil {
-				return fmt.Errorf("FlowLogChecker: %s", err)
+				return fmt.Errorf("FlowLogChecker: %w", err)
 			}
 			return nil
 		}
@@ -103,14 +103,12 @@ func NetworkCreate(subnet, networkType, networkName, uplinkAdapter string, stati
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	var opts []expect.ExpectationOption
 	opts = append(opts, expect.AddNetInstanceAndPortPublish(subnet, networkType, networkName, nil, uplinkAdapter))
 	opts = append(opts, expect.WithStaticDNSEntries(networkName, staticDNSEntries))
-	// TODO THIS THING IS NOT SET CHECK IT
-	podName := ""
-	expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, podName, opts...)
+	expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, "", opts...)
 	netInstancesConfigs := expectation.NetworkInstances()
 mainloop:
 	for _, el := range netInstancesConfigs {
@@ -124,7 +122,7 @@ mainloop:
 		log.Infof("deploy network %s with name %s request sent", el.Uuidandversion.Uuid, el.Displayname)
 	}
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-		return fmt.Errorf("setControllerAndDev: %s", err)
+		return fmt.Errorf("setControllerAndDev: %w", err)
 	}
 
 	return nil

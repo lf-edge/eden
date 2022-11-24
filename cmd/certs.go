@@ -17,7 +17,7 @@ func newCertsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "manage certs",
 		Long:  `Managed certificates for Adam and EVE.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Password, cfg.Runtime.GrubOptions, cfg.Adam.ApiV1); err != nil {
+			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Password, cfg.Runtime.GrubOptions, cfg.Adam.APIv1); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")

@@ -20,14 +20,14 @@ func VolumeLs() error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	state := eve.Init(ctrl, dev)
 	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
-		return fmt.Errorf("fail in get InfoLastCallback: %s", err)
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
 	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
-		return fmt.Errorf("fail in get InfoLastCallback: %s", err)
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
 	if err := state.VolumeList(); err != nil {
 		return err
@@ -39,14 +39,14 @@ func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastore
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	var opts []expect.ExpectationOption
 	diskSizeParsed, err := humanize.ParseBytes(diskSize)
 	if err != nil {
 		return err
 	}
-	//special case for blank volumes
+	// special case for blank volumes
 	if appLink == "blank" {
 		if diskSizeParsed == 0 {
 			return fmt.Errorf("cannot create blank volume with 0 size, please provide --disk-size")
@@ -56,7 +56,7 @@ func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastore
 			return err
 		}
 		if volumeName == "" {
-			//generate random name
+			// generate random name
 			rand.Seed(time.Now().UnixNano())
 			volumeName = namesgenerator.GetRandomName(0)
 		}
@@ -92,7 +92,7 @@ func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastore
 		log.Infof("create volume %s with %s request sent", volumeConfig.DisplayName, appLink)
 	}
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-		return fmt.Errorf("setControllerAndDev: %s", err)
+		return fmt.Errorf("setControllerAndDev: %w", err)
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func VolumeDelete(volumeName string) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for id, el := range dev.GetVolumes() {
 		volume, err := ctrl.GetVolume(el)
@@ -113,7 +113,7 @@ func VolumeDelete(volumeName string) error {
 			utils.DelEleInSlice(&configs, id)
 			dev.SetVolumeConfigs(configs)
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			log.Infof("volume %s delete done", volumeName)
 			return nil
@@ -127,7 +127,7 @@ func VolumeDetach(volumeName string) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetVolumes() {
 		volume, err := ctrl.GetVolume(el)
@@ -157,7 +157,7 @@ func VolumeDetach(volumeName string) error {
 				app.VolumeRefList = volumeRefs
 			}
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			return nil
 		}
@@ -170,7 +170,7 @@ func VolumeAttach(appName, volumeName, mountPoint string) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetVolumes() {
 		volume, err := ctrl.GetVolume(el)
@@ -192,7 +192,7 @@ func VolumeAttach(appName, volumeName, mountPoint string) error {
 					app.VolumeRefList = append(app.VolumeRefList, &config.VolumeRef{Uuid: volume.Uuid, MountDir: mountPoint})
 					log.Infof("Volume %s attached to %s, app will be purged", volumeName, app.Displayname)
 					if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-						return fmt.Errorf("setControllerAndDev: %s", err)
+						return fmt.Errorf("setControllerAndDev: %w", err)
 					}
 					return nil
 				}

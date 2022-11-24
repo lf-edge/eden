@@ -57,10 +57,10 @@ func SetupEden(configName string, cfg EdenSetupArgs) error {
 		return err
 	}
 
-	if cfg.Runtime.Netboot && cfg.Runtime.Installer {
+	if cfg.Runtime.NetBoot && cfg.Runtime.Installer {
 		return fmt.Errorf("please use netboot or installer flag, not both")
 	}
-	if cfg.Runtime.Netboot || cfg.Runtime.Installer {
+	if cfg.Runtime.NetBoot || cfg.Runtime.Installer {
 		if cfg.Eve.DevModel != defaults.DefaultGeneralModel {
 			return fmt.Errorf("cannot use netboot for devmodel %s, please use general instead", cfg.Eve.DevModel)
 		}
@@ -73,7 +73,7 @@ func SetupEden(configName string, cfg EdenSetupArgs) error {
 
 	if cfg.Eve.CustomInstaller.Path == "" {
 		if err := setupConfigDir(cfg); err != nil {
-			return fmt.Errorf("cannot setup ConfigDir: %s", err)
+			return fmt.Errorf("cannot setup ConfigDir: %w", err)
 		}
 	}
 
@@ -82,13 +82,13 @@ func SetupEden(configName string, cfg EdenSetupArgs) error {
 	}
 
 	if err := setupEdenScripts(cfg); err != nil {
-		return fmt.Errorf("failed to generate scripts: %s", err)
+		return fmt.Errorf("failed to generate scripts: %w", err)
 	}
 
 	// Build Eden-SDN VM image unless the SDN is disabled.
 	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		if err := setupSdn(cfg); err != nil {
-			return fmt.Errorf("cannot setup SDN: %s", err)
+			return fmt.Errorf("cannot setup Sdn: %w", err)
 		}
 	}
 
@@ -153,7 +153,7 @@ func setupQemuConfig(cfg EdenSetupArgs) error {
 func setupEve(cfg EdenSetupArgs) error {
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
-		return fmt.Errorf("GetDevModelByName: %s", err)
+		return fmt.Errorf("GetDevModelByName: %w", err)
 	}
 	imageFormat := model.DiskFormat()
 	eveDesc := utils.EVEDescription{
@@ -169,7 +169,7 @@ func setupEve(cfg EdenSetupArgs) error {
 		// With installer image already prepared, install only UEFI.
 		if imageFormat == "qcow2" {
 			if err := utils.DownloadUEFI(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
-				log.Errorf("cannot download UEFI: %v", err)
+				log.Errorf("cannot download UEFI: %s", err.Error())
 			} else {
 				log.Infof("download UEFI done")
 			}
@@ -179,13 +179,13 @@ func setupEve(cfg EdenSetupArgs) error {
 	if !cfg.Eden.Download {
 		if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
 			if err := eden.CloneFromGit(cfg.Eve.Dist, cfg.Eve.Repo, cfg.Eve.Tag); err != nil {
-				return fmt.Errorf("cannot clone EVE: %s", err)
+				return fmt.Errorf("cannot clone EVE: %w", err)
 			}
 			log.Info("clone EVE done")
 			builedImage := ""
 			builedAdditional := ""
 			if builedImage, builedAdditional, err = eden.MakeEveInRepo(eveDesc, cfg.Eve.Dist); err != nil {
-				return fmt.Errorf("cannot MakeEveInRepo: %s", err)
+				return fmt.Errorf("cannot MakeEveInRepo: %w", err)
 			}
 			log.Info("MakeEveInRepo done")
 			if err = utils.CopyFile(builedImage, cfg.Eve.ImageFile); err != nil {
@@ -210,17 +210,17 @@ func setupEve(cfg EdenSetupArgs) error {
 	if err != nil {
 		return err
 	}
-	if cfg.Runtime.Netboot {
+	if cfg.Runtime.NetBoot {
 		if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
-			return fmt.Errorf("cannot download EVE: %s", err)
+			return fmt.Errorf("cannot download EVE: %w", err)
 		}
-		if err := eden.StartEServer(cfg.Eden.Eserver.Port, cfg.Eden.Eserver.Images.EserverImageDist, cfg.Eden.Eserver.Force, cfg.Eden.Eserver.Tag); err != nil {
-			log.Errorf("cannot start eserver: %s", err)
+		if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.EServer.Images.EServerImageDist, cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag); err != nil {
+			log.Errorf("cannot start eserver: %s", err.Error())
 		} else {
-			log.Infof("Eserver is running and accessible on port %d", cfg.Eden.Eserver.Port)
+			log.Infof("Eserver is running and accessible on port %d", cfg.Eden.EServer.Port)
 		}
 		eServerIP := cfg.Adam.CertsEVEIP
-		eServerPort := strconv.Itoa(cfg.Eden.Eserver.Port)
+		eServerPort := strconv.Itoa(cfg.Eden.EServer.Port)
 		server := &eden.EServer{
 			EServerIP:   eServerIP,
 			EServerPort: eServerPort,
@@ -231,31 +231,31 @@ func setupEve(cfg EdenSetupArgs) error {
 			if err := os.Rename(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel"),
 				filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old")); err != nil {
 				// probably naming changed, give up
-				log.Warnf("Cannot rename kernel: %v", err)
+				log.Warnf("Cannot rename kernel: %s", err.Error())
 			} else {
 				r, err := os.Open(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old"))
 				if err != nil {
-					return fmt.Errorf("Open kernel.old: %v", err)
+					return fmt.Errorf("open kernel.old: %w", err)
 				}
 				uncompressedStream, err := gzip.NewReader(r)
 				if err != nil {
 					// in case of non-gz rename back
-					log.Errorf("gzip: NewReader failed: %v", err)
+					log.Errorf("gzip: NewReader failed: %s", err.Error())
 					if err := os.Rename(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old"),
 						filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel")); err != nil {
-						return fmt.Errorf("Cannot rename kernel: %v", err)
+						return fmt.Errorf("cannot rename kernel: %w", err)
 					}
 				} else {
 					defer uncompressedStream.Close()
 					out, err := os.Create(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel"))
 					if err != nil {
-						return fmt.Errorf("Cannot create file to save: %v", err)
+						return fmt.Errorf("cannot create file to save: %w", err)
 					}
 					if _, err := io.Copy(out, uncompressedStream); err != nil {
-						return fmt.Errorf("Cannot copy to decompressed file: %v", err)
+						return fmt.Errorf("cannot copy to decompressed file: %w", err)
 					}
 					if err := out.Close(); err != nil {
-						return fmt.Errorf("Cannot close file: %v", err)
+						return fmt.Errorf("cannot close file: %w", err)
 					}
 				}
 			}
@@ -269,24 +269,24 @@ func setupEve(cfg EdenSetupArgs) error {
 		for _, item := range items {
 			if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
 				if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(cfg.Eve.ImageFile), item.Name()), configPrefix); err != nil {
-					return fmt.Errorf("AddFileIntoEServer: %s", err)
+					return fmt.Errorf("AddFileIntoEServer: %w", err)
 				}
 			}
 		}
 		ipxeFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "ipxe.efi.cfg")
 		ipxeFileBytes, err := ioutil.ReadFile(ipxeFile)
 		if err != nil {
-			return fmt.Errorf("Cannot read ipxe file: %v", err)
+			return fmt.Errorf("cannot read ipxe file: %w", err)
 		}
 		re := regexp.MustCompile("# set url .*")
 		ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
 			[]byte(fmt.Sprintf("set url http://%s:%s/%s/", eServerIP, eServerPort, path.Join("eserver", configPrefix))))
-		if cfg.Runtime.Softserial != "" {
+		if cfg.Runtime.SoftSerial != "" {
 			ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
 				"eve_soft_serial=${mac:hexhyp}",
-				fmt.Sprintf("eve_soft_serial=%s", cfg.Runtime.Softserial)))
+				fmt.Sprintf("eve_soft_serial=%s", cfg.Runtime.SoftSerial)))
 		}
-		ipxeOverrideSlice := strings.Split(cfg.Runtime.IpxeOverride, "||")
+		ipxeOverrideSlice := strings.Split(cfg.Runtime.IPXEOverride, "||")
 		if len(ipxeOverrideSlice) > 1 {
 			fmt.Println(ipxeOverrideSlice)
 
@@ -303,7 +303,7 @@ func setupEve(cfg EdenSetupArgs) error {
 		_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
 		i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configPrefix)
 		if err != nil {
-			return fmt.Errorf("AddFileIntoEServer: %s", err)
+			return fmt.Errorf("AddFileIntoEServer: %w", err)
 		}
 		log.Infof("download EVE done: %s", imageTag)
 		log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
@@ -312,7 +312,7 @@ func setupEve(cfg EdenSetupArgs) error {
 	} else if cfg.Runtime.Installer {
 		if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
 			if err := utils.DownloadEveInstaller(eveDesc, cfg.Eve.ImageFile); err != nil {
-				return fmt.Errorf("cannot download EVE: %s", err)
+				return fmt.Errorf("cannot download EVE: %w", err)
 			}
 			log.Infof("download EVE done: %s", imageTag)
 			log.Infof(model.DiskReadyMessage(), cfg.Eve.ImageFile)
@@ -323,13 +323,13 @@ func setupEve(cfg EdenSetupArgs) error {
 	} else { // download EVE live image
 		if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
 			if err := utils.DownloadEveLive(eveDesc, cfg.Eve.ImageFile); err != nil {
-				return fmt.Errorf("cannot download EVE: %s", err)
+				return fmt.Errorf("cannot download EVE: %w", err)
 			}
 			log.Infof("download EVE done: %s", imageTag)
 			log.Infof(model.DiskReadyMessage(), cfg.Eve.ImageFile)
 			if imageFormat == "qcow2" {
 				if err := utils.DownloadUEFI(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
-					return fmt.Errorf("cannot download UEFI: %v", err)
+					return fmt.Errorf("cannot download UEFI: %w", err)
 				}
 				log.Infof("download UEFI done")
 			}
@@ -380,15 +380,15 @@ func setupConfigDir(cfg EdenSetupArgs) error {
 			wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(cfg.Eve.Ssid), 4096, 32, sha1.New)))
 			fmt.Println()
 		}
-		if cfg.Runtime.ZedcontrolURL == "" {
+		if cfg.Runtime.ZedControlURL == "" {
 			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
-				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, cfg.Runtime.GrubOptions, cfg.Adam.ApiV1); err != nil {
-				return fmt.Errorf("cannot GenerateEveCerts: %s", err)
+				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, cfg.Runtime.GrubOptions, cfg.Adam.APIv1); err != nil {
+				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
 			}
 			log.Info("GenerateEveCerts done")
 		} else {
 			if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK); err != nil {
-				return fmt.Errorf("cannot GenerateEveCerts: %s", err)
+				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
 			}
 			log.Info("GenerateEveCerts done")
 		}
@@ -396,42 +396,42 @@ func setupConfigDir(cfg EdenSetupArgs) error {
 		log.Info("GenerateEveCerts done")
 		log.Infof("Certs already exists in certs dir: %s", cfg.Eden.CertsDir)
 	}
-	if cfg.Runtime.ZedcontrolURL == "" {
+	if cfg.Runtime.ZedControlURL == "" {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsEVEIP,
-			cfg.Adam.Port, cfg.Adam.ApiV1, cfg.Runtime.Softserial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
+			cfg.Adam.Port, cfg.Adam.APIv1, cfg.Runtime.SoftSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
-			return fmt.Errorf("cannot GenerateEVEConfig: %s", err)
+			return fmt.Errorf("cannot GenerateEVEConfig: %w", err)
 		}
 		log.Info("GenerateEVEConfig done")
 	} else {
-		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Runtime.ZedcontrolURL, "", 0,
-			false, cfg.Runtime.Softserial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
+		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Runtime.ZedControlURL, "", 0,
+			false, cfg.Runtime.SoftSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
-			return fmt.Errorf("cannot GenerateEVEConfig: %s", err)
+			return fmt.Errorf("cannot GenerateEVEConfig: %w", err)
 		}
 		log.Info("GenerateEVEConfig done")
 	}
 	if _, err := os.Lstat(cfg.Runtime.ConfigDir); !os.IsNotExist(err) {
 		//put files from config folder to generated directory
 		if err := utils.CopyFolder(utils.ResolveAbsPath(cfg.Runtime.EveConfigDir), cfg.Eden.CertsDir); err != nil {
-			return fmt.Errorf("CopyFolder: %s", err)
+			return fmt.Errorf("CopyFolder: %w", err)
 		}
 	}
-	if cfg.Runtime.ZedcontrolURL != "" {
+	if cfg.Runtime.ZedControlURL != "" {
 		log.Printf("Please use %s as Onboarding Key", defaults.OnboardUUID)
-		if cfg.Runtime.Softserial != "" {
-			log.Printf("use %s as Serial Number", cfg.Runtime.Softserial)
+		if cfg.Runtime.SoftSerial != "" {
+			log.Printf("use %s as Serial Number", cfg.Runtime.SoftSerial)
 		}
-		log.Printf("To onboard EVE onto %s", cfg.Runtime.ZedcontrolURL)
+		log.Printf("To onboard EVE onto %s", cfg.Runtime.ZedControlURL)
 	}
 	return nil
 }
 
 func setupSdn(cfg EdenSetupArgs) error {
 	if err := os.MkdirAll(cfg.Sdn.ConfigDir, 0777); err != nil {
-		return fmt.Errorf("Failed to create directory for SDN config files: %v", err)
+		return fmt.Errorf("failed to create directory for SDN config files: %w", err)
 	}
-	// Get Eden-SDN version.
+	// Get Eden-Sdn version.
 	sdnVmSrcDir := filepath.Join(cfg.Sdn.SourceDir, "vm")
 	cmdArgs := []string{"pkg", "show-tag", sdnVmSrcDir}
 	output, err := exec.Command(cfg.Sdn.LinuxkitBin, cmdArgs...).Output()
@@ -460,7 +460,7 @@ func setupSdn(cfg EdenSetupArgs) error {
 		err := utils.RunCommandForegroundWithOpts(cfg.Sdn.LinuxkitBin, cmdArgs,
 			utils.SetCommandEnvVars(envVars))
 		if err != nil {
-			return fmt.Errorf("Failed to build eden-sdn container: %v", err)
+			return fmt.Errorf("failed to build eden-sdn container: %w", err)
 		}
 	}
 	// Build Eden-SDN VM qcow2 image.
@@ -468,7 +468,7 @@ func setupSdn(cfg EdenSetupArgs) error {
 	_ = os.MkdirAll(imageDir, 0777)
 	vmYmlIn, err := ioutil.ReadFile(filepath.Join(cfg.Sdn.SourceDir, "sdn-vm.yml.in"))
 	if err != nil {
-		return fmt.Errorf("Failed to read eden-sdn vm.yml.in: %v", err)
+		return fmt.Errorf("failed to read eden-sdn vm.yml.in: %w", err)
 	}
 	vmYml := strings.ReplaceAll(string(vmYmlIn), "SDN_TAG", sdnTag)
 	cmdArgs = []string{"build", "--arch", cfg.Eve.Arch, "--format", "qcow2-efi",
@@ -476,14 +476,14 @@ func setupSdn(cfg EdenSetupArgs) error {
 	err = utils.RunCommandForegroundWithOpts(cfg.Sdn.LinuxkitBin, cmdArgs,
 		utils.SetCommandStdin(vmYml), utils.SetCommandEnvVars(envVars))
 	if err != nil {
-		return fmt.Errorf("Failed to build eden-sdn VM image: %v", err)
+		return fmt.Errorf("failed to build eden-sdn VM image: %w", err)
 	}
 	// This image filename is given by linuxkit.
 	imageFilename := filepath.Join(imageDir, "sdn-efi.qcow2")
 	if imageFilename != cfg.Sdn.ImageFile {
 		err = os.Rename(imageFilename, cfg.Sdn.ImageFile)
 		if err != nil {
-			return fmt.Errorf("Failed to rename eden-sdn VM image to requested "+
+			return fmt.Errorf("failed to rename eden-sdn VM image to requested "+
 				"filepath %s: %v", cfg.Sdn.ImageFile, err)
 		}
 	}
@@ -498,35 +498,36 @@ func setupSdn(cfg EdenSetupArgs) error {
 		ImageSizeMB: cfg.Eve.ImageSizeMB,
 	}
 	if err := utils.DownloadUEFI(eveDesc, imageDir); err != nil {
-		return fmt.Errorf("cannot download UEFI (for SDN): %v", err)
+		return fmt.Errorf("cannot download UEFI (for SDN): %w", err)
 	}
 	log.Infof("download UEFI (for SDN) done")
 	return nil
 }
 
-func EdenClean(cfg EdenSetupArgs, configSaved, configName string) error {
+func EdenClean(cfg EdenSetupArgs, configName string) error {
+	configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 	if cfg.Runtime.CurrentContext {
 		log.Info("Cleanup current context")
 		// we need to delete information about EVE from adam
 		if err := StartRedis(cfg); err != nil {
-			log.Errorf("cannot start redis: %s", err)
+			log.Errorf("cannot start redis: %s", err.Error())
 		} else {
 			log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 		}
 		if err := StartAdam(cfg); err != nil {
-			log.Errorf("cannot start adam: %s", err)
+			log.Errorf("cannot start adam: %s", err.Error())
 		} else {
 			log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 		}
 		if err := eden.CleanContext(cfg.Eve.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile), cfg.Eve.Pid, cfg.Eve.CertsUUID,
 			cfg.Sdn.PidFile, cfg.Runtime.VmName, configSaved, cfg.Eve.Remote); err != nil {
-			return fmt.Errorf("cannot CleanContext: %s", err)
+			return fmt.Errorf("cannot CleanContext: %w", err)
 		}
 	} else {
 		if err := eden.CleanEden(cfg.Eve.Dist, cfg.Adam.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile),
-			cfg.Eden.Images.EserverImageDist, cfg.Redis.Dist, cfg.Registry.Dist, cfg.Runtime.ConfigDir, cfg.Eve.Pid,
+			cfg.Eden.Images.EServerImageDist, cfg.Redis.Dist, cfg.Registry.Dist, cfg.Runtime.ConfigDir, cfg.Eve.Pid,
 			cfg.Sdn.PidFile, configSaved, cfg.Eve.Remote, cfg.Eve.DevModel, cfg.Runtime.VmName); err != nil {
-			return fmt.Errorf("cannot CleanEden: %s", err)
+			return fmt.Errorf("cannot CleanEden: %w", err)
 		}
 	}
 	log.Infof("CleanEden done")
@@ -536,11 +537,11 @@ func EdenClean(cfg EdenSetupArgs, configSaved, configName string) error {
 func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %s", err)
+		return fmt.Errorf("CloudPrepare: %w", err)
 	}
 	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %s", err)
+		return fmt.Errorf("GetDeviceCurrent error: %w", err)
 	}
 	devUUID := devFirst.GetID()
 	q := make(map[string]string)
@@ -559,16 +560,16 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string
 	}
 	if cfg.Runtime.InfoTail > 0 {
 		if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoTail(cfg.Runtime.InfoTail), 0); err != nil {
-			return fmt.Errorf("InfoChecker: %s", err)
+			return fmt.Errorf("InfoChecker: %w", err)
 		}
 	} else {
 		if cfg.Runtime.Follow {
 			if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoNew, 0); err != nil {
-				return fmt.Errorf("InfoChecker: %s", err)
+				return fmt.Errorf("InfoChecker: %w", err)
 			}
 		} else {
 			if err = ctrl.InfoLastCallback(devUUID, q, handleInfo); err != nil {
-				return fmt.Errorf("InfoChecker: %s", err)
+				return fmt.Errorf("InfoChecker: %w", err)
 			}
 		}
 	}
@@ -578,11 +579,11 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string
 func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %s", err)
+		return fmt.Errorf("CloudPrepare: %w", err)
 	}
 	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %s", err)
+		return fmt.Errorf("GetDeviceCurrent error: %w", err)
 	}
 	devUUID := devFirst.GetID()
 
@@ -604,31 +605,31 @@ func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string)
 
 	if cfg.Runtime.LogTail > 0 {
 		if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogTail(cfg.Runtime.LogTail), 0); err != nil {
-			return fmt.Errorf("LogChecker: %s", err)
+			return fmt.Errorf("LogChecker: %w", err)
 		}
 	} else {
 		if cfg.Runtime.Follow {
 			// Monitoring of new files
 			if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogNew, 0); err != nil {
-				return fmt.Errorf("LogChecker: %s", err)
+				return fmt.Errorf("LogChecker: %w", err)
 			}
 		} else {
 			if err = ctrl.LogLastCallback(devUUID, q, handleFunc); err != nil {
-				return fmt.Errorf("LogChecker: %s", err)
+				return fmt.Errorf("LogChecker: %w", err)
 			}
 		}
 	}
 	return nil
 }
 
-func EdenStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
+func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %s", err)
+		return fmt.Errorf("CloudPrepare: %w", err)
 	}
 	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %s", err)
+		return fmt.Errorf("GetDeviceCurrent error: %w", err)
 	}
 	devUUID := devFirst.GetID()
 
@@ -650,17 +651,17 @@ func EdenStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string
 
 	if cfg.Runtime.LogTail > 0 {
 		if err = ctrl.FlowLogChecker(devUUID, q, handleFunc, eflowlog.FlowLogTail(cfg.Runtime.LogTail), 0); err != nil {
-			return fmt.Errorf("FlowLogChecker: %s", err)
+			return fmt.Errorf("FlowLogChecker: %w", err)
 		}
 	} else {
 		if cfg.Runtime.Follow {
 			// Monitoring of new files
 			if err = ctrl.FlowLogChecker(devUUID, q, handleFunc, eflowlog.FlowLogNew, 0); err != nil {
-				return fmt.Errorf("FlowLogChecker: %s", err)
+				return fmt.Errorf("FlowLogChecker: %w", err)
 			}
 		} else {
 			if err = ctrl.FlowLogLastCallback(devUUID, q, handleFunc); err != nil {
-				return fmt.Errorf("FlowLogLastCallback: %s", err)
+				return fmt.Errorf("FlowLogLastCallback: %w", err)
 			}
 		}
 	}
@@ -670,11 +671,11 @@ func EdenStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string
 func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %s", err)
+		return fmt.Errorf("CloudPrepare: %w", err)
 	}
 	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %s", err)
+		return fmt.Errorf("GetDeviceCurrent error: %w", err)
 	}
 	devUUID := devFirst.GetID()
 
@@ -696,17 +697,17 @@ func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []stri
 
 	if cfg.Runtime.MetricTail > 0 {
 		if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricTail(cfg.Runtime.MetricTail), 0); err != nil {
-			return fmt.Errorf("MetricChecker: %s", err)
+			return fmt.Errorf("MetricChecker: %w", err)
 		}
 	} else {
 		if cfg.Runtime.Follow {
 			// Monitoring of new files
 			if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricNew, 0); err != nil {
-				return fmt.Errorf("MetricChecker: %s", err)
+				return fmt.Errorf("MetricChecker: %w", err)
 			}
 		} else {
 			if err = ctrl.MetricLastCallback(devUUID, q, handleFunc); err != nil {
-				return fmt.Errorf("MetricChecker: %s", err)
+				return fmt.Errorf("MetricChecker: %w", err)
 			}
 		}
 	}
@@ -717,18 +718,18 @@ func EdenExport(tarFile string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	// we need to obtain information about EVE from Adam
 	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag); err != nil {
-		return fmt.Errorf("cannot start redis: %s", err)
+		return fmt.Errorf("cannot start redis: %w", err)
 	} else {
 		log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 	}
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.ApiV1); err != nil {
-		return fmt.Errorf("cannot start adam: %s", err)
+	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+		return fmt.Errorf("cannot start adam: %w", err)
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 	}
 	ctrl, err := changer.getController()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	dev, err := ctrl.GetDeviceCurrent()
 	if err == nil {
@@ -782,19 +783,19 @@ func EdenImport(tarFile string, rewriteRoot bool, cfg *EdenSetupArgs) error {
 			if cfg.Eden.Root != viper.GetString("eden.root") {
 				viper.Set("eve.root", cfg.Eden.Root)
 				if err = utils.GenerateConfigFileFromViper(); err != nil {
-					return fmt.Errorf("error writing config: %s", err)
+					return fmt.Errorf("error writing config: %w", err)
 				}
 			}
 		}
 	}
 	// we need to put information about EVE into Adam
 	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag); err != nil {
-		log.Errorf("cannot start redis: %s", err)
+		log.Errorf("cannot start redis: %s", err.Error())
 	} else {
 		log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 	}
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.ApiV1); err != nil {
-		log.Errorf("cannot start adam: %s", err)
+	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+		log.Errorf("cannot start adam: %s", err.Error())
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 	}
@@ -812,7 +813,7 @@ func EdenImport(tarFile string, rewriteRoot bool, cfg *EdenSetupArgs) error {
 			log.Warnf("No device cert %s, you device was not registered", ctrl.GetVars().EveDeviceCert)
 		} else {
 			if _, err := os.Stat(ctrl.GetVars().EveCert); os.IsNotExist(err) {
-				return fmt.Errorf("No onboard cert in %s, you need to run 'eden setup' first", ctrl.GetVars().EveCert)
+				return fmt.Errorf("no onboard cert in %s, you need to run 'eden setup' first", ctrl.GetVars().EveCert)
 			}
 			deviceCert, err := ioutil.ReadFile(ctrl.GetVars().EveDeviceCert)
 			if err != nil {

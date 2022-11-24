@@ -55,7 +55,7 @@ func newSdInfoEveCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			devicePath := args[0]
-			if err := openevec.SdInfoEve(devicePath, syslogOutput, eveReleaseOutput); err != nil {
+			if err := openevec.SDInfoEve(devicePath, syslogOutput, eveReleaseOutput); err != nil {
 				log.Fatal(err)
 			}
 		},

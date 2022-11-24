@@ -46,10 +46,10 @@ func newStartCmd(configName, verbosity *string) *cobra.Command {
 	startCmd.Flags().IntVarP(&cfg.Adam.Redis.Port, "redis-port", "", defaults.DefaultRedisPort, "redis dist to start")
 	startCmd.Flags().BoolVarP(&cfg.Adam.Redis.Force, "redis-force", "", cfg.Adam.Redis.Force, "redis force rebuild")
 
-	startCmd.Flags().StringVarP(&cfg.Eden.Eserver.Images.EserverImageDist, "image-dist", "", cfg.Eden.Eserver.Images.EserverImageDist, "image dist for eserver")
-	startCmd.Flags().IntVarP(&cfg.Eden.Eserver.Port, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
-	startCmd.Flags().StringVarP(&cfg.Eden.Eserver.Tag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
-	startCmd.Flags().BoolVarP(&cfg.Eden.Eserver.Force, "eserver-force", "", cfg.Eden.Eserver.Force, "eserver force rebuild")
+	startCmd.Flags().StringVarP(&cfg.Eden.EServer.Images.EServerImageDist, "image-dist", "", cfg.Eden.EServer.Images.EServerImageDist, "image dist for eserver")
+	startCmd.Flags().IntVarP(&cfg.Eden.EServer.Port, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
+	startCmd.Flags().StringVarP(&cfg.Eden.EServer.Tag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
+	startCmd.Flags().BoolVarP(&cfg.Eden.EServer.Force, "eserver-force", "", cfg.Eden.EServer.Force, "eserver force rebuild")
 
 	startCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "cpus count")
 	startCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "memory size (MB)")

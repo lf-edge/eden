@@ -30,7 +30,7 @@ func isEncodingNeeded(contextKeySet string) bool {
 func ReloadConfigDetails(cfg *EdenSetupArgs) error {
 	viperLoaded, err := utils.LoadConfigFile(cfg.ConfigFile)
 	if err != nil {
-		return fmt.Errorf("error reading config: %s", err)
+		return fmt.Errorf("error reading config: %w", err)
 	}
 	if viperLoaded {
 		cfg.Eve.QemuFirmware = viper.GetStringSlice("eve.firmware")
@@ -45,10 +45,10 @@ func ReloadConfigDetails(cfg *EdenSetupArgs) error {
 		if cfg.Eve.ModelFile != "" {
 			filePath, err := filepath.Abs(cfg.Eve.ModelFile)
 			if err != nil {
-				return fmt.Errorf("cannot get absolute path for devmodelfile (%s): %v", cfg.Eve.ModelFile, err)
+				return fmt.Errorf("cannot get absolute path for devmodelfile (%s): %w", cfg.Eve.ModelFile, err)
 			}
 			if _, err := os.Stat(filePath); err != nil {
-				return fmt.Errorf("cannot parse devmodelfile (%s): %v", cfg.Eve.ModelFile, err)
+				return fmt.Errorf("cannot parse devmodelfile (%s): %w", cfg.Eve.ModelFile, err)
 			}
 		}
 	}
@@ -60,12 +60,12 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 	if cfg.ConfigFile == "" {
 		cfg.ConfigFile, err = utils.DefaultConfigPath()
 		if err != nil {
-			return fmt.Errorf("fail in DefaultConfigPath: %s", err)
+			return fmt.Errorf("fail in DefaultConfigPath: %w", err)
 		}
 	}
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
-		return fmt.Errorf("GetDevModelByName: %s", err)
+		return fmt.Errorf("GetDevModelByName: %w", err)
 	}
 	if _, err := os.Stat(cfg.ConfigFile); !os.IsNotExist(err) {
 		if force {
@@ -78,15 +78,17 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 	}
 	if _, err = os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
 		if err = utils.GenerateConfigFile(cfg.ConfigFile); err != nil {
-			return fmt.Errorf("fail in generate yaml: %s", err.Error())
+			return fmt.Errorf("fail in generate yaml: %w", err)
 		}
 		log.Infof("Config file generated: %s", cfg.ConfigFile)
 	}
-	ReloadConfigDetails(cfg)
+	if err := ReloadConfigDetails(cfg); err != nil {
+		return err
+	}
 
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 	currentContextName := context.Current
 	if currentContext != "" {
@@ -97,13 +99,13 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 	cfg.ConfigFile = context.GetCurrentConfig()
 	if cfg.Runtime.ContextFile != "" {
 		if err := utils.CopyFile(cfg.Runtime.ContextFile, cfg.ConfigFile); err != nil {
-			return fmt.Errorf("Cannot copy file: %s", err)
+			return fmt.Errorf("cannot copy file: %w", err)
 		}
 		log.Infof("Context file generated: %s", cfg.Runtime.ContextFile)
 	} else {
 		if _, err := os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
 			if err = utils.GenerateConfigFileDiff(cfg.ConfigFile, context); err != nil {
-				return fmt.Errorf("error generate config: %s", err)
+				return fmt.Errorf("error generate config: %w", err)
 			}
 			log.Infof("Context file generated: %s", cfg.ConfigFile)
 		} else {
@@ -111,7 +113,9 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 		}
 	}
 	context.SetContext(context.Current)
-	ReloadConfigDetails(cfg)
+	if err := ReloadConfigDetails(cfg); err != nil {
+		return err
+	}
 
 	// we prepare viper config here from EdenSetupArgs
 	// to feed into GenerateConfigFileFromViper
@@ -136,7 +140,7 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 	}
 
 	if err = utils.GenerateConfigFileFromViper(); err != nil {
-		return fmt.Errorf("error writing config: %s", err)
+		return fmt.Errorf("error writing config: %w", err)
 	}
 	context.SetContext(currentContextName)
 
@@ -146,7 +150,7 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 func ConfigList() error {
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 	currentContext := context.Current
 	contexts := context.ListContexts()
@@ -163,7 +167,7 @@ func ConfigList() error {
 func ValidateConfigFromViper() error {
 	cfg := &EdenSetupArgs{}
 	if err := viper.Unmarshal(cfg); err != nil {
-		return fmt.Errorf("unable to decode into config struct, %v", err)
+		return fmt.Errorf("unable to decode into config struct, %w", err)
 	}
 	return nil
 }
@@ -183,15 +187,15 @@ func processConfigKeyValue(contextKeySet, contextValueSet string) (interface{}, 
 func ConfigSet(target, contextKeySet, contextValueSet string) error {
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 	oldContext := context.Current
 	if contextKeySet != "" {
-		defer context.SetContext(oldContext) //restore context after modifications
+		defer context.SetContext(oldContext) // restore context after modifications
 	}
 	objToStore, err := processConfigKeyValue(contextKeySet, contextValueSet)
 	if err != nil {
-		return fmt.Errorf("processConfigKeyValue error: %s", err)
+		return fmt.Errorf("processConfigKeyValue error: %w", err)
 	}
 	contexts := context.ListContexts()
 	for _, el := range contexts {
@@ -200,14 +204,14 @@ func ConfigSet(target, contextKeySet, contextValueSet string) error {
 			if contextKeySet != "" {
 				_, err := utils.LoadConfigFileContext(context.GetCurrentConfig())
 				if err != nil {
-					return fmt.Errorf("error reading config: %s", err.Error())
+					return fmt.Errorf("error reading config: %w", err)
 				}
 				viper.Set(contextKeySet, objToStore)
 				if err = ValidateConfigFromViper(); err != nil {
-					return fmt.Errorf("ValidateConfigFromViper: %s", err)
+					return fmt.Errorf("ValidateConfigFromViper: %w", err)
 				}
 				if err = utils.GenerateConfigFileFromViper(); err != nil {
-					return fmt.Errorf("error writing config: %s", err)
+					return fmt.Errorf("error writing config: %w", err)
 				}
 			}
 			log.Infof("Current context is: %s", el)
@@ -224,7 +228,7 @@ func ConfigEdit(target string) error {
 	}
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 
 	contextNameEdit := context.Current
@@ -247,10 +251,10 @@ func ConfigEdit(target string) error {
 func ConfigReset(target string) error {
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 	oldContext := context.Current
-	defer context.SetContext(oldContext) //restore context after modifications
+	defer context.SetContext(oldContext) // restore context after modifications
 
 	contextNameReset := context.Current
 	if target != "" {
@@ -261,11 +265,11 @@ func ConfigReset(target string) error {
 		if el == contextNameReset {
 			context.SetContext(el)
 			if err = os.Remove(context.GetCurrentConfig()); err != nil {
-				return fmt.Errorf("cannot delete old config file: %s", err)
+				return fmt.Errorf("cannot delete old config file: %w", err)
 			}
 			_, err := utils.LoadConfigFile(context.GetCurrentConfig())
 			if err != nil {
-				return fmt.Errorf("error reading config: %s", err.Error())
+				return fmt.Errorf("error reading config: %w", err)
 			}
 			return nil
 		}
@@ -276,10 +280,10 @@ func ConfigReset(target string) error {
 func ConfigGet(target string, contextKeyGet string, contextAllGet bool) error {
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 	oldContext := context.Current
-	defer context.SetContext(oldContext) //restore context after modifications
+	defer context.SetContext(oldContext) // restore context after modifications
 	if target != "" {
 		found := false
 		contexts := context.ListContexts()
@@ -295,13 +299,13 @@ func ConfigGet(target string, contextKeyGet string, contextAllGet bool) error {
 		}
 		_, err := utils.LoadConfigFile(context.GetCurrentConfig())
 		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
+			return fmt.Errorf("error reading config: %w", err)
 		}
 	}
-	if contextKeyGet == "" && !contextAllGet {
+	switch {
+	case contextKeyGet == "" && !contextAllGet:
 		fmt.Println(context.Current)
-	} else if contextKeyGet != "" {
-
+	case contextKeyGet != "":
 		item := viper.Get(contextKeyGet)
 		if isEncodingNeeded(contextKeyGet) {
 			result, err := json.Marshal(item)
@@ -312,7 +316,7 @@ func ConfigGet(target string, contextKeyGet string, contextAllGet bool) error {
 		} else {
 			fmt.Println(item)
 		}
-	} else if contextAllGet {
+	case contextAllGet:
 		if err = viper.WriteConfigAs(defaults.DefaultConfigHidden); err != nil {
 			return err
 		}
@@ -328,13 +332,13 @@ func ConfigGet(target string, contextKeyGet string, contextAllGet bool) error {
 func ConfigDelete(target string, cfg *EdenSetupArgs) error {
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 	currentContext := context.Current
 	log.Infof("currentContext %s", currentContext)
 	log.Infof("contextName %s", target)
 	if (target == "" || target == defaults.DefaultContext) && defaults.DefaultContext == currentContext {
-		return fmt.Errorf("Cannot delete default context. Use 'eden clean' instead.")
+		return fmt.Errorf("cannot delete default context. Use 'eden clean' instead")
 	}
 	if target == currentContext {
 		target = context.Current
@@ -343,7 +347,9 @@ func ConfigDelete(target string, cfg *EdenSetupArgs) error {
 	}
 	context.Current = target
 	configFile := context.GetCurrentConfig()
-	ReloadConfigDetails(cfg)
+	if err := ReloadConfigDetails(cfg); err != nil {
+		log.Infof("Failed to ReloadConfigDetails: %s", err.Error())
+	}
 	if _, err := os.Stat(cfg.Eve.QemuFileToSave); !os.IsNotExist(err) {
 		if err := os.Remove(cfg.Eve.QemuFileToSave); err == nil {
 			log.Infof("deleted qemu config %s", cfg.Eve.QemuFileToSave)
@@ -351,7 +357,7 @@ func ConfigDelete(target string, cfg *EdenSetupArgs) error {
 	}
 	log.Infof("currentContextFile %s", configFile)
 	if err := os.Remove(configFile); err != nil {
-		return fmt.Errorf("Cannot delete context %s: %s", target, err)
+		return fmt.Errorf("cannot delete context %s: %s", target, err)
 	}
 	return nil
 }

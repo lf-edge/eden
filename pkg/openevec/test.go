@@ -54,14 +54,14 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.AdamCachingPrefix = cfg.Adam.Caching.Prefix
 	cv.AdamCachingRedis = cfg.Adam.Caching.Redis
 
-	cv.SSHKey = cfg.Eden.SshKey
+	cv.SSHKey = cfg.Eden.SSHKey
 	cv.EdenBinDir = cfg.Eden.BinDir
 	cv.EdenProg = cfg.Eden.EdenBin
 	cv.TestProg = cfg.Eden.TestBin
 	cv.TestScenario = cfg.Eden.TestScenario
-	cv.EServerImageDist = cfg.Eden.Images.EserverImageDist
-	cv.EServerPort = strconv.Itoa(cfg.Eden.Eserver.Port)
-	cv.EServerIP = cfg.Eden.Eserver.Ip
+	cv.EServerImageDist = cfg.Eden.Images.EServerImageDist
+	cv.EServerPort = strconv.Itoa(cfg.Eden.EServer.Port)
+	cv.EServerIP = cfg.Eden.EServer.IP
 
 	cv.EveCert = cfg.Eve.Cert
 	cv.EveDeviceCert = cfg.Eve.DeviceCert
@@ -81,7 +81,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.EveQemuPorts = cfg.Eve.HostFwd
 	cv.LogLevel = cfg.Eve.LogLevel
 
-	cv.RegistryIP = cfg.Registry.Ip
+	cv.RegistryIP = cfg.Registry.IP
 	cv.RegistryPort = strconv.Itoa(cfg.Registry.Port)
 
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
@@ -89,7 +89,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	if err == nil {
 		cv.AdamRedisURLEden = fmt.Sprintf("redis://%s:%s@%s", string(pwd), string(pwd), cv.AdamRedisURLEden)
 	} else {
-		log.Errorf("cannot read redis password: %v", err)
+		log.Errorf("cannot read redis password: %s", err.Error())
 		cv.AdamRedisURLEden = fmt.Sprintf("redis://%s", cv.AdamRedisURLEden)
 	}
 	return &cv, nil

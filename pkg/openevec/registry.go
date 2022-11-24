@@ -12,22 +12,21 @@ import (
 func RegistryStart(cfg *RegistryConfig) error {
 	command, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("cannot obtain executable path: %s", err)
+		return fmt.Errorf("cannot obtain executable path: %w", err)
 	}
 	log.Infof("Executable path: %s", command)
 	if err := eden.StartRegistry(cfg.Port, cfg.Tag, cfg.Dist); err != nil {
-		return fmt.Errorf("cannot start registry: %s", err)
-	} else {
-		log.Infof("registry is running and accessible on port %d", cfg.Port)
+		return fmt.Errorf("cannot start registry: %w", err)
 	}
+	log.Infof("registry is running and accessible on port %d", cfg.Port)
 	return nil
 }
 
 func RegistryLoad(ref string, cfg *RegistryConfig) error {
-	registry := fmt.Sprintf("%s:%d", cfg.Ip, cfg.Port)
+	registry := fmt.Sprintf("%s:%d", cfg.IP, cfg.Port)
 	hash, err := utils.LoadRegistry(ref, registry)
 	if err != nil {
-		return fmt.Errorf("failed to load image %s: %v", ref, err)
+		return fmt.Errorf("failed to load image %s: %w", ref, err)
 	}
 	fmt.Printf("image %s loaded with manifest hash %s\n", ref, hash)
 	return nil

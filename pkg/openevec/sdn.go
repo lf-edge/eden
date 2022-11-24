@@ -16,13 +16,13 @@ import (
 
 func SdnForwardSSHToEve(commandToRun string, cfg *EdenSetupArgs) error {
 	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
-		"-p FWD_PORT root@FWD_IP %s", sdnSSSHKeyPrivate(cfg.Eden.SshKey), commandToRun)
+		"-p FWD_PORT root@FWD_IP %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), commandToRun)
 	return SdnForwardCmd("", "eth0", 22, "ssh", cfg, strings.Fields(arguments)...)
 }
 
 func SdnForwardSCPFromEve(remoteFilePath, localFilePath string, cfg *EdenSetupArgs) error {
 	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
-		"-P FWD_PORT root@FWD_IP:%s %s", sdnSSSHKeyPrivate(cfg.Eden.SshKey), remoteFilePath, localFilePath)
+		"-P FWD_PORT root@FWD_IP:%s %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), remoteFilePath, localFilePath)
 	return SdnForwardCmd("", "eth0", 22, "scp", cfg, strings.Fields(arguments)...)
 }
 
@@ -54,11 +54,11 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	const fwdIPLabel = "FWD_IP"
 	const fwdPortLabel = "FWD_PORT"
 
-	// Case 1: EVE is running remotely (on Raspberry Pi, GCP, etc.)
+	// Case 1: EVE is running remotely (on Raspberry Pi, Gcp, etc.)
 	if cfg.Eve.Remote {
 		// Get IP address used by the target EVE interface.
 		// (look at network info published by EVE)
-		ip := GetEveIp(eveIfName, cfg)
+		ip := GetEveIP(eveIfName, cfg)
 		if ip == "" {
 			return fmt.Errorf("failed to obtain IP address for EVE interface %s", eveIfName)
 		}
@@ -68,7 +68,7 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := utils.RunCommandForeground(cmd, args...)
 		if err != nil {
-			return fmt.Errorf("command %s failed: %v", cmd, err)
+			return fmt.Errorf("command %s failed: %w", cmd, err)
 		}
 		return nil
 	}
@@ -79,7 +79,7 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 			log.Warnf("Cannot execute command from an endpoint without SDN running, " +
 				"argument \"from-ep\" will be ignored")
 		}
-		// Network model is static and consists of two Eve interfaces.
+		// Network model is static and consists of two EVE interfaces.
 		if eveIfName != "eth0" && eveIfName != "eth1" {
 			return fmt.Errorf("unknown EVE interface: %s", eveIfName)
 		}
@@ -88,12 +88,12 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		for k, v := range cfg.Eve.HostFwd {
 			hostPort, err := strconv.Atoi(k)
 			if err != nil {
-				log.Errorf("failed to parse host port from eve.hostfwd: %v", err)
+				log.Errorf("failed to parse host port from eve.hostfwd: %s", err.Error())
 				continue
 			}
 			guestPort, err := strconv.Atoi(v)
 			if err != nil {
-				log.Errorf("failed to parse guest port from eve.hostfwd: %v", err)
+				log.Errorf("failed to parse guest port from eve.hostfwd: %s", err.Error())
 				continue
 			}
 			if eveIfName == "eth1" {
@@ -118,7 +118,7 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := utils.RunCommandForeground(cmd, args...)
 		if err != nil {
-			return fmt.Errorf("command %s failed: %v", cmd, err)
+			return fmt.Errorf("command %s failed: %w", cmd, err)
 		}
 		return nil
 	}
@@ -128,7 +128,7 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 
 	// Get IP address used by the target EVE interface.
 	// (look at the ARP tables inside SDN VM)
-	targetIP := GetEveIp(eveIfName, cfg)
+	targetIP := GetEveIP(eveIfName, cfg)
 	if targetIP == "" {
 		return fmt.Errorf("no IP address found to be assigned to EVE interface %s",
 			eveIfName)
@@ -147,7 +147,7 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 		}
 		err := client.RunCmdFromEndpoint(fromEp, cmd, args...)
 		if err != nil {
-			return fmt.Errorf("command %s %s run inside endpoint %s failed: %v",
+			return fmt.Errorf("command %s %s run inside endpoint %s failed: %w",
 				cmd, strings.Join(args, " "), fromEp, err)
 		}
 		return nil
@@ -155,11 +155,11 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	// Temporarily establish port forwarding using SSH.
 	localPort, err := utils.FindUnusedPort()
 	if err != nil {
-		return fmt.Errorf("failed to find unused port number: %v", err)
+		return fmt.Errorf("failed to find unused port number: %w", err)
 	}
 	closeTunnel, err := client.SSHPortForwarding(localPort, uint16(targetPort), targetIP)
 	if err != nil {
-		return fmt.Errorf("failed to establish SSH port forwarding: %v", err)
+		return fmt.Errorf("failed to establish SSH port forwarding: %w", err)
 	}
 	defer closeTunnel()
 	// Redirect command to localhost and the forwarded port.
@@ -170,14 +170,14 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	}
 	err = utils.RunCommandForeground(cmd, args...)
 	if err != nil {
-		return fmt.Errorf("command %s %s failed: %v", cmd, strings.Join(args, " "), err)
+		return fmt.Errorf("command %s %s failed: %w", cmd, strings.Join(args, " "), err)
 	}
 	return nil
 }
 
 func SdnStatus(cfg *EdenSetupArgs) error {
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
-		return fmt.Errorf("SDN is not enabled")
+		return fmt.Errorf("Sdn is not enabled")
 	}
 	processStatus, err := utils.StatusCommandWithPid(cfg.Sdn.PidFile)
 	if err != nil {
@@ -195,7 +195,7 @@ func SdnStatus(cfg *EdenSetupArgs) error {
 	}
 	status, err := client.GetSdnStatus()
 	if err != nil {
-		return fmt.Errorf("Failed to get SDN status: %v", err)
+		return fmt.Errorf("failed to get SDN status: %w", err)
 	}
 	if len(status.ConfigErrors) == 0 {
 		fmt.Printf("\tNo configuration errors.\n")
@@ -217,11 +217,11 @@ func SdnNetModelGet(cfg *EdenSetupArgs) (string, error) {
 	}
 	netModel, err := client.GetNetworkModel()
 	if err != nil {
-		return "", fmt.Errorf("Failed to get network model: %v", err)
+		return "", fmt.Errorf("failed to get network model: %w", err)
 	}
 	jsonBytes, err := json.MarshalIndent(netModel, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf("Failed to marshal net modem to JSON: %v", err)
+		return "", fmt.Errorf("failed to marshal net modem to JSON: %w", err)
 	}
 	return string(jsonBytes), nil
 }
@@ -240,7 +240,7 @@ func SdnNetModelApply(ref string, cfg *EdenSetupArgs) error {
 	} else {
 		newNetModel, err = edensdn.LoadNetModeFromFile(ref)
 		if err != nil {
-			return fmt.Errorf("Failed to load network model from file '%s': %v", ref, err)
+			return fmt.Errorf("failed to load network model from file '%s': %w", ref, err)
 		}
 	}
 	newNetModel.Host.ControllerPort = uint16(cfg.Adam.Port)
@@ -251,11 +251,11 @@ func SdnNetModelApply(ref string, cfg *EdenSetupArgs) error {
 	}
 	oldNetModel, err := client.GetNetworkModel()
 	if err != nil {
-		return fmt.Errorf("Failed to get current network model: %v", err)
+		return fmt.Errorf("failed to get current network model: %w", err)
 	}
 	vmRunner, err := edensdn.GetSdnVMRunner(cfg.Eve.DevModel, edensdn.SdnVMConfig{})
 	if err != nil {
-		return fmt.Errorf("Failed to get SDN VM runner: %v", err)
+		return fmt.Errorf("failed to get SDN VM runner: %w", err)
 	}
 	if vmRunner.RequiresVmRestart(oldNetModel, newNetModel) {
 		if ref != "default" && !filepath.IsAbs(ref) {
@@ -268,7 +268,7 @@ func SdnNetModelApply(ref string, cfg *EdenSetupArgs) error {
 	}
 	err = client.ApplyNetworkModel(newNetModel)
 	if err != nil {
-		return fmt.Errorf("Failed to apply network model: %v", err)
+		return fmt.Errorf("failed to apply network model: %w", err)
 	}
 	fmt.Printf("Submitted network model: %s", ref)
 	return nil
@@ -285,7 +285,7 @@ func SdnNetConfigGraph(cfg *EdenSetupArgs) (string, error) {
 	}
 	netConfig, err := client.GetNetworkConfigGraph()
 	if err != nil {
-		return "", fmt.Errorf("failed to get network config: %v", err)
+		return "", fmt.Errorf("failed to get network config: %w", err)
 	}
 	return netConfig, nil
 }
@@ -299,9 +299,8 @@ func SdnSsh(cfg *EdenSetupArgs) error {
 		SSHKeyPath: sdnSSHKeyPath(cfg.Sdn.SourceDir),
 		MgmtPort:   uint16(cfg.Sdn.MgmtPort),
 	}
-	err := client.SSHIntoSdnVM()
-	if err != nil {
-		return fmt.Errorf("Failed to SSH into SDN VM: %v", err)
+	if err := client.SSHIntoSdnVM(); err != nil {
+		return fmt.Errorf("failed to SSH into SDN VM: %w", err)
 	}
 	return nil
 }
@@ -317,7 +316,7 @@ func SdnLogs(cfg *EdenSetupArgs) (string, error) {
 	}
 	sdnLogs, err := client.GetSdnLogs()
 	if err != nil {
-		return "", fmt.Errorf("Failed to get SDN logs: %v", err)
+		return "", fmt.Errorf("failed to get SDN logs: %w", err)
 	}
 	return sdnLogs, nil
 }
@@ -333,10 +332,10 @@ func SdnMgmtIp(cfg *EdenSetupArgs) (string, error) {
 	}
 	status, err := client.GetSdnStatus()
 	if err != nil {
-		return "", fmt.Errorf("Failed to get SDN status: %v", err)
+		return "", fmt.Errorf("failed to get SDN status: %w", err)
 	}
 	if len(status.MgmtIPs) == 0 {
-		return "", fmt.Errorf("No management IP reported by SDN: %v", err)
+		return "", fmt.Errorf("no management IP reported by SDN: %w", err)
 	}
 	return status.MgmtIPs[0], nil
 }
@@ -352,7 +351,7 @@ func SdnEpExec(epName, command string, args []string, cfg *EdenSetupArgs) error 
 	}
 	err := client.RunCmdFromEndpoint(epName, command, args...)
 	if err != nil {
-		return fmt.Errorf("Failed to execute command: %v", err)
+		return fmt.Errorf("failed to execute command: %w", err)
 	}
 	return nil
 }

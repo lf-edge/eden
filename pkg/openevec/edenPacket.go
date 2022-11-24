@@ -15,16 +15,16 @@ func PacketRun(packetKey, packetProjectName, packetVMName, packetZone, packetMac
 		if cfg.ConfigName == defaults.DefaultContext {
 			configPrefix = ""
 		}
-		packetIPXEUrl = fmt.Sprintf("http://%s:%d/%s/ipxe.efi.cfg", cfg.Adam.CertsEVEIP, cfg.Eden.Eserver.Port, path.Join("eserver", configPrefix))
+		packetIPXEUrl = fmt.Sprintf("http://%s:%d/%s/ipxe.efi.cfg", cfg.Adam.CertsEVEIP, cfg.Eden.EServer.Port, path.Join("eserver", configPrefix))
 		log.Debugf("ipxe-url is empty, will use default one: %s", packetIPXEUrl)
 	}
 
 	packetClient, err := packet.NewPacketClient(packetKey, packetProjectName)
 	if err != nil {
-		return fmt.Errorf("Unable to connect to create packet client: %v", err)
+		return fmt.Errorf("unable to connect to create packet client: %w", err)
 	}
 	if err := packetClient.CreateInstance(packetVMName, packetZone, packetMachineType, packetIPXEUrl); err != nil {
-		return fmt.Errorf("CreateInstance: %s", err)
+		return fmt.Errorf("failed to CreateInstance: %w", err)
 	}
 	return nil
 }
@@ -32,10 +32,10 @@ func PacketRun(packetKey, packetProjectName, packetVMName, packetZone, packetMac
 func PacketDelete(packetKey, packetProjectName, packetVMName string) error {
 	packetClient, err := packet.NewPacketClient(packetKey, packetProjectName)
 	if err != nil {
-		return fmt.Errorf("Unable to connect to create packet client: %v", err)
+		return fmt.Errorf("unable to connect to create packet client: %w", err)
 	}
 	if err := packetClient.DeleteInstance(packetVMName); err != nil {
-		return fmt.Errorf("DeleteInstance: %s", err)
+		return fmt.Errorf("DeleteInstance: %w", err)
 	}
 	return nil
 }
@@ -43,7 +43,7 @@ func PacketDelete(packetKey, packetProjectName, packetVMName string) error {
 func PacketGetIP(packetKey, packetProjectName, packetVMName string) error {
 	packetClient, err := packet.NewPacketClient(packetKey, packetProjectName)
 	if err != nil {
-		return fmt.Errorf("Unable to connect to create packet client: %v", err)
+		return fmt.Errorf("unable to connect to create packet client: %w", err)
 	}
 	natIP, err := packetClient.GetInstanceNatIP(packetVMName)
 	if err != nil {

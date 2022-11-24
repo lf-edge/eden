@@ -25,7 +25,7 @@ const (
 func Status(cfg *EdenSetupArgs) error {
 	statusAdam, err := eden.StatusAdam()
 	if err != nil {
-		return fmt.Errorf("%s cannot obtain status of adam: %s", statusWarn(), err)
+		return fmt.Errorf("%s cannot obtain status of adam: %w", statusWarn(), err)
 	} else {
 		fmt.Printf("%s Adam status: %s\n", representContainerStatus(lastWord(statusAdam)), statusAdam)
 		fmt.Printf("\tAdam is expected at https://%s:%d\n", cfg.Adam.CertsIP, cfg.Adam.Port)
@@ -33,15 +33,15 @@ func Status(cfg *EdenSetupArgs) error {
 	}
 	statusRegistry, err := eden.StatusRegistry()
 	if err != nil {
-		return fmt.Errorf("%s cannot obtain status of registry: %s", statusWarn(), err)
+		return fmt.Errorf("%s cannot obtain status of registry: %w", statusWarn(), err)
 	} else {
 		fmt.Printf("%s Registry status: %s\n", representContainerStatus(lastWord(statusRegistry)), statusRegistry)
-		fmt.Printf("\tRegistry is expected at https://%s:%d\n", cfg.Registry.Ip, cfg.Registry.Port)
+		fmt.Printf("\tRegistry is expected at https://%s:%d\n", cfg.Registry.IP, cfg.Registry.Port)
 		fmt.Printf("\tFor local registry you can run 'docker logs %s' to see logs\n", defaults.DefaultRegistryContainerName)
 	}
 	statusRedis, err := eden.StatusRedis()
 	if err != nil {
-		return fmt.Errorf("%s cannot obtain status of redis: %s", statusWarn(), err)
+		return fmt.Errorf("%s cannot obtain status of redis: %w", statusWarn(), err)
 	} else {
 		fmt.Printf("%s Redis status: %s\n", representContainerStatus(lastWord(statusRedis)), statusRedis)
 		fmt.Printf("\tRedis is expected at %s\n", cfg.Adam.Redis.Eden)
@@ -52,13 +52,13 @@ func Status(cfg *EdenSetupArgs) error {
 		return fmt.Errorf("%s cannot obtain status of redis: %s", statusWarn(), err)
 	} else {
 		fmt.Printf("%s EServer process status: %s\n", representContainerStatus(lastWord(statusEServer)), statusEServer)
-		fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", cfg.Eden.Eserver.Ip, cfg.Eden.Eserver.Port)
+		fmt.Printf("\tEServer is expected at http://%s:%d from EVE\n", cfg.Eden.EServer.IP, cfg.Eden.EServer.Port)
 		fmt.Printf("\tFor local EServer you can run 'docker logs %s' to see logs\n", defaults.DefaultEServerContainerName)
 	}
 	fmt.Println()
 	context, err := utils.ContextLoad()
 	if err != nil {
-		return fmt.Errorf("Load context error: %s", err)
+		return fmt.Errorf("load context error: %w", err)
 	}
 	currentContext := context.Current
 	contexts := context.ListContexts()
@@ -69,7 +69,7 @@ func Status(cfg *EdenSetupArgs) error {
 			configName := el
 			_, err := utils.LoadConfigFileContext(context.GetCurrentConfig())
 			if err != nil {
-				return fmt.Errorf("error reading config: %s", err.Error())
+				return fmt.Errorf("error reading config: %w", err)
 			}
 			eveUUID := cfg.Eve.CertsUUID
 			edenDir, err := utils.DefaultEdenDir()
@@ -94,11 +94,12 @@ func Status(cfg *EdenSetupArgs) error {
 				}
 			}
 			if !cfg.Eve.Remote {
-				if cfg.Eve.DevModel == defaults.DefaultVBoxModel {
+				switch {
+				case cfg.Eve.DevModel == defaults.DefaultVBoxModel:
 					eveStatusVBox(cfg.Runtime.VmName)
-				} else if cfg.Eve.DevModel == defaults.DefaultParallelsModel {
+				case cfg.Eve.DevModel == defaults.DefaultParallelsModel:
 					eveStatusParallels(cfg.Runtime.VmName)
-				} else {
+				default:
 					eveStatusQEMU(configName, cfg.Eve.Pid)
 				}
 			}
@@ -135,10 +136,10 @@ func eveStatusRemote() error {
 
 	eveState := eve.Init(ctrl, dev)
 	if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
-		return fmt.Errorf("Fail in get InfoLastCallback: %s", err)
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
 	if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
-		return fmt.Errorf("Fail in get InfoLastCallback: %s", err)
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
 	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
 		var ips []string
@@ -176,34 +177,33 @@ func eveStatusQEMU(configName, evePidFile string) {
 	statusEVE, err := eden.StatusEVEQemu(evePidFile)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of EVE Qemu process: %s", statusWarn(), err)
-	} else {
-		fmt.Printf("%s EVE on Qemu status: %s\n", representProcessStatus(statusEVE), statusEVE)
-		fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath(configName+"-"+"eve.log"))
+		return
 	}
+	fmt.Printf("%s EVE on Qemu status: %s\n", representProcessStatus(statusEVE), statusEVE)
+	fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath(configName+"-"+"eve.log"))
 }
 
 func eveStatusVBox(vmName string) {
 	statusEVE, err := eden.StatusEVEVBox(vmName)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of EVE VBox process: %s", statusWarn(), err)
-	} else {
-		fmt.Printf("%s EVE on VBox status: %s\n", representProcessStatus(statusEVE), statusEVE)
+		return
 	}
+	fmt.Printf("%s EVE on VBox status: %s\n", representProcessStatus(statusEVE), statusEVE)
 }
 
 func eveStatusParallels(vmName string) {
 	statusEVE, err := eden.StatusEVEParallels(vmName)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of EVE Parallels process: %s", statusWarn(), err)
-	} else {
-		fmt.Printf("%s EVE on Parallels status: %s\n", representProcessStatus(statusEVE), statusEVE)
+		return
 	}
+	fmt.Printf("%s EVE on Parallels status: %s\n", representProcessStatus(statusEVE), statusEVE)
 }
 
 // lastWord get last work in string
 func lastWord(in string) string {
-	ss := strings.Fields(in)
-	if len(ss) > 0 {
+	if ss := strings.Fields(in); len(ss) > 0 {
 		return ss[len(ss)-1]
 	}
 	return ""

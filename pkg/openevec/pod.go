@@ -70,7 +70,7 @@ func PodDeploy(appLink string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	var opts []expect.ExpectationOption
 	opts = append(opts, expect.WithMetadata(cfg.Runtime.PodMetadata))
@@ -80,7 +80,7 @@ func PodDeploy(appLink string, cfg *EdenSetupArgs) error {
 	if len(cfg.Runtime.PodNetworks) > 0 {
 		for i, el := range cfg.Runtime.PodNetworks {
 			if i == 0 {
-				//allocate ports on first network
+				// allocate ports on first network
 				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, cfg.Runtime.PortPublish))
 			} else {
 				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, nil))
@@ -106,14 +106,14 @@ func PodDeploy(appLink string, cfg *EdenSetupArgs) error {
 	opts = append(opts, expect.WithVolumeType(expect.VolumeTypeByName(cfg.Runtime.VolumeType)))
 	opts = append(opts, expect.WithResources(cfg.Runtime.AppCpus, uint32(appMemoryParsed/1000)))
 	opts = append(opts, expect.WithImageFormat(cfg.Runtime.ImageFormat))
-	if cfg.Runtime.AclOnlyHost {
+	if cfg.Runtime.ACLOnlyHost {
 		opts = append(opts, expect.WithACL(map[string][]expect.ACE{
 			"": {{Endpoint: defaults.DefaultHostOnlyNotation}},
 		}))
 	} else {
-		opts = append(opts, expect.WithACL(processAcls(cfg.Runtime.Acl)))
+		opts = append(opts, expect.WithACL(processAcls(cfg.Runtime.ACL)))
 	}
-	vlansParsed, err := processVLANs(cfg.Runtime.Vlans)
+	vlansParsed, err := processVLANs(cfg.Runtime.VLANs)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func PodDeploy(appLink string, cfg *EdenSetupArgs) error {
 	registryToUse := cfg.Runtime.Registry
 	switch cfg.Runtime.Registry {
 	case "local":
-		registryToUse = fmt.Sprintf("%s:%d", cfg.Registry.Ip, cfg.Registry.Port)
+		registryToUse = fmt.Sprintf("%s:%d", cfg.Registry.IP, cfg.Registry.Port)
 	case "remote":
 		registryToUse = ""
 	}
@@ -142,24 +142,24 @@ func PodDeploy(appLink string, cfg *EdenSetupArgs) error {
 	appInstanceConfig := expectation.Application()
 	dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-		return fmt.Errorf("setControllerAndDev: %s", err)
+		return fmt.Errorf("setControllerAndDev: %w", err)
 	}
 	log.Infof("deploy pod %s with %s request sent", appInstanceConfig.Displayname, appLink)
 	return nil
 }
 
-func PodPs(cfg *EdenSetupArgs) error {
+func PodPs(_ *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	state := eve.Init(ctrl, dev)
 	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
-		return fmt.Errorf("fail in get InfoLastCallback: %s", err)
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
 	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
-		return fmt.Errorf("fail in get MetricLastCallback: %s", err)
+		return fmt.Errorf("fail in get MetricLastCallback: %w", err)
 	}
 	if err := state.PodsList(); err != nil {
 		return err
@@ -171,17 +171,17 @@ func PodStop(appName string) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
 		if err != nil {
-			return fmt.Errorf("no app in cloud %s: %s", el, err)
+			return fmt.Errorf("no app in cloud %s: %w", el, err)
 		}
 		if app.Displayname == appName {
 			app.Activate = false
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			log.Infof("app %s stop done", appName)
 			return nil
@@ -195,12 +195,12 @@ func PodPurge(volumesToPurge []string, appName string, explicitVolumes bool) err
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
 		if err != nil {
-			return fmt.Errorf("no app in cloud %s: %s", el, err)
+			return fmt.Errorf("no app in cloud %s: %w", el, err)
 		}
 		if app.Displayname == appName {
 			if app.Purge == nil {
@@ -229,10 +229,10 @@ func PodPurge(volumesToPurge []string, appName string, explicitVolumes bool) err
 				if err != nil {
 					return err
 				}
-				//update uuid to fire purge
+				// update uuid to fire purge
 				v.Uuid = newUUID.String()
 				volumeConfigs[i] = newUUID.String()
-				//fix volume ref to point onto new volume
+				// fix volume ref to point onto new volume
 				for _, el := range app.VolumeRefList {
 					if el.Uuid == oldUUID {
 						el.Uuid = newUUID.String()
@@ -241,7 +241,7 @@ func PodPurge(volumesToPurge []string, appName string, explicitVolumes bool) err
 			}
 			dev.SetVolumeConfigs(volumeConfigs)
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			log.Infof("app %s purge done", appName)
 			return nil
@@ -255,12 +255,12 @@ func PodRestart(appName string) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
 		if err != nil {
-			return fmt.Errorf("no app in cloud %s: %s", el, err)
+			return fmt.Errorf("no app in cloud %s: %w", el, err)
 		}
 		if app.Displayname == appName {
 			if app.Restart == nil {
@@ -268,7 +268,7 @@ func PodRestart(appName string) error {
 			}
 			app.Restart.Counter++
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			log.Infof("app %s restart done", appName)
 			return nil
@@ -282,17 +282,17 @@ func PodStart(appName string) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
 		if err != nil {
-			return fmt.Errorf("no app in cloud %s: %s", el, err)
+			return fmt.Errorf("no app in cloud %s: %w", el, err)
 		}
 		if app.Displayname == appName {
 			app.Activate = true
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			log.Infof("app %s start done", appName)
 			return nil
@@ -306,12 +306,12 @@ func PodDelete(appName string, deleteVolumes bool) (bool, error) {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return false, fmt.Errorf("getControllerAndDev: %s", err)
+		return false, fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for id, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
 		if err != nil {
-			return false, fmt.Errorf("no app in cloud %s: %s", el, err)
+			return false, fmt.Errorf("no app in cloud %s: %w", el, err)
 		}
 		if app.Displayname == appName {
 			if deleteVolumes {
@@ -319,7 +319,7 @@ func PodDelete(appName string, deleteVolumes bool) (bool, error) {
 				utils.DelEleInSliceByFunction(&volumeIDs, func(i interface{}) bool {
 					vol, err := ctrl.GetVolume(i.(string))
 					if err != nil {
-						log.Errorf("no volume in cloud %s: %s", i.(string), err)
+						log.Errorf("no volume in cloud %s: %s", i.(string), err.Error())
 						return false
 					}
 					for _, volRef := range app.VolumeRefList {
@@ -335,7 +335,7 @@ func PodDelete(appName string, deleteVolumes bool) (bool, error) {
 			utils.DelEleInSlice(&configs, id)
 			dev.SetApplicationInstanceConfig(configs)
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return false, fmt.Errorf("setControllerAndDev: %s", err)
+				return false, fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			log.Infof("app %s delete done", appName)
 			return false, nil
@@ -349,104 +349,104 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
 		if err != nil {
-			return fmt.Errorf("no app in cloud %s: %s", el, err)
+			return fmt.Errorf("no app in cloud %s: %w", el, err)
 		}
 		if app.Displayname == appName {
 			for _, el := range outputFields {
 				switch el {
 				case "log":
-					//block for process logs
+					// block for process logs
 					fmt.Printf("Log list for app %s:\n", app.Uuidandversion.Uuid)
-					//process only existing elements
+					// process only existing elements
 					logType := elog.LogExist
 
 					if outputTail > 0 {
-						//process only outputTail elements from end
+						// process only outputTail elements from end
 						logType = elog.LogTail(outputTail)
 					}
 
-					//logsQ for filtering logs by app
+					// logsQ for filtering logs by app
 					logsQ := make(map[string]string)
 					logsQ["msg"] = app.Uuidandversion.Uuid
 					if err = ctrl.LogChecker(dev.GetID(), logsQ, elog.HandleFactory(outputFormat, false), logType, 0); err != nil {
-						return fmt.Errorf("LogChecker: %s", err)
+						return fmt.Errorf("LogChecker: %w", err)
 					}
 				case "info":
-					//block for process info
+					// block for process info
 					fmt.Printf("Info list for app %s:\n", app.Uuidandversion.Uuid)
-					//process only existing elements
+					// process only existing elements
 					infoType := einfo.InfoExist
 
 					if outputTail > 0 {
-						//process only outputTail elements from end
+						// process only outputTail elements from end
 						infoType = einfo.InfoTail(outputTail)
 					}
 
-					//infoQ for filtering infos by app
+					// infoQ for filtering infos by app
 					infoQ := make(map[string]string)
 					infoQ["InfoContent.Ainfo.AppID"] = app.Uuidandversion.Uuid
 					if err = ctrl.InfoChecker(dev.GetID(), infoQ, einfo.HandleFactory(outputFormat, false), infoType, 0); err != nil {
-						return fmt.Errorf("InfoChecker: %s", err)
+						return fmt.Errorf("InfoChecker: %w", err)
 					}
 				case "metric":
-					//block for process metrics
+					// block for process metrics
 					fmt.Printf("Metric list for app %s:\n", app.Uuidandversion.Uuid)
 
-					//process only existing elements
+					// process only existing elements
 					metricType := emetric.MetricExist
 
 					if outputTail > 0 {
-						//process only outputTail elements from end
+						// process only outputTail elements from end
 						metricType = emetric.MetricTail(outputTail)
 					}
 					handleMetric := func(le *metrics.ZMetricMsg) bool {
 						for i, el := range le.Am {
-							//filter metrics by application
+							// filter metrics by application
 							if el.AppID == app.Uuidandversion.Uuid {
-								//we print only AppMetrics from obtained metric
+								// we print only AppMetrics from obtained metric
 								emetric.MetricItemPrint(le, []string{fmt.Sprintf("am[%d]", i)}).Print()
 							}
 						}
 						return false
 					}
 
-					//metricsQ for filtering metrics by app
+					// metricsQ for filtering metrics by app
 					metricsQ := make(map[string]string)
 					metricsQ["am[].AppID"] = app.Uuidandversion.Uuid
 					if err = ctrl.MetricChecker(dev.GetID(), metricsQ, handleMetric, metricType, 0); err != nil {
-						return fmt.Errorf("MetricChecker: %s", err)
+						return fmt.Errorf("MetricChecker: %w", err)
 					}
 				case "netstat":
-					//block for process FlowLog
+					// block for process FlowLog
 					fmt.Printf("netstat list for app %s:\n", app.Uuidandversion.Uuid)
-					//process only existing elements
+					// process only existing elements
 					flowLogType := eflowlog.FlowLogExist
 
 					if outputTail > 0 {
-						//process only outputTail elements from end
+						// process only outputTail elements from end
 						flowLogType = eflowlog.FlowLogTail(outputTail)
 					}
 
-					//logsQ for filtering logs by app
+					// logsQ for filtering logs by app
 					logsQ := make(map[string]string)
 					logsQ["scope.uuid"] = app.Uuidandversion.Uuid
 					if err = ctrl.FlowLogChecker(dev.GetID(), logsQ, eflowlog.HandleFactory(outputFormat, false), flowLogType, 0); err != nil {
-						return fmt.Errorf("FlowLogChecker: %s", err)
+						return fmt.Errorf("FlowLogChecker: %w", err)
 					}
 				case "app":
-					//block for process app logs
+					// block for process app logs
 					fmt.Printf("App logs list for app %s:\n", app.Uuidandversion.Uuid)
 
-					//process only existing elements
+					// process only existing elements
 					appLogType := eapps.LogExist
 
 					if outputTail > 0 {
-						//process only outputTail elements from end
+						// process only outputTail elements from end
 						appLogType = eapps.LogTail(outputTail)
 					}
 
@@ -455,7 +455,7 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 						return err
 					}
 					if err = ctrl.LogAppsChecker(dev.GetID(), appID, nil, eapps.HandleFactory(outputFormat, false), appLogType, 0); err != nil {
-						return fmt.Errorf("MetricChecker: %s", err)
+						return fmt.Errorf("MetricChecker: %w", err)
 					}
 				}
 			}
@@ -470,7 +470,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	for _, appID := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(appID)
@@ -507,7 +507,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 			if len(cfg.Runtime.PodNetworks) > 0 {
 				for i, el := range cfg.Runtime.PodNetworks {
 					if i == 0 {
-						//allocate ports on first network
+						// allocate ports on first network
 						opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, portPublishCombined))
 					} else {
 						opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, nil))
@@ -516,8 +516,8 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 			} else {
 				opts = append(opts, expect.WithPortsPublish(portPublishCombined))
 			}
-			opts = append(opts, expect.WithACL(processAcls(cfg.Runtime.Acl)))
-			vlansParsed, err := processVLANs(cfg.Runtime.Vlans)
+			opts = append(opts, expect.WithACL(processAcls(cfg.Runtime.ACL)))
+			vlansParsed, err := processVLANs(cfg.Runtime.VLANs)
 			if err != nil {
 				return err
 			}
@@ -533,7 +533,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 				for ind, el := range app.Interfaces {
 					equals, err := utils.CompareProtoMessages(el, appInstanceConfig.Interfaces[ind])
 					if err != nil {
-						return fmt.Errorf("CompareMessages: %v", err)
+						return fmt.Errorf("CompareMessages: %w", err)
 					}
 					if !equals {
 						needPurge = true
@@ -550,15 +550,15 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 			if cfg.Runtime.StartDelay != 0 {
 				app.StartDelayInSeconds = appInstanceConfig.StartDelayInSeconds
 			}
-			//now we only change networks
+			// now we only change networks
 			app.Interfaces = appInstanceConfig.Interfaces
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				return fmt.Errorf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %w", err)
 			}
 			if needPurge {
 				processingFunction := func(im *info.ZInfoMsg) bool {
 					if im.Ztype == info.ZInfoTypes_ZiApp {
-						//waiting for purging state
+						// waiting for purging state
 						if im.GetAinfo().State == info.ZSwState_PURGING {
 							return true
 						}
@@ -568,7 +568,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 				infoQ := make(map[string]string)
 				infoQ["InfoContent.Ainfo.AppID"] = app.Uuidandversion.Uuid
 				if err = ctrl.InfoChecker(dev.GetID(), infoQ, processingFunction, einfo.InfoNew, defaults.DefaultRepeatTimeout*defaults.DefaultRepeatCount); err != nil {
-					return fmt.Errorf("InfoChecker: %s", err)
+					return fmt.Errorf("InfoChecker: %w", err)
 				}
 			}
 			log.Infof("app %s modify done", appName)
@@ -608,13 +608,13 @@ func PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch strin
 	if local {
 		_, remoteTarget, err = utils.NewRegistryHTTP(ctx)
 		if err != nil {
-			return fmt.Errorf("unexpected error when created NewRegistry resolver: %v", err)
+			return fmt.Errorf("unexpected error when created NewRegistry resolver: %w", err)
 		}
-		appName = fmt.Sprintf("%s:%d/%s", cfg.Registry.Ip, cfg.Registry.Port, appName)
+		appName = fmt.Sprintf("%s:%d/%s", cfg.Registry.IP, cfg.Registry.Port, appName)
 	} else {
 		_, remoteTarget, err = resolver.NewRegistry(ctx)
 		if err != nil {
-			return fmt.Errorf("unexpected error when created NewRegistry resolver: %v", err)
+			return fmt.Errorf("unexpected error when created NewRegistry resolver: %w", err)
 		}
 	}
 	if rootFile != "" {
@@ -667,7 +667,7 @@ func PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch strin
 		Architecture: arch,
 	}, remoteTarget)
 	if err != nil {
-		return fmt.Errorf("error pushing to registry: %v", err)
+		return fmt.Errorf("error pushing to registry: %w", err)
 	}
 	fmt.Printf("Pushed image %s with digest %s\n", appName, hash)
 

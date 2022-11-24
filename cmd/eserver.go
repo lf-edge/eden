@@ -47,18 +47,18 @@ func newStartEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			}
 			log.Infof("Executable path: %s", command)
 
-			if err := eden.StartEServer(cfg.Eden.Eserver.Port, cfg.Eden.Images.EserverImageDist, cfg.Eden.Eserver.Force, cfg.Eden.Eserver.Tag); err != nil {
+			if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.Images.EServerImageDist, cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag); err != nil {
 				log.Errorf("cannot start eserver: %s", err)
 			} else {
-				log.Infof("Eserver is running and accesible on port %d", cfg.Eden.Eserver.Port)
+				log.Infof("Eserver is running and accesible on port %d", cfg.Eden.EServer.Port)
 			}
 		},
 	}
 
-	startEserverCmd.Flags().StringVarP(&cfg.Eden.Images.EserverImageDist, "image-dist", "", "", "image dist for eserver")
-	startEserverCmd.Flags().IntVarP(&cfg.Eden.Eserver.Port, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
-	startEserverCmd.Flags().StringVarP(&cfg.Eden.Eserver.Tag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
-	startEserverCmd.Flags().BoolVarP(&cfg.Eden.Eserver.Force, "eserver-force", "", false, "eserver force rebuild")
+	startEserverCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", "", "image dist for eserver")
+	startEserverCmd.Flags().IntVarP(&cfg.Eden.EServer.Port, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
+	startEserverCmd.Flags().StringVarP(&cfg.Eden.EServer.Tag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
+	startEserverCmd.Flags().BoolVarP(&cfg.Eden.EServer.Force, "eserver-force", "", false, "eserver force rebuild")
 
 	return startEserverCmd
 }
@@ -69,13 +69,13 @@ func newStopEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "stop eserver",
 		Long:  `Stop eserver.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := eden.StopEServer(cfg.Runtime.EserverRm); err != nil {
+			if err := eden.StopEServer(cfg.Runtime.EServerRm); err != nil {
 				log.Errorf("cannot stop eserver: %s", err)
 			}
 		},
 	}
 
-	stopEserverCmd.Flags().BoolVarP(&cfg.Runtime.EserverRm, "eserver-rm", "", false, "eserver rm on stop")
+	stopEserverCmd.Flags().BoolVarP(&cfg.Runtime.EServerRm, "eserver-rm", "", false, "eserver rm on stop")
 
 	return stopEserverCmd
 }

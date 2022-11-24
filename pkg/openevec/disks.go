@@ -31,7 +31,7 @@ func GetDisksLayout() (device.DisksLayout, error) {
 	changer := &adamChanger{}
 	_, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return device.DisksLayout{}, fmt.Errorf("getControllerAndDev error: %s", err)
+		return device.DisksLayout{}, fmt.Errorf("getControllerAndDev error: %w", err)
 	}
 	layout := dev.GetDiskLayout()
 	return *layout, nil
@@ -41,7 +41,7 @@ func SetDiskLayout(dc *DisksConfig) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %s", err)
+		return fmt.Errorf("getControllerAndDev error: %w", err)
 	}
 	layout := dev.GetDiskLayout()
 	if layout == nil {
@@ -55,7 +55,7 @@ func SetDiskLayout(dc *DisksConfig) error {
 	layout.PartDisks = dc.PartDisks
 	dev.SetDiskLayout(layout)
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-		return fmt.Errorf("setControllerAndDev: %s", err)
+		return fmt.Errorf("setControllerAndDev: %w", err)
 	}
 	return nil
 }

@@ -15,30 +15,30 @@ import (
 	"github.com/spf13/viper"
 )
 
-type EserverConfig struct {
+type EServerConfig struct {
 	Port   int          `mapstructure:"port" cobraflag:"eserver-port"`
 	Force  bool         `mapstructure:"force" cobraflag:"eserver-force"`
 	Tag    string       `mapstructure:"tag" cobraflag:"eserver-tag"`
-	Ip     string       `mapstructure:"ip"`
+	IP     string       `mapstructure:"ip"`
 	Images ImagesConfig `mapstructure:"images"`
 }
 
 type ImagesConfig struct {
-	EserverImageDist string `mapstructure:"dist" cobraflag:"image-dist" resolvepath`
+	EServerImageDist string `mapstructure:"dist" cobraflag:"image-dist" resolvepath:""`
 }
 
 type EdenConfig struct {
 	Download     bool   `mapstructure:"download" cobraflag:"download"`
-	BinDir       string `mapstructure:"bin-dist" cobraflag:"bin-dist" resolvepath`
-	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath`
+	BinDir       string `mapstructure:"bin-dist" cobraflag:"bin-dist" resolvepath:""`
+	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath:""`
 	Dist         string `mapstructure:"dist"`
 	Root         string `mapstructure:"root"`
-	SshKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key" resolvepath`
+	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key" resolvepath:""`
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
 
-	Eserver EserverConfig `mapstructure:"eserver"`
+	EServer EServerConfig `mapstructure:"eserver"`
 
 	Images ImagesConfig `mapstructure:"images"`
 }
@@ -47,7 +47,7 @@ type RedisConfig struct {
 	RemoteURL string `mapstructure:"adam" cobraflag:"adam-redis-url"`
 	Tag       string `mapstructure:"tag" cobraflag:"redis-tag"`
 	Port      int    `mapstructure:"port" cobraflag:"redis-port"`
-	Dist      string `mapstructure:"dist" cobraflag:"redis-dist" resolvepath`
+	Dist      string `mapstructure:"dist" cobraflag:"redis-dist" resolvepath:""`
 	Force     bool   `mapstructure:"force" cobraflag:"redis-force"`
 	Eden      string `mapstructure:"eden"`
 }
@@ -66,11 +66,11 @@ type CachingConfig struct {
 type AdamConfig struct {
 	Tag         string `mapstructure:"tag" cobraflag:"adam-tag"`
 	Port        int    `mapstructure:"port" cobraflag:"adam-port"`
-	Dist        string `mapstructure:"dist" cobraflag:"adam-dist" resolvepath`
+	Dist        string `mapstructure:"dist" cobraflag:"adam-dist" resolvepath:""`
 	CertsDomain string `mapstructure:"domain" cobraflag:"domain"`
 	CertsIP     string `mapstructure:"ip" cobraflag:"ip"`
 	CertsEVEIP  string `mapstructure:"eve-ip" cobraflag:"eve-ip"`
-	ApiV1       bool   `mapstructure:"v1" cobrafalg:"force"`
+	APIv1       bool   `mapstructure:"v1" cobrafalg:"force"`
 	Force       bool   `mapstructure:"force" cobraflag:"force"`
 
 	Redis   RedisConfig   `mapstructure:"redis"`
@@ -79,13 +79,13 @@ type AdamConfig struct {
 }
 
 type CustomInstallerConfig struct {
-	Path   string `mapstructure:"path" resolvepath`
+	Path   string `mapstructure:"path" resolvepath:""`
 	Format string `mapstructure:"path"`
 }
 
 type QemuConfig struct {
 	MonitorPort      int `mapstructure:"monitor-port" cobraflag:"qemu-monitor-port"`
-	NetdevSocketPort int `mapstructure:"netdev-socket-port" cobraflag:"qemu-netdev-socket-port"`
+	NetDevSocketPort int `mapstructure:"netdev-socket-port" cobraflag:"qemu-netdev-socket-port"`
 }
 
 type EveConfig struct {
@@ -93,12 +93,12 @@ type EveConfig struct {
 	QemuConfig      QemuConfig            `mapstructure:"qemu"`
 
 	QemuFirmware   []string          `mapstructure:"firmware" cobraflag:"eve-firmware"`
-	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path" resolvepath`
-	QemuDTBPath    string            `mapstructure:"dtb-part" cobraflag:"dtb-part" resolvepath`
+	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path" resolvepath:""`
+	QemuDTBPath    string            `mapstructure:"dtb-part" cobraflag:"dtb-part" resolvepath:""`
 	QemuOS         string            `mapstructure:"os" cobraflag:"eve-os"`
-	ImageFile      string            `mapstructure:"image-file" cobraflag:"image-file" resolvepath`
+	ImageFile      string            `mapstructure:"image-file" cobraflag:"image-file" resolvepath:""`
 	CertsUUID      string            `mapstructure:"uuid" cobraflag:"uuid"`
-	Dist           string            `mapstructure:"dist" cobraflag:"eve-dist" resolvepath`
+	Dist           string            `mapstructure:"dist" cobraflag:"eve-dist" resolvepath:""`
 	Repo           string            `mapstructure:"repo" cobraflag:"eve-repo"`
 	Registry       string            `mapstructure:"registry" cobraflag:"eve-registry"`
 	Tag            string            `mapstructure:"tag" cobraflag:"eve-tag"`
@@ -106,7 +106,7 @@ type EveConfig struct {
 	HV             string            `mapstructure:"hv" cobraflag:"eve-hv"`
 	Arch           string            `mapstructure:"arch" cobraflag:"eve-arch"`
 	HostFwd        map[string]string `mapstructure:"hostfwd" cobraflag:"eve-hostfwd"`
-	QemuFileToSave string            `mapstructure:"qemu-config" cobraflag:"qemu-config" resolvepath`
+	QemuFileToSave string            `mapstructure:"qemu-config" cobraflag:"qemu-config" resolvepath:""`
 	QemuCpus       int               `mapstructure:"cpu" cobraflag:"cpus"`
 	QemuMemory     int               `mapstructure:"ram" cobraflag:"memory"`
 	ImageSizeMB    int               `mapstructure:"disk" cobraflag:"image-size"`
@@ -117,8 +117,8 @@ type EveConfig struct {
 	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
 	Accel          bool              `mapstructure:"accel" cobraflag:"eve-accel"`
 
-	Pid            string `mapstructure:"pid" cobraflag:"eve-pid" resolvepath`
-	Log            string `mapstructure:"log" cobraflag:"eve-log" resolvepath`
+	Pid            string `mapstructure:"pid" cobraflag:"eve-pid" resolvepath:""`
+	Log            string `mapstructure:"log" cobraflag:"eve-log" resolvepath:""`
 	TelnetPort     int    `mapstructure:"telnet-port" cobraflag:"eve-telnet-port"`
 	Remote         bool   `mapstructure:"remote"`
 	RemoteAddr     string `mapstructure:"remote-addr"`
@@ -143,17 +143,17 @@ type RegistryConfig struct {
 	Tag  string `mapstructure:"tag" cobraflag:"registry-flag"`
 	Port int    `mapstructure:"port" cobraflag:"registry-port"`
 	Dist string `mapstructure:"dist" cobraflag:"registry-dist"`
-	Ip   string `mapstructure:"ip"`
+	IP   string `mapstructure:"ip"`
 }
 
 type RuntimeConfig struct {
 	EveConfigDir      string   `cobraflag:"eve-config-dir"`
-	Netboot           bool     `cobraflag:"netboot"`
+	NetBoot           bool     `cobraflag:"netboot"`
 	Installer         bool     `cobraflag:"installer"`
-	Softserial        string   `cobraflag:"soft-serial"`
-	ZedcontrolURL     string   `cobraflag:"zedcontrol"`
+	SoftSerial        string   `cobraflag:"soft-serial"`
+	ZedControlURL     string   `cobraflag:"zedcontrol"`
 	ConfigDir         string   `cobraflag:"config-dist"`
-	IpxeOverride      string   `cobraflag:"ipxe-override"`
+	IPXEOverride      string   `cobraflag:"ipxe-override"`
 	GrubOptions       []string `cobraflag:"grub-options"`
 	DryRun            bool     `cobraflag:"dry-run"`
 	VmName            string   `cobraflag:"vmname"`
@@ -164,7 +164,7 @@ type RuntimeConfig struct {
 	AdamRm            bool     `cobraflag:"adam-rm"`
 	RegistryRm        bool     `cobraflag:"registry-rm"`
 	RedisRm           bool     `cobraflag:"redis-rm"`
-	EserverRm         bool     `cobraflag:"eserver-rm"`
+	EServerRm         bool     `cobraflag:"eserver-rm"`
 	CurrentContext    bool     `cobraflag:"current-context"`
 	InfoTail          uint     `cobraflag:"tail"`
 	Follow            bool     `cobraflag:"follow"`
@@ -185,8 +185,8 @@ type RuntimeConfig struct {
 	VolumeType        string   `cobraflag:"volume-type"`
 	AppCpus           uint32   `cobraflag:"cpus"`
 	ImageFormat       string   `cobraflag:"format"`
-	Acl               []string `cobraflag:"acl"`
-	Vlans             []string `cobraflag:"vlan"`
+	ACL               []string `cobraflag:"acl"`
+	VLANs             []string `cobraflag:"vlan"`
 	SftpLoad          bool     `cobraflag:"sftp"`
 	DirectLoad        bool     `cobraflag:"direct"`
 	Mount             []string `cobraflag:"mount"`
@@ -196,7 +196,7 @@ type RuntimeConfig struct {
 	Profiles          []string `cobraflag:"profile"`
 	DatastoreOverride string   `cobraflag:"datastoreOverride"`
 	AppAdapters       []string `cobraflag:"adapters"`
-	AclOnlyHost       bool     `cobraflag:"only-host"`
+	ACLOnlyHost       bool     `cobraflag:"only-host"`
 	StartDelay        uint32   `cobraflag:"start-delay"`
 	Host              string   `cobraflag:"eve-host"`
 	SshPort           int      `cobraflag:"eve-ssh-port"`
@@ -213,18 +213,18 @@ type GcpConfig struct {
 }
 
 type SdnConfig struct {
-	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file" resolvepath`
-	SourceDir      string `mapstructure:"source-dir" cobraflag:"sdn-source-dir" resolvepath`
+	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file" resolvepath:""`
+	SourceDir      string `mapstructure:"source-dir" cobraflag:"sdn-source-dir" resolvepath:""`
 	RAM            int    `mapstructure:"ram" cobraflag:"sdn-ram"`
 	CPU            int    `mapstructure:"cpu" cobraflag:"sdn-cpu"`
-	ConfigDir      string `mapstructure:"config-dir" cobraflag:"sdn-config-dir" resolvepath`
-	LinuxkitBin    string `mapstructure:"linuxkit-bin" cobraflag:"sdn-linuxkit-bin" resolvepath`
-	NetModelFile   string `mapstructure:"network-model" cobraflag:"sdn-network-model" resolvepath`
-	ConsoleLogFile string `mapstructure:"console-log" cobraflag:"sdn-console-log" resolvepath`
+	ConfigDir      string `mapstructure:"config-dir" cobraflag:"sdn-config-dir" resolvepath:""`
+	LinuxkitBin    string `mapstructure:"linuxkit-bin" cobraflag:"sdn-linuxkit-bin" resolvepath:""`
+	NetModelFile   string `mapstructure:"network-model" cobraflag:"sdn-network-model" resolvepath:""`
+	ConsoleLogFile string `mapstructure:"console-log" cobraflag:"sdn-console-log" resolvepath:""`
 	Disable        bool   `mapstructure:"disable" cobraflag:"sdn-disable"`
 	TelnetPort     int    `mapstructure:"telnet-port" cobraflag:"sdn-telnet-port"`
 	MgmtPort       int    `mapstructure:"mgmt-port" cobraflag:"sdn-mgmt-port"`
-	PidFile        string `mapstructure:"pid" cobraflag:"sdn-pid" resolvepath`
+	PidFile        string `mapstructure:"pid" cobraflag:"sdn-pid" resolvepath:""`
 	SSHPort        int    `mapstructure:"ssh-port" cobraflag:"sdn-ssh-port"`
 }
 
@@ -302,18 +302,18 @@ func SetUpLogs(level string) error {
 func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 	viperLoaded, err := utils.LoadConfigFile(configFile)
 	if err != nil {
-		return nil, fmt.Errorf("error reading config: %s", err.Error())
+		return nil, fmt.Errorf("error reading config: %w", err)
 	}
 
 	if !viperLoaded {
-		return nil, fmt.Errorf("Viper cannot be loaded")
+		return nil, fmt.Errorf("viper cannot be loaded")
 	}
 	viper.SetDefault("eve.uefi-tag", defaults.DefaultEVETag)
 
 	cfg := &EdenSetupArgs{}
 
 	if err = viper.Unmarshal(cfg); err != nil {
-		return nil, fmt.Errorf("unable to decode into config struct, %v", err)
+		return nil, fmt.Errorf("unable to decode into config struct, %w", err)
 	}
 
 	resolvePath(reflect.ValueOf(cfg).Elem())
@@ -335,7 +335,7 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 func resolvePath(v reflect.Value) {
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
-		if strings.Contains(string(v.Type().Field(i).Tag), "resolvepath") {
+		if _, ok := v.Type().Field(i).Tag.Lookup("resolvepath"); ok {
 			if f.IsValid() && f.CanSet() && f.Kind() == reflect.String {
 				val := f.Interface().(string)
 				f.SetString(utils.ResolveAbsPath(val))

@@ -29,7 +29,7 @@ import (
 func DownloadEve(cfg *EdenSetupArgs) error {
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
-		return fmt.Errorf("GetDevModelByName: %s", err)
+		return fmt.Errorf("GetDevModelByName: %w", err)
 	}
 	format := model.DiskFormat()
 	eveDesc := utils.EVEDescription{
@@ -141,7 +141,7 @@ func appendToTarFile(tarFile, filename string, content []byte) error {
 	}
 
 	if err := tw.Close(); err != nil {
-		return fmt.Errorf("failed to close tar writer: %v", err)
+		return fmt.Errorf("failed to close tar writer: %w", err)
 	}
 	return nil
 }
@@ -149,7 +149,7 @@ func appendImageRepositories(tarFile, registry, path string, imageManifest []byt
 	// get the top layer for the manifest bytes
 	layerHash, err := DockerHashFromManifest(imageManifest)
 	if err != nil {
-		return fmt.Errorf("unable to get top layer hash: %v", err)
+		return fmt.Errorf("unable to get top layer hash: %w", err)
 	}
 	// need to take out the tag
 	parts := strings.Split(path, ":")
@@ -174,7 +174,7 @@ func appendImageRepositories(tarFile, registry, path string, imageManifest []byt
 
 	j, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("unable to convert repositories data to json: %v", err)
+		return fmt.Errorf("unable to convert repositories data to json: %w", err)
 	}
 
 	return appendToTarFile(tarFile, "repositories", j)
@@ -184,7 +184,7 @@ func appendImageRepositories(tarFile, registry, path string, imageManifest []byt
 func LayersFromManifest(imageManifest []byte) ([]v1.Descriptor, error) {
 	manifest, err := v1.ParseManifest(bytes.NewReader(imageManifest))
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse manifest: %v", err)
+		return nil, fmt.Errorf("unable to parse manifest: %w", err)
 	}
 	return manifest.Layers, nil
 }
@@ -195,7 +195,7 @@ func LayersFromManifest(imageManifest []byte) ([]v1.Descriptor, error) {
 func DockerHashFromManifest(imageManifest []byte) (string, error) {
 	layers, err := LayersFromManifest(imageManifest)
 	if err != nil {
-		return "", fmt.Errorf("unable to get layers: %v", err)
+		return "", fmt.Errorf("unable to get layers: %w", err)
 	}
 	if len(layers) < 1 {
 		return "", fmt.Errorf("no layers found")
@@ -203,11 +203,11 @@ func DockerHashFromManifest(imageManifest []byte) (string, error) {
 	return layers[len(layers)-1].Digest.Hex, nil
 }
 
-func SdInfoEve(devicePath, syslogOutput, eveReleaseOutput string) error {
+func SDInfoEve(devicePath, syslogOutput, eveReleaseOutput string) error {
 	eveInfo, err := eden.GetInfoFromSDCard(devicePath)
 	if err != nil {
 		log.Info("Check is EVE on SD and your access to read SD")
-		return fmt.Errorf("Problem with access to EVE partitions: %v", err)
+		return fmt.Errorf("problem with access to EVE partitions: %w", err)
 	}
 	if eveInfo.EVERelease == nil {
 		log.Warning("No eve-release found. Probably, no EVE on SD card")

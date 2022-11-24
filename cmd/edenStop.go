@@ -21,7 +21,7 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			eden.StopEden(
 				cfg.Runtime.AdamRm, cfg.Runtime.RedisRm,
-				cfg.Runtime.RegistryRm, cfg.Runtime.EserverRm,
+				cfg.Runtime.RegistryRm, cfg.Runtime.EServerRm,
 				cfg.Eve.Remote, cfg.Eve.Pid,
 				swtpmPidFile(cfg), cfg.Sdn.PidFile,
 				cfg.Eve.DevModel, cfg.Runtime.VmName,
@@ -37,7 +37,7 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.AdamRm, "adam-rm", "", false, "adam rm on stop")
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.RegistryRm, "registry-rm", "", false, "registry rm on stop")
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.RedisRm, "redis-rm", "", false, "redis rm on stop")
-	stopCmd.Flags().BoolVarP(&cfg.Runtime.EserverRm, "eserver-rm", "", false, "eserver rm on stop")
+	stopCmd.Flags().BoolVarP(&cfg.Runtime.EServerRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
 	stopCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 

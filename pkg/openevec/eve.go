@@ -28,19 +28,20 @@ func StartEve(vmName string, cfg *EdenSetupArgs) error {
 		return nil
 	}
 
-	if cfg.Eve.DevModel == defaults.DefaultParallelsModel {
+	switch {
+	case cfg.Eve.DevModel == defaults.DefaultParallelsModel:
 		if err := eden.StartEVEParallels(vmName, cfg.Eve.ImageFile, cfg.Eve.QemuCpus, cfg.Eve.QemuMemory, cfg.Eve.HostFwd); err != nil {
-			return fmt.Errorf("cannot start eve: %s", err)
+			return fmt.Errorf("cannot start eve: %w", err)
 		} else {
 			log.Infof("EVE is starting in Parallels")
 		}
-	} else if cfg.Eve.DevModel == defaults.DefaultVBoxModel {
+	case cfg.Eve.DevModel == defaults.DefaultVBoxModel:
 		if err := eden.StartEVEVBox(vmName, cfg.Eve.ImageFile, cfg.Eve.QemuCpus, cfg.Eve.QemuMemory, cfg.Eve.HostFwd); err != nil {
-			return fmt.Errorf("cannot start eve: %s", err)
+			return fmt.Errorf("cannot start eve: %w", err)
 		} else {
 			log.Infof("EVE is starting in Virtual Box")
 		}
-	} else {
+	default:
 		if err := StartEveQemu(cfg); err != nil {
 			return err
 		}
@@ -60,7 +61,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	} else {
 		netModel, err = edensdn.LoadNetModeFromFile(cfg.Sdn.NetModelFile)
 		if err != nil {
-			return fmt.Errorf("failed to load network model from file '%s': %v",
+			return fmt.Errorf("failed to load network model from file '%s': %w",
 				cfg.Sdn.NetModelFile, err)
 		}
 	}
@@ -75,7 +76,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		nets, err := utils.GetSubnetsNotUsed(1)
 		if err != nil {
-			return fmt.Errorf("failed to get unused IP subnet: %s", err)
+			return fmt.Errorf("failed to get unused IP subnet: %w", err)
 		}
 		imageDir := filepath.Dir(cfg.Sdn.ImageFile)
 		firmware := []string{"OVMF_CODE.fd", "OVMF_VARS.fd"}
@@ -100,18 +101,18 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 				IPNet:     nets[0].Subnet,
 				DHCPStart: nets[0].FirstAddress,
 			},
-			NetDevBasePort: uint16(cfg.Eve.QemuConfig.NetdevSocketPort),
+			NetDevBasePort: uint16(cfg.Eve.QemuConfig.NetDevSocketPort),
 			PidFile:        cfg.Sdn.PidFile,
 			ConsoleLogFile: cfg.Sdn.ConsoleLogFile,
 		}
 		sdnVmRunner, err := edensdn.GetSdnVMRunner(cfg.Eve.DevModel, sdnConfig)
 		if err != nil {
-			return fmt.Errorf("failed to get SDN VM runner: %v", err)
+			return fmt.Errorf("failed to get SDN VM runner: %w", err)
 		}
 		// Start SDN.
 		err = sdnVmRunner.Start()
 		if err != nil {
-			return fmt.Errorf("cannot start SDN: %v", err)
+			return fmt.Errorf("cannot start SDN: %w", err)
 		}
 		log.Infof("SDN is starting")
 		// Wait for SDN to start and apply network model.
@@ -127,11 +128,11 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 			}
 		}
 		if err != nil {
-			return fmt.Errorf("timeout waiting for SDN to start: %v", err)
+			return fmt.Errorf("timeout waiting for SDN to start: %w", err)
 		}
 		err = client.ApplyNetworkModel(netModel)
 		if err != nil {
-			return fmt.Errorf("failed to apply network model: %v", err)
+			return fmt.Errorf("failed to apply network model: %w", err)
 		}
 		log.Infof("SDN started, network model was submitted.")
 	}
@@ -161,16 +162,16 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	if cfg.Eve.TPM {
 		err = eden.StartSWTPM(filepath.Join(filepath.Dir(imageFile), "swtpm"))
 		if err != nil {
-			log.Errorf("cannot start swtpm: %s", err)
+			log.Errorf("cannot start swtpm: %s", err.Error())
 		} else {
 			log.Infof("swtpm is starting")
 		}
 	}
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
-		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetdevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
+		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetDevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
 		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), cfg.Runtime.TapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
-		log.Errorf("cannot start eve: %s", err)
+		log.Errorf("cannot start eve: %s", err.Error())
 	} else {
 		log.Infof("EVE is starting")
 	}
@@ -184,26 +185,26 @@ func StopEve(vmName string, cfg *EdenSetupArgs) error {
 	}
 	if cfg.Eve.DevModel == defaults.DefaultVBoxModel {
 		if err := eden.StopEVEVBox(vmName); err != nil {
-			log.Errorf("cannot stop eve: %s", err)
+			log.Errorf("cannot stop eve: %s", err.Error())
 		} else {
 			log.Infof("EVE is stopping in Virtual Box")
 		}
 	} else if cfg.Eve.DevModel == defaults.DefaultParallelsModel {
 		if err := eden.StopEVEParallels(vmName); err != nil {
-			log.Errorf("cannot stop eve: %s", err)
+			log.Errorf("cannot stop eve: %s", err.Error())
 		} else {
 			log.Infof("EVE is stopping in Virtual Box")
 		}
 	} else {
 		if err := eden.StopEVEQemu(cfg.Eve.Pid); err != nil {
-			log.Errorf("cannot stop eve: %s", err)
+			log.Errorf("cannot stop eve: %s", err.Error())
 		} else {
 			log.Infof("EVE is stopping")
 		}
 		if cfg.Eve.TPM {
 			err := eden.StopSWTPM(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "swtpm"))
 			if err != nil {
-				log.Errorf("cannot stop swtpm: %s", err)
+				log.Errorf("cannot stop swtpm: %s", err.Error())
 			} else {
 				log.Infof("swtpm is stopping")
 			}
@@ -217,7 +218,7 @@ func VersionEve() error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		log.Debugf("getControllerAndDev: %s", err)
+		log.Debugf("getControllerAndDev: %s", err.Error())
 		fmt.Println("EVE status: undefined (no onboarded EVE)")
 	} else {
 		var lastDInfo *info.ZInfoMsg
@@ -228,7 +229,7 @@ func VersionEve() error {
 			return false
 		}
 		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
-			return fmt.Errorf("Fail in get InfoLastCallback: %s", err)
+			return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 		}
 		if lastDInfo == nil {
 			log.Info("no info messages")
@@ -247,11 +248,12 @@ func StatusEve(vmName string, cfg *EdenSetupArgs) error {
 		}
 	}
 	if !cfg.Eve.Remote {
-		if cfg.Eve.DevModel == defaults.DefaultVBoxModel {
+		switch {
+		case cfg.Eve.DevModel == defaults.DefaultVBoxModel:
 			eveStatusVBox(vmName)
-		} else if cfg.Eve.DevModel == defaults.DefaultParallelsModel {
+		case cfg.Eve.DevModel == defaults.DefaultParallelsModel:
 			eveStatusParallels(vmName)
-		} else {
+		default:
 			eveStatusQEMU(cfg.ConfigName, cfg.Eve.Pid)
 		}
 	}
@@ -261,7 +263,7 @@ func StatusEve(vmName string, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func GetEveIp(ifName string, cfg *EdenSetupArgs) string {
+func GetEveIP(ifName string, cfg *EdenSetupArgs) string {
 	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		// EVE VM is behind SDN VM.
 		if ifName == "" {
@@ -274,7 +276,7 @@ func GetEveIp(ifName string, cfg *EdenSetupArgs) string {
 		}
 		ip, err := client.GetEveIfIP(ifName)
 		if err != nil {
-			log.Errorf("Failed to get EVE IP address: %v", err)
+			log.Errorf("Failed to get EVE IP address: %s", err.Error())
 			return ""
 		}
 		return ip
@@ -324,22 +326,22 @@ func ConsoleEve(cfg *EdenSetupArgs) error {
 	}
 	log.Infof("Try to telnet %s:%d", cfg.Runtime.Host, cfg.Eve.TelnetPort)
 	if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", cfg.Runtime.Host, cfg.Eve.TelnetPort))...); err != nil {
-		return fmt.Errorf("telnet error: %s", err)
+		return fmt.Errorf("telnet error: %w", err)
 	}
 	return nil
 }
 
-func SshEve(commandToRun string, cfg *EdenSetupArgs) error {
-	if _, err := os.Stat(cfg.Eden.SshKey); !os.IsNotExist(err) {
+func SSHEve(commandToRun string, cfg *EdenSetupArgs) error {
+	if _, err := os.Stat(cfg.Eden.SSHKey); !os.IsNotExist(err) {
 		changer := &adamChanger{}
 		ctrl, dev, err := changer.getControllerAndDev()
 		if err != nil {
-			return fmt.Errorf("Cannot get controller or dev, please start them and onboard: %s", err)
+			return fmt.Errorf("cannot get controller or dev, please start them and onboard: %w", err)
 		}
 		b, err := ioutil.ReadFile(ctrl.GetVars().SSHKey)
 		switch {
 		case err != nil:
-			return fmt.Errorf("error reading sshKey file %s: %v", ctrl.GetVars().SSHKey, err)
+			return fmt.Errorf("error reading sshKey file %s: %w", ctrl.GetVars().SSHKey, err)
 		}
 		dev.SetConfigItem("debug.enable.ssh", string(b))
 		if err = ctrl.ConfigSync(dev); err != nil {
@@ -349,7 +351,7 @@ func SshEve(commandToRun string, cfg *EdenSetupArgs) error {
 			return err
 		}
 	} else {
-		return fmt.Errorf("SSH key problem: %s", err)
+		return fmt.Errorf("SSH key problem: %w", err)
 	}
 
 	return nil
@@ -398,7 +400,7 @@ func NewEpochEve(eveConfigFromFile bool) error {
 		changer := &fileChanger{fileConfig: filepath.Join(edenDir, fmt.Sprintf("devUUID-%s.json", dev.GetID()))}
 		_, devFromFile, err := changer.getControllerAndDev()
 		if err != nil {
-			return fmt.Errorf("getControllerAndDev: %s", err)
+			return fmt.Errorf("getControllerAndDev: %w", err)
 		}
 		dev = devFromFile
 	}
@@ -430,7 +432,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 			}
 			netModel, err := client.GetNetworkModel()
 			if err != nil {
-				return fmt.Errorf("Failed to get network model: %v", err)
+				return fmt.Errorf("failed to get network model: %w", err)
 			}
 			for i := range netModel.Ports {
 				eveIfNames = append(eveIfNames, fmt.Sprintf("eth%d", i))
@@ -451,7 +453,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 				err = eden.SetLinkStateQemu(cfg.Eve.QemuConfig.MonitorPort, ifName, bringUp)
 			}
 		default:
-			return fmt.Errorf("Link operations are not supported for devmodel '%s'", cfg.Eve.DevModel)
+			return fmt.Errorf("link operations are not supported for devmodel '%s'", cfg.Eve.DevModel)
 		}
 		if err != nil {
 			return err
@@ -468,7 +470,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 	case defaults.DefaultQemuModel:
 		linkStates, err = eden.GetLinkStatesQemu(cfg.Eve.QemuConfig.MonitorPort, eveIfNames)
 	default:
-		return fmt.Errorf("Link operations are not supported for devmodel '%s'", cfg.Eve.DevModel)
+		return fmt.Errorf("link operations are not supported for devmodel '%s'", cfg.Eve.DevModel)
 	}
 	if err != nil {
 		return err
@@ -502,19 +504,17 @@ func getEveNetworkInfo() (networks []*info.ZInfoNetwork, err error) {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		return nil, fmt.Errorf("getControllerAndDev failed: %s", err)
+		return nil, fmt.Errorf("getControllerAndDev failed: %w", err)
 	}
 	eveState := eve.Init(ctrl, dev)
 	if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
-		return nil, fmt.Errorf("InfoLastCallback failed: %s", err)
+		return nil, fmt.Errorf("InfoLastCallback failed: %w", err)
 	}
 	if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
-		return nil, fmt.Errorf("MetricLastCallback failed: %s", err)
+		return nil, fmt.Errorf("MetricLastCallback failed: %w", err)
 	}
 	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
-		for _, nw := range lastDInfo.Network {
-			networks = append(networks, nw)
-		}
+		networks = append(networks, lastDInfo.Network...)
 	}
 	return networks, nil
 }

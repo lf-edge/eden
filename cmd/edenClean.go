@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -20,8 +19,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Clean harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", *configName, defaults.DefaultConfigSaved))
-			if err := openevec.EdenClean(*cfg, configSaved, *configName); err != nil {
+			if err := openevec.EdenClean(*cfg, *configName); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)
 			}
 		},
@@ -42,7 +40,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 	cleanCmd.Flags().StringVarP(&cfg.Adam.Redis.Dist, "redis-dist", "", cfg.Adam.Redis.Dist, "redis dist")
 	cleanCmd.Flags().StringVarP(&cfg.Eve.QemuFileToSave, "qemu-config", "", "", "file to save qemu config")
 	cleanCmd.Flags().StringVarP(&cfg.Adam.Dist, "adam-dist", "", cfg.Adam.Dist, "adam dist to start (required)")
-	cleanCmd.Flags().StringVarP(&cfg.Eden.Images.EserverImageDist, "image-dist", "", "", "image dist for eserver")
+	cleanCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", "", "image dist for eserver")
 
 	cleanCmd.Flags().StringVarP(&cfg.Eden.CertsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
 	cleanCmd.Flags().StringVarP(&cfg.Runtime.ConfigDir, "config-dist", "", configDist, "directory for config")

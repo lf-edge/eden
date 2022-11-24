@@ -20,8 +20,8 @@ func CreateRent(rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl
 		if cfg.ConfigName == defaults.DefaultContext {
 			configPrefix = ""
 		}
-		rolIPXEUrl = fmt.Sprintf("http://%s:%d/%s/ipxe.efi.cfg", cfg.Adam.CertsEVEIP, cfg.Eden.Eserver.Port, path.Join("eserver", configPrefix))
-		//log.Debugf("ipxe-url is empty, will use default one: %s", packetIPXEUrl)
+		rolIPXEUrl = fmt.Sprintf("http://%s:%d/%s/ipxe.efi.cfg", cfg.Adam.CertsEVEIP, cfg.Eden.EServer.Port, path.Join("eserver", configPrefix))
+		// log.Debugf("ipxe-url is empty, will use default one: %s", packetIPXEUrl)
 	}
 	r := &rolgo.DeviceRentCreateRequest{Model: rolModel, Manufacturer: rolManufacturer, Name: rolRentName,
 		IpxeUrl: rolIPXEUrl}
@@ -29,7 +29,7 @@ func CreateRent(rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl
 	if err == nil {
 		fmt.Println(rent.Id)
 	} else {
-		return fmt.Errorf("unable to create device rent: %v", err)
+		return fmt.Errorf("unable to create device rent: %w", err)
 	}
 	return nil
 }

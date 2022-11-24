@@ -100,7 +100,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.AppAdapters, "adapters", nil, "adapters to assign to the application instance")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.PodNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.ImageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
-	podDeployCmd.Flags().BoolVar(&cfg.Runtime.AclOnlyHost, "only-host", false, "Allow access only to host and external networks")
+	podDeployCmd.Flags().BoolVar(&cfg.Runtime.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.NoHyper, "no-hyper", false, "Run pod without hypervisor")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.Registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.DirectLoad, "direct", true, "Use direct download for image instead of eserver")
@@ -109,12 +109,12 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringArrayVar(&cfg.Runtime.Mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.VolumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.Profiles, "profile", nil, "profile to set for app")
-	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.Acl, "acl", nil, `Allow access only to defined hosts/ips/subnets.
+	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.ACL, "acl", nil, `Allow access only to defined hosts/ips/subnets.
 Without explicitly configured ACLs, all traffic is allowed.
 You can set ACL for a particular network in format '<network_name[:endpoint[:action]]>', where 'action' is either 'allow' (default) or 'drop'.
 With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
-	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.Vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
+	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.VLANs, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.OpenStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.DatastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
@@ -129,7 +129,7 @@ func newPodPsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "List pods",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.PodPs(cfg); err != nil {
-				log.Fatalf("Eve pod deploy failed: %s", err)
+				log.Fatalf("EVE pod deploy failed: %s", err)
 			}
 		},
 	}
@@ -145,7 +145,7 @@ func newPodStopCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
 			if err := openevec.PodStop(appName); err != nil {
-				log.Fatalf("Eve pod stop failed: %s", err)
+				log.Fatalf("EVE pod stop failed: %s", err)
 			}
 		},
 	}
@@ -162,7 +162,7 @@ func newPodPurgeCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			appName := args[0]
 			explicitVolumes := cmd.Flags().Changed("volumes")
 			if err := openevec.PodPurge(cfg.Runtime.VolumesToPurge, appName, explicitVolumes); err != nil {
-				log.Fatalf("Eve pod purge failed: %s", err)
+				log.Fatalf("EVE pod purge failed: %s", err)
 			}
 		},
 	}
@@ -180,7 +180,7 @@ func newPodRestartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
 			if err := openevec.PodRestart(appName); err != nil {
-				log.Fatalf("Eve pod restart failed: %s", err)
+				log.Fatalf("EVE pod restart failed: %s", err)
 			}
 		},
 	}
@@ -196,7 +196,7 @@ func newPodStartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
 			if err := openevec.PodStart(appName); err != nil {
-				log.Fatalf("Eve pod start failed: %s", err)
+				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
 	}
@@ -212,7 +212,7 @@ func newPodDeleteCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
 			if _, err := openevec.PodDelete(appName, cfg.Runtime.DeleteVolumes); err != nil {
-				log.Fatalf("Eve pod start failed: %s", err)
+				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
 	}
@@ -236,7 +236,7 @@ func newPodLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
 			if err := openevec.PodLogs(appName, outputTail, outputFields, outputFormat); err != nil {
-				log.Fatalf("Eve pod start failed: %s", err)
+				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
 	}
@@ -260,20 +260,20 @@ func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			appName := args[0]
 			// TODO: might be cfg.Runtime
 			if err := openevec.PodModify(appName, cfg); err != nil {
-				log.Fatalf("Eve pod start failed: %s", err)
+				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
 	}
 
 	podModifyCmd.Flags().StringSliceVarP(&cfg.Runtime.PortPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
-	podModifyCmd.Flags().BoolVar(&cfg.Runtime.AclOnlyHost, "only-host", false, "Allow access only to host and external networks")
+	podModifyCmd.Flags().BoolVar(&cfg.Runtime.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podModifyCmd.Flags().StringSliceVar(&cfg.Runtime.PodNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
-	podModifyCmd.Flags().StringSliceVar(&cfg.Runtime.Acl, "acl", nil, `Allow access only to defined hosts/ips/subnets.
+	podModifyCmd.Flags().StringSliceVar(&cfg.Runtime.ACL, "acl", nil, `Allow access only to defined hosts/ips/subnets.
 Without explicitly configured ACLs, all traffic is allowed.
 You can set ACL for a particular network in format '<network_name[:endpoint[:action]]>', where 'action' is either 'allow' (default) or 'drop'.
 With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
-	podModifyCmd.Flags().StringSliceVar(&cfg.Runtime.Vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
+	podModifyCmd.Flags().StringSliceVar(&cfg.Runtime.VLANs, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 
 	return podModifyCmd
