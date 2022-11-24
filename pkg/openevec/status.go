@@ -69,7 +69,7 @@ func Status(cfg *EdenSetupArgs) error {
 			configName := el
 			_, err := utils.LoadConfigFileContext(context.GetCurrentConfig())
 			if err != nil {
-				log.Fatalf("error reading config: %s", err.Error())
+				return fmt.Errorf("error reading config: %s", err.Error())
 			}
 			eveUUID := cfg.Eve.CertsUUID
 			edenDir, err := utils.DefaultEdenDir()
@@ -89,7 +89,9 @@ func Status(cfg *EdenSetupArgs) error {
 			}
 			fmt.Println()
 			if statusAdam != "container doesn't exist" {
-				eveStatusRemote()
+				if err := eveStatusRemote(); err != nil {
+					return err
+				}
 			}
 			if !cfg.Eve.Remote {
 				if cfg.Eve.DevModel == defaults.DefaultVBoxModel {
@@ -121,51 +123,53 @@ func eveRequestsAdam() {
 	}
 }
 
-func eveStatusRemote() {
+func eveStatusRemote() error {
 	log.Debugf("Will try to obtain info from ADAM")
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
 		log.Debugf("getControllerAndDev: %s", err)
 		fmt.Printf("%s EVE status: undefined (no onboarded EVE)\n", statusWarn())
-	} else {
-		eveState := eve.Init(ctrl, dev)
-		if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
-			log.Fatalf("Fail in get InfoLastCallback: %s", err)
-		}
-		if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
-			log.Fatalf("Fail in get InfoLastCallback: %s", err)
-		}
-		if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
-			var ips []string
-			for _, nw := range lastDInfo.Network {
-				ips = append(ips, nw.IPAddrs...)
-			}
-			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
-			var lastseen = time.Unix(eveState.InfoAndMetrics().GetLastInfoTime().GetSeconds(), 0)
-			var timenow = time.Now().Unix()
-			fmt.Printf("\tLast info received time: %s\n", lastseen)
-			if (timenow - lastseen.Unix()) > 600 {
-				fmt.Printf("\t EVE MIGHT BE DOWN OR CONNECTIVITY BETWEEN EVE AND ADAM WAS LOST\n")
-			}
-		} else {
-			fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...")
-		}
-		if lastDMetric := eveState.InfoAndMetrics().GetDeviceMetrics(); lastDMetric != nil {
-			status := statusOK()
-			if lastDMetric.Memory.GetUsedPercentage() >= 70 {
-				status = statusWarn()
-			}
-			if lastDMetric.Memory.GetUsedPercentage() >= 90 {
-				status = statusBad()
-			}
-			fmt.Printf("%s EVE memory: %s/%s\n", status,
-				humanize.Bytes((uint64)(lastDMetric.Memory.GetUsedMem()*humanize.MByte)),
-				humanize.Bytes((uint64)(lastDMetric.Memory.GetAvailMem()*humanize.MByte)))
-		} else {
-			fmt.Printf("%s EVE memory: %s\n", statusWarn(), "waiting for info...")
-		}
+		return nil
 	}
+
+	eveState := eve.Init(ctrl, dev)
+	if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {
+		return fmt.Errorf("Fail in get InfoLastCallback: %s", err)
+	}
+	if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
+		return fmt.Errorf("Fail in get InfoLastCallback: %s", err)
+	}
+	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
+		var ips []string
+		for _, nw := range lastDInfo.Network {
+			ips = append(ips, nw.IPAddrs...)
+		}
+		fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
+		var lastseen = time.Unix(eveState.InfoAndMetrics().GetLastInfoTime().GetSeconds(), 0)
+		var timenow = time.Now().Unix()
+		fmt.Printf("\tLast info received time: %s\n", lastseen)
+		if (timenow - lastseen.Unix()) > 600 {
+			fmt.Printf("\t EVE MIGHT BE DOWN OR CONNECTIVITY BETWEEN EVE AND ADAM WAS LOST\n")
+		}
+	} else {
+		fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...")
+	}
+	if lastDMetric := eveState.InfoAndMetrics().GetDeviceMetrics(); lastDMetric != nil {
+		status := statusOK()
+		if lastDMetric.Memory.GetUsedPercentage() >= 70 {
+			status = statusWarn()
+		}
+		if lastDMetric.Memory.GetUsedPercentage() >= 90 {
+			status = statusBad()
+		}
+		fmt.Printf("%s EVE memory: %s/%s\n", status,
+			humanize.Bytes((uint64)(lastDMetric.Memory.GetUsedMem()*humanize.MByte)),
+			humanize.Bytes((uint64)(lastDMetric.Memory.GetAvailMem()*humanize.MByte)))
+	} else {
+		fmt.Printf("%s EVE memory: %s\n", statusWarn(), "waiting for info...")
+	}
+	return nil
 }
 
 func eveStatusQEMU(configName, evePidFile string) {

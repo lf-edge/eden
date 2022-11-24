@@ -4,21 +4,20 @@ import (
 	"fmt"
 
 	"github.com/lf-edge/eden/pkg/linuxkit"
-	log "github.com/sirupsen/logrus"
 )
 
 func GcpImageDelete(gcpKey, gcpProjectName, gcpImageName, gcpBucketName string) error {
 	gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
 	if err != nil {
-		log.Fatalf("Unable to connect to GCP: %v", err)
+		return fmt.Errorf("unable to connect to GCP: %v", err)
 	}
 	fileName := fmt.Sprintf("%s.img.tar.gz", gcpImageName)
 	err = gcpClient.DeleteImage(gcpImageName)
 	if err != nil {
-		log.Fatalf("Error in delete of Google Compute Image: %v", err)
+		return fmt.Errorf("error in delete of Google Compute Image: %v", err)
 	}
 	if err := gcpClient.RemoveFile(fileName, gcpBucketName); err != nil {
-		log.Fatalf("Error id delete from Google Storage: %v", err)
+		return fmt.Errorf("error id delete from Google Storage: %v", err)
 	}
 	return nil
 }

@@ -35,54 +35,67 @@ import (
 	"golang.org/x/term"
 )
 
-func generateScripts(in string, out string, configFile string) {
+func generateScripts(in string, out string, configFile string) error {
 	tmpl, err := ioutil.ReadFile(in)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	script, err := utils.RenderTemplate(configFile, string(tmpl))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	err = ioutil.WriteFile(out, []byte(script), 0644)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 func SetupEden(configName string, cfg EdenSetupArgs) error {
 
-	configCheck(configName)
+	if err := configCheck(configName); err != nil {
+		return err
+	}
 
 	if cfg.Runtime.Netboot && cfg.Runtime.Installer {
-		log.Fatal("Please use netboot or installer flag, not both")
+		return fmt.Errorf("please use netboot or installer flag, not both")
 	}
 	if cfg.Runtime.Netboot || cfg.Runtime.Installer {
 		if cfg.Eve.DevModel != defaults.DefaultGeneralModel {
-			log.Fatalf("Cannot use netboot for devmodel %s, please use general instead", cfg.Eve.DevModel)
+			return fmt.Errorf("cannot use netboot for devmodel %s, please use general instead", cfg.Eve.DevModel)
 		}
 	}
 	if cfg.Eve.DevModel == defaults.DefaultQemuModel {
-		setupQemuConfig(cfg)
+		if err := setupQemuConfig(cfg); err != nil {
+			return err
+		}
 	}
 
 	if cfg.Eve.CustomInstaller.Path == "" {
-		setupConfigDir(cfg)
+		if err := setupConfigDir(cfg); err != nil {
+			return fmt.Errorf("cannot setup ConfigDir: %s", err)
+		}
 	}
 
-	setupEve(cfg)
+	if err := setupEve(cfg); err != nil {
+		return fmt.Errorf("cannot setup EVE: %s", err)
+	}
 
-	setupEdenScripts(cfg)
+	if err := setupEdenScripts(cfg); err != nil {
+		return fmt.Errorf("failed to generate scripts: %s", err)
+	}
 
 	// Build Eden-SDN VM image unless the SDN is disabled.
 	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
-		setupSdn(cfg)
+		if err := setupSdn(cfg); err != nil {
+			return fmt.Errorf("cannot setup SDN: %s", err)
+		}
 	}
 
 	return nil
 }
 
-func setupQemuConfig(cfg EdenSetupArgs) {
+func setupQemuConfig(cfg EdenSetupArgs) error {
 	var err error
 	if _, err = os.Stat(cfg.Eve.QemuFileToSave); err == nil || !os.IsNotExist(err) {
 		log.Debugf("QEMU config already exists: %s", cfg.Eve.QemuFileToSave)
@@ -91,7 +104,7 @@ func setupQemuConfig(cfg EdenSetupArgs) {
 	if cfg.Eve.QemuDTBPath != "" {
 		qemuDTBPathAbsolute, err = filepath.Abs(cfg.Eve.QemuDTBPath)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 	var qemuFirmwareParam []string
@@ -101,13 +114,13 @@ func setupQemuConfig(cfg EdenSetupArgs) {
 		}
 	}
 	if cfg.Eve.CustomInstaller.Path != "" && cfg.Eve.Disks == 0 {
-		log.Fatal("EVE installer requires at least one disK")
+		return fmt.Errorf("EVE installer requires at least one disK")
 	}
 	var qemuDisksParam []string
 	for ind := 0; ind < cfg.Eve.Disks; ind++ {
 		diskFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), fmt.Sprintf("eve-disk-%d.qcow2", ind+1))
 		if err := utils.CreateDisk(diskFile, "qcow2", uint64(cfg.Eve.ImageSizeMB*1024*1024)); err != nil {
-			log.Fatal(err)
+			return err
 		}
 		qemuDisksParam = append(qemuDisksParam, diskFile)
 	}
@@ -120,20 +133,21 @@ func setupQemuConfig(cfg EdenSetupArgs) {
 	}
 	conf, err := settings.GenerateQemuConfig()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	f, err := os.Create(cfg.Eve.QemuFileToSave)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = f.Write(conf)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err := f.Close(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	log.Infof("QEMU config file generated: %s", cfg.Eve.QemuFileToSave)
+	return nil
 }
 
 func setupEve(cfg EdenSetupArgs) error {
@@ -165,17 +179,15 @@ func setupEve(cfg EdenSetupArgs) error {
 	if !cfg.Eden.Download {
 		if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
 			if err := eden.CloneFromGit(cfg.Eve.Dist, cfg.Eve.Repo, cfg.Eve.Tag); err != nil {
-				log.Errorf("cannot clone EVE: %s", err)
-			} else {
-				log.Info("clone EVE done")
+				return fmt.Errorf("cannot clone EVE: %s", err)
 			}
+			log.Info("clone EVE done")
 			builedImage := ""
 			builedAdditional := ""
 			if builedImage, builedAdditional, err = eden.MakeEveInRepo(eveDesc, cfg.Eve.Dist); err != nil {
-				log.Errorf("cannot MakeEveInRepo: %s", err)
-			} else {
-				log.Info("MakeEveInRepo done")
+				return fmt.Errorf("cannot MakeEveInRepo: %s", err)
 			}
+			log.Info("MakeEveInRepo done")
 			if err = utils.CopyFile(builedImage, cfg.Eve.ImageFile); err != nil {
 				return err
 			}
@@ -191,174 +203,175 @@ func setupEve(cfg EdenSetupArgs) error {
 		} else {
 			log.Infof("EVE already exists in dir: %s", cfg.Eve.Dist)
 		}
-	} else { // download
-		imageTag, err := eveDesc.Image()
-		if err != nil {
-			return err
+		return nil
+	}
+	// download
+	imageTag, err := eveDesc.Image()
+	if err != nil {
+		return err
+	}
+	if cfg.Runtime.Netboot {
+		if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
+			return fmt.Errorf("cannot download EVE: %s", err)
 		}
-		if cfg.Runtime.Netboot {
-			if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
-				log.Errorf("cannot download EVE: %s", err)
+		if err := eden.StartEServer(cfg.Eden.Eserver.Port, cfg.Eden.Eserver.Images.EserverImageDist, cfg.Eden.Eserver.Force, cfg.Eden.Eserver.Tag); err != nil {
+			log.Errorf("cannot start eserver: %s", err)
+		} else {
+			log.Infof("Eserver is running and accessible on port %d", cfg.Eden.Eserver.Port)
+		}
+		eServerIP := cfg.Adam.CertsEVEIP
+		eServerPort := strconv.Itoa(cfg.Eden.Eserver.Port)
+		server := &eden.EServer{
+			EServerIP:   eServerIP,
+			EServerPort: eServerPort,
+		}
+		// we should uncompress kernel for arm64
+		if cfg.Eve.Arch == "arm64" {
+			// rename to temp file
+			if err := os.Rename(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel"),
+				filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old")); err != nil {
+				// probably naming changed, give up
+				log.Warnf("Cannot rename kernel: %v", err)
 			} else {
-				if err := eden.StartEServer(cfg.Eden.Eserver.Port, cfg.Eden.Eserver.Images.EserverImageDist, cfg.Eden.Eserver.Force, cfg.Eden.Eserver.Tag); err != nil {
-					log.Errorf("cannot start eserver: %s", err)
+				r, err := os.Open(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old"))
+				if err != nil {
+					return fmt.Errorf("Open kernel.old: %v", err)
+				}
+				uncompressedStream, err := gzip.NewReader(r)
+				if err != nil {
+					// in case of non-gz rename back
+					log.Errorf("gzip: NewReader failed: %v", err)
+					if err := os.Rename(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old"),
+						filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel")); err != nil {
+						return fmt.Errorf("Cannot rename kernel: %v", err)
+					}
 				} else {
-					log.Infof("Eserver is running and accessible on port %d", cfg.Eden.Eserver.Port)
-				}
-				eServerIP := cfg.Adam.CertsEVEIP
-				eServerPort := strconv.Itoa(cfg.Eden.Eserver.Port)
-				server := &eden.EServer{
-					EServerIP:   eServerIP,
-					EServerPort: eServerPort,
-				}
-				// we should uncompress kernel for arm64
-				if cfg.Eve.Arch == "arm64" {
-					// rename to temp file
-					if err := os.Rename(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel"),
-						filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old")); err != nil {
-						// probably naming changed, give up
-						log.Warnf("Cannot rename kernel: %v", err)
-					} else {
-						r, err := os.Open(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old"))
-						if err != nil {
-							return fmt.Errorf("Open kernel.old: %v", err)
-						}
-						uncompressedStream, err := gzip.NewReader(r)
-						if err != nil {
-							// in case of non-gz rename back
-							log.Errorf("gzip: NewReader failed: %v", err)
-							if err := os.Rename(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel.old"),
-								filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel")); err != nil {
-								return fmt.Errorf("Cannot rename kernel: %v", err)
-							}
-						} else {
-							defer uncompressedStream.Close()
-							out, err := os.Create(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel"))
-							if err != nil {
-								return fmt.Errorf("Cannot create file to save: %v", err)
-							}
-							if _, err := io.Copy(out, uncompressedStream); err != nil {
-								return fmt.Errorf("Cannot copy to decompressed file: %v", err)
-							}
-							if err := out.Close(); err != nil {
-								return fmt.Errorf("Cannot close file: %v", err)
-							}
-						}
+					defer uncompressedStream.Close()
+					out, err := os.Create(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "kernel"))
+					if err != nil {
+						return fmt.Errorf("Cannot create file to save: %v", err)
+					}
+					if _, err := io.Copy(out, uncompressedStream); err != nil {
+						return fmt.Errorf("Cannot copy to decompressed file: %v", err)
+					}
+					if err := out.Close(); err != nil {
+						return fmt.Errorf("Cannot close file: %v", err)
 					}
 				}
-				configPrefix := cfg.ConfigName
-				if configPrefix == defaults.DefaultContext {
-					//in case of default context we use empty prefix to keep compatibility
-					configPrefix = ""
-				}
-				items, _ := ioutil.ReadDir(filepath.Dir(cfg.Eve.ImageFile))
-				for _, item := range items {
-					if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
-						if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(cfg.Eve.ImageFile), item.Name()), configPrefix); err != nil {
-							return fmt.Errorf("AddFileIntoEServer: %s", err)
-						}
-					}
-				}
-				ipxeFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "ipxe.efi.cfg")
-				ipxeFileBytes, err := ioutil.ReadFile(ipxeFile)
-				if err != nil {
-					return fmt.Errorf("Cannot read ipxe file: %v", err)
-				}
-				re := regexp.MustCompile("# set url .*")
-				ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
-					[]byte(fmt.Sprintf("set url http://%s:%s/%s/", eServerIP, eServerPort, path.Join("eserver", configPrefix))))
-				if cfg.Runtime.Softserial != "" {
-					ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
-						"eve_soft_serial=${mac:hexhyp}",
-						fmt.Sprintf("eve_soft_serial=%s", cfg.Runtime.Softserial)))
-				}
-				ipxeOverrideSlice := strings.Split(cfg.Runtime.IpxeOverride, "||")
-				if len(ipxeOverrideSlice) > 1 {
-					fmt.Println(ipxeOverrideSlice)
-
-					for i := 0; ; i += 2 {
-						if i+1 >= len(ipxeOverrideSlice) {
-							break
-						}
-						re := regexp.MustCompile(ipxeOverrideSlice[i])
-						ipxeFileReplaced = re.ReplaceAll(ipxeFileReplaced, []byte(ipxeOverrideSlice[i+1]))
-					}
-				}
-				_ = os.MkdirAll(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "tftp"), 0777)
-				ipxeConfigFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "tftp", "ipxe.efi.cfg")
-				_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
-				i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configPrefix)
-				if err != nil {
+			}
+		}
+		configPrefix := cfg.ConfigName
+		if configPrefix == defaults.DefaultContext {
+			//in case of default context we use empty prefix to keep compatibility
+			configPrefix = ""
+		}
+		items, _ := ioutil.ReadDir(filepath.Dir(cfg.Eve.ImageFile))
+		for _, item := range items {
+			if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
+				if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(cfg.Eve.ImageFile), item.Name()), configPrefix); err != nil {
 					return fmt.Errorf("AddFileIntoEServer: %s", err)
 				}
-				log.Infof("download EVE done: %s", imageTag)
-				log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
-				log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/%s). Use it to boot your EVE via network", eServerIP, eServerPort, i.FileName)
-				log.Infof("EVE already exists: %s", filepath.Dir(cfg.Eve.ImageFile))
 			}
-		} else if cfg.Runtime.Installer {
-			if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveInstaller(eveDesc, cfg.Eve.ImageFile); err != nil {
-					log.Errorf("cannot download EVE: %s", err)
-				} else {
-					log.Infof("download EVE done: %s", imageTag)
-					log.Infof(model.DiskReadyMessage(), cfg.Eve.ImageFile)
+		}
+		ipxeFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "ipxe.efi.cfg")
+		ipxeFileBytes, err := ioutil.ReadFile(ipxeFile)
+		if err != nil {
+			return fmt.Errorf("Cannot read ipxe file: %v", err)
+		}
+		re := regexp.MustCompile("# set url .*")
+		ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
+			[]byte(fmt.Sprintf("set url http://%s:%s/%s/", eServerIP, eServerPort, path.Join("eserver", configPrefix))))
+		if cfg.Runtime.Softserial != "" {
+			ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
+				"eve_soft_serial=${mac:hexhyp}",
+				fmt.Sprintf("eve_soft_serial=%s", cfg.Runtime.Softserial)))
+		}
+		ipxeOverrideSlice := strings.Split(cfg.Runtime.IpxeOverride, "||")
+		if len(ipxeOverrideSlice) > 1 {
+			fmt.Println(ipxeOverrideSlice)
+
+			for i := 0; ; i += 2 {
+				if i+1 >= len(ipxeOverrideSlice) {
+					break
 				}
-			} else {
-				log.Infof("download EVE done: %s", imageTag)
-				log.Infof("EVE already exists: %s", cfg.Eve.ImageFile)
+				re := regexp.MustCompile(ipxeOverrideSlice[i])
+				ipxeFileReplaced = re.ReplaceAll(ipxeFileReplaced, []byte(ipxeOverrideSlice[i+1]))
 			}
-		} else { // download EVE live image
-			if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
-				if err := utils.DownloadEveLive(eveDesc, cfg.Eve.ImageFile); err != nil {
-					log.Errorf("cannot download EVE: %s", err)
-				} else {
-					log.Infof("download EVE done: %s", imageTag)
-					log.Infof(model.DiskReadyMessage(), cfg.Eve.ImageFile)
-				}
-				if imageFormat == "qcow2" {
-					if err := utils.DownloadUEFI(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
-						log.Errorf("cannot download UEFI: %v", err)
-					} else {
-						log.Infof("download UEFI done")
-					}
-				}
-			} else {
-				log.Infof("download EVE done: %s", imageTag)
-				log.Infof("EVE already exists: %s", cfg.Eve.ImageFile)
+		}
+		_ = os.MkdirAll(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "tftp"), 0777)
+		ipxeConfigFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "tftp", "ipxe.efi.cfg")
+		_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
+		i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configPrefix)
+		if err != nil {
+			return fmt.Errorf("AddFileIntoEServer: %s", err)
+		}
+		log.Infof("download EVE done: %s", imageTag)
+		log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
+		log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/%s). Use it to boot your EVE via network", eServerIP, eServerPort, i.FileName)
+		log.Infof("EVE already exists: %s", filepath.Dir(cfg.Eve.ImageFile))
+	} else if cfg.Runtime.Installer {
+		if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
+			if err := utils.DownloadEveInstaller(eveDesc, cfg.Eve.ImageFile); err != nil {
+				return fmt.Errorf("cannot download EVE: %s", err)
 			}
+			log.Infof("download EVE done: %s", imageTag)
+			log.Infof(model.DiskReadyMessage(), cfg.Eve.ImageFile)
+		} else {
+			log.Infof("download EVE done: %s", imageTag)
+			log.Infof("EVE already exists: %s", cfg.Eve.ImageFile)
+		}
+	} else { // download EVE live image
+		if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
+			if err := utils.DownloadEveLive(eveDesc, cfg.Eve.ImageFile); err != nil {
+				return fmt.Errorf("cannot download EVE: %s", err)
+			}
+			log.Infof("download EVE done: %s", imageTag)
+			log.Infof(model.DiskReadyMessage(), cfg.Eve.ImageFile)
+			if imageFormat == "qcow2" {
+				if err := utils.DownloadUEFI(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
+					return fmt.Errorf("cannot download UEFI: %v", err)
+				}
+				log.Infof("download UEFI done")
+			}
+		} else {
+			log.Infof("download EVE done: %s", imageTag)
+			log.Infof("EVE already exists: %s", cfg.Eve.ImageFile)
 		}
 	}
 	return nil
 }
 
-func setupEdenScripts(cfg EdenSetupArgs) {
+func setupEdenScripts(cfg EdenSetupArgs) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Error(err)
-	} else {
-		cfgDir := home + "/.eden/"
-		_, err = os.Stat(cfgDir)
-		if err != nil {
-			// Most likely running from inside of "eden test" which sets home directory
-			// to "/no-home".
-			fmt.Printf("Directory %s access error: %s\n",
-				cfgDir, err)
-		} else {
-			shPath := viper.GetString("eden.root") + "/scripts/shell/"
-			generateScripts(shPath+"activate.sh.tmpl",
-				cfgDir+"activate.sh", cfg.ConfigName)
-			generateScripts(shPath+"activate.csh.tmpl",
-				cfgDir+"activate.csh", cfg.ConfigName)
-			fmt.Println("To activate EDEN settings run:")
-			fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
-			fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
-			fmt.Println("To deactivate them -- eden_deactivate")
-		}
+		return err
 	}
+	cfgDir := home + "/.eden/"
+	_, err = os.Stat(cfgDir)
+	if err != nil {
+		// Most likely running from inside of "eden test" which sets home directory
+		// to "/no-home".
+		fmt.Printf("Directory %s access error: %s\n",
+			cfgDir, err)
+	} else {
+		shPath := viper.GetString("eden.root") + "/scripts/shell/"
+		if err := generateScripts(shPath+"activate.sh.tmpl",
+			cfgDir+"activate.sh", cfg.ConfigName); err != nil {
+			return err
+		}
+		if err := generateScripts(shPath+"activate.csh.tmpl",
+			cfgDir+"activate.csh", cfg.ConfigName); err != nil {
+			return err
+		}
+		fmt.Println("To activate EDEN settings run:")
+		fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
+		fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
+		fmt.Println("To deactivate them -- eden_deactivate")
+	}
+	return nil
 }
 
-func setupConfigDir(cfg EdenSetupArgs) {
+func setupConfigDir(cfg EdenSetupArgs) error {
 	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
 		wifiPSK := ""
 		if cfg.Eve.Ssid != "" {
@@ -370,16 +383,14 @@ func setupConfigDir(cfg EdenSetupArgs) {
 		if cfg.Runtime.ZedcontrolURL == "" {
 			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
 				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, cfg.Runtime.GrubOptions, cfg.Adam.ApiV1); err != nil {
-				log.Errorf("cannot GenerateEveCerts: %s", err)
-			} else {
-				log.Info("GenerateEveCerts done")
+				return fmt.Errorf("cannot GenerateEveCerts: %s", err)
 			}
+			log.Info("GenerateEveCerts done")
 		} else {
 			if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK); err != nil {
-				log.Errorf("cannot GenerateEveCerts: %s", err)
-			} else {
-				log.Info("GenerateEveCerts done")
+				return fmt.Errorf("cannot GenerateEveCerts: %s", err)
 			}
+			log.Info("GenerateEveCerts done")
 		}
 	} else {
 		log.Info("GenerateEveCerts done")
@@ -389,23 +400,21 @@ func setupConfigDir(cfg EdenSetupArgs) {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsEVEIP,
 			cfg.Adam.Port, cfg.Adam.ApiV1, cfg.Runtime.Softserial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
-			log.Errorf("cannot GenerateEVEConfig: %s", err)
-		} else {
-			log.Info("GenerateEVEConfig done")
+			return fmt.Errorf("cannot GenerateEVEConfig: %s", err)
 		}
+		log.Info("GenerateEVEConfig done")
 	} else {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Runtime.ZedcontrolURL, "", 0,
 			false, cfg.Runtime.Softserial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
-			log.Errorf("cannot GenerateEVEConfig: %s", err)
-		} else {
-			log.Info("GenerateEVEConfig done")
+			return fmt.Errorf("cannot GenerateEVEConfig: %s", err)
 		}
+		log.Info("GenerateEVEConfig done")
 	}
 	if _, err := os.Lstat(cfg.Runtime.ConfigDir); !os.IsNotExist(err) {
 		//put files from config folder to generated directory
 		if err := utils.CopyFolder(utils.ResolveAbsPath(cfg.Runtime.EveConfigDir), cfg.Eden.CertsDir); err != nil {
-			log.Errorf("CopyFolder: %s", err)
+			return fmt.Errorf("CopyFolder: %s", err)
 		}
 	}
 	if cfg.Runtime.ZedcontrolURL != "" {
@@ -415,6 +424,7 @@ func setupConfigDir(cfg EdenSetupArgs) {
 		}
 		log.Printf("To onboard EVE onto %s", cfg.Runtime.ZedcontrolURL)
 	}
+	return nil
 }
 
 func setupSdn(cfg EdenSetupArgs) error {
@@ -488,10 +498,9 @@ func setupSdn(cfg EdenSetupArgs) error {
 		ImageSizeMB: cfg.Eve.ImageSizeMB,
 	}
 	if err := utils.DownloadUEFI(eveDesc, imageDir); err != nil {
-		log.Errorf("cannot download UEFI (for SDN): %v", err)
-	} else {
-		log.Infof("download UEFI (for SDN) done")
+		return fmt.Errorf("cannot download UEFI (for SDN): %v", err)
 	}
+	log.Infof("download UEFI (for SDN) done")
 	return nil
 }
 
@@ -511,13 +520,13 @@ func EdenClean(cfg EdenSetupArgs, configSaved, configName string) error {
 		}
 		if err := eden.CleanContext(cfg.Eve.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile), cfg.Eve.Pid, cfg.Eve.CertsUUID,
 			cfg.Sdn.PidFile, cfg.Runtime.VmName, configSaved, cfg.Eve.Remote); err != nil {
-			log.Fatalf("cannot CleanContext: %s", err)
+			return fmt.Errorf("cannot CleanContext: %s", err)
 		}
 	} else {
 		if err := eden.CleanEden(cfg.Eve.Dist, cfg.Adam.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile),
 			cfg.Eden.Images.EserverImageDist, cfg.Redis.Dist, cfg.Registry.Dist, cfg.Runtime.ConfigDir, cfg.Eve.Pid,
 			cfg.Sdn.PidFile, configSaved, cfg.Eve.Remote, cfg.Eve.DevModel, cfg.Runtime.VmName); err != nil {
-			log.Fatalf("cannot CleanEden: %s", err)
+			return fmt.Errorf("cannot CleanEden: %s", err)
 		}
 	}
 	log.Infof("CleanEden done")
@@ -744,7 +753,7 @@ func EdenExport(tarFile string, cfg *EdenSetupArgs) error {
 		{Location: edenDir, Destination: "eden"},
 	}
 	if err := utils.CreateTarGz(tarFile, files); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	log.Infof("Export Eden done")
 	return nil

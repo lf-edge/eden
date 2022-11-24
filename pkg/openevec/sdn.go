@@ -235,7 +235,7 @@ func SdnNetModelApply(ref string, cfg *EdenSetupArgs) error {
 	if ref == "default" {
 		newNetModel, err = edensdn.GetDefaultNetModel()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	} else {
 		newNetModel, err = edensdn.LoadNetModeFromFile(ref)
@@ -285,7 +285,7 @@ func SdnNetConfigGraph(cfg *EdenSetupArgs) (string, error) {
 	}
 	netConfig, err := client.GetNetworkConfigGraph()
 	if err != nil {
-		log.Fatalf("Failed to get network config: %v", err)
+		return "", fmt.Errorf("failed to get network config: %v", err)
 	}
 	return netConfig, nil
 }

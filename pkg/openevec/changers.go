@@ -58,7 +58,7 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	}
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
-		log.Fatalf("CloudPrepare error: %s", err)
+		return nil, nil, err
 	}
 	data, err := ioutil.ReadFile(ctx.fileConfig)
 	if err != nil {

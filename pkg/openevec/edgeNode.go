@@ -33,7 +33,7 @@ func EdgeNodeReboot(controllerMode string) error {
 	}
 	dev.Reboot()
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-		log.Fatalf("setControllerAndDev error: %s", err)
+		return fmt.Errorf("setControllerAndDev error: %s", err)
 	}
 	log.Info("Reboot request has been sent")
 
@@ -64,11 +64,11 @@ func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode
 	var opts []expect.ExpectationOption
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		log.Fatalf("getControllerAndDev error: %s", err)
+		return fmt.Errorf("getControllerAndDev error: %s", err)
 	}
 	registryToUse := registry
 	switch registry {
@@ -263,7 +263,7 @@ func EdgeNodeGetConfig(controllerMode, fileWithConfig string) error {
 	}
 	if fileWithConfig != "" {
 		if err = ioutil.WriteFile(fileWithConfig, res, 0755); err != nil {
-			log.Fatalf("WriteFile: %s", err)
+			return fmt.Errorf("writeFile: %s", err)
 		}
 	} else {
 		fmt.Println(string(res))
@@ -415,7 +415,7 @@ func ControllerSetOptions(fileWithConfig string) error {
 			return fmt.Errorf("Stdin reading error: %s", err)
 		}
 	} else {
-		log.Fatal("Please run command with --file or use it with pipe")
+		return fmt.Errorf("please run command with --file or use it with pipe")
 	}
 	var globalOptions types.GlobalOptions
 	if err := json.Unmarshal(newOptionsBytes, &globalOptions); err != nil {

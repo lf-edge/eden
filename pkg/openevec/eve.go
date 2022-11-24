@@ -42,7 +42,7 @@ func StartEve(vmName string, cfg *EdenSetupArgs) error {
 		}
 	} else {
 		if err := StartEveQemu(cfg); err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 	return nil
@@ -60,7 +60,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	} else {
 		netModel, err = edensdn.LoadNetModeFromFile(cfg.Sdn.NetModelFile)
 		if err != nil {
-			log.Fatalf("Failed to load network model from file '%s': %v",
+			return fmt.Errorf("failed to load network model from file '%s': %v",
 				cfg.Sdn.NetModelFile, err)
 		}
 	}
@@ -75,7 +75,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		nets, err := utils.GetSubnetsNotUsed(1)
 		if err != nil {
-			log.Fatalf("Failed to get unused IP subnet: %s", err)
+			return fmt.Errorf("failed to get unused IP subnet: %s", err)
 		}
 		imageDir := filepath.Dir(cfg.Sdn.ImageFile)
 		firmware := []string{"OVMF_CODE.fd", "OVMF_VARS.fd"}
@@ -106,15 +106,14 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 		}
 		sdnVmRunner, err := edensdn.GetSdnVMRunner(cfg.Eve.DevModel, sdnConfig)
 		if err != nil {
-			log.Fatalf("failed to get SDN VM runner: %v", err)
+			return fmt.Errorf("failed to get SDN VM runner: %v", err)
 		}
 		// Start SDN.
 		err = sdnVmRunner.Start()
 		if err != nil {
-			log.Fatalf("Cannot start SDN: %v", err)
-		} else {
-			log.Infof("SDN is starting")
+			return fmt.Errorf("cannot start SDN: %v", err)
 		}
+		log.Infof("SDN is starting")
 		// Wait for SDN to start and apply network model.
 		startTime := time.Now()
 		client := &edensdn.SdnClient{
@@ -128,11 +127,11 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 			}
 		}
 		if err != nil {
-			log.Fatalf("Timeout waiting for SDN to start: %v", err)
+			return fmt.Errorf("timeout waiting for SDN to start: %v", err)
 		}
 		err = client.ApplyNetworkModel(netModel)
 		if err != nil {
-			log.Fatalf("Failed to apply network model: %v", err)
+			return fmt.Errorf("failed to apply network model: %v", err)
 		}
 		log.Infof("SDN started, network model was submitted.")
 	}
@@ -141,12 +140,12 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	if cfg.Eve.UsbNetConfFile != "" {
 		currentPath, err := os.Getwd()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		usbImagePath = filepath.Join(currentPath, defaults.DefaultDist, "usb.img")
 		err = utils.CreateUsbNetConfImg(cfg.Eve.UsbNetConfFile, usbImagePath)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 	// Prepare for EVE installation if requested.
@@ -243,7 +242,9 @@ func VersionEve() error {
 func StatusEve(vmName string, cfg *EdenSetupArgs) error {
 	statusAdam, err := eden.StatusAdam()
 	if err == nil && statusAdam != "container doesn't exist" {
-		eveStatusRemote()
+		if err := eveStatusRemote(); err != nil {
+			return err
+		}
 	}
 	if !cfg.Eve.Remote {
 		if cfg.Eve.DevModel == defaults.DefaultVBoxModel {
@@ -414,7 +415,7 @@ func NewEpochEve(eveConfigFromFile bool) error {
 func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 	var err error
 	if cfg.Eve.Remote {
-		log.Fatal("Cannot change interface link of a remote EVE")
+		return fmt.Errorf("cannot change interface link of a remote EVE")
 	}
 	// Get the set of interfaces to get/set the link state of.
 	var eveIfNames []string

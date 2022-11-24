@@ -70,7 +70,7 @@ func PodDeploy(appLink string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		log.Fatalf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %s", err)
 	}
 	var opts []expect.ExpectationOption
 	opts = append(opts, expect.WithMetadata(cfg.Runtime.PodMetadata))
@@ -159,7 +159,7 @@ func PodPs(cfg *EdenSetupArgs) error {
 		return fmt.Errorf("fail in get InfoLastCallback: %s", err)
 	}
 	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
-		log.Fatalf("fail in get MetricLastCallback: %s", err)
+		return fmt.Errorf("fail in get MetricLastCallback: %s", err)
 	}
 	if err := state.PodsList(); err != nil {
 		return err
@@ -181,7 +181,7 @@ func PodStop(appName string) error {
 		if app.Displayname == appName {
 			app.Activate = false
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				log.Fatalf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %s", err)
 			}
 			log.Infof("app %s stop done", appName)
 			return nil
@@ -211,7 +211,7 @@ func PodPurge(volumesToPurge []string, appName string, explicitVolumes bool) err
 			for i, oldUUID := range volumeConfigs {
 				v, err := ctrl.GetVolume(oldUUID)
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
 				if explicitVolumes {
 					skip := true
@@ -292,7 +292,7 @@ func PodStart(appName string) error {
 		if app.Displayname == appName {
 			app.Activate = true
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				log.Fatalf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %s", err)
 			}
 			log.Infof("app %s start done", appName)
 			return nil
@@ -335,7 +335,7 @@ func PodDelete(appName string, deleteVolumes bool) (bool, error) {
 			utils.DelEleInSlice(&configs, id)
 			dev.SetApplicationInstanceConfig(configs)
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				log.Fatalf("setControllerAndDev: %s", err)
+				return false, fmt.Errorf("setControllerAndDev: %s", err)
 			}
 			log.Infof("app %s delete done", appName)
 			return false, nil
@@ -452,7 +452,7 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 
 					appID, err := uuid.FromString(app.Uuidandversion.Uuid)
 					if err != nil {
-						log.Fatal(err)
+						return err
 					}
 					if err = ctrl.LogAppsChecker(dev.GetID(), appID, nil, eapps.HandleFactory(outputFormat, false), appLogType, 0); err != nil {
 						return fmt.Errorf("MetricChecker: %s", err)
@@ -470,12 +470,12 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
-		log.Fatalf("getControllerAndDev: %s", err)
+		return fmt.Errorf("getControllerAndDev: %s", err)
 	}
 	for _, appID := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(appID)
 		if err != nil {
-			log.Fatalf("no app in cloud %s: %s", appID, err)
+			return fmt.Errorf("no app in cloud %s: %s", appID, err)
 		}
 		if app.Displayname == appName {
 			portPublishCombined := cfg.Runtime.PortPublish
@@ -519,7 +519,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 			opts = append(opts, expect.WithACL(processAcls(cfg.Runtime.Acl)))
 			vlansParsed, err := processVLANs(cfg.Runtime.Vlans)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 			opts = append(opts, expect.WithVLANs(vlansParsed))
 			opts = append(opts, expect.WithOldApp(appName))
@@ -533,7 +533,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 				for ind, el := range app.Interfaces {
 					equals, err := utils.CompareProtoMessages(el, appInstanceConfig.Interfaces[ind])
 					if err != nil {
-						log.Fatalf("CompareMessages: %v", err)
+						return fmt.Errorf("CompareMessages: %v", err)
 					}
 					if !equals {
 						needPurge = true
@@ -553,7 +553,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 			//now we only change networks
 			app.Interfaces = appInstanceConfig.Interfaces
 			if err = changer.setControllerAndDev(ctrl, dev); err != nil {
-				log.Fatalf("setControllerAndDev: %s", err)
+				return fmt.Errorf("setControllerAndDev: %s", err)
 			}
 			if needPurge {
 				processingFunction := func(im *info.ZInfoMsg) bool {
@@ -568,7 +568,7 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 				infoQ := make(map[string]string)
 				infoQ["InfoContent.Ainfo.AppID"] = app.Uuidandversion.Uuid
 				if err = ctrl.InfoChecker(dev.GetID(), infoQ, processingFunction, einfo.InfoNew, defaults.DefaultRepeatTimeout*defaults.DefaultRepeatCount); err != nil {
-					log.Fatalf("InfoChecker: %s", err)
+					return fmt.Errorf("InfoChecker: %s", err)
 				}
 			}
 			log.Infof("app %s modify done", appName)
@@ -620,7 +620,7 @@ func PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch strin
 	if rootFile != "" {
 		rootDisk, err = diskToStruct(rootFile)
 		if err != nil {
-			log.Fatalf("unable to read root disk %s: %v", rootFile, err)
+			return fmt.Errorf("unable to read root disk %s: %v", rootFile, err)
 		}
 	}
 	if kernelFile != "" {

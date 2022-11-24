@@ -27,10 +27,10 @@ func isEncodingNeeded(contextKeySet string) bool {
 	return false
 }
 
-func ReloadConfigDetails(cfg *EdenSetupArgs) {
+func ReloadConfigDetails(cfg *EdenSetupArgs) error {
 	viperLoaded, err := utils.LoadConfigFile(cfg.ConfigFile)
 	if err != nil {
-		log.Fatalf("error reading config: %s", err)
+		return fmt.Errorf("error reading config: %s", err)
 	}
 	if viperLoaded {
 		cfg.Eve.QemuFirmware = viper.GetStringSlice("eve.firmware")
@@ -45,13 +45,14 @@ func ReloadConfigDetails(cfg *EdenSetupArgs) {
 		if cfg.Eve.ModelFile != "" {
 			filePath, err := filepath.Abs(cfg.Eve.ModelFile)
 			if err != nil {
-				log.Fatalf("cannot get absolute path for devmodelfile (%s): %v", cfg.Eve.ModelFile, err)
+				return fmt.Errorf("cannot get absolute path for devmodelfile (%s): %v", cfg.Eve.ModelFile, err)
 			}
 			if _, err := os.Stat(filePath); err != nil {
-				log.Fatalf("cannot parse devmodelfile (%s): %v", cfg.Eve.ModelFile, err)
+				return fmt.Errorf("cannot parse devmodelfile (%s): %v", cfg.Eve.ModelFile, err)
 			}
 		}
 	}
+	return nil
 }
 
 func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
@@ -235,7 +236,7 @@ func ConfigEdit(target string) error {
 		if el == contextNameEdit {
 			context.Current = contextNameEdit
 			if err = utils.RunCommandForeground(editor, context.GetCurrentConfig()); err != nil {
-				log.Fatal(err)
+				return err
 			}
 			return nil
 		}
@@ -305,7 +306,7 @@ func ConfigGet(target string, contextKeyGet string, contextAllGet bool) error {
 		if isEncodingNeeded(contextKeyGet) {
 			result, err := json.Marshal(item)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 			fmt.Println(string(result))
 		} else {
