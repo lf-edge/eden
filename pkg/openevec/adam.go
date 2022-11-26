@@ -14,7 +14,6 @@ func AdamStart(cfg *EdenSetupArgs) error {
 		return fmt.Errorf("cannot obtain executable path: %w", err)
 	}
 	log.Infof("Executable path: %s", command)
-	// TODO: This should be removed to processing config
 	if !cfg.Adam.Remote.Redis {
 		cfg.Adam.Redis.RemoteURL = ""
 	}

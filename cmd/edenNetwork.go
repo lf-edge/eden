@@ -77,7 +77,6 @@ func newNetworkNetstatCmd() *cobra.Command {
 		},
 	}
 
-	// TODO: I've added it because initially there was only one declaration linked to podLogs
 	networkNetstatCmd.Flags().UintVar(&outputTail, "tail", 0, "Show only last N lines")
 	networkNetstatCmd.Flags().Var(
 		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),

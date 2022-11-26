@@ -104,7 +104,5 @@ func newLoadRegistryCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		},
 	}
 
-	//TODO: Why are we not linking  registry IP and PORT here?
-
 	return loadRegistryCmd
 }

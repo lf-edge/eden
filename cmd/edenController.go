@@ -138,8 +138,6 @@ func newEdgeNodeEVEImageRemove(controllerMode string, cfg *openevec.EdenSetupArg
 	}
 
 	edgeNodeEVEImageRemove.Flags().StringVarP(&baseOSVersion, "os-version", "", "", "version of ROOTFS")
-	// TODO: NOT USED
-	//edgeNodeEVEImageRemove.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 
 	return edgeNodeEVEImageRemove
 }

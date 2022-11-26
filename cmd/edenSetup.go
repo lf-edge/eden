@@ -32,7 +32,6 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	}
 
 	setupCmd.Flags().BoolVarP(&cfg.Eden.Download, "download", "", cfg.Eden.Download, "download EVE or build")
-	// TODO: NOT SURE WHICH dryRun
 	setupCmd.Flags().BoolVarP(&cfg.Runtime.DryRun, "dry-run", "", false, "")
 	setupCmd.Flags().StringVar(&cfg.Runtime.EveConfigDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
 	setupCmd.Flags().BoolVar(&cfg.Runtime.NetBoot, "netboot", false, "Setup for use with network boot")
@@ -68,7 +67,6 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 
 	setupCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", cfg.Eden.Images.EServerImageDist, "image dist for eserver")
 	setupCmd.Flags().StringVarP(&cfg.Eden.BinDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")
-	// TODO: NOT SURE WHICH Force
 	setupCmd.Flags().BoolVarP(&cfg.Adam.Force, "force", "", cfg.Adam.Force, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&cfg.Adam.APIv1, "api-v1", "", cfg.Adam.APIv1, "use v1 api")
 

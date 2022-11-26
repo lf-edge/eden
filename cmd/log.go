@@ -24,7 +24,6 @@ func newLogCmd(configName, verbosity *string) *cobra.Command {
 Scans the ADAM logs for correspondence with regular expressions requests to json fields.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: add outputFormat to code
 			if err := openevec.EdenLog(cfg, outputFormat, args); err != nil {
 				log.Fatalf("Log eden failed: %s", err)
 			}

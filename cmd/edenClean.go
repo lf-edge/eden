@@ -25,7 +25,6 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 		},
 	}
 
-	// TODO: Fix it
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)

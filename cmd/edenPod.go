@@ -258,7 +258,6 @@ func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			// TODO: might be cfg.Runtime
 			if err := openevec.PodModify(appName, cfg); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
