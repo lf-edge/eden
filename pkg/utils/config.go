@@ -2,12 +2,14 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -290,6 +292,26 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 
 	certsDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultCertsDist)
 
+	parseMap := func(inp string) interface{} {
+		switch inp {
+		case "eve.hostfwd":
+			defaultPortForward := map[string]string{
+				strconv.Itoa(defaults.DefaultSSHPort): "22",
+				"5911":                                "5901",
+				"5912":                                "5902",
+				"8027":                                "8027",
+				"8028":                                "8028",
+			}
+			result, err := json.Marshal(defaultPortForward)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return string(result)
+		default:
+			log.Fatalf("Not found argument %s in config", inp)
+		}
+		return ""
+	}
 	parse := func(inp string) interface{} {
 		switch inp {
 		case "adam.tag":
@@ -362,8 +384,6 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultEveRegistry
 		case "eve.tag":
 			return defaults.DefaultEVETag
-		case "eve.hostfwd":
-			return fmt.Sprintf("{\"%d\":\"22\",\"5912\":\"5902\",\"5911\":\"5901\",\"8027\":\"8027\",\"8028\":\"8028\"}", defaults.DefaultSSHPort)
 		case "eve.dist":
 			return fmt.Sprintf("%s-%s", context.Current, defaults.DefaultEVEDist)
 		case "eve.qemu-config":
@@ -501,7 +521,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		return ""
 	}
 	var fm = template.FuncMap{
-		"parse": parse,
+		"parse":    parse,
+		"parsemap": parseMap,
 	}
 	t := template.New("t").Funcs(fm)
 	_, err = t.Parse(templateString)
@@ -538,8 +559,16 @@ func generateConfigFileFromViperTemplate(filePath string, templateString string)
 		log.Warnf("Not found argument %s in config", inp)
 		return ""
 	}
+	parseMap := func(inp string) interface{} {
+		result, err := json.Marshal(parse(inp))
+		if err != nil {
+			log.Fatalf("cannot parse %s: %s", inp, err)
+		}
+		return string(result)
+	}
 	var fm = template.FuncMap{
-		"parse": parse,
+		"parse":    parse,
+		"parsemap": parseMap,
 	}
 	t := template.New("t").Funcs(fm)
 	_, err = t.Parse(templateString)

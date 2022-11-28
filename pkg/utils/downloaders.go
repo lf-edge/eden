@@ -3,14 +3,15 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	uuid "github.com/satori/go.uuid"
 
 	log "github.com/sirupsen/logrus"
 )

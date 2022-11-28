@@ -115,7 +115,7 @@ eve:
     tag: '{{parse "eve.tag"}}'
 
     #port forwarding for EVE VM [(HOST:EVE)] when running without Eden-SDN
-    hostfwd: '{{parse "eve.hostfwd"}}'
+    hostfwd: {{  parsemap "eve.hostfwd" }}
 
     #location of eve directory
     dist: '{{parse "eve.dist"}}'

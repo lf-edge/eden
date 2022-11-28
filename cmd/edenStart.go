@@ -1,183 +1,85 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/eden"
-	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var (
-	adamDist           string
-	adamPort           int
-	adamForce          bool
-	eserverForce       bool
-	eserverImageDist   string
-	eserverPort        int
-	eserverTag         string
-	evePidFile         string
-	eveLogFile         string
-	eveRemote         bool
-	eveUsbNetConfFile string
-	vmName            string
-	cpus              int
-	mem               int
-	sdnDisable        bool
-	sdnSourceDir      string
-	sdnConfigDir      string
-	sdnImageFile      string
-	sdnLinuxkitBin    string
-	sdnCPU            int
-	sdnRAM            int
-	sdnPidFile        string
-	sdnConsoleLogFile string
-	sdnTelnetPort     int
-	sdnSSHPort        int
-	sdnMgmtPort       int
-	sdnNetModelFile   string
-)
-
-var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "start harness",
-	Long:  `Start harness.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			adamTag = viper.GetString("adam.tag")
-			eveImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
-			adamPort = viper.GetInt("adam.port")
-			adamDist = utils.ResolveAbsPath(viper.GetString("adam.dist"))
-			adamForce = viper.GetBool("adam.force")
-			adamRemoteRedisURL = viper.GetString("adam.redis.adam")
-			adamRemoteRedis = viper.GetBool("adam.remote.redis")
-			registryTag = viper.GetString("registry.tag")
-			registryPort = viper.GetInt("registry.port")
-			redisTag = viper.GetString("redis.tag")
-			redisPort = viper.GetInt("redis.port")
-			redisDist = utils.ResolveAbsPath(viper.GetString("redis.dist"))
-			redisForce = viper.GetBool("redis.force")
-			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
-			eserverPort = viper.GetInt("eden.eserver.port")
-			eserverForce = viper.GetBool("eden.eserver.force")
-			eserverTag = viper.GetString("eden.eserver.tag")
-			adamForce = viper.GetBool("adam.force")
-			devModel = viper.GetString("eve.devmodel")
-			qemuARCH = viper.GetString("eve.arch")
-			qemuOS = viper.GetString("eve.os")
-			qemuAccel = viper.GetBool("eve.accel")
-			qemuSMBIOSSerial = viper.GetString("eve.serial")
-			qemuConfigFile = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
-			qemuMonitorPort = viper.GetInt("eve.qemu.monitor-port")
-			qemuNetdevSocketPort = viper.GetInt("eve.qemu.netdev-socket-port")
-			qemuFirmware = viper.GetStringSlice("eve.firmware")
-			evePidFile = utils.ResolveAbsPath(viper.GetString("eve.pid"))
-			eveLogFile = utils.ResolveAbsPath(viper.GetString("eve.log"))
-			eveRemote = viper.GetBool("eve.remote")
-			eveUsbNetConfFile = viper.GetString("eve.usbnetconf-file")
-			hostFwd = viper.GetStringMapString("eve.hostfwd")
-			eveTelnetPort = viper.GetInt("eve.telnet-port")
-			apiV1 = viper.GetBool("adam.v1")
-			cpus = viper.GetInt("eve.cpu")
-			mem = viper.GetInt("eve.ram")
-			gcpvTPM = viper.GetBool("eve.tpm")
-			customInstallerPath = utils.ResolveAbsPath(viper.GetString("eve.custom-installer.path"))
-			customInstallerFormat = viper.GetString("eve.custom-installer.format")
-			loadSdnOptsFromViper()
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := eden.StartRedis(redisPort, redisDist, redisForce, redisTag); err != nil {
-			log.Errorf("cannot start redis: %s", err)
-		} else {
-			log.Infof("Redis is running and accessible on port %d", redisPort)
-		}
-		if !adamRemoteRedis {
-			adamRemoteRedisURL = ""
-		}
-		if err := eden.StartAdam(adamPort, adamDist, adamForce, adamTag, adamRemoteRedisURL, apiV1); err != nil {
-			log.Errorf("cannot start adam: %s", err)
-		} else {
-			log.Infof("Adam is running and accesible on port %d", adamPort)
-		}
-		if err := eden.StartRegistry(registryPort, registryTag, registryDist); err != nil {
-			log.Errorf("cannot start registry: %s", err)
-		} else {
-			log.Infof("registry is running and accesible on port %d", registryPort)
-		}
-		if err := eden.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
-			log.Errorf("cannot start eserver: %s", err)
-		} else {
-			log.Infof("Eserver is running and accesible on port %d", eserverPort)
-		}
-		if eveRemote {
-			return
-		}
-		if devModel == defaults.DefaultParallelsModel {
-			if err := eden.StartEVEParallels(vmName, eveImageFile, cpus, mem, hostFwd); err != nil {
-				log.Errorf("cannot start eve: %s", err)
-			} else {
-				log.Infof("EVE is starting in Parallels")
+func newStartCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
+	var startCmd = &cobra.Command{
+		Use:               "start",
+		Short:             "start harness",
+		Long:              `Start harness.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openevec.StartEden(cfg, cfg.Runtime.VmName); err != nil {
+				log.Fatalf("Start eden failed: %s", err)
 			}
-		} else if devModel == defaults.DefaultVBoxModel {
-			if err := eden.StartEVEVBox(vmName, eveImageFile, cpus, mem, hostFwd); err != nil {
-				log.Errorf("cannot start eve: %s", err)
-			} else {
-				log.Infof("EVE is starting in Virtual Box")
-			}
-		} else {
-			startEveQemu()
-		}
-	},
-}
+		},
+	}
 
-func startInit() {
 	currentPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
-	startCmd.Flags().StringVarP(&adamTag, "adam-tag", "", defaults.DefaultAdamTag, "tag on adam container to pull")
-	startCmd.Flags().StringVarP(&adamDist, "adam-dist", "", "", "adam dist to start (required)")
-	startCmd.Flags().IntVarP(&adamPort, "adam-port", "", defaults.DefaultAdamPort, "adam dist to start")
-	startCmd.Flags().BoolVarP(&adamForce, "adam-force", "", false, "adam force rebuild")
-	startCmd.Flags().StringVarP(&adamRemoteRedisURL, "adam-redis-url", "", "", "adam remote redis url")
-	startCmd.Flags().BoolVarP(&adamRemoteRedis, "adam-redis", "", true, "use adam remote redis")
-	startCmd.Flags().StringVarP(&registryTag, "registry-tag", "", defaults.DefaultRegistryTag, "tag on registry container to pull")
-	startCmd.Flags().IntVarP(&registryPort, "registry-port", "", defaults.DefaultRegistryPort, "registry port to start")
-	startCmd.Flags().StringVarP(&registryDist, "registry-dist", "", "", "registry dist path to store (required)")
-	startCmd.Flags().StringVarP(&redisTag, "redis-tag", "", defaults.DefaultRedisTag, "tag on redis container to pull")
-	startCmd.Flags().StringVarP(&redisDist, "redis-dist", "", "", "redis dist to start (required)")
-	startCmd.Flags().IntVarP(&redisPort, "redis-port", "", defaults.DefaultRedisPort, "redis dist to start")
-	startCmd.Flags().BoolVarP(&redisForce, "redis-force", "", false, "redis force rebuild")
-	startCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
-	startCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
-	startCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
-	startCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")
-	startCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
-	startCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "cpus count")
-	startCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "memory size (MB)")
-	startCmd.Flags().StringVarP(&qemuARCH, "eve-arch", "", runtime.GOARCH, "arch of system")
-	startCmd.Flags().StringVarP(&qemuOS, "eve-os", "", runtime.GOOS, "os to run on")
-	startCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")
-	startCmd.Flags().StringVarP(&qemuSMBIOSSerial, "eve-serial", "", defaults.DefaultEVESerial, "SMBIOS serial")
-	startCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "config file to use")
-	startCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
-	startCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
-	startCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
-	startCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path to image drive, overrides default setting")
-	startCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
-	startCmd.Flags().StringVarP(&eveUsbNetConfFile, "eve-usbnetconf-file", "", "", "path to device network config (aka usb.json) applied in runtime using a USB stick")
-	addSdnStartOpts(startCmd)
+
+	startCmd.Flags().StringVarP(&cfg.Adam.Tag, "adam-tag", "", defaults.DefaultAdamTag, "tag on adam container to pull")
+	startCmd.Flags().StringVarP(&cfg.Adam.Dist, "adam-dist", "", cfg.Adam.Dist, "adam dist to start (required)")
+	startCmd.Flags().IntVarP(&cfg.Adam.Port, "adam-port", "", defaults.DefaultAdamPort, "adam dist to start")
+	startCmd.Flags().BoolVarP(&cfg.Adam.Force, "adam-force", "", cfg.Adam.Force, "adam force rebuild")
+	startCmd.Flags().StringVarP(&cfg.Adam.Redis.RemoteURL, "adam-redis-url", "", cfg.Adam.Redis.RemoteURL, "adam remote redis url")
+	startCmd.Flags().BoolVarP(&cfg.Adam.Remote.Redis, "adam-redis", "", cfg.Adam.Remote.Redis, "use adam remote redis")
+
+	startCmd.Flags().StringVarP(&cfg.Registry.Tag, "registry-tag", "", defaults.DefaultRegistryTag, "tag on registry container to pull")
+	startCmd.Flags().IntVarP(&cfg.Registry.Port, "registry-port", "", defaults.DefaultRegistryPort, "registry port to start")
+	startCmd.Flags().StringVarP(&cfg.Registry.Dist, "registry-dist", "", cfg.Registry.Dist, "registry dist path to store (required)")
+
+	startCmd.Flags().StringVarP(&cfg.Adam.Redis.Tag, "redis-tag", "", defaults.DefaultRedisTag, "tag on redis container to pull")
+	startCmd.Flags().StringVarP(&cfg.Adam.Redis.Dist, "redis-dist", "", cfg.Adam.Redis.Dist, "redis dist to start (required)")
+	startCmd.Flags().IntVarP(&cfg.Adam.Redis.Port, "redis-port", "", defaults.DefaultRedisPort, "redis dist to start")
+	startCmd.Flags().BoolVarP(&cfg.Adam.Redis.Force, "redis-force", "", cfg.Adam.Redis.Force, "redis force rebuild")
+
+	startCmd.Flags().StringVarP(&cfg.Eden.EServer.Images.EServerImageDist, "image-dist", "", cfg.Eden.EServer.Images.EServerImageDist, "image dist for eserver")
+	startCmd.Flags().IntVarP(&cfg.Eden.EServer.Port, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
+	startCmd.Flags().StringVarP(&cfg.Eden.EServer.Tag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
+	startCmd.Flags().BoolVarP(&cfg.Eden.EServer.Force, "eserver-force", "", cfg.Eden.EServer.Force, "eserver force rebuild")
+
+	startCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "cpus count")
+	startCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "memory size (MB)")
+	startCmd.Flags().StringVarP(&cfg.Eve.Arch, "eve-arch", "", runtime.GOARCH, "arch of system")
+	startCmd.Flags().StringVarP(&cfg.Eve.QemuOS, "eve-os", "", runtime.GOOS, "os to run on")
+	startCmd.Flags().BoolVarP(&cfg.Eve.Accel, "eve-accel", "", cfg.Eve.Accel, "use acceleration")
+	startCmd.Flags().StringVarP(&cfg.Eve.Serial, "eve-serial", "", defaults.DefaultEVESerial, "SMBIOS serial")
+	startCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "config file to use")
+	startCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
+	startCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
+	startCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
+	startCmd.Flags().StringVarP(&cfg.Eve.ImageFile, "image-file", "", cfg.Eve.ImageFile, "path to image drive, overrides default setting")
+	startCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startCmd.Flags().IntVarP(&cfg.Runtime.EthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
+	startCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+
+	startCmd.Flags().StringVarP(&cfg.Eve.UsbNetConfFile, "eve-usbnetconf-file", "", "", "path to device network config (aka usb.json) applied in runtime using a USB stick")
+
+	addSdnStartOpts(startCmd, cfg)
+
+	return startCmd
+}
+
+func addSdnStartOpts(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	addSdnPidOpt(parentCmd, cfg)
+	addSdnConfigDirOpt(parentCmd, cfg)
+	addSdnVmOpts(parentCmd, cfg)
+	addSdnNetModelOpt(parentCmd, cfg)
+	addSdnPortOpts(parentCmd, cfg)
+	addSdnLogOpt(parentCmd, cfg)
+	addSdnImageOpt(parentCmd, cfg)
+	addSdnDisableOpt(parentCmd, cfg)
 }

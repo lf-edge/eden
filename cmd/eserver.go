@@ -2,100 +2,97 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
-	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"os"
 )
 
-var eserverCmd = &cobra.Command{
-	Use: "eserver",
+func newEserverCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
+	var eserverCmd = &cobra.Command{
+		Use:               "eserver",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
+	}
+
+	groups := CommandGroups{
+		{
+			Message: "Basic Commands",
+			Commands: []*cobra.Command{
+				newStartEserverCmd(cfg),
+				newStopEserverCmd(cfg),
+				newStatusEserverCmd(cfg),
+			},
+		},
+	}
+
+	groups.AddTo(eserverCmd)
+
+	return eserverCmd
 }
 
-var startEserverCmd = &cobra.Command{
-	Use:   "start",
-	Short: "start eserver",
-	Long:  `Start eserver.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		viperLoaded, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		if viperLoaded {
-			eserverImageDist = utils.ResolveAbsPath(viper.GetString("eden.images.dist"))
-			eserverPort = viper.GetInt("eden.eserver.port")
-			eserverForce = viper.GetBool("eden.eserver.force")
-			eserverTag = viper.GetString("eden.eserver.tag")
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		command, err := os.Executable()
-		if err != nil {
-			log.Fatalf("cannot obtain executable path: %s", err)
-		}
-		log.Infof("Executable path: %s", command)
+func newStartEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 
-		if err := eden.StartEServer(eserverPort, eserverImageDist, eserverForce, eserverTag); err != nil {
-			log.Errorf("cannot start eserver: %s", err)
-		} else {
-			log.Infof("Eserver is running and accesible on port %d", eserverPort)
-		}
-	},
+	var startEserverCmd = &cobra.Command{
+		Use:   "start",
+		Short: "start eserver",
+		Long:  `Start eserver.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			command, err := os.Executable()
+			if err != nil {
+				log.Fatalf("cannot obtain executable path: %s", err)
+			}
+			log.Infof("Executable path: %s", command)
+
+			if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.Images.EServerImageDist, cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag); err != nil {
+				log.Errorf("cannot start eserver: %s", err)
+			} else {
+				log.Infof("Eserver is running and accesible on port %d", cfg.Eden.EServer.Port)
+			}
+		},
+	}
+
+	startEserverCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", "", "image dist for eserver")
+	startEserverCmd.Flags().IntVarP(&cfg.Eden.EServer.Port, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
+	startEserverCmd.Flags().StringVarP(&cfg.Eden.EServer.Tag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
+	startEserverCmd.Flags().BoolVarP(&cfg.Eden.EServer.Force, "eserver-force", "", false, "eserver force rebuild")
+
+	return startEserverCmd
 }
 
-var stopEserverCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "stop eserver",
-	Long:  `Stop eserver.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := eden.StopEServer(eserverRm); err != nil {
-			log.Errorf("cannot stop eserver: %s", err)
-		}
-	},
+func newStopEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var stopEserverCmd = &cobra.Command{
+		Use:   "stop",
+		Short: "stop eserver",
+		Long:  `Stop eserver.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := eden.StopEServer(cfg.Runtime.EServerRm); err != nil {
+				log.Errorf("cannot stop eserver: %s", err)
+			}
+		},
+	}
+
+	stopEserverCmd.Flags().BoolVarP(&cfg.Runtime.EServerRm, "eserver-rm", "", false, "eserver rm on stop")
+
+	return stopEserverCmd
 }
 
-var statusEserverCmd = &cobra.Command{
-	Use:   "status",
-	Short: "status of eserver",
-	Long:  `Status of eserver.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		assignCobraToViper(cmd)
-		_, err := utils.LoadConfigFile(configFile)
-		if err != nil {
-			return fmt.Errorf("error reading config: %s", err.Error())
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		statusEServer, err := eden.StatusEServer()
-		if err != nil {
-			log.Errorf("cannot obtain status of eserver: %s", err)
-		} else {
-			fmt.Printf("EServer status: %s\n", statusEServer)
-		}
-	},
-}
-
-func eserverInit() {
-	eserverCmd.AddCommand(startEserverCmd)
-	eserverCmd.AddCommand(stopEserverCmd)
-	eserverCmd.AddCommand(statusEserverCmd)
-	startEserverCmd.Flags().StringVarP(&eserverImageDist, "image-dist", "", "", "image dist for eserver")
-	startEserverCmd.Flags().IntVarP(&eserverPort, "eserver-port", "", defaults.DefaultEserverPort, "eserver port")
-	startEserverCmd.Flags().StringVarP(&eserverTag, "eserver-tag", "", defaults.DefaultEServerTag, "tag of eserver container to pull")
-	startEserverCmd.Flags().BoolVarP(&eserverForce, "eserver-force", "", false, "eserver force rebuild")
-	stopEserverCmd.Flags().BoolVarP(&eserverRm, "eserver-rm", "", false, "eserver rm on stop")
+func newStatusEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var statusEserverCmd = &cobra.Command{
+		Use:   "status",
+		Short: "status of eserver",
+		Long:  `Status of eserver.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			statusEServer, err := eden.StatusEServer()
+			if err != nil {
+				log.Errorf("cannot obtain status of eserver: %s", err)
+			} else {
+				fmt.Printf("EServer status: %s\n", statusEServer)
+			}
+		},
+	}
+	return statusEserverCmd
 }
