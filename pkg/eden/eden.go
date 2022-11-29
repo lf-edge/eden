@@ -37,8 +37,8 @@ import (
 
 const bootstrapFilename = "bootstrap-config.pb"
 
-//StartRedis function run redis in docker with mounted redisPath:/data
-//if redisForce is set, it recreates container
+// StartRedis function run redis in docker with mounted redisPath:/data
+// if redisForce is set, it recreates container
 func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
 	portMap := map[string]string{"6379": strconv.Itoa(redisPort)}
 	volumeMap := map[string]string{"/data": redisPath}
@@ -83,7 +83,7 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 	return nil
 }
 
-//StopRedis function stop redis container
+// StopRedis function stop redis container
 func StopRedis(redisRm bool) (err error) {
 	state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
@@ -111,7 +111,7 @@ func StopRedis(redisRm bool) (err error) {
 	return nil
 }
 
-//StatusRedis function return status of redis
+// StatusRedis function return status of redis
 func StatusRedis() (status string, err error) {
 	state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
 	if err != nil {
@@ -123,8 +123,8 @@ func StatusRedis() (status string, err error) {
 	return state, nil
 }
 
-//StartAdam function run adam in docker with mounted adamPath/run:/adam/run
-//if adamForce is set, it recreates container
+// StartAdam function run adam in docker with mounted adamPath/run:/adam/run
+// if adamForce is set, it recreates container
 func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, apiV1 bool, opts ...string) (err error) {
 	edenHome, err := utils.DefaultEdenDir()
 	if err != nil {
@@ -214,7 +214,7 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	return nil
 }
 
-//StopAdam function stop adam container
+// StopAdam function stop adam container
 func StopAdam(adamRm bool) (err error) {
 	state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
@@ -242,7 +242,7 @@ func StopAdam(adamRm bool) (err error) {
 	return nil
 }
 
-//StatusAdam function return status of adam
+// StatusAdam function return status of adam
 func StatusAdam() (status string, err error) {
 	state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
 	if err != nil {
@@ -254,7 +254,7 @@ func StatusAdam() (status string, err error) {
 	return state, nil
 }
 
-//StartRegistry function run registry in docker
+// StartRegistry function run registry in docker
 func StartRegistry(port int, tag, registryPath string, opts ...string) (err error) {
 	containerName := defaults.DefaultRegistryContainerName
 	ref := defaults.DefaultRegistryContainerRef
@@ -323,8 +323,8 @@ func StatusRegistry() (status string, err error) {
 	return state, nil
 }
 
-//StartEServer function run eserver in docker
-//if eserverForce is set, it recreates container
+// StartEServer function run eserver in docker
+// if eserverForce is set, it recreates container
 func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTag string) (err error) {
 	portMap := map[string]string{"8888": strconv.Itoa(serverPort)}
 	volumeMap := map[string]string{"/eserver/run/eserver/": imageDist}
@@ -356,7 +356,7 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 	return nil
 }
 
-//StopEServer function stop eserver container
+// StopEServer function stop eserver container
 func StopEServer(eserverRm bool) (err error) {
 	state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 	if err != nil {
@@ -384,7 +384,7 @@ func StopEServer(eserverRm bool) (err error) {
 	return nil
 }
 
-//StatusEServer function return eserver of adam
+// StatusEServer function return eserver of adam
 func StatusEServer() (status string, err error) {
 	state, err := utils.StateContainer(defaults.DefaultEServerContainerName)
 	if err != nil {
@@ -396,7 +396,7 @@ func StatusEServer() (status string, err error) {
 	return state, nil
 }
 
-//GenerateEveCerts function generates certs for EVE
+// GenerateEveCerts function generates certs for EVE
 func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, password string, grubOptions []string, apiV1 bool) (err error) {
 	model, err := models.GetDevModelByName(devModel)
 	if err != nil {
@@ -534,7 +534,7 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 	return nil
 }
 
-//PutEveCerts function put certs for zedcontrol
+// PutEveCerts function put certs for zedcontrol
 func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 	model, err := models.GetDevModelByName(devModel)
 	if err != nil {
@@ -619,8 +619,8 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 	return nil
 }
 
-//GenerateEVEConfig function copy certs to EVE config folder
-//if ip is empty will not fill hosts file
+// GenerateEVEConfig function copy certs to EVE config folder
+// if ip is empty will not fill hosts file
 func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, port int,
 	apiV1 bool, softserial string, bootstrapFile string, withSDN bool) (err error) {
 	if _, err = os.Stat(eveConfig); os.IsNotExist(err) {
@@ -709,7 +709,7 @@ func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, por
 	return nil
 }
 
-//CloneFromGit function clone from git into dist
+// CloneFromGit function clone from git into dist
 func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	if _, err := os.Stat(dist); !os.IsNotExist(err) {
 		return fmt.Errorf("CloneFromGit: directory already exists: %s", dist)
@@ -722,7 +722,7 @@ func CloneFromGit(dist string, gitRepo string, tag string) (err error) {
 	return utils.RunCommandWithLogAndWait("git", defaults.DefaultLogLevelToPrint, strings.Fields(commandArgsString)...)
 }
 
-//MakeEveInRepo build image of EVE from source
+// MakeEveInRepo build image of EVE from source
 func MakeEveInRepo(desc utils.EVEDescription, dist string) (image, additional string, err error) {
 	if _, err := os.Stat(dist); os.IsNotExist(err) {
 		return "", "", fmt.Errorf("MakeEveInRepo: directory not exists: %s", dist)
@@ -765,7 +765,7 @@ func MakeEveInRepo(desc utils.EVEDescription, dist string) (image, additional st
 	return
 }
 
-//CleanContext cleanup only context data
+// CleanContext cleanup only context data
 func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmName string, configSaved string, remote bool) (err error) {
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
@@ -865,7 +865,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmNam
 	return nil
 }
 
-//StopEden teardown Eden
+// StopEden teardown Eden
 func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool,
 	evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string) {
 	if err := StopAdam(adamRm); err != nil {
@@ -946,9 +946,9 @@ func StopSDN(devModel, sdnPidFile string) {
 	}
 }
 
-//CleanEden teardown Eden and cleanup
+// CleanEden teardown Eden and cleanup
 func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
-	registryDist, configDir, evePID, sdnPID, configSaved string, remote bool,
+	registryDist, configDist, evePID, sdnPID, configSaved string, remote bool,
 	devModel, vmName string) (err error) {
 	command := "swtpm"
 	swtpmPidFile := filepath.Join(imagesDist, fmt.Sprintf("%s.pid", command))
@@ -989,9 +989,9 @@ func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
 			return fmt.Errorf("7 CleanEden: error in %s delete: %s", registryDist, err)
 		}
 	}
-	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
-		if err = os.RemoveAll(configDir); err != nil {
-			return fmt.Errorf("8 CleanEden: error in %s delete: %s", configDir, err)
+	if _, err = os.Stat(configDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(configDist); err != nil {
+			return fmt.Errorf("8 CleanEden: error in %s delete: %w", configDist, err)
 		}
 	}
 	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
@@ -1023,7 +1023,7 @@ func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
 	return nil
 }
 
-//EServer for connection to eserver
+// EServer for connection to eserver
 type EServer struct {
 	EServerIP   string
 	EServerPort string
@@ -1038,7 +1038,7 @@ func (server *EServer) getHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
-//EServerAddFileURL send url to download image into eserver
+// EServerAddFileURL send url to download image into eserver
 func (server *EServer) EServerAddFileURL(url string) (name string) {
 	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EServerPort), "admin/add-from-url")
 	if err != nil {
@@ -1068,7 +1068,7 @@ func (server *EServer) EServerAddFileURL(url string) (name string) {
 	return string(buf)
 }
 
-//EServerCheckStatus checks status of image in eserver
+// EServerCheckStatus checks status of image in eserver
 func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) {
 	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EServerPort), fmt.Sprintf("admin/status/%s", name))
 	if err != nil {
@@ -1094,7 +1094,7 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 	return
 }
 
-//EServerAddFile send file with image into eserver
+// EServerAddFile send file with image into eserver
 func (server *EServer) EServerAddFile(filepath, prefix string) (fileInfo *api.FileInfo) {
 	u, err := utils.ResolveURL(fmt.Sprintf("http://%s:%s", server.EServerIP, server.EServerPort), "admin/add-from-file")
 	if err != nil {
@@ -1115,7 +1115,7 @@ func (server *EServer) EServerAddFile(filepath, prefix string) (fileInfo *api.Fi
 	return
 }
 
-//ReadFileInSquashFS returns the content of a single file (filePath) inside squashfs (squashFSPath)
+// ReadFileInSquashFS returns the content of a single file (filePath) inside squashfs (squashFSPath)
 func ReadFileInSquashFS(squashFSPath, filePath string) (content []byte, err error) {
 	tmpdir, err := ioutil.TempDir("", "squashfs-unpack")
 	if err != nil {
@@ -1133,13 +1133,13 @@ func ReadFileInSquashFS(squashFSPath, filePath string) (content []byte, err erro
 	return content, nil
 }
 
-//EVEInfo contains info from SD card
+// EVEInfo contains info from SD card
 type EVEInfo struct {
 	EVERelease []byte //EVERelease is /etc/eve-release from rootfs
 	Syslog     []byte //Syslog is /rsyslog/syslog.txt from persist volume
 }
 
-//GetInfoFromSDCard obtain info from SD card with EVE
+// GetInfoFromSDCard obtain info from SD card with EVE
 // devicePath is /dev/sdX or /dev/diskX
 func GetInfoFromSDCard(devicePath string) (eveInfo *EVEInfo, err error) {
 	eveInfo = &EVEInfo{}
@@ -1179,8 +1179,8 @@ func GetInfoFromSDCard(devicePath string) (eveInfo *EVEInfo, err error) {
 	return eveInfo, nil
 }
 
-//AddFileIntoEServer puts file into eserver
-//prefix will be added to the file if defined
+// AddFileIntoEServer puts file into eserver
+// prefix will be added to the file if defined
 func AddFileIntoEServer(server *EServer, filePath, prefix string) (*api.FileInfo, error) {
 	fileName := filepath.Base(filePath)
 	if prefix != "" {

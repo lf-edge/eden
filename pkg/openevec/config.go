@@ -152,7 +152,7 @@ type RuntimeConfig struct {
 	Installer         bool     `cobraflag:"installer"`
 	SoftSerial        string   `cobraflag:"soft-serial"`
 	ZedControlURL     string   `cobraflag:"zedcontrol"`
-	ConfigDir         string   `cobraflag:"config-dist"`
+	ConfigDist        string   `cobraflag:"config-dist"`
 	IPXEOverride      string   `cobraflag:"ipxe-override"`
 	GrubOptions       []string `cobraflag:"grub-options"`
 	DryRun            bool     `cobraflag:"dry-run"`
