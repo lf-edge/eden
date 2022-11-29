@@ -42,7 +42,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 	cleanCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", "", "image dist for eserver")
 
 	cleanCmd.Flags().StringVarP(&cfg.Eden.CertsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
-	cleanCmd.Flags().StringVarP(&cfg.Runtime.ConfigDir, "config-dist", "", configDist, "directory for config")
+	cleanCmd.Flags().StringVarP(&cfg.Runtime.ConfigDist, "config-dist", "", configDist, "directory with eden config to cleanup")
 	cleanCmd.Flags().BoolVar(&cfg.Runtime.CurrentContext, "current-context", true, "clean only current context")
 	cleanCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 

@@ -411,7 +411,7 @@ func setupConfigDir(cfg EdenSetupArgs) error {
 		}
 		log.Info("GenerateEVEConfig done")
 	}
-	if _, err := os.Lstat(cfg.Runtime.ConfigDir); !os.IsNotExist(err) {
+	if _, err := os.Lstat(cfg.Runtime.EveConfigDir); !os.IsNotExist(err) {
 		//put files from config folder to generated directory
 		if err := utils.CopyFolder(utils.ResolveAbsPath(cfg.Runtime.EveConfigDir), cfg.Eden.CertsDir); err != nil {
 			return fmt.Errorf("CopyFolder: %w", err)
@@ -525,7 +525,7 @@ func EdenClean(cfg EdenSetupArgs, configName string) error {
 		}
 	} else {
 		if err := eden.CleanEden(cfg.Eve.Dist, cfg.Adam.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile),
-			cfg.Eden.Images.EServerImageDist, cfg.Redis.Dist, cfg.Registry.Dist, cfg.Runtime.ConfigDir, cfg.Eve.Pid,
+			cfg.Eden.Images.EServerImageDist, cfg.Redis.Dist, cfg.Registry.Dist, cfg.Runtime.ConfigDist, cfg.Eve.Pid,
 			cfg.Sdn.PidFile, configSaved, cfg.Eve.Remote, cfg.Eve.DevModel, cfg.Runtime.VmName); err != nil {
 			return fmt.Errorf("cannot CleanEden: %w", err)
 		}
