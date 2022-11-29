@@ -80,7 +80,7 @@ type AdamConfig struct {
 
 type CustomInstallerConfig struct {
 	Path   string `mapstructure:"path" resolvepath:""`
-	Format string `mapstructure:"path"`
+	Format string `mapstructure:"format"`
 }
 
 type QemuConfig struct {

@@ -71,20 +71,26 @@ func StartEServer(cfg EdenSetupArgs) error {
 
 func StartEden(cfg *EdenSetupArgs, vmName string) error {
 
-	if err := StartRedis(*cfg); err != nil {
-		return fmt.Errorf("cannot start redis %w", err)
-	}
+	// Note that custom installer only works with zedcloud controller.
+	// FIXME: ZedControlURL is not set for 'eden start' command.
+	useZedcloud := cfg.Eve.CustomInstaller.Path != "" || cfg.Runtime.ZedControlURL != ""
 
-	if err := StartAdam(*cfg); err != nil {
-		return fmt.Errorf("cannot start adam %w", err)
-	}
+	if !useZedcloud {
+		if err := StartRedis(*cfg); err != nil {
+			return fmt.Errorf("cannot start redis %w", err)
+		}
 
-	if err := StartRegistry(*cfg); err != nil {
-		return fmt.Errorf("cannot start registry %w", err)
-	}
+		if err := StartAdam(*cfg); err != nil {
+			return fmt.Errorf("cannot start adam %w", err)
+		}
 
-	if err := StartEServer(*cfg); err != nil {
-		return fmt.Errorf("cannot start adam %w", err)
+		if err := StartRegistry(*cfg); err != nil {
+			return fmt.Errorf("cannot start registry %w", err)
+		}
+
+		if err := StartEServer(*cfg); err != nil {
+			return fmt.Errorf("cannot start adam %w", err)
+		}
 	}
 
 	if cfg.Eve.Remote {
