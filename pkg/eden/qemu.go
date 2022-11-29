@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//StartSWTPM starts swtpm process and use stateDir as state, log, pid and socket location
+// StartSWTPM starts swtpm process and use stateDir as state, log, pid and socket location
 func StartSWTPM(stateDir string) error {
 	if err := os.MkdirAll(stateDir, 0777); err != nil {
 		return err
@@ -34,14 +34,14 @@ func StartSWTPM(stateDir string) error {
 	return nil
 }
 
-//StopSWTPM stops swtpm process using pid from stateDir
+// StopSWTPM stops swtpm process using pid from stateDir
 func StopSWTPM(stateDir string) error {
 	command := "swtpm"
 	pidFile := filepath.Join(stateDir, fmt.Sprintf("%s.pid", command))
 	return utils.StopCommandWithPid(pidFile)
 }
 
-//StartEVEQemu function run EVE in qemu
+// StartEVEQemu function run EVE in qemu
 func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstaller bool,
 	qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort, netDevBasePort int,
 	qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile, pidFile string,
@@ -160,6 +160,9 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		installerOptions := consoleOpts + qemuOptions
 		installerOptions += fmt.Sprintf("-drive file=%s,format=%s ",
 			eveImageFile, imageFormat)
+		if qemuConfigFile != "" {
+			installerOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
+		}
 		log.Infof("Start EVE installer: %s %s", qemuCommand, installerOptions)
 		if err := utils.RunCommandForeground(qemuCommand, strings.Fields(installerOptions)...); err != nil {
 			return fmt.Errorf("StartEVEQemu: %s", err)
@@ -199,17 +202,17 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	return nil
 }
 
-//StopEVEQemu function stop EVE
+// StopEVEQemu function stop EVE
 func StopEVEQemu(pidFile string) (err error) {
 	return utils.StopCommandWithPid(pidFile)
 }
 
-//StatusEVEQemu function get status of EVE
+// StatusEVEQemu function get status of EVE
 func StatusEVEQemu(pidFile string) (status string, err error) {
 	return utils.StatusCommandWithPid(pidFile)
 }
 
-//SetLinkStateQemu changes the link state of the given interface.
+// SetLinkStateQemu changes the link state of the given interface.
 func SetLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
 	tcpAddr, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", qemuMonitorPort))
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
@@ -244,7 +247,7 @@ func SetLinkStateQemu(qemuMonitorPort int, ifName string, up bool) error {
 	return nil
 }
 
-//GetLinkStatesQemu returns link states for the given set of EVE interfaces.
+// GetLinkStatesQemu returns link states for the given set of EVE interfaces.
 func GetLinkStatesQemu(qemuMonitorPort int, ifNames []string) (linkStates []edensdn.LinkState, err error) {
 	// Unfortunately QEMU Monitor doesn't provide command to obtain
 	// the current link state of interfaces.

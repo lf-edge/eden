@@ -161,7 +161,7 @@ make clean && make build-tests
 ./eden config set default --key eve.custom-installer.path --value "$(pwd)/installer.raw"
 ./eden config set default --key eve.custom-installer.format --value raw
 ./eden setup
-./eden start --sdn-network-model $(pwd)/sdn/examples/explicit-proxy/network-model.json
+./eden start --sdn-network-model $(pwd)/sdn/examples/tproxy/network-model.json
 ```
 
 Note that traffic coming out from EVE VM will go through the SDN VM (where it will be proxied),
