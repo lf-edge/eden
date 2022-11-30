@@ -72,7 +72,6 @@ func StartEServer(cfg EdenSetupArgs) error {
 func StartEden(cfg *EdenSetupArgs, vmName string) error {
 
 	// Note that custom installer only works with zedcloud controller.
-	// FIXME: ZedControlURL is not set for 'eden start' command.
 	useZedcloud := cfg.Eve.CustomInstaller.Path != "" || cfg.Runtime.ZedControlURL != ""
 
 	if !useZedcloud {
