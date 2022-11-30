@@ -65,6 +65,7 @@ func newStartCmd(configName, verbosity *string) *cobra.Command {
 	startCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
 	startCmd.Flags().IntVarP(&cfg.Runtime.EthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
 	startCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	startCmd.Flags().StringVar(&cfg.Runtime.ZedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
 
 	startCmd.Flags().StringVarP(&cfg.Eve.UsbNetConfFile, "eve-usbnetconf-file", "", "", "path to device network config (aka usb.json) applied in runtime using a USB stick")
 
