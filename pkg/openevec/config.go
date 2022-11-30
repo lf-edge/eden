@@ -201,7 +201,6 @@ type RuntimeConfig struct {
 	Host              string   `cobraflag:"eve-host"`
 	SshPort           int      `cobraflag:"eve-ssh-port"`
 	TapInterface      string   `cobraflag:"with-tap"`
-	EthLoops          int      `cobraflag:"with-eth-loops"`
 }
 
 type PacketConfig struct {

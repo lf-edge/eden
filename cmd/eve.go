@@ -87,7 +87,6 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
 	startEveCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
-	startEveCmd.Flags().IntVarP(&cfg.Runtime.EthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
 
 	return startEveCmd
 }
