@@ -63,7 +63,6 @@ func newStartCmd(configName, verbosity *string) *cobra.Command {
 	startCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
 	startCmd.Flags().StringVarP(&cfg.Eve.ImageFile, "image-file", "", cfg.Eve.ImageFile, "path to image drive, overrides default setting")
 	startCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
-	startCmd.Flags().IntVarP(&cfg.Runtime.EthLoops, "with-eth-loops", "", 0, "add one or more ethernet loops (requires custom device model)")
 	startCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	startCmd.Flags().StringVar(&cfg.Runtime.ZedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
 
