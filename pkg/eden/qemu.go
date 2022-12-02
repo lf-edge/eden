@@ -49,7 +49,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	swtpm, foreground bool) (err error) {
 	var qemuCommand, qemuOptions string
 	qemuOptions += "-nodefaults -no-user-config "
-	netDev := "e1000"
+	netDev := "virtio-net-pci"
 	tpmDev := "tpm-tis"
 	if qemuARCH == "" {
 		qemuARCH = runtime.GOARCH
@@ -64,6 +64,8 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 				qemuOptions += defaults.DefaultQemuAccelDarwin
 			} else {
 				qemuOptions += defaults.DefaultQemuAccelLinuxAmd64
+				// to support pass-through of virtio-net-pci
+				netDev = fmt.Sprintf("%s,disable-legacy=on,disable-modern=off,iommu_platform=on", netDev)
 			}
 		} else {
 			qemuOptions += defaults.DefaultQemuAmd64
@@ -75,7 +77,6 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		} else {
 			qemuOptions += defaults.DefaultQemuArm64
 		}
-		netDev = "virtio-net-pci"
 		tpmDev = "tpm-tis-device"
 	default:
 		return fmt.Errorf("StartEVEQemu: Arch not supported: %s", qemuARCH)
