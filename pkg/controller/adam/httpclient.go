@@ -61,7 +61,7 @@ func (adam *Ctx) deleteObj(path string) (err error) {
 	return nil
 }
 
-func (adam *Ctx) getObj(path string) (out string, err error) {
+func (adam *Ctx) getObj(path string, acceptMime string) (out string, err error) {
 	u, err := utils.ResolveURL(adam.url, path)
 	if err != nil {
 		log.Printf("error constructing URL: %v", err)
@@ -71,6 +71,9 @@ func (adam *Ctx) getObj(path string) (out string, err error) {
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
+	}
+	if acceptMime != "" {
+		req.Header.Set("Accept", acceptMime)
 	}
 
 	response, err := utils.RepeatableAttempt(client, req)
@@ -85,7 +88,7 @@ func (adam *Ctx) getObj(path string) (out string, err error) {
 	return string(buf), nil
 }
 
-func (adam *Ctx) getList(path string) (out []string, err error) {
+func (adam *Ctx) getList(path string, acceptMime string) (out []string, err error) {
 	u, err := utils.ResolveURL(adam.url, path)
 	if err != nil {
 		log.Printf("error constructing URL: %v", err)
@@ -95,6 +98,9 @@ func (adam *Ctx) getList(path string) (out []string, err error) {
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
+	}
+	if acceptMime != "" {
+		req.Header.Set("Accept", acceptMime)
 	}
 
 	response, err := utils.RepeatableAttempt(client, req)
@@ -129,7 +135,7 @@ func (adam *Ctx) postObj(path string, obj []byte, mimeType string) (err error) {
 	return nil
 }
 
-func (adam *Ctx) putObj(path string, obj []byte) (err error) {
+func (adam *Ctx) putObj(path string, obj []byte, mimeType string) (err error) {
 	u, err := utils.ResolveURL(adam.url, path)
 	if err != nil {
 		log.Printf("error constructing URL: %v", err)
@@ -140,6 +146,7 @@ func (adam *Ctx) putObj(path string, obj []byte) (err error) {
 	if err != nil {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
+	req.Header.Set("Content-Type", mimeType)
 	_, err = utils.RepeatableAttempt(client, req)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)

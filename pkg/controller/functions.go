@@ -3,7 +3,6 @@ package controller
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,6 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/term"
+	"google.golang.org/protobuf/proto"
 )
 
 //CloudPrepare is for init controller connection and obtain device list
@@ -179,7 +179,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 //VersionIncrement use []byte with config.EdgeDevConfig and increment config version
 func VersionIncrement(configOld []byte) ([]byte, error) {
 	var deviceConfig config.EdgeDevConfig
-	if err := json.Unmarshal(configOld, &deviceConfig); err != nil {
+	if err := proto.Unmarshal(configOld, &deviceConfig); err != nil {
 		return nil, fmt.Errorf("unmarshal error: %s", err)
 	}
 	existingID := deviceConfig.Id
@@ -208,5 +208,5 @@ func VersionIncrement(configOld []byte) ([]byte, error) {
 		}
 	}
 	log.Debugf("VersionIncrement %d->%s", oldVersion, deviceConfig.Id.Version)
-	return json.Marshal(&deviceConfig)
+	return proto.Marshal(&deviceConfig)
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 //StateUpdate refresh state file
@@ -289,7 +289,7 @@ func (cloud *CloudCtx) processDev(id uuid.UUID, state device.EdgeNodeState) {
 		log.Fatalf("ConfigGet error: %s", err)
 	}
 	var deviceConfig config.EdgeDevConfig
-	err = protojson.Unmarshal([]byte(configString), &deviceConfig)
+	err = proto.Unmarshal([]byte(configString), &deviceConfig)
 	if err != nil {
 		log.Fatalf("unmarshal error: %s", err)
 	}
@@ -453,7 +453,7 @@ func (cloud *CloudCtx) checkDriveDs(drive *config.Drive, dataStores []*config.Da
 
 // GetConfigBytes generate json representation of device config
 //nolint:cyclop,maintidx
-func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, pretty bool) ([]byte, error) {
+func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, jsonFormat bool) ([]byte, error) {
 	var contentTrees []*config.ContentTree
 	var volumes []*config.Volume
 	var baseOSConfigs []*config.BaseOSConfig
@@ -661,8 +661,8 @@ volumeLoop:
 		ProfileServerToken: dev.GetProfileServerToken(),
 		Disks:              disksConfig,
 	}
-	if pretty {
+	if jsonFormat {
 		return json.MarshalIndent(devConfig, "", "    ")
 	}
-	return json.Marshal(devConfig)
+	return proto.Marshal(devConfig)
 }
