@@ -27,7 +27,7 @@ require (
 	github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67
 	github.com/lf-edge/eden/sdn/vm v0.0.0-00010101000000-000000000000
 	github.com/lf-edge/edge-containers v0.0.0-20220320131500-9d9f95d81e2c
-	github.com/lf-edge/eve/api/go v0.0.0-20221012062734-072272e81fdb
+	github.com/lf-edge/eve/api/go v0.0.0-20221202180721-ec306b6a2bce
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/sys/mount v0.3.3 // indirect
