@@ -27,6 +27,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	mimeProto     = "application/x-proto-binary"
+	mimeTextPlain = "text/plain"
+	mimeJSON      = "application/json"
+)
+
 //Ctx stores controller settings
 type Ctx struct {
 	dir               string
@@ -170,30 +176,30 @@ func (adam *Ctx) Register(device *device.Ctx) error {
 		log.Printf("error encoding json: %v", err)
 		return err
 	}
-	return adam.postObj("/admin/onboard", body, "application/json")
+	return adam.postObj("/admin/onboard", body, mimeJSON)
 }
 
 //DeviceList return device list
 func (adam *Ctx) DeviceList(filter types.DeviceStateFilter) (out []string, err error) {
 	if filter == types.RegisteredDeviceFilter || filter == types.AllDevicesFilter {
-		return adam.getList("/admin/device")
+		return adam.getList("/admin/device", mimeJSON)
 	}
 	return []string{}, nil
 }
 
 //ConfigSet set config for devID
 func (adam *Ctx) ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error) {
-	return adam.putObj(path.Join("/admin/device", devUUID.String(), "config"), devConfig)
+	return adam.putObj(path.Join("/admin/device", devUUID.String(), "config"), devConfig, mimeProto)
 }
 
 //ConfigGet get config for devID
 func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
-	return adam.getObj(path.Join("/admin/device", devUUID.String(), "config"))
+	return adam.getObj(path.Join("/admin/device", devUUID.String(), "config"), mimeProto)
 }
 
 //CertsGet get attest certs for devID
 func (adam *Ctx) CertsGet(devUUID uuid.UUID) (out string, err error) {
-	return adam.getObj(path.Join("/admin/device", devUUID.String(), "certs"))
+	return adam.getObj(path.Join("/admin/device", devUUID.String(), "certs"), mimeJSON)
 }
 
 //RequestLastCallback check request by pattern from existence files with callback
@@ -277,7 +283,7 @@ func (adam *Ctx) DeviceRemove(devUUID uuid.UUID) (err error) {
 //DeviceGetOnboard get device onboardUUID for devUUID
 func (adam *Ctx) DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error) {
 	var devCert types.DeviceCert
-	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String()))
+	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String()), mimeJSON)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -337,7 +343,7 @@ func (adam *Ctx) DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, 
 
 //GetDeviceCert gets deviceCert contains certificates and serial
 func (adam *Ctx) GetDeviceCert(device *device.Ctx) (deviceCert *types.DeviceCert, err error) {
-	devInfo, err := adam.getObj(path.Join("/admin/device", device.GetID().String()))
+	devInfo, err := adam.getObj(path.Join("/admin/device", device.GetID().String()), mimeJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +360,7 @@ func (adam *Ctx) UploadDeviceCert(deviceCert types.DeviceCert) error {
 	if err != nil {
 		return err
 	}
-	return adam.postObj("/admin/device", body, "text/plain")
+	return adam.postObj("/admin/device", body, mimeTextPlain)
 }
 
 //SetDeviceOptions sets options for provided devUUID
@@ -363,12 +369,12 @@ func (adam *Ctx) SetDeviceOptions(devUUID uuid.UUID, options *types.DeviceOption
 	if err != nil {
 		return err
 	}
-	return adam.putObj(path.Join("/admin/device", devUUID.String(), "options"), body)
+	return adam.putObj(path.Join("/admin/device", devUUID.String(), "options"), body, mimeJSON)
 }
 
 //GetDeviceOptions returns DeviceOptions for provided devUUID
 func (adam *Ctx) GetDeviceOptions(devUUID uuid.UUID) (*types.DeviceOptions, error) {
-	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String(), "options"))
+	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String(), "options"), mimeJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -385,12 +391,12 @@ func (adam *Ctx) SetGlobalOptions(options *types.GlobalOptions) error {
 	if err != nil {
 		return err
 	}
-	return adam.putObj("/admin/options", body)
+	return adam.putObj("/admin/options", body, mimeJSON)
 }
 
 //GetGlobalOptions returns global options from controller
 func (adam *Ctx) GetGlobalOptions() (*types.GlobalOptions, error) {
-	devInfo, err := adam.getObj("/admin/options")
+	devInfo, err := adam.getObj("/admin/options", mimeJSON)
 	if err != nil {
 		return nil, err
 	}
