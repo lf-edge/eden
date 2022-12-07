@@ -17,7 +17,7 @@ import (
 	"github.com/lf-edge/eve/api/go/flowlog"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 //FlowLogCheckerMode is FlowLogExist, FlowLogNew and FlowLogAny
@@ -38,7 +38,7 @@ const (
 //ParseFullLogEntry unmarshal FlowMessage
 func ParseFullLogEntry(data []byte) (*flowlog.FlowMessage, error) {
 	var lb flowlog.FlowMessage
-	err := protojson.Unmarshal(data, &lb)
+	err := proto.Unmarshal(data, &lb)
 	return &lb, err
 }
 

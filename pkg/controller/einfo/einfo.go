@@ -16,6 +16,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 //HandlerFunc must process info.ZInfoMsg and return true to exit
@@ -29,7 +30,7 @@ type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) bool
 //ParseZInfoMsg unmarshal ZInfoMsg
 func ParseZInfoMsg(data []byte) (ZInfoMsg *info.ZInfoMsg, err error) {
 	var zi info.ZInfoMsg
-	err = protojson.Unmarshal(data, &zi)
+	err = proto.Unmarshal(data, &zi)
 	return &zi, err
 }
 
