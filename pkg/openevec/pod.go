@@ -138,6 +138,7 @@ func PodDeploy(appLink string, cfg *EdenSetupArgs) error {
 	opts = append(opts, expect.WithProfiles(cfg.Runtime.Profiles))
 	opts = append(opts, expect.WithDatastoreOverride(cfg.Runtime.DatastoreOverride))
 	opts = append(opts, expect.WithStartDelay(cfg.Runtime.StartDelay))
+	opts = append(opts, expect.WithPinCpus(cfg.Runtime.PinCpus))
 	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, cfg.Runtime.PodName, opts...)
 	appInstanceConfig := expectation.Application()
 	dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
