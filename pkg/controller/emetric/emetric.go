@@ -16,6 +16,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 //MetricCheckerMode is MetricExist, MetricNew and MetricAny
@@ -36,7 +37,7 @@ const (
 //ParseMetricsBundle unmarshal LogBundle
 func ParseMetricsBundle(data []byte) (logBundle *metrics.ZMetricMsg, err error) {
 	var lb metrics.ZMetricMsg
-	err = protojson.Unmarshal(data, &lb)
+	err = proto.Unmarshal(data, &lb)
 	return &lb, err
 }
 
