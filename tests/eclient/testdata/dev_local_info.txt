@@ -63,13 +63,12 @@ exec -t 5m bash wait-ssh.sh {{template "app_port"}}
 exec -t 10m bash wait-for-dev-state.sh ONLINE
 
 # STEP 4: Request for shutdown. Check that app1 stops before local_manager
-exec -t 10m bash wait-for-app-state.sh app1 HALTED &app1halted&
+exec -t 15m bash wait-for-app-state.sh app1 HALTED &app1halted&
 exec -t 1m bash put-devinfo-cmd.sh COMMAND_SHUTDOWN &
-exec -t 5m bash wait-for-dev-state.sh SHUTTING_DOWN
+exec -t 5m bash wait-for-dev-state.sh SHUTTING_DOWN &
 # Could it already have HALTED? Match HALTING or HALTED
 exec -t 5m bash wait-for-app-state.sh app1 HALT
-exec -t 1m bash get-appinfo-status.sh local-manager
-stdout 'RUNNING'
+exec -t 2m bash wait-for-app-state.sh local-manager RUNNING &
 wait app1halted
 
 # Did local-manager halt? Can't check by asking local-manager
@@ -112,11 +111,10 @@ skip 'The rest of the test is supported only on QEMU'
 
 # STEP 6: Request for poweroff. Check that app1 stops before local_manager
 exec -t 1m bash put-devinfo-cmd.sh COMMAND_SHUTDOWN_POWEROFF &
-exec -t 5m bash wait-for-dev-state.sh POWERING_OFF
+exec -t 5m bash wait-for-dev-state.sh POWERING_OFF &
 # Could it already have HALTED? Match HALTING or HALTED
 exec -t 5m bash wait-for-app-state.sh app1 HALT
-exec -t 1m bash get-appinfo-status.sh local-manager
-stdout 'RUNNING'
+exec -t 2m bash wait-for-app-state.sh local-manager RUNNING &
 exec -t 5m bash wait-for-app-state.sh app1 HALTED
 
 # Did local-manager halt? Can't check by asking local-manager
@@ -183,22 +181,6 @@ echo app_ip=$IP>>.env
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 line=$($EDEN pod ps | grep $1)
 echo line
-
--- get-appinfo-status.sh --
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-APP="$1"
-CMDS="
-until test -f {{template "app_info_status_file"}}; do sleep 5; done
-sleep 2
-cat {{template "app_info_status_file"}}
-"
-
-OUTPUT="$($EDEN sdn fwd eth0 {{template "mngr_port"}} -- {{template "ssh"}} "$CMDS")"
-if [ -n "$APP" ]; then
-    echo "$OUTPUT" | jq --arg APP "$APP" '.appsInfo[] | select(.name==$APP)'
-else
-    echo "$OUTPUT"
-fi
 
 -- wait-for-app-state.sh --
 APP="${1}"
