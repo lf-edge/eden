@@ -51,16 +51,16 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName, configDir string, cfg EdenSetupArgs) error {
+func SetupEden(configName, configDir string, netboot bool, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
 		return err
 	}
 
-	if cfg.Runtime.NetBoot && cfg.Runtime.Installer {
+	if netboot && cfg.Runtime.Installer {
 		return fmt.Errorf("please use netboot or installer flag, not both")
 	}
-	if cfg.Runtime.NetBoot || cfg.Runtime.Installer {
+	if netboot || cfg.Runtime.Installer {
 		if cfg.Eve.DevModel != defaults.DefaultGeneralModel {
 			return fmt.Errorf("cannot use netboot for devmodel %s, please use general instead", cfg.Eve.DevModel)
 		}
@@ -77,7 +77,7 @@ func SetupEden(configName, configDir string, cfg EdenSetupArgs) error {
 		}
 	}
 
-	if err := setupEve(cfg); err != nil {
+	if err := setupEve(netboot, cfg); err != nil {
 		return fmt.Errorf("cannot setup EVE: %s", err)
 	}
 
@@ -150,7 +150,7 @@ func setupQemuConfig(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupEve(cfg EdenSetupArgs) error {
+func setupEve(netboot bool, cfg EdenSetupArgs) error {
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
 		return fmt.Errorf("GetDevModelByName: %w", err)
@@ -210,7 +210,7 @@ func setupEve(cfg EdenSetupArgs) error {
 	if err != nil {
 		return err
 	}
-	if cfg.Runtime.NetBoot {
+	if netboot {
 		if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
 			return fmt.Errorf("cannot download EVE: %w", err)
 		}

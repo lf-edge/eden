@@ -14,6 +14,7 @@ import (
 func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var configDir string
+	var netboot bool
 
 	var setupCmd = &cobra.Command{
 		Use:               "setup",
@@ -21,7 +22,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Setup harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.SetupEden(*configName, configDir, *cfg); err != nil {
+			if err := openevec.SetupEden(*configName, configDir, netboot, *cfg); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)
 			}
 		},
@@ -35,7 +36,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	setupCmd.Flags().BoolVarP(&cfg.Eden.Download, "download", "", cfg.Eden.Download, "download EVE or build")
 	setupCmd.Flags().BoolVarP(&cfg.Runtime.DryRun, "dry-run", "", false, "")
 	setupCmd.Flags().StringVar(&configDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
-	setupCmd.Flags().BoolVar(&cfg.Runtime.NetBoot, "netboot", false, "Setup for use with network boot")
+	setupCmd.Flags().BoolVar(&netboot, "netboot", false, "Setup for use with network boot")
 	setupCmd.Flags().BoolVar(&cfg.Runtime.Installer, "installer", false, "Setup for create installer")
 	setupCmd.Flags().StringVar(&cfg.Runtime.SoftSerial, "soft-serial", "", "Use provided serial instead of hardware one, please use chars and numbers here")
 	setupCmd.Flags().StringVar(&cfg.Runtime.ZedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")

@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	NetBoot           bool     `cobraflag:"netboot"`
 	Installer         bool     `cobraflag:"installer"`
 	SoftSerial        string   `cobraflag:"soft-serial"`
 	ZedControlURL     string   `cobraflag:"zedcontrol"`
