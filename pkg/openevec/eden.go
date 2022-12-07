@@ -51,16 +51,16 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName, configDir string, netboot bool, cfg EdenSetupArgs) error {
+func SetupEden(configName, configDir string, netboot, installer bool, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
 		return err
 	}
 
-	if netboot && cfg.Runtime.Installer {
+	if netboot && installer {
 		return fmt.Errorf("please use netboot or installer flag, not both")
 	}
-	if netboot || cfg.Runtime.Installer {
+	if netboot || installer {
 		if cfg.Eve.DevModel != defaults.DefaultGeneralModel {
 			return fmt.Errorf("cannot use netboot for devmodel %s, please use general instead", cfg.Eve.DevModel)
 		}
@@ -77,7 +77,7 @@ func SetupEden(configName, configDir string, netboot bool, cfg EdenSetupArgs) er
 		}
 	}
 
-	if err := setupEve(netboot, cfg); err != nil {
+	if err := setupEve(netboot, installer, cfg); err != nil {
 		return fmt.Errorf("cannot setup EVE: %s", err)
 	}
 
@@ -150,7 +150,7 @@ func setupQemuConfig(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupEve(netboot bool, cfg EdenSetupArgs) error {
+func setupEve(netboot, installer bool, cfg EdenSetupArgs) error {
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
 		return fmt.Errorf("GetDevModelByName: %w", err)
@@ -309,7 +309,7 @@ func setupEve(netboot bool, cfg EdenSetupArgs) error {
 		log.Infof("Please use %s to boot your EVE via ipxe", ipxeConfigFile)
 		log.Infof("ipxe.efi.cfg uploaded to eserver (http://%s:%s/%s). Use it to boot your EVE via network", eServerIP, eServerPort, i.FileName)
 		log.Infof("EVE already exists: %s", filepath.Dir(cfg.Eve.ImageFile))
-	} else if cfg.Runtime.Installer {
+	} else if installer {
 		if _, err := os.Lstat(cfg.Eve.ImageFile); os.IsNotExist(err) {
 			if err := utils.DownloadEveInstaller(eveDesc, cfg.Eve.ImageFile); err != nil {
 				return fmt.Errorf("cannot download EVE: %w", err)
