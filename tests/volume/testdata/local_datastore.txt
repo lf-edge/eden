@@ -28,6 +28,8 @@ test eden.app.test -test.v -timewait 20m RUNNING eclient
 exec -t 5m bash ssh.sh
 stdout 'Ubuntu'
 
+exec sleep 10
+
 exec -t 10m bash download-image.sh
 
 eden volume create {{$image_url}} --datastoreOverride={{$datastore}} -n local-datastore-volume
