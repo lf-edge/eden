@@ -119,6 +119,7 @@ You can set access VLAN ID (VID) for a particular network in the format '<networ
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.OpenStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.DatastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
 	podDeployCmd.Flags().Uint32Var(&cfg.Runtime.StartDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
+	podDeployCmd.Flags().BoolVar(&cfg.Runtime.PinCpus, "pin-cpus", false, "Pin the CPUs used by the pod")
 
 	return podDeployCmd
 }

@@ -277,3 +277,11 @@ func WithStartDelay(startDelay uint32) ExpectationOption {
 		expectation.startDelay = startDelay
 	}
 }
+
+// WithPinCpus set pin-cpus option
+func WithPinCpus(pinCpus bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.pinCpus = pinCpus
+
+	}
+}

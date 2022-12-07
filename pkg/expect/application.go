@@ -46,6 +46,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	default:
 		return nil, fmt.Errorf("not supported appType")
 	}
+	bundle.appInstanceConfig.Fixedresources.PinCpu = exp.pinCpus
 	bundle.appInstanceConfig.StartDelayInSeconds = exp.startDelay
 	for _, d := range exp.disks {
 		mountPoint := ""

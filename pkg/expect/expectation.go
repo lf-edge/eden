@@ -85,6 +85,7 @@ type AppExpectation struct {
 	profiles          []string
 	datastoreOverride string
 	startDelay        uint32
+	pinCpus           bool
 }
 
 //use provided appLink to try predict format of volume

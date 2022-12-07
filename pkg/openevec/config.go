@@ -184,6 +184,7 @@ type RuntimeConfig struct {
 	AppMemory         string   `cobraflag:"memory"`
 	VolumeType        string   `cobraflag:"volume-type"`
 	AppCpus           uint32   `cobraflag:"cpus"`
+	PinCpus           bool     `cobraflag:"pin-cpus"`
 	ImageFormat       string   `cobraflag:"format"`
 	ACL               []string `cobraflag:"acl"`
 	VLANs             []string `cobraflag:"vlan"`
