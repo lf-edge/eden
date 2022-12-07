@@ -51,7 +51,7 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName string, cfg EdenSetupArgs) error {
+func SetupEden(configName, configDir string, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
 		return err
@@ -72,7 +72,7 @@ func SetupEden(configName string, cfg EdenSetupArgs) error {
 	}
 
 	if cfg.Eve.CustomInstaller.Path == "" {
-		if err := setupConfigDir(cfg); err != nil {
+		if err := setupConfigDir(cfg, configDir); err != nil {
 			return fmt.Errorf("cannot setup ConfigDir: %w", err)
 		}
 	}
@@ -371,7 +371,7 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupConfigDir(cfg EdenSetupArgs) error {
+func setupConfigDir(cfg EdenSetupArgs, eveConfigDir string) error {
 	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
 		wifiPSK := ""
 		if cfg.Eve.Ssid != "" {
@@ -411,9 +411,9 @@ func setupConfigDir(cfg EdenSetupArgs) error {
 		}
 		log.Info("GenerateEVEConfig done")
 	}
-	if _, err := os.Lstat(cfg.Runtime.EveConfigDir); !os.IsNotExist(err) {
+	if _, err := os.Lstat(eveConfigDir); !os.IsNotExist(err) {
 		//put files from config folder to generated directory
-		if err := utils.CopyFolder(utils.ResolveAbsPath(cfg.Runtime.EveConfigDir), cfg.Eden.CertsDir); err != nil {
+		if err := utils.CopyFolder(utils.ResolveAbsPath(eveConfigDir), cfg.Eden.CertsDir); err != nil {
 			return fmt.Errorf("CopyFolder: %w", err)
 		}
 	}

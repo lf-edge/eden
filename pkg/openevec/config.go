@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	EveConfigDir      string   `cobraflag:"eve-config-dir"`
 	NetBoot           bool     `cobraflag:"netboot"`
 	Installer         bool     `cobraflag:"installer"`
 	SoftSerial        string   `cobraflag:"soft-serial"`
