@@ -37,7 +37,6 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	}
 
 	setupCmd.Flags().BoolVarP(&cfg.Eden.Download, "download", "", cfg.Eden.Download, "download EVE or build")
-	setupCmd.Flags().BoolVarP(&cfg.Runtime.DryRun, "dry-run", "", false, "")
 	setupCmd.Flags().StringVar(&configDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
 	setupCmd.Flags().BoolVar(&netboot, "netboot", false, "Setup for use with network boot")
 	setupCmd.Flags().BoolVar(&installer, "installer", false, "Setup for create installer")

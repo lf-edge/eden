@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	DryRun            bool     `cobraflag:"dry-run"`
 	VmName            string   `cobraflag:"vmname"`
 	EveConfigFromFile bool     `cobraflag:"use-config-file"`
 	VolumesToPurge    []string `cobraflag:"volumes"`
