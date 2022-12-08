@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	ConfigDist        string   `cobraflag:"config-dist"`
 	IPXEOverride      string   `cobraflag:"ipxe-override"`
 	GrubOptions       []string `cobraflag:"grub-options"`
 	DryRun            bool     `cobraflag:"dry-run"`

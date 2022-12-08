@@ -13,13 +13,15 @@ import (
 
 func newCleanCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
+	var configDist string
+
 	var cleanCmd = &cobra.Command{
 		Use:               "clean",
 		Short:             "clean harness",
 		Long:              `Clean harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenClean(*cfg, *configName); err != nil {
+			if err := openevec.EdenClean(*cfg, *configName, configDist); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)
 			}
 		},
@@ -29,7 +31,8 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 	if err != nil {
 		log.Fatal(err)
 	}
-	configDist, err := utils.DefaultEdenDir()
+
+	configDist, err = utils.DefaultEdenDir()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,7 +45,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 	cleanCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", "", "image dist for eserver")
 
 	cleanCmd.Flags().StringVarP(&cfg.Eden.CertsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
-	cleanCmd.Flags().StringVarP(&cfg.Runtime.ConfigDist, "config-dist", "", configDist, "directory with eden config to cleanup")
+	cleanCmd.Flags().StringVarP(&configDist, "config-dist", "", configDist, "directory with eden config to cleanup")
 	cleanCmd.Flags().BoolVar(&cfg.Runtime.CurrentContext, "current-context", true, "clean only current context")
 	cleanCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 
