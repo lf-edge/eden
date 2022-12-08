@@ -51,7 +51,8 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName, configDir, softSerial, zedControlURL string, netboot, installer bool, cfg EdenSetupArgs) error {
+func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string,
+	netboot, installer bool, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
 		return err
@@ -77,7 +78,7 @@ func SetupEden(configName, configDir, softSerial, zedControlURL string, netboot,
 		}
 	}
 
-	if err := setupEve(netboot, installer, softSerial, cfg); err != nil {
+	if err := setupEve(netboot, installer, softSerial, ipxeOverride, cfg); err != nil {
 		return fmt.Errorf("cannot setup EVE: %s", err)
 	}
 
@@ -150,7 +151,7 @@ func setupQemuConfig(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupEve(netboot, installer bool, softSerial string, cfg EdenSetupArgs) error {
+func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg EdenSetupArgs) error {
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
 		return fmt.Errorf("GetDevModelByName: %w", err)
@@ -286,7 +287,7 @@ func setupEve(netboot, installer bool, softSerial string, cfg EdenSetupArgs) err
 				"eve_soft_serial=${mac:hexhyp}",
 				fmt.Sprintf("eve_soft_serial=%s", softSerial)))
 		}
-		ipxeOverrideSlice := strings.Split(cfg.Runtime.IPXEOverride, "||")
+		ipxeOverrideSlice := strings.Split(ipxeOverride, "||")
 		if len(ipxeOverrideSlice) > 1 {
 			fmt.Println(ipxeOverrideSlice)
 
