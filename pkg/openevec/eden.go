@@ -51,7 +51,7 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName, configDir string, netboot, installer bool, cfg EdenSetupArgs) error {
+func SetupEden(configName, configDir, softSerial string, netboot, installer bool, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
 		return err
@@ -72,12 +72,12 @@ func SetupEden(configName, configDir string, netboot, installer bool, cfg EdenSe
 	}
 
 	if cfg.Eve.CustomInstaller.Path == "" {
-		if err := setupConfigDir(cfg, configDir); err != nil {
+		if err := setupConfigDir(cfg, configDir, softSerial); err != nil {
 			return fmt.Errorf("cannot setup ConfigDir: %w", err)
 		}
 	}
 
-	if err := setupEve(netboot, installer, cfg); err != nil {
+	if err := setupEve(netboot, installer, softSerial, cfg); err != nil {
 		return fmt.Errorf("cannot setup EVE: %s", err)
 	}
 
@@ -150,7 +150,7 @@ func setupQemuConfig(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupEve(netboot, installer bool, cfg EdenSetupArgs) error {
+func setupEve(netboot, installer bool, softSerial string, cfg EdenSetupArgs) error {
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
 		return fmt.Errorf("GetDevModelByName: %w", err)
@@ -281,10 +281,10 @@ func setupEve(netboot, installer bool, cfg EdenSetupArgs) error {
 		re := regexp.MustCompile("# set url .*")
 		ipxeFileReplaced := re.ReplaceAll(ipxeFileBytes,
 			[]byte(fmt.Sprintf("set url http://%s:%s/%s/", eServerIP, eServerPort, path.Join("eserver", configPrefix))))
-		if cfg.Runtime.SoftSerial != "" {
+		if softSerial != "" {
 			ipxeFileReplaced = []byte(strings.ReplaceAll(string(ipxeFileReplaced),
 				"eve_soft_serial=${mac:hexhyp}",
-				fmt.Sprintf("eve_soft_serial=%s", cfg.Runtime.SoftSerial)))
+				fmt.Sprintf("eve_soft_serial=%s", softSerial)))
 		}
 		ipxeOverrideSlice := strings.Split(cfg.Runtime.IPXEOverride, "||")
 		if len(ipxeOverrideSlice) > 1 {
@@ -371,7 +371,7 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupConfigDir(cfg EdenSetupArgs, eveConfigDir string) error {
+func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial string) error {
 	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
 		wifiPSK := ""
 		if cfg.Eve.Ssid != "" {
@@ -398,14 +398,14 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir string) error {
 	}
 	if cfg.Runtime.ZedControlURL == "" {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsEVEIP,
-			cfg.Adam.Port, cfg.Adam.APIv1, cfg.Runtime.SoftSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
+			cfg.Adam.Port, cfg.Adam.APIv1, softSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
 			return fmt.Errorf("cannot GenerateEVEConfig: %w", err)
 		}
 		log.Info("GenerateEVEConfig done")
 	} else {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Runtime.ZedControlURL, "", 0,
-			false, cfg.Runtime.SoftSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
+			false, softSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
 			return fmt.Errorf("cannot GenerateEVEConfig: %w", err)
 		}
@@ -419,8 +419,8 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir string) error {
 	}
 	if cfg.Runtime.ZedControlURL != "" {
 		log.Printf("Please use %s as Onboarding Key", defaults.OnboardUUID)
-		if cfg.Runtime.SoftSerial != "" {
-			log.Printf("use %s as Serial Number", cfg.Runtime.SoftSerial)
+		if softSerial != "" {
+			log.Printf("use %s as Serial Number", softSerial)
 		}
 		log.Printf("To onboard EVE onto %s", cfg.Runtime.ZedControlURL)
 	}

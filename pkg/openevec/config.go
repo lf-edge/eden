@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	SoftSerial        string   `cobraflag:"soft-serial"`
 	ZedControlURL     string   `cobraflag:"zedcontrol"`
 	ConfigDist        string   `cobraflag:"config-dist"`
 	IPXEOverride      string   `cobraflag:"ipxe-override"`
