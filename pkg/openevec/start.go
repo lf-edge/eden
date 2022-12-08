@@ -69,10 +69,10 @@ func StartEServer(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func StartEden(cfg *EdenSetupArgs, vmName string) error {
+func StartEden(cfg *EdenSetupArgs, vmName, zedControlURL string) error {
 
 	// Note that custom installer only works with zedcloud controller.
-	useZedcloud := cfg.Eve.CustomInstaller.Path != "" || cfg.Runtime.ZedControlURL != ""
+	useZedcloud := cfg.Eve.CustomInstaller.Path != "" || zedControlURL != ""
 
 	if !useZedcloud {
 		if err := StartRedis(*cfg); err != nil {

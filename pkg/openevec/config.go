@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	ZedControlURL     string   `cobraflag:"zedcontrol"`
 	ConfigDist        string   `cobraflag:"config-dist"`
 	IPXEOverride      string   `cobraflag:"ipxe-override"`
 	GrubOptions       []string `cobraflag:"grub-options"`

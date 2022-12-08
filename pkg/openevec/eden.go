@@ -51,7 +51,7 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName, configDir, softSerial string, netboot, installer bool, cfg EdenSetupArgs) error {
+func SetupEden(configName, configDir, softSerial, zedControlURL string, netboot, installer bool, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
 		return err
@@ -72,7 +72,7 @@ func SetupEden(configName, configDir, softSerial string, netboot, installer bool
 	}
 
 	if cfg.Eve.CustomInstaller.Path == "" {
-		if err := setupConfigDir(cfg, configDir, softSerial); err != nil {
+		if err := setupConfigDir(cfg, configDir, softSerial, zedControlURL); err != nil {
 			return fmt.Errorf("cannot setup ConfigDir: %w", err)
 		}
 	}
@@ -371,7 +371,7 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial string) error {
+func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL string) error {
 	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
 		wifiPSK := ""
 		if cfg.Eve.Ssid != "" {
@@ -380,7 +380,7 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial string) error {
 			wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(cfg.Eve.Ssid), 4096, 32, sha1.New)))
 			fmt.Println()
 		}
-		if cfg.Runtime.ZedControlURL == "" {
+		if zedControlURL == "" {
 			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
 				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, cfg.Runtime.GrubOptions, cfg.Adam.APIv1); err != nil {
 				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
@@ -396,7 +396,7 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial string) error {
 		log.Info("GenerateEveCerts done")
 		log.Infof("Certs already exists in certs dir: %s", cfg.Eden.CertsDir)
 	}
-	if cfg.Runtime.ZedControlURL == "" {
+	if zedControlURL == "" {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsEVEIP,
 			cfg.Adam.Port, cfg.Adam.APIv1, softSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
@@ -404,7 +404,7 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial string) error {
 		}
 		log.Info("GenerateEVEConfig done")
 	} else {
-		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Runtime.ZedControlURL, "", 0,
+		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, zedControlURL, "", 0,
 			false, softSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
 		if err != nil {
 			return fmt.Errorf("cannot GenerateEVEConfig: %w", err)
@@ -417,12 +417,12 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial string) error {
 			return fmt.Errorf("CopyFolder: %w", err)
 		}
 	}
-	if cfg.Runtime.ZedControlURL != "" {
+	if zedControlURL != "" {
 		log.Printf("Please use %s as Onboarding Key", defaults.OnboardUUID)
 		if softSerial != "" {
 			log.Printf("use %s as Serial Number", softSerial)
 		}
-		log.Printf("To onboard EVE onto %s", cfg.Runtime.ZedControlURL)
+		log.Printf("To onboard EVE onto %s", zedControlURL)
 	}
 	return nil
 }
