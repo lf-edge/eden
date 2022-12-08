@@ -12,12 +12,14 @@ import (
 )
 
 func newCertsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var grubOptions []string
+
 	var certsCmd = &cobra.Command{
 		Use:   "certs",
 		Short: "manage certs",
 		Long:  `Managed certificates for Adam and EVE.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Password, cfg.Runtime.GrubOptions, cfg.Adam.APIv1); err != nil {
+			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Password, grubOptions, cfg.Adam.APIv1); err != nil {
 				log.Errorf("cannot GenerateEveCerts: %s", err)
 			} else {
 				log.Info("GenerateEveCerts done")
@@ -41,7 +43,7 @@ func newCertsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	certsCmd.Flags().StringVarP(&cfg.Eve.CertsUUID, "uuid", "u", defaults.DefaultUUID, "UUID to use for device")
 	certsCmd.Flags().StringVar(&cfg.Eve.Ssid, "ssid", "", "SSID for wifi")
 	certsCmd.Flags().StringVar(&cfg.Eve.Password, "password", "", "password for wifi")
-	certsCmd.Flags().StringArrayVar(&cfg.Runtime.GrubOptions, "grub-options", []string{}, "append lines to grub options")
+	certsCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
 
 	return certsCmd
 }

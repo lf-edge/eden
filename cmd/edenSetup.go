@@ -14,6 +14,7 @@ import (
 func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var configDir, softSerial, zedControlURL, ipxeOverride string
+	var grubOptions []string
 	var netboot, installer bool
 
 	var setupCmd = &cobra.Command{
@@ -23,7 +24,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.SetupEden(*configName, configDir, softSerial,
-				zedControlURL, ipxeOverride, netboot, installer, *cfg); err != nil {
+				zedControlURL, ipxeOverride, grubOptions, netboot, installer, *cfg); err != nil {
 
 				log.Fatalf("Setup eden failed: %s", err)
 			}
@@ -43,7 +44,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	setupCmd.Flags().StringVar(&softSerial, "soft-serial", "", "Use provided serial instead of hardware one, please use chars and numbers here")
 	setupCmd.Flags().StringVar(&zedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
 	setupCmd.Flags().StringVar(&ipxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
-	setupCmd.Flags().StringArrayVar(&cfg.Runtime.GrubOptions, "grub-options", []string{}, "append lines to grub options")
+	setupCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
 
 	setupCmd.Flags().StringVarP(&cfg.Eden.CertsDir, "certs-dist", "o", cfg.Eden.CertsDir, "directory with certs")
 	setupCmd.Flags().StringVarP(&cfg.Adam.CertsDomain, "domain", "d", defaults.DefaultDomain, "FQDN for certificates")

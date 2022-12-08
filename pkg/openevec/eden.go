@@ -51,7 +51,7 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string,
+func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, grubOptions []string,
 	netboot, installer bool, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
@@ -73,7 +73,7 @@ func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride st
 	}
 
 	if cfg.Eve.CustomInstaller.Path == "" {
-		if err := setupConfigDir(cfg, configDir, softSerial, zedControlURL); err != nil {
+		if err := setupConfigDir(cfg, configDir, softSerial, zedControlURL, grubOptions); err != nil {
 			return fmt.Errorf("cannot setup ConfigDir: %w", err)
 		}
 	}
@@ -372,7 +372,7 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL string) error {
+func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL string, grubOptions []string) error {
 	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
 		wifiPSK := ""
 		if cfg.Eve.Ssid != "" {
@@ -383,7 +383,7 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL s
 		}
 		if zedControlURL == "" {
 			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
-				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, cfg.Runtime.GrubOptions, cfg.Adam.APIv1); err != nil {
+				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
 				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
 			}
 			log.Info("GenerateEveCerts done")
