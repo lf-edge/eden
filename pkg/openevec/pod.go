@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish, acl []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -111,7 +111,7 @@ func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []
 			"": {{Endpoint: defaults.DefaultHostOnlyNotation}},
 		}))
 	} else {
-		opts = append(opts, expect.WithACL(processAcls(cfg.Runtime.ACL)))
+		opts = append(opts, expect.WithACL(processAcls(acl)))
 	}
 	vlansParsed, err := processVLANs(cfg.Runtime.VLANs)
 	if err != nil {
@@ -467,7 +467,7 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 	return nil
 }
 
-func PodModify(appName string, podNetworks, portPublish []string, cfg *EdenSetupArgs) error {
+func PodModify(appName string, podNetworks, portPublish, acl []string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -517,7 +517,7 @@ func PodModify(appName string, podNetworks, portPublish []string, cfg *EdenSetup
 			} else {
 				opts = append(opts, expect.WithPortsPublish(portPublishCombined))
 			}
-			opts = append(opts, expect.WithACL(processAcls(cfg.Runtime.ACL)))
+			opts = append(opts, expect.WithACL(processAcls(acl)))
 			vlansParsed, err := processVLANs(cfg.Runtime.VLANs)
 			if err != nil {
 				return err

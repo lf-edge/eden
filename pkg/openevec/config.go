@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	ACL               []string `cobraflag:"acl"`
 	VLANs             []string `cobraflag:"vlan"`
 	SftpLoad          bool     `cobraflag:"sftp"`
 	DirectLoad        bool     `cobraflag:"direct"`
