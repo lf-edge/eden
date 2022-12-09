@@ -80,7 +80,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var noHyper bool
 	var vncDisplay uint32
 	var vncPassword string
-	var diskSize, volumeSize string
+	var diskSize, volumeSize, appMemory string
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -89,13 +89,13 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
 
-	podDeployCmd.Flags().StringVar(&cfg.Runtime.AppMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
+	podDeployCmd.Flags().StringVar(&appMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
 	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.VolumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx or oci); set it to none to not use volumes")
 	podDeployCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
