@@ -32,7 +32,7 @@ func newEveCmd(configName, verbosity *string) *cobra.Command {
 				newOnboardEveCmd(cfg),
 				newResetEveCmd(cfg),
 				newVersionEveCmd(),
-				newEpochEveCmd(cfg),
+				newEpochEveCmd(),
 				newLinkEveCmd(cfg),
 			},
 		},
@@ -244,18 +244,20 @@ func newResetEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return resetEveCmd
 }
 
-func newEpochEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newEpochEveCmd() *cobra.Command {
+	var eveConfigFromFile bool
+
 	var epochEveCmd = &cobra.Command{
 		Use:   "epoch",
 		Short: "Set new epoch of EVE",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.NewEpochEve(cfg.Runtime.EveConfigFromFile); err != nil {
+			if err := openevec.NewEpochEve(eveConfigFromFile); err != nil {
 				log.Fatalf("EVE new epoch failed: %s", err)
 			}
 		},
 	}
 
-	epochEveCmd.Flags().BoolVar(&cfg.Runtime.EveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
+	epochEveCmd.Flags().BoolVar(&eveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
 
 	return epochEveCmd
 }

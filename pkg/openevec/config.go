@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	EveConfigFromFile bool     `cobraflag:"use-config-file"`
 	VolumesToPurge    []string `cobraflag:"volumes"`
 	DeleteVolumes     bool     `cobraflag:"with-volumes"`
 	AllConfigs        bool     `cobraflag:"all"`
