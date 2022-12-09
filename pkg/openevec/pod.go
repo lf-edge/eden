@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, noHyper bool, vncDisplay uint32, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, noHyper bool, vncDisplay uint32, vncPassword string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -75,7 +75,7 @@ func PodDeploy(appLink, podName, podMetadata string, noHyper bool, vncDisplay ui
 	var opts []expect.ExpectationOption
 	opts = append(opts, expect.WithMetadata(podMetadata))
 	opts = append(opts, expect.WithVnc(vncDisplay))
-	opts = append(opts, expect.WithVncPassword(cfg.Runtime.VncPassword))
+	opts = append(opts, expect.WithVncPassword(vncPassword))
 	opts = append(opts, expect.WithAppAdapters(cfg.Runtime.AppAdapters))
 	if len(cfg.Runtime.PodNetworks) > 0 {
 		for i, el := range cfg.Runtime.PodNetworks {
