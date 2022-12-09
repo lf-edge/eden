@@ -14,7 +14,7 @@ import (
 func newStopCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var vmName string
-	var adamRm bool
+	var adamRm, registryRm bool
 
 	var stopCmd = &cobra.Command{
 		Use:               "stop",
@@ -24,7 +24,7 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			eden.StopEden(
 				adamRm, cfg.Runtime.RedisRm,
-				cfg.Runtime.RegistryRm, cfg.Runtime.EServerRm,
+				registryRm, cfg.Runtime.EServerRm,
 				cfg.Eve.Remote, cfg.Eve.Pid,
 				swtpmPidFile(cfg), cfg.Sdn.PidFile,
 				cfg.Eve.DevModel, vmName,
@@ -38,7 +38,7 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 	}
 
 	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
-	stopCmd.Flags().BoolVarP(&cfg.Runtime.RegistryRm, "registry-rm", "", false, "registry rm on stop")
+	stopCmd.Flags().BoolVarP(&registryRm, "registry-rm", "", false, "registry rm on stop")
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.RedisRm, "redis-rm", "", false, "redis rm on stop")
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.EServerRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")

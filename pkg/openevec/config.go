@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	RegistryRm        bool     `cobraflag:"registry-rm"`
 	RedisRm           bool     `cobraflag:"redis-rm"`
 	EServerRm         bool     `cobraflag:"eserver-rm"`
 	CurrentContext    bool     `cobraflag:"current-context"`
