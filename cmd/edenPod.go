@@ -76,7 +76,7 @@ func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 
 func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var podName, podMetadata string
-	var podNetworks, portPublish, acl []string
+	var podNetworks, portPublish, acl, vlans []string
 	var noHyper bool
 	var vncDisplay uint32
 	var vncPassword string
@@ -92,7 +92,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, acl, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, acl, vlans, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -124,7 +124,7 @@ Without explicitly configured ACLs, all traffic is allowed.
 You can set ACL for a particular network in format '<network_name[:endpoint[:action]]>', where 'action' is either 'allow' (default) or 'drop'.
 With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
-	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.VLANs, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
+	podDeployCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.OpenStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.DatastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
@@ -267,7 +267,7 @@ func newPodLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 }
 
 func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var podNetworks, portPublish, acl []string
+	var podNetworks, portPublish, acl, vlans []string
 
 	var podModifyCmd = &cobra.Command{
 		Use:   "modify <app>",
@@ -275,7 +275,7 @@ func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodModify(appName, podNetworks, portPublish, acl, cfg); err != nil {
+			if err := openevec.PodModify(appName, podNetworks, portPublish, acl, vlans, cfg); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
@@ -289,7 +289,7 @@ Without explicitly configured ACLs, all traffic is allowed.
 You can set ACL for a particular network in format '<network_name[:endpoint[:action]]>', where 'action' is either 'allow' (default) or 'drop'.
 With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
-	podModifyCmd.Flags().StringSliceVar(&cfg.Runtime.VLANs, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
+	podModifyCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 
 	return podModifyCmd
