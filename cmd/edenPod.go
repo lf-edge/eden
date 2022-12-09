@@ -81,7 +81,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var vncDisplay uint32
 	var vncPassword string
 	var diskSize, volumeSize, appMemory, volumeType string
-	var appCpus uint32
+	var appCpus, startDelay uint32
 	var pinCpus bool
 	var imageFormat string
 	var sftpLoad, directLoad, openStackMetadata bool
@@ -95,7 +95,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, datastoreOverride, aclOnlyHost, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, datastoreOverride, aclOnlyHost, startDelay, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -131,7 +131,7 @@ To block all traffic define ACL with no endpoints: '<network_name>:'`)
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podDeployCmd.Flags().StringVar(&datastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
-	podDeployCmd.Flags().Uint32Var(&cfg.Runtime.StartDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
+	podDeployCmd.Flags().Uint32Var(&startDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
 	podDeployCmd.Flags().BoolVar(&pinCpus, "pin-cpus", false, "Pin the CPUs used by the pod")
 
 	return podDeployCmd
@@ -271,6 +271,7 @@ func newPodLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 
 func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var podNetworks, portPublish, acl, vlans []string
+	var startDelay uint32
 
 	var podModifyCmd = &cobra.Command{
 		Use:   "modify <app>",
@@ -278,7 +279,7 @@ func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodModify(appName, podNetworks, portPublish, acl, vlans, cfg); err != nil {
+			if err := openevec.PodModify(appName, podNetworks, portPublish, acl, vlans, startDelay, cfg); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
@@ -293,6 +294,7 @@ With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
 	podModifyCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
+	podModifyCmd.Flags().Uint32Var(&startDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
 
 	return podModifyCmd
 }

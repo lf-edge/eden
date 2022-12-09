@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	StartDelay   uint32 `cobraflag:"start-delay"`
 	Host         string `cobraflag:"eve-host"`
 	SshPort      int    `cobraflag:"eve-ssh-port"`
 	TapInterface string `cobraflag:"with-tap"`

@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad, openStackMetadata bool, datastoreOverride string, aclOnlyHost bool, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad, openStackMetadata bool, datastoreOverride string, aclOnlyHost bool, startDelay uint32, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -137,7 +137,7 @@ func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, port
 	opts = append(opts, expect.WithOpenStackMetadata(openStackMetadata))
 	opts = append(opts, expect.WithProfiles(profiles))
 	opts = append(opts, expect.WithDatastoreOverride(datastoreOverride))
-	opts = append(opts, expect.WithStartDelay(cfg.Runtime.StartDelay))
+	opts = append(opts, expect.WithStartDelay(startDelay))
 	opts = append(opts, expect.WithPinCpus(pinCpus))
 	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 	appInstanceConfig := expectation.Application()
@@ -467,7 +467,7 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 	return nil
 }
 
-func PodModify(appName string, podNetworks, portPublish, acl, vlans []string, cfg *EdenSetupArgs) error {
+func PodModify(appName string, podNetworks, portPublish, acl, vlans []string, startDelay uint32, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -524,7 +524,7 @@ func PodModify(appName string, podNetworks, portPublish, acl, vlans []string, cf
 			}
 			opts = append(opts, expect.WithVLANs(vlansParsed))
 			opts = append(opts, expect.WithOldApp(appName))
-			opts = append(opts, expect.WithStartDelay(cfg.Runtime.StartDelay))
+			opts = append(opts, expect.WithStartDelay(startDelay))
 			expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, appName, opts...)
 			appInstanceConfig := expectation.Application()
 			needPurge := false
@@ -548,7 +548,7 @@ func PodModify(appName string, podNetworks, portPublish, acl, vlans []string, cf
 				}
 				app.Purge.Counter++
 			}
-			if cfg.Runtime.StartDelay != 0 {
+			if startDelay != 0 {
 				app.StartDelayInSeconds = appInstanceConfig.StartDelayInSeconds
 			}
 			// now we only change networks
