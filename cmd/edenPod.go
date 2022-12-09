@@ -86,6 +86,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var imageFormat string
 	var sftpLoad, directLoad, openStackMetadata bool
 	var datastoreOverride string
+	var aclOnlyHost bool
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -94,7 +95,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, datastoreOverride, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, datastoreOverride, aclOnlyHost, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -112,7 +113,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringSliceVar(&appAdapters, "adapters", nil, "adapters to assign to the application instance")
 	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
 	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
-	podDeployCmd.Flags().BoolVar(&cfg.Runtime.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
+	podDeployCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
 	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
@@ -284,7 +285,6 @@ func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	}
 
 	podModifyCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
-	podModifyCmd.Flags().BoolVar(&cfg.Runtime.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podModifyCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
 	podModifyCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets.
 Without explicitly configured ACLs, all traffic is allowed.

@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	ACLOnlyHost  bool   `cobraflag:"only-host"`
 	StartDelay   uint32 `cobraflag:"start-delay"`
 	Host         string `cobraflag:"eve-host"`
 	SshPort      int    `cobraflag:"eve-ssh-port"`
