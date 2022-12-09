@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	VolumeType        string   `cobraflag:"volume-type"`
 	AppCpus           uint32   `cobraflag:"cpus"`
 	PinCpus           bool     `cobraflag:"pin-cpus"`
 	ImageFormat       string   `cobraflag:"format"`
