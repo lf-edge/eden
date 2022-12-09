@@ -22,7 +22,7 @@ func newInfoCmd(configName, verbosity *string) *cobra.Command {
 Scans the ADAM Info for correspondence with regular expressions requests to json fields.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenInfo(cfg, outputFormat, infoTail, follow, printFields, args); err != nil {
+			if err := openevec.EdenInfo(outputFormat, infoTail, follow, printFields, args); err != nil {
 				log.Fatal("Eden info failed ", err)
 			}
 		},

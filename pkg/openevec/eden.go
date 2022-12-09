@@ -535,7 +535,7 @@ func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, current
 	return nil
 }
 
-func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint, follow bool, printFields []string, args []string) error {
+func EdenInfo(outputFormat types.OutputFormat, infoTail uint, follow bool, printFields []string, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -577,7 +577,7 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint
 	return nil
 }
 
-func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, printFields, args []string) error {
+func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -604,8 +604,8 @@ func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, p
 		return false
 	}
 
-	if cfg.Runtime.LogTail > 0 {
-		if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogTail(cfg.Runtime.LogTail), 0); err != nil {
+	if logTail > 0 {
+		if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogTail(logTail), 0); err != nil {
 			return fmt.Errorf("LogChecker: %w", err)
 		}
 	} else {
@@ -623,7 +623,7 @@ func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, p
 	return nil
 }
 
-func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, printFields, args []string) error {
+func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -650,8 +650,8 @@ func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow boo
 		return false
 	}
 
-	if cfg.Runtime.LogTail > 0 {
-		if err = ctrl.FlowLogChecker(devUUID, q, handleFunc, eflowlog.FlowLogTail(cfg.Runtime.LogTail), 0); err != nil {
+	if logTail > 0 {
+		if err = ctrl.FlowLogChecker(devUUID, q, handleFunc, eflowlog.FlowLogTail(logTail), 0); err != nil {
 			return fmt.Errorf("FlowLogChecker: %w", err)
 		}
 	} else {

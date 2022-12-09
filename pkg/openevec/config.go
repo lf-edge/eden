@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	LogTail           uint     `cobraflag:"tail"`
 	MetricTail        uint     `cobraflag:"tail"`
 	ContextFile       string   `cobraflag:"file"`
 	PodName           string   `cobraflag:"name"`
