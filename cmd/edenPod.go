@@ -77,6 +77,7 @@ func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var podName, podMetadata string
 	var noHyper bool
+	var vncDisplay uint32
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -85,7 +86,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, noHyper, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, noHyper, vncDisplay, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -97,7 +98,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringSliceVarP(&cfg.Runtime.PortPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podDeployCmd.Flags().StringVarP(&podMetadata, "metadata", "", "", "Metadata for pod. If file path provided, will use content of it")
 	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
-	podDeployCmd.Flags().Uint32Var(&cfg.Runtime.VncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
+	podDeployCmd.Flags().Uint32Var(&vncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.VncPassword, "vnc-password", "", "VNC password (empty - no password)")
 	podDeployCmd.Flags().Uint32Var(&cfg.Runtime.AppCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.AppAdapters, "adapters", nil, "adapters to assign to the application instance")

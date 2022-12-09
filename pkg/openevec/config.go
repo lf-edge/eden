@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	VncDisplay        uint32   `cobraflag:"vnc-display"`
 	VncPassword       string   `cobraflag:"vnc-password"`
 	PodNetworks       []string `cobraflag:"networks"`
 	PortPublish       []string `cobraflag:"publish"`
