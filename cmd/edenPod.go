@@ -75,7 +75,7 @@ func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 }
 
 func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var podName, podMetadata string
+	var podName, podMetadata, registry string
 	var podNetworks, portPublish, acl, vlans, mount, disks []string
 	var noHyper bool
 	var vncDisplay uint32
@@ -93,7 +93,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, acl, vlans, mount, disks, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -113,7 +113,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
-	podDeployCmd.Flags().StringVar(&cfg.Runtime.Registry, "registry", "remote", "Select registry to use for containers (remote/local)")
+	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
 	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)

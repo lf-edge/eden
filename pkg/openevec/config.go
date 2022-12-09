@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	Registry          string   `cobraflag:"registry"`
 	OpenStackMetadata bool     `cobraflag:"openstack-metadata"`
 	Profiles          []string `cobraflag:"profile"`
 	DatastoreOverride string   `cobraflag:"datastoreOverride"`

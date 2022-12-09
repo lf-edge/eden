@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish, acl, vlans, mount, disks []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad bool, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad bool, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -123,8 +123,8 @@ func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish, a
 		opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
 	}
 	opts = append(opts, expect.WithAdditionalDisks(append(disks, mount...)))
-	registryToUse := cfg.Runtime.Registry
-	switch cfg.Runtime.Registry {
+	registryToUse := registry
+	switch registry {
 	case "local":
 		registryToUse = fmt.Sprintf("%s:%d", cfg.Registry.IP, cfg.Registry.Port)
 	case "remote":
