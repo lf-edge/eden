@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks, profiles []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad, openStackMetadata bool, datastoreOverride string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad, openStackMetadata bool, datastoreOverride string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -76,7 +76,7 @@ func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, port
 	opts = append(opts, expect.WithMetadata(podMetadata))
 	opts = append(opts, expect.WithVnc(vncDisplay))
 	opts = append(opts, expect.WithVncPassword(vncPassword))
-	opts = append(opts, expect.WithAppAdapters(cfg.Runtime.AppAdapters))
+	opts = append(opts, expect.WithAppAdapters(appAdapters))
 	if len(podNetworks) > 0 {
 		for i, el := range podNetworks {
 			if i == 0 {

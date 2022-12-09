@@ -147,12 +147,11 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	AppAdapters  []string `cobraflag:"adapters"`
-	ACLOnlyHost  bool     `cobraflag:"only-host"`
-	StartDelay   uint32   `cobraflag:"start-delay"`
-	Host         string   `cobraflag:"eve-host"`
-	SshPort      int      `cobraflag:"eve-ssh-port"`
-	TapInterface string   `cobraflag:"with-tap"`
+	ACLOnlyHost  bool   `cobraflag:"only-host"`
+	StartDelay   uint32 `cobraflag:"start-delay"`
+	Host         string `cobraflag:"eve-host"`
+	SshPort      int    `cobraflag:"eve-ssh-port"`
+	TapInterface string `cobraflag:"with-tap"`
 }
 
 type PacketConfig struct {
