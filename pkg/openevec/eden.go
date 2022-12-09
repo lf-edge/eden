@@ -535,7 +535,7 @@ func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, current
 	return nil
 }
 
-func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
+func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -559,8 +559,8 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string
 		}
 		return false
 	}
-	if cfg.Runtime.InfoTail > 0 {
-		if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoTail(cfg.Runtime.InfoTail), 0); err != nil {
+	if infoTail > 0 {
+		if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoTail(infoTail), 0); err != nil {
 			return fmt.Errorf("InfoChecker: %w", err)
 		}
 	} else {
