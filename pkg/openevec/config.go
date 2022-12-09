@@ -147,13 +147,12 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	DatastoreOverride string   `cobraflag:"datastoreOverride"`
-	AppAdapters       []string `cobraflag:"adapters"`
-	ACLOnlyHost       bool     `cobraflag:"only-host"`
-	StartDelay        uint32   `cobraflag:"start-delay"`
-	Host              string   `cobraflag:"eve-host"`
-	SshPort           int      `cobraflag:"eve-ssh-port"`
-	TapInterface      string   `cobraflag:"with-tap"`
+	AppAdapters  []string `cobraflag:"adapters"`
+	ACLOnlyHost  bool     `cobraflag:"only-host"`
+	StartDelay   uint32   `cobraflag:"start-delay"`
+	Host         string   `cobraflag:"eve-host"`
+	SshPort      int      `cobraflag:"eve-ssh-port"`
+	TapInterface string   `cobraflag:"with-tap"`
 }
 
 type PacketConfig struct {
