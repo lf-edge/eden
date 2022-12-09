@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, podNetworks []string, noHyper bool, vncDisplay uint32, vncPassword string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -81,13 +81,13 @@ func PodDeploy(appLink, podName, podMetadata string, podNetworks []string, noHyp
 		for i, el := range podNetworks {
 			if i == 0 {
 				// allocate ports on first network
-				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, cfg.Runtime.PortPublish))
+				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, portPublish))
 			} else {
 				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, nil))
 			}
 		}
 	} else {
-		opts = append(opts, expect.WithPortsPublish(cfg.Runtime.PortPublish))
+		opts = append(opts, expect.WithPortsPublish(portPublish))
 	}
 	diskSizeParsed, err := humanize.ParseBytes(cfg.Runtime.DiskSize)
 	if err != nil {
@@ -467,7 +467,7 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 	return nil
 }
 
-func PodModify(appName string, podNetworks []string, cfg *EdenSetupArgs) error {
+func PodModify(appName string, podNetworks, portPublish []string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -479,8 +479,8 @@ func PodModify(appName string, podNetworks []string, cfg *EdenSetupArgs) error {
 			return fmt.Errorf("no app in cloud %s: %s", appID, err)
 		}
 		if app.Displayname == appName {
-			portPublishCombined := cfg.Runtime.PortPublish
-			if cfg.Runtime.PortPublish == nil {
+			portPublishCombined := portPublish
+			if portPublish == nil {
 				portPublishCombined = []string{}
 				for _, intf := range app.Interfaces {
 					for _, acls := range intf.Acls {

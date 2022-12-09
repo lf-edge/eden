@@ -76,7 +76,7 @@ func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 
 func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var podName, podMetadata string
-	var podNetworks []string
+	var podNetworks, portPublish []string
 	var noHyper bool
 	var vncDisplay uint32
 	var vncPassword string
@@ -88,7 +88,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, noHyper, vncDisplay, vncPassword, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, noHyper, vncDisplay, vncPassword, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -97,7 +97,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.AppMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.DiskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.VolumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx or oci); set it to none to not use volumes")
-	podDeployCmd.Flags().StringSliceVarP(&cfg.Runtime.PortPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
+	podDeployCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podDeployCmd.Flags().StringVarP(&podMetadata, "metadata", "", "", "Metadata for pod. If file path provided, will use content of it")
 	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
 	podDeployCmd.Flags().Uint32Var(&vncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
@@ -263,7 +263,7 @@ func newPodLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 }
 
 func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var podNetworks []string
+	var podNetworks, portPublish []string
 
 	var podModifyCmd = &cobra.Command{
 		Use:   "modify <app>",
@@ -271,13 +271,13 @@ func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodModify(appName, podNetworks, cfg); err != nil {
+			if err := openevec.PodModify(appName, podNetworks, portPublish, cfg); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
 	}
 
-	podModifyCmd.Flags().StringSliceVarP(&cfg.Runtime.PortPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
+	podModifyCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podModifyCmd.Flags().BoolVar(&cfg.Runtime.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podModifyCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
 	podModifyCmd.Flags().StringSliceVar(&cfg.Runtime.ACL, "acl", nil, `Allow access only to defined hosts/ips/subnets.

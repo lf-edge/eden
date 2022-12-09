@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	PortPublish       []string `cobraflag:"publish"`
 	DiskSize          string   `cobraflag:"disk-size"`
 	VolumeSize        string   `cobraflag:"volume-size"`
 	AppMemory         string   `cobraflag:"memory"`
