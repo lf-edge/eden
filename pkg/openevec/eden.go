@@ -535,7 +535,7 @@ func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, current
 	return nil
 }
 
-func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint, follow bool, args []string) error {
+func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint, follow bool, printFields []string, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -552,10 +552,10 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint
 	}
 
 	handleInfo := func(im *info.ZInfoMsg) bool {
-		if cfg.Runtime.PrintFields == nil {
+		if printFields == nil {
 			einfo.ZInfoPrn(im, outputFormat)
 		} else {
-			einfo.ZInfoPrintFiltered(im, cfg.Runtime.PrintFields).Print()
+			einfo.ZInfoPrintFiltered(im, printFields).Print()
 		}
 		return false
 	}
@@ -577,7 +577,7 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint
 	return nil
 }
 
-func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, args []string) error {
+func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, printFields, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -596,10 +596,10 @@ func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, a
 	}
 
 	handleFunc := func(le *elog.FullLogEntry) bool {
-		if cfg.Runtime.PrintFields == nil {
+		if printFields == nil {
 			elog.LogPrn(le, outputFormat)
 		} else {
-			elog.LogItemPrint(le, outputFormat, cfg.Runtime.PrintFields).Print()
+			elog.LogItemPrint(le, outputFormat, printFields).Print()
 		}
 		return false
 	}
@@ -623,7 +623,7 @@ func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, a
 	return nil
 }
 
-func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, args []string) error {
+func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, printFields, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -642,10 +642,10 @@ func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow boo
 	}
 
 	handleFunc := func(le *flowlog.FlowMessage) bool {
-		if cfg.Runtime.PrintFields == nil {
+		if printFields == nil {
 			eflowlog.FlowLogPrn(le, outputFormat)
 		} else {
-			eflowlog.FlowLogItemPrint(le, cfg.Runtime.PrintFields).Print()
+			eflowlog.FlowLogItemPrint(le, printFields).Print()
 		}
 		return false
 	}
@@ -669,7 +669,7 @@ func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow boo
 	return nil
 }
 
-func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, args []string) error {
+func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, printFields, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -688,10 +688,10 @@ func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool
 	}
 
 	handleFunc := func(le *metrics.ZMetricMsg) bool {
-		if cfg.Runtime.PrintFields == nil {
+		if printFields == nil {
 			emetric.MetricPrn(le, outputFormat)
 		} else {
-			emetric.MetricItemPrint(le, cfg.Runtime.PrintFields).Print()
+			emetric.MetricItemPrint(le, printFields).Print()
 		}
 		return false
 	}

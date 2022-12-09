@@ -12,6 +12,7 @@ func newMetricCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var outputFormat types.OutputFormat
 	var follow bool
+	var printFields []string
 
 	var metricCmd = &cobra.Command{
 		Use:   "metric [field:regexp ...]",
@@ -20,14 +21,14 @@ func newMetricCmd(configName, verbosity *string) *cobra.Command {
 Scans the ADAM metrics for correspondence with regular expressions requests to json fields.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenMetric(cfg, outputFormat, follow, args); err != nil {
+			if err := openevec.EdenMetric(cfg, outputFormat, follow, printFields, args); err != nil {
 				log.Fatalf("Metric eden failed: %s", err)
 			}
 		},
 	}
 
 	metricCmd.Flags().UintVar(&cfg.Runtime.MetricTail, "tail", 0, "Show only last N lines")
-	metricCmd.Flags().StringSliceVarP(&cfg.Runtime.PrintFields, "out", "o", nil, "Fields to print. Whole message if empty.")
+	metricCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	metricCmd.Flags().BoolVarP(&follow, "follow", "f", false, "Monitor changes in selected metrics")
 
 	metricCmd.Flags().Var(

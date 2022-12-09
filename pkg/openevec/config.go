@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	PrintFields       []string `cobraflag:"out"`
 	LogTail           uint     `cobraflag:"tail"`
 	MetricTail        uint     `cobraflag:"tail"`
 	ContextFile       string   `cobraflag:"file"`

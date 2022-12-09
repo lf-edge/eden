@@ -17,6 +17,7 @@ func newLogCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var outputFormat types.OutputFormat
 	var follow bool
+	var printFields []string
 
 	var logCmd = &cobra.Command{
 		Use:   "log [field:regexp ...]",
@@ -25,14 +26,14 @@ func newLogCmd(configName, verbosity *string) *cobra.Command {
 Scans the ADAM logs for correspondence with regular expressions requests to json fields.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenLog(cfg, outputFormat, follow, args); err != nil {
+			if err := openevec.EdenLog(cfg, outputFormat, follow, printFields, args); err != nil {
 				log.Fatalf("Log eden failed: %s", err)
 			}
 		},
 	}
 
 	logCmd.Flags().UintVar(&cfg.Runtime.LogTail, "tail", 0, "Show only last N lines")
-	logCmd.Flags().StringSliceVarP(&cfg.Runtime.PrintFields, "out", "o", nil, "Fields to print. Whole message if empty.")
+	logCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 	logCmd.Flags().BoolVarP(&follow, "follow", "f", false, "Monitor changes in selected directory")
 
 	logCmd.Flags().Var(
