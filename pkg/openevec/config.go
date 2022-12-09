@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	AppCpus           uint32   `cobraflag:"cpus"`
 	PinCpus           bool     `cobraflag:"pin-cpus"`
 	ImageFormat       string   `cobraflag:"format"`
 	ACL               []string `cobraflag:"acl"`

@@ -81,6 +81,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var vncDisplay uint32
 	var vncPassword string
 	var diskSize, volumeSize, appMemory, volumeType string
+	var appCpus uint32
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -89,7 +90,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -103,7 +104,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
 	podDeployCmd.Flags().Uint32Var(&vncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
 	podDeployCmd.Flags().StringVar(&vncPassword, "vnc-password", "", "VNC password (empty - no password)")
-	podDeployCmd.Flags().Uint32Var(&cfg.Runtime.AppCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
+	podDeployCmd.Flags().Uint32Var(&appCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.AppAdapters, "adapters", nil, "adapters to assign to the application instance")
 	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.ImageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")

@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -104,7 +104,7 @@ func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []
 		return err
 	}
 	opts = append(opts, expect.WithVolumeType(expect.VolumeTypeByName(volumeType)))
-	opts = append(opts, expect.WithResources(cfg.Runtime.AppCpus, uint32(appMemoryParsed/1000)))
+	opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
 	opts = append(opts, expect.WithImageFormat(cfg.Runtime.ImageFormat))
 	if cfg.Runtime.ACLOnlyHost {
 		opts = append(opts, expect.WithACL(map[string][]expect.ACE{
