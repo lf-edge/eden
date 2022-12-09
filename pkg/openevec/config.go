@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	VolumesToPurge    []string `cobraflag:"volumes"`
 	DeleteVolumes     bool     `cobraflag:"with-volumes"`
 	AllConfigs        bool     `cobraflag:"all"`
 	AdamRm            bool     `cobraflag:"adam-rm"`

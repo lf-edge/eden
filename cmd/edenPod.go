@@ -27,7 +27,7 @@ func newPodCmd(configName, verbosity *string) *cobra.Command {
 				newPodStartCmd(cfg),
 				newPodDeleteCmd(cfg),
 				newPodRestartCmd(cfg),
-				newPodPurgeCmd(cfg),
+				newPodPurgeCmd(),
 				newPodModifyCmd(cfg),
 				newPodPublishCmd(cfg),
 			},
@@ -154,7 +154,9 @@ func newPodStopCmd() *cobra.Command {
 	return podStopCmd
 }
 
-func newPodPurgeCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newPodPurgeCmd() *cobra.Command {
+	var volumesToPurge []string
+
 	var podPurgeCmd = &cobra.Command{
 		Use:   "purge",
 		Short: "Purge pod",
@@ -162,13 +164,13 @@ func newPodPurgeCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
 			explicitVolumes := cmd.Flags().Changed("volumes")
-			if err := openevec.PodPurge(cfg.Runtime.VolumesToPurge, appName, explicitVolumes); err != nil {
+			if err := openevec.PodPurge(volumesToPurge, appName, explicitVolumes); err != nil {
 				log.Fatalf("EVE pod purge failed: %s", err)
 			}
 		},
 	}
 
-	podPurgeCmd.Flags().StringSliceVar(&cfg.Runtime.VolumesToPurge, "volumes", []string{}, "Explicitly set volume names to purge, purge all if not defined")
+	podPurgeCmd.Flags().StringSliceVar(&volumesToPurge, "volumes", []string{}, "Explicitly set volume names to purge, purge all if not defined")
 
 	return podPurgeCmd
 }
