@@ -80,7 +80,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var noHyper bool
 	var vncDisplay uint32
 	var vncPassword string
-	var diskSize string
+	var diskSize, volumeSize string
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -89,7 +89,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, noHyper, vncDisplay, vncPassword, diskSize, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -114,7 +114,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.SftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.Disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
 	podDeployCmd.Flags().StringArrayVar(&cfg.Runtime.Mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
-	podDeployCmd.Flags().StringVar(&cfg.Runtime.VolumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
+	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.Profiles, "profile", nil, "profile to set for app")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.ACL, "acl", nil, `Allow access only to defined hosts/ips/subnets.
 Without explicitly configured ACLs, all traffic is allowed.
