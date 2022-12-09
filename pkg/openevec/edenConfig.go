@@ -55,7 +55,7 @@ func ReloadConfigDetails(cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
+func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force bool) error {
 	var err error
 	if cfg.ConfigFile == "" {
 		cfg.ConfigFile, err = utils.DefaultConfigPath()
@@ -97,11 +97,11 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext string, force bool) error {
 		context.Current = "default"
 	}
 	cfg.ConfigFile = context.GetCurrentConfig()
-	if cfg.Runtime.ContextFile != "" {
-		if err := utils.CopyFile(cfg.Runtime.ContextFile, cfg.ConfigFile); err != nil {
+	if contextFile != "" {
+		if err := utils.CopyFile(contextFile, cfg.ConfigFile); err != nil {
 			return fmt.Errorf("cannot copy file: %w", err)
 		}
-		log.Infof("Context file generated: %s", cfg.Runtime.ContextFile)
+		log.Infof("Context file generated: %s", contextFile)
 	} else {
 		if _, err := os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
 			if err = utils.GenerateConfigFileDiff(cfg.ConfigFile, context); err != nil {
