@@ -535,7 +535,7 @@ func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, current
 	return nil
 }
 
-func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint, args []string) error {
+func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint, follow bool, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -564,7 +564,7 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint
 			return fmt.Errorf("InfoChecker: %w", err)
 		}
 	} else {
-		if cfg.Runtime.Follow {
+		if follow {
 			if err = ctrl.InfoChecker(devUUID, q, handleInfo, einfo.InfoNew, 0); err != nil {
 				return fmt.Errorf("InfoChecker: %w", err)
 			}
@@ -577,7 +577,7 @@ func EdenInfo(cfg *EdenSetupArgs, outputFormat types.OutputFormat, infoTail uint
 	return nil
 }
 
-func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
+func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -609,7 +609,7 @@ func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string)
 			return fmt.Errorf("LogChecker: %w", err)
 		}
 	} else {
-		if cfg.Runtime.Follow {
+		if follow {
 			// Monitoring of new files
 			if err = ctrl.LogChecker(devUUID, q, handleFunc, elog.LogNew, 0); err != nil {
 				return fmt.Errorf("LogChecker: %w", err)
@@ -623,7 +623,7 @@ func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string)
 	return nil
 }
 
-func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
+func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -655,7 +655,7 @@ func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []str
 			return fmt.Errorf("FlowLogChecker: %w", err)
 		}
 	} else {
-		if cfg.Runtime.Follow {
+		if follow {
 			// Monitoring of new files
 			if err = ctrl.FlowLogChecker(devUUID, q, handleFunc, eflowlog.FlowLogNew, 0); err != nil {
 				return fmt.Errorf("FlowLogChecker: %w", err)
@@ -669,7 +669,7 @@ func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []str
 	return nil
 }
 
-func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []string) error {
+func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -701,7 +701,7 @@ func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, args []stri
 			return fmt.Errorf("MetricChecker: %w", err)
 		}
 	} else {
-		if cfg.Runtime.Follow {
+		if follow {
 			// Monitoring of new files
 			if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricNew, 0); err != nil {
 				return fmt.Errorf("MetricChecker: %w", err)

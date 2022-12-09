@@ -12,6 +12,7 @@ func newInfoCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var outputFormat types.OutputFormat
 	var infoTail uint
+	var follow bool
 
 	var infoCmd = &cobra.Command{
 		Use:   "info [field:regexp ...]",
@@ -20,14 +21,14 @@ func newInfoCmd(configName, verbosity *string) *cobra.Command {
 Scans the ADAM Info for correspondence with regular expressions requests to json fields.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenInfo(cfg, outputFormat, infoTail, args); err != nil {
+			if err := openevec.EdenInfo(cfg, outputFormat, infoTail, follow, args); err != nil {
 				log.Fatal("Eden info failed ", err)
 			}
 		},
 	}
 
 	infoCmd.Flags().UintVar(&infoTail, "tail", 0, "Show only last N lines")
-	infoCmd.Flags().BoolVarP(&cfg.Runtime.Follow, "follow", "f", false, "Monitor changes in selected directory")
+	infoCmd.Flags().BoolVarP(&follow, "follow", "f", false, "Monitor changes in selected directory")
 	infoCmd.Flags().StringSliceVarP(&cfg.Runtime.PrintFields, "out", "o", nil, "Fields to print. Whole message if empty.")
 
 	infoCmd.Flags().Var(
