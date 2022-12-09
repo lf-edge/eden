@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	Profiles          []string `cobraflag:"profile"`
 	DatastoreOverride string   `cobraflag:"datastoreOverride"`
 	AppAdapters       []string `cobraflag:"adapters"`
 	ACLOnlyHost       bool     `cobraflag:"only-host"`

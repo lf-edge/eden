@@ -76,7 +76,7 @@ func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 
 func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var podName, podMetadata, registry string
-	var podNetworks, portPublish, acl, vlans, mount, disks []string
+	var podNetworks, portPublish, acl, vlans, mount, disks, profiles []string
 	var noHyper bool
 	var vncDisplay uint32
 	var vncPassword string
@@ -93,7 +93,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, profiles, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -119,7 +119,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
 	podDeployCmd.Flags().StringArrayVar(&mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
 	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
-	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.Profiles, "profile", nil, "profile to set for app")
+	podDeployCmd.Flags().StringSliceVar(&profiles, "profile", nil, "profile to set for app")
 	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets.
 Without explicitly configured ACLs, all traffic is allowed.
 You can set ACL for a particular network in format '<network_name[:endpoint[:action]]>', where 'action' is either 'allow' (default) or 'drop'.
