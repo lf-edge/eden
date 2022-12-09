@@ -53,14 +53,14 @@ func swtpmPidFile(cfg *openevec.EdenSetupArgs) string {
 }
 
 func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var vmName string
+	var vmName, tapInterface string
 
 	var startEveCmd = &cobra.Command{
 		Use:   "start",
 		Short: "start eve",
 		Long:  `Start eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.StartEve(vmName, cfg); err != nil {
+			if err := openevec.StartEve(vmName, tapInterface, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -86,7 +86,7 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	startEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
-	startEveCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startEveCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
 
 	return startEveCmd
 }

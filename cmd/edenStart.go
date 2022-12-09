@@ -13,14 +13,15 @@ import (
 
 func newStartCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
-	var zedControlURL, vmName string
+	var zedControlURL, vmName, tapInterface string
+
 	var startCmd = &cobra.Command{
 		Use:               "start",
 		Short:             "start harness",
 		Long:              `Start harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.StartEden(cfg, vmName, zedControlURL); err != nil {
+			if err := openevec.StartEden(cfg, vmName, tapInterface, zedControlURL); err != nil {
 				log.Fatalf("Start eden failed: %s", err)
 			}
 		},
@@ -62,8 +63,8 @@ func newStartCmd(configName, verbosity *string) *cobra.Command {
 	startCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	startCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
+	startCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
 	startCmd.Flags().StringVarP(&cfg.Eve.ImageFile, "image-file", "", cfg.Eve.ImageFile, "path to image drive, overrides default setting")
-	startCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
 	startCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 	startCmd.Flags().StringVar(&zedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
 

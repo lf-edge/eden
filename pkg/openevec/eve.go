@@ -23,7 +23,7 @@ import (
 
 const SdnStartTimeout = 3 * time.Minute
 
-func StartEve(vmName string, cfg *EdenSetupArgs) error {
+func StartEve(vmName, tapInterface string, cfg *EdenSetupArgs) error {
 	if cfg.Eve.Remote {
 		return nil
 	}
@@ -42,14 +42,14 @@ func StartEve(vmName string, cfg *EdenSetupArgs) error {
 			log.Infof("EVE is starting in Virtual Box")
 		}
 	default:
-		if err := StartEveQemu(cfg); err != nil {
+		if err := StartEveQemu(tapInterface, cfg); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func StartEveQemu(cfg *EdenSetupArgs) error {
+func StartEveQemu(tapInterface string, cfg *EdenSetupArgs) error {
 	// Load network model and prepare SDN config.
 	var err error
 	var netModel sdnapi.NetworkModel
@@ -170,7 +170,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
 		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetDevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
-		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), cfg.Runtime.TapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
+		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), tapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err.Error())
 	} else {
 		log.Infof("EVE is starting")

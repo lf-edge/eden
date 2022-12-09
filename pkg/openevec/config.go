@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	TapInterface string `cobraflag:"with-tap"`
 }
 
 type PacketConfig struct {
