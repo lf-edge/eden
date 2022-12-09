@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	ImageFormat       string   `cobraflag:"format"`
 	ACL               []string `cobraflag:"acl"`
 	VLANs             []string `cobraflag:"vlan"`
 	SftpLoad          bool     `cobraflag:"sftp"`
