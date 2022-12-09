@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish, acl, vlans []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish, acl, vlans []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad bool, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -118,8 +118,8 @@ func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish, a
 		return err
 	}
 	opts = append(opts, expect.WithVLANs(vlansParsed))
-	opts = append(opts, expect.WithSFTPLoad(cfg.Runtime.SftpLoad))
-	if !cfg.Runtime.SftpLoad {
+	opts = append(opts, expect.WithSFTPLoad(sftpLoad))
+	if !sftpLoad {
 		opts = append(opts, expect.WithHTTPDirectLoad(cfg.Runtime.DirectLoad))
 	}
 	opts = append(opts, expect.WithAdditionalDisks(append(cfg.Runtime.Disks, cfg.Runtime.Mount...)))

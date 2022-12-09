@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	SftpLoad          bool     `cobraflag:"sftp"`
 	DirectLoad        bool     `cobraflag:"direct"`
 	Mount             []string `cobraflag:"mount"`
 	Disks             []string `cobraflag:"disks"`

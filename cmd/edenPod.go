@@ -84,6 +84,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var appCpus uint32
 	var pinCpus bool
 	var imageFormat string
+	var sftpLoad bool
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -92,7 +93,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, acl, vlans, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, podNetworks, portPublish, acl, vlans, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -114,7 +115,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.Registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	podDeployCmd.Flags().BoolVar(&cfg.Runtime.DirectLoad, "direct", true, "Use direct download for image instead of eserver")
-	podDeployCmd.Flags().BoolVar(&cfg.Runtime.SftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
+	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
 	podDeployCmd.Flags().StringSliceVar(&cfg.Runtime.Disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
 	podDeployCmd.Flags().StringArrayVar(&cfg.Runtime.Mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
 	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
