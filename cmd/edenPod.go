@@ -25,7 +25,7 @@ func newPodCmd(configName, verbosity *string) *cobra.Command {
 				newPodDeployCmd(cfg),
 				newPodStopCmd(),
 				newPodStartCmd(cfg),
-				newPodDeleteCmd(cfg),
+				newPodDeleteCmd(),
 				newPodRestartCmd(cfg),
 				newPodPurgeCmd(),
 				newPodModifyCmd(cfg),
@@ -207,20 +207,22 @@ func newPodStartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return podStartCmd
 }
 
-func newPodDeleteCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newPodDeleteCmd() *cobra.Command {
+	var deleteVolumes bool
+
 	var podDeleteCmd = &cobra.Command{
 		Use:   "delete",
 		Short: "Delete pod",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if _, err := openevec.PodDelete(appName, cfg.Runtime.DeleteVolumes); err != nil {
+			if _, err := openevec.PodDelete(appName, deleteVolumes); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
 	}
 
-	podDeleteCmd.Flags().BoolVar(&cfg.Runtime.DeleteVolumes, "with-volumes", true, "delete volumes of pod")
+	podDeleteCmd.Flags().BoolVar(&deleteVolumes, "with-volumes", true, "delete volumes of pod")
 
 	return podDeleteCmd
 }
