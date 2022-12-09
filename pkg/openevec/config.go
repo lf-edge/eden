@@ -146,9 +146,6 @@ type RegistryConfig struct {
 	IP   string `mapstructure:"ip"`
 }
 
-type RuntimeConfig struct {
-}
-
 type PacketConfig struct {
 	Key string `mapstructure:"key" cobraflag:"key"`
 }
@@ -184,7 +181,6 @@ type EdenSetupArgs struct {
 	Sdn      SdnConfig      `mapstructure:"sdn"`
 
 	ConfigFile string
-	Runtime    RuntimeConfig
 	ConfigName string
 	Force      bool
 }
