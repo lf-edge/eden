@@ -14,6 +14,7 @@ import (
 func newStopCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var vmName string
+	var adamRm bool
 
 	var stopCmd = &cobra.Command{
 		Use:               "stop",
@@ -22,7 +23,7 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			eden.StopEden(
-				cfg.Runtime.AdamRm, cfg.Runtime.RedisRm,
+				adamRm, cfg.Runtime.RedisRm,
 				cfg.Runtime.RegistryRm, cfg.Runtime.EServerRm,
 				cfg.Eve.Remote, cfg.Eve.Pid,
 				swtpmPidFile(cfg), cfg.Sdn.PidFile,
@@ -36,7 +37,7 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 		log.Fatal(err)
 	}
 
-	stopCmd.Flags().BoolVarP(&cfg.Runtime.AdamRm, "adam-rm", "", false, "adam rm on stop")
+	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.RegistryRm, "registry-rm", "", false, "registry rm on stop")
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.RedisRm, "redis-rm", "", false, "redis rm on stop")
 	stopCmd.Flags().BoolVarP(&cfg.Runtime.EServerRm, "eserver-rm", "", false, "eserver rm on stop")
