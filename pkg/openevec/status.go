@@ -22,7 +22,7 @@ const (
 	xmark    = "✘"
 )
 
-func Status(cfg *EdenSetupArgs) error {
+func Status(cfg *EdenSetupArgs, vmName string) error {
 	statusAdam, err := eden.StatusAdam()
 	if err != nil {
 		return fmt.Errorf("%s cannot obtain status of adam: %w", statusWarn(), err)
@@ -96,9 +96,9 @@ func Status(cfg *EdenSetupArgs) error {
 			if !cfg.Eve.Remote {
 				switch {
 				case cfg.Eve.DevModel == defaults.DefaultVBoxModel:
-					eveStatusVBox(cfg.Runtime.VmName)
+					eveStatusVBox(vmName)
 				case cfg.Eve.DevModel == defaults.DefaultParallelsModel:
-					eveStatusParallels(cfg.Runtime.VmName)
+					eveStatusParallels(vmName)
 				default:
 					eveStatusQEMU(configName, cfg.Eve.Pid)
 				}

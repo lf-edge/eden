@@ -505,7 +505,7 @@ func setupSdn(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func EdenClean(cfg EdenSetupArgs, configName, configDist string) error {
+func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string) error {
 	configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 	if cfg.Runtime.CurrentContext {
 		log.Info("Cleanup current context")
@@ -521,13 +521,13 @@ func EdenClean(cfg EdenSetupArgs, configName, configDist string) error {
 			log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 		}
 		if err := eden.CleanContext(cfg.Eve.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile), cfg.Eve.Pid, cfg.Eve.CertsUUID,
-			cfg.Sdn.PidFile, cfg.Runtime.VmName, configSaved, cfg.Eve.Remote); err != nil {
+			cfg.Sdn.PidFile, vmName, configSaved, cfg.Eve.Remote); err != nil {
 			return fmt.Errorf("cannot CleanContext: %w", err)
 		}
 	} else {
 		if err := eden.CleanEden(cfg.Eve.Dist, cfg.Adam.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile),
 			cfg.Eden.Images.EServerImageDist, cfg.Redis.Dist, cfg.Registry.Dist, configDist, cfg.Eve.Pid,
-			cfg.Sdn.PidFile, configSaved, cfg.Eve.Remote, cfg.Eve.DevModel, cfg.Runtime.VmName); err != nil {
+			cfg.Sdn.PidFile, configSaved, cfg.Eve.Remote, cfg.Eve.DevModel, vmName); err != nil {
 			return fmt.Errorf("cannot CleanEden: %w", err)
 		}
 	}

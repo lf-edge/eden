@@ -414,7 +414,7 @@ func NewEpochEve(eveConfigFromFile bool) error {
 	return nil
 }
 
-func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
+func NewLinkEve(command, eveInterfaceName, vmName string, cfg *EdenSetupArgs) error {
 	var err error
 	if cfg.Eve.Remote {
 		return fmt.Errorf("cannot change interface link of a remote EVE")
@@ -446,7 +446,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 		switch cfg.Eve.DevModel {
 		case defaults.DefaultVBoxModel:
 			for _, ifName := range eveIfNames {
-				err = eden.SetLinkStateVbox(cfg.Runtime.VmName, ifName, bringUp)
+				err = eden.SetLinkStateVbox(vmName, ifName, bringUp)
 			}
 		case defaults.DefaultQemuModel:
 			for _, ifName := range eveIfNames {
@@ -466,7 +466,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 	var linkStates []edensdn.LinkState
 	switch cfg.Eve.DevModel {
 	case defaults.DefaultVBoxModel:
-		linkStates, err = eden.GetLinkStatesVbox(cfg.Runtime.VmName, eveIfNames)
+		linkStates, err = eden.GetLinkStatesVbox(vmName, eveIfNames)
 	case defaults.DefaultQemuModel:
 		linkStates, err = eden.GetLinkStatesQemu(cfg.Eve.QemuConfig.MonitorPort, eveIfNames)
 	default:
