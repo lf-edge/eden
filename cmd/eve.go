@@ -211,7 +211,6 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	}
 
 	sshEveCmd.Flags().StringVarP(&cfg.Eden.SSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
-	sshEveCmd.Flags().IntVarP(&cfg.Runtime.SshPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 
 	return sshEveCmd
 }

@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	SshPort      int    `cobraflag:"eve-ssh-port"`
 	TapInterface string `cobraflag:"with-tap"`
 }
 
