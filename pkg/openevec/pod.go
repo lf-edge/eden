@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, noHyper bool, vncDisplay uint32, vncPassword string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, podNetworks []string, noHyper bool, vncDisplay uint32, vncPassword string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -77,8 +77,8 @@ func PodDeploy(appLink, podName, podMetadata string, noHyper bool, vncDisplay ui
 	opts = append(opts, expect.WithVnc(vncDisplay))
 	opts = append(opts, expect.WithVncPassword(vncPassword))
 	opts = append(opts, expect.WithAppAdapters(cfg.Runtime.AppAdapters))
-	if len(cfg.Runtime.PodNetworks) > 0 {
-		for i, el := range cfg.Runtime.PodNetworks {
+	if len(podNetworks) > 0 {
+		for i, el := range podNetworks {
 			if i == 0 {
 				// allocate ports on first network
 				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, cfg.Runtime.PortPublish))
@@ -467,7 +467,7 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 	return nil
 }
 
-func PodModify(appName string, cfg *EdenSetupArgs) error {
+func PodModify(appName string, podNetworks []string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -505,8 +505,8 @@ func PodModify(appName string, cfg *EdenSetupArgs) error {
 				}
 			}
 			var opts []expect.ExpectationOption
-			if len(cfg.Runtime.PodNetworks) > 0 {
-				for i, el := range cfg.Runtime.PodNetworks {
+			if len(podNetworks) > 0 {
+				for i, el := range podNetworks {
 					if i == 0 {
 						// allocate ports on first network
 						opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, portPublishCombined))
