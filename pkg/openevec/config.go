@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	DiskSize          string   `cobraflag:"disk-size"`
 	VolumeSize        string   `cobraflag:"volume-size"`
 	AppMemory         string   `cobraflag:"memory"`
 	VolumeType        string   `cobraflag:"volume-type"`

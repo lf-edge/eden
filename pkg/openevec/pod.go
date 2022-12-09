@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -89,7 +89,7 @@ func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []
 	} else {
 		opts = append(opts, expect.WithPortsPublish(portPublish))
 	}
-	diskSizeParsed, err := humanize.ParseBytes(cfg.Runtime.DiskSize)
+	diskSizeParsed, err := humanize.ParseBytes(diskSize)
 	if err != nil {
 		return err
 	}
