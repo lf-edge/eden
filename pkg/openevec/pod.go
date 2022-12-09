@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -138,7 +138,7 @@ func PodDeploy(appLink, podName, podMetadata string, podNetworks, portPublish []
 	opts = append(opts, expect.WithProfiles(cfg.Runtime.Profiles))
 	opts = append(opts, expect.WithDatastoreOverride(cfg.Runtime.DatastoreOverride))
 	opts = append(opts, expect.WithStartDelay(cfg.Runtime.StartDelay))
-	opts = append(opts, expect.WithPinCpus(cfg.Runtime.PinCpus))
+	opts = append(opts, expect.WithPinCpus(pinCpus))
 	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
 	appInstanceConfig := expectation.Application()
 	dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
