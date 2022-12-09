@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad bool, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad, openStackMetadata bool, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -134,7 +134,7 @@ func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, port
 	if noHyper {
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
-	opts = append(opts, expect.WithOpenStackMetadata(cfg.Runtime.OpenStackMetadata))
+	opts = append(opts, expect.WithOpenStackMetadata(openStackMetadata))
 	opts = append(opts, expect.WithProfiles(cfg.Runtime.Profiles))
 	opts = append(opts, expect.WithDatastoreOverride(cfg.Runtime.DatastoreOverride))
 	opts = append(opts, expect.WithStartDelay(cfg.Runtime.StartDelay))

@@ -84,7 +84,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var appCpus uint32
 	var pinCpus bool
 	var imageFormat string
-	var sftpLoad, directLoad bool
+	var sftpLoad, directLoad, openStackMetadata bool
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -93,7 +93,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -127,7 +127,7 @@ With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
 	podDeployCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
-	podDeployCmd.Flags().BoolVar(&cfg.Runtime.OpenStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
+	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
 	podDeployCmd.Flags().StringVar(&cfg.Runtime.DatastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
 	podDeployCmd.Flags().Uint32Var(&cfg.Runtime.StartDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
 	podDeployCmd.Flags().BoolVar(&pinCpus, "pin-cpus", false, "Pin the CPUs used by the pod")
