@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	Disks             []string `cobraflag:"disks"`
 	Registry          string   `cobraflag:"registry"`
 	OpenStackMetadata bool     `cobraflag:"openstack-metadata"`
 	Profiles          []string `cobraflag:"profile"`
