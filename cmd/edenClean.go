@@ -14,6 +14,7 @@ import (
 func newCleanCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var configDist, vmName string
+	var currentContext bool
 
 	var cleanCmd = &cobra.Command{
 		Use:               "clean",
@@ -21,7 +22,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Clean harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenClean(*cfg, *configName, configDist, vmName); err != nil {
+			if err := openevec.EdenClean(*cfg, *configName, configDist, vmName, currentContext); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)
 			}
 		},
@@ -46,7 +47,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 
 	cleanCmd.Flags().StringVarP(&cfg.Eden.CertsDir, "certs-dist", "o", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultCertsDist), "directory with certs")
 	cleanCmd.Flags().StringVarP(&configDist, "config-dist", "", configDist, "directory with eden config to cleanup")
-	cleanCmd.Flags().BoolVar(&cfg.Runtime.CurrentContext, "current-context", true, "clean only current context")
+	cleanCmd.Flags().BoolVar(&currentContext, "current-context", true, "clean only current context")
 	cleanCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 
 	addSdnPidOpt(cleanCmd, cfg)

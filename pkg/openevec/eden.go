@@ -505,9 +505,9 @@ func setupSdn(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string) error {
+func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, currentContext bool) error {
 	configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
-	if cfg.Runtime.CurrentContext {
+	if currentContext {
 		log.Info("Cleanup current context")
 		// we need to delete information about EVE from adam
 		if err := StartRedis(cfg); err != nil {
