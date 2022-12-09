@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	NoHyper           bool     `cobraflag:"no-hyper"`
 	PodMetadata       string   `cobraflag:"metadata"`
 	VncDisplay        uint32   `cobraflag:"vnc-display"`
 	VncPassword       string   `cobraflag:"vnc-password"`

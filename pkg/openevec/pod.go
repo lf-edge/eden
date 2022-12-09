@@ -66,7 +66,7 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName string, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink, podName string, noHyper bool, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -131,7 +131,7 @@ func PodDeploy(appLink, podName string, cfg *EdenSetupArgs) error {
 		registryToUse = ""
 	}
 	opts = append(opts, expect.WithRegistry(registryToUse))
-	if cfg.Runtime.NoHyper {
+	if noHyper {
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
 	opts = append(opts, expect.WithOpenStackMetadata(cfg.Runtime.OpenStackMetadata))
