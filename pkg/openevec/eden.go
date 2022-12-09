@@ -577,7 +577,7 @@ func EdenInfo(outputFormat types.OutputFormat, infoTail uint, follow bool, print
 	return nil
 }
 
-func EdenLog(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
+func EdenLog(outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -669,7 +669,7 @@ func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow boo
 	return nil
 }
 
-func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, printFields, args []string) error {
+func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, metricTail uint, printFields, args []string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
@@ -696,8 +696,8 @@ func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool
 		return false
 	}
 
-	if cfg.Runtime.MetricTail > 0 {
-		if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricTail(cfg.Runtime.MetricTail), 0); err != nil {
+	if metricTail > 0 {
+		if err = ctrl.MetricChecker(devUUID, q, handleFunc, emetric.MetricTail(metricTail), 0); err != nil {
 			return fmt.Errorf("MetricChecker: %w", err)
 		}
 	} else {

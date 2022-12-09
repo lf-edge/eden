@@ -14,7 +14,6 @@ var outputFormatIds = map[types.OutputFormat][]string{
 }
 
 func newLogCmd(configName, verbosity *string) *cobra.Command {
-	cfg := &openevec.EdenSetupArgs{}
 	var outputFormat types.OutputFormat
 	var follow bool
 	var printFields []string
@@ -23,11 +22,9 @@ func newLogCmd(configName, verbosity *string) *cobra.Command {
 	var logCmd = &cobra.Command{
 		Use:   "log [field:regexp ...]",
 		Short: "Get logs from a running EVE device",
-		Long: `
-Scans the ADAM logs for correspondence with regular expressions requests to json fields.`,
-		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
+		Long:  ` Scans the ADAM logs for correspondence with regular expressions requests to json fields.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenLog(cfg, outputFormat, follow, logTail, printFields, args); err != nil {
+			if err := openevec.EdenLog(outputFormat, follow, logTail, printFields, args); err != nil {
 				log.Fatalf("Log eden failed: %s", err)
 			}
 		},

@@ -147,7 +147,6 @@ type RegistryConfig struct {
 }
 
 type RuntimeConfig struct {
-	MetricTail        uint     `cobraflag:"tail"`
 	ContextFile       string   `cobraflag:"file"`
 	PodName           string   `cobraflag:"name"`
 	NoHyper           bool     `cobraflag:"no-hyper"`
