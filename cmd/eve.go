@@ -170,18 +170,20 @@ func newIpEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 }
 
 func newConsoleEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var host string
+
 	var consoleEveCmd = &cobra.Command{
 		Use:   "console",
 		Short: "telnet into eve",
 		Long:  `Telnet into eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.ConsoleEve(cfg); err != nil {
+			if err := openevec.ConsoleEve(host, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
 
-	consoleEveCmd.Flags().StringVarP(&cfg.Runtime.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
+	consoleEveCmd.Flags().StringVarP(&host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 
 	return consoleEveCmd
@@ -209,7 +211,6 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	}
 
 	sshEveCmd.Flags().StringVarP(&cfg.Eden.SSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
-	sshEveCmd.Flags().StringVarP(&cfg.Runtime.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	sshEveCmd.Flags().IntVarP(&cfg.Runtime.SshPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 
 	return sshEveCmd

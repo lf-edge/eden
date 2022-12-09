@@ -320,12 +320,12 @@ func eveLastRequests() (string, error) {
 	return strings.Split(lastRequest.ClientIP, ":")[0], nil
 }
 
-func ConsoleEve(cfg *EdenSetupArgs) error {
+func ConsoleEve(host string, cfg *EdenSetupArgs) error {
 	if cfg.Eve.Remote {
 		return fmt.Errorf("cannot telnet to remote EVE")
 	}
-	log.Infof("Try to telnet %s:%d", cfg.Runtime.Host, cfg.Eve.TelnetPort)
-	if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", cfg.Runtime.Host, cfg.Eve.TelnetPort))...); err != nil {
+	log.Infof("Try to telnet %s:%d", host, cfg.Eve.TelnetPort)
+	if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", host, cfg.Eve.TelnetPort))...); err != nil {
 		return fmt.Errorf("telnet error: %w", err)
 	}
 	return nil
