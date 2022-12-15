@@ -8,7 +8,7 @@ import (
 	"github.com/thediveo/enumflag"
 )
 
-func newInfoCmd(configName, verbosity *string) *cobra.Command {
+func newInfoCmd() *cobra.Command {
 	var outputFormat types.OutputFormat
 	var infoTail uint
 	var follow bool
