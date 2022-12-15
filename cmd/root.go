@@ -41,7 +41,7 @@ func NewEdenCommand() *cobra.Command {
 			Message: "Advanced Commands",
 			Commands: []*cobra.Command{
 				newInfoCmd(),
-				newLogCmd(&configName, &verbosity),
+				newLogCmd(),
 				newNetStatCmd(&configName, &verbosity),
 				newMetricCmd(&configName, &verbosity),
 				newAdamCmd(&configName, &verbosity),
