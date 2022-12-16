@@ -13,7 +13,7 @@ import (
 
 func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
-	var configDir, softSerial, zedControlURL, ipxeOverride, imageFormat string
+	var configDir, softSerial, zedControlURL, ipxeOverride string
 	var grubOptions []string
 	var netboot, installer bool
 
@@ -24,7 +24,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openevec.SetupEden(*configName, configDir, softSerial,
-				zedControlURL, ipxeOverride, grubOptions, netboot, installer, imageFormat, *cfg); err != nil {
+				zedControlURL, ipxeOverride, grubOptions, netboot, installer, *cfg); err != nil {
 
 				log.Fatalf("Setup eden failed: %s", err)
 			}
@@ -73,9 +73,6 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	setupCmd.Flags().StringVarP(&cfg.Eden.BinDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")
 	setupCmd.Flags().BoolVarP(&cfg.Adam.Force, "force", "", cfg.Adam.Force, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&cfg.Adam.APIv1, "api-v1", "", cfg.Adam.APIv1, "use v1 api")
-
-	setupCmd.Flags().IntVar(&cfg.Eve.ImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
-	setupCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 
 	setupCmd.Flags().StringVar(&cfg.Eve.BootstrapFile, "eve-bootstrap-file", "", "path to device config (in JSON) for bootstrapping")
 

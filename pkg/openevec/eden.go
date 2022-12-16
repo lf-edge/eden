@@ -52,7 +52,7 @@ func generateScripts(in string, out string, configFile string) error {
 }
 
 func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, grubOptions []string,
-	netboot, installer bool, imageFormat string, cfg EdenSetupArgs) error {
+	netboot, installer bool, cfg EdenSetupArgs) error {
 
 	if err := configCheck(configName); err != nil {
 		return err
@@ -88,7 +88,7 @@ func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride st
 
 	// Build Eden-SDN VM image unless the SDN is disabled.
 	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
-		if err := setupSdn(cfg, imageFormat); err != nil {
+		if err := setupSdn(cfg); err != nil {
 			return fmt.Errorf("cannot setup Sdn: %w", err)
 		}
 	}
@@ -428,7 +428,7 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL s
 	return nil
 }
 
-func setupSdn(cfg EdenSetupArgs, imageFormat string) error {
+func setupSdn(cfg EdenSetupArgs) error {
 	if err := os.MkdirAll(cfg.Sdn.ConfigDir, 0777); err != nil {
 		return fmt.Errorf("failed to create directory for SDN config files: %w", err)
 	}
@@ -490,13 +490,11 @@ func setupSdn(cfg EdenSetupArgs, imageFormat string) error {
 	}
 	// Build UEFI for SDN VM
 	eveDesc := utils.EVEDescription{
-		ConfigPath:  cfg.Eden.CertsDir,
-		Arch:        cfg.Eve.Arch,
-		HV:          cfg.Eve.HV,
-		Registry:    cfg.Eve.Registry,
-		Tag:         cfg.Eve.Tag,
-		Format:      imageFormat,
-		ImageSizeMB: cfg.Eve.ImageSizeMB,
+		ConfigPath: cfg.Eden.CertsDir,
+		Arch:       cfg.Eve.Arch,
+		HV:         cfg.Eve.HV,
+		Registry:   cfg.Eve.Registry,
+		Tag:        cfg.Eve.Tag,
 	}
 	if err := utils.DownloadUEFI(eveDesc, imageDir); err != nil {
 		return fmt.Errorf("cannot download UEFI (for SDN): %w", err)
