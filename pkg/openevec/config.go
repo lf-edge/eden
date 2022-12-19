@@ -146,64 +146,6 @@ type RegistryConfig struct {
 	IP   string `mapstructure:"ip"`
 }
 
-type RuntimeConfig struct {
-	EveConfigDir      string   `cobraflag:"eve-config-dir"`
-	NetBoot           bool     `cobraflag:"netboot"`
-	Installer         bool     `cobraflag:"installer"`
-	SoftSerial        string   `cobraflag:"soft-serial"`
-	ZedControlURL     string   `cobraflag:"zedcontrol"`
-	ConfigDist        string   `cobraflag:"config-dist"`
-	IPXEOverride      string   `cobraflag:"ipxe-override"`
-	GrubOptions       []string `cobraflag:"grub-options"`
-	DryRun            bool     `cobraflag:"dry-run"`
-	VmName            string   `cobraflag:"vmname"`
-	EveConfigFromFile bool     `cobraflag:"use-config-file"`
-	VolumesToPurge    []string `cobraflag:"volumes"`
-	DeleteVolumes     bool     `cobraflag:"with-volumes"`
-	AllConfigs        bool     `cobraflag:"all"`
-	AdamRm            bool     `cobraflag:"adam-rm"`
-	RegistryRm        bool     `cobraflag:"registry-rm"`
-	RedisRm           bool     `cobraflag:"redis-rm"`
-	EServerRm         bool     `cobraflag:"eserver-rm"`
-	CurrentContext    bool     `cobraflag:"current-context"`
-	InfoTail          uint     `cobraflag:"tail"`
-	Follow            bool     `cobraflag:"follow"`
-	PrintFields       []string `cobraflag:"out"`
-	LogTail           uint     `cobraflag:"tail"`
-	MetricTail        uint     `cobraflag:"tail"`
-	ContextFile       string   `cobraflag:"file"`
-	PodName           string   `cobraflag:"name"`
-	NoHyper           bool     `cobraflag:"no-hyper"`
-	PodMetadata       string   `cobraflag:"metadata"`
-	VncDisplay        uint32   `cobraflag:"vnc-display"`
-	VncPassword       string   `cobraflag:"vnc-password"`
-	PodNetworks       []string `cobraflag:"networks"`
-	PortPublish       []string `cobraflag:"publish"`
-	DiskSize          string   `cobraflag:"disk-size"`
-	VolumeSize        string   `cobraflag:"volume-size"`
-	AppMemory         string   `cobraflag:"memory"`
-	VolumeType        string   `cobraflag:"volume-type"`
-	AppCpus           uint32   `cobraflag:"cpus"`
-	PinCpus           bool     `cobraflag:"pin-cpus"`
-	ImageFormat       string   `cobraflag:"format"`
-	ACL               []string `cobraflag:"acl"`
-	VLANs             []string `cobraflag:"vlan"`
-	SftpLoad          bool     `cobraflag:"sftp"`
-	DirectLoad        bool     `cobraflag:"direct"`
-	Mount             []string `cobraflag:"mount"`
-	Disks             []string `cobraflag:"disks"`
-	Registry          string   `cobraflag:"registry"`
-	OpenStackMetadata bool     `cobraflag:"openstack-metadata"`
-	Profiles          []string `cobraflag:"profile"`
-	DatastoreOverride string   `cobraflag:"datastoreOverride"`
-	AppAdapters       []string `cobraflag:"adapters"`
-	ACLOnlyHost       bool     `cobraflag:"only-host"`
-	StartDelay        uint32   `cobraflag:"start-delay"`
-	Host              string   `cobraflag:"eve-host"`
-	SshPort           int      `cobraflag:"eve-ssh-port"`
-	TapInterface      string   `cobraflag:"with-tap"`
-}
-
 type PacketConfig struct {
 	Key string `mapstructure:"key" cobraflag:"key"`
 }
@@ -239,7 +181,6 @@ type EdenSetupArgs struct {
 	Sdn      SdnConfig      `mapstructure:"sdn"`
 
 	ConfigFile string
-	Runtime    RuntimeConfig
 	ConfigName string
 	Force      bool
 }

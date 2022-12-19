@@ -22,7 +22,7 @@ func newAdamCmd(configName, verbosity *string) *cobra.Command {
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
 				newStartAdamCmd(cfg),
-				newStopAdamCmd(cfg),
+				newStopAdamCmd(),
 				newStatusAdamCmd(),
 			},
 		},
@@ -55,19 +55,21 @@ func newStartAdamCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return startAdamCmd
 }
 
-func newStopAdamCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newStopAdamCmd() *cobra.Command {
+	var adamRm bool
+
 	var stopAdamCmd = &cobra.Command{
 		Use:   "stop",
 		Short: "stop adam",
 		Long:  `Stop adam.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := eden.StopAdam(cfg.Runtime.AdamRm); err != nil {
+			if err := eden.StopAdam(adamRm); err != nil {
 				log.Errorf("cannot stop adam: %s", err)
 			}
 		},
 	}
 
-	stopAdamCmd.Flags().BoolVarP(&cfg.Runtime.AdamRm, "adam-rm", "", false, "adam rm on stop")
+	stopAdamCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
 
 	return stopAdamCmd
 }

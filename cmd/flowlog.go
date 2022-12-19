@@ -11,6 +11,10 @@ import (
 func newNetStatCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
 	var outputFormat types.OutputFormat
+	var follow bool
+	var printFields []string
+	var logTail uint
+
 	var netStatCmd = &cobra.Command{
 		Use:   "netstat [field:regexp ...]",
 		Short: "Get logs of network packets from a running EVE device",
@@ -18,15 +22,15 @@ func newNetStatCmd(configName, verbosity *string) *cobra.Command {
 (TCP and UDP flows with IP addresses, port numbers, counters, whether dropped or accepted)`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenNetStat(cfg, outputFormat, args); err != nil {
+			if err := openevec.EdenNetStat(cfg, outputFormat, follow, logTail, printFields, args); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)
 			}
 		},
 	}
 
-	netStatCmd.Flags().UintVar(&cfg.Runtime.LogTail, "tail", 0, "Show only last N lines")
-	netStatCmd.Flags().StringSliceVarP(&cfg.Runtime.PrintFields, "out", "o", nil, "Fields to print. Whole message if empty.")
-	netStatCmd.Flags().BoolVarP(&cfg.Runtime.Follow, "follow", "f", false, "Monitor changes in selected directory")
+	netStatCmd.Flags().UintVar(&logTail, "tail", 0, "Show only last N lines")
+	netStatCmd.Flags().StringSliceVarP(&printFields, "out", "o", nil, "Fields to print. Whole message if empty.")
+	netStatCmd.Flags().BoolVarP(&follow, "follow", "f", false, "Monitor changes in selected directory")
 	netStatCmd.Flags().Var(enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive), "format", "Format to print logs, supports: lines, json")
 
 	return netStatCmd

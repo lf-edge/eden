@@ -40,8 +40,8 @@ func NewEdenCommand() *cobra.Command {
 		{
 			Message: "Advanced Commands",
 			Commands: []*cobra.Command{
-				newInfoCmd(&configName, &verbosity),
-				newLogCmd(&configName, &verbosity),
+				newInfoCmd(),
+				newLogCmd(),
 				newNetStatCmd(&configName, &verbosity),
 				newMetricCmd(&configName, &verbosity),
 				newAdamCmd(&configName, &verbosity),

@@ -13,6 +13,9 @@ import (
 
 func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
+	var configDir, softSerial, zedControlURL, ipxeOverride string
+	var grubOptions []string
+	var netboot, installer bool
 
 	var setupCmd = &cobra.Command{
 		Use:               "setup",
@@ -20,7 +23,9 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Setup harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.SetupEden(*configName, *cfg); err != nil {
+			if err := openevec.SetupEden(*configName, configDir, softSerial,
+				zedControlURL, ipxeOverride, grubOptions, netboot, installer, *cfg); err != nil {
+
 				log.Fatalf("Setup eden failed: %s", err)
 			}
 		},
@@ -32,14 +37,13 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	}
 
 	setupCmd.Flags().BoolVarP(&cfg.Eden.Download, "download", "", cfg.Eden.Download, "download EVE or build")
-	setupCmd.Flags().BoolVarP(&cfg.Runtime.DryRun, "dry-run", "", false, "")
-	setupCmd.Flags().StringVar(&cfg.Runtime.EveConfigDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
-	setupCmd.Flags().BoolVar(&cfg.Runtime.NetBoot, "netboot", false, "Setup for use with network boot")
-	setupCmd.Flags().BoolVar(&cfg.Runtime.Installer, "installer", false, "Setup for create installer")
-	setupCmd.Flags().StringVar(&cfg.Runtime.SoftSerial, "soft-serial", "", "Use provided serial instead of hardware one, please use chars and numbers here")
-	setupCmd.Flags().StringVar(&cfg.Runtime.ZedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
-	setupCmd.Flags().StringVar(&cfg.Runtime.IPXEOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
-	setupCmd.Flags().StringArrayVar(&cfg.Runtime.GrubOptions, "grub-options", []string{}, "append lines to grub options")
+	setupCmd.Flags().StringVar(&configDir, "eve-config-dir", filepath.Join(currentPath, "eve-config-dir"), "directory with files to put into EVE`s conf directory during setup")
+	setupCmd.Flags().BoolVar(&netboot, "netboot", false, "Setup for use with network boot")
+	setupCmd.Flags().BoolVar(&installer, "installer", false, "Setup for create installer")
+	setupCmd.Flags().StringVar(&softSerial, "soft-serial", "", "Use provided serial instead of hardware one, please use chars and numbers here")
+	setupCmd.Flags().StringVar(&zedControlURL, "zedcontrol", "", "Use provided zedcontrol domain instead of adam (as example: zedcloud.alpha.zededa.net)")
+	setupCmd.Flags().StringVar(&ipxeOverride, "ipxe-override", "", "override lines inside ipxe, please use || as delimiter")
+	setupCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
 
 	setupCmd.Flags().StringVarP(&cfg.Eden.CertsDir, "certs-dist", "o", cfg.Eden.CertsDir, "directory with certs")
 	setupCmd.Flags().StringVarP(&cfg.Adam.CertsDomain, "domain", "d", defaults.DefaultDomain, "FQDN for certificates")
@@ -69,8 +73,6 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	setupCmd.Flags().StringVarP(&cfg.Eden.BinDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")
 	setupCmd.Flags().BoolVarP(&cfg.Adam.Force, "force", "", cfg.Adam.Force, "force overwrite config file")
 	setupCmd.Flags().BoolVarP(&cfg.Adam.APIv1, "api-v1", "", cfg.Adam.APIv1, "use v1 api")
-
-	setupCmd.Flags().IntVar(&cfg.Eve.ImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
 
 	setupCmd.Flags().StringVar(&cfg.Eve.BootstrapFile, "eve-bootstrap-file", "", "path to device config (in JSON) for bootstrapping")
 

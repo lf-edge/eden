@@ -23,7 +23,7 @@ func newRedisCmd(configName, verbosity *string) *cobra.Command {
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
 				newStartRedisCmd(cfg),
-				newStopRedisCmd(cfg),
+				newStopRedisCmd(),
 				newStatusRedisCmd(),
 			},
 		},
@@ -61,18 +61,20 @@ func newStartRedisCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return startRedisCmd
 }
 
-func newStopRedisCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newStopRedisCmd() *cobra.Command {
+	var redisRm bool
+
 	var stopRedisCmd = &cobra.Command{
 		Use:   "stop",
 		Short: "stop redis",
 		Long:  `Stop redis.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := eden.StopRedis(cfg.Runtime.RedisRm); err != nil {
+			if err := eden.StopRedis(redisRm); err != nil {
 				log.Errorf("cannot stop redis: %s", err)
 			}
 		},
 	}
-	stopRedisCmd.Flags().BoolVarP(&cfg.Runtime.RedisRm, "redis-rm", "", false, "redis rm on stop")
+	stopRedisCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
 
 	return stopRedisCmd
 }

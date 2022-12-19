@@ -23,7 +23,7 @@ func newEserverCmd(configName, verbosity *string) *cobra.Command {
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
 				newStartEserverCmd(cfg),
-				newStopEserverCmd(cfg),
+				newStopEserverCmd(),
 				newStatusEserverCmd(cfg),
 			},
 		},
@@ -63,19 +63,21 @@ func newStartEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return startEserverCmd
 }
 
-func newStopEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newStopEserverCmd() *cobra.Command {
+	var eServerRm bool
+
 	var stopEserverCmd = &cobra.Command{
 		Use:   "stop",
 		Short: "stop eserver",
 		Long:  `Stop eserver.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := eden.StopEServer(cfg.Runtime.EServerRm); err != nil {
+			if err := eden.StopEServer(eServerRm); err != nil {
 				log.Errorf("cannot stop eserver: %s", err)
 			}
 		},
 	}
 
-	stopEserverCmd.Flags().BoolVarP(&cfg.Runtime.EServerRm, "eserver-rm", "", false, "eserver rm on stop")
+	stopEserverCmd.Flags().BoolVarP(&eServerRm, "eserver-rm", "", false, "eserver rm on stop")
 
 	return stopEserverCmd
 }

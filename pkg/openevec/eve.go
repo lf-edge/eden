@@ -23,7 +23,7 @@ import (
 
 const SdnStartTimeout = 3 * time.Minute
 
-func StartEve(vmName string, cfg *EdenSetupArgs) error {
+func StartEve(vmName, tapInterface string, cfg *EdenSetupArgs) error {
 	if cfg.Eve.Remote {
 		return nil
 	}
@@ -42,14 +42,14 @@ func StartEve(vmName string, cfg *EdenSetupArgs) error {
 			log.Infof("EVE is starting in Virtual Box")
 		}
 	default:
-		if err := StartEveQemu(cfg); err != nil {
+		if err := StartEveQemu(tapInterface, cfg); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func StartEveQemu(cfg *EdenSetupArgs) error {
+func StartEveQemu(tapInterface string, cfg *EdenSetupArgs) error {
 	// Load network model and prepare SDN config.
 	var err error
 	var netModel sdnapi.NetworkModel
@@ -170,7 +170,7 @@ func StartEveQemu(cfg *EdenSetupArgs) error {
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
 		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetDevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
-		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), cfg.Runtime.TapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
+		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), tapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err.Error())
 	} else {
 		log.Infof("EVE is starting")
@@ -320,12 +320,12 @@ func eveLastRequests() (string, error) {
 	return strings.Split(lastRequest.ClientIP, ":")[0], nil
 }
 
-func ConsoleEve(cfg *EdenSetupArgs) error {
+func ConsoleEve(host string, cfg *EdenSetupArgs) error {
 	if cfg.Eve.Remote {
 		return fmt.Errorf("cannot telnet to remote EVE")
 	}
-	log.Infof("Try to telnet %s:%d", cfg.Runtime.Host, cfg.Eve.TelnetPort)
-	if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", cfg.Runtime.Host, cfg.Eve.TelnetPort))...); err != nil {
+	log.Infof("Try to telnet %s:%d", host, cfg.Eve.TelnetPort)
+	if err := utils.RunCommandForeground("telnet", strings.Fields(fmt.Sprintf("%s %d", host, cfg.Eve.TelnetPort))...); err != nil {
 		return fmt.Errorf("telnet error: %w", err)
 	}
 	return nil
@@ -414,7 +414,7 @@ func NewEpochEve(eveConfigFromFile bool) error {
 	return nil
 }
 
-func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
+func NewLinkEve(command, eveInterfaceName, vmName string, cfg *EdenSetupArgs) error {
 	var err error
 	if cfg.Eve.Remote {
 		return fmt.Errorf("cannot change interface link of a remote EVE")
@@ -446,7 +446,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 		switch cfg.Eve.DevModel {
 		case defaults.DefaultVBoxModel:
 			for _, ifName := range eveIfNames {
-				err = eden.SetLinkStateVbox(cfg.Runtime.VmName, ifName, bringUp)
+				err = eden.SetLinkStateVbox(vmName, ifName, bringUp)
 			}
 		case defaults.DefaultQemuModel:
 			for _, ifName := range eveIfNames {
@@ -466,7 +466,7 @@ func NewLinkEve(command, eveInterfaceName string, cfg *EdenSetupArgs) error {
 	var linkStates []edensdn.LinkState
 	switch cfg.Eve.DevModel {
 	case defaults.DefaultVBoxModel:
-		linkStates, err = eden.GetLinkStatesVbox(cfg.Runtime.VmName, eveIfNames)
+		linkStates, err = eden.GetLinkStatesVbox(vmName, eveIfNames)
 	case defaults.DefaultQemuModel:
 		linkStates, err = eden.GetLinkStatesQemu(cfg.Eve.QemuConfig.MonitorPort, eveIfNames)
 	default:

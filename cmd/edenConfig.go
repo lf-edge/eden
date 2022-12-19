@@ -40,6 +40,7 @@ func newConfigCmd(configName, verbosity *string) *cobra.Command {
 
 func newConfigAddCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var force bool
+	var contextFile string
 
 	var configAddCmd = &cobra.Command{
 		Use:   "add [name]",
@@ -58,7 +59,7 @@ func newConfigAddCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			if len(args) > 0 {
 				configName = args[0]
 			}
-			if err := openevec.ConfigAdd(cfg, configName, force); err != nil {
+			if err := openevec.ConfigAdd(cfg, configName, contextFile, force); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -67,7 +68,7 @@ func newConfigAddCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	configAddCmd.Flags().StringVar(&cfg.Eve.DevModel, "devmodel", defaults.DefaultQemuModel,
 		fmt.Sprintf("device model (%s/%s/%s/%s)",
 			defaults.DefaultQemuModel, defaults.DefaultRPIModel, defaults.DefaultGCPModel, defaults.DefaultGeneralModel))
-	configAddCmd.Flags().StringVar(&cfg.Runtime.ContextFile, "file", "", "file with config to add")
+	configAddCmd.Flags().StringVar(&contextFile, "file", "", "file with config to add")
 	//not used in function
 	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
 	configAddCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "cpus")

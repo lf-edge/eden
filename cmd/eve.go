@@ -32,7 +32,7 @@ func newEveCmd(configName, verbosity *string) *cobra.Command {
 				newOnboardEveCmd(cfg),
 				newResetEveCmd(cfg),
 				newVersionEveCmd(),
-				newEpochEveCmd(cfg),
+				newEpochEveCmd(),
 				newLinkEveCmd(cfg),
 			},
 		},
@@ -53,14 +53,14 @@ func swtpmPidFile(cfg *openevec.EdenSetupArgs) string {
 }
 
 func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var vmName string
+	var vmName, tapInterface string
 
 	var startEveCmd = &cobra.Command{
 		Use:   "start",
 		Short: "start eve",
 		Long:  `Start eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.StartEve(vmName, cfg); err != nil {
+			if err := openevec.StartEve(vmName, tapInterface, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -86,7 +86,7 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	startEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
 	startEveCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
-	startEveCmd.Flags().StringVarP(&cfg.Runtime.TapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
+	startEveCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
 
 	return startEveCmd
 }
@@ -170,18 +170,20 @@ func newIpEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 }
 
 func newConsoleEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var host string
+
 	var consoleEveCmd = &cobra.Command{
 		Use:   "console",
 		Short: "telnet into eve",
 		Long:  `Telnet into eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.ConsoleEve(cfg); err != nil {
+			if err := openevec.ConsoleEve(host, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
 
-	consoleEveCmd.Flags().StringVarP(&cfg.Runtime.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
+	consoleEveCmd.Flags().StringVarP(&host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
 	consoleEveCmd.Flags().IntVarP(&cfg.Eve.TelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
 
 	return consoleEveCmd
@@ -209,8 +211,6 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	}
 
 	sshEveCmd.Flags().StringVarP(&cfg.Eden.SSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
-	sshEveCmd.Flags().StringVarP(&cfg.Runtime.Host, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
-	sshEveCmd.Flags().IntVarP(&cfg.Runtime.SshPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
 
 	return sshEveCmd
 }
@@ -244,62 +244,26 @@ func newResetEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return resetEveCmd
 }
 
-func newEpochEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newEpochEveCmd() *cobra.Command {
+	var eveConfigFromFile bool
+
 	var epochEveCmd = &cobra.Command{
 		Use:   "epoch",
 		Short: "Set new epoch of EVE",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.NewEpochEve(cfg.Runtime.EveConfigFromFile); err != nil {
+			if err := openevec.NewEpochEve(eveConfigFromFile); err != nil {
 				log.Fatalf("EVE new epoch failed: %s", err)
 			}
 		},
 	}
 
-	epochEveCmd.Flags().BoolVar(&cfg.Runtime.EveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
+	epochEveCmd.Flags().BoolVar(&eveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
 
 	return epochEveCmd
 }
 
-/*
-	startEveCmd.Flags().StringVarP(&eveImageFile, "image-file", "", "", "path for image drive (required)")
-	startEveCmd.Flags().StringVarP(&qemuARCH, "eve-arch", "", runtime.GOARCH, "arch of system")
-	startEveCmd.Flags().StringVarP(&qemuOS, "eve-os", "", runtime.GOOS, "os to run on")
-	startEveCmd.Flags().BoolVarP(&qemuAccel, "eve-accel", "", true, "use acceleration")
-	startEveCmd.Flags().StringVarP(&qemuSMBIOSSerial, "eve-serial", "", "", "SMBIOS serial")
-	startEveCmd.Flags().StringVarP(&qemuConfigFile, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, "qemu.conf"), "config file to use")
-	startEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
-	startEveCmd.Flags().StringVarP(&eveLogFile, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
-	startEveCmd.Flags().BoolVarP(&qemuForeground, "foreground", "", false, "run in foreground")
-	startEveCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
-	startEveCmd.Flags().IntVarP(&qemuNetdevSocketPort, "qemu-netdev-socket-port", "", defaults.DefaultQemuNetdevSocketPort, "Base port for socket-based ethernet interfaces used in QEMU")
-	startEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
-	startEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
-	startEveCmd.Flags().IntVarP(&cpus, "cpus", "", defaults.DefaultCpus, "vbox cpus")
-	startEveCmd.Flags().IntVarP(&mem, "memory", "", defaults.DefaultMemory, "vbox memory size (MB)")
-	startEveCmd.Flags().StringVarP(&tapInterface, "with-tap", "", "", "use tap interface in QEMU as the third")
-	startEveCmd.Flags().StringVarP(&eveUsbNetConfFile, "eve-usbnetconf-file", "", "", "path to device network config (aka usb.json) applied in runtime using a USB stick")
-	addSdnStartOpts(startEveCmd)
-	stopEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
-	stopEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
-	addSdnPidOpt(stopEveCmd)
-	statusEveCmd.Flags().StringVarP(&evePidFile, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
-	statusEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
-	addSdnPidOpt(statusEveCmd)
-	addSdnPortOpts(statusEveCmd)
-	sshEveCmd.Flags().StringVarP(&eveSSHKey, "ssh-key", "", filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"), "file to use for ssh access")
-	sshEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
-	sshEveCmd.Flags().IntVarP(&eveSSHPort, "eve-ssh-port", "", defaults.DefaultSSHPort, "Port for ssh access")
-	addSdnPortOpts(sshEveCmd)
-	consoleEveCmd.Flags().StringVarP(&eveHost, "eve-host", "", defaults.DefaultEVEHost, "IP of eve")
-	consoleEveCmd.Flags().IntVarP(&eveTelnetPort, "eve-telnet-port", "", defaults.DefaultTelnetPort, "Port for telnet access")
-	epochEveCmd.Flags().BoolVar(&eveConfigFromFile, "use-config-file", false, "Load config of EVE from file")
-	linkEveCmd.Flags().IntVarP(&qemuMonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
-	linkEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "name of the EVE VBox VM")
-	linkEveCmd.Flags().StringVarP(&eveInterfaceName, "interface-name", "i", "", "EVE interface to get/change the link state of")
-	addSdnPortOpts(linkEveCmd)
-*/
 func newLinkEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var eveInterfaceName string
+	var eveInterfaceName, vmName string
 
 	var linkEveCmd = &cobra.Command{
 		Use:   "link up|down|status",
@@ -310,14 +274,14 @@ func newLinkEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			if len(args) > 0 {
 				command = args[0]
 			}
-			if err := openevec.NewLinkEve(command, eveInterfaceName, cfg); err != nil {
+			if err := openevec.NewLinkEve(command, eveInterfaceName, vmName, cfg); err != nil {
 				log.Fatalf("EVE new link failed: %s", err)
 			}
 		},
 	}
 
 	linkEveCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
-	linkEveCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "name of the EVE VBox VM")
+	linkEveCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "name of the EVE VBox VM")
 	linkEveCmd.Flags().StringVarP(&eveInterfaceName, "interface-name", "i", "", "EVE interface to get/change the link state of")
 
 	return linkEveCmd

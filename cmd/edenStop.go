@@ -13,6 +13,9 @@ import (
 
 func newStopCmd(configName, verbosity *string) *cobra.Command {
 	cfg := &openevec.EdenSetupArgs{}
+	var vmName string
+	var adamRm, registryRm, redisRm, eServerRm bool
+
 	var stopCmd = &cobra.Command{
 		Use:               "stop",
 		Short:             "stop harness",
@@ -20,11 +23,11 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			eden.StopEden(
-				cfg.Runtime.AdamRm, cfg.Runtime.RedisRm,
-				cfg.Runtime.RegistryRm, cfg.Runtime.EServerRm,
+				adamRm, redisRm,
+				registryRm, eServerRm,
 				cfg.Eve.Remote, cfg.Eve.Pid,
 				swtpmPidFile(cfg), cfg.Sdn.PidFile,
-				cfg.Eve.DevModel, cfg.Runtime.VmName,
+				cfg.Eve.DevModel, vmName,
 			)
 		},
 	}
@@ -34,12 +37,12 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 		log.Fatal(err)
 	}
 
-	stopCmd.Flags().BoolVarP(&cfg.Runtime.AdamRm, "adam-rm", "", false, "adam rm on stop")
-	stopCmd.Flags().BoolVarP(&cfg.Runtime.RegistryRm, "registry-rm", "", false, "registry rm on stop")
-	stopCmd.Flags().BoolVarP(&cfg.Runtime.RedisRm, "redis-rm", "", false, "redis rm on stop")
-	stopCmd.Flags().BoolVarP(&cfg.Runtime.EServerRm, "eserver-rm", "", false, "eserver rm on stop")
+	stopCmd.Flags().BoolVarP(&adamRm, "adam-rm", "", false, "adam rm on stop")
+	stopCmd.Flags().BoolVarP(&registryRm, "registry-rm", "", false, "registry rm on stop")
+	stopCmd.Flags().BoolVarP(&redisRm, "redis-rm", "", false, "redis rm on stop")
+	stopCmd.Flags().BoolVarP(&eServerRm, "eserver-rm", "", false, "eserver rm on stop")
 	stopCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file with EVE pid")
-	stopCmd.Flags().StringVarP(&cfg.Runtime.VmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
+	stopCmd.Flags().StringVarP(&vmName, "vmname", "", defaults.DefaultVBoxVMName, "vbox vmname required to create vm")
 
 	addSdnPidOpt(stopCmd, cfg)
 
