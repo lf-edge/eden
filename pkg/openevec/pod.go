@@ -66,80 +66,80 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink, podName, podMetadata, registry string, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters []string, noHyper bool, vncDisplay uint32, vncPassword, diskSize, volumeSize, appMemory, volumeType string, appCpus uint32, pinCpus bool, imageFormat string, sftpLoad, directLoad, openStackMetadata bool, datastoreOverride string, aclOnlyHost bool, startDelay uint32, cfg *EdenSetupArgs) error {
+func PodDeploy(appLink string, pc PodConfig, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
 		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
 	var opts []expect.ExpectationOption
-	opts = append(opts, expect.WithMetadata(podMetadata))
-	opts = append(opts, expect.WithVnc(vncDisplay))
-	opts = append(opts, expect.WithVncPassword(vncPassword))
-	opts = append(opts, expect.WithAppAdapters(appAdapters))
-	if len(podNetworks) > 0 {
-		for i, el := range podNetworks {
+	opts = append(opts, expect.WithMetadata(pc.Metadata))
+	opts = append(opts, expect.WithVnc(pc.VncDisplay))
+	opts = append(opts, expect.WithVncPassword(pc.VncPassword))
+	opts = append(opts, expect.WithAppAdapters(pc.AppAdapters))
+	if len(pc.Networks) > 0 {
+		for i, el := range pc.Networks {
 			if i == 0 {
 				// allocate ports on first network
-				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, portPublish))
+				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, pc.PortPublish))
 			} else {
 				opts = append(opts, expect.AddNetInstanceNameAndPortPublish(el, nil))
 			}
 		}
 	} else {
-		opts = append(opts, expect.WithPortsPublish(portPublish))
+		opts = append(opts, expect.WithPortsPublish(pc.PortPublish))
 	}
-	diskSizeParsed, err := humanize.ParseBytes(diskSize)
+	diskSizeParsed, err := humanize.ParseBytes(pc.DiskSize)
 	if err != nil {
 		return err
 	}
 	opts = append(opts, expect.WithDiskSize(int64(diskSizeParsed)))
-	volumeSizeParsed, err := humanize.ParseBytes(volumeSize)
+	volumeSizeParsed, err := humanize.ParseBytes(pc.VolumeSize)
 	if err != nil {
 		return err
 	}
 	opts = append(opts, expect.WithVolumeSize(int64(volumeSizeParsed)))
-	appMemoryParsed, err := humanize.ParseBytes(appMemory)
+	appMemoryParsed, err := humanize.ParseBytes(pc.AppMemory)
 	if err != nil {
 		return err
 	}
-	opts = append(opts, expect.WithVolumeType(expect.VolumeTypeByName(volumeType)))
-	opts = append(opts, expect.WithResources(appCpus, uint32(appMemoryParsed/1000)))
-	opts = append(opts, expect.WithImageFormat(imageFormat))
-	if aclOnlyHost {
+	opts = append(opts, expect.WithVolumeType(expect.VolumeTypeByName(pc.VolumeType)))
+	opts = append(opts, expect.WithResources(pc.AppCpus, uint32(appMemoryParsed/1000)))
+	opts = append(opts, expect.WithImageFormat(pc.ImageFormat))
+	if pc.ACLOnlyHost {
 		opts = append(opts, expect.WithACL(map[string][]expect.ACE{
 			"": {{Endpoint: defaults.DefaultHostOnlyNotation}},
 		}))
 	} else {
-		opts = append(opts, expect.WithACL(processAcls(acl)))
+		opts = append(opts, expect.WithACL(processAcls(pc.ACL)))
 	}
-	vlansParsed, err := processVLANs(vlans)
+	vlansParsed, err := processVLANs(pc.Vlans)
 	if err != nil {
 		return err
 	}
 	opts = append(opts, expect.WithVLANs(vlansParsed))
-	opts = append(opts, expect.WithSFTPLoad(sftpLoad))
-	if !sftpLoad {
-		opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
+	opts = append(opts, expect.WithSFTPLoad(pc.SftpLoad))
+	if !pc.SftpLoad {
+		opts = append(opts, expect.WithHTTPDirectLoad(pc.DirectLoad))
 	}
-	opts = append(opts, expect.WithAdditionalDisks(append(disks, mount...)))
-	registryToUse := registry
-	switch registry {
+	opts = append(opts, expect.WithAdditionalDisks(append(pc.Disks, pc.Mount...)))
+	registryToUse := pc.Registry
+	switch pc.Registry {
 	case "local":
 		registryToUse = fmt.Sprintf("%s:%d", cfg.Registry.IP, cfg.Registry.Port)
 	case "remote":
 		registryToUse = ""
 	}
 	opts = append(opts, expect.WithRegistry(registryToUse))
-	if noHyper {
+	if pc.NoHyper {
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
-	opts = append(opts, expect.WithOpenStackMetadata(openStackMetadata))
-	opts = append(opts, expect.WithProfiles(profiles))
-	opts = append(opts, expect.WithDatastoreOverride(datastoreOverride))
-	opts = append(opts, expect.WithStartDelay(startDelay))
-	opts = append(opts, expect.WithPinCpus(pinCpus))
-	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, podName, opts...)
+	opts = append(opts, expect.WithOpenStackMetadata(pc.OpenStackMetadata))
+	opts = append(opts, expect.WithProfiles(pc.Profiles))
+	opts = append(opts, expect.WithDatastoreOverride(pc.DatastoreOverride))
+	opts = append(opts, expect.WithStartDelay(pc.StartDelay))
+	opts = append(opts, expect.WithPinCpus(pc.PinCpus))
+	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, pc.Name, opts...)
 	appInstanceConfig := expectation.Application()
 	dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {

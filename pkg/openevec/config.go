@@ -185,6 +185,37 @@ type EdenSetupArgs struct {
 	Force      bool
 }
 
+// PodConfig store configuration for Pod deployment
+type PodConfig struct {
+	Name              string
+	Metadata          string
+	Registry          string
+	Networks          []string
+	PortPublish       []string
+	ACL               []string
+	Vlans             []string
+	Mount             []string
+	Disks             []string
+	Profiles          []string
+	AppAdapters       []string
+	NoHyper           bool
+	VncDisplay        uint32
+	VncPassword       string
+	DiskSize          string
+	VolumeSize        string
+	AppMemory         string
+	VolumeType        string
+	AppCpus           uint32
+	StartDelay        uint32
+	PinCpus           bool
+	ImageFormat       string
+	SftpLoad          bool
+	DirectLoad        bool
+	OpenStackMetadata bool
+	DatastoreOverride string
+	ACLOnlyHost       bool
+}
+
 func Merge(dst, src reflect.Value, flags *pflag.FlagSet) {
 	for i := 0; i < dst.NumField(); i++ {
 		if dst.Field(i).Kind() == reflect.Struct {
