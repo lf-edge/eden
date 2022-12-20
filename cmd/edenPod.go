@@ -75,18 +75,7 @@ func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 }
 
 func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
-	var podName, podMetadata, registry string
-	var podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters []string
-	var noHyper bool
-	var vncDisplay uint32
-	var vncPassword string
-	var diskSize, volumeSize, appMemory, volumeType string
-	var appCpus, startDelay uint32
-	var pinCpus bool
-	var imageFormat string
-	var sftpLoad, directLoad, openStackMetadata bool
-	var datastoreOverride string
-	var aclOnlyHost bool
+	var pc openevec.PodConfig
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -95,44 +84,44 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, podName, podMetadata, registry, podNetworks, portPublish, acl, vlans, mount, disks, profiles, appAdapters, noHyper, vncDisplay, vncPassword, diskSize, volumeSize, appMemory, volumeType, appCpus, pinCpus, imageFormat, sftpLoad, directLoad, openStackMetadata, datastoreOverride, aclOnlyHost, startDelay, cfg); err != nil {
+			if err := openevec.PodDeploy(appLink, pc, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
 
-	podDeployCmd.Flags().StringVar(&appMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
-	podDeployCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
-	podDeployCmd.Flags().StringVar(&volumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx or oci); set it to none to not use volumes")
-	podDeployCmd.Flags().StringSliceVarP(&portPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
-	podDeployCmd.Flags().StringVarP(&podMetadata, "metadata", "", "", "Metadata for pod. If file path provided, will use content of it")
-	podDeployCmd.Flags().StringVarP(&podName, "name", "n", "", "name for pod")
-	podDeployCmd.Flags().Uint32Var(&vncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
-	podDeployCmd.Flags().StringVar(&vncPassword, "vnc-password", "", "VNC password (empty - no password)")
-	podDeployCmd.Flags().Uint32Var(&appCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
-	podDeployCmd.Flags().StringSliceVar(&appAdapters, "adapters", nil, "adapters to assign to the application instance")
-	podDeployCmd.Flags().StringSliceVar(&podNetworks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
-	podDeployCmd.Flags().StringVar(&imageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
-	podDeployCmd.Flags().BoolVar(&aclOnlyHost, "only-host", false, "Allow access only to host and external networks")
-	podDeployCmd.Flags().BoolVar(&noHyper, "no-hyper", false, "Run pod without hypervisor")
-	podDeployCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
-	podDeployCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
-	podDeployCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
-	podDeployCmd.Flags().StringSliceVar(&disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
-	podDeployCmd.Flags().StringArrayVar(&mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
-	podDeployCmd.Flags().StringVar(&volumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
-	podDeployCmd.Flags().StringSliceVar(&profiles, "profile", nil, "profile to set for app")
-	podDeployCmd.Flags().StringSliceVar(&acl, "acl", nil, `Allow access only to defined hosts/ips/subnets.
+	podDeployCmd.Flags().StringVar(&pc.AppMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
+	podDeployCmd.Flags().StringVar(&pc.DiskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
+	podDeployCmd.Flags().StringVar(&pc.VolumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx or oci); set it to none to not use volumes")
+	podDeployCmd.Flags().StringSliceVarP(&pc.PortPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
+	podDeployCmd.Flags().StringVarP(&pc.Metadata, "metadata", "", "", "Metadata for pod. If file path provided, will use content of it")
+	podDeployCmd.Flags().StringVarP(&pc.Name, "name", "n", "", "name for pod")
+	podDeployCmd.Flags().Uint32Var(&pc.VncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
+	podDeployCmd.Flags().StringVar(&pc.VncPassword, "vnc-password", "", "VNC password (empty - no password)")
+	podDeployCmd.Flags().Uint32Var(&pc.AppCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
+	podDeployCmd.Flags().StringSliceVar(&pc.AppAdapters, "adapters", nil, "adapters to assign to the application instance")
+	podDeployCmd.Flags().StringSliceVar(&pc.Networks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
+	podDeployCmd.Flags().StringVar(&pc.ImageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
+	podDeployCmd.Flags().BoolVar(&pc.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
+	podDeployCmd.Flags().BoolVar(&pc.NoHyper, "no-hyper", false, "Run pod without hypervisor")
+	podDeployCmd.Flags().StringVar(&pc.Registry, "registry", "remote", "Select registry to use for containers (remote/local)")
+	podDeployCmd.Flags().BoolVar(&pc.DirectLoad, "direct", true, "Use direct download for image instead of eserver")
+	podDeployCmd.Flags().BoolVar(&pc.SftpLoad, "sftp", false, "Force use of sftp to load http/file image from eserver")
+	podDeployCmd.Flags().StringSliceVar(&pc.Disks, "disks", nil, `Additional disks to use. You can write it in notation <link> or <mount point>:<link>. Deprecated. Please use volumes instead.`)
+	podDeployCmd.Flags().StringArrayVar(&pc.Mount, "mount", nil, `Additional volumes to use. You can write it in notation src=<link>,dst=<mount point>.`)
+	podDeployCmd.Flags().StringVar(&pc.VolumeSize, "volume-size", humanize.IBytes(defaults.DefaultVolumeSize), "volume size")
+	podDeployCmd.Flags().StringSliceVar(&pc.Profiles, "profile", nil, "profile to set for app")
+	podDeployCmd.Flags().StringSliceVar(&pc.ACL, "acl", nil, `Allow access only to defined hosts/ips/subnets.
 Without explicitly configured ACLs, all traffic is allowed.
 You can set ACL for a particular network in format '<network_name[:endpoint[:action]]>', where 'action' is either 'allow' (default) or 'drop'.
 With ACLs configured, endpoints not matched by any rule are blocked.
 To block all traffic define ACL with no endpoints: '<network_name>:'`)
-	podDeployCmd.Flags().StringSliceVar(&vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
+	podDeployCmd.Flags().StringSliceVar(&pc.Vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
-	podDeployCmd.Flags().BoolVar(&openStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
-	podDeployCmd.Flags().StringVar(&datastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
-	podDeployCmd.Flags().Uint32Var(&startDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
-	podDeployCmd.Flags().BoolVar(&pinCpus, "pin-cpus", false, "Pin the CPUs used by the pod")
+	podDeployCmd.Flags().BoolVar(&pc.OpenStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
+	podDeployCmd.Flags().StringVar(&pc.DatastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
+	podDeployCmd.Flags().Uint32Var(&pc.StartDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
+	podDeployCmd.Flags().BoolVar(&pc.PinCpus, "pin-cpus", false, "Pin the CPUs used by the pod")
 
 	return podDeployCmd
 }
