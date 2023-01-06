@@ -57,6 +57,7 @@ type RemoteConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// TODO: This config is only used in tests, do we really need it?
 type CachingConfig struct {
 	Redis   bool   `mapstructure:"redis"`
 	Enabled bool   `mapstructure:"enabled"`
@@ -132,11 +133,6 @@ type EveConfig struct {
 	BootstrapFile  string `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`
 	UsbNetConfFile string `mapstructure:"usbnetconf-file" cobraflag:"eve-usbnetconf-file"`
 	TPM            bool   `mapstructure:"tpm" cobraflag:"tpm"`
-
-	// Runtime options?
-	QemuUsbSerials int
-	QemuUsbTablets int
-	QemuSocketPath string
 }
 
 type RegistryConfig struct {
@@ -182,7 +178,6 @@ type EdenSetupArgs struct {
 
 	ConfigFile string
 	ConfigName string
-	Force      bool
 }
 
 // PodConfig store configuration for Pod deployment
