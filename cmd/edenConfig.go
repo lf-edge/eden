@@ -73,13 +73,10 @@ func newConfigAddCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
 	configAddCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "cpus")
 	configAddCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "memory (MB)")
-	configAddCmd.Flags().IntVarP(&cfg.Eve.QemuUsbSerials, "usbserials", "", 0, "number of USB serial adapters")    // !
-	configAddCmd.Flags().IntVarP(&cfg.Eve.QemuUsbTablets, "usbtablets", "", 0, "number of USB tablet controllers") // !
 	configAddCmd.Flags().StringSliceVarP(&cfg.Eve.QemuFirmware, "eve-firmware", "", nil, "firmware path")
 	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "config-part", "", "", "path for config drive")
 	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
 	configAddCmd.Flags().StringToStringVarP(&cfg.Eve.HostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
-	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuSocketPath, "qmp", "", "", "use qmp socket with path") //!!
 	configAddCmd.Flags().StringVar(&cfg.Eve.Ssid, "ssid", "", "set ssid of wifi for rpi")
 	configAddCmd.Flags().StringVar(&cfg.Eve.Arch, "arch", "", "arch of EVE (amd64 or arm64)")
 	configAddCmd.Flags().StringVar(&cfg.Eve.ModelFile, "devmodel-file", "", "File to use for overwrite of model defaults")
