@@ -309,6 +309,7 @@ func (ts *TestScript) setup() string {
 		Vars: []string{
 			"WORK=" + ts.workdir, // must be first for ts.abbrev
 			"PATH=" + os.Getenv("PATH"),
+			"DOCKER_HOST=" + os.Getenv("DOCKER_HOST"),
 			tempEnvName() + "=" + filepath.Join(ts.workdir, "tmp"),
 			"devnull=" + os.DevNull,
 			"/=" + string(os.PathSeparator),
