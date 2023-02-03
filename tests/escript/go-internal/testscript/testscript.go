@@ -100,6 +100,7 @@ func (e *Env) Setenv(key, value string) {
 //
 // If Cleanup is called on the returned value, the function will run
 // after any functions passed to Env.Defer.
+//nolint:ireturn
 func (e *Env) T() T {
 	return e.ts.t
 }
@@ -950,6 +951,7 @@ func removeAll(dir string) error {
 	// make them writable in order to remove content.
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			//nolint:nilerr
 			return nil // ignore errors walking in file system
 		}
 		if info.IsDir() {

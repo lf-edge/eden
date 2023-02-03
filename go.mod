@@ -57,6 +57,7 @@ require (
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.4.0
+	gotest.tools/gotestsum v1.9.0 // indirect
 	oras.land/oras-go v1.2.0
 )
 
