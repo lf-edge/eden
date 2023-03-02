@@ -12,14 +12,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//appBundle type for aggregate objects, needed for application
+// appBundle type for aggregate objects, needed for application
 type appBundle struct {
 	appInstanceConfig *config.AppInstanceConfig
 	contentTrees      []*config.ContentTree
 	volumes           []*config.Volume
 }
 
-//checkAppInstanceConfig checks if provided app match expectation
+// checkAppInstanceConfig checks if provided app match expectation
 func (exp *AppExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig) bool {
 	if app == nil {
 		return false
@@ -30,8 +30,9 @@ func (exp *AppExpectation) checkAppInstanceConfig(app *config.AppInstanceConfig)
 	return false
 }
 
-//createAppInstanceConfig creates AppInstanceConfig with provided img and netInstances
-//  it uses published ports info from AppExpectation to create ACE
+// createAppInstanceConfig creates AppInstanceConfig with provided img and netInstances
+//
+//	it uses published ports info from AppExpectation to create ACE
 func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstances map[*NetInstanceExpectation]*config.NetworkInstanceConfig) (*appBundle, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -114,18 +115,21 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	bundle.appInstanceConfig.Interfaces = []*config.NetworkAdapter{}
 
 	//keep order of exp.netInstances
+	niUsageCounter := make(map[string]int)
 	for _, k := range exp.netInstances {
 		ni, ok := netInstances[k]
 		if !ok {
 			log.Fatalf("broken network instance pointer: %v", k)
 		}
+		usageCounter := niUsageCounter[ni.Displayname]
 		bundle.appInstanceConfig.Interfaces = append(bundle.appInstanceConfig.Interfaces, &config.NetworkAdapter{
-			Name:         "default",
+			Name:         fmt.Sprintf("%s-%d", ni.Displayname, usageCounter),
 			NetworkId:    ni.Uuidandversion.Uuid,
 			Acls:         exp.getAcls(k),
 			MacAddress:   k.mac,
 			AccessVlanId: exp.getAccessVID(k),
 		})
+		niUsageCounter[ni.Displayname] = usageCounter + 1
 	}
 	if exp.vncDisplay != 0 {
 		bundle.appInstanceConfig.Fixedresources.EnableVnc = true
@@ -148,8 +152,8 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	return bundle, nil
 }
 
-//Application expectation gets or creates Image definition, gets or create NetworkInstance definition,
-//gets AppInstanceConfig and returns it or creates AppInstanceConfig, adds it into internal controller and returns it
+// Application expectation gets or creates Image definition, gets or create NetworkInstance definition,
+// gets AppInstanceConfig and returns it or creates AppInstanceConfig, adds it into internal controller and returns it
 func (exp *AppExpectation) Application() *config.AppInstanceConfig {
 	image := exp.Image()
 	networkInstances := exp.NetworkInstances()
