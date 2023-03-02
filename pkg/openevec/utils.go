@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -19,10 +20,16 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
+	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/models"
+	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/info"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -239,4 +246,99 @@ func UploadGit(absPath, object, branch, directoryToSave string) error {
 	}
 	fmt.Println(result)
 	return nil
+}
+
+type TestArgs struct {
+	TestArgs     string
+	TestOpts     bool
+	TestEscript  string
+	TestRun      string
+	TestTimeout  string
+	TestList     string
+	TestProg     string
+	TestScenario string
+	FailScenario string
+	CurDir       string
+	ConfigFile   string
+	Verbosity    string
+}
+
+func Test(tstCfg *TestArgs) error {
+
+	switch {
+	case tstCfg.TestList != "":
+		tests.RunTest(tstCfg.TestProg, []string{"-test.list", tstCfg.TestList}, "", tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
+	case tstCfg.TestOpts:
+		tests.RunTest(tstCfg.TestProg, []string{"-h"}, "", tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
+	case tstCfg.TestEscript != "":
+		tests.RunTest("eden.escript.test", []string{"-test.run", "TestEdenScripts/" + tstCfg.TestEscript}, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
+	case tstCfg.TestRun != "":
+		tests.RunTest(tstCfg.TestProg, []string{"-test.run", tstCfg.TestRun}, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
+	default:
+		tests.RunScenario(tstCfg.TestScenario, tstCfg.TestArgs, tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)
+	}
+
+	if tstCfg.CurDir != "" {
+		err := os.Chdir(tstCfg.CurDir)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkOutput(input string, shouldHave, shouldNotHave []string) error {
+	for _, str := range shouldHave {
+		if !strings.Contains(input, str) {
+			return fmt.Errorf("Input does not contain %v", str)
+		}
+	}
+
+	for _, str := range shouldNotHave {
+		if strings.Contains(input, str) {
+			return fmt.Errorf("Input contains %v", str)
+		}
+	}
+
+	return nil
+}
+
+func checkAppState(ctrl controller.Cloud, devUUID uuid.UUID, appName string, eveState *eve.State, expState string, timeout time.Duration) error {
+	startTime := time.Now()
+
+	// Waiting for 15 min maximum to get eclient-mount app in state running
+	handleInfo := func(im *info.ZInfoMsg) bool {
+		eveState.InfoCallback()(im)
+		for _, s := range eveState.Applications() {
+			if s.Name == appName {
+				if s.EVEState == expState {
+					return true
+				}
+			}
+		}
+		if time.Now().After(startTime.Add(timeout)) {
+			log.Fatal("eclient-mount timeout")
+		}
+		return false
+	}
+
+	if err := ctrl.InfoChecker(devUUID, nil, handleInfo, einfo.InfoNew, 0); err != nil {
+		return fmt.Errorf("eclient-mount RUNNING state InfoChecker: %w", err)
+	}
+
+	return nil
+}
+
+func withCapturingStdout(f func() error) ([]byte, error) {
+	rescueStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	err := f()
+
+	w.Close()
+	out, _ := ioutil.ReadAll(r)
+	os.Stdout = rescueStdout
+
+	return out, err
 }

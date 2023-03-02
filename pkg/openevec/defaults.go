@@ -1,21 +1,15 @@
 package openevec
 
 import (
-	"log"
-	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 )
 
-func GetDefaultConfig() *EdenSetupArgs {
-
-	currentPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
+func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 
 	defaultEdenConfig := &EdenSetupArgs{
 		Eden: EdenConfig{
@@ -94,4 +88,23 @@ func GetDefaultConfig() *EdenSetupArgs {
 	}
 
 	return defaultEdenConfig
+}
+
+func GetDefaultPodConfig() *PodConfig {
+	dpc := &PodConfig{
+		AppMemory:         humanize.Bytes(defaults.DefaultAppMem * 1024),
+		DiskSize:          humanize.Bytes(0),
+		VolumeType:        "qcow2",
+		AppCpus:           defaults.DefaultAppCPU,
+		ACLOnlyHost:       false,
+		NoHyper:           false,
+		Registry:          "remote",
+		DirectLoad:        true,
+		SftpLoad:          false,
+		VolumeSize:        humanize.IBytes(defaults.DefaultVolumeSize),
+		OpenStackMetadata: false,
+		PinCpus:           false,
+	}
+
+	return dpc
 }
