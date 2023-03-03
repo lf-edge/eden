@@ -1,0 +1,100 @@
+{
+  "arch": 4,
+  "productURL": "https://www.advantech.com/en-eu/products/880a61e5-3fed-41f3-bf53-8be2410c0f19/epc-r3720/mod_fde326be-b36e-4044-ba9a-28c4c49a25c6",
+  "productStatus": "production",
+  "attr": {
+    "memory": "5G",
+    "storage": "74G",
+    "Cpus": "4",
+    "watchdog": "true",
+    "hsm": "1",
+    "leds": "1"
+  },
+  "logo": {
+    "logo_front":"/workspace/spec/logo_front_EPC-R3720.png",
+    "logo_back":"/workspace/spec/logo_back_EPC-R3720.png"
+  },
+  "ioMemberList": [
+    {
+      "ztype": 2,
+      "phylabel": "USB",
+      "assigngrp": "USB",
+      "logicallabel": "USB",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "Bluetooth",
+      "assigngrp": "Bluetooth",
+      "phyaddrs": {
+        "Serial": "/dev/ttymxc0"
+      },
+      "logicallabel": "COM1",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM1",
+      "assigngrp": "COM1",
+      "phyaddrs": {
+        "Serial": "/dev/ttymxc1"
+      },
+      "logicallabel": "COM2",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM/CAN",
+      "assigngrp": "COM/CAN",
+      "phyaddrs": {
+        "Serial": "/dev/ttymxc2"
+      },
+      "logicallabel": "COM3",
+      "usagePolicy": {}
+    },
+    {
+      "ztype": 3,
+      "phylabel": "COM2",
+      "assigngrp": "COM2",
+      "phyaddrs": {
+        "Serial": "/dev/ttymxc3"
+      },
+      "logicallabel": "COM4",
+      "usagePolicy": {}
+    },
+
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth0",
+      "logicallabel": "eth0",
+      "usagePolicy": {},
+      "cost": 0,
+      "phyaddrs": {
+        "Ifname": "eth0"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth1",
+      "logicallabel": "eth1",
+      "usagePolicy": {},
+      "cost": 0,
+      "phyaddrs": {
+        "Ifname": "eth1"
+      }
+    },
+    {
+      "ztype": 1,
+      "usage": 1,
+      "phylabel": "eth2",
+      "logicallabel": "eth2",
+      "usagePolicy": {},
+      "cost": 0,
+      "phyaddrs": {
+        "Ifname": "eth2"
+      }
+    }
+  ]
+}
