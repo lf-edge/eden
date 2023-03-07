@@ -74,6 +74,8 @@ const (
 	DefaultSFTPPassword  = "password"
 	DefaultSFTPDirPrefix = "/eserver/run"
 
+	DefaultEVEPlatform = "none"
+
 	DefaultRedisPasswordFile = "redis.pass"
 
 	DefaultEServerTag          = "4b71e2c"
@@ -226,6 +228,7 @@ var (
 		"registry.dist": "registry-dist",
 
 		"eve.arch":         "eve-arch",
+		"eve.platform":     "eve-platform",
 		"eve.os":           "eve-os",
 		"eve.accel":        "eve-accel",
 		"eve.hv":           "eve-hv",

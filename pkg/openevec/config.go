@@ -106,6 +106,7 @@ type EveConfig struct {
 	UefiTag        string            `mapstructure:"uefi-tag" cobraflag:"eve-uefi-tag"`
 	HV             string            `mapstructure:"hv" cobraflag:"eve-hv"`
 	Arch           string            `mapstructure:"arch" cobraflag:"eve-arch"`
+	Platform       string            `mapstructure:"platform" cobraflag:"eve-platform"`
 	HostFwd        map[string]string `mapstructure:"hostfwd" cobraflag:"eve-hostfwd"`
 	QemuFileToSave string            `mapstructure:"qemu-config" cobraflag:"qemu-config" resolvepath:""`
 	QemuCpus       int               `mapstructure:"cpu" cobraflag:"cpus"`

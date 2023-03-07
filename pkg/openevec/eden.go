@@ -160,6 +160,7 @@ func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg Eden
 	eveDesc := utils.EVEDescription{
 		ConfigPath:  cfg.Eden.CertsDir,
 		Arch:        cfg.Eve.Arch,
+		Platform:    cfg.Eve.Platform,
 		HV:          cfg.Eve.HV,
 		Registry:    cfg.Eve.Registry,
 		Tag:         cfg.Eve.Tag,

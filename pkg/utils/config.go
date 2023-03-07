@@ -355,6 +355,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return ""
 		case "eve.arch":
 			return runtime.GOARCH
+		case "eve.platform":
+			return defaults.DefaultEVEPlatform
 		case "eve.os":
 			return runtime.GOOS
 		case "eve.accel":
