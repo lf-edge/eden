@@ -20,6 +20,7 @@ import (
 type EVEDescription struct {
 	ConfigPath  string
 	Arch        string
+	Platform    string
 	HV          string
 	Registry    string
 	Tag         string
@@ -106,7 +107,7 @@ func DownloadEveLive(eve EVEDescription, outputFile string) (err error) {
 	if eve.Format == "gcp" || eve.Format == "vdi" || eve.Format == "parallels" {
 		size = eve.ImageSizeMB
 	}
-	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.ConfigPath, size)
+	fileName, err := genEVELiveImage(image, filepath.Dir(outputFile), eve.Format, eve.Platform, eve.ConfigPath, size)
 	if err != nil {
 		return fmt.Errorf("genEVEImage: %s", err)
 	}
@@ -168,7 +169,7 @@ func genEVEInstallerImage(image, outputDir string, configDir string) (fileName s
 }
 
 //genEVELiveImage downloads EVE live image from docker to outputDir with configDir (if defined)
-func genEVELiveImage(image, outputDir string, format string, configDir string, size int) (fileName string, err error) {
+func genEVELiveImage(image, outputDir string, format string, platform string, configDir string, size int) (fileName string, err error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", err
 	}
@@ -192,6 +193,9 @@ func genEVELiveImage(image, outputDir string, format string, configDir string, s
 	dockerCommand := fmt.Sprintf("-f %s live %d", format, size)
 	if size == 0 {
 		dockerCommand = fmt.Sprintf("-f %s live", format)
+	}
+	if platform != "" && platform != defaults.DefaultEVEPlatform {
+		dockerCommand = fmt.Sprintf("-p %s %s", platform, dockerCommand)
 	}
 	u, err := RunDockerCommand(image, dockerCommand, volumeMap)
 	if err != nil {

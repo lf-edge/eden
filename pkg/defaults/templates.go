@@ -78,6 +78,9 @@ eve:
     #EVE arch (amd64/arm64)
     arch: '{{parse "eve.arch"}}'
 
+    #EVE platform (imx8mk_evk, opi3_lts and others)
+    platform: '{{parse "eve.platform"}}'
+
     #EVE os (linux/darwin)
     os: '{{parse "eve.os"}}'
 

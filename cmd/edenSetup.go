@@ -65,6 +65,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	setupCmd.Flags().StringVarP(&cfg.Eve.Tag, "eve-tag", "", defaults.DefaultEVETag, "EVE tag")
 	setupCmd.Flags().StringVarP(&cfg.Eve.UefiTag, "eve-uefi-tag", "", defaults.DefaultEVETag, "EVE UEFI tag")
 	setupCmd.Flags().StringVarP(&cfg.Eve.Arch, "eve-arch", "", runtime.GOARCH, "EVE arch")
+	setupCmd.Flags().StringVarP(&cfg.Eve.Platform, "eve-platform", "", defaults.DefaultEVEPlatform, "EVE platform")
 	setupCmd.Flags().StringToStringVarP(&cfg.Eve.HostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	setupCmd.Flags().StringVarP(&cfg.Eve.QemuFileToSave, "qemu-config", "", cfg.Eve.QemuFileToSave, "file to save qemu config")
 	setupCmd.Flags().StringVarP(&cfg.Eve.HV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
