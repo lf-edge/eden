@@ -11,8 +11,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 	github.com/subosito/gotenv v1.4.0 // indirect
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
-	golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d // indirect
+	golang.org/x/crypto v0.2.0
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
 )
