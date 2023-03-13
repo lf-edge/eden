@@ -47,10 +47,10 @@ require (
 	github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940 // indirect
 	github.com/yvasiyarov/gorelic v0.0.7 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
+	golang.org/x/crypto v0.2.0
+	golang.org/x/net v0.2.0
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
-	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
+	golang.org/x/term v0.2.0
 	google.golang.org/api v0.86.0
 	google.golang.org/genproto v0.0.0-20220712132514-bdd2acd4974d // indirect
 	google.golang.org/protobuf v1.28.0
