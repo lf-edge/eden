@@ -48,9 +48,9 @@ require (
 	github.com/yvasiyarov/gorelic v0.0.7 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
 	golang.org/x/crypto v0.2.0
-	golang.org/x/net v0.2.0
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
-	golang.org/x/term v0.2.0
+	golang.org/x/term v0.5.0
 	google.golang.org/api v0.86.0
 	google.golang.org/genproto v0.0.0-20220712132514-bdd2acd4974d // indirect
 	google.golang.org/protobuf v1.28.0
