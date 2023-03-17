@@ -20,6 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func EdgeNodeReboot(controllerMode string) error {
@@ -301,7 +302,7 @@ func EdgeNodeSetConfig(fileWithConfig string) error {
 		return fmt.Errorf("cannot unmarshal config: %w", err)
 	}
 	// Adam expects json type
-	cfg, err := json.Marshal(&dConfig)
+	cfg, err := proto.Marshal(&dConfig)
 	if err != nil {
 		return fmt.Errorf("cannot marshal config: %w", err)
 	}
