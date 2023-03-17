@@ -1,4 +1,4 @@
-FROM lfedge/eve-alpine:8.12.0 as build
+FROM lfedge/eve-alpine:9fb9b9cbf7d90066a70e4704d04a6fe248ff52bb as build
 ENV BUILD_PKGS go make qemu-img git
 RUN eve-alpine-deploy.sh
 
