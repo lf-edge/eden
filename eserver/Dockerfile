@@ -1,4 +1,4 @@
-FROM lfedge/eve-alpine:8.12.0 AS build
+FROM lfedge/eve-alpine:9fb9b9cbf7d90066a70e4704d04a6fe248ff52bb AS build
 ENV BUILD_PKGS go git openssh-keygen
 RUN eve-alpine-deploy.sh
 

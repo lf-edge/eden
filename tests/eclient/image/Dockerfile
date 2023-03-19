@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine AS build
+FROM golang:1.20.1-alpine AS build
 
 WORKDIR /go/src/local_manager
 COPY pkg .
