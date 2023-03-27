@@ -52,7 +52,7 @@ func NewEdenCommand() *cobra.Command {
 				newUtilsCmd(&configName, &verbosity),
 				newControllerCmd(&configName, &verbosity),
 				newNetworkCmd(),
-				newVolumeCmd(),
+				newVolumeCmd(&configName, &verbosity),
 				newDisksCmd(),
 				newPacketCmd(&configName, &verbosity),
 				newRolCmd(&configName, &verbosity),

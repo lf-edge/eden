@@ -13,7 +13,6 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func VolumeLs() error {
@@ -35,7 +34,7 @@ func VolumeLs() error {
 	return nil
 }
 
-func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastoreOverride string, sftpLoad, directLoad bool) error {
+func VolumeCreate(appLink, registry, registryIp, diskSize, volumeName, volumeType, datastoreOverride string, registryPort int, sftpLoad, directLoad bool) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -82,7 +81,7 @@ func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastore
 		registryToUse := registry
 		switch registry {
 		case "local":
-			registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
+			registryToUse = fmt.Sprintf("%s:%d", registryIp, registryPort)
 		case "remote":
 			registryToUse = ""
 		}

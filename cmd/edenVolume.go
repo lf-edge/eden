@@ -7,9 +7,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newVolumeCmd() *cobra.Command {
+func newVolumeCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
+
 	var volumeCmd = &cobra.Command{
-		Use: "volume",
+		Use:               "volume",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	groups := CommandGroups{
@@ -17,7 +20,7 @@ func newVolumeCmd() *cobra.Command {
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
 				newVolumeLsCmd(),
-				newVolumeCreateCmd(),
+				newVolumeCreateCmd(cfg),
 				newVolumeDeleteCmd(),
 				newVolumeDetachCmd(),
 				newVolumeAttachCmd(),
@@ -44,7 +47,7 @@ func newVolumeLsCmd() *cobra.Command {
 	return volumeLsCmd
 }
 
-func newVolumeCreateCmd() *cobra.Command {
+func newVolumeCreateCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var registry, diskSize, volumeName, volumeType, datastoreOverride string
 	var sftpLoad, directLoad bool
 
@@ -55,8 +58,8 @@ func newVolumeCreateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			err := openevec.VolumeCreate(appLink, registry, diskSize, volumeName,
-				volumeType, datastoreOverride, sftpLoad, directLoad)
+			err := openevec.VolumeCreate(appLink, registry, cfg.Registry.IP, diskSize, volumeName,
+				volumeType, datastoreOverride, cfg.Registry.Port, sftpLoad, directLoad)
 			if err != nil {
 				log.Fatal(err)
 			}
