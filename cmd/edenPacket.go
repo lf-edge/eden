@@ -12,8 +12,9 @@ func newPacketCmd(configName, verbosity *string) *cobra.Command {
 	var packetProjectName string
 
 	var packetCmd = &cobra.Command{
-		Use:   "packet",
-		Short: `Manage VMs in Equinix Metal Platform`,
+		Use:               "packet",
+		Short:             `Manage VMs in Equinix Metal Platform`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	packetCmd.AddCommand(newPacketVMCmd(cfg, &cfg.Packet.Key, &packetProjectName))
