@@ -35,6 +35,15 @@ import (
 	"golang.org/x/term"
 )
 
+func SwtpmPidFile(cfg *EdenSetupArgs) string {
+	if cfg.Eve.TPM {
+		command := "swtpm"
+		return filepath.Join(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), command),
+			fmt.Sprintf("%s.pid", command))
+	}
+	return ""
+}
+
 func generateScripts(in string, out string, configFile string) error {
 	tmpl, err := ioutil.ReadFile(in)
 	if err != nil {
@@ -355,7 +364,7 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 		fmt.Printf("Directory %s access error: %s\n",
 			cfgDir, err)
 	} else {
-		shPath := viper.GetString("eden.root") + "/scripts/shell/"
+		shPath := cfg.Eden.Root + "/scripts/shell/"
 		if err := generateScripts(shPath+"activate.sh.tmpl",
 			cfgDir+"activate.sh", cfg.ConfigName); err != nil {
 			return err

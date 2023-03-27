@@ -26,7 +26,7 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 				adamRm, redisRm,
 				registryRm, eServerRm,
 				cfg.Eve.Remote, cfg.Eve.Pid,
-				swtpmPidFile(cfg), cfg.Sdn.PidFile,
+				openevec.SwtpmPidFile(cfg), cfg.Sdn.PidFile,
 				cfg.Eve.DevModel, vmName,
 			)
 		},

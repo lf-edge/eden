@@ -43,15 +43,6 @@ func newEveCmd(configName, verbosity *string) *cobra.Command {
 	return eveCmd
 }
 
-func swtpmPidFile(cfg *openevec.EdenSetupArgs) string {
-	if cfg.Eve.TPM {
-		command := "swtpm"
-		return filepath.Join(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), command),
-			fmt.Sprintf("%s.pid", command))
-	}
-	return ""
-}
-
 func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var vmName, tapInterface string
 
