@@ -17,21 +17,6 @@ func newDebugCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use: "debug",
 	}
 
-	/*
-		if viperLoaded {
-			eveSSHKey = utils.ResolveAbsPath(viper.GetString("eden.ssh-key"))
-			extension := filepath.Ext(eveSSHKey)
-			eveSSHKey = strings.TrimRight(eveSSHKey, extension)
-			eveRemote = viper.GetBool("eve.remote")
-			eveRemoteAddr = viper.GetString("eve.remote-addr")
-			if eveRemote || eveRemoteAddr == "" {
-				if !cmd.Flags().Changed("eve-ssh-port") {
-					eveSSHPort = 22
-				}
-			}
-		}
-	*/
-
 	groups := CommandGroups{
 		{
 			Message: "Basic Commands",
