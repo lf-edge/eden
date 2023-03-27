@@ -115,6 +115,16 @@ func ResolveAbsPath(curPath string) string {
 	return curPath
 }
 
+func ResolveAbsPathWithRoot(curPath string, edenRoot string) string {
+	if strings.TrimSpace(curPath) == "" {
+		return ""
+	}
+	if !filepath.IsAbs(curPath) {
+		return filepath.Join(edenRoot, strings.TrimSpace(curPath))
+	}
+	return curPath
+}
+
 //GetFileFollowLinks resolve file by walking through symlinks
 func GetFileFollowLinks(filePath string) (string, error) {
 	log.Debugf("GetFileFollowLinks %s", filePath)

@@ -37,6 +37,7 @@ type EdenConfig struct {
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
+	Tests        string `mapstructure:"tests" resolvepath:""`
 
 	EServer EServerConfig `mapstructure:"eserver"`
 
@@ -283,7 +284,7 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 		return nil, fmt.Errorf("unable to decode into config struct, %w", err)
 	}
 
-	resolvePath(reflect.ValueOf(cfg).Elem())
+	resolvePath(reflect.ValueOf(cfg).Elem(), cfg.Eden.Root)
 
 	if configFile == "" {
 		configFile, _ = utils.DefaultConfigPath()
@@ -299,17 +300,17 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 	return cfg, nil
 }
 
-func resolvePath(v reflect.Value) {
+func resolvePath(v reflect.Value, edenRoot string) {
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		if _, ok := v.Type().Field(i).Tag.Lookup("resolvepath"); ok {
 			if f.IsValid() && f.CanSet() && f.Kind() == reflect.String {
 				val := f.Interface().(string)
-				f.SetString(utils.ResolveAbsPath(val))
+				f.SetString(utils.ResolveAbsPathWithRoot(val, edenRoot))
 			}
 		}
 		if f.Kind() == reflect.Struct {
-			resolvePath(f)
+			resolvePath(f, edenRoot)
 		}
 	}
 }

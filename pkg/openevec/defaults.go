@@ -1,7 +1,9 @@
 package openevec
 
 import (
+	"fmt"
 	"path/filepath"
+	"reflect"
 	"runtime"
 
 	"github.com/dustin/go-humanize"
@@ -16,6 +18,8 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 			Download: true,
 			BinDir:   filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist),
 			SSHKey:   filepath.Join(currentPath, defaults.DefaultCertsDist, "id_rsa"),
+			Root:     filepath.Join(currentPath, defaults.DefaultDist),
+			CertsDir: filepath.Join(fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultCertsDist)),
 
 			EServer: EServerConfig{
 				Port:  defaults.DefaultEserverPort,
@@ -60,6 +64,7 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 			Log:            filepath.Join(currentPath, defaults.DefaultDist),
 			TelnetPort:     defaults.DefaultTelnetPort,
 			TPM:            defaults.DefaultTPMEnabled,
+			ImageFile:      "default-images/eve/live.img",
 		},
 
 		Redis: RedisConfig{
@@ -86,6 +91,8 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 		ConfigName: defaults.DefaultContext,
 		ConfigFile: utils.GetConfig(defaults.DefaultContext),
 	}
+
+	resolvePath(reflect.ValueOf(defaultEdenConfig).Elem(), defaultEdenConfig.Eden.Root)
 
 	return defaultEdenConfig
 }
