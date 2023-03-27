@@ -18,7 +18,6 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -58,7 +57,7 @@ func EdgeNodeShutdown(controllerMode string) error {
 	return nil
 }
 
-func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode string,
+func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, registryIp, controllerMode string, registryPort int,
 	baseOSImageActivate, baseOSVDrive bool) error {
 
 	var opts []expect.ExpectationOption
@@ -73,7 +72,7 @@ func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode
 	registryToUse := registry
 	switch registry {
 	case "local":
-		registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
+		registryToUse = fmt.Sprintf("%s:%d", registryIp, registryPort)
 	case "remote":
 		registryToUse = ""
 	}

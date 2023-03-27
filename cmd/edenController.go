@@ -107,7 +107,7 @@ func newEdgeNodeEVEImageUpdate(controllerMode string, cfg *openevec.EdenSetupArg
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			baseOSImage := args[0]
-			if err := openevec.EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode, baseOSImageActivate, baseOSVDrive); err != nil {
+			if err := openevec.EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, cfg.Registry.IP, controllerMode, cfg.Registry.Port, baseOSImageActivate, baseOSVDrive); err != nil {
 				log.Fatal(err)
 			}
 		},
