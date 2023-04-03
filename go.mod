@@ -31,7 +31,7 @@ require (
 	github.com/moby/sys/mount v0.3.3 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
-	github.com/opencontainers/runc v1.1.3 // indirect
+	github.com/opencontainers/runc v1.1.5 // indirect
 	github.com/packethost/packngo v0.25.0
 	github.com/prometheus/client_golang v1.12.2 // indirect
 	github.com/prometheus/common v0.36.0 // indirect
