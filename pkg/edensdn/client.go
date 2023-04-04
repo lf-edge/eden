@@ -171,7 +171,7 @@ func (client *SdnClient) sshArgs(extra ...string) (sshArgs []string) {
 	if client.SSHKeyPath == "" {
 		log.Fatal("SDN client with undefined SSHKeyPath")
 	}
-	allArgs := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no "+
+	allArgs := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no "+
 		"-i %s -p %d root@localhost", client.SSHKeyPath, client.SSHPort)
 	return append(strings.Fields(allArgs), extra...)
 }

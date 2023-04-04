@@ -15,13 +15,13 @@ import (
 )
 
 func SdnForwardSSHToEve(commandToRun string, cfg *EdenSetupArgs) error {
-	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
+	arguments := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
 		"-p FWD_PORT root@FWD_IP %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), commandToRun)
 	return SdnForwardCmd("", "eth0", 22, "ssh", cfg, strings.Fields(arguments)...)
 }
 
 func SdnForwardSCPFromEve(remoteFilePath, localFilePath string, cfg *EdenSetupArgs) error {
-	arguments := fmt.Sprintf("-o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
+	arguments := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
 		"-P FWD_PORT root@FWD_IP:%s %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), remoteFilePath, localFilePath)
 	return SdnForwardCmd("", "eth0", 22, "scp", cfg, strings.Fields(arguments)...)
 }
