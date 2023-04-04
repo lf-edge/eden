@@ -10,7 +10,7 @@ require (
 	github.com/containerd/containerd v1.6.18
 	github.com/containerd/stargz-snapshotter/estargz v0.12.0 // indirect
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.17+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/dustin/go-humanize v1.0.0
