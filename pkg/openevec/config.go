@@ -2,6 +2,7 @@ package openevec
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,6 +22,12 @@ type EServerConfig struct {
 	Tag    string       `mapstructure:"tag" cobraflag:"eserver-tag"`
 	IP     string       `mapstructure:"ip"`
 	Images ImagesConfig `mapstructure:"images"`
+	EVEIP  string       `mapstructure:"eve-ip"`
+}
+
+type EClientConfig struct {
+	Tag   string `mapstructure: "tag"`
+	Image string `mapstructure: "image"`
 }
 
 type ImagesConfig struct {
@@ -40,8 +47,8 @@ type EdenConfig struct {
 	Tests        string `mapstructure:"tests" resolvepath:""`
 
 	EServer EServerConfig `mapstructure:"eserver"`
-
-	Images ImagesConfig `mapstructure:"images"`
+	EClient EClientConfig `mapstructure:"eclient"`
+	Images  ImagesConfig  `mapstructure:"images"`
 }
 
 type RedisConfig struct {
@@ -50,7 +57,8 @@ type RedisConfig struct {
 	Port      int    `mapstructure:"port" cobraflag:"redis-port"`
 	Dist      string `mapstructure:"dist" cobraflag:"redis-dist" resolvepath:""`
 	Force     bool   `mapstructure:"force" cobraflag:"redis-force"`
-	Eden      string `mapstructure:"eden"`
+	Eden      string `mapstructure:"eden"` // TODO: belongs to ADAM Redis
+	Adam      string `mapstructure:"adam"` // TODO: belongs to ADAM Redis
 }
 
 type RemoteConfig struct {
@@ -74,8 +82,10 @@ type AdamConfig struct {
 	CertsEVEIP  string `mapstructure:"eve-ip" cobraflag:"eve-ip"`
 	APIv1       bool   `mapstructure:"v1" cobrafalg:"force"`
 	Force       bool   `mapstructure:"force" cobraflag:"force"`
+	CA          string `mapstructure:"ca"`
+	Domain      string `mapstructure:"domain"`
 
-	Redis   RedisConfig   `mapstructure:"redis"`
+	Redis   RedisConfig   `mapstructure:"redis"` // TODO: this should be separate config from EdenSetupArgs.Redis
 	Remote  RemoteConfig  `mapstructure:"remote"`
 	Caching CachingConfig `mapstructure:"caching"`
 }
@@ -298,6 +308,41 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 	viper.SetConfigName(configName)
 
 	return cfg, nil
+}
+
+func WriteConfig(dst reflect.Value, writer io.Writer, nestLevel int) {
+	for i := 0; i < dst.NumField(); i++ {
+		if structTag := dst.Type().Field(i).Tag.Get("mapstructure"); structTag != "" {
+			io.WriteString(writer, strings.Repeat("  ", nestLevel))
+			switch dst.Field(i).Kind() {
+			case reflect.Struct:
+				io.WriteString(writer, structTag+":\n")
+				WriteConfig(dst.Field(i), writer, nestLevel+1)
+			case reflect.Map:
+				io.WriteString(writer, structTag+":\n")
+				iter := dst.Field(i).MapRange()
+				for iter.Next() {
+					k := iter.Key()
+					v := iter.Value()
+					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
+					// We assume that only map we are using is map[string]string
+					// in case if we want to expand this check should be made as separate function
+					io.WriteString(writer, fmt.Sprintf("%v: '%v'\n", k.Interface(), v.Interface()))
+				}
+			case reflect.Slice:
+				io.WriteString(writer, structTag+":\n")
+				for j := 0; j < dst.Field(i).Len(); j++ {
+					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
+					elem := dst.Field(i).Index(j)
+					io.WriteString(writer, fmt.Sprintf("- %v\n", elem.Interface()))
+				}
+			case reflect.String: // we need to wrap string in quotes
+				io.WriteString(writer, fmt.Sprintf("%s: '%v'\n", structTag, dst.Field(i)))
+			default:
+				io.WriteString(writer, fmt.Sprintf("%s: %v\n", structTag, dst.Field(i)))
+			}
+		}
+	}
 }
 
 func resolvePath(v reflect.Value, edenRoot string) {
