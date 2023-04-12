@@ -222,10 +222,10 @@ type PodConfig struct {
 	ACLOnlyHost       bool
 }
 
-func Merge(dst, src reflect.Value, flags *pflag.FlagSet) {
+func MergeFlagSet(dst, src reflect.Value, flags *pflag.FlagSet) {
 	for i := 0; i < dst.NumField(); i++ {
 		if dst.Field(i).Kind() == reflect.Struct {
-			Merge(dst.Field(i), src.Field(i), flags)
+			MergeFlagSet(dst.Field(i), src.Field(i), flags)
 		}
 		if dst.Type().Field(i).Tag != "" {
 			cobraFlagTag := dst.Type().Field(i).Tag.Get("cobraflag")

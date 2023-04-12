@@ -74,7 +74,7 @@ func preRunViperLoadFunction(cfg *openevec.EdenSetupArgs, configName, verbosity 
 		if err != nil {
 			return err
 		}
-		openevec.Merge(reflect.ValueOf(viperCfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
+		openevec.MergeFlagSet(reflect.ValueOf(viperCfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
 		*cfg = *viperCfg
 		return nil
 	}
