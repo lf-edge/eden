@@ -96,7 +96,7 @@ const (
 	DefaultMemory                = 4096
 	DefaultEVESerial             = "31415926"
 	NetDHCPID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
-	NetNoDHCPID                  = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
+	NetDHCPID2                   = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
 	NetWiFiID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf3"
 	NetSwitch                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf4"
 	DefaultTestProg              = "eden.escript.test"

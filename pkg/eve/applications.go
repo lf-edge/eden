@@ -194,7 +194,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 				appStateObj.InternalIP = []string{}
 				appStateObj.macs = []string{}
 				for _, el := range im.GetAinfo().Network {
-					if len(im.GetAinfo().Network[0].IPAddrs) != 0 {
+					if len(el.IPAddrs) != 0 {
 						appStateObj.InternalIP = append(appStateObj.InternalIP, el.IPAddrs[0])
 						appStateObj.macs = append(appStateObj.macs, el.MacAddr)
 					}

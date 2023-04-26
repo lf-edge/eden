@@ -24,7 +24,7 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 		if ethCount > 1 {
 			networkConfigs = append(networkConfigs,
 				&config.NetworkConfig{
-					Id:   defaults.NetNoDHCPID,
+					Id:   defaults.NetDHCPID2,
 					Type: config.NetworkType_V4,
 					Ip: &config.Ipspec{
 						Dhcp:      config.DHCPType_Client,
@@ -76,7 +76,7 @@ func generateSystemAdapters(ethCount, wifiCount uint) []*config.SystemAdapter {
 			uplink = false
 		}
 		if i == 1 {
-			networkUUID = defaults.NetNoDHCPID
+			networkUUID = defaults.NetDHCPID2
 		}
 		if i == 2 {
 			networkUUID = defaults.NetSwitch
