@@ -210,6 +210,7 @@ func StopEve(vmName string, cfg *EdenSetupArgs) error {
 			}
 		}
 	}
+	eden.StopSDN(cfg.Eve.DevModel, cfg.Sdn.PidFile)
 	return nil
 }
 
