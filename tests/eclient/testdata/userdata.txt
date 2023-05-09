@@ -16,15 +16,18 @@ exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 # Starting of reboot detector with a 1 reboot limit
 ! test eden.reboot.test -test.v -timewait=0 -reboot=0 -count=1 &
 
-eden pod deploy -n eclient --memory=512MB {{template "eclient_image"}} -p {{$port}}:22 --metadata={{$userdata_file}}
+eden network create 10.11.12.0/24 -n n1
+eden pod deploy -n eclient --memory=512MB --networks=n1 {{template "eclient_image"}} -p {{$port}}:22 --metadata={{$userdata_file}}
 
 test eden.app.test -test.v -timewait 20m RUNNING eclient
 
 exec sleep 10
 
 eden pod delete eclient
+eden network delete n1
 
 test eden.app.test -test.v -timewait 10m - eclient
+test eden.network.test -test.v -timewait 10m - n1
 
 -- eden-config.yml --
 {{/* Test's config. file */}}
