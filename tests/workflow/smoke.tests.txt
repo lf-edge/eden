@@ -1,0 +1,79 @@
+# Number of tests
+{{$tests := 21}}
+# EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
+{{$setup := "y"}}
+{{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
+{{if $setup_env}}{{$setup = $setup_env}}{{end}}
+# EDEN_TEST_STOP -- "y" stops EDEN after tests ("n" by default)
+{{$stop := EdenGetEnv "EDEN_TEST_STOP"}}
+# EDEN_TEST_REGISTRY env. var. -- "y"(default) performs the local EDEN registry test
+{{$registry := EdenGetEnv "EDEN_TEST_REGISTRY"}}
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+
+{{if (ne $setup "n")}}
+#./eden config add default
+/bin/echo Eden setup (1/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_setup
+#source ~/.eden/activate.sh
+{{end}}
+
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") (eq $devmodel "parallels") }}
+eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027 8028:8028 8029:8029 8030:8030 8031:8031
+{{end}}
+
+{{if (ne $setup "n")}}
+/bin/echo Eden start (2/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_start
+/bin/echo Eden onboard (3/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_onboard
+/bin/echo Eden template check (4/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/template_check
+{{end}}
+
+{{if (ne $setup "y")}}
+# Just restart EVE if not using the SETUP steps
+# Is it QEMU?
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") (eq $devmodel "parallels") }}
+/bin/echo EVE restart (5/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eve_restart
+{{end}}
+{{end}}
+
+/bin/echo Eden Log test (6/{{$tests}})
+eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/log_test
+/bin/echo Eden SSH test (7/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/ssh
+/bin/echo Eden Info test (8/{{$tests}})
+eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/info_test
+/bin/echo Eden Metric test (9/{{$tests}})
+eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/metric_test
+
+/bin/echo Escript args test (10/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/arg -args=test1=123,test2=456
+/bin/echo Escript template test (11/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/template
+/bin/echo Escript message test (12/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/message
+/bin/echo Escript nested scripts test (13/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/nested_scripts
+/bin/echo Escript time test (14/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/time
+/bin/echo Escript source test (15/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/source
+/bin/echo Escript fail scenario test (16/{{$tests}})
+eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/fail_scenario
+
+/bin/echo Eden app metadata test (17/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/metadata
+/bin/echo Eden app userdata test (18/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/userdata
+/bin/echo Eden app log test (19/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_logs
+
+/bin/echo Eden Shutdown test (20/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/shutdown_test
+
+/bin/echo EVE reset (21/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_reset
+
