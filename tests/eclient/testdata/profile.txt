@@ -21,13 +21,15 @@ exec sleep 30
 
 # Define local-manager and two apps in different profiles
 # TBD: static ip in pod deploy
-eden pod deploy -n local-manager --memory=512MB {{template "eclient_image"}} -p 2223:22
+eden network create 10.11.12.0/24 -n n1
+
+eden pod deploy -n local-manager --memory=512MB {{template "eclient_image"}} -p 2223:22 --networks=n1
 
 test eden.app.test -test.v -timewait 10m RUNNING local-manager
 
-eden pod deploy -n app-profile-1 --memory=512MB {{template "eclient_image"}} --profile=profile-1
-eden pod deploy -n app-profile-2 --memory=512MB {{template "eclient_image"}} --profile=profile-2
-eden pod deploy -n app-profile-1-2 --memory=512MB {{template "eclient_image"}} --profile=profile-1 --profile=profile-2
+eden pod deploy -n app-profile-1 --memory=512MB {{template "eclient_image"}} --profile=profile-1 --networks=n1
+eden pod deploy -n app-profile-2 --memory=512MB {{template "eclient_image"}} --profile=profile-2 --networks=n1
+eden pod deploy -n app-profile-1-2 --memory=512MB {{template "eclient_image"}} --profile=profile-1 --profile=profile-2 --networks=n1
 
 # We have empty local_manager and empty default_profile, so apps should be in RUNNING state
 test eden.app.test -test.v -timewait 20m RUNNING app-profile-1 app-profile-2 app-profile-1-2 local-manager
@@ -126,8 +128,10 @@ eden pod delete app-profile-1
 eden pod delete app-profile-2
 eden pod delete app-profile-1-2
 eden pod delete local-manager
+eden network delete n1
 
 test eden.app.test -test.v -timewait 15m - app-profile-1 app-profile-2 app-profile-1-2 local-manager
+test eden.network.test -test.v -timewait 10m - n1
 
 -- wait_ssh.sh --
 
