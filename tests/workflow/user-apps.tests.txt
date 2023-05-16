@@ -1,0 +1,45 @@
+# Number of tests
+{{$tests := 8}}
+# EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
+{{$setup := "y"}}
+{{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
+{{if $setup_env}}{{$setup = $setup_env}}{{end}}
+# EDEN_TEST_STOP -- "y" stops EDEN after tests ("n" by default)
+{{$stop := EdenGetEnv "EDEN_TEST_STOP"}}
+# EDEN_TEST_REGISTRY env. var. -- "y"(default) performs the local EDEN registry test
+{{$registry := EdenGetEnv "EDEN_TEST_REGISTRY"}}
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+
+{{if (ne $setup "n")}}
+#./eden config add default
+/bin/echo Eden setup (1/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_setup
+#source ~/.eden/activate.sh
+{{end}}
+
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") (eq $devmodel "parallels") }}
+eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027 8028:8028 8029:8029 8030:8030 8031:8031
+{{end}}
+
+{{if (ne $setup "n")}}
+/bin/echo Eden start (2/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_start
+
+/bin/echo Eden onboard (3/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_onboard
+/bin/echo Eden template check (4/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/template_check
+{{end}}
+
+/bin/echo Eden 2 dockers test (5/{{$tests}})
+eden.escript.test -testdata ../docker/testdata/ -test.run TestEdenScripts/2dockers_test
+
+/bin/echo Eden 2 dockers test with app state detector (6/{{$tests}})
+eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_test
+
+/bin/echo Eden Mariadb (7/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
+
+/bin/echo Eden nodered (8/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nodered
