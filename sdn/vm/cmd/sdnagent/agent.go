@@ -214,27 +214,22 @@ func (a *agent) linkSubscribe(doneChan <-chan struct{}) chan netlink.LinkUpdate 
 }
 
 func (a *agent) allocNetworkIndexes() {
-	networkIndex := make(map[string]int)
-	// Keep previous indexes which are still needed.
-	for _, network := range a.netModel.Networks {
-		index, hasIndex := a.networkIndex[network.LogicalLabel]
-		if hasIndex {
-			networkIndex[network.LogicalLabel] = index
-		}
+	if a.networkIndex == nil {
+		a.networkIndex = make(map[string]int)
 	}
 	// Allocate new indexes where needed.
 	for _, network := range a.netModel.Networks {
-		index, hasIndex := networkIndex[network.LogicalLabel]
+		index, hasIndex := a.networkIndex[network.LogicalLabel]
 		if hasIndex {
+			// Keep already allocated index.
 			continue
 		}
 		index = 0
 		for a.isNetworkIndexUsed(index) {
 			index++
 		}
-		networkIndex[network.LogicalLabel] = index
+		a.networkIndex[network.LogicalLabel] = index
 	}
-	a.networkIndex = networkIndex
 }
 
 func (a *agent) isNetworkIndexUsed(index int) bool {
