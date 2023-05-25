@@ -118,10 +118,8 @@ func setupQemuConfig(cfg EdenSetupArgs) error {
 		}
 	}
 	var qemuFirmwareParam []string
-	for _, line := range cfg.Eve.QemuFirmware {
-		for _, el := range strings.Split(line, " ") {
-			qemuFirmwareParam = append(qemuFirmwareParam, utils.ResolveAbsPath(el))
-		}
+	for _, el := range cfg.Eve.QemuFirmware {
+		qemuFirmwareParam = append(qemuFirmwareParam, utils.ResolveAbsPath(el))
 	}
 	if cfg.Eve.CustomInstaller.Path != "" && cfg.Eve.Disks == 0 {
 		return fmt.Errorf("EVE installer requires at least one disK")
