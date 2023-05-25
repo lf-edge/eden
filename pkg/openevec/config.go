@@ -26,8 +26,8 @@ type EServerConfig struct {
 }
 
 type EClientConfig struct {
-	Tag   string `mapstructure: "tag"`
-	Image string `mapstructure: "image"`
+	Tag   string `mapstructure:"tag"`
+	Image string `mapstructure:"image"`
 }
 
 type ImagesConfig struct {
@@ -36,11 +36,11 @@ type ImagesConfig struct {
 
 type EdenConfig struct {
 	Download     bool   `mapstructure:"download" cobraflag:"download"`
-	BinDir       string `mapstructure:"bin-dist" cobraflag:"bin-dist" resolvepath:""`
+	BinDir       string `mapstructure:"bin-dist" cobraflag:"bin-dist"`
 	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath:""`
 	Dist         string `mapstructure:"dist"`
 	Root         string `mapstructure:"root"`
-	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key" resolvepath:""`
+	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key"`
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
@@ -52,13 +52,12 @@ type EdenConfig struct {
 }
 
 type RedisConfig struct {
-	RemoteURL string `mapstructure:"adam" cobraflag:"adam-redis-url"`
+	RemoteURL string `mapstructure:"adam" cobraflag:"adam-redis-url"` // TODO: belongs to ADAM Redis
 	Tag       string `mapstructure:"tag" cobraflag:"redis-tag"`
 	Port      int    `mapstructure:"port" cobraflag:"redis-port"`
 	Dist      string `mapstructure:"dist" cobraflag:"redis-dist" resolvepath:""`
 	Force     bool   `mapstructure:"force" cobraflag:"redis-force"`
 	Eden      string `mapstructure:"eden"` // TODO: belongs to ADAM Redis
-	Adam      string `mapstructure:"adam"` // TODO: belongs to ADAM Redis
 }
 
 type RemoteConfig struct {
@@ -83,7 +82,6 @@ type AdamConfig struct {
 	APIv1       bool   `mapstructure:"v1" cobrafalg:"force"`
 	Force       bool   `mapstructure:"force" cobraflag:"force"`
 	CA          string `mapstructure:"ca"`
-	Domain      string `mapstructure:"domain"`
 
 	Redis   RedisConfig   `mapstructure:"redis"` // TODO: this should be separate config from EdenSetupArgs.Redis
 	Remote  RemoteConfig  `mapstructure:"remote"`
@@ -105,7 +103,7 @@ type EveConfig struct {
 	QemuConfig      QemuConfig            `mapstructure:"qemu"`
 
 	QemuFirmware   []string          `mapstructure:"firmware" cobraflag:"eve-firmware"`
-	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path" resolvepath:""`
+	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path"`
 	QemuDTBPath    string            `mapstructure:"dtb-part" cobraflag:"dtb-part" resolvepath:""`
 	QemuOS         string            `mapstructure:"os" cobraflag:"eve-os"`
 	ImageFile      string            `mapstructure:"image-file" cobraflag:"image-file" resolvepath:""`
@@ -123,7 +121,6 @@ type EveConfig struct {
 	QemuMemory     int               `mapstructure:"ram" cobraflag:"memory"`
 	ImageSizeMB    int               `mapstructure:"disk" cobraflag:"image-size"`
 	DevModel       string            `mapstructure:"devmodel" cobraflag:"devmodel"`
-	DevModelFile   string            `mapstructure:"devmodelfile"`
 	Ssid           string            `mapstructure:"ssid" cobraflag:"ssid"`
 	Password       string            `mapstructure:"password" cobraflag:"password"`
 	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
@@ -144,6 +141,7 @@ type EveConfig struct {
 	BootstrapFile  string `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`
 	UsbNetConfFile string `mapstructure:"usbnetconf-file" cobraflag:"eve-usbnetconf-file"`
 	TPM            bool   `mapstructure:"tpm" cobraflag:"tpm"`
+	Platform       string `mapstructure:"platform"`
 }
 
 type RegistryConfig struct {
@@ -162,7 +160,7 @@ type GcpConfig struct {
 }
 
 type SdnConfig struct {
-	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file" resolvepath:""`
+	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file"`
 	SourceDir      string `mapstructure:"source-dir" cobraflag:"sdn-source-dir" resolvepath:""`
 	RAM            int    `mapstructure:"ram" cobraflag:"sdn-ram"`
 	CPU            int    `mapstructure:"cpu" cobraflag:"sdn-cpu"`
@@ -189,6 +187,7 @@ type EdenSetupArgs struct {
 
 	ConfigFile string
 	ConfigName string
+	EdenDir    string
 }
 
 // PodConfig store configuration for Pod deployment
@@ -310,6 +309,14 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 	return cfg, nil
 }
 
+func getValStrRepr(v reflect.Value) string {
+	if v.Kind() == reflect.String {
+		return fmt.Sprintf("'%v'", v.Interface())
+	} else {
+		return fmt.Sprintf("%v", v.Interface())
+	}
+}
+
 func WriteConfig(dst reflect.Value, writer io.Writer, nestLevel int) {
 	for i := 0; i < dst.NumField(); i++ {
 		if structTag := dst.Type().Field(i).Tag.Get("mapstructure"); structTag != "" {
@@ -325,16 +332,15 @@ func WriteConfig(dst reflect.Value, writer io.Writer, nestLevel int) {
 					k := iter.Key()
 					v := iter.Value()
 					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
-					// We assume that only map we are using is map[string]string
-					// in case if we want to expand this check should be made as separate function
-					io.WriteString(writer, fmt.Sprintf("%v: '%v'\n", k.Interface(), v.Interface()))
+					// We assume that map cannot have structure as value
+					io.WriteString(writer, fmt.Sprintf("%v: %s\n", k.Interface(), getValStrRepr(v)))
 				}
 			case reflect.Slice:
 				io.WriteString(writer, structTag+":\n")
 				for j := 0; j < dst.Field(i).Len(); j++ {
 					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
 					elem := dst.Field(i).Index(j)
-					io.WriteString(writer, fmt.Sprintf("- %v\n", elem.Interface()))
+					io.WriteString(writer, fmt.Sprintf("- %v\n", getValStrRepr(elem)))
 				}
 			case reflect.String: // we need to wrap string in quotes
 				io.WriteString(writer, fmt.Sprintf("%s: '%v'\n", structTag, dst.Field(i)))

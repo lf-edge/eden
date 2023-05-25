@@ -8,12 +8,19 @@ import (
 
 	"github.com/lf-edge/eden/pkg/openevec"
 	"github.com/spf13/viper"
+	"gotest.tools/assert"
 )
+
+type NestedConfig struct {
+	NumField int `mapstructure:"numfield"`
+}
 
 type ServerConfig struct {
 	Field   string            `mapstructure:"field"`
 	Access  int               `mapstructure:"access"`
 	HostFwd map[string]string `mapstructure:"hostfwd"`
+
+	NestedField NestedConfig `mapstructure:"nested"`
 }
 
 type Config struct {
@@ -81,6 +88,10 @@ func TestViperSerializeFromWriteConfig(t *testing.T) {
 				"key1": "value1",
 				"key2": "value2",
 			},
+
+			NestedField: NestedConfig{
+				NumField: 21,
+			},
 		},
 	}
 
@@ -98,7 +109,29 @@ func TestViperSerializeFromWriteConfig(t *testing.T) {
 	// Unmarshal the configuration into the Config struct.
 	gotCfg := &Config{}
 	err = v.Unmarshal(&gotCfg)
+
 	if !gotCfg.IsEqual(cfg) {
 		t.Errorf("Generated config is = %v; want %v", gotCfg, cfg)
 	}
+}
+
+func TestConfigSliceType(t *testing.T) {
+	cfg := Config{
+		Names: []string{"test1", "test2"},
+	}
+
+	var buf bytes.Buffer
+	openevec.WriteConfig(reflect.ValueOf(cfg), &buf, 0)
+
+	v := viper.New()
+	v.SetConfigType("yaml")
+	err := v.ReadConfig(&buf)
+	if err != nil {
+		fmt.Println("error reading config:", err)
+		return
+	}
+
+	gotCfg := &Config{}
+	err = v.Unmarshal(&gotCfg)
+	assert.Equal(t, reflect.String, reflect.TypeOf(cfg.Names[0]).Kind(), "Name type should be string")
 }
