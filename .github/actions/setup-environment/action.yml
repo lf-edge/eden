@@ -1,0 +1,59 @@
+name: 'Setup environment to run eden tests'
+description: 'Setup building dependencies, build and configure eden'
+
+inputs:
+  file_system:
+    required: true
+    type: string
+  tpm_enabled:
+    required: true
+    type: bool
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.18'
+    - name: Check
+      run: |
+        for addr in $(ip addr list|sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
+        do
+            if echo "$addr" | grep -q -E "10.11.(12|13).[0-9]+"; then
+              echo "$addr overlaps with test"; exit 1
+            fi
+        done
+        sudo df -h
+        sudo swapoff -a
+        sudo free
+      shell: bash
+    - name: Install Packages
+      run: |
+        sudo add-apt-repository ppa:stefanberger/swtpm-jammy
+        sudo apt install -y qemu-utils qemu-system-x86 jq swtpm
+      shell: bash
+    - name: Build tests
+      run: |
+        make build-tests
+      shell: bash
+    - name: Configure
+      run: |
+        ./eden config add default
+        ./eden config set default --key=eve.accel --value=false
+        ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
+        ./eden config set default --key=eve.cpu --value=2
+      shell: bash
+    - name: Setup ext4
+      if: inputs.file_system == 'ext4'
+      run: ./eden setup -v debug
+      shell: bash
+    - name: Setup zfs
+      if: inputs.file_system == 'zfs'
+      run: |
+        ./eden config set default --key=eve.disks --value=4
+        ./eden config set default --key=eve.disk --value=4096
+        ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
+      shell: bash
+    - name: Clean docker
+      run: docker system prune -f -a
+      shell: bash

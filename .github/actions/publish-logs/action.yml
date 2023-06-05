@@ -1,0 +1,56 @@
+name: 'Collect, count and publish logs'
+description: 'Collect, process and publish logs from Eden'
+
+inputs:
+  file_system:
+    required: true
+    type string
+  tpm_enabled:
+    required: true
+    type: bool
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Collect logs
+      if: ${{ always() }}
+      run: |
+        ./eden log --format json > trace.log || echo "no log"
+        ./eden info --format json > info.log || echo "no info"
+        ./eden metric --format json > metric.log || echo "no metric"
+        ./eden netstat --format json > netstat.log || echo "no netstat"
+        cp dist/default-eve.log console.log || echo "no device log"
+        docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
+      shell: bash
+    - name: Log counting
+      if: ${{ always() }}
+      run: |
+        echo "::group::Total errors"
+        echo "$(jq '.severity' trace.log|grep err|wc -l)"
+        echo "::endgroup::"
+        echo "::group::Errors by source"
+        echo "errors by source: $(jq -s 'map(select(.severity|contains("err")))|group_by(.source)|map({"source": .[0].source, "total":length})|sort_by(.total)|reverse[]' trace.log)"
+        echo "::endgroup::"
+        echo "::group::Error log content duplicates"
+        echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.content)|map(select(length>1))' trace.log)"
+        echo "::endgroup::"
+        echo "::group::Error log function filename duplicates"
+        echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.filename)|map(select(length>10))|map({"source": .[0].source, "filename": .[0].filename, "function": .[0].function, "content": [.[].content], "total":length})|sort_by(.total)| reverse[]' trace.log)"
+        echo "::endgroup::"
+        echo "::group::Segfaults"
+        echo "$(jq -s 'map(select(.content | contains("segfault at")))' trace.log)"|tee segfaults.log
+        [ "$(jq length segfaults.log)" -gt 0 ] && echo "::warning::segfaults found, you can see them in Log counting->Segfaults section"
+        echo "::endgroup::"
+      shell: bash
+    - name: Store raw test results
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: eden-report-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
+        path: |
+            ${{ github.workspace }}/trace.log
+            ${{ github.workspace }}/info.log
+            ${{ github.workspace }}/metric.log
+            ${{ github.workspace }}/netstat.log
+            ${{ github.workspace }}/console.log
+            ${{ github.workspace }}/adam.log
