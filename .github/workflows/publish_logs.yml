@@ -1,0 +1,50 @@
+name: Collect, count and publish logs
+
+on:
+  workflow_call:
+
+jobs:
+  gather-logs:
+    name: Process logs and publish them
+    runs-on: self-hosted
+    steps:
+      - name: Collect logs
+        if: ${{ always() }}
+        run: |
+          ./eden log --format json > trace.log || echo "no log"
+          ./eden info --format json > info.log || echo "no info"
+          ./eden metric --format json > metric.log || echo "no metric"
+          ./eden netstat --format json > netstat.log || echo "no netstat"
+          cp dist/default-eve.log console.log || echo "no device log"
+          docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
+      - name: Log counting
+        if: ${{ always() }}
+        run: |
+          echo "::group::Total errors"
+          echo "$(jq '.severity' trace.log|grep err|wc -l)"
+          echo "::endgroup::"
+          echo "::group::Errors by source"
+          echo "errors by source: $(jq -s 'map(select(.severity|contains("err")))|group_by(.source)|map({"source": .[0].source, "total":length})|sort_by(.total)|reverse[]' trace.log)"
+          echo "::endgroup::"
+          echo "::group::Error log content duplicates"
+          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.content)|map(select(length>1))' trace.log)"
+          echo "::endgroup::"
+          echo "::group::Error log function filename duplicates"
+          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.filename)|map(select(length>10))|map({"source": .[0].source, "filename": .[0].filename, "function": .[0].function, "content": [.[].content], "total":length})|sort_by(.total)| reverse[]' trace.log)"
+          echo "::endgroup::"
+          echo "::group::Segfaults"
+          echo "$(jq -s 'map(select(.content | contains("segfault at")))' trace.log)"|tee segfaults.log
+          [ "$(jq length segfaults.log)" -gt 0 ] && echo "::warning::segfaults found, you can see them in Log counting->Segfaults section"
+          echo "::endgroup::"
+      - name: Store raw test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: eden-report-tpm-${{ matrix.tpm }}-${{ matrix.fs }}
+          path: |
+              ${{ github.workspace }}/trace.log
+              ${{ github.workspace }}/info.log
+              ${{ github.workspace }}/metric.log
+              ${{ github.workspace }}/netstat.log
+              ${{ github.workspace }}/console.log
+              ${{ github.workspace }}/adam.log

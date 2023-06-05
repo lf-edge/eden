@@ -1,0 +1,29 @@
+name: Run specified Eden test workflow
+
+on:
+  workflow_call:
+    inputs:
+      file_system:
+        required: true
+        type: string
+      tpm_enabled:
+        required: true
+        type: bool
+      suite:
+        required: true
+        type: string
+
+jobs:
+  run-test-suite:
+    name: Run Eden ${{ inputs.suite }} workflow
+    runs-on: self-hosted
+    steps:
+      - name: Setup Environment
+        - uses: ./.github/workflows/setup_environment.yml@main
+          with:
+            file_system: ${{ inputs.file_system }}
+            tmp_enabled: ${{ inputs.tpm_enabled }}
+      - name: Run tests
+        run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
+      - name: Collect logs
+        - uses: ./.github/workflows/publish_logs.yml@main
