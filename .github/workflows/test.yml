@@ -1,0 +1,101 @@
+---
+name: Test
+
+on: workflow_dispatch
+
+jobs:
+  smoke: 
+    continue-on-error: true
+    strategy:
+      matrix:
+        file_system: ['ext4', 'zfs']
+        tpm: [true, false]
+    name: Smoke tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Run Smoke tests
+        uses: ./.github/actions/run-eden-test
+        with:
+          file_system: ${{ matrix.file_system }}
+          tpm_enabled: ${{ matrix.tpm }}
+          suite: "smoke.tests.txt"
+
+  networking: 
+    name: Networking test suite
+    needs: smoke
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Run Networking tests
+        uses: ./.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "networking.tests.txt"
+
+  storage: 
+    continue-on-error: true
+    strategy:
+      matrix:
+        file_system: ['ext4', 'zfs']
+    name: Storage test suite
+    needs: smoke
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Run Storage tests
+        uses: ./.github/actions/run-eden-test
+        with:
+          file_system: ${{ matrix.file_system }}
+          tpm_enabled: true
+          suite: "storage.tests.txt"
+
+  lpc-loc:
+    name: LPC LOC test suite
+    needs: smoke
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Run LPC LOC tests
+        uses: ./.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "lpc-loc.tests.txt"
+
+  eve-upgrade:
+    continue-on-error: true
+    strategy:
+      matrix:
+        file_system: ['ext4', 'zfs']
+    name: EVE upgrade test suite
+    needs: smoke
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Run EVE upgrade tests
+        uses: ./.github/actions/run-eden-test
+        with:
+          file_system: ${{ matrix.file_system }}
+          tpm_enabled: true
+          suite: "eve-upgrade.tests.txt"
+
+  user-apps:
+    name: User apps test suite
+    needs: smoke
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Run User apps upgrade tests
+        uses: ./.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "user-apps.tests.txt"
