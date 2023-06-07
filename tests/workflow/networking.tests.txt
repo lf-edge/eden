@@ -1,6 +1,6 @@
 # Number of tests
 {{$tests := 17}}
-k EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
+# EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
 {{if $setup_env}}{{$setup = $setup_env}}{{end}}
