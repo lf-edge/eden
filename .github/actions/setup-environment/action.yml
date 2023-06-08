@@ -54,6 +54,3 @@ runs:
         ./eden config set default --key=eve.disk --value=4096
         ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
       shell: bash
-    - name: Clean docker
-      run: docker system prune -f -a
-      shell: bash
