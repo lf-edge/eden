@@ -33,4 +33,5 @@ runs:
       run: |
         ./eden stop
         make clean
+        docker system prune -f -a
       shell: bash
