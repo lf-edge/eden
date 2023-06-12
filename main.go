@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/lf-edge/eden/cmd"
+	cmd "github.com/lf-edge/eden/cmd/cli"
 )
 
 func main() {

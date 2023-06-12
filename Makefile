@@ -104,7 +104,7 @@ install: build
 	CGO_ENABLED=0 go install .
 
 build: $(BIN) $(EMPTY_DRIVE).raw $(EMPTY_DRIVE).qcow2 $(EMPTY_DRIVE).qcow $(EMPTY_DRIVE).vmdk $(EMPTY_DRIVE).vhdx $(LINUXKIT)
-$(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
+$(LOCALBIN): $(BINDIR) cmd/cli/*.go pkg/*/*.go pkg/*/*/*.go
 	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-s -w" -o $@ .
 	mkdir -p dist/scripts/shell
 	cp -r shell-scripts/* dist/scripts/shell/
