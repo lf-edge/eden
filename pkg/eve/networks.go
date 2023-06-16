@@ -13,7 +13,7 @@ import (
 	"github.com/lf-edge/eve/api/go/metrics"
 )
 
-//NetInstState stores state of network instance
+// NetInstState stores state of network instance
 type NetInstState struct {
 	Name        string
 	UUID        string
@@ -78,11 +78,17 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 
 		if len(im.GetNiinfo().GetNetworkErr()) > 0 {
 			netInstStateObj.EveState = fmt.Sprintf("%s ERRORS: %s", im.GetNiinfo().GetState().String(), im.GetNiinfo().GetNetworkErr())
+		} else if !netInstStateObj.Activated {
+			netInstStateObj.EveState = "NOT_ACTIVATED"
 		} else {
-			if im.GetNiinfo().State == info.ZNetworkInstanceState_ZNETINST_STATE_ONLINE || netInstStateObj.Activated {
+			switch im.GetNiinfo().State {
+			case info.ZNetworkInstanceState_ZNETINST_STATE_INIT:
+				netInstStateObj.EveState = "INIT"
+			case info.ZNetworkInstanceState_ZNETINST_STATE_ONLINE:
+				// netInstStateObj.Activated is true
 				netInstStateObj.EveState = "ACTIVATED"
-			} else {
-				netInstStateObj.EveState = "NOT_ACTIVATED"
+			case info.ZNetworkInstanceState_ZNETINST_STATE_ERROR:
+				netInstStateObj.EveState = "ERROR"
 			}
 		}
 		// XXX Guard against old EVE which doesn't send state
@@ -114,7 +120,7 @@ func (ctx *State) processNetworksByMetric(msg *metrics.ZMetricMsg) {
 	}
 }
 
-//NetList prints networks
+// NetList prints networks
 func (ctx *State) NetList() error {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 1, '\t', 0)

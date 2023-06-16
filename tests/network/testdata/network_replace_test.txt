@@ -1,0 +1,66 @@
+eden -t 10s network ls
+
+# Starting of reboot detector with a 1 reboot limit
+! test eden.reboot.test -test.v -timewait=0 -reboot=0 -count=1 &
+
+# Create n1 network
+eden -t 1m network create 10.11.12.0/24 -n n1
+test eden.network.test -test.v -timewait 10m ACTIVATED n1
+
+# Quickly replace n1 with n2 so that EVE sees them swapped in one EdgeDevConfig.
+# This is interesting to test, because some internally (inside EVE) allocated numbers
+# and generated config will be reused and could cause conflicts if not properly
+# implemented.
+eden -t 1m network delete n1
+eden -t 1m network create 10.11.13.0/24 -n n2
+test eden.network.test -test.v -timewait 2m - n1
+test eden.network.test -test.v -timewait 2m ACTIVATED n2
+
+# Replace network instance while reusing the same subnet.
+eden -t 1m network delete n2
+eden -t 1m network create 10.11.13.0/24 -n n3
+test eden.network.test -test.v -timewait 2m - n2
+test eden.network.test -test.v -timewait 2m ACTIVATED n3
+
+# Replace one network instance with two (one of them will reuse the subnet).
+eden -t 1m network delete n3
+eden -t 1m network create 10.11.12.0/24 -n n4
+eden -t 1m network create 10.11.13.0/24 -n n5
+test eden.network.test -test.v -timewait 2m - n3
+test eden.network.test -test.v -timewait 2m ACTIVATED n4
+test eden.network.test -test.v -timewait 2m ACTIVATED n5
+
+# Move subnet from one network instance to another.
+exec -t 1m bash replace-subnet.sh n4 10.11.12 10.11.14
+eden -t 1m network create 10.11.12.0/24 -n n6 # subnet originally used by n4
+test eden.network.test -test.v -timewait 2m ACTIVATED n6
+test eden.network.test -test.v -timewait 2m ACTIVATED n4
+
+# Cleanup.
+eden -t 1m network delete n4
+eden -t 1m network delete n5
+eden -t 1m network delete n6
+test eden.network.test -test.v -timewait 2m - n4
+test eden.network.test -test.v -timewait 2m - n5
+test eden.network.test -test.v -timewait 2m - n6
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- replace-subnet.sh --
+# There isn't dedicated CLI command to modify subnet of existing NI,
+# therefore we need to modify JSON-formatted edge config using jq.
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN controller edge-node get-config --file eve-prev.cfg
+jq '.networkInstances |= map(if .displayname == "'$1'" then .ip |= tostring else . end)' < eve-prev.cfg |\
+  sed 's/'$2'/'$3'/g' |\
+    jq '.networkInstances |= map(if .displayname == "'$1'" then .ip |= fromjson else . end)' > eve-new.cfg
+$EDEN controller edge-node set-config --file eve-new.cfg
