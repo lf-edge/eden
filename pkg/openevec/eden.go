@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/eflowlog"
@@ -44,28 +45,31 @@ func SwtpmPidFile(cfg *EdenSetupArgs) string {
 	return ""
 }
 
-func generateScripts(in string, out string, configFile string) error {
-	tmpl, err := ioutil.ReadFile(in)
+// ParseTemplateFile fills EdenSetupArgs variable into
+// template stored in file and writes result to io.Writer
+func ParseTemplateFile(path string, cfg EdenSetupArgs, w io.Writer) error {
+	t, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	script, err := utils.RenderTemplate(configFile, string(tmpl))
+
+	tmpl, err := template.New("").Parse(string(t))
+
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(out, []byte(script), 0644)
-	if err != nil {
-		return err
-	}
+
+	err = tmpl.Execute(w, cfg)
+
 	return nil
 }
 
 func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, grubOptions []string,
 	netboot, installer bool, cfg EdenSetupArgs) error {
 
-	if err := configCheck(configName); err != nil {
-		return err
-	}
+	//if err := configCheck(configName); err != nil {
+	//	return err
+	//}
 
 	if netboot && installer {
 		return fmt.Errorf("please use netboot or installer flag, not both")
@@ -363,14 +367,25 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 			cfgDir, err)
 	} else {
 		shPath := cfg.Eden.Root + "/scripts/shell/"
-		if err := generateScripts(shPath+"activate.sh.tmpl",
-			cfgDir+"activate.sh", cfg.ConfigName); err != nil {
+
+		f, err := os.Create(cfgDir + "activate.sh")
+		if err != nil {
 			return err
 		}
-		if err := generateScripts(shPath+"activate.csh.tmpl",
-			cfgDir+"activate.csh", cfg.ConfigName); err != nil {
+		if err = ParseTemplateFile(shPath+"activate.sh.tmpl", cfg, f); err != nil {
 			return err
 		}
+		f.Close()
+
+		f, err = os.Create(cfgDir + "activate.csh")
+		if err != nil {
+			return err
+		}
+		if err = ParseTemplateFile(shPath+"activate.csh.tmpl", cfg, f); err != nil {
+			return err
+		}
+		f.Close()
+
 		fmt.Println("To activate EDEN settings run:")
 		fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
 		fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
@@ -520,7 +535,7 @@ func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, current
 		} else {
 			log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 		}
-		if err := StartAdam(cfg); err != nil {
+		if err := StartAdamCmd(cfg); err != nil {
 			log.Errorf("cannot start adam: %s", err.Error())
 		} else {
 			log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
@@ -723,12 +738,13 @@ func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool
 func EdenExport(tarFile string, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
 	// we need to obtain information about EVE from Adam
-	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag); err != nil {
+	// TODO: Force was false here
+	if err := StartRedis(*cfg); err != nil {
 		return fmt.Errorf("cannot start redis: %w", err)
 	} else {
 		log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 	}
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+	if err := StartAdam(cfg.Eden.CertsDir, cfg.Adam); err != nil {
 		return fmt.Errorf("cannot start adam: %w", err)
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
@@ -795,12 +811,14 @@ func EdenImport(tarFile string, rewriteRoot bool, cfg *EdenSetupArgs) error {
 		}
 	}
 	// we need to put information about EVE into Adam
-	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag); err != nil {
+	// TODO: Force was false here
+	if err := StartRedis(*cfg); err != nil {
 		log.Errorf("cannot start redis: %s", err.Error())
 	} else {
 		log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 	}
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+	// TODO here was false
+	if err := StartAdam(cfg.Eden.CertsDir, cfg.Adam); err != nil {
 		log.Errorf("cannot start adam: %s", err.Error())
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)

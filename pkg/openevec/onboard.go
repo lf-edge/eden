@@ -10,12 +10,12 @@ import (
 )
 
 func OnboardEve(eveUUID string) error {
-
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
-		return fmt.Errorf("error getting default eden dir %w", err)
+		return err
 	}
-	if err = utils.TouchFile(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))); err != nil {
+
+	if err := utils.TouchFile(filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))); err != nil {
 		return fmt.Errorf("error getting file %w", err)
 	}
 	changer := &adamChanger{}

@@ -2,13 +2,14 @@ package utils
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 //Context for use with multiple config files

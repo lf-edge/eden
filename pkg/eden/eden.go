@@ -37,52 +37,6 @@ import (
 
 const bootstrapFilename = "bootstrap-config.pb"
 
-// StartRedis function run redis in docker with mounted redisPath:/data
-// if redisForce is set, it recreates container
-func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
-	portMap := map[string]string{"6379": strconv.Itoa(redisPort)}
-	volumeMap := map[string]string{"/data": redisPath}
-	redisServerCommand := strings.Fields("redis-server --appendonly yes")
-	edenHome, err := utils.DefaultEdenDir()
-	if err != nil {
-		return err
-	}
-	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
-	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
-	pwd, err := ioutil.ReadFile(redisPasswordFile)
-	if err == nil {
-		redisServerCommand = append(redisServerCommand, strings.Fields(fmt.Sprintf("--requirepass %s", string(pwd)))...)
-	} else {
-		log.Errorf("cannot read redis password: %v", err)
-	}
-	if redisPath != "" {
-		if err = os.MkdirAll(redisPath, 0755); err != nil {
-			return fmt.Errorf("StartRedis: Cannot create directory for redis (%s): %s", redisPath, err)
-		}
-	}
-	if redisForce {
-		_ = utils.StopContainer(defaults.DefaultRedisContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
-			return fmt.Errorf("StartRedis: error in create redis container: %s", err)
-		}
-	} else {
-		state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
-		if err != nil {
-			return fmt.Errorf("StartRedis: error in get state of redis container: %s", err)
-		}
-		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
-				return fmt.Errorf("StartRedis: error in create redis container: %s", err)
-			}
-		} else if !strings.Contains(state, "running") {
-			if err := utils.StartContainer(defaults.DefaultRedisContainerName); err != nil {
-				return fmt.Errorf("StartRedis: error in restart redis container: %s", err)
-			}
-		}
-	}
-	return nil
-}
-
 // StopRedis function stop redis container
 func StopRedis(redisRm bool) (err error) {
 	state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
@@ -121,97 +75,6 @@ func StatusRedis() (status string, err error) {
 		return "container doesn't exist", nil
 	}
 	return state, nil
-}
-
-// StartAdam function run adam in docker with mounted adamPath/run:/adam/run
-// if adamForce is set, it recreates container
-func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, apiV1 bool, opts ...string) (err error) {
-	edenHome, err := utils.DefaultEdenDir()
-	if err != nil {
-		return err
-	}
-	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
-	serverCertPath := filepath.Join(globalCertsDir, "server.pem")
-	serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
-	cert, err := ioutil.ReadFile(serverCertPath)
-	if err != nil {
-		return fmt.Errorf("StartAdam: cannot load %s: %s", serverCertPath, err)
-	}
-	key, err := ioutil.ReadFile(serverKeyPath)
-	if err != nil {
-		return fmt.Errorf("StartAdam: cannot load %s: %s", serverKeyPath, err)
-	}
-	envs := []string{
-		fmt.Sprintf("SERVER_CERT=%s", cert),
-		fmt.Sprintf("SERVER_KEY=%s", key),
-	}
-	if !apiV1 {
-		signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
-		signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
-		signingCert, err := ioutil.ReadFile(signingCertPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", signingCertPath, err)
-		}
-		signingKey, err := ioutil.ReadFile(signingKeyPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", signingKeyPath, err)
-		}
-		envs = append(envs, fmt.Sprintf("SIGNING_CERT=%s", signingCert))
-		envs = append(envs, fmt.Sprintf("SIGNING_KEY=%s", signingKey))
-
-		encryptCertPath := filepath.Join(globalCertsDir, "encrypt.pem")
-		encryptKeyPath := filepath.Join(globalCertsDir, "encrypt-key.pem")
-		encryptCert, err := ioutil.ReadFile(encryptCertPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptCertPath, err)
-		}
-		encryptKey, err := ioutil.ReadFile(encryptKeyPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptKeyPath, err)
-		}
-		envs = append(envs, fmt.Sprintf("ENCRYPT_CERT=%s", encryptCert))
-		envs = append(envs, fmt.Sprintf("ENCRYPT_KEY=%s", encryptKey))
-	}
-	portMap := map[string]string{"8080": strconv.Itoa(adamPort)}
-	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
-	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
-	if adamPath == "" {
-		volumeMap = map[string]string{"/adam/run": ""}
-		adamServerCommand = strings.Fields("server")
-	}
-	if adamRemoteRedisURL != "" {
-		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
-		pwd, err := ioutil.ReadFile(redisPasswordFile)
-		if err == nil {
-			adamRemoteRedisURL = fmt.Sprintf("redis://%s:%s@%s", string(pwd), string(pwd), adamRemoteRedisURL)
-		} else {
-			log.Errorf("cannot read redis password: %v", err)
-			adamRemoteRedisURL = fmt.Sprintf("redis://%s", adamRemoteRedisURL)
-		}
-		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--db-url %s", adamRemoteRedisURL))...)
-	}
-	adamServerCommand = append(adamServerCommand, opts...)
-	if adamForce {
-		_ = utils.StopContainer(defaults.DefaultAdamContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
-			return fmt.Errorf("StartAdam: error in create adam container: %s", err)
-		}
-	} else {
-		state, err := utils.StateContainer(defaults.DefaultAdamContainerName)
-		if err != nil {
-			return fmt.Errorf("StartAdam: error in get state of adam container: %s", err)
-		}
-		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
-				return fmt.Errorf("StartAdam: error in create adam container: %s", err)
-			}
-		} else if !strings.Contains(state, "running") {
-			if err := utils.StartContainer(defaults.DefaultAdamContainerName); err != nil {
-				return fmt.Errorf("StartAdam: error in restart adam container: %s", err)
-			}
-		}
-	}
-	return nil
 }
 
 // StopAdam function stop adam container
@@ -407,11 +270,7 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 			return fmt.Errorf("GenerateEveCerts: %s", err)
 		}
 	}
-	edenHome, err := utils.DefaultEdenDir()
-	if err != nil {
-		return fmt.Errorf("GenerateEveCerts: %s", err)
-	}
-	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+	globalCertsDir := filepath.Join(certsDir, defaults.DefaultCertsDist)
 	if _, err := os.Stat(globalCertsDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(globalCertsDir, 0755); err != nil {
 			return fmt.Errorf("GenerateEveCerts: %s", err)

@@ -48,7 +48,7 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 			Download:     true,
 			BinDir:       filepath.Join(defaults.DefaultDist, defaults.DefaultBinDist),
 			SSHKey:       fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultSSHKey),
-			CertsDir:     filepath.Join(fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultCertsDist)),
+			CertsDir:     fmt.Sprintf("%s", defaults.DefaultCertsDist),
 			TestBin:      defaults.DefaultBinDist,
 			EdenBin:      "eden.escript.test",
 			TestScenario: defaults.DefaultTestScenario,

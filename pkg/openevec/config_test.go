@@ -102,7 +102,7 @@ func TestViperSerializeFromWriteConfig(t *testing.T) {
 	v.SetConfigType("yaml")
 	err := v.ReadConfig(&buf)
 	if err != nil {
-		fmt.Println("error reading config:", err)
+		t.Errorf("error reading config: %v", err)
 		return
 	}
 

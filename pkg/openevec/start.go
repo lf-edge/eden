@@ -2,13 +2,19 @@ package openevec
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
+	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-func StartAdam(cfg EdenSetupArgs) error {
+func StartAdamCmd(cfg EdenSetupArgs) error {
 	command, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("startAdam: cannot obtain executable path: %w", err)
@@ -19,7 +25,7 @@ func StartAdam(cfg EdenSetupArgs) error {
 		cfg.Adam.Redis.RemoteURL = ""
 	}
 
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, cfg.Adam.Force, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+	if err := StartAdam(cfg.Eden.CertsDir, cfg.Adam); err != nil {
 		return fmt.Errorf("cannot start adam: %w", err)
 	}
 	log.Infof("Adam is runnig and accessible on port %d", cfg.Adam.Port)
@@ -36,10 +42,46 @@ func GetAdamStatus() (string, error) {
 }
 
 func StartRedis(cfg EdenSetupArgs) error {
-	if err := eden.StartRedis(cfg.Redis.Port, cfg.Adam.Redis.Dist, cfg.Redis.Force, cfg.Redis.Tag); err != nil {
-		return fmt.Errorf("cannot start redis: %w", err)
+	portMap := map[string]string{"6379": strconv.Itoa(cfg.Redis.Port)}
+	volumeMap := map[string]string{"/data": cfg.Redis.Dist}
+	redisServerCommand := strings.Fields("redis-server --appendonly yes")
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		return err
 	}
-	log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
+	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
+	pwd, err := ioutil.ReadFile(redisPasswordFile)
+	if err == nil {
+		redisServerCommand = append(redisServerCommand, strings.Fields(fmt.Sprintf("--requirepass %s", string(pwd)))...)
+	} else {
+		log.Errorf("cannot read redis password: %v", err)
+	}
+	if cfg.Adam.Redis.Dist != "" {
+		if err = os.MkdirAll(cfg.Adam.Redis.Dist, 0755); err != nil {
+			return fmt.Errorf("StartRedis: Cannot create directory for redis (%s): %s", cfg.Adam.Redis.Dist, err)
+		}
+	}
+	if cfg.Redis.Force {
+		_ = utils.StopContainer(defaults.DefaultRedisContainerName, true)
+		if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+cfg.Redis.Tag, portMap, volumeMap, redisServerCommand, nil); err != nil {
+			return fmt.Errorf("StartRedis: error in create redis container: %s", err)
+		}
+	} else {
+		state, err := utils.StateContainer(defaults.DefaultRedisContainerName)
+		if err != nil {
+			return fmt.Errorf("StartRedis: error in get state of redis container: %s", err)
+		}
+		if state == "" {
+			if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+cfg.Redis.Tag, portMap, volumeMap, redisServerCommand, nil); err != nil {
+				return fmt.Errorf("StartRedis: error in create redis container: %s", err)
+			}
+		} else if !strings.Contains(state, "running") {
+			if err := utils.StartContainer(defaults.DefaultRedisContainerName); err != nil {
+				return fmt.Errorf("StartRedis: error in restart redis container: %s", err)
+			}
+		}
+	}
 	return nil
 }
 
@@ -69,7 +111,7 @@ func StartEden(cfg *EdenSetupArgs, vmName, zedControlURL, tapInterface string) e
 			return fmt.Errorf("cannot start redis %w", err)
 		}
 
-		if err := StartAdam(*cfg); err != nil {
+		if err := StartAdamCmd(*cfg); err != nil {
 			return fmt.Errorf("cannot start adam %w", err)
 		}
 

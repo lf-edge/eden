@@ -37,7 +37,7 @@ type ImagesConfig struct {
 type EdenConfig struct {
 	Download     bool   `mapstructure:"download" cobraflag:"download"`
 	BinDir       string `mapstructure:"bin-dist" cobraflag:"bin-dist"`
-	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath:""`
+	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath:"global"`
 	Dist         string `mapstructure:"dist"`
 	Root         string `mapstructure:"root"`
 	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key"`
@@ -352,12 +352,17 @@ func WriteConfig(dst reflect.Value, writer io.Writer, nestLevel int) {
 }
 
 func resolvePath(v reflect.Value, edenRoot string) {
+	edenDir, _ := utils.DefaultEdenDir()
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		if _, ok := v.Type().Field(i).Tag.Lookup("resolvepath"); ok {
 			if f.IsValid() && f.CanSet() && f.Kind() == reflect.String {
 				val := f.Interface().(string)
-				f.SetString(utils.ResolveAbsPathWithRoot(val, edenRoot))
+				if v.Type().Field(i).Tag.Get("resolvepath") == "global" {
+					f.SetString(utils.ResolveAbsPathWithRoot(val, edenDir))
+				} else {
+					f.SetString(utils.ResolveAbsPathWithRoot(val, edenRoot))
+				}
 			}
 		}
 		if f.Kind() == reflect.Struct {
