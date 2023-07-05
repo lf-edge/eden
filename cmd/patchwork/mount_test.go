@@ -1,7 +1,8 @@
-package openevec
+package patchwork
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eve"
+	ec "github.com/lf-edge/eden/pkg/openevec"
 )
 
 func TestEclientMount(t *testing.T) {
@@ -25,8 +27,12 @@ func TestEclientMount(t *testing.T) {
 	devUUID := devFirst.GetID()
 
 	port := 2223
-	cfg := GetDefaultConfig()
-	pc := GetDefaultPodConfig()
+	curPath, err := os.Getwd()
+	if err != nil {
+		t.Errorf("Getwd error: %v", err)
+	}
+	cfg := ec.GetDefaultConfig(curPath)
+	pc := ec.GetDefaultPodConfig()
 	pc.PortPublish = []string{fmt.Sprint(port)}
 	podName := "eclient-mount"
 	pc.Mount = []string{
@@ -35,7 +41,7 @@ func TestEclientMount(t *testing.T) {
 	}
 	appLink := fmt.Sprintf("docker://%s:%s", defaults.DefaultEClientTag, defaults.DefaultEClientContainerRef)
 
-	if err = PodDeploy(appLink, *pc, cfg); err != nil {
+	if err = ec.PodDeploy(appLink, *pc, cfg); err != nil {
 		t.Errorf("PodDeploy error: %v", err)
 		return
 	}
@@ -50,7 +56,7 @@ func TestEclientMount(t *testing.T) {
 	ETestsFolder := filepath.Join(cfg.Eden.Root, "tests")
 	sshCmd := fmt.Sprintf("ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i %s/eclient/image/cert/id_rsa root@FWD_IP -p FWD_PORT ls", ETestsFolder)
 	sshOut, err := withCapturingStdout(func() error {
-		if err := SdnForwardCmd("", "eth0", port, sshCmd+"/tst", cfg); err != nil {
+		if err := ec.SdnForwardCmd("", "eth0", port, sshCmd+"/tst", cfg); err != nil {
 			return fmt.Errorf("ssh to tst failed")
 		}
 		return nil
@@ -63,7 +69,7 @@ func TestEclientMount(t *testing.T) {
 	}
 
 	sshOut, err = withCapturingStdout(func() error {
-		if err := SdnForwardCmd("", "eth0", port, sshCmd+"/dir", cfg); err != nil {
+		if err := ec.SdnForwardCmd("", "eth0", port, sshCmd+"/dir", cfg); err != nil {
 			return fmt.Errorf("ssh to dir failed")
 		}
 		return nil
@@ -76,7 +82,7 @@ func TestEclientMount(t *testing.T) {
 	}
 
 	sshOut, err = withCapturingStdout(func() error {
-		return VolumeLs()
+		return ec.VolumeLs()
 	})
 	if err != nil {
 		t.Error(err)
@@ -86,7 +92,7 @@ func TestEclientMount(t *testing.T) {
 	}
 
 	volumeName := "eclient-mount_1_m_0"
-	if err := VolumeDetach(volumeName); err != nil {
+	if err := ec.VolumeDetach(volumeName); err != nil {
 		t.Errorf("Volume detach failed")
 		return
 	}
@@ -97,7 +103,7 @@ func TestEclientMount(t *testing.T) {
 	}
 
 	sshOut, err = withCapturingStdout(func() error {
-		if err := SdnForwardCmd("", "eth0", port, sshCmd+"/dst", cfg); err != nil {
+		if err := ec.SdnForwardCmd("", "eth0", port, sshCmd+"/dst", cfg); err != nil {
 			return fmt.Errorf("ssh to dst failed")
 		}
 		return nil
@@ -110,7 +116,7 @@ func TestEclientMount(t *testing.T) {
 	}
 
 	sshOut, err = withCapturingStdout(func() error {
-		return VolumeLs()
+		return ec.VolumeLs()
 	})
 	if err != nil {
 		t.Error(err)
@@ -119,13 +125,13 @@ func TestEclientMount(t *testing.T) {
 		t.Errorf("Volume ls failed")
 	}
 
-	if _, err := PodDelete(podName, true); err != nil {
+	if _, err := ec.PodDelete(podName, true); err != nil {
 		t.Errorf("PodDelete failed")
 		return
 	}
 
 	// check that podName was deleted
-	if err := ResetEve(cfg.Eve.CertsUUID); err != nil {
+	if err := ec.ResetEve(cfg.Eve.CertsUUID); err != nil {
 		t.Errorf("Resetting EVE failed")
 		return
 	}
