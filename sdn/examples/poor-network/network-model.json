@@ -1,0 +1,66 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true,
+      "trafficControl": {
+        "delay": 250,
+        "delayJitter": 50,
+        "lossProbability": 20,
+        "corruptProbability": 5,
+        "duplicateProbability": 10,
+        "reorderProbability": 30,
+        "rateLimit": 512,
+        "queueLimit": 1024,
+        "burstLimit": 64
+      }
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "ports": ["eveport0"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network0",
+      "bridge": "bridge0",
+      "subnet": "172.22.12.0/24",
+      "gwIP": "172.22.12.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.12.10",
+          "toIP": "172.22.12.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["my-dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["my-dns-server"]
+      }
+    }
+  ],
+  "endpoints": {
+    "dnsServers": [
+      {
+        "logicalLabel": "my-dns-server",
+        "fqdn": "my-dns-server.sdn",
+        "subnet": "10.16.16.0/24",
+        "ip": "10.16.16.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          }
+        ],
+        "upstreamServers": [
+          "1.1.1.1",
+          "8.8.8.8"
+        ]
+      }
+    ]
+  }
+}

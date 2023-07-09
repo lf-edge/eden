@@ -96,6 +96,39 @@ type Port struct {
 	AdminUP bool `json:"adminUP"`
 	// EVEConnect : plug the other side of the port into a given EVE instance.
 	EVEConnect EVEConnect `json:"eveConnect"`
+	// TC : traffic control.
+	TC TrafficControl `json:"trafficControl"`
+}
+
+// TrafficControl allows to control traffic going through a port.
+// It can be used to emulate slow and faulty networks.
+type TrafficControl struct {
+	// Delay refers to the duration, measured in milliseconds, by which each packet
+	// will be delayed.
+	Delay uint32 `json:"delay"`
+	// DelayJitter : jitter in milliseconds added to the delay.
+	DelayJitter uint32 `json:"delayJitter"`
+	// LossProbability : probability of a packet loss (in percent).
+	LossProbability uint8 `json:"lossProbability"`
+	// CorruptProbability : probability of a packet corruption (in percent).
+	CorruptProbability uint8 `json:"corruptProbability"`
+	// DuplicateProbability : probability of a packet duplication (in percent).
+	DuplicateProbability uint8 `json:"duplicateProbability"`
+	// ReorderProbability represents the percentage probability of a packet's order
+	// being modified within the queue.
+	ReorderProbability uint8 `json:"reorderProbability"`
+	// RateLimit represents the maximum speed, measured in kilobytes per second,
+	// at which traffic can flow through the port.
+	RateLimit uint32 `json:"rateLimit"`
+	// QueueLimit : number of kilobytes that can be queued before being sent further.
+	// Packets that would exceed the queue size are dropped.
+	// Mandatory if RateLimit is set.
+	QueueLimit uint32 `json:"queueLimit"`
+	// BurstLimit represents the maximum amount of data, measured in kilobytes,
+	// that can be sent or received in a short burst or interval, temporarily exceeding
+	// the rate limit.
+	// Mandatory if RateLimit is set.
+	BurstLimit uint32 `json:"burstLimit"`
 }
 
 // ItemType
