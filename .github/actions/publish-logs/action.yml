@@ -4,7 +4,7 @@ description: 'Collect, process and publish logs from Eden'
 inputs:
   file_system:
     required: true
-    type string
+    type: string
   tpm_enabled:
     required: true
     type: bool
