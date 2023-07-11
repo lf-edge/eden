@@ -75,8 +75,8 @@ eden-config () {
 # unset irrelevant variables
 eden_deactivate nondestructive
 
-EDEN_HOME={{EdenConfig "eden.root"}}
-EDEN_BIN="$EDEN_HOME/{{EdenConfig "eden.bin-dist"}}"
+EDEN_HOME={{.Eden.Root}}
+EDEN_BIN="$EDEN_HOME/{{.Eden.BinDir}}"
 export EDEN_HOME
 
 _OLD_EDEN_PATH="$PATH"
