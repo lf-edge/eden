@@ -88,6 +88,8 @@ eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/netwo
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/switch_net_vlans
 /bin/echo Eden basic VLAN test (16.2/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/vlans_and_bonds
+/bin/echo Eden test replaced network instances (16.3/{{$tests}})
+eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_replace_test
 /bin/echo Eden basic volumes test (17.1/{{$tests}})
 eden.escript.test -testdata ../volume/testdata/ -test.run TestEdenScripts/volumes_test
 /bin/echo Eden sftp volumes test (17.2/{{$tests}})
