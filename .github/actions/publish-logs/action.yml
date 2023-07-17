@@ -48,6 +48,7 @@ runs:
       with:
         name: eden-report-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
         path: |
+            ${{ github.workspace }}/eve-info.tar.gz # created by collect-info action
             ${{ github.workspace }}/trace.log
             ${{ github.workspace }}/info.log
             ${{ github.workspace }}/metric.log
