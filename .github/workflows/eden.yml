@@ -57,6 +57,18 @@ jobs:
         run: docker system prune -f -a
       - name: run
         run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -v debug
+      - name: Collect info
+        if: ${{ failure() }}
+        run: |
+          # Give EVE 5 minutes at most to enable ssh access (if tests failed early).
+          for i in $(seq 60); do ./eden eve ssh && break || sleep 5; done
+          ./eden sdn fwd eth0 22 --\
+            ssh -o StrictHostKeyChecking=no -p FWD_PORT -i ./dist/default-certs/id_rsa root@FWD_IP collect-info.sh &&\
+          ./eden sdn fwd eth0 22 --\
+            scp -o StrictHostKeyChecking=no -P FWD_PORT -i ./dist/default-certs/id_rsa root@FWD_IP:/persist/eve-info-* . &&\
+          # upload-artifact complains about colon in the file name
+          mv eve-info-* eve-info.tar.gz ||\
+          echo "failed to collect info"
       - name: Collect logs
         if: ${{ always() }}
         run: |
@@ -91,6 +103,7 @@ jobs:
         with:
           name: eden-report-tpm-${{ matrix.tpm }}-${{ matrix.fs }}
           path: |
+              ${{ github.workspace }}/eve-info.tar.gz
               ${{ github.workspace }}/trace.log
               ${{ github.workspace }}/info.log
               ${{ github.workspace }}/metric.log
