@@ -1,0 +1,19 @@
+name: 'Collect and store debug info'
+description: 'Collect debug info using EVE script executed via ssh and store downloaded tarball under the specified file name'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Collect info 
+      run: |
+        # Give EVE 5 minutes at most to enable ssh access (if tests failed early).
+        for i in $(seq 60); do ./eden eve ssh && break || sleep 5; done
+        ./eden sdn fwd eth0 22 --\
+          ssh -o StrictHostKeyChecking=no -p FWD_PORT -i ./dist/default-certs/id_rsa root@FWD_IP collect-info.sh &&\
+        ./eden sdn fwd eth0 22 --\
+          scp -o StrictHostKeyChecking=no -P FWD_PORT -i ./dist/default-certs/id_rsa root@FWD_IP:/persist/eve-info-* . &&\
+        # upload-artifact complains about colon in the file name
+        # make sure to update upload step if changing name
+        mv eve-info-* eve-info.tar.gz ||\
+        echo "failed to collect info"
+      shell: bash
