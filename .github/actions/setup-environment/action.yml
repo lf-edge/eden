@@ -52,7 +52,7 @@ runs:
       working-directory: "./eden"
     - name: Setup eve version
       run: |
-        ./eden config set default --key eve.tag --value="$eve_tag"
+        ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
       shell: bash
       working-directory: "./eden"
     - name: Setup ext4
