@@ -22,6 +22,7 @@ runs:
         cp dist/default-eve.log console.log || echo "no device log"
         docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
       shell: bash
+      working-directory: "./eden"
     - name: Log counting
       if: ${{ always() }}
       run: |
@@ -42,16 +43,17 @@ runs:
         [ "$(jq length segfaults.log)" -gt 0 ] && echo "::warning::segfaults found, you can see them in Log counting->Segfaults section"
         echo "::endgroup::"
       shell: bash
+      working-directory: "./eden"
     - name: Store raw test results
       if: ${{ always() }}
       uses: actions/upload-artifact@v3
       with:
         name: eden-report-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
         path: |
-            ${{ github.workspace }}/eve-info.tar.gz # created by collect-info action
-            ${{ github.workspace }}/trace.log
-            ${{ github.workspace }}/info.log
-            ${{ github.workspace }}/metric.log
-            ${{ github.workspace }}/netstat.log
-            ${{ github.workspace }}/console.log
-            ${{ github.workspace }}/adam.log
+            ${{ github.workspace }}/eden/eve-info.tar.gz # created by collect-info action
+            ${{ github.workspace }}/eden/trace.log
+            ${{ github.workspace }}/eden/info.log
+            ${{ github.workspace }}/eden/metric.log
+            ${{ github.workspace }}/eden/netstat.log
+            ${{ github.workspace }}/eden/console.log
+            ${{ github.workspace }}/eden/adam.log
