@@ -1,10 +1,12 @@
 ---
 name: Test
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
-  smoke: 
+  smoke:
     continue-on-error: true
     strategy:
       matrix:
@@ -15,28 +17,34 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.repository.full_name }}
+          path: "./eden"
       - name: Run Smoke tests
-        uses: ./.github/actions/run-eden-test
+        uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: ${{ matrix.tpm }}
           suite: "smoke.tests.txt"
 
-  networking: 
+  networking:
     name: Networking test suite
     needs: smoke
     runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.repository.full_name }}
+          path: "./eden"
       - name: Run Networking tests
-        uses: ./.github/actions/run-eden-test
+        uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
           tpm_enabled: true
           suite: "networking.tests.txt"
 
-  storage: 
+  storage:
     continue-on-error: true
     strategy:
       matrix:
@@ -47,8 +55,11 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.repository.full_name }}
+          path: "./eden"
       - name: Run Storage tests
-        uses: ./.github/actions/run-eden-test
+        uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: true
@@ -61,8 +72,11 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.repository.full_name }}
+          path: "./eden"
       - name: Run LPC LOC tests
-        uses: ./.github/actions/run-eden-test
+        uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
           tpm_enabled: true
@@ -79,8 +93,11 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.repository.full_name }}
+          path: "./eden"
       - name: Run EVE upgrade tests
-        uses: ./.github/actions/run-eden-test
+        uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: true
@@ -93,8 +110,11 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.repository.full_name }}
+          path: "./eden"
       - name: Run User apps upgrade tests
-        uses: ./.github/actions/run-eden-test
+        uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
           tpm_enabled: true

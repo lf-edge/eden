@@ -11,30 +11,33 @@ inputs:
   suite:
     required: true
     type: string
+
 runs:
   using: 'composite'
   steps:
     - name: Setup Environment
-      uses: ./.github/actions/setup-environment
+      uses: ./eden/.github/actions/setup-environment
       with:
         file_system: ${{ inputs.file_system }}
         tpm_enabled: ${{ inputs.tpm_enabled }}
     - name: Run tests
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash
+      working-directory: "./eden"
     - name: Collect info
       if: failure()
-      uses: ./.github/actions/collect-info
+      uses: ./eden/.github/actions/collect-info
     - name: Collect logs
       if: always()
-      uses: ./.github/actions/publish-logs
+      uses: ./eden/.github/actions/publish-logs
       with:
         file_system: ${{ inputs.file_system }}
         tpm_enabled: ${{ inputs.tpm_enabled }}
-    - name: Clean up after test 
+    - name: Clean up after test
       if: always()
       run: |
         ./eden stop
         make clean
         docker system prune -f -a
       shell: bash
+      working-directory: "./eden"

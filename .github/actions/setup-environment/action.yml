@@ -8,6 +8,7 @@ inputs:
   tpm_enabled:
     required: true
     type: bool
+
 runs:
   using: 'composite'
   steps:
@@ -23,10 +24,11 @@ runs:
               echo "$addr overlaps with test"; exit 1
             fi
         done
-        sudo df -h
+        df -h
         sudo swapoff -a
-        sudo free
+        free
       shell: bash
+      working-directory: "./eden"
     - name: Install Packages
       run: |
         sudo add-apt-repository ppa:stefanberger/swtpm-jammy
@@ -36,6 +38,7 @@ runs:
       run: |
         make build-tests
       shell: bash
+      working-directory: "./eden"
     - name: Configure
       run: |
         ./eden config add default
@@ -43,10 +46,12 @@ runs:
         ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
         ./eden config set default --key=eve.cpu --value=2
       shell: bash
+      working-directory: "./eden"
     - name: Setup ext4
       if: inputs.file_system == 'ext4'
       run: ./eden setup -v debug
       shell: bash
+      working-directory: "./eden"
     - name: Setup zfs
       if: inputs.file_system == 'zfs'
       run: |
@@ -54,3 +59,4 @@ runs:
         ./eden config set default --key=eve.disk --value=4096
         ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
       shell: bash
+      working-directory: "./eden"
