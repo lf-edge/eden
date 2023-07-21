@@ -9,7 +9,6 @@ inputs:
     required: true
     type: bool
   eve_tag:
-    required: true
     type: string
 
 runs:
@@ -52,7 +51,10 @@ runs:
       working-directory: "./eden"
     - name: Setup eve version
       run: |
-        ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
+        if [[ -z ${{ inputs.eve_tag }} ]]; then
+          ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
+        else
+          ./eden config set default
       shell: bash
       working-directory: "./eden"
     - name: Setup ext4
