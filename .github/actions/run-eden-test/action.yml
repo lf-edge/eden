@@ -11,8 +11,6 @@ inputs:
   suite:
     required: true
     type: string
-  eve_tag:
-    type: string
 
 runs:
   using: 'composite'
@@ -22,12 +20,6 @@ runs:
       with:
         file_system: ${{ inputs.file_system }}
         tpm_enabled: ${{ inputs.tpm_enabled }}
-    - name: Setup eve version
-      run: |
-        if [[ -z ${{ inputs.eve_tag }} ]]; then
-          ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
-        else
-          ./eden config set default
       shell: bash
       working-directory: "./eden"
     - name: Run tests

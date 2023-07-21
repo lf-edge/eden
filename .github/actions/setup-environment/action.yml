@@ -50,11 +50,9 @@ runs:
       shell: bash
       working-directory: "./eden"
     - name: Setup eve version
+      if: "${{ inputs.eve_tag != '' }}"
       run: |
-        if [[ -z ${{ inputs.eve_tag }} ]]; then
-          ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
-        else
-          ./eden config set default
+        ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
       shell: bash
       working-directory: "./eden"
     - name: Setup ext4
