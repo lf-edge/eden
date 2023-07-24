@@ -47,7 +47,7 @@ jobs:
           file_system: "ext4"
           tpm_enabled: true
           suite: "networking.tests.txt"
-          eve_tag:  ${{ eve_tag }}
+          eve_tag:   ${{ inputs.eve_tag }}
 
   storage:
     continue-on-error: true
@@ -69,6 +69,7 @@ jobs:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: true
           suite: "storage.tests.txt"
+          eve_tag: ${{ inputs.eve_tag }}
 
   lpc-loc:
     name: LPC LOC test suite
@@ -86,7 +87,7 @@ jobs:
           file_system: "ext4"
           tpm_enabled: true
           suite: "lpc-loc.tests.txt"
-          eve_tag:  ${{ eve_tag }}
+          eve_tag: ${{ inputs.eve_tag }}
 
   eve-upgrade:
     continue-on-error: true
@@ -108,7 +109,7 @@ jobs:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: true
           suite: "eve-upgrade.tests.txt"
-          eve_tag:  ${{ eve_tag }}
+          eve_tag: ${{ inputs.eve_tag }}
 
   user-apps:
     name: User apps test suite
@@ -126,5 +127,5 @@ jobs:
           file_system: "ext4"
           tpm_enabled: true
           suite: "user-apps.tests.txt"
-          eve_tag:  ${{ eve_tag }}
+          eve_tag: ${{ inputs.eve_tag }}
 
