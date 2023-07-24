@@ -3,6 +3,9 @@ name: Test
 
 on:
   workflow_dispatch:
+    inputs:
+      eve_tag:
+        type: string
   workflow_call:
     inputs:
       eve_tag:
