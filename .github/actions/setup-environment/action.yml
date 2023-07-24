@@ -8,6 +8,8 @@ inputs:
   tpm_enabled:
     required: true
     type: bool
+  eve_tag:
+    type: string
 
 runs:
   using: 'composite'
@@ -45,6 +47,12 @@ runs:
         ./eden config set default --key=eve.accel --value=false
         ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
         ./eden config set default --key=eve.cpu --value=2
+      shell: bash
+      working-directory: "./eden"
+    - name: Setup eve version
+      if: "${{ inputs.eve_tag != '' }}"
+      run: |
+        ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
       shell: bash
       working-directory: "./eden"
     - name: Setup ext4
