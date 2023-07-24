@@ -24,7 +24,7 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.repository.full_name }}
+          repository: "lf-edge/eden"
           path: "./eden"
       - name: Run Smoke tests
         uses: ./eden/.github/actions/run-eden-test
