@@ -11,6 +11,8 @@ inputs:
   suite:
     required: true
     type: string
+  eve_tag:
+    type: string
 
 runs:
   using: 'composite'
