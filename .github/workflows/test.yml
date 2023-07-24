@@ -4,9 +4,9 @@ name: Test
 on:
   workflow_dispatch:
   workflow_call:
-  inputs:
-    eve_tag:
-      type: string
+    inputs:
+      eve_tag:
+        type: string
 
 jobs:
   smoke:
