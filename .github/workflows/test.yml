@@ -4,11 +4,11 @@ name: Test
 on:
   workflow_dispatch:
     inputs:
-      eve_tag:
+      eve_image:
         type: string
   workflow_call:
     inputs:
-      eve_tag:
+      eve_image:
         type: string
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: ${{ matrix.tpm }}
           suite: "smoke.tests.txt"
-          eve_tag:  ${{ inputs.eve_tag }}
+          eve_image:  ${{ inputs.eve_image }}
 
   networking:
     name: Networking test suite
@@ -42,7 +42,7 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.repository.full_name }}
+          repository: "lf-edge/eden"
           path: "./eden"
       - name: Run Networking tests
         uses: ./eden/.github/actions/run-eden-test
@@ -50,7 +50,7 @@ jobs:
           file_system: "ext4"
           tpm_enabled: true
           suite: "networking.tests.txt"
-          eve_tag:   ${{ inputs.eve_tag }}
+          eve_image:   ${{ inputs.eve_image }}
 
   storage:
     continue-on-error: true
@@ -64,7 +64,7 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.repository.full_name }}
+          repository: "lf-edge/eden"
           path: "./eden"
       - name: Run Storage tests
         uses: ./eden/.github/actions/run-eden-test
@@ -72,7 +72,7 @@ jobs:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: true
           suite: "storage.tests.txt"
-          eve_tag: ${{ inputs.eve_tag }}
+          eve_image: ${{ inputs.eve_image }}
 
   lpc-loc:
     name: LPC LOC test suite
@@ -82,7 +82,7 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.repository.full_name }}
+          repository: "lf-edge/eden"
           path: "./eden"
       - name: Run LPC LOC tests
         uses: ./eden/.github/actions/run-eden-test
@@ -90,7 +90,7 @@ jobs:
           file_system: "ext4"
           tpm_enabled: true
           suite: "lpc-loc.tests.txt"
-          eve_tag: ${{ inputs.eve_tag }}
+          eve_image: ${{ inputs.eve_image }}
 
   eve-upgrade:
     continue-on-error: true
@@ -104,7 +104,7 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.repository.full_name }}
+          repository: "lf-edge/eden"
           path: "./eden"
       - name: Run EVE upgrade tests
         uses: ./eden/.github/actions/run-eden-test
@@ -112,7 +112,7 @@ jobs:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: true
           suite: "eve-upgrade.tests.txt"
-          eve_tag: ${{ inputs.eve_tag }}
+          eve_image: ${{ inputs.eve_image }}
 
   user-apps:
     name: User apps test suite
@@ -122,7 +122,7 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.repository.full_name }}
+          repository: "lf-edge/eden"
           path: "./eden"
       - name: Run User apps upgrade tests
         uses: ./eden/.github/actions/run-eden-test
@@ -130,5 +130,5 @@ jobs:
           file_system: "ext4"
           tpm_enabled: true
           suite: "user-apps.tests.txt"
-          eve_tag: ${{ inputs.eve_tag }}
+          eve_image: ${{ inputs.eve_image }}
 
