@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -21,10 +22,9 @@ type nwState struct {
 // This test wait for the network's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
-	newitems = flag.Bool("check-new", false, "Check only new info messages")
+	_        = flag.Bool("check-new", false, "Check only new info messages")
 	tc       *projects.TestContext
 	states   map[string][]nwState
-	eveState *eve.State
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -42,9 +42,7 @@ func TestMain(m *testing.M) {
 
 	tc.AddEdgeNodesFromDescription()
 
-	eveState = eve.Init(tc.GetController(), tc.GetEdgeNode())
-
-	tc.StartTrackingState(true)
+	tc.StartTrackingState(false)
 
 	res := m.Run()
 
@@ -74,7 +72,7 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 	out := "\n"
 	if state == "-" {
 		foundAny := false
-		for _, net := range eveState.Networks() {
+		for _, net := range eveState.NotDeletedNetworks() {
 			if _, inSlice := utils.FindEleInSlice(netNames, net.Name); inSlice {
 				checkAndAppendState(net.Name, net.EveState)
 				foundAny = true
@@ -90,7 +88,7 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 		}
 		return fmt.Errorf(out)
 	}
-	for _, net := range eveState.Networks() {
+	for _, net := range eveState.NotDeletedNetworks() {
 		if _, inSlice := utils.FindEleInSlice(netNames, net.Name); inSlice {
 			checkAndAppendState(net.Name, net.EveState)
 		}
@@ -111,10 +109,9 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 }
 
 // checkNet wait for info of ZInfoApp type with state
-func checkNet(state string, volNames []string) projects.ProcInfoFunc {
-	return func(msg *info.ZInfoMsg) error {
-		eveState.InfoCallback()(msg) //feed state with new info
-		return checkState(eveState, state, volNames)
+func checkNet(edgeNode *device.Ctx, state string, volNames []string) projects.ProcInfoFunc {
+	return func(_ *info.ZInfoMsg) error {
+		return checkState(tc.GetState(edgeNode).GetEVEState(), state, volNames)
 	}
 }
 
@@ -141,17 +138,10 @@ func TestNetworkStatus(t *testing.T) {
 			states[el] = []nwState{{state: "no info from controller", timestamp: time.Now()}}
 		}
 
-		if !*newitems {
-			// observe existing info object and feed them into eveState object
-			if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
-				t.Fatal(err)
-			}
-		}
-
 		// we are done if our eveState object is in required state
-		if ready := checkState(eveState, state, nws); ready == nil {
+		if ready := checkState(tc.GetState(edgeNode).GetEVEState(), state, nws); ready == nil {
 
-			tc.AddProcInfo(edgeNode, checkNet(state, nws))
+			tc.AddProcInfo(edgeNode, checkNet(edgeNode, state, nws))
 
 			callback := func() {
 				t.Errorf("ASSERTION FAILED (%s): expected networks %s in %s state", time.Now().Format(time.RFC3339Nano), nws, state)

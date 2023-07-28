@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -21,10 +22,9 @@ type volState struct {
 // This test wait for the volume's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
-	newitems = flag.Bool("check-new", false, "Check only new info messages")
+	_        = flag.Bool("check-new", false, "Check only new info messages")
 	tc       *projects.TestContext
 	states   map[string][]volState
-	eveState *eve.State
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -41,8 +41,6 @@ func TestMain(m *testing.M) {
 	tc.InitProject(projectName)
 
 	tc.AddEdgeNodesFromDescription()
-
-	eveState = eve.Init(tc.GetController(), tc.GetEdgeNode())
 
 	tc.StartTrackingState(false)
 
@@ -74,11 +72,11 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 	out := "\n"
 	if state == "-" {
 		foundAny := false
-		if eveState.InfoAndMetrics().GetDinfo() == nil {
+		if !eveState.Prepared() {
 			//we need to wait for info
 			return nil
 		}
-		for _, vol := range eveState.Volumes() {
+		for _, vol := range eveState.NotDeletedVolumes() {
 			if _, inSlice := utils.FindEleInSlice(volNames, vol.Name); inSlice {
 				checkAndAppendState(vol.Name, vol.EveState)
 				foundAny = true
@@ -94,7 +92,7 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 		}
 		return fmt.Errorf(out)
 	}
-	for _, vol := range eveState.Volumes() {
+	for _, vol := range eveState.NotDeletedVolumes() {
 		if _, inSlice := utils.FindEleInSlice(volNames, vol.Name); inSlice {
 			checkAndAppendState(vol.Name, vol.EveState)
 		}
@@ -115,10 +113,9 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 }
 
 // checkVol wait for info of ZInfoApp type with state
-func checkVol(state string, volNames []string) projects.ProcInfoFunc {
-	return func(msg *info.ZInfoMsg) error {
-		eveState.InfoCallback()(msg) //feed state with new info
-		return checkState(eveState, state, volNames)
+func checkVol(edgeNode *device.Ctx, state string, volNames []string) projects.ProcInfoFunc {
+	return func(_ *info.ZInfoMsg) error {
+		return checkState(tc.GetState(edgeNode).GetEVEState(), state, volNames)
 	}
 }
 
@@ -148,17 +145,10 @@ func TestVolStatus(t *testing.T) {
 			states[el] = []volState{{state: "no info from controller", timestamp: time.Now()}}
 		}
 
-		if !*newitems {
-			// observe existing info object and feed them into eveState object
-			if err := tc.GetController().InfoLastCallback(edgeNode.GetID(), nil, eveState.InfoCallback()); err != nil {
-				t.Fatal(err)
-			}
-		}
-
 		// we are done if our eveState object is in required state
-		if ready := checkState(eveState, state, vols); ready == nil {
+		if ready := checkState(tc.GetState(edgeNode).GetEVEState(), state, vols); ready == nil {
 
-			tc.AddProcInfo(edgeNode, checkVol(state, vols))
+			tc.AddProcInfo(edgeNode, checkVol(edgeNode, state, vols))
 
 			callback := func() {
 				t.Errorf("ASSERTION FAILED (%s): expected volumes %s in %s state", time.Now().Format(time.RFC3339Nano), vols, state)

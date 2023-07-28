@@ -3,9 +3,11 @@ package projects
 import (
 	"reflect"
 
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
@@ -32,17 +34,19 @@ type infoState struct {
 type State struct {
 	device     *device.Ctx
 	deviceInfo *infoState
+	eveState   *eve.State
 }
 
 // InitState init State object for device
-func InitState(device *device.Ctx) *State {
-	return &State{device: device, deviceInfo: &infoState{}}
+func InitState(cloud controller.Cloud, device *device.Ctx) *State {
+	return &State{device: device, deviceInfo: &infoState{}, eveState: eve.Init(cloud, device)}
 }
 
 func (state *State) processInfo(infoMsg *info.ZInfoMsg) error {
 	if infoMsg.DevId != state.device.GetID().String() {
 		return nil
 	}
+	state.eveState.InfoCallback()(infoMsg)
 	state.deviceInfo.LastInfoMessageTime = infoMsg.AtTimeStamp
 	switch infoMsg.GetZtype() {
 	case info.ZInfoTypes_ZiDevice:
@@ -118,6 +122,7 @@ func (state *State) processMetric(metricMsg *metrics.ZMetricMsg) error {
 	if metricMsg.DevID != state.device.GetID().String() {
 		return nil
 	}
+	state.eveState.MetricCallback()(metricMsg)
 	state.deviceInfo.AppMetrics = metricMsg.GetAm()
 	state.deviceInfo.NetworkInstanceMetrics = metricMsg.GetNm()
 	state.deviceInfo.VolumeMetrics = metricMsg.GetVm()
@@ -224,4 +229,9 @@ func (state *State) CheckReady() bool {
 		return false
 	}
 	return true
+}
+
+// GetEVEState returns state of edge node
+func (state *State) GetEVEState() *eve.State {
+	return state.eveState
 }

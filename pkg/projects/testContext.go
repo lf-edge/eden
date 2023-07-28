@@ -340,7 +340,7 @@ func (tc *TestContext) AddProcTimer(edgeNode *device.Ctx, processFunction ProcTi
 func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 	tc.states = map[*device.Ctx]*State{}
 	for _, dev := range tc.nodes {
-		curState := InitState(dev)
+		curState := InitState(tc.cloud, dev)
 		tc.states[dev] = curState
 		if !onlyNewElements {
 			//process all events from controller
