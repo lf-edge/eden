@@ -8,7 +8,7 @@ inputs:
   tpm_enabled:
     required: true
     type: bool
-  eve_tag:
+  eve_image:
     type: string
 
 runs:
@@ -50,9 +50,13 @@ runs:
       shell: bash
       working-directory: "./eden"
     - name: Setup eve version
-      if: "${{ inputs.eve_tag != '' }}"
+      if: ${{ inputs.eve_image != '' }} and contains(${{ inputs.eve_image }}, ":" )
       run: |
-        ./eden config set default --key eve.tag --value=${{ inputs.eve_tag }}
+        image=${{ inputs.eve_image }}
+        eve_pr_registry=$(echo "$image" |  cut -d ':' -f 1)
+        eve_pr=$(echo "$image" |  cut -d ':' -f 2 | cut -d "-" -f1)
+        ./eden config set default --key=eve.registry --value="$eve_pr_registry"
+        ./eden config set default --key=eve.tag --value="$eve_pr"
       shell: bash
       working-directory: "./eden"
     - name: Setup ext4

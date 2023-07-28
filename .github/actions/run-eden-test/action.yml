@@ -11,7 +11,7 @@ inputs:
   suite:
     required: true
     type: string
-  eve_tag:
+  eve_image:
     type: string
 
 runs:
@@ -22,7 +22,7 @@ runs:
       with:
         file_system: ${{ inputs.file_system }}
         tpm_enabled: ${{ inputs.tpm_enabled }}
-        eve_tag: ${{ inputs.eve_tag }}
+        eve_image: ${{ inputs.eve_image }}
     - name: Run tests
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash
