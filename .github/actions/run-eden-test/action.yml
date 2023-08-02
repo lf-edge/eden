@@ -30,14 +30,12 @@ runs:
     - name: Collect info
       if: failure()
       uses: ./eden/.github/actions/collect-info
-      working-directory: "./eden"
     - name: Collect logs
       if: always()
       uses: ./eden/.github/actions/publish-logs
       with:
         file_system: ${{ inputs.file_system }}
         tpm_enabled: ${{ inputs.tpm_enabled }}
-      working-directory: "./eden"
     - name: Clean up after test
       if: always()
       run: |
