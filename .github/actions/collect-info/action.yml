@@ -4,7 +4,7 @@ description: 'Collect debug info using EVE script executed via ssh and store dow
 runs:
   using: 'composite'
   steps:
-    - name: Collect info 
+    - name: Collect info
       run: |
         # Give EVE 5 minutes at most to enable ssh access (if tests failed early).
         for i in $(seq 60); do ./eden eve ssh && break || sleep 5; done
@@ -17,3 +17,4 @@ runs:
         mv eve-info-* eve-info.tar.gz ||\
         echo "failed to collect info"
       shell: bash
+      working-directory: "./eden"
