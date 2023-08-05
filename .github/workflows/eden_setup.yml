@@ -5,7 +5,7 @@ on:  # yamllint disable-line rule:truthy
     branches: [master]
 
 jobs:
-  integration:
+  setup:
     runs-on: ubuntu-22.04
     steps:
       - name: setup
@@ -29,6 +29,10 @@ jobs:
         run: |
           make LINUXKIT_TARGET=build DOCKER_PLATFORM=linux/arm64 build-docker
           make LINUXKIT_TARGET=build DOCKER_PLATFORM=linux/amd64 build-docker
+      - name: cleanup
+        run: |
+          rm -fr ~/.linuxkit
+          docker system prune --all --force --volumes
       - name: build eden
         run: |
           make clean
