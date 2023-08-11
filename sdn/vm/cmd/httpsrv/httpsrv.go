@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	// Read and parse config file.
-	configBytes, err := ioutil.ReadFile(*configFile)
+	configBytes, err := os.ReadFile(*configFile)
 	if err != nil {
 		log.Fatalf("failed to read config file %s: %v", *configFile, err)
 	}
@@ -56,7 +55,7 @@ func main() {
 	}
 	if httpSrvConfig.PidFile != "" {
 		pidBytes := []byte(fmt.Sprintf("%d", os.Getpid()))
-		err = ioutil.WriteFile(httpSrvConfig.PidFile, pidBytes, 0664)
+		err = os.WriteFile(httpSrvConfig.PidFile, pidBytes, 0664)
 		if err != nil {
 			log.Fatalf("failed to write PID file %s: %v", httpSrvConfig.PidFile, err)
 		}

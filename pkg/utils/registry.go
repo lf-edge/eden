@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -18,7 +17,7 @@ import (
 	"oras.land/oras-go/pkg/auth/docker"
 )
 
-//LoadRegistry push image into registry
+// LoadRegistry push image into registry
 func LoadRegistry(image, remote string) (string, error) {
 	localImage, err := HasImage(image)
 	if err != nil {
@@ -54,7 +53,7 @@ func LoadRegistry(image, remote string) (string, error) {
 		// Also `docker save` is not great, since it never stores the originals, but it is the best we have.
 		tmpFileName := strings.ReplaceAll(image, ":", "_")
 		tmpFileName = strings.ReplaceAll(tmpFileName, "/", "_")
-		dir, err := ioutil.TempDir("", "edenSave")
+		dir, err := os.MkdirTemp("", "edenSave")
 		if err != nil {
 			return "", fmt.Errorf("unable to create temporary dir: %v", err)
 		}
@@ -88,13 +87,13 @@ func LoadRegistry(image, remote string) (string, error) {
 	return hash, nil
 }
 
-//RegistryHTTP for http access to local registry
+// RegistryHTTP for http access to local registry
 type RegistryHTTP struct {
 	remotes.Resolver
 	ctx context.Context
 }
 
-//NewRegistryHTTP creates new RegistryHTTP with plainHTTP resolver
+// NewRegistryHTTP creates new RegistryHTTP with plainHTTP resolver
 func NewRegistryHTTP(ctx context.Context) (context.Context, *RegistryHTTP, error) {
 	cli, err := docker.NewClient()
 	if err != nil {
@@ -107,12 +106,12 @@ func NewRegistryHTTP(ctx context.Context) (context.Context, *RegistryHTTP, error
 	return ctx, &RegistryHTTP{Resolver: resolver, ctx: ctx}, nil
 }
 
-//Finalize wrapper
+// Finalize wrapper
 func (r *RegistryHTTP) Finalize(_ context.Context) error {
 	return nil
 }
 
-//Context wrapper
+// Context wrapper
 func (r *RegistryHTTP) Context() context.Context {
 	return r.ctx
 }

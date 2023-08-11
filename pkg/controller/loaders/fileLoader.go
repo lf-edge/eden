@@ -2,18 +2,20 @@ package loaders
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
+	"path"
+	"sort"
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"path"
-	"sort"
-	"time"
 )
 
-//FileLoader implements loader from file backend of controller
+// FileLoader implements loader from file backend of controller
 type FileLoader struct {
 	appUUID uuid.UUID
 	devUUID uuid.UUID
@@ -21,18 +23,18 @@ type FileLoader struct {
 	cache   cachers.CacheProcessor
 }
 
-//NewFileLoader return loader from files
+// NewFileLoader return loader from files
 func NewFileLoader(getters types.DirGetters) *FileLoader {
 	log.Debugf("NewFileLoader init")
 	return &FileLoader{getters: getters}
 }
 
-//SetRemoteCache add cache layer
+// SetRemoteCache add cache layer
 func (loader *FileLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
-//Clone create copy
+// Clone create copy
 func (loader *FileLoader) Clone() Loader {
 	return &FileLoader{
 		getters: loader.getters,
@@ -61,21 +63,29 @@ func (loader *FileLoader) getFilePath(typeToProcess types.LoaderObjectType) stri
 	}
 }
 
-//SetUUID set device UUID
+// SetUUID set device UUID
 func (loader *FileLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-//SetAppUUID set app UUID
+// SetAppUUID set app UUID
 func (loader *FileLoader) SetAppUUID(appUUID uuid.UUID) {
 	loader.appUUID = appUUID
 }
 
-//ProcessExisting for observe existing files
+// ProcessExisting for observe existing files
 func (loader *FileLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
-	files, err := ioutil.ReadDir(loader.getFilePath(typeToProcess))
+	entries, err := os.ReadDir(loader.getFilePath(typeToProcess))
 	if err != nil {
 		return err
+	}
+	files := make([]fs.FileInfo, 0, len(entries))
+	for _, eachFile := range entries {
+		fInfo, err := eachFile.Info()
+		if err != nil {
+			return err
+		}
+		files = append(files, fInfo)
 	}
 	sort.Slice(files, func(i, j int) bool {
 		return files[i].ModTime().Unix() > files[j].ModTime().Unix()
@@ -87,7 +97,7 @@ func (loader *FileLoader) ProcessExisting(process ProcessFunction, typeToProcess
 		}
 		fileFullPath := path.Join(loader.getFilePath(typeToProcess), file.Name())
 		log.Debugf("local controller parse %s", fileFullPath)
-		data, err := ioutil.ReadFile(fileFullPath)
+		data, err := os.ReadFile(fileFullPath)
 		if err != nil {
 			log.Error("Can't open ", fileFullPath)
 			continue
@@ -108,7 +118,7 @@ func (loader *FileLoader) ProcessExisting(process ProcessFunction, typeToProcess
 	return nil
 }
 
-//ProcessStream for observe new files
+// ProcessStream for observe new files
 func (loader *FileLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -133,7 +143,7 @@ func (loader *FileLoader) ProcessStream(process ProcessFunction, typeToProcess t
 				switch event.Op {
 				case fsnotify.Write:
 					time.Sleep(1 * time.Second) // wait for write ends
-					data, err := ioutil.ReadFile(event.Name)
+					data, err := os.ReadFile(event.Name)
 					if err != nil {
 						log.Error("Can't open", event.Name)
 						continue

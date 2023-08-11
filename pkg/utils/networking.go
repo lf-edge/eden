@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -18,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//IFInfo stores information about net address and subnet
+// IFInfo stores information about net address and subnet
 type IFInfo struct {
 	Subnet        *net.IPNet
 	FirstAddress  net.IP
@@ -50,7 +49,7 @@ func getIPByInd(ind int) ([]net.IP, error) {
 	return ips, nil
 }
 
-//GetSubnetsNotUsed prepare map with subnets and ip not used by any interface of host
+// GetSubnetsNotUsed prepare map with subnets and ip not used by any interface of host
 func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
 	var result []IFInfo
 	curSubnetInd := 0
@@ -89,8 +88,8 @@ func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
 	return result, nil
 }
 
-//GetIPForDockerAccess is service function to obtain IP for adam access
-//The function is filter out docker bridge
+// GetIPForDockerAccess is service function to obtain IP for adam access
+// The function is filter out docker bridge
 func GetIPForDockerAccess() (ip string, err error) {
 	networks, err := GetDockerNetworks()
 	if err != nil {
@@ -120,7 +119,7 @@ out:
 	return ip, nil
 }
 
-//ResolveURL concatenate parts of url
+// ResolveURL concatenate parts of url
 func ResolveURL(b, p string) (string, error) {
 	u, err := url.Parse(p)
 	if err != nil {
@@ -133,7 +132,7 @@ func ResolveURL(b, p string) (string, error) {
 	return base.ResolveReference(u).String(), nil
 }
 
-//GetSubnetIPs return all IPs from subnet
+// GetSubnetIPs return all IPs from subnet
 func GetSubnetIPs(subnet string) (result []net.IP) {
 	ip, ipnet, err := net.ParseCIDR(subnet)
 	if err != nil {
@@ -154,7 +153,7 @@ func inc(ip net.IP) {
 	}
 }
 
-//GetFileSizeURL returns file size for url
+// GetFileSizeURL returns file size for url
 func GetFileSizeURL(url string) int64 {
 	resp, err := http.Head(url)
 	if err != nil {
@@ -167,7 +166,7 @@ func GetFileSizeURL(url string) int64 {
 	return int64(size)
 }
 
-//RepeatableAttempt do request several times waiting for nil error and expected status code
+// RepeatableAttempt do request several times waiting for nil error and expected status code
 func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.Response, err error) {
 	maxRepeat := defaults.DefaultRepeatCount
 	delayTime := defaults.DefaultRepeatTimeout
@@ -184,7 +183,7 @@ func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.R
 				return resp, nil
 			}
 			wrongCode = true
-			buf, err := ioutil.ReadAll(resp.Body)
+			buf, err := io.ReadAll(resp.Body)
 			if err != nil {
 				log.Debugf("bad status: %s", resp.Status)
 			} else {
@@ -204,7 +203,7 @@ func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.R
 	return nil, fmt.Errorf("all connection attempts failed")
 }
 
-//UploadFile send file in form
+// UploadFile send file in form
 func UploadFile(client *http.Client, url, filePath, prefix string) (result *http.Response, err error) {
 	body, writer := io.Pipe()
 

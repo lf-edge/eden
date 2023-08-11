@@ -13,7 +13,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,6 +99,7 @@ func (e *Env) Setenv(key, value string) {
 //
 // If Cleanup is called on the returned value, the function will run
 // after any functions passed to Env.Defer.
+//
 //nolint:ireturn
 func (e *Env) T() T {
 	return e.ts.t
@@ -212,7 +212,7 @@ func RunT(t T, p Params) {
 	}
 	testTempDir := p.WorkdirRoot
 	if testTempDir == "" {
-		testTempDir, err = ioutil.TempDir(os.Getenv("GOTMPDIR"), "go-test-script")
+		testTempDir, err = os.MkdirTemp(os.Getenv("GOTMPDIR"), "go-test-script")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -355,7 +355,7 @@ func (ts *TestScript) setup() string {
 		name := ts.MkAbs(ts.expand(f.Name))
 		ts.scriptFiles[name] = f.Name
 		ts.Check(os.MkdirAll(filepath.Dir(name), 0777))
-		ts.Check(ioutil.WriteFile(name, f.Data, 0666))
+		ts.Check(os.WriteFile(name, f.Data, 0666))
 	}
 	// Run any user-defined setup.
 	if ts.params.Setup != nil {
@@ -574,7 +574,7 @@ func (ts *TestScript) applyScriptUpdates() {
 			panic("script update file not found")
 		}
 	}
-	if err := ioutil.WriteFile(ts.file, txtar.Format(ts.archive), 0666); err != nil {
+	if err := os.WriteFile(ts.file, txtar.Format(ts.archive), 0666); err != nil {
 		ts.t.Fatal("cannot update script: ", err)
 	}
 	ts.Logf("%s updated", ts.file)
@@ -835,7 +835,7 @@ func (ts *TestScript) addGHAnnotation() {
 	fmt.Printf("::error file=%s,line=%d::%s\n", pathToPrint, ts.lineno, ghAnnotation)
 }
 
-//Fatalf aborts the test with the given failure message.
+// Fatalf aborts the test with the given failure message.
 func (ts *TestScript) Fatalf(format string, args ...interface{}) {
 	defer ts.cancel()
 	ts.stopped = true
@@ -868,7 +868,7 @@ func (ts *TestScript) ReadFile(file string) string {
 		return ts.stderr
 	default:
 		file = ts.MkAbs(file)
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		ts.Check(err)
 		return string(data)
 	}
@@ -888,7 +888,7 @@ func (ts *TestScript) Getenv(key string) string {
 // parse parses a single line as a list of space-separated arguments
 // subject to environment variable expansion (but not resplitting).
 // Single quotes around text disable splitting and expansion.
-// To embed a single quote, double it: 'Don''t communicate by sharing memory.'
+// To embed a single quote, double it: 'Don”t communicate by sharing memory.'
 func (ts *TestScript) parse(line string) []string {
 	ts.line = line
 

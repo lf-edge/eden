@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -260,7 +260,7 @@ func (a *agent) getNetModel(w http.ResponseWriter, r *http.Request) {
 
 func (a *agent) applyNetModel(w http.ResponseWriter, r *http.Request) {
 	var netModel api.NetworkModel
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to read network model from HTTP request: %v", err)
 		log.Error(errMsg)

@@ -3,7 +3,6 @@ package cachers
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -16,19 +15,19 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-//FileCache object provides caching objects from controller into directory
+// FileCache object provides caching objects from controller into directory
 type FileCache struct {
 	dirGetters types.DirGetters
 }
 
-//NewFileCache creates new FileCache with provided directories
+// NewFileCache creates new FileCache with provided directories
 func NewFileCache(dirGetters types.DirGetters) *FileCache {
 	return &FileCache{
 		dirGetters: dirGetters,
 	}
 }
 
-//CheckAndSave process LoaderObjectType from data
+// CheckAndSave process LoaderObjectType from data
 func (cacher *FileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) error {
 	var pathToCheck string
 	var itemTimeStamp *timestamppb.Timestamp
@@ -67,7 +66,7 @@ func (cacher *FileCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.Loa
 		return err
 	}
 	if _, err := os.Stat(pathToCheck); os.IsNotExist(err) {
-		return ioutil.WriteFile(pathToCheck, data, 0755)
+		return os.WriteFile(pathToCheck, data, 0755)
 	}
 	return nil
 }

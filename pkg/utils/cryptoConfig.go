@@ -3,7 +3,7 @@ package utils
 import (
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/google/uuid"
@@ -11,21 +11,21 @@ import (
 	"github.com/lf-edge/eve/api/go/evecommon"
 )
 
-//CommonCryptoConfig stores information about certificates
+// CommonCryptoConfig stores information about certificates
 type CommonCryptoConfig struct {
 	ControllerEncCertHash []byte
 	DevCertHash           []byte
 	SymmetricKey          []byte
 }
 
-//GetCommonCryptoConfig calculate common crypto config
-//and keep it in a structure.
-//Common config are:
-//1. Calculate sha of controller cert.
-//2. Calculate sha of device cert.
-//3. Calculate symmetric key.
+// GetCommonCryptoConfig calculate common crypto config
+// and keep it in a structure.
+// Common config are:
+// 1. Calculate sha of controller cert.
+// 2. Calculate sha of device cert.
+// 3. Calculate symmetric key.
 func GetCommonCryptoConfig(devCert []byte, controllerCert, controllerKey string) (*CommonCryptoConfig, error) {
-	ctrlEncCert, rErr := ioutil.ReadFile(controllerCert)
+	ctrlEncCert, rErr := os.ReadFile(controllerCert)
 	if rErr != nil {
 		return nil, rErr
 	}
@@ -38,7 +38,7 @@ func GetCommonCryptoConfig(devCert []byte, controllerCert, controllerKey string)
 
 	//read controller encryption priv key and
 	//use it for computing symmetric key.
-	ctrlPrivKey, rErr := ioutil.ReadFile(controllerKey)
+	ctrlPrivKey, rErr := os.ReadFile(controllerKey)
 	if rErr != nil {
 		return nil, rErr
 	}
@@ -55,7 +55,7 @@ func GetCommonCryptoConfig(devCert []byte, controllerCert, controllerKey string)
 	return ccc, nil
 }
 
-//CreateCipherCtx for edge dev config.
+// CreateCipherCtx for edge dev config.
 func CreateCipherCtx(cmnCryptoCfg *CommonCryptoConfig) (*config.CipherContext, error) {
 	if cmnCryptoCfg.DevCertHash == nil {
 		return nil, fmt.Errorf("Empty device certificate in create cipher context method")

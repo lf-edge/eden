@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -17,12 +16,12 @@ import (
 	"github.com/lf-edge/eden/eserver/api"
 )
 
-//EServerManager for process files
+// EServerManager for process files
 type EServerManager struct {
 	Dir string
 }
 
-//Init directories for EServerManager
+// Init directories for EServerManager
 func (mgr *EServerManager) Init() {
 	if _, err := os.Stat(mgr.Dir); err != nil {
 		if err = os.MkdirAll(mgr.Dir, 0755); err != nil {
@@ -31,9 +30,9 @@ func (mgr *EServerManager) Init() {
 	}
 }
 
-//ListFileNames list downloaded files
+// ListFileNames list downloaded files
 func (mgr *EServerManager) ListFileNames() (result []string) {
-	files, err := ioutil.ReadDir(mgr.Dir)
+	files, err := os.ReadDir(mgr.Dir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,7 +42,7 @@ func (mgr *EServerManager) ListFileNames() (result []string) {
 	return
 }
 
-//getFileSize returns file size
+// getFileSize returns file size
 func getFileSize(filePath string) int64 {
 	fi, err := os.Stat(filePath)
 	if err != nil {
@@ -52,7 +51,7 @@ func getFileSize(filePath string) int64 {
 	return fi.Size()
 }
 
-//downloadFile downloads a url to a local file.
+// downloadFile downloads a url to a local file.
 func downloadFile(filePath, url string) error {
 	out, err := os.Create(filePath + ".tmp")
 	if err != nil {
@@ -68,7 +67,7 @@ func downloadFile(filePath, url string) error {
 	if err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
+	if err = os.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
 		return err
 	}
 	if err = os.Rename(filePath+".tmp", filePath); err != nil {
@@ -77,7 +76,7 @@ func downloadFile(filePath, url string) error {
 	return out.Close()
 }
 
-//AddFile starts file download and return name of file for fileinfo requests
+// AddFile starts file download and return name of file for fileinfo requests
 func (mgr *EServerManager) AddFile(url string) (string, error) {
 	log.Println("Starting download of image from ", url)
 	filePath := filepath.Join(mgr.Dir, path.Base(url))
@@ -95,7 +94,7 @@ func (mgr *EServerManager) AddFile(url string) (string, error) {
 	return path.Base(url), nil
 }
 
-//AddFileFromMultipart adds file from multipart.Part and returns information
+// AddFileFromMultipart adds file from multipart.Part and returns information
 func (mgr *EServerManager) AddFileFromMultipart(part *multipart.Part) *api.FileInfo {
 	result := &api.FileInfo{ISReady: false}
 	log.Println("Starting copy image from ", part.FileName())
@@ -126,7 +125,7 @@ func (mgr *EServerManager) AddFileFromMultipart(part *multipart.Part) *api.FileI
 		result.Error = err.Error()
 		return result
 	}
-	if err = ioutil.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
+	if err = os.WriteFile(fmt.Sprintf("%s.sha256", filePath), []byte(hex.EncodeToString(hash.Sum(nil))), 0666); err != nil {
 		result.Error = err.Error()
 		return result
 	}
@@ -137,7 +136,7 @@ func (mgr *EServerManager) AddFileFromMultipart(part *multipart.Part) *api.FileI
 	return mgr.GetFileInfo(part.FileName())
 }
 
-//GetFileInfo checks status of file and returns information
+// GetFileInfo checks status of file and returns information
 func (mgr *EServerManager) GetFileInfo(name string) *api.FileInfo {
 	result := &api.FileInfo{ISReady: false}
 	filePath := filepath.Join(mgr.Dir, name)
@@ -154,7 +153,7 @@ func (mgr *EServerManager) GetFileInfo(name string) *api.FileInfo {
 		}
 	}
 	fileSize := getFileSize(filePath)
-	sha, err := ioutil.ReadFile(fmt.Sprintf("%s.sha256", filePath))
+	sha, err := os.ReadFile(fmt.Sprintf("%s.sha256", filePath))
 	if err != nil {
 		result.Error = err.Error()
 		return result
@@ -167,7 +166,7 @@ func (mgr *EServerManager) GetFileInfo(name string) *api.FileInfo {
 	}
 }
 
-//GetFilePath returns path to file for serve
+// GetFilePath returns path to file for serve
 func (mgr *EServerManager) GetFilePath(name string) (string, error) {
 	filePath := filepath.Join(mgr.Dir, name)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

@@ -7,7 +7,6 @@ package txtar
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -81,7 +80,7 @@ func shortArchive(a *Archive) string {
 }
 
 func TestWrite(t *testing.T) {
-	td, err := ioutil.TempDir("", "")
+	td, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

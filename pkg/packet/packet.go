@@ -2,27 +2,27 @@ package packet
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/packethost/packngo"
 )
 
-//Client wrapper to use for interaction with packet
+// Client wrapper to use for interaction with packet
 type Client struct {
 	client    *packngo.Client
 	projectID string
 }
 
-//NewPacketClient creates new client
+// NewPacketClient creates new client
 func NewPacketClient(apiTokenPath, projectName string) (*Client, error) {
 	f, err := os.Open(apiTokenPath)
 	if err != nil {
 		return nil, err
 	}
 
-	apiToken, err := ioutil.ReadAll(f)
+	apiToken, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func NewPacketClient(apiTokenPath, projectName string) (*Client, error) {
 	return c, nil
 }
 
-//CreateInstance creates new instance on packet with ipxe
+// CreateInstance creates new instance on packet with ipxe
 func (c *Client) CreateInstance(name, zone, machineType, ipxeURL string) error {
 	req := &packngo.DeviceCreateRequest{
 		Hostname:      name,
@@ -82,7 +82,7 @@ func (c *Client) getDeviceID(name string) (string, error) {
 	return id, nil
 }
 
-//DeleteInstance removes instance from packet
+// DeleteInstance removes instance from packet
 func (c *Client) DeleteInstance(name string) error {
 	id, err := c.getDeviceID(name)
 	if err != nil {
@@ -92,7 +92,7 @@ func (c *Client) DeleteInstance(name string) error {
 	return err
 }
 
-//GetInstanceNatIP returns IP of packet server
+// GetInstanceNatIP returns IP of packet server
 func (c *Client) GetInstanceNatIP(name string) (string, error) {
 	id, err := c.getDeviceID(name)
 	if err != nil {

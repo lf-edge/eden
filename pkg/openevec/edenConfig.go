@@ -3,7 +3,6 @@ package openevec
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -320,7 +319,7 @@ func ConfigGet(target string, contextKeyGet string, contextAllGet bool) error {
 		if err = viper.WriteConfigAs(defaults.DefaultConfigHidden); err != nil {
 			return err
 		}
-		data, err := ioutil.ReadFile(defaults.DefaultConfigHidden)
+		data, err := os.ReadFile(defaults.DefaultConfigHidden)
 		if err != nil {
 			return fmt.Errorf("cannot read context config file %s: %s", target, err)
 		}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -22,7 +21,7 @@ import (
 
 var viperAccessMutex sync.RWMutex
 
-//ConfigVars struct with parameters from config file
+// ConfigVars struct with parameters from config file
 type ConfigVars struct {
 	AdamIP            string
 	AdamPort          string
@@ -65,7 +64,7 @@ type ConfigVars struct {
 	AdamLogLevel      string
 }
 
-//InitVars loads vars from viper
+// InitVars loads vars from viper
 func InitVars() (*ConfigVars, error) {
 	loaded := true
 	if viper.ConfigFileUsed() == "" {
@@ -133,7 +132,7 @@ func InitVars() (*ConfigVars, error) {
 		}
 		viperAccessMutex.RUnlock()
 		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
-		pwd, err := ioutil.ReadFile(redisPasswordFile)
+		pwd, err := os.ReadFile(redisPasswordFile)
 		if err == nil {
 			vars.AdamRedisURLEden = fmt.Sprintf("redis://%s:%s@%s", string(pwd), string(pwd), vars.AdamRedisURLEden)
 		} else {
@@ -145,7 +144,7 @@ func InitVars() (*ConfigVars, error) {
 	return nil, nil
 }
 
-//DefaultEdenDir returns path to default directory
+// DefaultEdenDir returns path to default directory
 func DefaultEdenDir() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
@@ -154,7 +153,7 @@ func DefaultEdenDir() (string, error) {
 	return filepath.Join(usr.HomeDir, defaults.DefaultEdenHomeDir), nil
 }
 
-//GetConfig return path to config file
+// GetConfig return path to config file
 func GetConfig(name string) string {
 	edenDir, err := DefaultEdenDir()
 	if err != nil {
@@ -163,7 +162,7 @@ func GetConfig(name string) string {
 	return filepath.Join(edenDir, defaults.DefaultContextDirectory, fmt.Sprintf("%s.yml", name))
 }
 
-//DefaultConfigPath returns path to default config
+// DefaultConfigPath returns path to default config
 func DefaultConfigPath() (string, error) {
 	context, err := ContextLoad()
 	if err != nil {
@@ -172,7 +171,7 @@ func DefaultConfigPath() (string, error) {
 	return context.GetCurrentConfig(), nil
 }
 
-//CurrentDirConfigPath returns path to eden-config.yml in current folder
+// CurrentDirConfigPath returns path to eden-config.yml in current folder
 func CurrentDirConfigPath() (string, error) {
 	currentPath, err := os.Getwd()
 	if err != nil {
@@ -236,21 +235,21 @@ func loadConfigFile(config string, local bool) (loaded bool, err error) {
 	return true, nil
 }
 
-//LoadConfigFile load config from file with viper
+// LoadConfigFile load config from file with viper
 func LoadConfigFile(config string) (loaded bool, err error) {
 	viperAccessMutex.Lock()
 	defer viperAccessMutex.Unlock()
 	return loadConfigFile(config, true)
 }
 
-//LoadConfigFileContext load config from context file with viper
+// LoadConfigFileContext load config from context file with viper
 func LoadConfigFileContext(config string) (loaded bool, err error) {
 	viperAccessMutex.Lock()
 	defer viperAccessMutex.Unlock()
 	return loadConfigFile(config, false)
 }
 
-//GenerateConfigFile is a function to generate default yml
+// GenerateConfigFile is a function to generate default yml
 func GenerateConfigFile(filePath string) error {
 	context, err := ContextInit()
 	if err != nil {
@@ -589,7 +588,7 @@ func generateConfigFileFromViperTemplate(filePath string, templateString string)
 	return nil
 }
 
-//GenerateConfigFileFromViper is a function to generate yml from viper config
+// GenerateConfigFileFromViper is a function to generate yml from viper config
 func GenerateConfigFileFromViper() error {
 	configFile, err := DefaultConfigPath()
 	if err != nil {
@@ -598,7 +597,7 @@ func GenerateConfigFileFromViper() error {
 	return generateConfigFileFromViperTemplate(configFile, defaults.DefaultEdenTemplate)
 }
 
-//GenerateConfigFileDiff is a function to generate diff yml for new context
+// GenerateConfigFileDiff is a function to generate diff yml for new context
 func GenerateConfigFileDiff(filePath string, context *Context) error {
 	return generateConfigFileFromTemplate(filePath, defaults.DefaultEdenTemplate, context)
 }

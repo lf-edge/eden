@@ -7,7 +7,6 @@ package testscript
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -47,7 +46,7 @@ func signalCatcher() int {
 	signal.Notify(c, os.Interrupt)
 	// Create a file so that the test can know that
 	// we will catch the signal.
-	if err := ioutil.WriteFile("catchsignal", nil, 0666); err != nil {
+	if err := os.WriteFile("catchsignal", nil, 0666); err != nil {
 		fmt.Println(err)
 		return 1
 	}
@@ -66,7 +65,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestCRLFInput(t *testing.T) {
-	td, err := ioutil.TempDir("", "")
+	td, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create TempDir: %v", err)
 	}
@@ -75,7 +74,7 @@ func TestCRLFInput(t *testing.T) {
 	}()
 	tf := filepath.Join(td, "script.txt")
 	contents := []byte("exists output.txt\r\n-- output.txt --\r\noutput contents")
-	if err := ioutil.WriteFile(tf, contents, 0644); err != nil {
+	if err := os.WriteFile(tf, contents, 0644); err != nil {
 		t.Fatalf("failed to write to %v: %v", tf, err)
 	}
 	t.Run("_", func(t *testing.T) {
@@ -206,7 +205,7 @@ func TestScripts(t *testing.T) {
 			},
 		},
 		Setup: func(env *Env) error {
-			infos, err := ioutil.ReadDir(env.WorkDir)
+			infos, err := os.ReadDir(env.WorkDir)
 			if err != nil {
 				return fmt.Errorf("cannot read workdir: %v", err)
 			}
@@ -257,7 +256,7 @@ func TestTestwork(t *testing.T) {
 
 // TestWorkdirRoot tests that a non zero value in Params.WorkdirRoot is honoured
 func TestWorkdirRoot(t *testing.T) {
-	td, err := ioutil.TempDir("", "")
+	td, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

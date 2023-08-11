@@ -3,7 +3,6 @@ package utils
 import (
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -32,7 +31,7 @@ func PrepareAuthContainer(
 	}
 
 	//read private signing key.
-	signingPrivateKey, rErr := ioutil.ReadFile(signingKeyPath)
+	signingPrivateKey, rErr := os.ReadFile(signingKeyPath)
 	if rErr != nil {
 		return nil, fmt.Errorf("error occurred while reading signing key: %v", rErr)
 	}
@@ -60,7 +59,7 @@ func LoadCertChain(certPath string, certType certs.ZCertType) ([]*certs.ZCert, e
 	if _, err := os.Stat(certPath); os.IsNotExist(err) {
 		return nil, err
 	}
-	certData, err := ioutil.ReadFile(certPath)
+	certData, err := os.ReadFile(certPath)
 	if err != nil {
 		return nil, err
 	}

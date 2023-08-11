@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-//ScanDir process directory
+// ScanDir process directory
 func ScanDir(dir string, tags map[string]bool) ([]string, []string, error) {
 	infos, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -30,7 +30,7 @@ func ScanDir(dir string, tags map[string]bool) ([]string, []string, error) {
 	return scanFiles(files, tags, false)
 }
 
-//ScanFiles process files
+// ScanFiles process files
 func ScanFiles(files []string, tags map[string]bool) ([]string, []string, error) {
 	return scanFiles(files, tags, true)
 }
@@ -86,7 +86,7 @@ Files:
 	return keys(imports), keys(testImports), nil
 }
 
-//ErrNoGo no go files found
+// ErrNoGo no go files found
 var ErrNoGo = fmt.Errorf("no Go source files")
 
 func keys(m map[string]bool) []string {

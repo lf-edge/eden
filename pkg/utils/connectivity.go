@@ -3,15 +3,15 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/dustin/go-humanize"
+	log "github.com/sirupsen/logrus"
 )
 
 // writeCounter counts the number of bytes written to it. It implements to the io.Writer interface
@@ -23,7 +23,7 @@ type writeCounter struct {
 	step        uint64
 }
 
-//Write process bytes from downloader
+// Write process bytes from downloader
 func (wc *writeCounter) Write(p []byte) (int, error) {
 	n := len(p)
 	wc.total += uint64(n)
@@ -42,7 +42,7 @@ func (wc writeCounter) printProgress() {
 	}
 }
 
-//RequestHTTPWithTimeout make request to url with timeout
+// RequestHTTPWithTimeout make request to url with timeout
 func RequestHTTPWithTimeout(url string, timeoutSeconds time.Duration) (string, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -54,15 +54,15 @@ func RequestHTTPWithTimeout(url string, timeoutSeconds time.Duration) (string, e
 		return "", fmt.Errorf("error in requestHTTP: %s", err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("error in requestHTTP read response: %s", err)
 	}
 	return string(body), nil
 }
 
-//RequestHTTPRepeatWithTimeout make series of requests to url with timeout
-//returnEmpty control if empty string is normal result
+// RequestHTTPRepeatWithTimeout make series of requests to url with timeout
+// returnEmpty control if empty string is normal result
 func RequestHTTPRepeatWithTimeout(url string, returnEmpty bool, timeoutSeconds time.Duration) (string, error) {
 	done := make(chan string)
 	quit := make(chan struct{})
@@ -91,7 +91,7 @@ func RequestHTTPRepeatWithTimeout(url string, returnEmpty bool, timeoutSeconds t
 	}
 }
 
-//DownloadFile download a url to a local file.
+// DownloadFile download a url to a local file.
 func DownloadFile(filepath string, url string) error {
 	out, err := os.Create(filepath + ".tmp")
 	if err != nil {

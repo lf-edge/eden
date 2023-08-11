@@ -5,12 +5,13 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"os"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
-	"io/ioutil"
 )
 
-//GenerateSSHKeyPair generates keypair for ssh
+// GenerateSSHKeyPair generates keypair for ssh
 func GenerateSSHKeyPair(privateKeyFile string, publicKeyFile string) error {
 	bitSize := 4096
 	privateKey, err := generatePrivateKey(bitSize)
@@ -25,10 +26,10 @@ func GenerateSSHKeyPair(privateKeyFile string, publicKeyFile string) error {
 
 	privateKeyBytes := encodePrivateKeyToPEM(privateKey)
 
-	if err = ioutil.WriteFile(privateKeyFile, privateKeyBytes, 0600); err != nil {
+	if err = os.WriteFile(privateKeyFile, privateKeyBytes, 0600); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(publicKeyFile, publicKeyBytes, 0600)
+	return os.WriteFile(publicKeyFile, publicKeyBytes, 0600)
 }
 
 // generatePrivateKey creates a RSA Private Key of specified byte size

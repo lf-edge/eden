@@ -3,7 +3,7 @@ package openevec
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"os"
 	"path"
@@ -184,7 +184,7 @@ func EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, edenDist
 
 	if baseOSVersion == "" {
 		correctionFileName := fmt.Sprintf("%s.ver", rootFsPath)
-		if rootFSFromCorrectionFile, err := ioutil.ReadFile(correctionFileName); err == nil {
+		if rootFSFromCorrectionFile, err := os.ReadFile(correctionFileName); err == nil {
 			baseOSVersion = string(rootFSFromCorrectionFile)
 		} else {
 			rootFSName := utils.FileNameWithoutExtension(rootFsPath)
@@ -263,7 +263,7 @@ func EdgeNodeGetConfig(controllerMode, fileWithConfig string) error {
 		return fmt.Errorf("GetConfigBytes error: %w", err)
 	}
 	if fileWithConfig != "" {
-		if err = ioutil.WriteFile(fileWithConfig, res, 0755); err != nil {
+		if err = os.WriteFile(fileWithConfig, res, 0755); err != nil {
 			return fmt.Errorf("writeFile: %w", err)
 		}
 	} else {
@@ -284,12 +284,12 @@ func EdgeNodeSetConfig(fileWithConfig string) error {
 	devUUID := devFirst.GetID()
 	var newConfig []byte
 	if fileWithConfig != "" {
-		newConfig, err = ioutil.ReadFile(fileWithConfig)
+		newConfig, err = os.ReadFile(fileWithConfig)
 		if err != nil {
 			return fmt.Errorf("file reading error: %w", err)
 		}
 	} else if utils.IsInputFromPipe() {
-		newConfig, err = ioutil.ReadAll(os.Stdin)
+		newConfig, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return fmt.Errorf("stdin reading error: %w", err)
 		}
@@ -331,7 +331,7 @@ func EdgeNodeGetOptions(controllerMode, fileWithConfig string) error {
 		return fmt.Errorf("cannot marshal: %w", err)
 	}
 	if fileWithConfig != "" {
-		if err = ioutil.WriteFile(fileWithConfig, data, 0755); err != nil {
+		if err = os.WriteFile(fileWithConfig, data, 0755); err != nil {
 			return fmt.Errorf("WriteFile: %w", err)
 		}
 	} else {
@@ -352,12 +352,12 @@ func EdgeNodeSetOptions(controllerMode, fileWithConfig string) error {
 	}
 	var newOptionsBytes []byte
 	if fileWithConfig != "" {
-		newOptionsBytes, err = ioutil.ReadFile(fileWithConfig)
+		newOptionsBytes, err = os.ReadFile(fileWithConfig)
 		if err != nil {
 			return fmt.Errorf("file reading error: %w", err)
 		}
 	} else if utils.IsInputFromPipe() {
-		newOptionsBytes, err = ioutil.ReadAll(os.Stdin)
+		newOptionsBytes, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return fmt.Errorf("stdin reading error: %w", err)
 		}
@@ -390,7 +390,7 @@ func ControllerGetOptions(fileWithConfig string) error {
 		return fmt.Errorf("cannot marshal: %w", err)
 	}
 	if fileWithConfig != "" {
-		if err = ioutil.WriteFile(fileWithConfig, data, 0755); err != nil {
+		if err = os.WriteFile(fileWithConfig, data, 0755); err != nil {
 			return fmt.Errorf("WriteFile: %w", err)
 		}
 	} else {
@@ -406,12 +406,12 @@ func ControllerSetOptions(fileWithConfig string) error {
 	}
 	var newOptionsBytes []byte
 	if fileWithConfig != "" {
-		newOptionsBytes, err = ioutil.ReadFile(fileWithConfig)
+		newOptionsBytes, err = os.ReadFile(fileWithConfig)
 		if err != nil {
 			return fmt.Errorf("file reading error: %w", err)
 		}
 	} else if utils.IsInputFromPipe() {
-		newOptionsBytes, err = ioutil.ReadAll(os.Stdin)
+		newOptionsBytes, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return fmt.Errorf("stdin reading error: %w", err)
 		}

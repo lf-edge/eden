@@ -5,19 +5,21 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/lf-edge/eden/pkg/utils"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/lf-edge/eden/pkg/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // http client with correct config
 func (adam *Ctx) getHTTPClient() *http.Client {
 	tlsConfig := &tls.Config{}
 	if adam.serverCA != "" {
-		caCert, err := ioutil.ReadFile(adam.serverCA)
+		caCert, err := os.ReadFile(adam.serverCA)
 		if err != nil {
 			log.Fatalf("unable to read server CA file at %s: %v", adam.serverCA, err)
 		}
@@ -80,7 +82,7 @@ func (adam *Ctx) getObj(path string, acceptMime string) (out string, err error) 
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
-	buf, err := ioutil.ReadAll(response.Body)
+	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Printf("unable to read data from URL %s: %v", u, err)
 		return "", err
@@ -107,7 +109,7 @@ func (adam *Ctx) getList(path string, acceptMime string) (out []string, err erro
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
-	buf, err := ioutil.ReadAll(response.Body)
+	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Printf("unable to read data from URL %s: %v", u, err)
 		return nil, err

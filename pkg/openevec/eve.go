@@ -2,7 +2,6 @@ package openevec
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -339,7 +338,7 @@ func SSHEve(commandToRun string, cfg *EdenSetupArgs) error {
 		if err != nil {
 			return fmt.Errorf("cannot get controller or dev, please start them and onboard: %w", err)
 		}
-		b, err := ioutil.ReadFile(ctrl.GetVars().SSHKey)
+		b, err := os.ReadFile(ctrl.GetVars().SSHKey)
 		switch {
 		case err != nil:
 			return fmt.Errorf("error reading sshKey file %s: %w", ctrl.GetVars().SSHKey, err)

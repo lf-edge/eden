@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
 	"net"
 	"os"
 
@@ -97,7 +96,7 @@ func GetDefaultNetModel() (model sdnapi.NetworkModel, err error) {
 // LoadNetModeFromFile loads network model stored inside a JSON file.
 func LoadNetModeFromFile(filepath string) (sdnapi.NetworkModel, error) {
 	var model sdnapi.NetworkModel
-	content, err := ioutil.ReadFile(filepath)
+	content, err := os.ReadFile(filepath)
 	if err != nil {
 		err = fmt.Errorf("failed to read net model from file '%s': %w",
 			filepath, err)
