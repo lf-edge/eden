@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -31,7 +30,7 @@ func (s *EServer) serveSFTP(listener net.Listener, errorChan chan error) {
 		serverOptions = append(serverOptions, sftp.ReadOnly())
 	}
 
-	privateBytes, err := ioutil.ReadFile("/root/.ssh/id_rsa")
+	privateBytes, err := os.ReadFile("/root/.ssh/id_rsa")
 	if err != nil {
 		errorChan <- fmt.Errorf("serveSFTP: failed load private key: %s", err)
 		return

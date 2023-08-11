@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"net"
 	"net/http"
@@ -49,7 +48,7 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 	}
 	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
-	pwd, err := ioutil.ReadFile(redisPasswordFile)
+	pwd, err := os.ReadFile(redisPasswordFile)
 	if err == nil {
 		redisServerCommand = append(redisServerCommand, strings.Fields(fmt.Sprintf("--requirepass %s", string(pwd)))...)
 	} else {
@@ -133,11 +132,11 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
 	serverCertPath := filepath.Join(globalCertsDir, "server.pem")
 	serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
-	cert, err := ioutil.ReadFile(serverCertPath)
+	cert, err := os.ReadFile(serverCertPath)
 	if err != nil {
 		return fmt.Errorf("StartAdam: cannot load %s: %s", serverCertPath, err)
 	}
-	key, err := ioutil.ReadFile(serverKeyPath)
+	key, err := os.ReadFile(serverKeyPath)
 	if err != nil {
 		return fmt.Errorf("StartAdam: cannot load %s: %s", serverKeyPath, err)
 	}
@@ -148,11 +147,11 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	if !apiV1 {
 		signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
 		signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
-		signingCert, err := ioutil.ReadFile(signingCertPath)
+		signingCert, err := os.ReadFile(signingCertPath)
 		if err != nil {
 			return fmt.Errorf("StartAdam: cannot load %s: %s", signingCertPath, err)
 		}
-		signingKey, err := ioutil.ReadFile(signingKeyPath)
+		signingKey, err := os.ReadFile(signingKeyPath)
 		if err != nil {
 			return fmt.Errorf("StartAdam: cannot load %s: %s", signingKeyPath, err)
 		}
@@ -161,11 +160,11 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 
 		encryptCertPath := filepath.Join(globalCertsDir, "encrypt.pem")
 		encryptKeyPath := filepath.Join(globalCertsDir, "encrypt-key.pem")
-		encryptCert, err := ioutil.ReadFile(encryptCertPath)
+		encryptCert, err := os.ReadFile(encryptCertPath)
 		if err != nil {
 			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptCertPath, err)
 		}
-		encryptKey, err := ioutil.ReadFile(encryptKeyPath)
+		encryptKey, err := os.ReadFile(encryptKeyPath)
 		if err != nil {
 			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptKeyPath, err)
 		}
@@ -181,7 +180,7 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 	}
 	if adamRemoteRedisURL != "" {
 		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
-		pwd, err := ioutil.ReadFile(redisPasswordFile)
+		pwd, err := os.ReadFile(redisPasswordFile)
 		if err == nil {
 			adamRemoteRedisURL = fmt.Sprintf("redis://%s:%s@%s", string(pwd), string(pwd), adamRemoteRedisURL)
 		} else {
@@ -501,7 +500,7 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 				if err := os.MkdirAll(filepath.Join(certsDir, "DevicePortConfig"), 0755); err != nil {
 					return fmt.Errorf("GenerateEveCerts: %s", err)
 				}
-				if err := ioutil.WriteFile(filepath.Join(certsDir, "DevicePortConfig", "override.json"), []byte(portConfig), 0666); err != nil {
+				if err := os.WriteFile(filepath.Join(certsDir, "DevicePortConfig", "override.json"), []byte(portConfig), 0666); err != nil {
 					return fmt.Errorf("GenerateEveCerts: %s", err)
 				}
 			}
@@ -527,7 +526,7 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
 	if _, err := os.Stat(redisPasswordFile); os.IsNotExist(err) {
 		pwd := utils.GeneratePassword(8)
-		if err := ioutil.WriteFile(redisPasswordFile, []byte(pwd), 0755); err != nil {
+		if err := os.WriteFile(redisPasswordFile, []byte(pwd), 0755); err != nil {
 			return err
 		}
 	}
@@ -574,16 +573,16 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
 	}
 	log.Debug("locating EVE cert and key")
-	if err := ioutil.WriteFile(filepath.Join(certsDir, "root-certificate.pem"), []byte(defaults.RootCert), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(certsDir, "root-certificate.pem"), []byte(defaults.RootCert), 0600); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(certsDir, "onboard.cert.pem"), []byte(defaults.OnboardCert), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(certsDir, "onboard.cert.pem"), []byte(defaults.OnboardCert), 0600); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(certsDir, "onboard.key.pem"), []byte(defaults.OnboardKey), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(certsDir, "onboard.key.pem"), []byte(defaults.OnboardKey), 0600); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(certsDir, "v2tlsbaseroot-certificates.pem"), []byte(defaults.V2TLS), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(certsDir, "v2tlsbaseroot-certificates.pem"), []byte(defaults.V2TLS), 0600); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
 	}
 	log.Debug("generating ssh pair")
@@ -597,7 +596,7 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 				if err := os.MkdirAll(filepath.Join(certsDir, "DevicePortConfig"), 0755); err != nil {
 					return fmt.Errorf("GenerateEveCerts: %s", err)
 				}
-				if err := ioutil.WriteFile(filepath.Join(certsDir, "DevicePortConfig", "override.json"), []byte(portConfig), 0666); err != nil {
+				if err := os.WriteFile(filepath.Join(certsDir, "DevicePortConfig", "override.json"), []byte(portConfig), 0666); err != nil {
 					return fmt.Errorf("GenerateEveCerts: %s", err)
 				}
 			}
@@ -605,14 +604,14 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 	}
 	if model.DevModelType() == defaults.DefaultQemuModel && viper.GetString("eve.arch") == "arm64" {
 		// we need to properly set console for qemu arm64
-		if err := ioutil.WriteFile(filepath.Join(certsDir, "grub.cfg"), []byte("set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\""), 0666); err != nil {
+		if err := os.WriteFile(filepath.Join(certsDir, "grub.cfg"), []byte("set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\""), 0666); err != nil {
 			return fmt.Errorf("GenerateEveCerts: %s", err)
 		}
 	}
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
 	if _, err := os.Stat(redisPasswordFile); os.IsNotExist(err) {
 		pwd := utils.GeneratePassword(8)
-		if err := ioutil.WriteFile(redisPasswordFile, []byte(pwd), 0755); err != nil {
+		if err := os.WriteFile(redisPasswordFile, []byte(pwd), 0755); err != nil {
 			return err
 		}
 	}
@@ -640,30 +639,30 @@ func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, por
 			// Without SDN there is no DNS server that can translate adam's domain name.
 			// Put static entry to /config/hosts.
 			if _, err = os.Stat(filepath.Join(eveConfig, "hosts")); os.IsNotExist(err) {
-				if err = ioutil.WriteFile(filepath.Join(eveConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
+				if err = os.WriteFile(filepath.Join(eveConfig, "hosts"), []byte(fmt.Sprintf("%s %s\n", ip, domain)), 0666); err != nil {
 					return fmt.Errorf("GenerateEVEConfig: %s", err)
 				}
 			}
 		}
 		if _, err = os.Stat(filepath.Join(eveConfig, "server")); os.IsNotExist(err) {
-			if err = ioutil.WriteFile(filepath.Join(eveConfig, "server"), []byte(fmt.Sprintf("%s:%d\n", domain, port)), 0666); err != nil {
+			if err = os.WriteFile(filepath.Join(eveConfig, "server"), []byte(fmt.Sprintf("%s:%d\n", domain, port)), 0666); err != nil {
 				return fmt.Errorf("GenerateEVEConfig: %s", err)
 			}
 		}
 	} else {
 		if _, err = os.Stat(filepath.Join(eveConfig, "server")); os.IsNotExist(err) {
-			if err = ioutil.WriteFile(filepath.Join(eveConfig, "server"), []byte(domain), 0666); err != nil {
+			if err = os.WriteFile(filepath.Join(eveConfig, "server"), []byte(domain), 0666); err != nil {
 				return fmt.Errorf("GenerateEVEConfig: %s", err)
 			}
 		}
 	}
 	if softserial != "" {
-		if err := ioutil.WriteFile(filepath.Join(eveConfig, "soft_serial"), []byte(softserial), 0666); err != nil {
+		if err := os.WriteFile(filepath.Join(eveConfig, "soft_serial"), []byte(softserial), 0666); err != nil {
 			return fmt.Errorf("GenerateEVEConfig: %s", err)
 		}
 	}
 	if bootstrapFile != "" {
-		bootstrapBytes, err := ioutil.ReadFile(bootstrapFile)
+		bootstrapBytes, err := os.ReadFile(bootstrapFile)
 		if err != nil {
 			return fmt.Errorf("failed to read bootstrap config (%s): %v", bootstrapFile, err)
 		}
@@ -701,7 +700,7 @@ func GenerateEVEConfig(devModel, eveConfig string, domain string, ip string, por
 		if err != nil {
 			log.Printf("error converting bootstrap config to pbuf: %v", err)
 		}
-		err = ioutil.WriteFile(filepath.Join(eveConfig, bootstrapFilename), bootstrapConfPbuf, 0666)
+		err = os.WriteFile(filepath.Join(eveConfig, bootstrapFilename), bootstrapConfPbuf, 0666)
 		if err != nil {
 			return fmt.Errorf("failed to write %s: %s", bootstrapFilename, err)
 		}
@@ -1061,7 +1060,7 @@ func (server *EServer) EServerAddFileURL(url string) (name string) {
 	if err != nil {
 		log.Fatalf("EServerAddFileURL: unable to send request: %v", err)
 	}
-	buf, err := ioutil.ReadAll(response.Body)
+	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Fatalf("EServerAddFileURL: unable to read data from URL %s: %v", u, err)
 	}
@@ -1084,7 +1083,7 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 	if err != nil {
 		log.Fatalf("EServerAddFileURL: unable to send request: %v", err)
 	}
-	buf, err := ioutil.ReadAll(response.Body)
+	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Fatalf("EServerAddFileURL: unable to read data from URL %s: %v", u, err)
 	}
@@ -1105,7 +1104,7 @@ func (server *EServer) EServerAddFile(filepath, prefix string) (fileInfo *api.Fi
 	if err != nil {
 		log.Fatalf("EServerAddFile: %s", err)
 	}
-	buf, err := ioutil.ReadAll(response.Body)
+	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Fatalf("EServerAddFile: unable to read data from URL %s: %v", u, err)
 	}
@@ -1117,7 +1116,7 @@ func (server *EServer) EServerAddFile(filepath, prefix string) (fileInfo *api.Fi
 
 // ReadFileInSquashFS returns the content of a single file (filePath) inside squashfs (squashFSPath)
 func ReadFileInSquashFS(squashFSPath, filePath string) (content []byte, err error) {
-	tmpdir, err := ioutil.TempDir("", "squashfs-unpack")
+	tmpdir, err := os.MkdirTemp("", "squashfs-unpack")
 	if err != nil {
 		return nil, fmt.Errorf("ReadFileInSquashFS: %s", err)
 	}
@@ -1126,7 +1125,7 @@ func ReadFileInSquashFS(squashFSPath, filePath string) (content []byte, err erro
 	if output, err := exec.Command("unsquashfs", "-n", "-i", "-d", dirToUnpack, squashFSPath, filePath).CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("ReadFileInSquashFS: unsquashfs (%s): %v", output, err)
 	}
-	content, err = ioutil.ReadFile(filepath.Join(dirToUnpack, filePath))
+	content, err = os.ReadFile(filepath.Join(dirToUnpack, filePath))
 	if err != nil {
 		return nil, fmt.Errorf("ReadFileInSquashFS: %s", err)
 	}
@@ -1170,7 +1169,7 @@ func GetInfoFromSDCard(devicePath string) (eveInfo *EVEInfo, err error) {
 		if err != nil {
 			return nil, fmt.Errorf("GetInfoFromSDCard: %s", err)
 		}
-		syslog, err := ioutil.ReadAll(g)
+		syslog, err := io.ReadAll(g)
 		if err != nil {
 			return nil, fmt.Errorf("GetInfoFromSDCard: %s", err)
 		}

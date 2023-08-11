@@ -2,28 +2,28 @@ package utils
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
-//Context for use with multiple config files
+// Context for use with multiple config files
 type Context struct {
 	Current   string `yaml:"current"`
 	Directory string `yaml:"directory"`
 }
 
-//ContextInit generates and returns default context
+// ContextInit generates and returns default context
 func ContextInit() (*Context, error) {
 	context := &Context{Current: defaults.DefaultContext, Directory: defaults.DefaultContextDirectory}
 	return context, nil
 }
 
-//GetCurrentConfig return path to config file
+// GetCurrentConfig return path to config file
 func (ctx *Context) GetCurrentConfig() string {
 	edenDir, err := DefaultEdenDir()
 	if err != nil {
@@ -32,19 +32,19 @@ func (ctx *Context) GetCurrentConfig() string {
 	return filepath.Join(edenDir, ctx.Directory, fmt.Sprintf("%s.yml", ctx.Current))
 }
 
-//SetContext set current contexts
+// SetContext set current contexts
 func (ctx *Context) SetContext(context string) {
 	ctx.Current = context
 	ctx.Save()
 }
 
-//ListContexts show available contexts
+// ListContexts show available contexts
 func (ctx *Context) ListContexts() (contexts []string) {
 	edenDir, err := DefaultEdenDir()
 	if err != nil {
 		log.Fatalf("GetCurrentConfig DefaultEdenDir error: %s", err)
 	}
-	files, err := ioutil.ReadDir(filepath.Join(edenDir, ctx.Directory))
+	files, err := os.ReadDir(filepath.Join(edenDir, ctx.Directory))
 	if err != nil {
 		log.Fatalf("ListContexts ReadDir error: %s", err)
 	}
@@ -55,7 +55,7 @@ func (ctx *Context) ListContexts() (contexts []string) {
 	return
 }
 
-//Save save file with context data
+// Save save file with context data
 func (ctx *Context) Save() {
 	edenDir, err := DefaultEdenDir()
 	if err != nil {
@@ -70,12 +70,12 @@ func (ctx *Context) Save() {
 		log.Fatalf("Context Marshal error: %s", err)
 	}
 	contextFile := filepath.Join(edenDir, defaults.DefaultContextFile)
-	if err := ioutil.WriteFile(contextFile, data, 0755); err != nil {
+	if err := os.WriteFile(contextFile, data, 0755); err != nil {
 		log.Fatalf("Write Context File %s error: %s", contextFile, err)
 	}
 }
 
-//ContextLoad read file with context data
+// ContextLoad read file with context data
 func ContextLoad() (*Context, error) {
 	edenDir, err := DefaultEdenDir()
 	if err != nil {
@@ -94,7 +94,7 @@ func ContextLoad() (*Context, error) {
 	if _, err := os.Stat(contextFile); os.IsNotExist(err) {
 		return ContextInit()
 	}
-	buf, err := ioutil.ReadFile(contextFile)
+	buf, err := os.ReadFile(contextFile)
 	if err != nil {
 		return nil, fmt.Errorf("read context file %s error: %s", contextFile, err)
 	}

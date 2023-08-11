@@ -3,20 +3,20 @@ package tests
 import (
 	"flag"
 	"fmt"
-	"github.com/spf13/viper"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-//TestArgsParse -- add options from defaults.DefaultTestArgsEnv (EDEN_TEST_ARGS) env. var. to test options
-//Just replace flag.Parse() by tests.TestArgsParse() in TestMain() function.
+// TestArgsParse -- add options from defaults.DefaultTestArgsEnv (EDEN_TEST_ARGS) env. var. to test options
+// Just replace flag.Parse() by tests.TestArgsParse() in TestMain() function.
 func TestArgsParse() {
 	if targs := os.Getenv(defaults.DefaultTestArgsEnv); targs != "" {
 		os.Args = append(os.Args, strings.Fields(targs)...)
@@ -24,7 +24,7 @@ func TestArgsParse() {
 	flag.Parse()
 }
 
-//RunTest -- single test runner.
+// RunTest -- single test runner.
 func RunTest(testApp string, args []string, testArgs string, testTimeout string, failScenario string, configFile string, verbosity string) {
 	if testApp != "" {
 		log.Debug("testApp: ", testApp)
@@ -99,7 +99,7 @@ func RunTest(testApp string, args []string, testArgs string, testTimeout string,
 	}
 }
 
-//RunScenario -- run a scenario with a test suite
+// RunScenario -- run a scenario with a test suite
 func RunScenario(testScenario string, testArgs string, testTimeout string, failScenario string, configFile string, verbosity string) {
 	if testScenario == "" {
 		return
@@ -121,7 +121,7 @@ func RunScenario(testScenario string, testArgs string, testTimeout string, failS
 
 	log.Debug("testScenario:", testScenario)
 
-	tmpl, err := ioutil.ReadFile(testScenario)
+	tmpl, err := os.ReadFile(testScenario)
 	if err != nil {
 		log.Fatal(err)
 	}

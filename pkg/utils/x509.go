@@ -18,7 +18,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"io/ioutil"
 	"math/big"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -52,7 +51,7 @@ func genCert(template, parent *x509.Certificate, publicKey *rsa.PublicKey, priva
 	return cert
 }
 
-//GenCARoot gen root CA
+// GenCARoot gen root CA
 func GenCARoot() (*x509.Certificate, *rsa.PrivateKey) {
 	var rootTemplate = x509.Certificate{
 		SerialNumber: big.NewInt(1),
@@ -78,7 +77,7 @@ func GenCARoot() (*x509.Certificate, *rsa.PrivateKey) {
 	return rootCert, priv
 }
 
-//GenServerCertElliptic elliptic cert
+// GenServerCertElliptic elliptic cert
 func GenServerCertElliptic(cert *x509.Certificate, key *rsa.PrivateKey, serial *big.Int, ip []net.IP, dns []string, uuid string) (*x509.Certificate, *ecdsa.PrivateKey) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -107,7 +106,7 @@ func GenServerCertElliptic(cert *x509.Certificate, key *rsa.PrivateKey, serial *
 
 }
 
-//WriteToFiles write cert and key
+// WriteToFiles write cert and key
 func WriteToFiles(crt *x509.Certificate, key interface{}, certFile string, keyFile string) (err error) {
 	certOut, err := os.Create(certFile)
 	if err != nil {
@@ -157,7 +156,7 @@ func WriteToFiles(crt *x509.Certificate, key interface{}, certFile string, keyFi
 
 // ParseCertificate from file
 func ParseCertificate(certFile string) (*x509.Certificate, error) {
-	cert, err := ioutil.ReadFile(certFile)
+	cert, err := os.ReadFile(certFile)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read file with certificate: %s", err)
 	}
@@ -166,7 +165,7 @@ func ParseCertificate(certFile string) (*x509.Certificate, error) {
 
 // ParsePrivateKey from file
 func ParsePrivateKey(keyFile string) (*rsa.PrivateKey, error) {
-	key, err := ioutil.ReadFile(keyFile)
+	key, err := os.ReadFile(keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read file with private key: %s", err)
 	}
@@ -182,7 +181,7 @@ func ParsePrivateKey(keyFile string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-//ParseFirstCertFromBlock process provided certificate date
+// ParseFirstCertFromBlock process provided certificate date
 func ParseFirstCertFromBlock(b []byte) (*x509.Certificate, error) {
 	certs, err := parseCertFromBlock(b)
 	if err != nil {

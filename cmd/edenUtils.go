@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -179,7 +178,7 @@ func newTemplateCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			tmpl, err := ioutil.ReadFile(args[0])
+			tmpl, err := os.ReadFile(args[0])
 			if err != nil {
 				log.Fatal(err)
 			}

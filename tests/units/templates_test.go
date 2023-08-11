@@ -2,11 +2,12 @@ package templates
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/spf13/viper"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/spf13/viper"
 )
 
 func getConfig(t *testing.T) string {
@@ -52,7 +53,7 @@ func TestTemplateString(t *testing.T) {
 func TestTemplateFile(t *testing.T) {
 	configFile := getConfig(t)
 
-	tmpl, err := ioutil.ReadFile("template_test.tmpl")
+	tmpl, err := os.ReadFile("template_test.tmpl")
 	if err != nil {
 		t.Fatal(err)
 	}

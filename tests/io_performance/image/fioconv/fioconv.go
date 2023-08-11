@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 
 	"os"
@@ -139,7 +138,7 @@ func main() {
 	}
 	var inputFile = os.Args[1]
 	var outputFile = os.Args[2]
-	data, err := ioutil.ReadFile(inputFile)
+	data, err := os.ReadFile(inputFile)
 	if err != nil {
 		panic(err)
 	}

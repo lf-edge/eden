@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -11,7 +10,7 @@ import (
 )
 
 func CreateUsbNetConfImg(jsonConfigPath, outputImagePath string) error {
-	dir, err := ioutil.TempDir("", "usb-netconf")
+	dir, err := os.MkdirTemp("", "usb-netconf")
 	if err != nil {
 		err = fmt.Errorf("failed to create temporary directory: %v", err)
 		return err

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -167,7 +166,7 @@ func (c *HttpServerConfigurator) createHttpSrvConfFile(httpSrv HttpServer) error
 	}
 	// Write configuration to file.
 	cfgPath := httpSrvConfigPath(serverName)
-	err = ioutil.WriteFile(cfgPath, configBytes, 0644)
+	err = os.WriteFile(cfgPath, configBytes, 0644)
 	if err != nil {
 		err = fmt.Errorf("failed to create config file %s: %w", cfgPath, err)
 		log.Error(err)

@@ -2,18 +2,19 @@ package expect
 
 import (
 	"fmt"
-	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve/api/go/config"
+	log "github.com/sirupsen/logrus"
 )
 
-//parse file or url name and returns Base OS Version
+// parse file or url name and returns Base OS Version
 func (exp *AppExpectation) getBaseOSVersion() string {
 	if exp.baseOSVersion != "" {
 		return exp.baseOSVersion
@@ -23,7 +24,7 @@ func (exp *AppExpectation) getBaseOSVersion() string {
 	}
 
 	correctionFileName := fmt.Sprintf("%s.ver", exp.appURL)
-	if rootFSFromCorrectionFile, err := ioutil.ReadFile(correctionFileName); err == nil {
+	if rootFSFromCorrectionFile, err := os.ReadFile(correctionFileName); err == nil {
 		return string(rootFSFromCorrectionFile)
 	}
 	rootFSName := path.Base(exp.appURL)
@@ -32,7 +33,7 @@ func (exp *AppExpectation) getBaseOSVersion() string {
 	if re := regexp.MustCompile(defaults.DefaultRootFSVersionPattern); !re.MatchString(rootFSName) {
 		log.Warnf("Filename of rootfs %s does not match pattern %s", rootFSName, defaults.DefaultRootFSVersionPattern)
 		// check for eve_version file
-		if v, err := ioutil.ReadFile(filepath.Join(filepath.Dir(exp.appURL), "eve_version")); err == nil {
+		if v, err := os.ReadFile(filepath.Join(filepath.Dir(exp.appURL), "eve_version")); err == nil {
 			baseOSVersion := strings.TrimSpace(string(v))
 			log.Warnf("Will use version from eve_version file: %s", baseOSVersion)
 			return baseOSVersion
@@ -42,7 +43,7 @@ func (exp *AppExpectation) getBaseOSVersion() string {
 	return rootFSName
 }
 
-//checkBaseOSConfig checks if provided BaseOSConfig match expectation
+// checkBaseOSConfig checks if provided BaseOSConfig match expectation
 func (exp *AppExpectation) checkBaseOS(baseOS *config.BaseOS) bool {
 	if baseOS == nil {
 		return false
@@ -50,7 +51,7 @@ func (exp *AppExpectation) checkBaseOS(baseOS *config.BaseOS) bool {
 	return baseOS.BaseOsVersion == exp.getBaseOSVersion()
 }
 
-//checkBaseOSConfig checks if provided BaseOSConfig match expectation
+// checkBaseOSConfig checks if provided BaseOSConfig match expectation
 func (exp *AppExpectation) checkBaseOSConfig(baseOSConfig *config.BaseOSConfig) bool {
 	if baseOSConfig == nil {
 		return false
@@ -61,7 +62,7 @@ func (exp *AppExpectation) checkBaseOSConfig(baseOSConfig *config.BaseOSConfig) 
 	return false
 }
 
-//createBaseOSConfig creates BaseOSConfig with provided img
+// createBaseOSConfig creates BaseOSConfig with provided img
 func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOSConfig, error) {
 	baseOSConfig := &config.BaseOSConfig{
 		Uuidandversion: &config.UUIDandVersion{
@@ -81,9 +82,9 @@ func (exp *AppExpectation) createBaseOSConfig(img *config.Image) (*config.BaseOS
 	return baseOSConfig, nil
 }
 
-//	BaseOSConfig expectation gets or creates BaseOSConfig definition,
-//	adds it into internal controller and returns it
-//	if version is not empty will use it as BaseOSVersion
+// BaseOSConfig expectation gets or creates BaseOSConfig definition,
+// adds it into internal controller and returns it
+// if version is not empty will use it as BaseOSVersion
 func (exp *AppExpectation) BaseOSConfig(baseOSVersion string) (baseOSConfig *config.BaseOSConfig) {
 	exp.baseOSVersion = baseOSVersion
 	var err error
@@ -115,9 +116,9 @@ func (exp *AppExpectation) BaseOSConfig(baseOSVersion string) (baseOSConfig *con
 	return
 }
 
-//	BaseOS expectation gets or creates BaseOS definition,
-//	adds contentTree into internal controller and returns BaseOS
-//	if version is not empty will use it as BaseOSVersion
+// BaseOS expectation gets or creates BaseOS definition,
+// adds contentTree into internal controller and returns BaseOS
+// if version is not empty will use it as BaseOSVersion
 func (exp *AppExpectation) BaseOS(baseOSVersion string) (baseOS *config.BaseOS) {
 	exp.baseOSVersion = baseOSVersion
 	var err error

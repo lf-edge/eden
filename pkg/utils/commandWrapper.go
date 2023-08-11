@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -18,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//RunCommandBackground command run in goroutine
+// RunCommandBackground command run in goroutine
 func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid int, err error) {
 	cmd := exec.Command(name, args...)
 	if logOutput != nil {
@@ -54,7 +53,7 @@ func RunCommandBackground(name string, logOutput io.Writer, args ...string) (pid
 	return pid, nil
 }
 
-//RunCommandNohup run process in background
+// RunCommandNohup run process in background
 func RunCommandNohup(name string, logFile string, pidFile string, args ...string) (err error) {
 	cmd := exec.Command(name, args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -99,7 +98,7 @@ func RunCommandNohup(name string, logFile string, pidFile string, args ...string
 	go func() {
 		if err := cmd.Wait(); err != nil {
 			if logFile != "" {
-				if logFileContent, err := ioutil.ReadFile(logFile); err == nil {
+				if logFileContent, err := os.ReadFile(logFile); err == nil {
 					log.Errorf("log content: %s", strings.TrimSpace(string(logFileContent)))
 				}
 			}
@@ -114,9 +113,9 @@ func RunCommandNohup(name string, logFile string, pidFile string, args ...string
 	}
 }
 
-//StopCommandWithPid sends kill to pid from pidFile
+// StopCommandWithPid sends kill to pid from pidFile
 func StopCommandWithPid(pidFile string) (err error) {
-	content, err := ioutil.ReadFile(pidFile)
+	content, err := os.ReadFile(pidFile)
 	if err != nil {
 		return fmt.Errorf("cannot open pid file %s: %s", pidFile, err)
 	}
@@ -134,9 +133,9 @@ func StopCommandWithPid(pidFile string) (err error) {
 	return nil
 }
 
-//StatusCommandWithPid check if process with pid from pidFile running
+// StatusCommandWithPid check if process with pid from pidFile running
 func StatusCommandWithPid(pidFile string) (status string, err error) {
-	content, err := ioutil.ReadFile(pidFile)
+	content, err := os.ReadFile(pidFile)
 	if err != nil {
 		return "process doesn't exist", nil
 	}
@@ -153,25 +152,25 @@ func StatusCommandWithPid(pidFile string) (status string, err error) {
 	return fmt.Sprintf("running with pid %d", pid), nil
 }
 
-//CommandOpt allows to modify Cmd config.
+// CommandOpt allows to modify Cmd config.
 type CommandOpt func(cmd *exec.Cmd)
 
-//SetCommandStdin sets the given string as the standard input for the command.
+// SetCommandStdin sets the given string as the standard input for the command.
 func SetCommandStdin(stdin string) CommandOpt {
 	return func(cmd *exec.Cmd) {
 		cmd.Stdin = strings.NewReader(stdin)
 	}
 }
 
-//SetCommandEnvVars sets the given list of key=value strings as the environment
-//variables for the command.
+// SetCommandEnvVars sets the given list of key=value strings as the environment
+// variables for the command.
 func SetCommandEnvVars(vars []string) CommandOpt {
 	return func(cmd *exec.Cmd) {
 		cmd.Env = vars
 	}
 }
 
-//RunCommandForeground command run in foreground
+// RunCommandForeground command run in foreground
 func RunCommandForeground(name string, args ...string) (err error) {
 	setThisProcessStdin := func(cmd *exec.Cmd) {
 		cmd.Stdin = os.Stdin
@@ -179,7 +178,7 @@ func RunCommandForeground(name string, args ...string) (err error) {
 	return runCommandForeground(name, args, []CommandOpt{setThisProcessStdin})
 }
 
-//RunCommandForeground command run in foreground
+// RunCommandForeground command run in foreground
 func RunCommandForegroundWithOpts(name string, args []string, opts ...CommandOpt) (err error) {
 	return runCommandForeground(name, args, opts)
 }
@@ -204,7 +203,7 @@ func runCommandForeground(name string, args []string, opts []CommandOpt) (err er
 	return cmd.Run()
 }
 
-//RunCommandAndWait run process in foreground
+// RunCommandAndWait run process in foreground
 func RunCommandAndWait(name string, args ...string) (stdout string, stderr string, err error) {
 	var stdoutBuffer bytes.Buffer
 	var stderrBuffer bytes.Buffer
@@ -215,7 +214,7 @@ func RunCommandAndWait(name string, args ...string) (stdout string, stderr strin
 	return stdoutBuffer.String(), stderrBuffer.String(), err
 }
 
-//RunCommandWithLogAndWait run process in foreground
+// RunCommandWithLogAndWait run process in foreground
 func RunCommandWithLogAndWait(name string, logLevel log.Level, args ...string) (err error) {
 	cmd := exec.Command(name, args...)
 	if log.IsLevelEnabled(logLevel) {

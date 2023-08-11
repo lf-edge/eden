@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -36,7 +35,7 @@ import (
 )
 
 func generateScripts(in string, out string, configFile string) error {
-	tmpl, err := ioutil.ReadFile(in)
+	tmpl, err := os.ReadFile(in)
 	if err != nil {
 		return err
 	}
@@ -44,7 +43,7 @@ func generateScripts(in string, out string, configFile string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(out, []byte(script), 0644)
+	err = os.WriteFile(out, []byte(script), 0644)
 	if err != nil {
 		return err
 	}
@@ -267,7 +266,7 @@ func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg Eden
 			//in case of default context we use empty prefix to keep compatibility
 			configPrefix = ""
 		}
-		items, _ := ioutil.ReadDir(filepath.Dir(cfg.Eve.ImageFile))
+		items, _ := os.ReadDir(filepath.Dir(cfg.Eve.ImageFile))
 		for _, item := range items {
 			if !item.IsDir() && item.Name() != "ipxe.efi.cfg" {
 				if _, err := eden.AddFileIntoEServer(server, filepath.Join(filepath.Dir(cfg.Eve.ImageFile), item.Name()), configPrefix); err != nil {
@@ -276,7 +275,7 @@ func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg Eden
 			}
 		}
 		ipxeFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "ipxe.efi.cfg")
-		ipxeFileBytes, err := ioutil.ReadFile(ipxeFile)
+		ipxeFileBytes, err := os.ReadFile(ipxeFile)
 		if err != nil {
 			return fmt.Errorf("cannot read ipxe file: %w", err)
 		}
@@ -302,7 +301,7 @@ func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg Eden
 		}
 		_ = os.MkdirAll(filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "tftp"), 0777)
 		ipxeConfigFile := filepath.Join(filepath.Dir(cfg.Eve.ImageFile), "tftp", "ipxe.efi.cfg")
-		_ = ioutil.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
+		_ = os.WriteFile(ipxeConfigFile, ipxeFileReplaced, 0777)
 		i, err := eden.AddFileIntoEServer(server, ipxeConfigFile, configPrefix)
 		if err != nil {
 			return fmt.Errorf("AddFileIntoEServer: %w", err)
@@ -468,7 +467,7 @@ func setupSdn(cfg EdenSetupArgs) error {
 	// Build Eden-SDN VM qcow2 image.
 	imageDir := filepath.Dir(cfg.Sdn.ImageFile)
 	_ = os.MkdirAll(imageDir, 0777)
-	vmYmlIn, err := ioutil.ReadFile(filepath.Join(cfg.Sdn.SourceDir, "sdn-vm.yml.in"))
+	vmYmlIn, err := os.ReadFile(filepath.Join(cfg.Sdn.SourceDir, "sdn-vm.yml.in"))
 	if err != nil {
 		return fmt.Errorf("failed to read eden-sdn vm.yml.in: %w", err)
 	}
@@ -737,7 +736,7 @@ func EdenExport(tarFile string, cfg *EdenSetupArgs) error {
 		if err != nil {
 			log.Warn(err)
 		} else {
-			if err = ioutil.WriteFile(ctrl.GetVars().EveDeviceCert, deviceCert.Cert, 0777); err != nil {
+			if err = os.WriteFile(ctrl.GetVars().EveDeviceCert, deviceCert.Cert, 0777); err != nil {
 				log.Warn(err)
 			}
 		}
@@ -815,11 +814,11 @@ func EdenImport(tarFile string, rewriteRoot bool, cfg *EdenSetupArgs) error {
 			if _, err := os.Stat(ctrl.GetVars().EveCert); os.IsNotExist(err) {
 				return fmt.Errorf("no onboard cert in %s, you need to run 'eden setup' first", ctrl.GetVars().EveCert)
 			}
-			deviceCert, err := ioutil.ReadFile(ctrl.GetVars().EveDeviceCert)
+			deviceCert, err := os.ReadFile(ctrl.GetVars().EveDeviceCert)
 			if err != nil {
 				return err
 			}
-			onboardCert, err := ioutil.ReadFile(ctrl.GetVars().EveCert)
+			onboardCert, err := os.ReadFile(ctrl.GetVars().EveCert)
 			if err != nil {
 				log.Warn(err)
 			}

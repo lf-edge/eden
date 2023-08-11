@@ -3,13 +3,13 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/evecommon"
 )
 
-//devModelType is type of dev model
+// devModelType is type of dev model
 type devModelType string
 
 // PhysicalIO type for translation models into format of EVE`s config.PhysicalIO
@@ -37,7 +37,7 @@ func (physicalIO *PhysicalIO) translate() *config.PhysicalIO {
 	}
 }
 
-//ModelFile for loading model from file
+// ModelFile for loading model from file
 type ModelFile struct {
 	IOMemberList []*PhysicalIO         `json:"ioMemberList,omitempty"`
 	VlanAdapters []*config.VlanAdapter `json:"vlanAdapters,omitempty"`
@@ -54,10 +54,10 @@ type ModelFile struct {
 	SystemAdapters []*config.SystemAdapter `json:"systemAdapterList,omitempty"`
 }
 
-//OverwriteDevModelFromFile replace default config with config from provided file
+// OverwriteDevModelFromFile replace default config with config from provided file
 func OverwriteDevModelFromFile(fileName string, model DevModel) error {
 	var mFile ModelFile
-	b, err := ioutil.ReadFile(fileName)
+	b, err := os.ReadFile(fileName)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func OverwriteDevModelFromFile(fileName string, model DevModel) error {
 	return nil
 }
 
-//DevModel is an interface to use for describe device
+// DevModel is an interface to use for describe device
 type DevModel interface {
 	Adapters() []*config.SystemAdapter
 	SetAdapters([]*config.SystemAdapter)
@@ -101,12 +101,12 @@ type DevModel interface {
 	Config() map[string]interface{}
 }
 
-//GetDevModelByName return DevModel object by DevModelType string
+// GetDevModelByName return DevModel object by DevModelType string
 func GetDevModelByName(modelType string) (DevModel, error) {
 	return GetDevModel(devModelType(modelType))
 }
 
-//GetDevModel return DevModel object by DevModelType
+// GetDevModel return DevModel object by DevModelType
 func GetDevModel(devModelType devModelType) (DevModel, error) {
 	switch devModelType {
 	case devModelTypeQemu:

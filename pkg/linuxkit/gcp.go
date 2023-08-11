@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -50,7 +49,7 @@ func NewGCPClient(keys, projectName string) (*GCPClient, error) {
 			return nil, err
 		}
 
-		jsonKey, err := ioutil.ReadAll(f)
+		jsonKey, err := io.ReadAll(f)
 		if err != nil {
 			return nil, err
 		}
@@ -409,7 +408,7 @@ func (g GCPClient) ConnectToInstanceSerialPort(instance, zone string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -586,7 +585,7 @@ func (g GCPClient) GetInstanceNatIP(instance, zone string) (string, error) {
 }
 
 // SetFirewallAllowRule runs
-//gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges --priority=priority
+// gcloud compute firewall-rules create ruleName --allow all --source-ranges=sourceRanges --priority=priority
 func (g GCPClient) SetFirewallAllowRule(ruleName string, priority int64, sourceRanges []string) error {
 	log.Infof("setting firewall %s for %s", ruleName, sourceRanges)
 	for i := 0; i < timeout; i++ {

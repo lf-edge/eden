@@ -7,8 +7,6 @@ package testscript
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/viper"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eden/tests/escript/go-internal/internal/textutil"
@@ -26,7 +26,6 @@ import (
 // Keep list and the implementations below sorted by name.
 //
 // NOTE: If you make changes here, update doc.go.
-//
 var scriptCmds = map[string]func(*TestScript, bool, []string){
 	"arg":     (*TestScript).cmdArg,
 	"cd":      (*TestScript).cmdCd,
@@ -145,7 +144,7 @@ func (ts *TestScript) doCmdCmp(args []string, env bool) bool {
 	text1 := ts.ReadFile(name1)
 
 	absName2 := ts.MkAbs(name2)
-	data, err := ioutil.ReadFile(absName2)
+	data, err := os.ReadFile(absName2)
 	ts.Check(err)
 	text2 := string(data)
 	if env {
@@ -203,14 +202,14 @@ func (ts *TestScript) cmdCp(neg bool, args []string) {
 			info, err := os.Stat(src)
 			ts.Check(err)
 			mode = info.Mode() & 0777
-			data, err = ioutil.ReadFile(src)
+			data, err = os.ReadFile(src)
 			ts.Check(err)
 		}
 		targ := dst
 		if dstDir {
 			targ = filepath.Join(dst, filepath.Base(src))
 		}
-		ts.Check(ioutil.WriteFile(targ, data, mode))
+		ts.Check(os.WriteFile(targ, data, mode))
 	}
 }
 
@@ -559,11 +558,11 @@ func (ts *TestScript) cmdUnquote(neg bool, args []string) {
 	}
 	for _, arg := range args {
 		file := ts.MkAbs(arg)
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		ts.Check(err)
 		data, err = txtar.Unquote(data)
 		ts.Check(err)
-		err = ioutil.WriteFile(file, data, 0666)
+		err = os.WriteFile(file, data, 0666)
 		ts.Check(err)
 	}
 }
@@ -612,7 +611,7 @@ func (ts *TestScript) cmdStdin(neg bool, args []string) {
 	if len(args) != 1 {
 		ts.Fatalf("usage: stdin filename")
 	}
-	data, err := ioutil.ReadFile(ts.MkAbs(args[0]))
+	data, err := os.ReadFile(ts.MkAbs(args[0]))
 	ts.Check(err)
 	ts.stdin = string(data)
 }
@@ -785,7 +784,7 @@ func scriptMatch(ts *TestScript, neg bool, args []string, text, name string) {
 	isGrep := name == "grep"
 	if isGrep {
 		name = args[1] // for error messages
-		data, err := ioutil.ReadFile(ts.MkAbs(args[1]))
+		data, err := os.ReadFile(ts.MkAbs(args[1]))
 		ts.Check(err)
 		text = string(data)
 	}

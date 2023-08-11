@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -18,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//LinkState of an EVE uplink interface.
+// LinkState of an EVE uplink interface.
 type LinkState struct {
 	EveIfName string
 	IsUP      bool
@@ -53,7 +52,7 @@ func (client *SdnClient) GetNetworkModel() (netModel model.NetworkModel, err err
 			resp.Status)
 		return
 	}
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		err = fmt.Errorf("failed to read retrieved network model data: %w", err)
 		return
@@ -97,8 +96,8 @@ func (client *SdnClient) ApplyNetworkModel(netModel model.NetworkModel) (err err
 		} else {
 			response = fmt.Sprintf("failed to read response: %v", err)
 		}
-		err = fmt.Errorf("request to PUT network model failed with code=%d, " +
-			"response: %s",	resp.StatusCode, response)
+		err = fmt.Errorf("request to PUT network model failed with code=%d, "+
+			"response: %s", resp.StatusCode, response)
 		return
 	}
 	return
@@ -125,7 +124,7 @@ func (client *SdnClient) GetNetworkConfigGraph() (config string, err error) {
 			resp.Status)
 		return
 	}
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		err = fmt.Errorf("failed to read retrieved network config: %w", err)
 		return
@@ -154,7 +153,7 @@ func (client *SdnClient) GetSdnStatus() (status model.SDNStatus, err error) {
 			resp.Status)
 		return
 	}
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		err = fmt.Errorf("failed to read retrieved SDN status data: %w", err)
 		return
@@ -210,7 +209,7 @@ func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 	tunnelReadyCh := make(chan bool, 1)
 	go func(tunnelReadyCh chan<- bool) {
 		var listenerReady, fwdReady, sshReady bool
-		fwdMsg := fmt.Sprintf("Local connections to LOCALHOST:%d " +
+		fwdMsg := fmt.Sprintf("Local connections to LOCALHOST:%d "+
 			"forwarded to remote address %s:%d", localPort, targetIP, targetPort)
 		listenMsg := fmt.Sprintf("Local forwarding listening on 127.0.0.1 port %d",
 			localPort)

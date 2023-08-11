@@ -3,7 +3,6 @@ package adam
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -33,7 +32,7 @@ const (
 	mimeJSON      = "application/json"
 )
 
-//Ctx stores controller settings
+// Ctx stores controller settings
 type Ctx struct {
 	dir               string
 	url               string
@@ -47,7 +46,7 @@ type Ctx struct {
 	AdamCachingPrefix string //custom prefix for file or stream naming for cache
 }
 
-//parseRedisURL try to use string from config to obtain redis url
+// parseRedisURL try to use string from config to obtain redis url
 func parseRedisURL(s string) (addr, password string, databaseID int, err error) {
 	URL, err := url.Parse(s)
 	if err != nil || URL.Scheme != "redis" {
@@ -70,7 +69,7 @@ func parseRedisURL(s string) (addr, password string, databaseID int, err error) 
 	return
 }
 
-//getLoader return loader object from Adam`s config
+// getLoader return loader object from Adam`s config
 func (adam *Ctx) getLoader() (loader loaders.Loader) {
 	if adam.AdamRemote {
 		log.Debug("will use remote adam loader")
@@ -135,7 +134,7 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 	return
 }
 
-//InitWithVars use variables from viper for init controller
+// InitWithVars use variables from viper for init controller
 func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.dir = vars.AdamDir
 	adam.url = fmt.Sprintf("https://%s:%s", vars.AdamIP, vars.AdamPort)
@@ -150,14 +149,14 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	return nil
 }
 
-//GetDir return dir
+// GetDir return dir
 func (adam *Ctx) GetDir() (dir string) {
 	return adam.dir
 }
 
-//Register device in adam
+// Register device in adam
 func (adam *Ctx) Register(device *device.Ctx) error {
-	b, err := ioutil.ReadFile(device.GetOnboardKey())
+	b, err := os.ReadFile(device.GetOnboardKey())
 	switch {
 	case err != nil && os.IsNotExist(err):
 		log.Printf("cert file %s does not exist", device.GetOnboardKey())
@@ -179,7 +178,7 @@ func (adam *Ctx) Register(device *device.Ctx) error {
 	return adam.postObj("/admin/onboard", body, mimeJSON)
 }
 
-//DeviceList return device list
+// DeviceList return device list
 func (adam *Ctx) DeviceList(filter types.DeviceStateFilter) (out []string, err error) {
 	if filter == types.RegisteredDeviceFilter || filter == types.AllDevicesFilter {
 		return adam.getList("/admin/device", mimeJSON)
@@ -187,34 +186,34 @@ func (adam *Ctx) DeviceList(filter types.DeviceStateFilter) (out []string, err e
 	return []string{}, nil
 }
 
-//ConfigSet set config for devID
+// ConfigSet set config for devID
 func (adam *Ctx) ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error) {
 	return adam.putObj(path.Join("/admin/device", devUUID.String(), "config"), devConfig, mimeProto)
 }
 
-//ConfigGet get config for devID
+// ConfigGet get config for devID
 func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 	return adam.getObj(path.Join("/admin/device", devUUID.String(), "config"), mimeProto)
 }
 
-//CertsGet get attest certs for devID
+// CertsGet get attest certs for devID
 func (adam *Ctx) CertsGet(devUUID uuid.UUID) (out string, err error) {
 	return adam.getObj(path.Join("/admin/device", devUUID.String(), "certs"), mimeJSON)
 }
 
-//RequestLastCallback check request by pattern from existence files with callback
+// RequestLastCallback check request by pattern from existence files with callback
 func (adam *Ctx) RequestLastCallback(devUUID uuid.UUID, q map[string]string, handler erequest.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return erequest.RequestLast(loader, q, handler)
 }
 
-//LogAppsChecker check app logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
+// LogAppsChecker check app logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func (adam *Ctx) LogAppsChecker(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc, mode eapps.LogCheckerMode, timeout time.Duration) (err error) {
 	return eapps.LogChecker(adam.getLoader(), devUUID, appUUID, q, handler, mode, timeout)
 }
 
-//LogAppsLastCallback check app logs by pattern from existence files with callback
+// LogAppsLastCallback check app logs by pattern from existence files with callback
 func (adam *Ctx) LogAppsLastCallback(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
@@ -222,65 +221,65 @@ func (adam *Ctx) LogAppsLastCallback(devUUID uuid.UUID, appUUID uuid.UUID, q map
 	return eapps.LogLast(loader, q, handler)
 }
 
-//LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
+// LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func (adam *Ctx) LogChecker(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc, mode elog.LogCheckerMode, timeout time.Duration) (err error) {
 	return elog.LogChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
 }
 
-//LogLastCallback check logs by pattern from existence files with callback
+// LogLastCallback check logs by pattern from existence files with callback
 func (adam *Ctx) LogLastCallback(devUUID uuid.UUID, q map[string]string, handler elog.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return elog.LogLast(loader, q, handler)
 }
 
-//FlowLogChecker check FlowLogs by pattern from existence files with FlowLogLast and use FlowLogWatchWithTimeout with timeout for observe new files
+// FlowLogChecker check FlowLogs by pattern from existence files with FlowLogLast and use FlowLogWatchWithTimeout with timeout for observe new files
 func (adam *Ctx) FlowLogChecker(devUUID uuid.UUID, q map[string]string, handler eflowlog.HandlerFunc, mode eflowlog.FlowLogCheckerMode, timeout time.Duration) (err error) {
 	return eflowlog.FlowLogChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
 }
 
-//FlowLogLastCallback check FlowLogs by pattern from existence files with callback
+// FlowLogLastCallback check FlowLogs by pattern from existence files with callback
 func (adam *Ctx) FlowLogLastCallback(devUUID uuid.UUID, q map[string]string, handler eflowlog.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return eflowlog.FlowLogLast(loader, q, handler)
 }
 
-//InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.
+// InfoChecker checks the information in the regular expression pattern 'query' and processes the info.ZInfoMsg found by the function 'handler' from existing files (mode=einfo.InfoExist), new files (mode=einfo.InfoNew) or any of them (mode=einfo.InfoAny) with timeout.
 func (adam *Ctx) InfoChecker(devUUID uuid.UUID, q map[string]string, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error) {
 	return einfo.InfoChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
 }
 
-//InfoLastCallback check info by pattern from existence files with callback
+// InfoLastCallback check info by pattern from existence files with callback
 func (adam *Ctx) InfoLastCallback(devUUID uuid.UUID, q map[string]string, handler einfo.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return einfo.InfoLast(loader, q, einfo.ZInfoFind, handler)
 }
 
-//MetricChecker check metrics by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
+// MetricChecker check metrics by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func (adam *Ctx) MetricChecker(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc, mode emetric.MetricCheckerMode, timeout time.Duration) (err error) {
 	return emetric.MetricChecker(adam.getLoader(), devUUID, q, handler, mode, timeout)
 }
 
-//MetricLastCallback check metrics by pattern from existence files with callback
+// MetricLastCallback check metrics by pattern from existence files with callback
 func (adam *Ctx) MetricLastCallback(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc) (err error) {
 	var loader = adam.getLoader()
 	loader.SetUUID(devUUID)
 	return emetric.MetricLast(loader, q, handler)
 }
 
-//OnboardRemove remove onboard by onboardUUID
+// OnboardRemove remove onboard by onboardUUID
 func (adam *Ctx) OnboardRemove(onboardUUID string) (err error) {
 	return adam.deleteObj(path.Join("/admin/onboard", onboardUUID))
 }
 
-//DeviceRemove remove device by devUUID
+// DeviceRemove remove device by devUUID
 func (adam *Ctx) DeviceRemove(devUUID uuid.UUID) (err error) {
 	return adam.deleteObj(path.Join("/admin/device", devUUID.String()))
 }
 
-//DeviceGetOnboard get device onboardUUID for devUUID
+// DeviceGetOnboard get device onboardUUID for devUUID
 func (adam *Ctx) DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err error) {
 	var devCert types.DeviceCert
 	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String()), mimeJSON)
@@ -297,9 +296,9 @@ func (adam *Ctx) DeviceGetOnboard(devUUID uuid.UUID) (onboardUUID uuid.UUID, err
 	return uuid.FromString(cert.Subject.CommonName)
 }
 
-//DeviceGetByOnboard try to get device by onboard eveCert
+// DeviceGetByOnboard try to get device by onboard eveCert
 func (adam *Ctx) DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err error) {
-	b, err := ioutil.ReadFile(eveCert)
+	b, err := os.ReadFile(eveCert)
 	switch {
 	case err != nil && os.IsNotExist(err):
 		log.Printf("cert file %s does not exist", eveCert)
@@ -319,7 +318,7 @@ func (adam *Ctx) DeviceGetByOnboard(eveCert string) (devUUID uuid.UUID, err erro
 	return adam.DeviceGetByOnboardUUID(uuidToFound.String())
 }
 
-//DeviceGetByOnboardUUID try to get device by onboard uuid
+// DeviceGetByOnboardUUID try to get device by onboard uuid
 func (adam *Ctx) DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, err error) {
 	devIDs, err := adam.DeviceList(types.RegisteredDeviceFilter)
 	if err != nil {
@@ -341,7 +340,7 @@ func (adam *Ctx) DeviceGetByOnboardUUID(onboardUUID string) (devUUID uuid.UUID, 
 	return uuid.Nil, fmt.Errorf("no device found")
 }
 
-//GetDeviceCert gets deviceCert contains certificates and serial
+// GetDeviceCert gets deviceCert contains certificates and serial
 func (adam *Ctx) GetDeviceCert(device *device.Ctx) (deviceCert *types.DeviceCert, err error) {
 	devInfo, err := adam.getObj(path.Join("/admin/device", device.GetID().String()), mimeJSON)
 	if err != nil {
@@ -354,7 +353,7 @@ func (adam *Ctx) GetDeviceCert(device *device.Ctx) (deviceCert *types.DeviceCert
 	return &devCert, nil
 }
 
-//UploadDeviceCert upload deviceCert into Adam
+// UploadDeviceCert upload deviceCert into Adam
 func (adam *Ctx) UploadDeviceCert(deviceCert types.DeviceCert) error {
 	body, err := json.Marshal(deviceCert)
 	if err != nil {
@@ -363,7 +362,7 @@ func (adam *Ctx) UploadDeviceCert(deviceCert types.DeviceCert) error {
 	return adam.postObj("/admin/device", body, mimeTextPlain)
 }
 
-//SetDeviceOptions sets options for provided devUUID
+// SetDeviceOptions sets options for provided devUUID
 func (adam *Ctx) SetDeviceOptions(devUUID uuid.UUID, options *types.DeviceOptions) error {
 	body, err := json.Marshal(options)
 	if err != nil {
@@ -372,7 +371,7 @@ func (adam *Ctx) SetDeviceOptions(devUUID uuid.UUID, options *types.DeviceOption
 	return adam.putObj(path.Join("/admin/device", devUUID.String(), "options"), body, mimeJSON)
 }
 
-//GetDeviceOptions returns DeviceOptions for provided devUUID
+// GetDeviceOptions returns DeviceOptions for provided devUUID
 func (adam *Ctx) GetDeviceOptions(devUUID uuid.UUID) (*types.DeviceOptions, error) {
 	devInfo, err := adam.getObj(path.Join("/admin/device", devUUID.String(), "options"), mimeJSON)
 	if err != nil {
@@ -385,7 +384,7 @@ func (adam *Ctx) GetDeviceOptions(devUUID uuid.UUID) (*types.DeviceOptions, erro
 	return &devOptions, nil
 }
 
-//SetGlobalOptions sets global options for controller
+// SetGlobalOptions sets global options for controller
 func (adam *Ctx) SetGlobalOptions(options *types.GlobalOptions) error {
 	body, err := json.Marshal(options)
 	if err != nil {
@@ -394,7 +393,7 @@ func (adam *Ctx) SetGlobalOptions(options *types.GlobalOptions) error {
 	return adam.putObj("/admin/options", body, mimeJSON)
 }
 
-//GetGlobalOptions returns global options from controller
+// GetGlobalOptions returns global options from controller
 func (adam *Ctx) GetGlobalOptions() (*types.GlobalOptions, error) {
 	devInfo, err := adam.getObj("/admin/options", mimeJSON)
 	if err != nil {

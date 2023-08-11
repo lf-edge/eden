@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -419,7 +418,7 @@ func isProcessRunning(pidFile string) bool {
 }
 
 func getProcess(pidFile string) (process *os.Process) {
-	pidBytes, err := ioutil.ReadFile(pidFile)
+	pidBytes, err := os.ReadFile(pidFile)
 	if err != nil {
 		// Not running, return nil.
 		return nil

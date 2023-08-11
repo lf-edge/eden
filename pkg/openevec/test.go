@@ -2,7 +2,6 @@ package openevec
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -85,7 +84,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.RegistryPort = strconv.Itoa(cfg.Registry.Port)
 
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
-	pwd, err := ioutil.ReadFile(redisPasswordFile)
+	pwd, err := os.ReadFile(redisPasswordFile)
 	if err == nil {
 		cv.AdamRedisURLEden = fmt.Sprintf("redis://%s:%s@%s", string(pwd), string(pwd), cv.AdamRedisURLEden)
 	} else {

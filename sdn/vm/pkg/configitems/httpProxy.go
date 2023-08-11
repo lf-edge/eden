@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -190,7 +189,7 @@ func (c *HttpProxyConfigurator) createGoproxyConfFile(proxy HttpProxy) error {
 	}
 	// Write configuration to file.
 	cfgPath := goproxyConfigPath(proxyName)
-	err = ioutil.WriteFile(cfgPath, configBytes, 0644)
+	err = os.WriteFile(cfgPath, configBytes, 0644)
 	if err != nil {
 		err = fmt.Errorf("failed to create config file %s: %w", cfgPath, err)
 		log.Error(err)

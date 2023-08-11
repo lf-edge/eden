@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,7 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-//CloudPrepare is for init controller connection and obtain device list
+// CloudPrepare is for init controller connection and obtain device list
 func CloudPrepare() (Cloud, error) {
 	vars, err := utils.InitVars()
 	if err != nil {
@@ -37,17 +36,17 @@ func CloudPrepare() (Cloud, error) {
 	return ctx, nil
 }
 
-//GetVars returns variables of controller
+// GetVars returns variables of controller
 func (cloud *CloudCtx) GetVars() *utils.ConfigVars {
 	return cloud.vars
 }
 
-//SetVars sets variables of controller
+// SetVars sets variables of controller
 func (cloud *CloudCtx) SetVars(vars *utils.ConfigVars) {
 	cloud.vars = vars
 }
 
-//ResetDev to initial config in controller
+// ResetDev to initial config in controller
 func (cloud *CloudCtx) ResetDev(node *device.Ctx) error {
 	vars := cloud.GetVars()
 	node.SetApplicationInstanceConfig(nil)
@@ -66,7 +65,7 @@ func (cloud *CloudCtx) ResetDev(node *device.Ctx) error {
 	return cloud.OnBoardDev(node)
 }
 
-//OnBoardDev in controller
+// OnBoardDev in controller
 func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
@@ -75,7 +74,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 	alreadyRegistered := false
 	oldDevUUID, _ := cloud.DeviceGetByOnboard(node.GetOnboardKey())
 	if oldDevUUID != uuid.Nil {
-		b, err := ioutil.ReadFile(node.GetOnboardKey())
+		b, err := os.ReadFile(node.GetOnboardKey())
 		switch {
 		case err != nil && os.IsNotExist(err):
 			log.Printf("cert file %s does not exist", node.GetOnboardKey())
@@ -150,7 +149,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 					node.SetConfigItem("debug.default.loglevel", cloud.vars.LogLevel)
 				}
 				if cloud.vars.SSHKey != "" {
-					b, err := ioutil.ReadFile(cloud.vars.SSHKey)
+					b, err := os.ReadFile(cloud.vars.SSHKey)
 					switch {
 					case err != nil && os.IsNotExist(err):
 						return fmt.Errorf("sshKey file %s does not exist", cloud.vars.SSHKey)
@@ -176,7 +175,7 @@ func (cloud *CloudCtx) OnBoardDev(node *device.Ctx) error {
 	return fmt.Errorf("onboarding timeout. You may try to run 'eden eve onboard' command again in several minutes. If not successful see logs of adam/eve")
 }
 
-//VersionIncrement use []byte with config.EdgeDevConfig and increment config version
+// VersionIncrement use []byte with config.EdgeDevConfig and increment config version
 func VersionIncrement(configOld []byte) ([]byte, error) {
 	var deviceConfig config.EdgeDevConfig
 	if err := proto.Unmarshal(configOld, &deviceConfig); err != nil {

@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/user"
@@ -26,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//CreateDockerNetwork create network for docker`s containers
+// CreateDockerNetwork create network for docker`s containers
 func CreateDockerNetwork(name string) error {
 	log.Debugf("Try to create network %s", name)
 	ctx := context.Background()
@@ -52,7 +51,7 @@ func dockerVolumeName(containerName string) string {
 	return fmt.Sprintf("%s_volume", containerName)
 }
 
-//RemoveGeneratedVolumeOfContainer remove volumes created by eden
+// RemoveGeneratedVolumeOfContainer remove volumes created by eden
 func RemoveGeneratedVolumeOfContainer(containerName string) error {
 	volumeName := dockerVolumeName(containerName)
 	ctx := context.Background()
@@ -63,7 +62,7 @@ func RemoveGeneratedVolumeOfContainer(containerName string) error {
 	return cli.VolumeRemove(ctx, volumeName, true)
 }
 
-//CreateAndRunContainer run container with defined name from image with port and volume mapping and defined command
+// CreateAndRunContainer run container with defined name from image with port and volume mapping and defined command
 func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string, volumeMap map[string]string, command []string, envs []string) error {
 	log.Debugf("Try to start container from image %s with command %s", imageName, command)
 	ctx := context.Background()
@@ -142,7 +141,7 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 	return nil
 }
 
-//GetDockerNetworks returns gateways IPs of networks in docker
+// GetDockerNetworks returns gateways IPs of networks in docker
 func GetDockerNetworks() ([]*net.IPNet, error) {
 	var results []*net.IPNet
 	ctx := context.Background()
@@ -166,7 +165,7 @@ func GetDockerNetworks() ([]*net.IPNet, error) {
 	return results, nil
 }
 
-//PullImage from docker
+// PullImage from docker
 func PullImage(image string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -187,7 +186,7 @@ func PullImage(image string) error {
 	return nil
 }
 
-//HasImage see if the image is local
+// HasImage see if the image is local
 func HasImage(image string) (bool, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -215,7 +214,7 @@ func CreateImage(dir, tag, platform string) error {
 	if _, err := os.Stat(dockerFile); os.IsNotExist(err) {
 		//write simple Dockerfile if not exists
 		defer os.Remove(dockerFile)
-		if err := ioutil.WriteFile(dockerFile, []byte("FROM scratch\nCOPY . /\n"), 0777); err != nil {
+		if err := os.WriteFile(dockerFile, []byte("FROM scratch\nCOPY . /\n"), 0777); err != nil {
 			return err
 		}
 	}
@@ -291,7 +290,7 @@ func SaveImage(image string) (io.ReadCloser, error) {
 	return reader, err
 }
 
-//SaveImageAndExtract from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
+// SaveImageAndExtract from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
 func SaveImageAndExtract(image, outputDir, defaultEvePrefixInTar string) error {
 	reader, err := SaveImage(image)
 	if err != nil {
@@ -318,7 +317,7 @@ func SaveImageToTar(image, tarFile string) error {
 	return nil
 }
 
-//StopContainer stop container and remove if remove is true
+// StopContainer stop container and remove if remove is true
 func StopContainer(containerName string, remove bool) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -363,7 +362,7 @@ func StopContainer(containerName string, remove bool) error {
 	return fmt.Errorf("container not found")
 }
 
-//StateContainer return state of container if found or "" state if not found
+// StateContainer return state of container if found or "" state if not found
 func StateContainer(containerName string) (state string, err error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -389,7 +388,7 @@ func StateContainer(containerName string) (state string, err error) {
 	return "", nil
 }
 
-//StartContainer start container with containerName
+// StartContainer start container with containerName
 func StartContainer(containerName string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -419,7 +418,7 @@ func StartContainer(containerName string) error {
 	return nil
 }
 
-//writeToLog from the build response to the log
+// writeToLog from the build response to the log
 func writeToLog(reader io.ReadCloser) error {
 	defer reader.Close()
 	rd := bufio.NewReader(reader)
@@ -435,8 +434,8 @@ func writeToLog(reader io.ReadCloser) error {
 	return nil
 }
 
-//ExtractFilesFromDocker extract all files from docker layer into directory
-//if prefixDirectory is not empty, remove it from path
+// ExtractFilesFromDocker extract all files from docker layer into directory
+// if prefixDirectory is not empty, remove it from path
 func ExtractFilesFromDocker(u io.ReadCloser, directory string, prefixDirectory string) error {
 	if err := os.MkdirAll(directory, 0755); err != nil {
 		return fmt.Errorf("ExtractFilesFromDocker: MkdirAll() failed: %s", err.Error())
@@ -526,7 +525,7 @@ func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory stri
 	return nil
 }
 
-//RunDockerCommand is run wrapper for docker container
+// RunDockerCommand is run wrapper for docker container
 func RunDockerCommand(image string, command string, volumeMap map[string]string) (result string, err error) {
 	log.Debugf("Try to call 'docker run %s %s' with volumes %s", image, command, volumeMap)
 	ctx := context.Background()
@@ -576,7 +575,7 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 		return "", err
 	}
 	defer out.Close()
-	b, err := ioutil.ReadAll(out)
+	b, err := io.ReadAll(out)
 
 	if err := cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{RemoveVolumes: true}); err != nil {
 		log.Errorf("ContainerRemove error: %s", err)

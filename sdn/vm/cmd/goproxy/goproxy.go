@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
@@ -55,7 +54,7 @@ func main() {
 	flag.Parse()
 
 	// Read and parse config file.
-	configBytes, err := ioutil.ReadFile(*configFile)
+	configBytes, err := os.ReadFile(*configFile)
 	if err != nil {
 		log.Fatalf("failed to read config file %s: %v", *configFile, err)
 	}
@@ -79,7 +78,7 @@ func main() {
 	}
 	if proxyConfig.PidFile != "" {
 		pidBytes := []byte(fmt.Sprintf("%d", os.Getpid()))
-		err = ioutil.WriteFile(proxyConfig.PidFile, pidBytes, 0664)
+		err = os.WriteFile(proxyConfig.PidFile, pidBytes, 0664)
 		if err != nil {
 			log.Fatalf("failed to write PID file %s: %v", proxyConfig.PidFile, err)
 		}

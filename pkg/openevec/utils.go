@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -212,7 +211,7 @@ func SDInfoEve(devicePath, syslogOutput, eveReleaseOutput string) error {
 	if eveInfo.EVERelease == nil {
 		log.Warning("No eve-release found. Probably, no EVE on SD card")
 	} else {
-		if err = ioutil.WriteFile(eveReleaseOutput, eveInfo.EVERelease, 0666); err != nil {
+		if err = os.WriteFile(eveReleaseOutput, eveInfo.EVERelease, 0666); err != nil {
 			return err
 		}
 		log.Infof("Your eve-release in %s", eveReleaseOutput)
@@ -220,7 +219,7 @@ func SDInfoEve(devicePath, syslogOutput, eveReleaseOutput string) error {
 	if eveInfo.Syslog == nil {
 		log.Warning("No syslog found, EVE may not have started yet")
 	} else {
-		if err = ioutil.WriteFile(syslogOutput, eveInfo.Syslog, 0666); err != nil {
+		if err = os.WriteFile(syslogOutput, eveInfo.Syslog, 0666); err != nil {
 			return err
 		}
 		log.Infof("Your syslog in %s", syslogOutput)

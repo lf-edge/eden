@@ -3,7 +3,6 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,7 +53,7 @@ func (desc EVEDescription) Version() (string, error) {
 	return fmt.Sprintf("%s-%s-%s", desc.Tag, desc.HV, desc.Arch), nil
 }
 
-//DownloadEveInstaller pulls EVE installer image from docker
+// DownloadEveInstaller pulls EVE installer image from docker
 func DownloadEveInstaller(eve EVEDescription, outputFile string) (err error) {
 	image, err := eve.Image()
 	if err != nil {
@@ -85,7 +84,7 @@ func DownloadUEFI(eve EVEDescription, outputDir string) (err error) {
 	return nil
 }
 
-//DownloadEveLive pulls EVE live image from docker
+// DownloadEveLive pulls EVE live image from docker
 func DownloadEveLive(eve EVEDescription, outputFile string) (err error) {
 	image, err := eve.Image()
 	if err != nil {
@@ -139,7 +138,7 @@ func DownloadEveLive(eve EVEDescription, outputFile string) (err error) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err = ioutil.WriteFile(filepath.Join(dirForParallels, "DiskDescriptor.xml"), buf.Bytes(), 0777); err != nil {
+		if err = os.WriteFile(filepath.Join(dirForParallels, "DiskDescriptor.xml"), buf.Bytes(), 0777); err != nil {
 			return fmt.Errorf("cannot write description %s", err)
 		}
 	}
@@ -149,7 +148,7 @@ func DownloadEveLive(eve EVEDescription, outputFile string) (err error) {
 	return nil
 }
 
-//genEVEInstallerImage downloads EVE installer image from docker to outputDir with configDir (if defined)
+// genEVEInstallerImage downloads EVE installer image from docker to outputDir with configDir (if defined)
 func genEVEInstallerImage(image, outputDir string, configDir string) (fileName string, err error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", err
@@ -168,7 +167,7 @@ func genEVEInstallerImage(image, outputDir string, configDir string) (fileName s
 	return fileName, nil
 }
 
-//genEVELiveImage downloads EVE live image from docker to outputDir with configDir (if defined)
+// genEVELiveImage downloads EVE live image from docker to outputDir with configDir (if defined)
 func genEVELiveImage(image, outputDir string, format string, platform string, configDir string, size int) (fileName string, err error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", err
@@ -205,7 +204,7 @@ func genEVELiveImage(image, outputDir string, format string, platform string, co
 	return fileName, nil
 }
 
-//DownloadEveRootFS pulls EVE rootfs image from docker
+// DownloadEveRootFS pulls EVE rootfs image from docker
 func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, err error) {
 	image, err := eve.Image()
 	if err != nil {
@@ -223,7 +222,7 @@ func DownloadEveRootFS(eve EVEDescription, outputDir string) (filePath string, e
 	return filepath.Join(outputDir, filepath.Base(fileName)), nil
 }
 
-//genEVERootFSImage downloads EVE rootfs image from docker to outputDir
+// genEVERootFSImage downloads EVE rootfs image from docker to outputDir
 func genEVERootFSImage(eve EVEDescription, outputDir string, size int) (fileName string, err error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", err
@@ -269,14 +268,14 @@ func genEVERootFSImage(eve EVEDescription, outputDir string, size int) (fileName
 	if version != u {
 		log.Warningf("Versions mismatch (loaded %s vs provided %s): write correction file %s",
 			u, version, correctionFileName)
-		if err := ioutil.WriteFile(correctionFileName, []byte(u), 0755); err != nil {
+		if err := os.WriteFile(correctionFileName, []byte(u), 0755); err != nil {
 			return "", err
 		}
 	}
 	return fileName, nil
 }
 
-//DownloadEveNetBoot pulls EVE image from docker and prepares files for net boot
+// DownloadEveNetBoot pulls EVE image from docker and prepares files for net boot
 func DownloadEveNetBoot(eve EVEDescription, outputDir string) (err error) {
 	image, err := eve.Image()
 	if err != nil {

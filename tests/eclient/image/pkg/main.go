@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -69,7 +69,7 @@ func appinfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
 		return
 	}
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to read request body: %v", err)
 		fmt.Println(errStr)
@@ -91,7 +91,7 @@ func appinfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	err = ioutil.WriteFile(*appInfoFile, data, 0644)
+	err = os.WriteFile(*appInfoFile, data, 0644)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to write request body: %v", err)
 		fmt.Println(errStr)
@@ -114,7 +114,7 @@ func appinfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	appCmdMTime = cmdFile.ModTime()
-	data, err = ioutil.ReadFile(*appCmdFile)
+	data, err = os.ReadFile(*appCmdFile)
 	if err != nil {
 		errStr := fmt.Sprintf("ReadFile: %s", err)
 		fmt.Println(errStr)
@@ -155,7 +155,7 @@ func devinfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
 		return
 	}
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to read request body: %v", err)
 		fmt.Println(errStr)
@@ -177,7 +177,7 @@ func devinfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	err = ioutil.WriteFile(*devInfoFile, data, 0644)
+	err = os.WriteFile(*devInfoFile, data, 0644)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to write request body: %v", err)
 		fmt.Println(errStr)
@@ -200,7 +200,7 @@ func devinfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	devCmdMTime = cmdFile.ModTime()
-	data, err = ioutil.ReadFile(*devCmdFile)
+	data, err = os.ReadFile(*devCmdFile)
 	if err != nil {
 		errStr := fmt.Sprintf("ReadFile: %s", err)
 		fmt.Println(errStr)
@@ -238,7 +238,7 @@ func localProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
 		return
 	}
-	profileFromFile, err := ioutil.ReadFile(*profileFile)
+	profileFromFile, err := os.ReadFile(*profileFile)
 	if err != nil {
 		errStr := fmt.Sprintf("ReadFile: %s", err)
 		fmt.Println(errStr)
@@ -276,7 +276,7 @@ func radio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Publish received radio status into the file.
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to read request body: %v", err)
 		fmt.Println(errStr)
@@ -298,7 +298,7 @@ func radio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	err = ioutil.WriteFile(*radioStatusFile, data, 0644)
+	err = os.WriteFile(*radioStatusFile, data, 0644)
 	if err != nil {
 		errStr := fmt.Sprintf("WriteFile: %s", err)
 		fmt.Println(errStr)
@@ -311,7 +311,7 @@ func radio(w http.ResponseWriter, r *http.Request) {
 		// radio-silence was switched ON or OFF
 		radioSilenceCounter++
 		data := []byte(fmt.Sprintf("%d", radioSilenceCounter))
-		err := ioutil.WriteFile(*radioSilenceCounterFile, data, 0644)
+		err := os.WriteFile(*radioSilenceCounterFile, data, 0644)
 		if err != nil {
 			errStr := fmt.Sprintf("WriteFile: %s", err)
 			fmt.Println(errStr)
@@ -334,7 +334,7 @@ func radio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	radioSilenceMTime = info.ModTime()
-	data, err = ioutil.ReadFile(*radioSilenceCfgFile)
+	data, err = os.ReadFile(*radioSilenceCfgFile)
 	if err != nil {
 		errStr := fmt.Sprintf("ReadFile: %s", err)
 		fmt.Println(errStr)
@@ -369,7 +369,7 @@ func location(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
 		return
 	}
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to read request body: %v", err)
 		fmt.Println(errStr)
@@ -391,7 +391,7 @@ func location(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	err = ioutil.WriteFile(*locationFile, data, 0644)
+	err = os.WriteFile(*locationFile, data, 0644)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to write request body: %v", err)
 		fmt.Println(errStr)

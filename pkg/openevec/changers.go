@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -60,7 +59,7 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if err != nil {
 		return nil, nil, err
 	}
-	data, err := ioutil.ReadFile(ctx.fileConfig)
+	data, err := os.ReadFile(ctx.fileConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("file reading error: %w", err)
 	}
@@ -93,7 +92,7 @@ func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.C
 	if res, err = controller.VersionIncrement(res); err != nil {
 		return fmt.Errorf("VersionIncrement error: %w", err)
 	}
-	if err = ioutil.WriteFile(ctx.fileConfig, res, 0755); err != nil {
+	if err = os.WriteFile(ctx.fileConfig, res, 0755); err != nil {
 		return fmt.Errorf("WriteFile error: %w", err)
 	}
 	log.Debug("config modification done")
