@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-//GetParams parse line with regexp into map
+// GetParams parse line with regexp into map
 func GetParams(line, regEx string) (paramsMap map[string]string) {
 
 	var compRegEx = regexp.MustCompile(regEx)
@@ -22,15 +22,15 @@ func GetParams(line, regEx string) (paramsMap map[string]string) {
 	return
 }
 
-//GeneratePassword returns string with defined length and random characters
+// GeneratePassword returns string with defined length and random characters
 func GeneratePassword(length int) string {
-	rand.Seed(time.Now().UnixNano())
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"abcdefghijklmnopqrstuvwxyz" +
 		"0123456789")
 	var b strings.Builder
 	for i := 0; i < length; i++ {
-		b.WriteRune(chars[rand.Intn(len(chars))])
+		b.WriteRune(chars[rnd.Intn(len(chars))])
 	}
 	return b.String()
 }

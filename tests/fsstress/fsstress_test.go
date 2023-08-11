@@ -73,15 +73,15 @@ func TestMain(m *testing.M) {
 func setAppName() {
 	if appName == "" { //if previous appName not defined
 		if *name == "" {
-			rand.Seed(time.Now().UnixNano())
-			appName = namesgenerator.GetRandomName(0) //generates new name if no flag set
+			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			appName = namesgenerator.GetRandomName(rnd.Intn(0)) //generates new name if no flag set
 		} else {
 			appName = *name
 		}
 	}
 }
 
-//checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
+// checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
 func checkAppRunning(appName string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
@@ -95,7 +95,7 @@ func checkAppRunning(appName string) projects.ProcInfoFunc {
 	}
 }
 
-//getEVEIP wait for IPs of EVE and returns them
+// getEVEIP wait for IPs of EVE and returns them
 func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
@@ -115,7 +115,7 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	}
 }
 
-//checkAppAbsent check if APP undefined in EVE
+// checkAppAbsent check if APP undefined in EVE
 func checkAppAbsent(appName string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiDevice {
@@ -130,10 +130,10 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 	}
 }
 
-//CheckTimeWorkOfTest checks how much time is left,
-//and returns success if less than 1 minutes left
-//also it checks existence of fsstress process on VM
-//and in case of not existence or some issues with connection it fails test immediately
+// CheckTimeWorkOfTest checks how much time is left,
+// and returns success if less than 1 minutes left
+// also it checks existence of fsstress process on VM
+// and in case of not existence or some issues with connection it fails test immediately
 func CheckTimeWorkOfTest(t *testing.T, edgeNode *device.Ctx, timeStart time.Time) projects.ProcTimerFunc {
 	return func() error {
 		df := time.Since(timeStart)
@@ -167,11 +167,10 @@ func sshCommand(edgeNode *device.Ctx, command string) projects.ProcTimerFunc {
 	}
 }
 
-//TestFSStressVMStart gets EdgeNode and deploys app,
-//it generates random appName and adds processing functions
-//it checks if app processed by EVE, app in RUNNING state SSH of app is accessible
-//it uses timewait for processing all events
-//
+// TestFSStressVMStart gets EdgeNode and deploys app,
+// it generates random appName and adds processing functions
+// it checks if app processed by EVE, app in RUNNING state SSH of app is accessible
+// it uses timewait for processing all events
 func TestFSStressVMStart(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
@@ -259,7 +258,7 @@ func getAppInstanceConfig(edgeNode *device.Ctx, appName string) *config.AppInsta
 	return appInstanceConfig
 }
 
-//TestAccess checks if SSH of app is accessible
+// TestAccess checks if SSH of app is accessible
 func TestAccess(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
@@ -296,7 +295,7 @@ func TestAccess(t *testing.T) {
 	tc.WaitForProcWithErrorCallback(int(timewait.Seconds()), callback)
 }
 
-//TestRunStress run fsstress test on guest vm
+// TestRunStress run fsstress test on guest vm
 func TestRunStress(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 	timeTestStart := time.Now()
@@ -354,9 +353,9 @@ func TestRunStress(t *testing.T) {
 	tc.WaitForProcWithErrorCallback(int(timewait.Seconds()), callback)
 }
 
-//TestFSStressVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
-//it checks if app absent in EVE
-//it uses timewait for processing all events
+// TestFSStressVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
+// it checks if app absent in EVE
+// it uses timewait for processing all events
 func TestFSStressVMDelete(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
