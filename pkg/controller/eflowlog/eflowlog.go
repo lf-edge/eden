@@ -1,5 +1,5 @@
-//Package eflowlog provides primitives for searching and processing data
-//in FlowMessage files.
+// Package eflowlog provides primitives for searching and processing data
+// in FlowMessage files.
 package eflowlog
 
 import (
@@ -17,13 +17,15 @@ import (
 	"github.com/lf-edge/eve/api/go/flowlog"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"google.golang.org/protobuf/proto"
 )
 
-//FlowLogCheckerMode is FlowLogExist, FlowLogNew and FlowLogAny
+// FlowLogCheckerMode is FlowLogExist, FlowLogNew and FlowLogAny
 type FlowLogCheckerMode int
 
-//FlowLogTail returns FlowLogCheckerMode for process only defined count of last messages
+// FlowLogTail returns FlowLogCheckerMode for process only defined count of last messages
 func FlowLogTail(count uint) FlowLogCheckerMode {
 	return FlowLogCheckerMode(count)
 }
@@ -35,21 +37,22 @@ const (
 	FlowLogAny   FlowLogCheckerMode = -1 // use both mechanisms
 )
 
-//ParseFullLogEntry unmarshal FlowMessage
+// ParseFullLogEntry unmarshal FlowMessage
 func ParseFullLogEntry(data []byte) (*flowlog.FlowMessage, error) {
 	var lb flowlog.FlowMessage
 	err := proto.Unmarshal(data, &lb)
 	return &lb, err
 }
 
-//FlowLogItemPrint find FlowMessage elements by paths in 'query'
+// FlowLogItemPrint find FlowMessage elements by paths in 'query'
 func FlowLogItemPrint(le *flowlog.FlowMessage, query []string) *types.PrintResult {
 	result := make(types.PrintResult)
 	for _, v := range query {
 		// Uppercase of filed's name first letter
 		var n []string
+		caser := cases.Title(language.English)
 		for _, pathElement := range strings.Split(v, ".") {
-			n = append(n, strings.Title(pathElement))
+			n = append(n, caser.String(pathElement))
 		}
 		var clb = func(inp reflect.Value) {
 			f := fmt.Sprint(inp)
@@ -60,14 +63,15 @@ func FlowLogItemPrint(le *flowlog.FlowMessage, query []string) *types.PrintResul
 	return &result
 }
 
-//FlowLogItemFind find FlowMessage records by reqexps in 'query' corresponded to FlowMessage structure.
+// FlowLogItemFind find FlowMessage records by reqexps in 'query' corresponded to FlowMessage structure.
 func FlowLogItemFind(le *flowlog.FlowMessage, query map[string]string) bool {
 	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
 		var n []string
+		caser := cases.Title(language.English)
 		for _, pathElement := range strings.Split(k, ".") {
-			n = append(n, strings.Title(pathElement))
+			n = append(n, caser.String(pathElement))
 		}
 		var clb = func(inp reflect.Value) {
 			f := fmt.Sprint(inp)
@@ -88,7 +92,7 @@ func FlowLogItemFind(le *flowlog.FlowMessage, query map[string]string) bool {
 	return matched
 }
 
-//HandleFactory implements HandlerFunc which prints log in the provided format
+// HandleFactory implements HandlerFunc which prints log in the provided format
 func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 	return func(le *flowlog.FlowMessage) bool {
 		FlowLogPrn(le, format)
@@ -96,7 +100,7 @@ func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 	}
 }
 
-//FlowLogPrn print FlowMessage data
+// FlowLogPrn print FlowMessage data
 func FlowLogPrn(le *flowlog.FlowMessage, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
@@ -113,8 +117,8 @@ func FlowLogPrn(le *flowlog.FlowMessage, format types.OutputFormat) {
 	}
 }
 
-//HandlerFunc must process FlowMessage and return true to exit
-//or false to continue
+// HandlerFunc must process FlowMessage and return true to exit
+// or false to continue
 type HandlerFunc func(*flowlog.FlowMessage) bool
 
 func flowLogProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFunction {
@@ -143,19 +147,19 @@ func flowLogProcess(query map[string]string, handler HandlerFunc) loaders.Proces
 	}
 }
 
-//FlowLogWatch monitors the change of FlowLog files in the 'filepath' directory
-//according to the 'query' reqexps and processing using the 'handler' function.
+// FlowLogWatch monitors the change of FlowLog files in the 'filepath' directory
+// according to the 'query' reqexps and processing using the 'handler' function.
 func FlowLogWatch(loader loaders.Loader, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
 	return loader.ProcessStream(flowLogProcess(query, handler), types.FlowLogType, timeoutSeconds)
 }
 
-//FlowLogLast function process FlowLog files in the 'filepath' directory
-//according to the 'query' reqexps and return last founded item
+// FlowLogLast function process FlowLog files in the 'filepath' directory
+// according to the 'query' reqexps and return last founded item
 func FlowLogLast(loader loaders.Loader, query map[string]string, handler HandlerFunc) error {
 	return loader.ProcessExisting(flowLogProcess(query, handler), types.FlowLogType)
 }
 
-//FlowLogChecker check logs by pattern from existence files with FlowLogLast and use FlowLogWatchWithTimeout with timeout for observe new files
+// FlowLogChecker check logs by pattern from existence files with FlowLogLast and use FlowLogWatchWithTimeout with timeout for observe new files
 func FlowLogChecker(loader loaders.Loader, devUUID uuid.UUID, q map[string]string, handler HandlerFunc, mode FlowLogCheckerMode, timeout time.Duration) (err error) {
 	loader.SetUUID(devUUID)
 	done := make(chan error)
