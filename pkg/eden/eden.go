@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/lf-edge/eden/eserver/api"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -31,6 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

@@ -1,5 +1,5 @@
-//Package erequest provides primitives for searching and processing data
-//in Request files.
+// Package erequest provides primitives for searching and processing data
+// in Request files.
 package erequest
 
 import (
@@ -14,6 +14,8 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // RequestFormat the format to print output Requests
@@ -26,21 +28,22 @@ const (
 	RequestJSON
 )
 
-//ParseRequestItem apply regexp on APIRequest
+// ParseRequestItem apply regexp on APIRequest
 func ParseRequestItem(data []byte) (logItem *types.APIRequest, err error) {
 	var le types.APIRequest
 	err = json.Unmarshal(data, &le)
 	return &le, err
 }
 
-//RequestItemFind find APIRequest records by reqexps in 'query' corresponded to APIRequest structure.
+// RequestItemFind find APIRequest records by reqexps in 'query' corresponded to APIRequest structure.
 func RequestItemFind(le *types.APIRequest, query map[string]string) bool {
 	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
 		var n []string
+		caser := cases.Title(language.English)
 		for _, pathElement := range strings.Split(k, ".") {
-			n = append(n, strings.Title(pathElement))
+			n = append(n, caser.String(pathElement))
 		}
 		var clb = func(inp reflect.Value) {
 			f := fmt.Sprint(inp)
@@ -61,7 +64,7 @@ func RequestItemFind(le *types.APIRequest, query map[string]string) bool {
 	return matched
 }
 
-//RequestPrn print APIRequest data
+// RequestPrn print APIRequest data
 func RequestPrn(le *types.APIRequest, format RequestFormat) {
 	switch format {
 	case RequestJSON:
@@ -80,8 +83,8 @@ func RequestPrn(le *types.APIRequest, format RequestFormat) {
 	}
 }
 
-//HandlerFunc must process APIRequest and return true to exit
-//or false to continue
+// HandlerFunc must process APIRequest and return true to exit
+// or false to continue
 type HandlerFunc func(request *types.APIRequest) bool
 
 func requestProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFunction {
@@ -99,8 +102,8 @@ func requestProcess(query map[string]string, handler HandlerFunc) loaders.Proces
 	}
 }
 
-//RequestLast function process Request files in the 'filepath' directory
-//according to the 'query' reqexps and return last founded item
+// RequestLast function process Request files in the 'filepath' directory
+// according to the 'query' reqexps and return last founded item
 func RequestLast(loader loaders.Loader, query map[string]string, handler HandlerFunc) error {
 	return loader.ProcessExisting(requestProcess(query, handler), types.RequestType)
 }

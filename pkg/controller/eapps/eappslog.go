@@ -1,5 +1,5 @@
-//Package eapps provides primitives for searching and processing data
-//in Log files of apps.
+// Package eapps provides primitives for searching and processing data
+// in Log files of apps.
 package eapps
 
 import (
@@ -15,13 +15,15 @@ import (
 	"github.com/lf-edge/eve/api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-//LogCheckerMode is InfoExist, InfoNew and InfoAny
+// LogCheckerMode is InfoExist, InfoNew and InfoAny
 type LogCheckerMode int
 
-//LogTail returns LogCheckerMode for process only defined count of last messages
+// LogTail returns LogCheckerMode for process only defined count of last messages
 func LogTail(count uint) LogCheckerMode {
 	return LogCheckerMode(count)
 }
@@ -33,21 +35,22 @@ const (
 	LogAny   LogCheckerMode = -1 // use both mechanisms
 )
 
-//ParseLogEntry unmarshal LogEntry
+// ParseLogEntry unmarshal LogEntry
 func ParseLogEntry(data []byte) (logEntry *logs.LogEntry, err error) {
 	var le logs.LogEntry
 	err = protojson.Unmarshal(data, &le)
 	return &le, err
 }
 
-//LogItemFind find LogItem records by reqexps in 'query' corresponded to LogItem structure.
+// LogItemFind find LogItem records by reqexps in 'query' corresponded to LogItem structure.
 func LogItemFind(le *logs.LogEntry, query map[string]string) bool {
 	matched := true
 	for k, v := range query {
 		// Uppercase of filed's name first letter
 		var n []string
+		caser := cases.Title(language.English)
 		for _, pathElement := range strings.Split(k, ".") {
-			n = append(n, strings.Title(pathElement))
+			n = append(n, caser.String(pathElement))
 		}
 		var clb = func(inp reflect.Value) {
 			f := fmt.Sprint(inp)
@@ -68,7 +71,7 @@ func LogItemFind(le *logs.LogEntry, query map[string]string) bool {
 	return matched
 }
 
-//HandleFactory implements HandlerFunc which prints log in the provided format
+// HandleFactory implements HandlerFunc which prints log in the provided format
 func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 	return func(le *logs.LogEntry) bool {
 		LogPrn(le, format)
@@ -76,7 +79,7 @@ func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 	}
 }
 
-//LogPrn print Log data
+// LogPrn print Log data
 func LogPrn(le *logs.LogEntry, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
@@ -99,13 +102,14 @@ func LogPrn(le *logs.LogEntry, format types.OutputFormat) {
 	}
 }
 
-//LogItemPrint find LogItem elements by paths in 'query'
+// LogItemPrint find LogItem elements by paths in 'query'
 func LogItemPrint(le *logs.LogEntry, _ types.OutputFormat, query []string) *types.PrintResult {
 	result := make(types.PrintResult)
 	for _, v := range query {
 		var n []string
+		caser := cases.Title(language.English)
 		for _, pathElement := range strings.Split(v, ".") {
-			n = append(n, strings.Title(pathElement))
+			n = append(n, caser.String(pathElement))
 		}
 		var clb = func(inp reflect.Value) {
 			f := fmt.Sprint(inp)
@@ -116,8 +120,8 @@ func LogItemPrint(le *logs.LogEntry, _ types.OutputFormat, query []string) *type
 	return &result
 }
 
-//HandlerFunc must process LogItem and return true to exit
-//or false to continue
+// HandlerFunc must process LogItem and return true to exit
+// or false to continue
 type HandlerFunc func(*logs.LogEntry) bool
 
 func logProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFunction {
@@ -135,19 +139,19 @@ func logProcess(query map[string]string, handler HandlerFunc) loaders.ProcessFun
 	}
 }
 
-//LogWatch monitors the change of Log files in the 'filepath' directory
-//according to the 'query' reqexps and processing using the 'handler' function.
+// LogWatch monitors the change of Log files in the 'filepath' directory
+// according to the 'query' reqexps and processing using the 'handler' function.
 func LogWatch(loader loaders.Loader, query map[string]string, handler HandlerFunc, timeoutSeconds time.Duration) error {
 	return loader.ProcessStream(logProcess(query, handler), types.AppsType, timeoutSeconds)
 }
 
-//LogLast function process Log files in the 'filepath' directory
-//according to the 'query' reqexps and return last founded item
+// LogLast function process Log files in the 'filepath' directory
+// according to the 'query' reqexps and return last founded item
 func LogLast(loader loaders.Loader, query map[string]string, handler HandlerFunc) error {
 	return loader.ProcessExisting(logProcess(query, handler), types.AppsType)
 }
 
-//LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
+// LogChecker check logs by pattern from existence files with LogLast and use LogWatchWithTimeout with timeout for observe new files
 func LogChecker(loader loaders.Loader, devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler HandlerFunc, mode LogCheckerMode, timeout time.Duration) (err error) {
 	loader.SetUUID(devUUID)
 	loader.SetAppUUID(appUUID)
