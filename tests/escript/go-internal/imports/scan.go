@@ -6,7 +6,7 @@ package imports
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,9 +16,17 @@ import (
 
 // ScanDir process directory
 func ScanDir(dir string, tags map[string]bool) ([]string, []string, error) {
-	infos, err := ioutil.ReadDir(dir)
+	allInfos, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, nil, err
+	}
+	infos := make([]fs.FileInfo, 0, len(allInfos))
+	for _, eachDirEntry := range allInfos {
+		info, err := eachDirEntry.Info()
+		if err != nil {
+			return nil, nil, err
+		}
+		infos = append(infos, info)
 	}
 	var files []string
 	for _, info := range infos {
