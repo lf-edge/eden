@@ -75,22 +75,22 @@ func TestMain(m *testing.M) {
 func setAppName() {
 	if appName == "" { //if previous appName not defined
 		if *name == "" {
-			rand.Seed(time.Now().UnixNano())
-			appName = namesgenerator.GetRandomName(0) //generates new name if no flag set
+			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			appName = namesgenerator.GetRandomName(rnd.Intn(0)) //generates new name if no flag set
 		} else {
 			appName = *name
 		}
 	}
 }
 
-//getVNCPort calculate port for vnc
-//for qemu it is forwarded
-//for rpi it is direct
+// getVNCPort calculate port for vnc
+// for qemu it is forwarded
+// for rpi it is direct
 func getVNCPort(vncDisplay int) int {
 	return 5900 + vncDisplay
 }
 
-//checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
+// checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
 func checkAppRunning(t *testing.T, appName string) projects.ProcInfoFunc {
 	lastState := info.ZSwState_INVALID
 	return func(msg *info.ZInfoMsg) error {
@@ -109,7 +109,7 @@ func checkAppRunning(t *testing.T, appName string) projects.ProcInfoFunc {
 	}
 }
 
-//getEVEIP wait for IPs of EVE and returns them
+// getEVEIP wait for IPs of EVE and returns them
 func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
@@ -129,7 +129,7 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	}
 }
 
-//checkVNCAccess try to access APP via VNC with timer
+// checkVNCAccess try to access APP via VNC with timer
 func checkVNCAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemote() {
@@ -170,7 +170,7 @@ func sshCommand(edgeNode *device.Ctx, command string, foreground bool) projects.
 	}
 }
 
-//checkAppAbsent check if APP undefined in EVE
+// checkAppAbsent check if APP undefined in EVE
 func checkAppAbsent(t *testing.T, appName string) projects.ProcInfoFunc {
 	lastState := info.ZSwState_INVALID
 	return func(msg *info.ZInfoMsg) error {
@@ -194,10 +194,10 @@ func checkAppAbsent(t *testing.T, appName string) projects.ProcInfoFunc {
 	}
 }
 
-//TestVNCVMStart gets EdgeNode and deploys app, defined in appLink with VncDisplay
-//it generates random appName and adds processing functions
-//it checks if app processed by EVE, app in RUNNING state, VNC and SSH of app is accessible
-//it uses timewait for processing all events
+// TestVNCVMStart gets EdgeNode and deploys app, defined in appLink with VncDisplay
+// it generates random appName and adds processing functions
+// it checks if app processed by EVE, app in RUNNING state, VNC and SSH of app is accessible
+// it uses timewait for processing all events
 func TestVNCVMStart(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
@@ -282,7 +282,7 @@ func getAppInstanceConfig(edgeNode *device.Ctx, appName string) *config.AppInsta
 	return appInstanceConfig
 }
 
-//TestAccess checks if VNC and SSH of app is accessible
+// TestAccess checks if VNC and SSH of app is accessible
 func TestAccess(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
@@ -328,7 +328,7 @@ func TestAccess(t *testing.T) {
 
 }
 
-//TestAppLogs checks if logs of app is accessible
+// TestAppLogs checks if logs of app is accessible
 func TestAppLogs(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
@@ -371,9 +371,9 @@ func TestAppLogs(t *testing.T) {
 	tc.WaitForProc(int(timewait.Seconds()))
 }
 
-//TestVNCVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
-//it checks if app absent in EVE
-//it uses timewait for processing all events
+// TestVNCVMDelete gets EdgeNode and deletes previously deployed app, defined in appName or in name flag
+// it checks if app absent in EVE
+// it uses timewait for processing all events
 func TestVNCVMDelete(t *testing.T) {
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))

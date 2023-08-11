@@ -57,8 +57,8 @@ func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastore
 		}
 		if volumeName == "" {
 			// generate random name
-			rand.Seed(time.Now().UnixNano())
-			volumeName = namesgenerator.GetRandomName(0)
+			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			volumeName = namesgenerator.GetRandomName(rnd.Intn(0))
 		}
 		volume := &config.Volume{
 			Uuid: id.String(),

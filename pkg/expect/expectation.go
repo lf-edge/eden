@@ -18,7 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//appType is type of app according to provided appLink
+// appType is type of app according to provided appLink
 type appType int
 
 var (
@@ -29,16 +29,16 @@ var (
 	directoryApp appType = 5 //for application with files from directory
 )
 
-//ACE is an access control entry (a single entry of ACL).
+// ACE is an access control entry (a single entry of ACL).
 type ACE struct {
 	Endpoint string
 	Drop     bool
 }
 
-//ACLs is a map of access control lists assigned to network instances.
+// ACLs is a map of access control lists assigned to network instances.
 type ACLs map[string][]ACE // network instance -> ACL (list of ACEs)
 
-//AppExpectation is description of app, expected to run on EVE
+// AppExpectation is description of app, expected to run on EVE
 type AppExpectation struct {
 	ctrl        controller.Cloud
 	appType     appType
@@ -88,7 +88,7 @@ type AppExpectation struct {
 	pinCpus           bool
 }
 
-//use provided appLink to try predict format of volume
+// use provided appLink to try predict format of volume
 func tryPredictAppType(appLink string) string {
 	if len(strings.Split(appLink, "://")) < 2 {
 		fi, err := os.Stat(appLink)
@@ -108,11 +108,12 @@ func tryPredictAppType(appLink string) string {
 	return appLink
 }
 
-//AppExpectationFromURL init AppExpectation with defined:
-//   appLink - docker url to pull or link to qcow2 image or path to qcow2 image file
-//   podName - name of app
-//   device - device to set updates in volumes and content trees
-//   opts can be used to modify parameters of expectation
+// AppExpectationFromURL init AppExpectation with defined:
+//
+//	appLink - docker url to pull or link to qcow2 image or path to qcow2 image file
+//	podName - name of app
+//	device - device to set updates in volumes and content trees
+//	opts can be used to modify parameters of expectation
 func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink string, podName string, opts ...ExpectationOption) (expectation *AppExpectation) {
 	var adapter = &config.Adapter{
 		Name: "eth0",
@@ -215,8 +216,8 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 		}
 	}
 	//generate random name
-	rand.Seed(time.Now().UnixNano())
-	expectation.appName = namesgenerator.GetRandomName(0)
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	expectation.appName = namesgenerator.GetRandomName(rnd.Intn(0))
 	if podName != "" {
 		//set defined name if provided
 		expectation.appName = podName

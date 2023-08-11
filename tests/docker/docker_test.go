@@ -3,6 +3,12 @@ package lim
 import (
 	"flag"
 	"fmt"
+	"math/rand"
+	"net"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/device"
@@ -12,11 +18,6 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
-	"net"
-	"os"
-	"testing"
-	"time"
 )
 
 // This test deploys the docker://nginx app into EVE with port forwarding 8028->80
@@ -60,7 +61,7 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
-//checkAppDeployStarted wait for info of ZInfoApp type with mention of deployed AppName
+// checkAppDeployStarted wait for info of ZInfoApp type with mention of deployed AppName
 func checkAppDeployStarted(appName string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
@@ -72,7 +73,7 @@ func checkAppDeployStarted(appName string) projects.ProcInfoFunc {
 	}
 }
 
-//checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
+// checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
 func checkAppRunning(appName string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
@@ -86,7 +87,7 @@ func checkAppRunning(appName string) projects.ProcInfoFunc {
 	}
 }
 
-//getEVEIP wait for IPs of EVE and returns them
+// getEVEIP wait for IPs of EVE and returns them
 func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
@@ -106,7 +107,7 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	}
 }
 
-//checkAppAccess try to access APP with timer
+// checkAppAccess try to access APP with timer
 func checkAppAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemote() {
@@ -130,7 +131,7 @@ func checkAppAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	}
 }
 
-//checkAppAbsent check if APP undefined in EVE
+// checkAppAbsent check if APP undefined in EVE
 func checkAppAbsent(appName string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiDevice {
@@ -145,16 +146,16 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 	}
 }
 
-//TestDockerStart gets EdgeNode and deploys app, defined in appLink
-//it generates random appName and adds processing functions
-//it checks if app processed by EVE, app in RUNNING state, app is accessible by HTTP get
-//it uses timewait for processing all events
+// TestDockerStart gets EdgeNode and deploys app, defined in appLink
+// it generates random appName and adds processing functions
+// it checks if app processed by EVE, app in RUNNING state, app is accessible by HTTP get
+// it uses timewait for processing all events
 func TestDockerStart(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
 	if *name == "" {
-		rand.Seed(time.Now().UnixNano())
-		appName = namesgenerator.GetRandomName(0) //generates new name if no flag set
+		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+		appName = namesgenerator.GetRandomName(rnd.Intn(0)) //generates new name if no flag set
 	} else {
 		appName = *name
 	}
@@ -214,9 +215,9 @@ func TestDockerStart(t *testing.T) {
 	tc.WaitForProc(int(timewait.Seconds()))
 }
 
-//TestDockerDelete gets EdgeNode and deletes previously deployed app, defined in appName
-//it checks if app absent in EVE
-//it uses timewait for processing all events
+// TestDockerDelete gets EdgeNode and deletes previously deployed app, defined in appName
+// it checks if app absent in EVE
+// it uses timewait for processing all events
 func TestDockerDelete(t *testing.T) {
 
 	if appName == "" { //if previous appName not defined

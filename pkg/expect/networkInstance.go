@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//NetInstanceExpectation stores options for create NetworkInstanceConfigs for apps
+// NetInstanceExpectation stores options for create NetworkInstanceConfigs for apps
 type NetInstanceExpectation struct {
 	mac              string
 	name             string
@@ -27,7 +27,7 @@ type NetInstanceExpectation struct {
 	staticDNSEntries map[string][]string
 }
 
-//checkNetworkInstance checks if provided netInst match expectation
+// checkNetworkInstance checks if provided netInst match expectation
 func (exp *AppExpectation) checkNetworkInstance(netInst *config.NetworkInstanceConfig, instanceExpect *NetInstanceExpectation) bool {
 	if netInst == nil {
 		return false
@@ -39,7 +39,7 @@ func (exp *AppExpectation) checkNetworkInstance(netInst *config.NetworkInstanceC
 	return false
 }
 
-//createNetworkInstance creates NetworkInstanceConfig for AppExpectation
+// createNetworkInstance creates NetworkInstanceConfig for AppExpectation
 func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpectation) (*config.NetworkInstanceConfig, error) {
 	var netInst *config.NetworkInstanceConfig
 	id, err := uuid.NewV4()
@@ -82,8 +82,8 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		}
 	}
 	if instanceExpect.name == "" {
-		rand.Seed(time.Now().UnixNano())
-		instanceExpect.name = namesgenerator.GetRandomName(0)
+		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+		instanceExpect.name = namesgenerator.GetRandomName(rnd.Intn(0))
 	}
 	netInst.Displayname = instanceExpect.name
 	for hostname, ipAddrs := range instanceExpect.staticDNSEntries {
@@ -95,8 +95,8 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 	return netInst, nil
 }
 
-//NetworkInstances expects network instances in cloud
-//it iterates over NetworkInstanceConfigs from exp.netInstances, gets or creates new one, if not exists
+// NetworkInstances expects network instances in cloud
+// it iterates over NetworkInstanceConfigs from exp.netInstances, gets or creates new one, if not exists
 func (exp *AppExpectation) NetworkInstances() (networkInstances map[*NetInstanceExpectation]*config.NetworkInstanceConfig) {
 	networkInstances = make(map[*NetInstanceExpectation]*config.NetworkInstanceConfig)
 	for _, ni := range exp.netInstances {
