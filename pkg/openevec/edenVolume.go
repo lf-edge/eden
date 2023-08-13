@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
@@ -16,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func VolumeLs() error {
+func VolumeLs(outputFormat types.OutputFormat) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -29,7 +30,7 @@ func VolumeLs() error {
 	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
 		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
-	if err := state.VolumeList(); err != nil {
+	if err := state.VolumeList(outputFormat); err != nil {
 		return err
 	}
 	return nil

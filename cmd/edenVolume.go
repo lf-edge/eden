@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"github.com/dustin/go-humanize"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/thediveo/enumflag"
 )
 
 func newVolumeCmd() *cobra.Command {
@@ -31,16 +33,21 @@ func newVolumeCmd() *cobra.Command {
 }
 
 func newVolumeLsCmd() *cobra.Command {
+	var outputFormat types.OutputFormat
 	//volumeLsCmd is a command to list deployed volumes
 	var volumeLsCmd = &cobra.Command{
 		Use:   "ls",
 		Short: "List volumes",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.VolumeLs(); err != nil {
+			if err := openevec.VolumeLs(outputFormat); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
+	volumeLsCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 	return volumeLsCmd
 }
 

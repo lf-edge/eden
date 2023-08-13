@@ -1,12 +1,14 @@
 package eve
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"text/tabwriter"
 
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
@@ -17,7 +19,7 @@ import (
 type NetInstState struct {
 	Name        string
 	UUID        string
-	NetworkType config.ZNetworkInstType
+	NetworkType string
 	CIDR        string
 	Stats       string
 	AdamState   string
@@ -51,7 +53,7 @@ func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
 			AdamState:   inControllerConfig,
 			EveState:    "UNKNOWN",
 			CIDR:        ni.Ip.Subnet,
-			NetworkType: ni.InstType,
+			NetworkType: ni.InstType.String(),
 		}
 		ctx.networks[ni.Uuidandversion.Uuid] = netInstStateObj
 	}
@@ -69,7 +71,7 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 				Stats:       "-",
 				AdamState:   notInControllerConfig,
 				EveState:    "UNKNOWN",
-				NetworkType: (config.ZNetworkInstType)(int32(im.GetNiinfo().InstType)),
+				NetworkType: (config.ZNetworkInstType)(int32(im.GetNiinfo().InstType)).String(),
 			}
 			ctx.networks[im.GetNiinfo().GetNetworkID()] = netInstStateObj
 		}
@@ -120,8 +122,7 @@ func (ctx *State) processNetworksByMetric(msg *metrics.ZMetricMsg) {
 	}
 }
 
-// NetList prints networks
-func (ctx *State) NetList() error {
+func (ctx *State) printNetListLines() error {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 1, '\t', 0)
 	if _, err := fmt.Fprintln(w, netInstStateHeader()); err != nil {
@@ -138,4 +139,25 @@ func (ctx *State) NetList() error {
 		}
 	}
 	return w.Flush()
+}
+
+func (ctx *State) printNetListJSON() error {
+	result, err := json.MarshalIndent(ctx.Networks(), "", "    ")
+	if err != nil {
+		return err
+	}
+	//nolint:forbidigo
+	fmt.Println(string(result))
+	return nil
+}
+
+// NetList prints networks
+func (ctx *State) NetList(outputFormat types.OutputFormat) error {
+	switch outputFormat {
+	case types.OutputFormatLines:
+		return ctx.printNetListLines()
+	case types.OutputFormatJSON:
+		return ctx.printNetListJSON()
+	}
+	return fmt.Errorf("unimplemented output format")
 }

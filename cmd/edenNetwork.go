@@ -31,16 +31,21 @@ func newNetworkCmd() *cobra.Command {
 }
 
 func newNetworkLsCmd() *cobra.Command {
+	var outputFormat types.OutputFormat
 	//networkLsCmd is a command to list deployed network instances
 	var networkLsCmd = &cobra.Command{
 		Use:   "ls",
 		Short: "List networks",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.NetworkLs(); err != nil {
+			if err := openevec.NetworkLs(outputFormat); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
+	networkLsCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 	return networkLsCmd
 }
 
