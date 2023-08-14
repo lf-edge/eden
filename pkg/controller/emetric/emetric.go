@@ -53,7 +53,7 @@ func MetricItemPrint(mm *metrics.ZMetricMsg, query []string) *types.PrintResult 
 		}
 		// Uppercase of filed's name first letter
 		var n []string
-		caser := cases.Title(language.English)
+		caser := cases.Title(language.English, cases.NoLower)
 		for _, pathElement := range strings.Split(v, ".") {
 			n = append(n, caser.String(pathElement))
 		}
@@ -77,7 +77,7 @@ func MetricItemFind(mm *metrics.ZMetricMsg, query map[string]string) bool {
 		}
 		// Uppercase of filed's name first letter
 		var n []string
-		caser := cases.Title(language.English)
+		caser := cases.Title(language.English, cases.NoLower)
 		for _, pathElement := range strings.Split(k, ".") {
 			n = append(n, caser.String(pathElement))
 		}
