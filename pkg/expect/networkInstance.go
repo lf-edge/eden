@@ -83,7 +83,7 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 	}
 	if instanceExpect.name == "" {
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-		instanceExpect.name = namesgenerator.GetRandomName(rnd.Intn(0))
+		instanceExpect.name = namesgenerator.GetRandomName(rnd.Intn(1))
 	}
 	netInst.Displayname = instanceExpect.name
 	for hostname, ipAddrs := range instanceExpect.staticDNSEntries {
