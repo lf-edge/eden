@@ -76,7 +76,7 @@ func setAppName() {
 	if appName == "" { //if previous appName not defined
 		if *name == "" {
 			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-			appName = namesgenerator.GetRandomName(rnd.Intn(0)) //generates new name if no flag set
+			appName = namesgenerator.GetRandomName(rnd.Intn(1)) //generates new name if no flag set
 		} else {
 			appName = *name
 		}

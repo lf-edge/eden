@@ -217,7 +217,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	}
 	//generate random name
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	expectation.appName = namesgenerator.GetRandomName(rnd.Intn(0))
+	expectation.appName = namesgenerator.GetRandomName(rnd.Intn(1))
 	if podName != "" {
 		//set defined name if provided
 		expectation.appName = podName
