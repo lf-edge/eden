@@ -41,7 +41,7 @@ func RequestItemFind(le *types.APIRequest, query map[string]string) bool {
 	for k, v := range query {
 		// Uppercase of filed's name first letter
 		var n []string
-		caser := cases.Title(language.English)
+		caser := cases.Title(language.English, cases.NoLower)
 		for _, pathElement := range strings.Split(k, ".") {
 			n = append(n, caser.String(pathElement))
 		}

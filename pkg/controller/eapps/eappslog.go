@@ -48,7 +48,7 @@ func LogItemFind(le *logs.LogEntry, query map[string]string) bool {
 	for k, v := range query {
 		// Uppercase of filed's name first letter
 		var n []string
-		caser := cases.Title(language.English)
+		caser := cases.Title(language.English, cases.NoLower)
 		for _, pathElement := range strings.Split(k, ".") {
 			n = append(n, caser.String(pathElement))
 		}
@@ -107,7 +107,7 @@ func LogItemPrint(le *logs.LogEntry, _ types.OutputFormat, query []string) *type
 	result := make(types.PrintResult)
 	for _, v := range query {
 		var n []string
-		caser := cases.Title(language.English)
+		caser := cases.Title(language.English, cases.NoLower)
 		for _, pathElement := range strings.Split(v, ".") {
 			n = append(n, caser.String(pathElement))
 		}
