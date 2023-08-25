@@ -149,7 +149,7 @@ func PodDeploy(appLink string, pc PodConfig, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func PodPs(_ *EdenSetupArgs) error {
+func PodPs(_ *EdenSetupArgs, outputFormat types.OutputFormat) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDev()
 	if err != nil {
@@ -162,7 +162,7 @@ func PodPs(_ *EdenSetupArgs) error {
 	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
 		return fmt.Errorf("fail in get MetricLastCallback: %w", err)
 	}
-	if err := state.PodsList(); err != nil {
+	if err := state.PodsList(outputFormat); err != nil {
 		return err
 	}
 	return nil

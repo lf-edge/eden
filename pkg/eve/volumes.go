@@ -1,6 +1,7 @@
 package eve
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -9,18 +10,19 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 )
 
-//VolInstState stores state of volumes
+// VolInstState stores state of volumes
 type VolInstState struct {
 	Name          string
 	UUID          string
 	Image         string
-	VolumeType    config.Format
+	VolumeType    string
 	Size          string
 	MaxSize       string
 	AdamState     string
@@ -29,7 +31,7 @@ type VolInstState struct {
 	Ref           string
 	contentTreeID string
 	MountPoint    string
-	originType    config.VolumeContentOriginType
+	OriginType    string
 	deleted       bool
 }
 
@@ -86,7 +88,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			Name:          vi.GetDisplayName(),
 			UUID:          vi.GetUuid(),
 			Image:         image,
-			VolumeType:    iFormat,
+			VolumeType:    iFormat.String(),
 			AdamState:     inControllerConfig,
 			EveState:      "UNKNOWN",
 			Size:          "-",
@@ -94,7 +96,7 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			MountPoint:    strings.Join(mountPoint, ";"),
 			Ref:           strings.Join(ref, ";"),
 			contentTreeID: contentTreeID,
-			originType:    vi.GetOrigin().GetType(),
+			OriginType:    vi.GetOrigin().GetType().String(),
 		}
 		ctx.volumes[vi.GetUuid()] = volInstStateObj
 	}
@@ -121,8 +123,8 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		}
 		volInstStateObj.deleted =
 			infoObject.DisplayName == "" || infoObject.State == info.ZSwState_INVALID
-		if volInstStateObj.VolumeType != config.Format_FmtUnknown &&
-			volInstStateObj.VolumeType != config.Format_CONTAINER {
+		if volInstStateObj.VolumeType != config.Format_FmtUnknown.String() &&
+			volInstStateObj.VolumeType != config.Format_CONTAINER.String() {
 			//we cannot use limits for container or unknown types
 			if infoObject.GetResources() != nil {
 				//MaxSizeBytes to show in MAX_SIZE column
@@ -136,7 +138,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		} else {
 			volInstStateObj.LastError = ""
 		}
-		if volInstStateObj.originType == config.VolumeContentOriginType_VCOT_BLANK {
+		if volInstStateObj.OriginType == config.VolumeContentOriginType_VCOT_BLANK.String() {
 			volInstStateObj.EveState = infoObject.GetState().String()
 		}
 	case info.ZInfoTypes_ZiContentTree:
@@ -167,9 +169,7 @@ func (ctx *State) processVolumesByMetric(msg *metrics.ZMetricMsg) {
 		}
 	}
 }
-
-//VolumeList prints volumes
-func (ctx *State) VolumeList() error {
+func (ctx *State) printVolumeListLines() error {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 1, '\t', 0)
 	if _, err := fmt.Fprintln(w, volInstStateHeader()); err != nil {
@@ -186,4 +186,25 @@ func (ctx *State) VolumeList() error {
 		}
 	}
 	return w.Flush()
+}
+
+func (ctx *State) printVolumeListJSON() error {
+	result, err := json.MarshalIndent(ctx.Volumes(), "", "    ")
+	if err != nil {
+		return err
+	}
+	//nolint:forbidigo
+	fmt.Println(string(result))
+	return nil
+}
+
+// VolumeList prints volumes
+func (ctx *State) VolumeList(outputFormat types.OutputFormat) error {
+	switch outputFormat {
+	case types.OutputFormatLines:
+		return ctx.printVolumeListLines()
+	case types.OutputFormatJSON:
+		return ctx.printVolumeListJSON()
+	}
+	return fmt.Errorf("unimplemented output format")
 }

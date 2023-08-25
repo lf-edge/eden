@@ -127,15 +127,20 @@ You can set access VLAN ID (VID) for a particular network in the format '<networ
 }
 
 func newPodPsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var outputFormat types.OutputFormat
 	var podPsCmd = &cobra.Command{
 		Use:   "ps",
 		Short: "List pods",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.PodPs(cfg); err != nil {
+			if err := openevec.PodPs(cfg, outputFormat); err != nil {
 				log.Fatalf("EVE pod deploy failed: %s", err)
 			}
 		},
 	}
+	podPsCmd.Flags().Var(
+		enumflag.New(&outputFormat, "format", outputFormatIds, enumflag.EnumCaseInsensitive),
+		"format",
+		"Format to print logs, supports: lines, json")
 
 	return podPsCmd
 }

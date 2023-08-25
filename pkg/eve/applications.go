@@ -1,6 +1,7 @@
 package eve
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -11,13 +12,14 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 )
 
-//AppInstState stores state of app
+// AppInstState stores state of app
 type AppInstState struct {
 	Name         string
 	UUID         string
@@ -28,11 +30,16 @@ type AppInstState struct {
 	ExternalIP   string
 	InternalPort string
 	ExternalPort string
-	Memory       string
-	macs         []string
-	volumes      map[string]uint32
-	deleted      bool
-	infoTime     time.Time
+	MemoryUsed   uint32
+	MemoryAvail  uint32
+	CPUUsage     int
+	Macs         []string
+	Volumes      map[string]uint32
+
+	prevCPUNS     uint64
+	prevCPUNSTime time.Time
+	deleted       bool
+	infoTime      time.Time
 }
 
 func appStateHeader() string {
@@ -66,9 +73,12 @@ func (appStateObj *AppInstState) toString() string {
 	if appStateObj.ExternalPort == "" {
 		external = "-"
 	}
+	memory := fmt.Sprintf("%s/%s",
+		humanize.Bytes((uint64)(appStateObj.MemoryUsed*humanize.MByte)),
+		humanize.Bytes((uint64)(appStateObj.MemoryAvail*humanize.MByte)))
 	return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
 		appStateObj.Name, appStateObj.Image, appStateObj.UUID,
-		internal, external, appStateObj.Memory,
+		internal, external, memory,
 		appStateObj.AdamState, appStateObj.EVEState)
 }
 
@@ -131,7 +141,7 @@ func (ctx *State) initApplications(ctrl controller.Cloud, dev *device.Ctx) error
 			ExternalIP:   "-",
 			InternalPort: intPort,
 			ExternalPort: extPort,
-			volumes:      volumes,
+			Volumes:      volumes,
 			UUID:         app.Uuidandversion.Uuid,
 		}
 		ctx.applications[app.Uuidandversion.Uuid] = appStateObj
@@ -144,9 +154,14 @@ func (ctx *State) processApplicationsByMetric(msg *metrics.ZMetricMsg) {
 		for _, appMetric := range appMetrics {
 			for _, el := range ctx.applications {
 				if appMetric.AppID == el.UUID {
-					el.Memory = fmt.Sprintf("%s/%s",
-						humanize.Bytes((uint64)(appMetric.Memory.GetUsedMem()*humanize.MByte)),
-						humanize.Bytes((uint64)(appMetric.Memory.GetAvailMem()*humanize.MByte)))
+					el.MemoryAvail = appMetric.Memory.GetAvailMem()
+					el.MemoryUsed = appMetric.Memory.GetUsedMem()
+					// if not restarted
+					if el.prevCPUNS < appMetric.Cpu.TotalNs {
+						el.CPUUsage = int(float32(appMetric.Cpu.TotalNs-el.prevCPUNS) / float32(msg.GetAtTimeStamp().AsTime().Sub(el.prevCPUNSTime).Nanoseconds()) * 100.0)
+					}
+					el.prevCPUNS = appMetric.Cpu.TotalNs
+					el.prevCPUNSTime = msg.GetAtTimeStamp().AsTime()
 					break
 				}
 			}
@@ -158,19 +173,19 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 	switch im.GetZtype() {
 	case info.ZInfoTypes_ZiVolume:
 		for _, app := range ctx.applications {
-			if len(app.volumes) == 0 {
+			if len(app.Volumes) == 0 {
 				continue
 			}
 			var percent uint32
-			for vol := range app.volumes {
-				percent += app.volumes[vol] //we sum all percents of all volumes and will divide them by count
+			for vol := range app.Volumes {
+				percent += app.Volumes[vol] //we sum all percents of all volumes and will divide them by count
 				if im.GetVinfo().Uuid == vol {
-					app.volumes[vol] = im.GetVinfo().ProgressPercentage
+					app.Volumes[vol] = im.GetVinfo().ProgressPercentage
 					break
 				}
 			}
 			if strings.HasPrefix(app.EVEState, info.ZSwState_DOWNLOAD_STARTED.String()) {
-				app.EVEState = fmt.Sprintf("%s (%d%%)", info.ZSwState_DOWNLOAD_STARTED.String(), int(percent)/len(app.volumes))
+				app.EVEState = fmt.Sprintf("%s (%d%%)", info.ZSwState_DOWNLOAD_STARTED.String(), int(percent)/len(app.Volumes))
 			}
 		}
 	case info.ZInfoTypes_ZiApp:
@@ -192,22 +207,22 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 		if len(im.GetAinfo().Network) != 0 && len(im.GetAinfo().Network[0].IPAddrs) != 0 {
 			if len(im.GetAinfo().Network) > 1 {
 				appStateObj.InternalIP = []string{}
-				appStateObj.macs = []string{}
+				appStateObj.Macs = []string{}
 				for _, el := range im.GetAinfo().Network {
 					if len(el.IPAddrs) != 0 {
 						appStateObj.InternalIP = append(appStateObj.InternalIP, el.IPAddrs[0])
-						appStateObj.macs = append(appStateObj.macs, el.MacAddr)
+						appStateObj.Macs = append(appStateObj.Macs, el.MacAddr)
 					}
 				}
 			} else {
 				if len(im.GetAinfo().Network[0].IPAddrs) != 0 {
 					appStateObj.InternalIP = []string{im.GetAinfo().Network[0].IPAddrs[0]}
-					appStateObj.macs = []string{im.GetAinfo().Network[0].MacAddr}
+					appStateObj.Macs = []string{im.GetAinfo().Network[0].MacAddr}
 				}
 			}
 		} else {
 			appStateObj.InternalIP = []string{"-"}
-			appStateObj.macs = []string{}
+			appStateObj.Macs = []string{}
 		}
 		//check appStateObj not defined in adam
 		if appStateObj.AdamState != inControllerConfig {
@@ -222,7 +237,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 	case info.ZInfoTypes_ZiNetworkInstance: //try to find ips from NetworkInstances
 		for _, el := range im.GetNiinfo().IpAssignments {
 			for _, appStateObj := range ctx.applications {
-				for ind, mac := range appStateObj.macs {
+				for ind, mac := range appStateObj.Macs {
 					if mac == el.MacAddress {
 						appStateObj.InternalIP[ind] = el.IpAddress[0]
 					}
@@ -283,8 +298,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 	}
 }
 
-//PodsList prints applications
-func (ctx *State) PodsList() error {
+func (ctx *State) printPodListLines() error {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 1, '\t', 0)
 	if _, err := fmt.Fprintln(w, appStateHeader()); err != nil {
@@ -301,4 +315,25 @@ func (ctx *State) PodsList() error {
 		}
 	}
 	return w.Flush()
+}
+
+func (ctx *State) printPodListJSON() error {
+	result, err := json.MarshalIndent(ctx.Applications(), "", "    ")
+	if err != nil {
+		return err
+	}
+	//nolint:forbidigo
+	fmt.Println(string(result))
+	return nil
+}
+
+// PodsList prints applications
+func (ctx *State) PodsList(outputFormat types.OutputFormat) error {
+	switch outputFormat {
+	case types.OutputFormatLines:
+		return ctx.printPodListLines()
+	case types.OutputFormatJSON:
+		return ctx.printPodListJSON()
+	}
+	return fmt.Errorf("unimplemented output format")
 }
