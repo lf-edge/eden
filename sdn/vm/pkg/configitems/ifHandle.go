@@ -3,9 +3,9 @@ package configitems
 import (
 	"context"
 	"fmt"
-	"github.com/lf-edge/eden/sdn/vm/pkg/maclookup"
 	"net"
 
+	"github.com/lf-edge/eden/sdn/vm/pkg/maclookup"
 	"github.com/lf-edge/eve/libs/depgraph"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"

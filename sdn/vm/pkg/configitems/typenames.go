@@ -36,4 +36,6 @@ const (
 	HTTPProxyTypename = "HTTP-Proxy"
 	// HTTPServerTypename : typename for HTTP server.
 	HTTPServerTypename = "HTTP-Server"
+	// TrafficControlTypename : typename for TC rules applied to physical interface.
+	TrafficControlTypename = "Traffic-Control"
 )

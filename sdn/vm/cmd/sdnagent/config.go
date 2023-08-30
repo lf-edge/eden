@@ -20,6 +20,7 @@ const (
 	// *SG are names of sub-graphs.
 	configGraphName    = "SDN-Config"
 	physicalIfsSG      = "Physical-Interfaces"
+	trafficControlSG   = "Traffic-Control"
 	hostConnectivitySG = "Host-Connectivity"
 	bridgesSG          = "Bridges"
 	firewallSG         = "Firewall"
@@ -92,6 +93,7 @@ func (a *agent) updateIntendedState() {
 	a.intendedState = dg.New(graphArgs)
 	a.intendedState.PutSubGraph(a.getIntendedPhysIfs())
 	a.intendedState.PutSubGraph(a.getIntendedHostConnectivity())
+	a.intendedState.PutSubGraph(a.getIntendedTrafficControl())
 	a.intendedState.PutSubGraph(a.getIntendedBridges())
 	a.intendedState.PutSubGraph(a.getIntendedFirewall())
 	for _, network := range a.netModel.Networks {
@@ -180,6 +182,27 @@ func (a *agent) getIntendedHostConnectivity() dg.Graph {
 			},
 		},
 	}, nil)
+	return intendedCfg
+}
+
+func (a *agent) getIntendedTrafficControl() dg.Graph {
+	graphArgs := dg.InitArgs{Name: trafficControlSG}
+	intendedCfg := dg.New(graphArgs)
+	emptyTC := api.TrafficControl{}
+	for _, port := range a.netModel.Ports {
+		if port.TC == emptyTC {
+			continue
+		}
+		// MAC address is already validated
+		mac, _ := net.ParseMAC(port.MAC)
+		intendedCfg.PutItem(configitems.TrafficControl{
+			TrafficControl: port.TC,
+			PhysIf: configitems.PhysIf{
+				LogicalLabel: port.LogicalLabel,
+				MAC:          mac,
+			},
+		}, nil)
+	}
 	return intendedCfg
 }
 

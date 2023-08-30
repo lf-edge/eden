@@ -120,6 +120,22 @@ func (a *agent) validatePorts(netModel *parsedNetModel) (err error) {
 			return
 		}
 	}
+
+	// QueueLimit and BurstLimit are mandatory when RateLimit is set.
+	for _, port := range netModel.Ports {
+		if port.TC.RateLimit != 0 {
+			if port.TC.QueueLimit == 0 {
+				err = fmt.Errorf("RateLimit set for port %s without QueueLimit",
+					port.LogicalLabel)
+				return
+			}
+			if port.TC.BurstLimit == 0 {
+				err = fmt.Errorf("RateLimit set for port %s without BurstLimit",
+					port.LogicalLabel)
+				return
+			}
+		}
+	}
 	return nil
 }
 
