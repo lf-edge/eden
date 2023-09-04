@@ -236,6 +236,10 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 		appStateObj.infoTime = im.AtTimeStamp.AsTime()
 	case info.ZInfoTypes_ZiNetworkInstance: //try to find ips from NetworkInstances
 		for _, el := range im.GetNiinfo().IpAssignments {
+			// nothing to show if no IpAddress received
+			if len(el.IpAddress) == 0 {
+				continue
+			}
 			for _, appStateObj := range ctx.applications {
 				for ind, mac := range appStateObj.Macs {
 					if mac == el.MacAddress {
