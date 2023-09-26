@@ -1,0 +1,73 @@
+# Here we test two application configurations that cannot coexist at the same time.
+# First, we deploy application app1 into network with only one free IP address
+# and then try to deploy another application into the same network. The second
+# application should stay in the error state as long as the first app exist.
+# However, once the first application is deleted, the second application should be
+# automatically deployed and take the IP of the removed first app.
+# In the second part of the test we replace application with another within the same
+# config iteration. EVE should first remove the obsolete application before deploying
+# the new one, otherwise it will fail to allocate IP address (since only one IP address
+# is available at a time).
+
+[!exec:jq] stop
+[!exec:grep] stop
+[!exec:bash] stop
+[!exec:uuidgen] stop
+
+# Starting of reboot detector with a 1 reboot limit
+! test eden.reboot.test -test.v -timewait=0 -reboot=0 -count=1 &
+
+message 'Resetting of EVE'
+eden eve reset
+exec sleep 30
+
+# Create network with only single IP address left for allocation for applications.
+# Note that one IP is used for the bridge.
+eden -t 1m network create 10.11.12.0/30 -n n1
+test eden.network.test -test.v -timewait 10m ACTIVATED n1
+
+# Deploy application that will use the only IP address available
+eden -t 1m pod deploy -n app1 -p 8027:80 docker://nginx --networks=n1 --memory 512MB
+test eden.app.test -test.v -timewait 10m RUNNING app1
+
+# Try to deploy another application, but there is no free IP left.
+eden -t 1m pod deploy -n app2 -p 8028:80 docker://nginx --networks=n1 --memory 512MB
+exec -t 5m bash wait_for_app_error.sh app2 'no free IP addresses in DHCP range'
+
+# Now undeploy the first app and the second one should come up.
+eden pod delete app1
+test eden.app.test -test.v -timewait 10m - app1
+test eden.app.test -test.v -timewait 10m RUNNING app2
+
+# Change the second app UUID which is effectively the same as replacing
+# one application with another in one config iteration.
+exec -t 5m bash change-app-uuid.sh app2
+test eden.app.test -test.v -timewait 5m RUNNING app2
+
+# Cleanup.
+eden pod delete app2
+test eden.app.test -test.v -timewait 10m - app2
+eden -t 1m network delete n1
+test eden.network.test -test.v -timewait 2m - n1
+
+-- wait_for_app_error.sh --
+#!/bin/sh
+
+APP="$1"
+ERR="$2"
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+until $EDEN pod ps | grep "^$APP" | grep "$ERR"; do sleep 3; done
+
+-- change-app-uuid.sh --
+#!/bin/sh
+
+APP="$1"
+NEW_UUID="$(uuidgen)"
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN controller edge-node get-config --file device.cfg
+UUID=$(jq -r '.apps[] | select(.displayname == "'$APP'") | .uuidandversion.uuid' < device.cfg)
+sed -i "s/\"uuid\": \"$UUID\"/\"uuid\": \"$NEW_UUID\"/" device.cfg
+$EDEN controller edge-node set-config --file device.cfg
+while $EDEN pod ps | grep $UUID; do sleep 3; done
