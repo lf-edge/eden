@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 8}}
+{{$tests := 9}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -38,8 +38,11 @@ eden.escript.test -testdata ../docker/testdata/ -test.run TestEdenScripts/2docke
 /bin/echo Eden 2 dockers test with app state detector (6/{{$tests}})
 eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_test
 
-/bin/echo Eden Mariadb (7/{{$tests}})
+/bin/echo Testing replacement of one application with another (7/{{$tests}})
+eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/app_replace_test
+
+/bin/echo Eden Mariadb (8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
 
-/bin/echo Eden nodered (8/{{$tests}})
+/bin/echo Eden nodered (9/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nodered

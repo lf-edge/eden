@@ -158,8 +158,10 @@ eden.escript.test -testdata ../registry/testdata/ -test.run TestEdenScripts/regi
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-gapped-switch
 /bin/echo Eden 2 dockers test (26/{{$tests}})
 eden.escript.test -testdata ../docker/testdata/ -test.run TestEdenScripts/2dockers_test
-/bin/echo Eden 2 dockers test with app state detector (27/{{$tests}})
+/bin/echo Eden 2 dockers test with app state detector (27.1/{{$tests}})
 eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_test
+/bin/echo Testing replacement of one application with another (27.2/{{$tests}})
+eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/app_replace_test
 /bin/echo Eden Nginx (28/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ngnix
 
