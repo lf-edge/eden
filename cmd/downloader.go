@@ -69,6 +69,7 @@ func newDownloadEVERootFSCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	downloadEVERootFSCmd.Flags().StringVarP(&cfg.Eve.Tag, "eve-tag", "", defaults.DefaultEVETag, "tag to download")
 	downloadEVERootFSCmd.Flags().StringVarP(&cfg.Eve.Arch, "eve-arch", "", runtime.GOARCH, "arch of EVE")
 	downloadEVERootFSCmd.Flags().StringVarP(&cfg.Eve.HV, "eve-hv", "", defaults.DefaultEVEHV, "HV of EVE (kvm or xen)")
+	downloadEVERootFSCmd.Flags().StringVarP(&cfg.Eve.Registry, "eve-registry", "", defaults.DefaultEveRegistry, "eve registry to download image from (default lf-edge/eve)")
 	downloadEVERootFSCmd.Flags().StringVarP(&outputDir, "downloader-dist", "d", "", "output directory")
 
 	return downloadEVERootFSCmd
@@ -93,6 +94,7 @@ func newDownloadEVECmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	downloadEVECmd.Flags().StringVarP(&cfg.Eve.ImageFile, "image-file", "i", "", "path for image drive")
 	downloadEVECmd.Flags().StringVarP(&cfg.Adam.Dist, "adam-dist", "", cfg.Adam.Dist, "adam dist to start")
 	downloadEVECmd.Flags().IntVar(&cfg.Eve.ImageSizeMB, "image-size", defaults.DefaultEVEImageSize, "Image size of EVE in MB")
+	downloadEVECmd.Flags().StringVarP(&cfg.Eve.Registry, "eve-registry", "", defaults.DefaultEveRegistry, "eve registry to download image from (default lf-edge/eve)")
 
 	return downloadEVECmd
 }
