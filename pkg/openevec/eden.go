@@ -23,6 +23,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
+	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/flowlog"
@@ -824,6 +825,50 @@ func (openEVEC *OpenEVEC) EdenImport(tarFile string, rewriteRoot bool) error {
 		log.Info("Device already exists")
 	}
 
+	return nil
+}
+
+// EdenPrune removes data from the controller
+//
+//nolint:cyclop
+func (openEVEC *OpenEVEC) EdenPrune() error {
+	changer := &adamChanger{}
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
+	}
+	state := eve.Init(ctrl, dev)
+	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
+	}
+	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
+		return fmt.Errorf("fail in get MetricLastCallback: %w", err)
+	}
+	err = state.Store()
+	if err != nil {
+		return fmt.Errorf("state.Store: %w", err)
+	}
+	if err := ctrl.CleanInfo(dev.GetID()); err != nil {
+		return fmt.Errorf("fail in ctrl CleanInfo: %w", err)
+	}
+	if err := ctrl.CleanMetrics(dev.GetID()); err != nil {
+		return fmt.Errorf("fail in ctrl CleanMetrics: %w", err)
+	}
+	if err := ctrl.CleanLogs(dev.GetID()); err != nil {
+		return fmt.Errorf("fail in ctrl CleanLogs: %w", err)
+	}
+	if err := ctrl.CleanFlowLogs(dev.GetID()); err != nil {
+		return fmt.Errorf("fail in ctrl CleanFlowLogs: %w", err)
+	}
+	for _, el := range dev.GetApplicationInstances() {
+		appUUID, err := uuid.FromString(el)
+		if err != nil {
+			return err
+		}
+		if err := ctrl.CleanAppLogs(dev.GetID(), appUUID); err != nil {
+			return fmt.Errorf("fail in ctrl CleanAppLogs: %w", err)
+		}
+	}
 	return nil
 }
 

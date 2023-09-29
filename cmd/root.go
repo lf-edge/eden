@@ -36,6 +36,7 @@ func NewEdenCommand() *cobra.Command {
 				newCleanCmd(&configName, &verbosity),
 				newConfigCmd(&configName, &verbosity),
 				newSdnCmd(&configName, &verbosity),
+				newPruneCmd(&configName, &verbosity),
 			},
 		},
 		{

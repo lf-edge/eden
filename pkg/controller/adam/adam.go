@@ -1,6 +1,7 @@
 package adam
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v9"
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/eflowlog"
@@ -404,4 +406,67 @@ func (adam *Ctx) GetGlobalOptions() (*types.GlobalOptions, error) {
 		return nil, err
 	}
 	return &globalOptions, nil
+}
+
+func (adam *Ctx) cleanRedisStream(stream string) error {
+	addr, password, databaseID, err := parseRedisURL(adam.AdamRedisURLEden)
+	if err != nil {
+		return err
+	}
+	client := redis.NewClient(&redis.Options{
+		Addr:            addr,
+		Password:        password,
+		DB:              databaseID,
+		MaxRetries:      defaults.DefaultRepeatCount,
+		MinRetryBackoff: defaults.DefaultRepeatTimeout / 2,
+		MaxRetryBackoff: defaults.DefaultRepeatTimeout * 2,
+	})
+	n, err := client.XTrimMaxLenApprox(context.TODO(), stream, 0, 0).Result()
+	log.Debugf("XTrimMaxLenApprox(%s): %d", stream, n)
+	return err
+}
+
+// CleanInfo removes all info messages of device from controller
+func (adam *Ctx) CleanInfo(devUUID uuid.UUID) (err error) {
+	if adam.AdamRemoteRedis {
+		stream := adam.getInfoRedisStream(devUUID)
+		return adam.cleanRedisStream(stream)
+	}
+	panic("implement me")
+}
+
+// CleanMetrics removes all metric messages of device from controller
+func (adam *Ctx) CleanMetrics(devUUID uuid.UUID) (err error) {
+	if adam.AdamRemoteRedis {
+		stream := adam.getMetricsRedisStream(devUUID)
+		return adam.cleanRedisStream(stream)
+	}
+	panic("implement me")
+}
+
+// CleanLogs removes all logs messages of device from controller
+func (adam *Ctx) CleanLogs(devUUID uuid.UUID) (err error) {
+	if adam.AdamRemoteRedis {
+		stream := adam.getLogsRedisStream(devUUID)
+		return adam.cleanRedisStream(stream)
+	}
+	panic("implement me")
+}
+
+// CleanFlowLogs removes all flow logs messages of device from controller
+func (adam *Ctx) CleanFlowLogs(devUUID uuid.UUID) (err error) {
+	if adam.AdamRemoteRedis {
+		stream := adam.getFlowLogRedisStream(devUUID)
+		return adam.cleanRedisStream(stream)
+	}
+	panic("implement me")
+}
+
+// CleanAppLogs removes all app logs messages of app of device from controller
+func (adam *Ctx) CleanAppLogs(devUUID uuid.UUID, appUUID uuid.UUID) (err error) {
+	if adam.AdamRemoteRedis {
+		stream := adam.getAppsLogsRedisStream(devUUID, appUUID)
+		return adam.cleanRedisStream(stream)
+	}
+	panic("implement me")
 }

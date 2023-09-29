@@ -23,7 +23,7 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := openEVEC.EdenClean(*configName, configDist, vmName, currentContext); err != nil {
-				log.Fatalf("Setup eden failed: %s", err)
+				log.Fatalf("Clean eden failed: %s", err)
 			}
 		},
 	}
@@ -53,4 +53,22 @@ func newCleanCmd(configName, verbosity *string) *cobra.Command {
 	addSdnPidOpt(cleanCmd, cfg)
 
 	return cleanCmd
+}
+
+func newPruneCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
+
+	var pruneCmd = &cobra.Command{
+		Use:               "prune",
+		Short:             "prune stored objects from the controller. Please save them before.",
+		Long:              `Prune stored objects from the controller. Please save them before.`,
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openEVEC.EdenPrune(); err != nil {
+				log.Fatalf("Prune eden failed: %s", err)
+			}
+		},
+	}
+
+	return pruneCmd
 }

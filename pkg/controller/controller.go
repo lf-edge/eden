@@ -15,7 +15,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-//Controller is an interface of controller
+// Controller is an interface of controller
 type Controller interface {
 	CertsGet(devUUID uuid.UUID) (out string, err error)
 	ConfigGet(devUUID uuid.UUID) (out string, err error)
@@ -28,6 +28,11 @@ type Controller interface {
 	FlowLogLastCallback(devUUID uuid.UUID, q map[string]string, handler eflowlog.HandlerFunc) (err error)
 	InfoChecker(devUUID uuid.UUID, q map[string]string, handler einfo.HandlerFunc, mode einfo.InfoCheckerMode, timeout time.Duration) (err error)
 	InfoLastCallback(devUUID uuid.UUID, q map[string]string, handler einfo.HandlerFunc) (err error)
+	CleanInfo(devUUID uuid.UUID) (err error)
+	CleanMetrics(devUUID uuid.UUID) (err error)
+	CleanLogs(devUUID uuid.UUID) (err error)
+	CleanFlowLogs(devUUID uuid.UUID) (err error)
+	CleanAppLogs(devUUID uuid.UUID, appUUID uuid.UUID) (err error)
 	MetricChecker(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc, mode emetric.MetricCheckerMode, timeout time.Duration) (err error)
 	MetricLastCallback(devUUID uuid.UUID, q map[string]string, handler emetric.HandlerFunc) (err error)
 	RequestLastCallback(devUUID uuid.UUID, q map[string]string, handler erequest.HandlerFunc) (err error)
