@@ -1,5 +1,8 @@
 # Default EVE version to update
-{{$eve_ver := "8.7.0"}}
+{{$eve_ver := "9.7.0"}}
+
+# Default EVE registry to update
+{{$eve_registry := "lfedge/eve"}}
 
 # Obtain EVE version from environment variable EVE_VERSION
 {{$env := EdenGetEnv "EVE_VERSION"}}
@@ -25,7 +28,7 @@ eden controller edge-node update --config timer.test.baseimage.update=30
 
 # Download EVE rootfs into eve-dist
 message 'EVE image download'
-eden -t 10m utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{$eve_hv}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+eden -t 10m utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{$eve_hv}} --eve-registry={{$eve_registry}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
 
 # Check stdout of previous command. Expected to get full path to squashfs
 stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs'
