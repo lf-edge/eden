@@ -59,11 +59,9 @@ jobs:
         run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -v debug
       - name: Collect info
         if: ${{ failure() }}
-        run: |
-          # Do not pollute console logs which are collected by publish-logs action.
-          cp dist/default-eve.log dist/default-eve.log.backup || true
-          ./shell-scripts/collect-info-ssh.sh || ./shell-scripts/collect-info-console.sh 120
-          cp dist/default-eve.log.backup dist/default-eve.log || true
+        uses: ./.github/actions/collect-info
+        with:
+          working-directory: ${{ github.workspace }}
       - name: Collect logs
         if: ${{ always() }}
         run: |

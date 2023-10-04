@@ -1,6 +1,9 @@
 name: 'Collect and store debug info'
 description: 'Collect debug info using EVE script executed via ssh or console and store downloaded tarball under the specified file name'
-
+inputs:
+  working-directory:
+    description: 'Working directory of action'
+    default: "./eden"
 runs:
   using: 'composite'
   steps:
@@ -11,4 +14,4 @@ runs:
         ./shell-scripts/collect-info-ssh.sh || ./shell-scripts/collect-info-console.sh 120
         cp dist/default-eve.log.backup dist/default-eve.log || true
       shell: bash
-      working-directory: "./eden"
+      working-directory: ${{ inputs.working-directory }}
