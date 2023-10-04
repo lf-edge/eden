@@ -34,8 +34,7 @@ runs:
       if: always()
       uses: ./eden/.github/actions/publish-logs
       with:
-        file_system: ${{ inputs.file_system }}
-        tpm_enabled: ${{ inputs.tpm_enabled }}
+        report_name: eden-report-${{ inputs.suite }}-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
     - name: Clean up after test
       if: always()
       run: |

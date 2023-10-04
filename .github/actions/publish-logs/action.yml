@@ -2,12 +2,9 @@ name: 'Collect, count and publish logs'
 description: 'Collect, process and publish logs from Eden'
 
 inputs:
-  file_system:
+  report_name:
     required: true
     type: string
-  tpm_enabled:
-    required: true
-    type: bool
 
 runs:
   using: 'composite'
@@ -48,7 +45,7 @@ runs:
       if: ${{ always() }}
       uses: actions/upload-artifact@v3
       with:
-        name: eden-report-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
+        name: ${{ inputs.report_name }}
         path: |
             ${{ github.workspace }}/eden/eve-info.tar.gz # created by collect-info action
             ${{ github.workspace }}/eden/trace.log
