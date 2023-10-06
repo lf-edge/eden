@@ -47,7 +47,7 @@ runs:
       with:
         name: ${{ inputs.report_name }}
         path: |
-            ${{ github.workspace }}/eden/eve-info.tar.gz # created by collect-info action
+            ${{ github.workspace }}/eden/eve-info.tar.gz
             ${{ github.workspace }}/eden/trace.log
             ${{ github.workspace }}/eden/info.log
             ${{ github.workspace }}/eden/metric.log
