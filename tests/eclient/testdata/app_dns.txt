@@ -1,0 +1,114 @@
+# This test checks that apps connected to the same local network instance
+# are able to resolve each other's IP addresses from their display names
+# using the DNS service of the network instance.
+# Also tested is resolution of static DNS entries configured for the network
+# instance.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:ssh] stop
+[!exec:chmod] stop
+
+{{define "app1_port"}}2223{{end}}
+{{define "app2_port"}}2224{{end}}
+{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@FWD_IP -p FWD_PORT{{end}}
+{{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
+
+exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
+
+# Starting of reboot detector with a 1 reboot limit
+! test eden.reboot.test -test.v -timewait=0 -reboot=0 -count=1 &
+
+message 'Resetting of EVE'
+eden eve reset
+exec sleep 30
+
+message 'Creating local network with static DNS entries'
+eden network create 10.11.12.0/24 -n localnet -s host1:172.20.15.4,172.25.16.6 -s host2:172.26.11.1
+test eden.network.test -test.v -timewait 10m ACTIVATED localnet
+
+message 'Starting applications'
+# Connect app1 into localnet with two interfaces.
+# We expect that it will be assigned IPs 10.11.12.2 and 10.11.12.3 (better would be to parse this from "eden pod ps").
+eden pod deploy -v debug -n app1 --memory=512MB --networks=localnet --networks=localnet -p {{template "app1_port"}}:22 {{template "eclient_image"}}
+test eden.app.test -test.v -timewait 10m RUNNING app1
+# Connect app2 into localnet with single interface.
+# We expect that it will be assigned IP 10.11.12.4 (better would be to parse this from "eden pod ps").
+eden pod deploy -v debug -n app2 --memory=512MB --networks=localnet -p {{template "app2_port"}}:22 {{template "eclient_image"}}
+test eden.app.test -test.v -timewait 10m RUNNING app2
+
+message 'Checking accessibility'
+exec -t 5m bash wait_ssh.sh {{template "app1_port"}}
+exec -t 5m bash wait_ssh.sh {{template "app2_port"}}
+
+message 'Checking DNS resolution from apps'
+exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} app2
+stdout 'Address:\s*10.11.12.4'
+exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} host1
+stdout 'Address:\s*172.20.15.4'
+stdout 'Address:\s*172.25.16.6'
+exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} host2
+stdout 'Address:\s*172.26.11.1'
+exec -t 5m bash nslookup_from_app.sh {{template "app2_port"}} app1
+stdout 'Address:\s*10.11.12.2'
+stdout 'Address:\s*10.11.12.3'
+exec -t 5m bash nslookup_from_app.sh {{template "app2_port"}} host1
+stdout 'Address:\s*172.20.15.4'
+stdout 'Address:\s*172.25.16.6'
+exec -t 5m bash nslookup_from_app.sh {{template "app2_port"}} host2
+stdout 'Address:\s*172.26.11.1'
+
+# Repeat DNS resolution tests after purging (we had bugs affecting this scenario).
+message 'Purging app1'
+eden pod purge app1
+test eden.app.test -test.v -timewait 5m PURGING app1
+test eden.app.test -test.v -timewait 5m RUNNING app1
+
+message 'Re-checking accessibility after purge of app1'
+exec -t 5m bash wait_ssh.sh {{template "app1_port"}}
+exec -t 5m bash wait_ssh.sh {{template "app2_port"}}
+
+message 'Re-checking DNS resolution after purge of app1'
+exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} app2
+stdout 'Address:\s*10.11.12.4'
+exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} host1
+stdout 'Address:\s*172.20.15.4'
+stdout 'Address:\s*172.25.16.6'
+exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} host2
+stdout 'Address:\s*172.26.11.1'
+exec -t 5m bash nslookup_from_app.sh {{template "app2_port"}} app1
+stdout 'Address:\s*10.11.12.2'
+stdout 'Address:\s*10.11.12.3'
+exec -t 5m bash nslookup_from_app.sh {{template "app2_port"}} host1
+stdout 'Address:\s*172.20.15.4'
+stdout 'Address:\s*172.25.16.6'
+exec -t 5m bash nslookup_from_app.sh {{template "app2_port"}} host2
+stdout 'Address:\s*172.26.11.1'
+
+message 'Resource cleaning'
+eden pod delete app1
+eden pod delete app2
+test eden.app.test -test.v -timewait 10m - app1 app2
+eden network delete localnet
+test eden.network.test -test.v -timewait 5m - localnet
+
+-- wait_ssh.sh --
+APP_PORT="$1"
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+for i in `seq 20`
+do
+  sleep 20
+  # Test SSH-access to container
+  echo $EDEN sdn fwd eth0 $APP_PORT -- {{template "ssh"}} grep -q Ubuntu /etc/issue
+  $EDEN sdn fwd eth0 $APP_PORT -- {{template "ssh"}} grep -q Ubuntu /etc/issue && break
+done
+
+-- nslookup_from_app.sh --
+#!/bin/sh
+
+APP_PORT="$1"
+HOSTNAME="$2"
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+$EDEN sdn fwd eth0 $APP_PORT -- {{template "ssh"}} nslookup -q=A $HOSTNAME
