@@ -22,7 +22,8 @@ import (
 
 const SdnStartTimeout = 3 * time.Minute
 
-func StartEve(vmName, tapInterface string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StartEve(vmName, tapInterface string) error {
+	cfg := openEVEC.cfg
 	if cfg.Eve.Remote {
 		return nil
 	}
@@ -41,14 +42,15 @@ func StartEve(vmName, tapInterface string, cfg *EdenSetupArgs) error {
 			log.Infof("EVE is starting in Virtual Box")
 		}
 	default:
-		if err := StartEveQemu(tapInterface, cfg); err != nil {
+		if err := openEVEC.StartEveQemu(tapInterface); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func StartEveQemu(tapInterface string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
+	cfg := openEVEC.cfg
 	// Load network model and prepare SDN config.
 	var err error
 	var netModel sdnapi.NetworkModel
@@ -177,7 +179,8 @@ func StartEveQemu(tapInterface string, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func StopEve(vmName string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StopEve(vmName string) error {
+	cfg := openEVEC.cfg
 	if cfg.Eve.Remote {
 		log.Debug("Cannot stop remote EVE")
 		return nil
@@ -213,12 +216,12 @@ func StopEve(vmName string, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func VersionEve() error {
+func (openEVEC *OpenEVEC) VersionEve() error {
 	log.Debugf("Will try to obtain info from ADAM")
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		log.Debugf("getControllerAndDev: %s", err.Error())
+		log.Debugf("getControllerAndDevFromConfig: %s", err.Error())
 		fmt.Println("EVE status: undefined (no onboarded EVE)")
 	} else {
 		var lastDInfo *info.ZInfoMsg
@@ -240,30 +243,32 @@ func VersionEve() error {
 	return nil
 }
 
-func StatusEve(vmName string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StatusEve(vmName string) error {
+	cfg := openEVEC.cfg
 	statusAdam, err := eden.StatusAdam()
 	if err == nil && statusAdam != "container doesn't exist" {
-		if err := eveStatusRemote(); err != nil {
+		if err := openEVEC.eveStatusRemote(); err != nil {
 			return err
 		}
 	}
 	if !cfg.Eve.Remote {
 		switch {
 		case cfg.Eve.DevModel == defaults.DefaultVBoxModel:
-			eveStatusVBox(vmName)
+			openEVEC.eveStatusVBox(vmName)
 		case cfg.Eve.DevModel == defaults.DefaultParallelsModel:
-			eveStatusParallels(vmName)
+			openEVEC.eveStatusParallels(vmName)
 		default:
-			eveStatusQEMU(cfg.ConfigName, cfg.Eve.Pid)
+			openEVEC.eveStatusQEMU(cfg.ConfigName, cfg.Eve.Pid)
 		}
 	}
 	if err == nil && statusAdam != "container doesn't exist" {
-		eveRequestsAdam()
+		openEVEC.eveRequestsAdam()
 	}
 	return nil
 }
 
-func GetEveIP(ifName string, cfg *EdenSetupArgs) string {
+func (openEVEC *OpenEVEC) GetEveIP(ifName string) string {
+	cfg := openEVEC.cfg
 	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		// EVE VM is behind SDN VM.
 		if ifName == "" {
@@ -281,7 +286,7 @@ func GetEveIP(ifName string, cfg *EdenSetupArgs) string {
 		}
 		return ip
 	}
-	networks, err := getEveNetworkInfo()
+	networks, err := openEVEC.getEveNetworkInfo()
 	if err != nil {
 		log.Error(err)
 		return ""
@@ -297,12 +302,12 @@ func GetEveIP(ifName string, cfg *EdenSetupArgs) string {
 	return ""
 }
 
-func eveLastRequests() (string, error) {
+func (openEVEC *OpenEVEC) eveLastRequests() (string, error) {
 	log.Debugf("Will try to obtain info from ADAM")
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	var lastRequest *types.APIRequest
 	var handleRequest = func(request *types.APIRequest) bool {
@@ -320,7 +325,8 @@ func eveLastRequests() (string, error) {
 	return strings.Split(lastRequest.ClientIP, ":")[0], nil
 }
 
-func ConsoleEve(host string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) ConsoleEve(host string) error {
+	cfg := openEVEC.cfg
 	if cfg.Eve.Remote {
 		return fmt.Errorf("cannot telnet to remote EVE")
 	}
@@ -331,10 +337,11 @@ func ConsoleEve(host string, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func SSHEve(commandToRun string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SSHEve(commandToRun string) error {
+	cfg := openEVEC.cfg
 	if _, err := os.Stat(cfg.Eden.SSHKey); !os.IsNotExist(err) {
 		changer := &adamChanger{}
-		ctrl, dev, err := changer.getControllerAndDev()
+		ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 		if err != nil {
 			return fmt.Errorf("cannot get controller or dev, please start them and onboard: %w", err)
 		}
@@ -347,7 +354,7 @@ func SSHEve(commandToRun string, cfg *EdenSetupArgs) error {
 		if err = ctrl.ConfigSync(dev); err != nil {
 			return err
 		}
-		if err = SdnForwardSSHToEve(commandToRun, cfg); err != nil {
+		if err = openEVEC.SdnForwardSSHToEve(commandToRun); err != nil {
 			return err
 		}
 	} else {
@@ -357,7 +364,8 @@ func SSHEve(commandToRun string, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func ResetEve(certsUUID string) error {
+func (openEVEC *OpenEVEC) ResetEve() error {
+	certsUUID := openEVEC.cfg.Eve.CertsUUID
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
 		return err
@@ -369,9 +377,9 @@ func ResetEve(certsUUID string) error {
 		return err
 	}
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	err = ctrl.ResetDev(dev)
 	if err != nil {
@@ -386,11 +394,11 @@ func ResetEve(certsUUID string) error {
 	return nil
 }
 
-func NewEpochEve(eveConfigFromFile bool) error {
+func (openEVEC *OpenEVEC) NewEpochEve(eveConfigFromFile bool) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	if eveConfigFromFile {
 		edenDir, err := utils.DefaultEdenDir()
@@ -398,9 +406,9 @@ func NewEpochEve(eveConfigFromFile bool) error {
 			return err
 		}
 		changer := &fileChanger{fileConfig: filepath.Join(edenDir, fmt.Sprintf("devUUID-%s.json", dev.GetID()))}
-		_, devFromFile, err := changer.getControllerAndDev()
+		_, devFromFile, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 		if err != nil {
-			return fmt.Errorf("getControllerAndDev: %w", err)
+			return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 		}
 		dev = devFromFile
 	}
@@ -414,7 +422,8 @@ func NewEpochEve(eveConfigFromFile bool) error {
 	return nil
 }
 
-func NewLinkEve(command, eveInterfaceName, vmName string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) NewLinkEve(command, eveInterfaceName, vmName string) error {
+	cfg := openEVEC.cfg
 	var err error
 	if cfg.Eve.Remote {
 		return fmt.Errorf("cannot change interface link of a remote EVE")
@@ -500,11 +509,11 @@ func NewLinkEve(command, eveInterfaceName, vmName string, cfg *EdenSetupArgs) er
 	return nil
 }
 
-func getEveNetworkInfo() (networks []*info.ZInfoNetwork, err error) {
+func (openEVEC *OpenEVEC) getEveNetworkInfo() (networks []*info.ZInfoNetwork, err error) {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return nil, fmt.Errorf("getControllerAndDev failed: %w", err)
+		return nil, fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	eveState := eve.Init(ctrl, dev)
 	if err = ctrl.InfoLastCallback(dev.GetID(), nil, eveState.InfoCallback()); err != nil {

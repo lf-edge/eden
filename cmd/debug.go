@@ -60,7 +60,7 @@ func newDebugStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			if _, err := os.Stat(cfg.Eden.SSHKey); !os.IsNotExist(err) {
 				commandToRun := fmt.Sprintf("perf record %s -o %s", perfOptions, perfLocation)
 				commandToRun = fmt.Sprintf("sh -c 'nohup %s > /dev/null 2>&1 &'", commandToRun)
-				if err = openevec.SdnForwardSSHToEve(commandToRun, cfg); err != nil {
+				if err = openEVEC.SdnForwardSSHToEve(commandToRun); err != nil {
 					log.Fatal(err)
 				}
 			} else {
@@ -94,7 +94,7 @@ func newDebugStopEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
 				commandToRun := "killall -SIGINT perf"
-				if err = openevec.SdnForwardSSHToEve(commandToRun, cfg); err != nil {
+				if err = openEVEC.SdnForwardSSHToEve(commandToRun); err != nil {
 					log.Fatal(err)
 				}
 			} else {
@@ -132,10 +132,10 @@ func newDebugSaveEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			tmpFile := fmt.Sprintf("%s.tmp", absPath)
 			if _, err := os.Stat(eveSSHKey); !os.IsNotExist(err) {
 				commandToRun := fmt.Sprintf("perf script -i %s > %s", perfLocation, defaults.DefaultPerfScriptEVELocation)
-				if err = openevec.SdnForwardSSHToEve(commandToRun, cfg); err != nil {
+				if err = openEVEC.SdnForwardSSHToEve(commandToRun); err != nil {
 					log.Fatal(err)
 				}
-				err = openevec.SdnForwardSCPFromEve(defaults.DefaultPerfScriptEVELocation, tmpFile, cfg)
+				err = openEVEC.SdnForwardSCPFromEve(defaults.DefaultPerfScriptEVELocation, tmpFile)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -189,10 +189,10 @@ func newDebugHardwareEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 					commandToRun = "lshw -short"
 				}
 				commandToRun += ">" + hwLocation
-				if err = openevec.SdnForwardSSHToEve(commandToRun, cfg); err != nil {
+				if err = openEVEC.SdnForwardSSHToEve(commandToRun); err != nil {
 					log.Fatal(err)
 				}
-				if err = openevec.SdnForwardSCPFromEve(hwLocation, absPath, cfg); err != nil {
+				if err = openEVEC.SdnForwardSCPFromEve(hwLocation, absPath); err != nil {
 					log.Fatal(err)
 				}
 			}

@@ -57,7 +57,7 @@ func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch, local, disks, cfg); err != nil {
+			if err := openEVEC.PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch, local, disks); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -84,7 +84,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			if err := openevec.PodDeploy(appLink, pc, cfg); err != nil {
+			if err := openEVEC.PodDeploy(appLink, pc, cfg); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -132,7 +132,7 @@ func newPodPsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "ps",
 		Short: "List pods",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.PodPs(cfg, outputFormat); err != nil {
+			if err := openEVEC.PodPs(outputFormat); err != nil {
 				log.Fatalf("EVE pod deploy failed: %s", err)
 			}
 		},
@@ -152,7 +152,7 @@ func newPodStopCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodStop(appName); err != nil {
+			if err := openEVEC.PodStop(appName); err != nil {
 				log.Fatalf("EVE pod stop failed: %s", err)
 			}
 		},
@@ -171,7 +171,7 @@ func newPodPurgeCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
 			explicitVolumes := cmd.Flags().Changed("volumes")
-			if err := openevec.PodPurge(volumesToPurge, appName, explicitVolumes); err != nil {
+			if err := openEVEC.PodPurge(volumesToPurge, appName, explicitVolumes); err != nil {
 				log.Fatalf("EVE pod purge failed: %s", err)
 			}
 		},
@@ -189,7 +189,7 @@ func newPodRestartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodRestart(appName); err != nil {
+			if err := openEVEC.PodRestart(appName); err != nil {
 				log.Fatalf("EVE pod restart failed: %s", err)
 			}
 		},
@@ -205,7 +205,7 @@ func newPodStartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodStart(appName); err != nil {
+			if err := openEVEC.PodStart(appName); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
@@ -223,7 +223,7 @@ func newPodDeleteCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if _, err := openevec.PodDelete(appName, deleteVolumes); err != nil {
+			if _, err := openEVEC.PodDelete(appName, deleteVolumes); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
@@ -247,7 +247,7 @@ func newPodLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodLogs(appName, outputTail, outputFields, outputFormat); err != nil {
+			if err := openEVEC.PodLogs(appName, outputTail, outputFields, outputFormat); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},
@@ -273,7 +273,7 @@ func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appName := args[0]
-			if err := openevec.PodModify(appName, podNetworks, portPublish, acl, vlans, startDelay, cfg); err != nil {
+			if err := openEVEC.PodModify(appName, podNetworks, portPublish, acl, vlans, startDelay); err != nil {
 				log.Fatalf("EVE pod start failed: %s", err)
 			}
 		},

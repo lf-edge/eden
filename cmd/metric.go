@@ -22,7 +22,7 @@ func newMetricCmd(configName, verbosity *string) *cobra.Command {
 Scans the ADAM metrics for correspondence with regular expressions requests to json fields.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenMetric(cfg, outputFormat, follow, metricTail, printFields, args); err != nil {
+			if err := openEVEC.EdenMetric(outputFormat, follow, metricTail, printFields, args); err != nil {
 				log.Fatalf("Metric eden failed: %s", err)
 			}
 		},

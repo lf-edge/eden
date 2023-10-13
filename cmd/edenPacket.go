@@ -53,7 +53,7 @@ func newPacketRunCmd(cfg *openevec.EdenSetupArgs, packetKey, packetProjectName *
 		Use:   "run",
 		Short: "run vm in packet",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := openevec.PacketRun(*packetKey, *packetProjectName, packetVMName, packetZone, packetMachineType, packetIPXEUrl, cfg)
+			err := openEVEC.PacketRun(*packetKey, *packetProjectName, packetVMName, packetZone, packetMachineType, packetIPXEUrl)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -75,7 +75,7 @@ func newPacketDeleteCmd(packetKey, packetProjectName *string) *cobra.Command {
 		Use:   "delete",
 		Short: "delete vm from packet",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.PacketDelete(*packetKey, *packetProjectName, packetVMName); err != nil {
+			if err := openEVEC.PacketDelete(*packetKey, *packetProjectName, packetVMName); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -93,7 +93,7 @@ func newPacketGetIPCmd(packetKey, packetProjectName *string) *cobra.Command {
 		Use:   "get-ip",
 		Short: "print IP of VM in packet",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.PacketGetIP(*packetKey, *packetProjectName, packetVMName); err != nil {
+			if err := openEVEC.PacketGetIP(*packetKey, *packetProjectName, packetVMName); err != nil {
 				log.Fatal(err)
 			}
 		},

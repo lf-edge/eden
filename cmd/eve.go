@@ -60,7 +60,7 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "start eve",
 		Long:  `Start eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.StartEve(vmName, tapInterface, cfg); err != nil {
+			if err := openEVEC.StartEve(vmName, tapInterface); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -99,7 +99,7 @@ func newStopEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "stop eve",
 		Long:  `Stop eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.StopEve(vmName, cfg); err != nil {
+			if err := openEVEC.StopEve(vmName); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -122,7 +122,7 @@ func newVersionEveCmd() *cobra.Command {
 		Short: "version of eve",
 		Long:  `Version of eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.VersionEve(); err != nil {
+			if err := openEVEC.VersionEve(); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -139,7 +139,7 @@ func newStatusEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "status of eve",
 		Long:  `Status of eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.StatusEve(vmName, cfg); err != nil {
+			if err := openEVEC.StatusEve(vmName); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -162,7 +162,7 @@ func newIpEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "ip of eve",
 		Long:  `Get IP of eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(openevec.GetEveIP("eth0", cfg))
+			fmt.Println(openEVEC.GetEveIP("eth0"))
 		},
 	}
 
@@ -177,7 +177,7 @@ func newConsoleEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "telnet into eve",
 		Long:  `Telnet into eve.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.ConsoleEve(host, cfg); err != nil {
+			if err := openEVEC.ConsoleEve(host); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -199,7 +199,7 @@ func newSshEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			if len(args) > 0 {
 				commandToRun = strings.Join(args, " ")
 			}
-			if err := openevec.SSHEve(commandToRun, cfg); err != nil {
+			if err := openEVEC.SSHEve(commandToRun); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -221,7 +221,7 @@ func newOnboardEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "OnBoard EVE in Adam",
 		Long:  `Adding an EVE onboarding certificate to Adam and waiting for EVE to register.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.OnboardEve(cfg.Eve.CertsUUID); err != nil {
+			if err := openEVEC.OnboardEve(cfg.Eve.CertsUUID); err != nil {
 				log.Fatalf("Eve onboard failed: %s", err)
 			}
 		},
@@ -235,7 +235,7 @@ func newResetEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "reset",
 		Short: "Reset EVE to initial config",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.ResetEve(cfg.Eve.CertsUUID); err != nil {
+			if err := openEVEC.ResetEve(); err != nil {
 				log.Fatalf("EVE reset failed: %s", err)
 			}
 		},
@@ -251,7 +251,7 @@ func newEpochEveCmd() *cobra.Command {
 		Use:   "epoch",
 		Short: "Set new epoch of EVE",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.NewEpochEve(eveConfigFromFile); err != nil {
+			if err := openEVEC.NewEpochEve(eveConfigFromFile); err != nil {
 				log.Fatalf("EVE new epoch failed: %s", err)
 			}
 		},
@@ -274,7 +274,7 @@ func newLinkEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			if len(args) > 0 {
 				command = args[0]
 			}
-			if err := openevec.NewLinkEve(command, eveInterfaceName, vmName, cfg); err != nil {
+			if err := openEVEC.NewLinkEve(command, eveInterfaceName, vmName); err != nil {
 				log.Fatalf("EVE new link failed: %s", err)
 			}
 		},

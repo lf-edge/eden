@@ -12,14 +12,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var openEVEC *openevec.OpenEVEC
+
 func NewEdenCommand() *cobra.Command {
 	var configName, verbosity string
+	cfg := &openevec.EdenSetupArgs{}
 
 	rootCmd := &cobra.Command{
-		Use: "eden",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return openevec.SetUpLogs(verbosity)
-		},
+		Use:               "eden",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, &configName, &verbosity),
 	}
 
 	groups := CommandGroups{
@@ -76,6 +77,7 @@ func preRunViperLoadFunction(cfg *openevec.EdenSetupArgs, configName, verbosity 
 		}
 		openevec.Merge(reflect.ValueOf(viperCfg).Elem(), reflect.ValueOf(*cfg), cmd.Flags())
 		*cfg = *viperCfg
+		openEVEC = openevec.CreateOpenEVEC(cfg)
 		return nil
 	}
 }

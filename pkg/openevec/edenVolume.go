@@ -17,11 +17,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func VolumeLs(outputFormat types.OutputFormat) error {
+func (openEVEC *OpenEVEC) VolumeLs(outputFormat types.OutputFormat) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	state := eve.Init(ctrl, dev)
 	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
@@ -36,11 +36,11 @@ func VolumeLs(outputFormat types.OutputFormat) error {
 	return nil
 }
 
-func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastoreOverride string, sftpLoad, directLoad bool) error {
+func (openEVEC *OpenEVEC) VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastoreOverride string, sftpLoad, directLoad bool) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	var opts []expect.ExpectationOption
 	diskSizeParsed, err := humanize.ParseBytes(diskSize)
@@ -98,11 +98,11 @@ func VolumeCreate(appLink, registry, diskSize, volumeName, volumeType, datastore
 	return nil
 }
 
-func VolumeDelete(volumeName string) error {
+func (openEVEC *OpenEVEC) VolumeDelete(volumeName string) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for id, el := range dev.GetVolumes() {
 		volume, err := ctrl.GetVolume(el)
@@ -124,11 +124,11 @@ func VolumeDelete(volumeName string) error {
 	return nil
 }
 
-func VolumeDetach(volumeName string) error {
+func (openEVEC *OpenEVEC) VolumeDetach(volumeName string) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetVolumes() {
 		volume, err := ctrl.GetVolume(el)
@@ -167,11 +167,11 @@ func VolumeDetach(volumeName string) error {
 	return nil
 }
 
-func VolumeAttach(appName, volumeName, mountPoint string) error {
+func (openEVEC *OpenEVEC) VolumeAttach(appName, volumeName, mountPoint string) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetVolumes() {
 		volume, err := ctrl.GetVolume(el)

@@ -23,14 +23,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func EdgeNodeReboot(controllerMode string) error {
+func (openEVEC *OpenEVEC) EdgeNodeReboot(controllerMode string) error {
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
 		return err
 	}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 	dev.Reboot()
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
@@ -41,14 +41,14 @@ func EdgeNodeReboot(controllerMode string) error {
 	return nil
 }
 
-func EdgeNodeShutdown(controllerMode string) error {
+func (openEVEC *OpenEVEC) EdgeNodeShutdown(controllerMode string) error {
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
 		return err
 	}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 	dev.Shutdown()
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
@@ -59,7 +59,7 @@ func EdgeNodeShutdown(controllerMode string) error {
 	return nil
 }
 
-func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode string,
+func (openEVEC *OpenEVEC) EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode string,
 	baseOSImageActivate, baseOSVDrive bool) error {
 
 	var opts []expect.ExpectationOption
@@ -67,9 +67,9 @@ func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode
 	if err != nil {
 		return err
 	}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 	registryToUse := registry
 	switch registry {
@@ -97,14 +97,14 @@ func EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode
 	return nil
 }
 
-func EdgeNodeEVEImageUpdateRetry(controllerMode string) error {
+func (openEVEC *OpenEVEC) EdgeNodeEVEImageUpdateRetry(controllerMode string) error {
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
 		return err
 	}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 	dev.SetBaseOSRetryCounter(dev.GetBaseOSRetryCounter() + 1)
 
@@ -138,7 +138,7 @@ func checkIsFileOrURL(pathToCheck string) (isFile bool, pathToRet string, err er
 	}
 }
 
-func EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, edenDist string) error {
+func (openEVEC *OpenEVEC) EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, edenDist string) error {
 	isFile, baseOSImage, err := checkIsFileOrURL(baseOSImage)
 	if err != nil {
 		return fmt.Errorf("checkIsFileOrURL: %w", err)
@@ -177,9 +177,9 @@ func EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, edenDist
 		return err
 	}
 
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 
 	if baseOSVersion == "" {
@@ -221,15 +221,15 @@ func EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, edenDist
 	return nil
 }
 
-func EdgeNodeUpdate(controllerMode string, deviceItems, configItems map[string]string) error {
+func (openEVEC *OpenEVEC) EdgeNodeUpdate(controllerMode string, deviceItems, configItems map[string]string) error {
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
 		return err
 	}
 
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 	for key, val := range configItems {
 		dev.SetConfigItem(key, val)
@@ -247,15 +247,15 @@ func EdgeNodeUpdate(controllerMode string, deviceItems, configItems map[string]s
 	return nil
 }
 
-func EdgeNodeGetConfig(controllerMode, fileWithConfig string) error {
+func (openEVEC *OpenEVEC) EdgeNodeGetConfig(controllerMode, fileWithConfig string) error {
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
 		return err
 	}
 
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 
 	res, err := ctrl.GetConfigBytes(dev, true)
@@ -272,11 +272,16 @@ func EdgeNodeGetConfig(controllerMode, fileWithConfig string) error {
 	return nil
 }
 
-func EdgeNodeSetConfig(fileWithConfig string) error {
+func (openEVEC *OpenEVEC) EdgeNodeSetConfig(fileWithConfig string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare: %w", err)
 	}
+	vars, err := InitVarsFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl.SetVars(vars)
 	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
 		return fmt.Errorf("GetDeviceCurrent error: %w", err)
@@ -313,14 +318,14 @@ func EdgeNodeSetConfig(fileWithConfig string) error {
 	return nil
 }
 
-func EdgeNodeGetOptions(controllerMode, fileWithConfig string) error {
+func (openEVEC *OpenEVEC) EdgeNodeGetOptions(controllerMode, fileWithConfig string) error {
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
 		return err
 	}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 	res, err := ctrl.GetDeviceOptions(dev.GetID())
 	if err != nil {
@@ -341,14 +346,14 @@ func EdgeNodeGetOptions(controllerMode, fileWithConfig string) error {
 	return nil
 }
 
-func EdgeNodeSetOptions(controllerMode, fileWithConfig string) error {
+func (openEVEC *OpenEVEC) EdgeNodeSetOptions(controllerMode, fileWithConfig string) error {
 	changer, err := changerByControllerMode(controllerMode)
 	if err != nil {
 		return err
 	}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
 	}
 	var newOptionsBytes []byte
 	if fileWithConfig != "" {
@@ -376,11 +381,16 @@ func EdgeNodeSetOptions(controllerMode, fileWithConfig string) error {
 	return nil
 }
 
-func ControllerGetOptions(fileWithConfig string) error {
+func (openEVEC *OpenEVEC) ControllerGetOptions(fileWithConfig string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare error: %w", err)
 	}
+	vars, err := InitVarsFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl.SetVars(vars)
 	res, err := ctrl.GetGlobalOptions()
 	if err != nil {
 		return fmt.Errorf("GetGlobalOptions error: %w", err)
@@ -399,11 +409,16 @@ func ControllerGetOptions(fileWithConfig string) error {
 	return nil
 }
 
-func ControllerSetOptions(fileWithConfig string) error {
+func (openEVEC *OpenEVEC) ControllerSetOptions(fileWithConfig string) error {
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return fmt.Errorf("CloudPrepare error: %w", err)
 	}
+	vars, err := InitVarsFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl.SetVars(vars)
 	var newOptionsBytes []byte
 	if fileWithConfig != "" {
 		newOptionsBytes, err = os.ReadFile(fileWithConfig)

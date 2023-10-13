@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -50,8 +49,9 @@ func generateScripts(in string, out string, configFile string) error {
 	return nil
 }
 
-func SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, grubOptions []string,
-	netboot, installer bool, cfg EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, grubOptions []string, netboot, installer bool) error {
+
+	cfg := *openEVEC.cfg
 
 	if err := configCheck(configName); err != nil {
 		return err
@@ -503,17 +503,18 @@ func setupSdn(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, currentContext bool) error {
+func (openEVEC *OpenEVEC) EdenClean(configName, configDist, vmName string, currentContext bool) error {
+	cfg := openEVEC.cfg
 	configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 	if currentContext {
 		log.Info("Cleanup current context")
 		// we need to delete information about EVE from adam
-		if err := StartRedis(cfg); err != nil {
+		if err := openEVEC.StartRedis(); err != nil {
 			log.Errorf("cannot start redis: %s", err.Error())
 		} else {
 			log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 		}
-		if err := StartAdam(cfg); err != nil {
+		if err := openEVEC.StartAdam(); err != nil {
 			log.Errorf("cannot start adam: %s", err.Error())
 		} else {
 			log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
@@ -533,14 +534,11 @@ func EdenClean(cfg EdenSetupArgs, configName, configDist, vmName string, current
 	return nil
 }
 
-func EdenInfo(outputFormat types.OutputFormat, infoTail uint, follow bool, printFields []string, args []string) error {
-	ctrl, err := controller.CloudPrepare()
+func (openEVEC *OpenEVEC) EdenInfo(outputFormat types.OutputFormat, infoTail uint, follow bool, printFields []string, args []string) error {
+	changer := &adamChanger{}
+	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %w", err)
-	}
-	devFirst, err := ctrl.GetDeviceCurrent()
-	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	devUUID := devFirst.GetID()
 	q := make(map[string]string)
@@ -575,14 +573,11 @@ func EdenInfo(outputFormat types.OutputFormat, infoTail uint, follow bool, print
 	return nil
 }
 
-func EdenLog(outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
-	ctrl, err := controller.CloudPrepare()
+func (openEVEC *OpenEVEC) EdenLog(outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
+	changer := &adamChanger{}
+	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %w", err)
-	}
-	devFirst, err := ctrl.GetDeviceCurrent()
-	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	devUUID := devFirst.GetID()
 
@@ -621,14 +616,11 @@ func EdenLog(outputFormat types.OutputFormat, follow bool, logTail uint, printFi
 	return nil
 }
 
-func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
-	ctrl, err := controller.CloudPrepare()
+func (openEVEC *OpenEVEC) EdenNetStat(outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
+	changer := &adamChanger{}
+	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %w", err)
-	}
-	devFirst, err := ctrl.GetDeviceCurrent()
-	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	devUUID := devFirst.GetID()
 
@@ -667,14 +659,11 @@ func EdenNetStat(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow boo
 	return nil
 }
 
-func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool, metricTail uint, printFields, args []string) error {
-	ctrl, err := controller.CloudPrepare()
+func (openEVEC *OpenEVEC) EdenMetric(outputFormat types.OutputFormat, follow bool, metricTail uint, printFields, args []string) error {
+	changer := &adamChanger{}
+	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("CloudPrepare: %w", err)
-	}
-	devFirst, err := ctrl.GetDeviceCurrent()
-	if err != nil {
-		return fmt.Errorf("GetDeviceCurrent error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	devUUID := devFirst.GetID()
 
@@ -713,7 +702,8 @@ func EdenMetric(cfg *EdenSetupArgs, outputFormat types.OutputFormat, follow bool
 	return nil
 }
 
-func EdenExport(tarFile string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) EdenExport(tarFile string) error {
+	cfg := openEVEC.cfg
 	changer := &adamChanger{}
 	// we need to obtain information about EVE from Adam
 	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag); err != nil {
@@ -726,11 +716,7 @@ func EdenExport(tarFile string, cfg *EdenSetupArgs) error {
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 	}
-	ctrl, err := changer.getController()
-	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
-	}
-	dev, err := ctrl.GetDeviceCurrent()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err == nil {
 		deviceCert, err := ctrl.GetDeviceCert(dev)
 		if err != nil {
@@ -759,7 +745,8 @@ func EdenExport(tarFile string, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func EdenImport(tarFile string, rewriteRoot bool, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) EdenImport(tarFile string, rewriteRoot bool) error {
+	cfg := openEVEC.cfg
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
 		return err
@@ -803,6 +790,11 @@ func EdenImport(tarFile string, rewriteRoot bool, cfg *EdenSetupArgs) error {
 	if err != nil {
 		return err
 	}
+	vars, err := InitVarsFromConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl.SetVars(vars)
 	devUUID, err := ctrl.DeviceGetByOnboard(ctrl.GetVars().EveCert)
 	if err != nil {
 		log.Debug(err)

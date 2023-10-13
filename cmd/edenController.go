@@ -59,7 +59,7 @@ func newEdgeNodeReboot(controllerMode string) *cobra.Command {
 		Short: "reboot EVE instance",
 		Long:  `reboot EVE instance.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeReboot(controllerMode); err != nil {
+			if err := openEVEC.EdgeNodeReboot(controllerMode); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -73,7 +73,7 @@ func newEdgeNodeEVEImageUpdateRetry(controllerMode string) *cobra.Command {
 		Short: "retry update of EVE image",
 		Long:  `Update EVE image retry.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeEVEImageUpdateRetry(controllerMode); err != nil {
+			if err := openEVEC.EdgeNodeEVEImageUpdateRetry(controllerMode); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -87,7 +87,7 @@ func newEdgeNodeShutdown(controllerMode string) *cobra.Command {
 		Short: "shutdown EVE app instances",
 		Long:  `shutdown EVE app instances.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeShutdown(controllerMode); err != nil {
+			if err := openEVEC.EdgeNodeShutdown(controllerMode); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -107,7 +107,7 @@ func newEdgeNodeEVEImageUpdate(controllerMode string, cfg *openevec.EdenSetupArg
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			baseOSImage := args[0]
-			if err := openevec.EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode, baseOSImageActivate, baseOSVDrive); err != nil {
+			if err := openEVEC.EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, registry, controllerMode, baseOSImageActivate, baseOSVDrive); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -131,7 +131,7 @@ func newEdgeNodeEVEImageRemove(controllerMode string, cfg *openevec.EdenSetupArg
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			baseOSImage := args[0]
-			if err := openevec.EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, cfg.Eden.Dist); err != nil {
+			if err := openEVEC.EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, cfg.Eden.Dist); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -150,7 +150,7 @@ func newEdgeNodeUpdate(controllerMode string) *cobra.Command {
 		Short: "update EVE config",
 		Long:  `Update EVE config.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeUpdate(controllerMode, deviceItems, configItems); err != nil {
+			if err := openEVEC.EdgeNodeUpdate(controllerMode, deviceItems, configItems); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -174,7 +174,7 @@ func newEdgeNodeGetOptions(controllerMode string) *cobra.Command {
 		Short: "fetch EVE options",
 		Long:  `Fetch EVE options.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeGetOptions(controllerMode, fileWithConfig); err != nil {
+			if err := openEVEC.EdgeNodeGetOptions(controllerMode, fileWithConfig); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -193,7 +193,7 @@ func newEdgeNodeSetOptions(controllerMode string) *cobra.Command {
 		Short: "set EVE options",
 		Long:  `Set EVE options.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeSetOptions(controllerMode, fileWithConfig); err != nil {
+			if err := openEVEC.EdgeNodeSetOptions(controllerMode, fileWithConfig); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -212,7 +212,7 @@ func newControllerGetOptions() *cobra.Command {
 		Short: "fetch controller options",
 		Long:  `Fetch controller options.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.ControllerGetOptions(fileWithConfig); err != nil {
+			if err := openEVEC.ControllerGetOptions(fileWithConfig); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -231,7 +231,7 @@ func newControllerSetOptions() *cobra.Command {
 		Short: "set controller options",
 		Long:  `Set controller options.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.ControllerSetOptions(fileWithConfig); err != nil {
+			if err := openEVEC.ControllerSetOptions(fileWithConfig); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -250,7 +250,7 @@ func newEdgeNodeGetConfig(controllerMode string) *cobra.Command {
 		Short: "fetch EVE config",
 		Long:  `Fetch EVE config.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeGetConfig(controllerMode, fileWithConfig); err != nil {
+			if err := openEVEC.EdgeNodeGetConfig(controllerMode, fileWithConfig); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -269,7 +269,7 @@ func newEdgeNodeSetConfig() *cobra.Command {
 		Short: "set EVE config",
 		Long:  `Set EVE config.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdgeNodeSetConfig(fileWithConfig); err != nil {
+			if err := openEVEC.EdgeNodeSetConfig(fileWithConfig); err != nil {
 				log.Fatal(err)
 			}
 		},

@@ -9,7 +9,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func StartAdam(cfg EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StartAdam() error {
+	cfg := openEVEC.cfg
 	command, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("startAdam: cannot obtain executable path: %w", err)
@@ -36,7 +37,7 @@ func stopAdam(_ string) error {
 	return nil
 }
 
-func GetAdamStatus() (string, error) {
+func (openEVEC *OpenEVEC) GetAdamStatus() (string, error) {
 	statusAdam, err := eden.StatusAdam()
 	if err != nil {
 		return "", fmt.Errorf("cannot obtain status of adam: %w", err)
@@ -45,7 +46,8 @@ func GetAdamStatus() (string, error) {
 	}
 }
 
-func StartRedis(cfg EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StartRedis() error {
+	cfg := openEVEC.cfg
 	if err := eden.StartRedis(cfg.Redis.Port, cfg.Adam.Redis.Dist, cfg.Redis.Force, cfg.Redis.Tag); err != nil {
 		return fmt.Errorf("cannot start redis: %w", err)
 	}
@@ -53,7 +55,8 @@ func StartRedis(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func StartRegistry(cfg EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StartRegistry() error {
+	cfg := openEVEC.cfg
 	if err := eden.StartRegistry(cfg.Registry.Port, cfg.Registry.Tag, cfg.Registry.Dist); err != nil {
 		return fmt.Errorf("cannot start registry: %w", err)
 	}
@@ -61,7 +64,8 @@ func StartRegistry(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func StartEServer(cfg EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) StartEServer() error {
+	cfg := openEVEC.cfg
 	if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.Images.EServerImageDist, cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag); err != nil {
 		return fmt.Errorf("cannot start eserver: %w", err)
 	}
@@ -69,25 +73,25 @@ func StartEServer(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func StartEden(cfg *EdenSetupArgs, vmName, zedControlURL, tapInterface string) error {
-
+func (openEVEC *OpenEVEC) StartEden(vmName, zedControlURL, tapInterface string) error {
+	cfg := openEVEC.cfg
 	// Note that custom installer only works with zedcloud controller.
 	useZedcloud := cfg.Eve.CustomInstaller.Path != "" || zedControlURL != ""
 
 	if !useZedcloud {
-		if err := StartRedis(*cfg); err != nil {
+		if err := openEVEC.StartRedis(); err != nil {
 			return fmt.Errorf("cannot start redis %w", err)
 		}
 
-		if err := StartAdam(*cfg); err != nil {
+		if err := openEVEC.StartAdam(); err != nil {
 			return fmt.Errorf("cannot start adam %w", err)
 		}
 
-		if err := StartRegistry(*cfg); err != nil {
+		if err := openEVEC.StartRegistry(); err != nil {
 			return fmt.Errorf("cannot start registry %w", err)
 		}
 
-		if err := StartEServer(*cfg); err != nil {
+		if err := openEVEC.StartEServer(); err != nil {
 			return fmt.Errorf("cannot start adam %w", err)
 		}
 	}
@@ -96,7 +100,7 @@ func StartEden(cfg *EdenSetupArgs, vmName, zedControlURL, tapInterface string) e
 		return nil
 	}
 
-	if err := StartEve(vmName, tapInterface, cfg); err != nil {
+	if err := openEVEC.StartEve(vmName, tapInterface); err != nil {
 		return fmt.Errorf("cannot start eve %w", err)
 	}
 	log.Infof("EVE is starting")

@@ -8,7 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func AdamStart(cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) AdamStart() error {
+	cfg := openEVEC.cfg
 	command, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("cannot obtain executable path: %w", err)

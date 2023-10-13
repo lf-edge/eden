@@ -10,7 +10,8 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 )
 
-func CreateRent(rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) CreateRent(rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl string) error {
+	cfg := openEVEC.cfg
 	client, err := rolgo.NewClient()
 	if err != nil {
 		return err
@@ -34,7 +35,7 @@ func CreateRent(rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl
 	return nil
 }
 
-func GetRent(rolProjectID, rolRentID string) error {
+func (openEVEC *OpenEVEC) GetRent(rolProjectID, rolRentID string) error {
 	client, err := rolgo.NewClient()
 	if err != nil {
 		return err
@@ -51,7 +52,7 @@ func GetRent(rolProjectID, rolRentID string) error {
 	return nil
 }
 
-func CloseRent(rolProjectID, rolRentID string) error {
+func (openEVEC *OpenEVEC) CloseRent(rolProjectID, rolRentID string) error {
 	client, err := rolgo.NewClient()
 	if err != nil {
 		return err
@@ -63,7 +64,7 @@ func CloseRent(rolProjectID, rolRentID string) error {
 	return nil
 }
 
-func GetRentConsoleOutput(rolProjectID, rolRentID string) (string, error) {
+func (openEVEC *OpenEVEC) GetRentConsoleOutput(rolProjectID, rolRentID string) (string, error) {
 	client, err := rolgo.NewClient()
 	if err != nil {
 		return "", err

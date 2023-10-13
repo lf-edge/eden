@@ -54,7 +54,7 @@ func newSdInfoEveCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			devicePath := args[0]
-			if err := openevec.SDInfoEve(devicePath, syslogOutput, eveReleaseOutput); err != nil {
+			if err := openEVEC.SDInfoEve(devicePath, syslogOutput, eveReleaseOutput); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -92,7 +92,7 @@ func newUploadGitCmd() *cobra.Command {
 				directoryToSaveOnGit = args[3]
 			}
 
-			if err := openevec.UploadGit(absPath, args[1], args[2], directoryToSaveOnGit); err != nil {
+			if err := openEVEC.UploadGit(absPath, args[1], args[2], directoryToSaveOnGit); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -200,7 +200,7 @@ func newExportCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			tarFile := args[0]
-			if err := openevec.EdenExport(tarFile, cfg); err != nil {
+			if err := openEVEC.EdenExport(tarFile); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -220,7 +220,7 @@ func newImportCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			tarFile := args[0]
-			if err := openevec.EdenImport(tarFile, rewriteRoot, cfg); err != nil {
+			if err := openEVEC.EdenImport(tarFile, rewriteRoot); err != nil {
 				log.Fatal(err)
 			}
 		},

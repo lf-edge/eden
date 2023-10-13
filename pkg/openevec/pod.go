@@ -66,11 +66,11 @@ func processVLANs(vlans []string) (map[string]int, error) {
 	return m, nil
 }
 
-func PodDeploy(appLink string, pc PodConfig, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) PodDeploy(appLink string, pc PodConfig, cfg *EdenSetupArgs) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	var opts []expect.ExpectationOption
 	opts = append(opts, expect.WithMetadata(pc.Metadata))
@@ -149,11 +149,11 @@ func PodDeploy(appLink string, pc PodConfig, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func PodPs(_ *EdenSetupArgs, outputFormat types.OutputFormat) error {
+func (openEVEC *OpenEVEC) PodPs(outputFormat types.OutputFormat) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	state := eve.Init(ctrl, dev)
 	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
@@ -168,11 +168,11 @@ func PodPs(_ *EdenSetupArgs, outputFormat types.OutputFormat) error {
 	return nil
 }
 
-func PodStop(appName string) error {
+func (openEVEC *OpenEVEC) PodStop(appName string) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
@@ -192,11 +192,11 @@ func PodStop(appName string) error {
 	return nil
 }
 
-func PodPurge(volumesToPurge []string, appName string, explicitVolumes bool) error {
+func (openEVEC *OpenEVEC) PodPurge(volumesToPurge []string, appName string, explicitVolumes bool) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
@@ -252,11 +252,11 @@ func PodPurge(volumesToPurge []string, appName string, explicitVolumes bool) err
 	return nil
 }
 
-func PodRestart(appName string) error {
+func (openEVEC *OpenEVEC) PodRestart(appName string) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
@@ -279,11 +279,11 @@ func PodRestart(appName string) error {
 	return nil
 }
 
-func PodStart(appName string) error {
+func (openEVEC *OpenEVEC) PodStart(appName string) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
@@ -303,11 +303,11 @@ func PodStart(appName string) error {
 	return nil
 }
 
-func PodDelete(appName string, deleteVolumes bool) (bool, error) {
+func (openEVEC *OpenEVEC) PodDelete(appName string, deleteVolumes bool) (bool, error) {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return false, fmt.Errorf("getControllerAndDev: %w", err)
+		return false, fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for id, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
@@ -346,11 +346,11 @@ func PodDelete(appName string, deleteVolumes bool) (bool, error) {
 	return false, nil
 }
 
-func PodLogs(appName string, outputTail uint, outputFields []string, outputFormat types.OutputFormat) error {
+func (openEVEC *OpenEVEC) PodLogs(appName string, outputTail uint, outputFields []string, outputFormat types.OutputFormat) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
@@ -467,11 +467,11 @@ func PodLogs(appName string, outputTail uint, outputFields []string, outputForma
 	return nil
 }
 
-func PodModify(appName string, podNetworks, portPublish, acl, vlans []string, startDelay uint32, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) PodModify(appName string, podNetworks, portPublish, acl, vlans []string, startDelay uint32) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, appID := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(appID)
@@ -597,7 +597,7 @@ func diskToStruct(path string) (*edgeRegistry.Disk, error) {
 	}, nil
 }
 
-func PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch string, local bool, disks []string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch string, local bool, disks []string) error {
 	var (
 		rootDisk     *edgeRegistry.Disk
 		kernelSource *edgeRegistry.FileSource
@@ -605,6 +605,7 @@ func PodPublish(appName, kernelFile, initrdFile, rootFile, formatStr, arch strin
 		remoteTarget resolver.ResolverCloser
 		err          error
 	)
+	cfg := openEVEC.cfg
 	ctx := context.TODO()
 	if local {
 		_, remoteTarget, err = utils.NewRegistryHTTP(ctx)

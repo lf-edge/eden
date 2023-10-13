@@ -81,7 +81,7 @@ func newDownloadEVECmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "download eve live image from docker",
 		Long:  `Download eve live image from docker.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.DownloadEve(cfg); err != nil {
+			if err := openEVEC.DownloadEve(); err != nil {
 				log.Fatal(err)
 			}
 		},

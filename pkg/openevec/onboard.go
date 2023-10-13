@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func OnboardEve(eveUUID string) error {
+func (openEVEC *OpenEVEC) OnboardEve(eveUUID string) error {
 
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
@@ -23,7 +23,11 @@ func OnboardEve(eveUUID string) error {
 	if err != nil {
 		return fmt.Errorf("error fetching controller %w", err)
 	}
-	vars := ctrl.GetVars()
+	vars, err := InitVarsFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl.SetVars(vars)
 	dev, err := ctrl.GetDeviceCurrent()
 	if err != nil || dev == nil {
 		// create new one if not exists

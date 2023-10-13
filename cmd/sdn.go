@@ -71,7 +71,7 @@ func newSdnModelGetCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "get",
 		Short: "Get currently applied network model (in JSON)",
 		Run: func(cmd *cobra.Command, args []string) {
-			model, err := openevec.SdnNetModelGet(cfg)
+			model, err := openEVEC.SdnNetModelGet()
 			if err != nil {
 				log.Fatal(err)
 			} else {
@@ -93,7 +93,7 @@ Use string \"default\" instead of a file path to apply the default network model
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ref := args[0]
-			if err := openevec.SdnNetModelApply(ref, cfg); err != nil {
+			if err := openEVEC.SdnNetModelApply(ref); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -113,7 +113,7 @@ To generate graph image, run: eden sdn net-config-graph | dot -Tsvg > output.svg
 This requires to have Graphviz installed.
 Alternatively, visualize using the online tool: https://dreampuf.github.io/GraphvizOnline/`,
 		Run: func(cmd *cobra.Command, args []string) {
-			graph, err := openevec.SdnNetConfigGraph(cfg)
+			graph, err := openEVEC.SdnNetConfigGraph()
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -129,7 +129,8 @@ func newSdnStatusCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "status",
 		Short: "Get status of the running Eden-SDN",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.SdnStatus(cfg); err != nil {
+			if err := openEVEC.
+				SdnStatus(); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -146,7 +147,7 @@ func newSdnSshCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "ssh",
 		Short: "SSH into the running Eden-SDN VM",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.SdnSsh(cfg); err != nil {
+			if err := openEVEC.SdnSsh(); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -162,7 +163,7 @@ func newSdnLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "logs",
 		Short: "Get all logs from running Eden-SDN VM",
 		Run: func(cmd *cobra.Command, args []string) {
-			if logs, err := openevec.SdnLogs(cfg); err != nil {
+			if logs, err := openEVEC.SdnLogs(); err != nil {
 				log.Fatal(err)
 			} else {
 				fmt.Println(logs)
@@ -180,7 +181,7 @@ func newSdnMgmtIPCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Use:   "mgmt-ip",
 		Short: "Get IP address assigned to Eden-SDN VM for management",
 		Run: func(cmd *cobra.Command, args []string) {
-			if mgmtIp, err := openevec.SdnMgmtIp(cfg); err != nil {
+			if mgmtIp, err := openEVEC.SdnMgmtIp(); err != nil {
 				log.Fatal(err)
 			} else {
 				fmt.Println(mgmtIp)
@@ -229,7 +230,7 @@ the EVE's port forwarding capability.`,
 			command := args[1]
 			args = args[2:]
 
-			if err := openevec.SdnEpExec(epName, command, args, cfg); err != nil {
+			if err := openEVEC.SdnEpExec(epName, command, args); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -273,7 +274,7 @@ This is currently limited to TCP port forwarding (i.e. not working with UDP)!`,
 			command := args[2]
 			args = args[3:]
 
-			err = openevec.SdnForwardCmd(sdnFwdFromEp, eveIfName, targetPort, command, cfg, args...)
+			err = openEVEC.SdnForwardCmd(sdnFwdFromEp, eveIfName, targetPort, command, args...)
 			if err != nil {
 				log.Fatal(err)
 			}
