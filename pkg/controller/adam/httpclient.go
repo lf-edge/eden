@@ -50,12 +50,12 @@ func (adam *Ctx) deleteObj(path string) (err error) {
 	client := adam.getHTTPClient()
 	req, err := http.NewRequest("DELETE", u, nil)
 	if err != nil {
-		log.Fatalf("unable to create new http request: %v", err)
+		return fmt.Errorf("unable to create new http request: %v", err)
 	}
 
 	response, err := utils.RepeatableAttempt(client, req)
 	if err != nil {
-		log.Fatalf("unable to send request: %v", err)
+		return fmt.Errorf("unable to send request: %v", err)
 	}
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("status code: %d", response.StatusCode)

@@ -783,11 +783,11 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmNam
 		}
 		log.Debugf("Deleting devUUID %s", devUUID)
 		if err := ctrl.DeviceRemove(devUUID); err != nil {
-			return fmt.Errorf("CleanContext: %s", err)
+			log.Errorf("CleanContext: %s", err)
 		}
 		log.Debugf("Deleting onboardUUID %s", eveUUID)
 		if err := ctrl.OnboardRemove(eveUUID); err != nil {
-			return fmt.Errorf("CleanContext: %s", err)
+			log.Errorf("CleanContext: %s", err)
 		}
 		localViper := viper.New()
 		localViper.SetConfigFile(eveStatusFile)
