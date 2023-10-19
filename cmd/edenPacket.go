@@ -34,7 +34,7 @@ func newPacketVMCmd(cfg *openevec.EdenSetupArgs, packetKey, packetProjectName *s
 		{
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
-				newPacketRunCmd(cfg, packetKey, packetProjectName),
+				newPacketRunCmd(packetKey, packetProjectName),
 				newPacketDeleteCmd(packetKey, packetProjectName),
 				newPacketGetIPCmd(packetKey, packetProjectName),
 			},
@@ -46,7 +46,7 @@ func newPacketVMCmd(cfg *openevec.EdenSetupArgs, packetKey, packetProjectName *s
 	return packetVMCmd
 }
 
-func newPacketRunCmd(cfg *openevec.EdenSetupArgs, packetKey, packetProjectName *string) *cobra.Command {
+func newPacketRunCmd(packetKey, packetProjectName *string) *cobra.Command {
 	var packetVMName, packetZone, packetMachineType, packetIPXEUrl string
 
 	var packetRun = &cobra.Command{

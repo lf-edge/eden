@@ -24,18 +24,18 @@ func newPodCmd(configName, verbosity *string) *cobra.Command {
 			Commands: []*cobra.Command{
 				newPodDeployCmd(cfg),
 				newPodStopCmd(),
-				newPodStartCmd(cfg),
+				newPodStartCmd(),
 				newPodDeleteCmd(),
-				newPodRestartCmd(cfg),
+				newPodRestartCmd(),
 				newPodPurgeCmd(),
-				newPodModifyCmd(cfg),
-				newPodPublishCmd(cfg),
+				newPodModifyCmd(),
+				newPodPublishCmd(),
 			},
 		},
 		{
 			Message: "Printing Commands",
 			Commands: []*cobra.Command{
-				newPodPsCmd(cfg),
+				newPodPsCmd(),
 				newPodLogsCmd(cfg),
 			},
 		},
@@ -46,7 +46,7 @@ func newPodCmd(configName, verbosity *string) *cobra.Command {
 	return podCmd
 }
 
-func newPodPublishCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newPodPublishCmd() *cobra.Command {
 	var kernelFile, initrdFile, rootFile, formatStr, arch string
 	var disks []string
 	var local bool
@@ -126,7 +126,7 @@ You can set access VLAN ID (VID) for a particular network in the format '<networ
 	return podDeployCmd
 }
 
-func newPodPsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newPodPsCmd() *cobra.Command {
 	var outputFormat types.OutputFormat
 	var podPsCmd = &cobra.Command{
 		Use:   "ps",
@@ -182,7 +182,7 @@ func newPodPurgeCmd() *cobra.Command {
 	return podPurgeCmd
 }
 
-func newPodRestartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newPodRestartCmd() *cobra.Command {
 	var podRestartCmd = &cobra.Command{
 		Use:   "restart",
 		Short: "Restart pod",
@@ -198,7 +198,7 @@ func newPodRestartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return podRestartCmd
 }
 
-func newPodStartCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newPodStartCmd() *cobra.Command {
 	var podStartCmd = &cobra.Command{
 		Use:   "start",
 		Short: "Start pod",
@@ -263,7 +263,7 @@ func newPodLogsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return podLogsCmd
 }
 
-func newPodModifyCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newPodModifyCmd() *cobra.Command {
 	var podNetworks, portPublish, acl, vlans []string
 	var startDelay uint32
 

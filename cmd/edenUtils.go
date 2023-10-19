@@ -34,8 +34,8 @@ func newUtilsCmd(configName, verbosity *string) *cobra.Command {
 				newSdInfoEveCmd(),
 				newDebugCmd(cfg),
 				newUploadGitCmd(),
-				newImportCmd(cfg),
-				newExportCmd(cfg),
+				newImportCmd(),
+				newExportCmd(),
 			},
 		},
 	}
@@ -192,7 +192,7 @@ func newTemplateCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return templateCmd
 }
 
-func newExportCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newExportCmd() *cobra.Command {
 	var exportCmd = &cobra.Command{
 		Use:   "export <filename>",
 		Short: "export harness",
@@ -210,7 +210,7 @@ func newExportCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 
 }
 
-func newImportCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newImportCmd() *cobra.Command {
 	var rewriteRoot bool
 
 	var importCmd = &cobra.Command{
