@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 18}}
+{{$tests := 19}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -52,18 +52,20 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_forward
 /bin/echo Eden test app info (13/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dhcp
+/bin/echo Eden test app info (14/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dns
 
-/bin/echo Eden VNC (14/{{$tests}})
+/bin/echo Eden VNC (15/{{$tests}})
 eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test
 
-/bin/echo Eden Networking via switch test (15/{{$tests}})
+/bin/echo Eden Networking via switch test (16/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-gapped-switch
 
-/bin/echo Eden Nginx (16/{{$tests}})
+/bin/echo Eden Nginx (17/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ngnix
 
-/bin/echo Verifying that we can use a switch network instance on a management port (17/{{$tests}})
+/bin/echo Verifying that we can use a switch network instance on a management port (18/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_nonat
 
-/bin/echo Testing quick replace of network instances (18/{{$tests}})
+/bin/echo Testing quick replace of network instances (19/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_replace_test
