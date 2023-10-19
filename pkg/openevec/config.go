@@ -315,7 +315,7 @@ func resolvePath(v reflect.Value) {
 	}
 }
 
-func configCheck(configName string) error {
+func ConfigCheck(configName string) error {
 	configFile := utils.GetConfig(configName)
 	configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
 
