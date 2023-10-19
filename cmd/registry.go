@@ -22,7 +22,7 @@ func newRegistryCmd(configName, verbosity *string) *cobra.Command {
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
 				newStartRegistryCmd(cfg),
-				newStopRegistryCmd(cfg),
+				newStopRegistryCmd(),
 				newStatusRegistryCmd(),
 				newLoadRegistryCmd(cfg),
 			},
@@ -53,7 +53,7 @@ func newStartRegistryCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return startRegistryCmd
 }
 
-func newStopRegistryCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newStopRegistryCmd() *cobra.Command {
 	var registryRm bool
 
 	var stopRegistryCmd = &cobra.Command{

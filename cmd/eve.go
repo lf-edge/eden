@@ -26,11 +26,11 @@ func newEveCmd(configName, verbosity *string) *cobra.Command {
 				newStartEveCmd(cfg),
 				newStopEveCmd(cfg),
 				newStatusEveCmd(cfg),
-				newIpEveCmd(cfg),
+				newIpEveCmd(),
 				newSshEveCmd(cfg),
 				newConsoleEveCmd(cfg),
 				newOnboardEveCmd(cfg),
-				newResetEveCmd(cfg),
+				newResetEveCmd(),
 				newVersionEveCmd(),
 				newEpochEveCmd(),
 				newLinkEveCmd(cfg),
@@ -156,7 +156,7 @@ func newStatusEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return statusEveCmd
 }
 
-func newIpEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newIpEveCmd() *cobra.Command {
 	var ipEveCmd = &cobra.Command{
 		Use:   "ip",
 		Short: "ip of eve",
@@ -230,7 +230,7 @@ func newOnboardEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	return onboardEveCmd
 }
 
-func newResetEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newResetEveCmd() *cobra.Command {
 	var resetEveCmd = &cobra.Command{
 		Use:   "reset",
 		Short: "Reset EVE to initial config",

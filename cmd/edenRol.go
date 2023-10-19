@@ -16,12 +16,12 @@ func newRolCmd(configName, verbosity *string) *cobra.Command {
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
-	rolCmd.AddCommand(newRolRentCmd(cfg))
+	rolCmd.AddCommand(newRolRentCmd())
 
 	return rolCmd
 }
 
-func newRolRentCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newRolRentCmd() *cobra.Command {
 	var rolProjectID string
 
 	var rolRentCmd = &cobra.Command{
@@ -34,7 +34,7 @@ func newRolRentCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		{
 			Message: "Basic Commands",
 			Commands: []*cobra.Command{
-				newCreateRentCmd(&rolProjectID, cfg),
+				newCreateRentCmd(&rolProjectID),
 				newCloseRentCmd(&rolProjectID),
 				newGetRentCmd(&rolProjectID),
 				newGetRentConsoleOutputCmd(&rolProjectID),
@@ -72,7 +72,7 @@ func newGetRentConsoleOutputCmd(rolProjectID *string) *cobra.Command {
 	return getRentConsoleOutputCmd
 }
 
-func newCreateRentCmd(rolProjectID *string, cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newCreateRentCmd(rolProjectID *string) *cobra.Command {
 	var rolRentName, rolModel, rolManufacturer, rolIPXEUrl string
 
 	var createRentCmd = &cobra.Command{
