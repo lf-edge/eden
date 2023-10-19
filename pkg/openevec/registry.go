@@ -9,7 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RegistryStart(cfg *RegistryConfig) error {
+func (openEVEC *OpenEVEC) RegistryStart() error {
+	cfg := openEVEC.cfg.Registry
 	command, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("cannot obtain executable path: %w", err)
@@ -22,7 +23,8 @@ func RegistryStart(cfg *RegistryConfig) error {
 	return nil
 }
 
-func RegistryLoad(ref string, cfg *RegistryConfig) error {
+func (openEVEC *OpenEVEC) RegistryLoad(ref string) error {
+	cfg := openEVEC.cfg.Registry
 	registry := fmt.Sprintf("%s:%d", cfg.IP, cfg.Port)
 	hash, err := utils.LoadRegistry(ref, registry)
 	if err != nil {

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/lf-edge/eden/pkg/controller/types"
-	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
@@ -37,7 +36,7 @@ func newNetworkLsCmd() *cobra.Command {
 		Use:   "ls",
 		Short: "List networks",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.NetworkLs(outputFormat); err != nil {
+			if err := openEVEC.NetworkLs(outputFormat); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -57,7 +56,7 @@ func newNetworkDeleteCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			niName := args[0]
-			if err := openevec.NetworkDelete(niName); err != nil {
+			if err := openEVEC.NetworkDelete(niName); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -76,7 +75,7 @@ func newNetworkNetstatCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			niName := args[0]
-			if err := openevec.NetworkNetstat(niName, outputFormat, outputTail); err != nil {
+			if err := openEVEC.NetworkNetstat(niName, outputFormat, outputTail); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -105,7 +104,7 @@ func newNetworkCreateCmd() *cobra.Command {
 			if len(args) == 1 {
 				subnet = args[0]
 			}
-			if err := openevec.NetworkCreate(subnet, networkType, networkName, uplinkAdapter, staticDNSEntries); err != nil {
+			if err := openEVEC.NetworkCreate(subnet, networkType, networkName, uplinkAdapter, staticDNSEntries); err != nil {
 				log.Fatal(err)
 			}
 		},

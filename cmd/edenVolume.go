@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/types"
-	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
@@ -39,7 +38,7 @@ func newVolumeLsCmd() *cobra.Command {
 		Use:   "ls",
 		Short: "List volumes",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.VolumeLs(outputFormat); err != nil {
+			if err := openEVEC.VolumeLs(outputFormat); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -62,7 +61,7 @@ func newVolumeCreateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			appLink := args[0]
-			err := openevec.VolumeCreate(appLink, registry, diskSize, volumeName,
+			err := openEVEC.VolumeCreate(appLink, registry, diskSize, volumeName,
 				volumeType, datastoreOverride, sftpLoad, directLoad)
 			if err != nil {
 				log.Fatal(err)
@@ -89,7 +88,7 @@ func newVolumeDeleteCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			volumeName := args[0]
-			if err := openevec.VolumeDelete(volumeName); err != nil {
+			if err := openEVEC.VolumeDelete(volumeName); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -106,7 +105,7 @@ func newVolumeDetachCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			volumeName := args[0]
-			if err := openevec.VolumeDetach(volumeName); err != nil {
+			if err := openEVEC.VolumeDetach(volumeName); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -129,7 +128,7 @@ func newVolumeAttachCmd() *cobra.Command {
 				mountPoint = args[2]
 			}
 
-			if err := openevec.VolumeAttach(appName, volumeName, mountPoint); err != nil {
+			if err := openEVEC.VolumeAttach(appName, volumeName, mountPoint); err != nil {
 				log.Fatal(err)
 			}
 		},

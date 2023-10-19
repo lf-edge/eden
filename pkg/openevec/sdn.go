@@ -14,16 +14,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func SdnForwardSSHToEve(commandToRun string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SdnForwardSSHToEve(commandToRun string) error {
+	cfg := openEVEC.cfg
 	arguments := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
 		"-p FWD_PORT root@FWD_IP %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), commandToRun)
-	return SdnForwardCmd("", "eth0", 22, "ssh", cfg, strings.Fields(arguments)...)
+	return openEVEC.SdnForwardCmd("", "eth0", 22, "ssh", strings.Fields(arguments)...)
 }
 
-func SdnForwardSCPFromEve(remoteFilePath, localFilePath string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SdnForwardSCPFromEve(remoteFilePath, localFilePath string) error {
+	cfg := openEVEC.cfg
 	arguments := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
 		"-P FWD_PORT root@FWD_IP:%s %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), remoteFilePath, localFilePath)
-	return SdnForwardCmd("", "eth0", 22, "scp", cfg, strings.Fields(arguments)...)
+	return openEVEC.SdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
 }
 
 func sdnSSSHKeyPrivate(sshKeyPub string) string {
@@ -48,8 +50,8 @@ func isSdnEnabled(sdnDisable, eveRemote bool, devModel string) bool {
 	return !sdnDisable && devModel == defaults.DefaultQemuModel && !eveRemote
 }
 
-func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, cfg *EdenSetupArgs,
-	args ...string) error {
+func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, args ...string) error {
+	cfg := openEVEC.cfg
 	const fwdIPLabel = "FWD_IP"
 	const fwdPortLabel = "FWD_PORT"
 
@@ -57,7 +59,7 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	if cfg.Eve.Remote {
 		// Get IP address used by the target EVE interface.
 		// (look at network info published by EVE)
-		ip := GetEveIP(eveIfName, cfg)
+		ip := openEVEC.GetEveIP(eveIfName)
 		if ip == "" {
 			return fmt.Errorf("failed to obtain IP address for EVE interface %s", eveIfName)
 		}
@@ -127,7 +129,7 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 
 	// Get IP address used by the target EVE interface.
 	// (look at the ARP tables inside SDN VM)
-	targetIP := GetEveIP(eveIfName, cfg)
+	targetIP := openEVEC.GetEveIP(eveIfName)
 	if targetIP == "" {
 		return fmt.Errorf("no IP address found to be assigned to EVE interface %s",
 			eveIfName)
@@ -174,7 +176,8 @@ func SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, 
 	return nil
 }
 
-func SdnStatus(cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SdnStatus() error {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return fmt.Errorf("Sdn is not enabled")
 	}
@@ -205,7 +208,8 @@ func SdnStatus(cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func SdnNetModelGet(cfg *EdenSetupArgs) (string, error) {
+func (openEVEC *OpenEVEC) SdnNetModelGet() (string, error) {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
@@ -225,7 +229,8 @@ func SdnNetModelGet(cfg *EdenSetupArgs) (string, error) {
 	return string(jsonBytes), nil
 }
 
-func SdnNetModelApply(ref string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SdnNetModelApply(ref string) error {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return fmt.Errorf("SDN is not enabled")
 	}
@@ -273,7 +278,8 @@ func SdnNetModelApply(ref string, cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func SdnNetConfigGraph(cfg *EdenSetupArgs) (string, error) {
+func (openEVEC *OpenEVEC) SdnNetConfigGraph() (string, error) {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
@@ -289,7 +295,8 @@ func SdnNetConfigGraph(cfg *EdenSetupArgs) (string, error) {
 	return netConfig, nil
 }
 
-func SdnSsh(cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SdnSsh() error {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return fmt.Errorf("SDN is not enabled")
 	}
@@ -304,7 +311,8 @@ func SdnSsh(cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func SdnLogs(cfg *EdenSetupArgs) (string, error) {
+func (openEVEC *OpenEVEC) SdnLogs() (string, error) {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
@@ -320,7 +328,8 @@ func SdnLogs(cfg *EdenSetupArgs) (string, error) {
 	return sdnLogs, nil
 }
 
-func SdnMgmtIp(cfg *EdenSetupArgs) (string, error) {
+func (openEVEC *OpenEVEC) SdnMgmtIp() (string, error) {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
@@ -339,7 +348,8 @@ func SdnMgmtIp(cfg *EdenSetupArgs) (string, error) {
 	return status.MgmtIPs[0], nil
 }
 
-func SdnEpExec(epName, command string, args []string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) SdnEpExec(epName, command string, args []string) error {
+	cfg := openEVEC.cfg
 	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
 		return fmt.Errorf("SDN is not enabled")
 	}

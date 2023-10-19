@@ -21,7 +21,7 @@ func newStatusCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Status of harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.Status(cfg, vmName, allConfigs); err != nil {
+			if err := openEVEC.Status(vmName, allConfigs); err != nil {
 				log.Fatal(err)
 			}
 		},

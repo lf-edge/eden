@@ -27,21 +27,21 @@ var LayoutTypeIds = map[device.DisksLayoutType][]string{
 	device.DisksLayoutTypeRaid10:      {"raid10"},
 }
 
-func GetDisksLayout() (device.DisksLayout, error) {
+func (openEVEC *OpenEVEC) GetDisksLayout() (device.DisksLayout, error) {
 	changer := &adamChanger{}
-	_, dev, err := changer.getControllerAndDev()
+	_, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return device.DisksLayout{}, fmt.Errorf("getControllerAndDev error: %w", err)
+		return device.DisksLayout{}, fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	layout := dev.GetDiskLayout()
 	return *layout, nil
 }
 
-func SetDiskLayout(dc *DisksConfig) error {
+func (openEVEC *OpenEVEC) SetDiskLayout(dc *DisksConfig) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev error: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	layout := dev.GetDiskLayout()
 	if layout == nil {

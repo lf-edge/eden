@@ -23,8 +23,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Setup harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.SetupEden(*configName, configDir, softSerial,
-				zedControlURL, ipxeOverride, grubOptions, netboot, installer, *cfg); err != nil {
+			if err := openEVEC.SetupEden(*configName, configDir, softSerial, zedControlURL, ipxeOverride, grubOptions, netboot, installer); err != nil {
 
 				log.Fatalf("Setup eden failed: %s", err)
 			}

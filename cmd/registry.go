@@ -40,7 +40,7 @@ func newStartRegistryCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "start registry",
 		Long:  `Start OCI/docker registry.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.RegistryStart(&cfg.Registry); err != nil {
+			if err := openEVEC.RegistryStart(); err != nil {
 				log.Fatalf("Registry start failed %s", err)
 			}
 		},
@@ -98,7 +98,7 @@ func newLoadRegistryCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ref := args[0]
-			if err := openevec.RegistryLoad(ref, &cfg.Registry); err != nil {
+			if err := openEVEC.RegistryLoad(ref); err != nil {
 				log.Fatalf("Load registry failed %s", err)
 			}
 		},

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +19,7 @@ func newOciImageCmd() *cobra.Command {
 		Short: "do oci image manipulations",
 		Long:  `Do oci image manipulations.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.OciImage(fileToSave, image, registry, isLocal); err != nil {
+			if err := openEVEC.OciImage(fileToSave, image, registry, isLocal); err != nil {
 				log.Fatal(err)
 			}
 		},

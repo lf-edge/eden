@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/lf-edge/eden/pkg/controller/types"
-	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
@@ -19,7 +18,7 @@ func newInfoCmd() *cobra.Command {
 		Short: "Get information reports from a running EVE device",
 		Long:  ` Scans the ADAM Info for correspondence with regular expressions requests to json fields.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenInfo(outputFormat, infoTail, follow, printFields, args); err != nil {
+			if err := openEVEC.EdenInfo(outputFormat, infoTail, follow, printFields, args); err != nil {
 				log.Fatal("Eden info failed ", err)
 			}
 		},

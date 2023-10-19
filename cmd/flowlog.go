@@ -22,7 +22,7 @@ func newNetStatCmd(configName, verbosity *string) *cobra.Command {
 (TCP and UDP flows with IP addresses, port numbers, counters, whether dropped or accepted)`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.EdenNetStat(cfg, outputFormat, follow, logTail, printFields, args); err != nil {
+			if err := openEVEC.EdenNetStat(outputFormat, follow, logTail, printFields, args); err != nil {
 				log.Fatalf("Setup eden failed: %s", err)
 			}
 		},

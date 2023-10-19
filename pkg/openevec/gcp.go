@@ -6,7 +6,7 @@ import (
 	"github.com/lf-edge/eden/pkg/linuxkit"
 )
 
-func GcpImageDelete(gcpKey, gcpProjectName, gcpImageName, gcpBucketName string) error {
+func (openEVEC *OpenEVEC) GcpImageDelete(gcpKey, gcpProjectName, gcpImageName, gcpBucketName string) error {
 	gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
 	if err != nil {
 		return fmt.Errorf("unable to connect to GCP: %w", err)
@@ -22,7 +22,7 @@ func GcpImageDelete(gcpKey, gcpProjectName, gcpImageName, gcpBucketName string) 
 	return nil
 }
 
-func GcpImageUpload(gcpKey, gcpProjectName, gcpImageName, gcpBucketName, eveImageFile string, gcpvTPM bool) error {
+func (openEVEC *OpenEVEC) GcpImageUpload(gcpKey, gcpProjectName, gcpImageName, gcpBucketName, eveImageFile string, gcpvTPM bool) error {
 	gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
 	if err != nil {
 		return fmt.Errorf("unable to connect to GCP: %w", err)
@@ -39,7 +39,7 @@ func GcpImageUpload(gcpKey, gcpProjectName, gcpImageName, gcpBucketName, eveImag
 	return nil
 }
 
-func GcpRun(gcpKey, gcpProjectName, gcpImageName, gcpVMName, gcpZone, gcpMachineType string, gcpvTPM bool, eveDisks, eveImageSizeMB int) error {
+func (openEVEC *OpenEVEC) GcpRun(gcpKey, gcpProjectName, gcpImageName, gcpVMName, gcpZone, gcpMachineType string, gcpvTPM bool, eveDisks, eveImageSizeMB int) error {
 	gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
 	if err != nil {
 		return fmt.Errorf("unable to connect to GCP: %w", err)
@@ -55,7 +55,7 @@ func GcpRun(gcpKey, gcpProjectName, gcpImageName, gcpVMName, gcpZone, gcpMachine
 	return nil
 }
 
-func GcpDelete(gcpKey, gcpProjectName, gcpVMName, gcpZone string) error {
+func (openEVEC *OpenEVEC) GcpDelete(gcpKey, gcpProjectName, gcpVMName, gcpZone string) error {
 	gcpClient, err := linuxkit.NewGCPClient(gcpKey, gcpProjectName)
 	if err != nil {
 		return fmt.Errorf("unable to connect to GCP: %w", err)

@@ -9,7 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func PacketRun(packetKey, packetProjectName, packetVMName, packetZone, packetMachineType, packetIPXEUrl string, cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) PacketRun(packetKey, packetProjectName, packetVMName, packetZone, packetMachineType, packetIPXEUrl string) error {
+	cfg := openEVEC.cfg
 	if packetIPXEUrl == "" {
 		configPrefix := cfg.ConfigName
 		if cfg.ConfigName == defaults.DefaultContext {
@@ -29,7 +30,7 @@ func PacketRun(packetKey, packetProjectName, packetVMName, packetZone, packetMac
 	return nil
 }
 
-func PacketDelete(packetKey, packetProjectName, packetVMName string) error {
+func (openEVEC *OpenEVEC) PacketDelete(packetKey, packetProjectName, packetVMName string) error {
 	packetClient, err := packet.NewPacketClient(packetKey, packetProjectName)
 	if err != nil {
 		return fmt.Errorf("unable to connect to create packet client: %w", err)
@@ -40,7 +41,7 @@ func PacketDelete(packetKey, packetProjectName, packetVMName string) error {
 	return nil
 }
 
-func PacketGetIP(packetKey, packetProjectName, packetVMName string) error {
+func (openEVEC *OpenEVEC) PacketGetIP(packetKey, packetProjectName, packetVMName string) error {
 	packetClient, err := packet.NewPacketClient(packetKey, packetProjectName)
 	if err != nil {
 		return fmt.Errorf("unable to connect to create packet client: %w", err)

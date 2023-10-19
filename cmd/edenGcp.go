@@ -40,7 +40,7 @@ func newGcpImageDelete(gcpKey, gcpProjectName *string) *cobra.Command {
 		Use:   "delete",
 		Short: "delete image from gcp",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.GcpImageDelete(*gcpKey, *gcpProjectName, gcpImageName, gcpBucketName); err != nil {
+			if err := openEVEC.GcpImageDelete(*gcpKey, *gcpProjectName, gcpImageName, gcpBucketName); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -81,7 +81,7 @@ func newGcpImageUploadCmd(cfg *openevec.EdenSetupArgs, gcpKey, gcpProjectName *s
 		Use:   "upload",
 		Short: "upload image to gcp",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := openevec.GcpImageUpload(*gcpKey, *gcpProjectName, gcpImageName, gcpBucketName, cfg.Eve.ImageFile, cfg.Eve.TPM)
+			err := openEVEC.GcpImageUpload(*gcpKey, *gcpProjectName, gcpImageName, gcpBucketName, cfg.Eve.ImageFile, cfg.Eve.TPM)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -127,7 +127,7 @@ func newGcpRunCmd(cfg *openevec.EdenSetupArgs, gcpKey, gcpProjectName *string) *
 		Use:   "run",
 		Short: "run vm in gcp",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := openevec.GcpRun(*gcpKey, *gcpProjectName, gcpImageName, gcpVMName, gcpZone, gcpMachineType, cfg.Eve.TPM, cfg.Eve.Disks, cfg.Eve.ImageSizeMB)
+			err := openEVEC.GcpRun(*gcpKey, *gcpProjectName, gcpImageName, gcpVMName, gcpZone, gcpMachineType, cfg.Eve.TPM, cfg.Eve.Disks, cfg.Eve.ImageSizeMB)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -150,7 +150,7 @@ func newGcpDeleteCmd(gcpKey, gcpProjectName *string) *cobra.Command {
 		Use:   "delete",
 		Short: "delete vm from gcp",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := openevec.GcpDelete(*gcpKey, *gcpProjectName, gcpVMName, gcpZone)
+			err := openEVEC.GcpDelete(*gcpKey, *gcpProjectName, gcpVMName, gcpZone)
 			if err != nil {
 				log.Fatal(err)
 			}

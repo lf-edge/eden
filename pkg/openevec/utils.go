@@ -25,7 +25,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func DownloadEve(cfg *EdenSetupArgs) error {
+func (openEVEC *OpenEVEC) DownloadEve() error {
+	cfg := openEVEC.cfg
 	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
 	if err != nil {
 		return fmt.Errorf("GetDevModelByName: %w", err)
@@ -51,7 +52,7 @@ func DownloadEve(cfg *EdenSetupArgs) error {
 	return nil
 }
 
-func OciImage(fileToSave, image, registry string, isLocal bool) error {
+func (openEVEC *OpenEVEC) OciImage(fileToSave, image, registry string, isLocal bool) error {
 	var imageManifest []byte
 	var err error
 	ref, err := name.ParseReference(image)
@@ -202,7 +203,7 @@ func DockerHashFromManifest(imageManifest []byte) (string, error) {
 	return layers[len(layers)-1].Digest.Hex, nil
 }
 
-func SDInfoEve(devicePath, syslogOutput, eveReleaseOutput string) error {
+func (openEVEC *OpenEVEC) SDInfoEve(devicePath, syslogOutput, eveReleaseOutput string) error {
 	eveInfo, err := eden.GetInfoFromSDCard(devicePath)
 	if err != nil {
 		log.Info("Check is EVE on SD and your access to read SD")
@@ -227,7 +228,7 @@ func SDInfoEve(devicePath, syslogOutput, eveReleaseOutput string) error {
 	return nil
 }
 
-func UploadGit(absPath, object, branch, directoryToSave string) error {
+func (openEVEC *OpenEVEC) UploadGit(absPath, object, branch, directoryToSave string) error {
 	commandToRun := fmt.Sprintf("-i /in/%s -o %s -b %s -d %s git",
 		filepath.Base(absPath), object, branch, directoryToSave)
 	image := fmt.Sprintf("%s:%s", defaults.DefaultProcContainerRef, defaults.DefaultProcTag)

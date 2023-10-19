@@ -12,11 +12,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func NetworkLs(outputFormat types.OutputFormat) error {
+func (openEVEC *OpenEVEC) NetworkLs(outputFormat types.OutputFormat) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	state := eve.Init(ctrl, dev)
 	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
@@ -31,11 +31,11 @@ func NetworkLs(outputFormat types.OutputFormat) error {
 	return nil
 }
 
-func NetworkDelete(niName string) error {
+func (openEVEC *OpenEVEC) NetworkDelete(niName string) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for id, el := range dev.GetNetworkInstances() {
 		ni, err := ctrl.GetNetworkInstanceConfig(el)
@@ -57,11 +57,11 @@ func NetworkDelete(niName string) error {
 	return nil
 }
 
-func NetworkNetstat(niName string, outputFormat types.OutputFormat, outputTail uint) error {
+func (openEVEC *OpenEVEC) NetworkNetstat(niName string, outputFormat types.OutputFormat, outputTail uint) error {
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	for _, el := range dev.GetNetworkInstances() {
 		ni, err := ctrl.GetNetworkInstanceConfig(el)
@@ -93,7 +93,7 @@ func NetworkNetstat(niName string, outputFormat types.OutputFormat, outputTail u
 	return nil
 }
 
-func NetworkCreate(subnet, networkType, networkName, uplinkAdapter string, staticDNSEntries []string) error {
+func (openEVEC *OpenEVEC) NetworkCreate(subnet, networkType, networkName, uplinkAdapter string, staticDNSEntries []string) error {
 	if networkType != "local" && networkType != "switch" {
 		return fmt.Errorf("network type %s not supported now", networkType)
 	}
@@ -101,9 +101,9 @@ func NetworkCreate(subnet, networkType, networkName, uplinkAdapter string, stati
 		return fmt.Errorf("you must define subnet as first arg for local network")
 	}
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		return fmt.Errorf("getControllerAndDev: %w", err)
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
 	}
 	var opts []expect.ExpectationOption
 	opts = append(opts, expect.AddNetInstanceAndPortPublish(subnet, networkType, networkName, nil, uplinkAdapter))

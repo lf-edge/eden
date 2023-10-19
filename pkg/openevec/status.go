@@ -22,7 +22,8 @@ const (
 	xmark    = "✘"
 )
 
-func Status(cfg *EdenSetupArgs, vmName string, allConfigs bool) error {
+func (openEVEC *OpenEVEC) Status(vmName string, allConfigs bool) error {
+	cfg := openEVEC.cfg
 	statusAdam, err := eden.StatusAdam()
 	if err != nil {
 		return fmt.Errorf("%s cannot obtain status of adam: %w", statusWarn(), err)
@@ -67,11 +68,12 @@ func Status(cfg *EdenSetupArgs, vmName string, allConfigs bool) error {
 			fmt.Printf("--- context: %s ---\n", el)
 			context.SetContext(el)
 			configName := el
-			_, err := utils.LoadConfigFileContext(context.GetCurrentConfig())
+			localCfg, err := LoadConfig(context.GetCurrentConfig())
 			if err != nil {
-				return fmt.Errorf("error reading config: %w", err)
+				return err
 			}
-			eveUUID := cfg.Eve.CertsUUID
+			localOpenEVEC := CreateOpenEVEC(localCfg)
+			eveUUID := localCfg.Eve.CertsUUID
 			edenDir, err := utils.DefaultEdenDir()
 			if err != nil {
 				return err
@@ -89,22 +91,22 @@ func Status(cfg *EdenSetupArgs, vmName string, allConfigs bool) error {
 			}
 			fmt.Println()
 			if statusAdam != "container doesn't exist" {
-				if err := eveStatusRemote(); err != nil {
+				if err := localOpenEVEC.eveStatusRemote(); err != nil {
 					return err
 				}
 			}
-			if !cfg.Eve.Remote {
+			if !localCfg.Eve.Remote {
 				switch {
-				case cfg.Eve.DevModel == defaults.DefaultVBoxModel:
-					eveStatusVBox(vmName)
-				case cfg.Eve.DevModel == defaults.DefaultParallelsModel:
-					eveStatusParallels(vmName)
+				case localCfg.Eve.DevModel == defaults.DefaultVBoxModel:
+					localOpenEVEC.eveStatusVBox(vmName)
+				case localCfg.Eve.DevModel == defaults.DefaultParallelsModel:
+					localOpenEVEC.eveStatusParallels(vmName)
 				default:
-					eveStatusQEMU(configName, cfg.Eve.Pid)
+					localOpenEVEC.eveStatusQEMU(configName, cfg.Eve.Pid)
 				}
 			}
 			if statusAdam != "container doesn't exist" {
-				eveRequestsAdam()
+				localOpenEVEC.eveRequestsAdam()
 			}
 			fmt.Println("------")
 		}
@@ -113,8 +115,8 @@ func Status(cfg *EdenSetupArgs, vmName string, allConfigs bool) error {
 	return nil
 }
 
-func eveRequestsAdam() {
-	if ip, err := eveLastRequests(); err != nil {
+func (openEVEC *OpenEVEC) eveRequestsAdam() {
+	if ip, err := openEVEC.eveLastRequests(); err != nil {
 		fmt.Printf("%s EVE Request IP: error: %s\n", statusBad(), err)
 	} else {
 		if ip == "" {
@@ -124,10 +126,10 @@ func eveRequestsAdam() {
 	}
 }
 
-func eveStatusRemote() error {
+func (openEVEC *OpenEVEC) eveStatusRemote() error {
 	log.Debugf("Will try to obtain info from ADAM")
 	changer := &adamChanger{}
-	ctrl, dev, err := changer.getControllerAndDev()
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
 		log.Debugf("getControllerAndDev: %s", err)
 		fmt.Printf("%s EVE status: undefined (no onboarded EVE)\n", statusWarn())
@@ -173,7 +175,7 @@ func eveStatusRemote() error {
 	return nil
 }
 
-func eveStatusQEMU(configName, evePidFile string) {
+func (openEVEC *OpenEVEC) eveStatusQEMU(configName, evePidFile string) {
 	statusEVE, err := eden.StatusEVEQemu(evePidFile)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of EVE Qemu process: %s", statusWarn(), err)
@@ -183,7 +185,7 @@ func eveStatusQEMU(configName, evePidFile string) {
 	fmt.Printf("\tLogs for local EVE at: %s\n", utils.ResolveAbsPath(configName+"-"+"eve.log"))
 }
 
-func eveStatusVBox(vmName string) {
+func (openEVEC *OpenEVEC) eveStatusVBox(vmName string) {
 	statusEVE, err := eden.StatusEVEVBox(vmName)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of EVE VBox process: %s", statusWarn(), err)
@@ -192,7 +194,7 @@ func eveStatusVBox(vmName string) {
 	fmt.Printf("%s EVE on VBox status: %s\n", representProcessStatus(statusEVE), statusEVE)
 }
 
-func eveStatusParallels(vmName string) {
+func (openEVEC *OpenEVEC) eveStatusParallels(vmName string) {
 	statusEVE, err := eden.StatusEVEParallels(vmName)
 	if err != nil {
 		log.Errorf("%s cannot obtain status of EVE Parallels process: %s", statusWarn(), err)

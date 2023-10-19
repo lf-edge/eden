@@ -58,7 +58,7 @@ func newGetRentConsoleOutputCmd(rolProjectID *string) *cobra.Command {
 		Short: "Get device console output",
 		Long:  `Get device console output from uart`,
 		Run: func(cmd *cobra.Command, args []string) {
-			output, err := openevec.GetRentConsoleOutput(*rolProjectID, rolRentID)
+			output, err := openEVEC.GetRentConsoleOutput(*rolProjectID, rolRentID)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -81,7 +81,7 @@ func newCreateRentCmd(rolProjectID *string, cfg *openevec.EdenSetupArgs) *cobra.
 		Long:  `Create a new device rent`,
 
 		Run: func(cmd *cobra.Command, args []string) {
-			err := openevec.CreateRent(*rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl, cfg)
+			err := openEVEC.CreateRent(*rolProjectID, rolRentName, rolModel, rolManufacturer, rolIPXEUrl)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -107,7 +107,7 @@ func newGetRentCmd(rolProjectID *string) *cobra.Command {
 		Short: "Get the device rent",
 		Long:  `Get the device rent`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.GetRent(*rolProjectID, rolRentID); err != nil {
+			if err := openEVEC.GetRent(*rolProjectID, rolRentID); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -127,7 +127,7 @@ func newCloseRentCmd(rolProjectID *string) *cobra.Command {
 		Short: "Close the device rent",
 		Long:  `Close the device rent`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.CloseRent(*rolProjectID, rolRentID); err != nil {
+			if err := openEVEC.CloseRent(*rolProjectID, rolRentID); err != nil {
 				log.Fatal(err)
 			}
 		},

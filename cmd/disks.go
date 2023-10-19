@@ -36,7 +36,7 @@ func newDisksLayoutCmd() *cobra.Command {
 		Short: "Get disks layout",
 		Long:  `Get disks layout`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if layout, err := openevec.GetDisksLayout(); err != nil {
+			if layout, err := openEVEC.GetDisksLayout(); err != nil {
 				log.Fatal(err)
 			} else {
 				fmt.Println(layout)
@@ -54,7 +54,7 @@ func newSetDisksLayoutCmd() *cobra.Command {
 		Short: "Set disks layout",
 		Long:  `Set disks layout`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.SetDiskLayout(dc); err != nil {
+			if err := openEVEC.SetDiskLayout(dc); err != nil {
 				log.Fatal(err)
 			}
 		},

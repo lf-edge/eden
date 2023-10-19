@@ -17,6 +17,7 @@ import (
 
 type configChanger interface {
 	getControllerAndDev() (controller.Cloud, *device.Ctx, error)
+	getControllerAndDevFromConfig(cfg *EdenSetupArgs) (controller.Cloud, *device.Ctx, error)
 	setControllerAndDev(controller.Cloud, *device.Ctx) error
 }
 
@@ -49,6 +50,29 @@ func changerByControllerMode(controllerMode string) (configChanger, error) {
 }
 
 func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
+	return ctx.getControllerAndDevFromConfig(nil)
+}
+
+func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.Ctx) error {
+	res, err := ctrl.GetConfigBytes(dev, false)
+	if err != nil {
+		return fmt.Errorf("GetConfigBytes error: %w", err)
+	}
+	if ctx.oldHash == sha256.Sum256(res) {
+		log.Debug("config not modified")
+		return nil
+	}
+	if res, err = controller.VersionIncrement(res); err != nil {
+		return fmt.Errorf("VersionIncrement error: %w", err)
+	}
+	if err = os.WriteFile(ctx.fileConfig, res, 0755); err != nil {
+		return fmt.Errorf("WriteFile error: %w", err)
+	}
+	log.Debug("config modification done")
+	return nil
+}
+
+func (ctx *fileChanger) getControllerAndDevFromConfig(cfg *EdenSetupArgs) (controller.Cloud, *device.Ctx, error) {
 	if ctx.fileConfig == "" {
 		return nil, nil, fmt.Errorf("cannot use empty url for file")
 	}
@@ -58,6 +82,13 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return nil, nil, err
+	}
+	if cfg != nil {
+		vars, err := InitVarsFromConfig(cfg)
+		if err != nil {
+			return nil, nil, fmt.Errorf("InitVarsFromConfig error: %w", err)
+		}
+		ctrl.SetVars(vars)
 	}
 	data, err := os.ReadFile(ctx.fileConfig)
 	if err != nil {
@@ -78,25 +109,6 @@ func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	}
 	ctx.oldHash = sha256.Sum256(res)
 	return ctrl, dev, nil
-}
-
-func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.Ctx) error {
-	res, err := ctrl.GetConfigBytes(dev, false)
-	if err != nil {
-		return fmt.Errorf("GetConfigBytes error: %w", err)
-	}
-	if ctx.oldHash == sha256.Sum256(res) {
-		log.Debug("config not modified")
-		return nil
-	}
-	if res, err = controller.VersionIncrement(res); err != nil {
-		return fmt.Errorf("VersionIncrement error: %w", err)
-	}
-	if err = os.WriteFile(ctx.fileConfig, res, 0755); err != nil {
-		return fmt.Errorf("WriteFile error: %w", err)
-	}
-	log.Debug("config modification done")
-	return nil
 }
 
 type adamChanger struct {
@@ -129,6 +141,23 @@ func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("getController error: %w", err)
 	}
+	devFirst, err := ctrl.GetDeviceCurrent()
+	if err != nil {
+		return nil, nil, fmt.Errorf("GetDeviceCurrent error: %w", err)
+	}
+	return ctrl, devFirst, nil
+}
+
+func (ctx *adamChanger) getControllerAndDevFromConfig(cfg *EdenSetupArgs) (controller.Cloud, *device.Ctx, error) {
+	ctrl, err := ctx.getController()
+	if err != nil {
+		return nil, nil, fmt.Errorf("getController error: %w", err)
+	}
+	vars, err := InitVarsFromConfig(cfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl.SetVars(vars)
 	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetDeviceCurrent error: %w", err)

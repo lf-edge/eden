@@ -39,7 +39,7 @@ func newStartAdamCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 		Short: "start adam",
 		Long:  `Start adam.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := openevec.AdamStart(cfg); err != nil {
+			if err := openEVEC.AdamStart(); err != nil {
 				log.Fatalf("Adam start failed: %s", err)
 			}
 		},
