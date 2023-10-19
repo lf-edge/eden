@@ -53,10 +53,6 @@ func (openEVEC *OpenEVEC) SetupEden(configName, configDir, softSerial, zedContro
 
 	cfg := *openEVEC.cfg
 
-	if err := configCheck(configName); err != nil {
-		return err
-	}
-
 	if netboot && installer {
 		return fmt.Errorf("please use netboot or installer flag, not both")
 	}
