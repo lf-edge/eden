@@ -1,105 +1,19 @@
 ---
 name: Eden
-on:  # yamllint disable-line rule:truthy
+on: # yamllint disable-line rule:truthy
   pull_request:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  integration:
-    name: Integration test (tpm=${{ matrix.tpm }};${{ matrix.fs }})
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        tpm: ["true", "false"]
-        fs: ["zfs", "ext4"]
-    steps:
-      - name: get eden
-        uses: actions/checkout@v3
-      - name: setup go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.18'
-      - name: Check
-        run: |
-          for addr in $(ip addr list|sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
-          do
-              if echo "$addr" | grep -q -E "10.11.(12|13).[0-9]+"; then
-                echo "$addr overlaps with test"; exit 1
-              fi
-          done
-          sudo df -h
-          sudo swapoff -a
-          sudo free
-      - name: setup
-        run: |
-          sudo add-apt-repository ppa:stefanberger/swtpm-jammy
-          sudo apt install -y qemu-utils qemu-system-x86 jq swtpm
-      - name: build eden
-        run: |
-          make build-tests
-      - name: configure
-        run: |
-          ./eden config add default
-          ./eden config set default --key=eve.accel --value=false
-          ./eden config set default --key=eve.tpm --value=${{ matrix.tpm }}
-          ./eden config set default --key=eve.cpu --value=2
-      - name: setup-ext4
-        if: matrix.fs == 'ext4'
-        run: ./eden setup -v debug
-      - name: setup-zfs
-        if: matrix.fs == 'zfs'
-        run: |
-          ./eden config set default --key=eve.disks --value=4
-          ./eden config set default --key=eve.disk --value=4096
-          ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
-      - name: clean-docker
-        run: docker system prune -f -a
-      - name: run
-        run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -v debug
-      - name: Collect info
-        if: ${{ failure() }}
-        uses: ./.github/actions/collect-info
-        with:
-          working-directory: ${{ github.workspace }}
-      - name: Collect logs
-        if: ${{ always() }}
-        run: |
-          ./eden log --format json > trace.log || echo "no log"
-          ./eden info --format json > info.log || echo "no info"
-          ./eden metric --format json > metric.log || echo "no metric"
-          ./eden netstat --format json > netstat.log || echo "no netstat"
-          cp dist/default-eve.log console.log || echo "no device log"
-          docker logs eden_adam > adam.log 2>&1 || echo "no adam log"
-      - name: Log counting
-        if: ${{ always() }}
-        run: |
-          echo "::group::Total errors"
-          echo "$(jq '.severity' trace.log|grep err|wc -l)"
-          echo "::endgroup::"
-          echo "::group::Errors by source"
-          echo "errors by source: $(jq -s 'map(select(.severity|contains("err")))|group_by(.source)|map({"source": .[0].source, "total":length})|sort_by(.total)|reverse[]' trace.log)"
-          echo "::endgroup::"
-          echo "::group::Error log content duplicates"
-          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.content)|map(select(length>1))' trace.log)"
-          echo "::endgroup::"
-          echo "::group::Error log function filename duplicates"
-          echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.filename)|map(select(length>10))|map({"source": .[0].source, "filename": .[0].filename, "function": .[0].function, "content": [.[].content], "total":length})|sort_by(.total)| reverse[]' trace.log)"
-          echo "::endgroup::"
-          echo "::group::Segfaults"
-          echo "$(jq -s 'map(select(.content | contains("segfault at")))' trace.log)"|tee segfaults.log
-          [ "$(jq length segfaults.log)" -gt 0 ] && echo "::warning::segfaults found, you can see them in Log counting->Segfaults section"
-          echo "::endgroup::"
-      - name: Store raw test results
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: eden-report-tpm-${{ matrix.tpm }}-${{ matrix.fs }}
-          path: |
-              ${{ github.workspace }}/eve-info.tar.gz
-              ${{ github.workspace }}/trace.log
-              ${{ github.workspace }}/info.log
-              ${{ github.workspace }}/metric.log
-              ${{ github.workspace }}/netstat.log
-              ${{ github.workspace }}/console.log
-              ${{ github.workspace }}/adam.log
+  run_tests:
+    name: Execute Eden test workflow
+    uses: ./.github/workflows/test.yml
+    with:
+      eve_image: "lfedge/eve:10.11.0"
+
