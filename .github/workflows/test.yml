@@ -6,18 +6,26 @@ on:
     inputs:
       eve_image:
         type: string
-      runner:
-        type: string
-        default: buildjet-4vcpu-ubuntu-2204
   workflow_call:
     inputs:
       eve_image:
         type: string
-      runner:
-        type: string
-        default: buildjet-4vcpu-ubuntu-2204
 
 jobs:
+  determine-runner:
+    name: Determine best available runner
+    runs-on: ubuntu-latest
+    outputs:
+      runner: ${{ steps.fork-check.outputs.runner }}
+    steps:
+      - id: fork-check
+        run: |
+          if [[ "${{ github.event.repository.full_name}}" == "lf-edge/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "lf-edge/eden" ]]; then
+            echo "runner=buildjet-4vcpu-ubuntu-2204" >> "$GITHUB_OUTPUT"
+          else
+            echo "runner=ubuntu-22.04" >> "$GITHUB_OUTPUT"
+          fi
+
   smoke:
     continue-on-error: true
     strategy:
@@ -25,7 +33,8 @@ jobs:
         file_system: ['ext4', 'zfs']
         tpm: [true, false]
     name: Smoke tests
-    runs-on: ${{ inputs.runner }}
+    needs: determine-runner
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
         uses: actions/checkout@v3.5.3
@@ -42,8 +51,8 @@ jobs:
 
   networking:
     name: Networking test suite
-    needs: smoke
-    runs-on: ${{ inputs.runner }}
+    needs: [smoke, determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
         uses: actions/checkout@v3.5.3
@@ -64,8 +73,8 @@ jobs:
       matrix:
         file_system: ['ext4', 'zfs']
     name: Storage test suite
-    needs: smoke
-    runs-on: ${{ inputs.runner }}
+    needs: [smoke, determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
         uses: actions/checkout@v3.5.3
@@ -82,8 +91,8 @@ jobs:
 
   lpc-loc:
     name: LPC LOC test suite
-    needs: smoke
-    runs-on: ${{ inputs.runner }}
+    needs: [smoke, determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
         uses: actions/checkout@v3.5.3
@@ -104,8 +113,8 @@ jobs:
       matrix:
         file_system: ['ext4', 'zfs']
     name: EVE upgrade test suite
-    needs: smoke
-    runs-on: ${{ inputs.runner }}
+    needs: [smoke, determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
         uses: actions/checkout@v3.5.3
@@ -122,8 +131,8 @@ jobs:
 
   user-apps:
     name: User apps test suite
-    needs: smoke
-    runs-on: ${{ inputs.runner }}
+    needs: [smoke, determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
         uses: actions/checkout@v3.5.3
