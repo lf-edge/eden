@@ -22,9 +22,11 @@ type nwState struct {
 // This test wait for the network's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
-	_        = flag.Bool("check-new", false, "Check only new info messages")
+	checkNew = flag.Bool("check-new", false, "Check for the new state after state transition")
 	tc       *projects.TestContext
 	states   map[string][]nwState
+
+	lastRebootTime time.Time
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -96,6 +98,17 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 	if len(states) == len(netNames) {
 		for _, netName := range netNames {
 			if !checkNewLastState(netName, state) {
+				currentLastRebootTime := eveState.NodeState().LastRebootTime
+				// if we rebooted we may miss state transition
+				if *checkNew && !currentLastRebootTime.After(lastRebootTime) {
+					// first one is no info from controller
+					// the second is initial state
+					// we want to wait for the third or later, thus new state
+					if len(states[netName]) <= 2 {
+						fmt.Println(utils.AddTimestamp(fmt.Sprintf("\tnetName %s wait for new state", netName)))
+						return nil
+					}
+				}
 				out += fmt.Sprintf(
 					"network %s state %s\n",
 					netName, state)
@@ -119,6 +132,8 @@ func checkNet(edgeNode *device.Ctx, state string, volNames []string) projects.Pr
 // with a timewait
 func TestNetworkStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	lastRebootTime = tc.GetState(edgeNode).GetEVEState().NodeState().LastRebootTime
 
 	args := flag.Args()
 	if len(args) == 0 {

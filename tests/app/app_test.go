@@ -26,9 +26,11 @@ type appState struct {
 // This test wait for the app's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
-	_        = flag.Bool("check-new", false, "Check only new info messages")
+	checkNew = flag.Bool("check-new", false, "Check for the new state after state transition")
 	tc       *projects.TestContext
 	states   map[string][]appState
+
+	lastRebootTime time.Time
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -109,6 +111,17 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 	if len(states) == len(appNames) {
 		for _, appName := range appNames {
 			if !checkNewLastState(appName, state) {
+				currentLastRebootTime := eveState.NodeState().LastRebootTime
+				// if we rebooted we may miss state transition
+				if *checkNew && !currentLastRebootTime.After(lastRebootTime) {
+					// first one is no info from controller
+					// the second is initial state
+					// we want to wait for the third or later, thus new state
+					if len(states[appName]) <= 2 {
+						fmt.Println(utils.AddTimestamp(fmt.Sprintf("\tappName %s wait for new state", appName)))
+						return nil
+					}
+				}
 				out += utils.AddTimestamp(fmt.Sprintf(
 					"app %s state %s\n",
 					appName, state))
@@ -132,6 +145,8 @@ func checkApp(edgeNode *device.Ctx, state string, appNames []string) projects.Pr
 // with a timewait
 func TestAppStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	lastRebootTime = tc.GetState(edgeNode).GetEVEState().NodeState().LastRebootTime
 
 	args := flag.Args()
 	if len(args) == 0 {

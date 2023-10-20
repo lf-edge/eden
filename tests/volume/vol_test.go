@@ -22,9 +22,11 @@ type volState struct {
 // This test wait for the volume's state with a timewait.
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
-	_        = flag.Bool("check-new", false, "Check only new info messages")
+	checkNew = flag.Bool("check-new", false, "Check for the new state after state transition")
 	tc       *projects.TestContext
 	states   map[string][]volState
+
+	lastRebootTime time.Time
 )
 
 // TestMain is used to provide setup and teardown for the rest of the
@@ -100,6 +102,17 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 	if len(states) == len(volNames) {
 		for _, volName := range volNames {
 			if !checkNewLastState(volName, state) {
+				currentLastRebootTime := eveState.NodeState().LastRebootTime
+				// if we rebooted we may miss state transition
+				if *checkNew && !currentLastRebootTime.After(lastRebootTime) {
+					// first one is no info from controller
+					// the second is initial state
+					// we want to wait for the third or later, thus new state
+					if len(states[volName]) <= 2 {
+						fmt.Println(utils.AddTimestamp(fmt.Sprintf("\tvolName %s wait for new state", volName)))
+						return nil
+					}
+				}
 				out += fmt.Sprintf(
 					"volume %s state %s\n",
 					volName, state)
@@ -123,6 +136,8 @@ func checkVol(edgeNode *device.Ctx, state string, volNames []string) projects.Pr
 // with a timewait
 func TestVolStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+
+	lastRebootTime = tc.GetState(edgeNode).GetEVEState().NodeState().LastRebootTime
 
 	args := flag.Args()
 	if len(args) == 0 {
