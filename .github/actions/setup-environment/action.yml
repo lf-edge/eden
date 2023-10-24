@@ -34,7 +34,7 @@ runs:
     - name: Install Packages
       run: |
         sudo add-apt-repository ppa:stefanberger/swtpm-jammy
-        sudo apt install -y qemu-utils qemu-system-x86 jq swtpm
+        sudo apt install -y qemu-utils qemu-system-x86 jq swtpm util-linux
       shell: bash
     - name: Build tests
       run: |
@@ -44,7 +44,11 @@ runs:
     - name: Configure
       run: |
         ./eden config add default
-        ./eden config set default --key=eve.accel --value=false
+        if lscpu | grep -oEq "vmx|svm"; then
+          ./eden config set default --key=eve.accel --value=true
+        else
+          ./eden config set default --key=eve.accel --value=false
+        fi
         ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
         ./eden config set default --key=eve.cpu --value=2
       shell: bash
