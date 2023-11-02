@@ -73,7 +73,11 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	case "arm64":
 		qemuCommand = "qemu-system-aarch64"
 		if qemuAccel {
-			qemuOptions += defaults.DefaultQemuAccelArm64
+			if qemuOS == "darwin" {
+				qemuOptions += defaults.DefaultQemuAccelDarwinArm64
+			} else {
+				qemuOptions += defaults.DefaultQemuAccelArm64
+			}
 		} else {
 			qemuOptions += defaults.DefaultQemuArm64
 		}
