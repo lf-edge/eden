@@ -1,3 +1,7 @@
+exec -t 2m bash check_vm_support.sh
+source .env
+[!env:with_hw_virt] skip 'Missing HW-assisted virtualization capability'
+
 {{$test_opts := "-test.v -name vnc-app"}}
 
 # Starting of reboot detector with a 1 reboot limit
@@ -18,6 +22,23 @@ stdout '--- PASS: TestAppLogs'
 #TestVNCVMDelete initiates deleting of app and checks if app deleted from EVE
 test eden.vnc.test {{$test_opts}} -timewait 10m -test.run TestVNCVMDelete
 stdout '--- PASS: TestVNCVMDelete'
+
+-- check_vm_support.sh --
+#!/bin/sh
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+:>.env
+while true;
+do
+    virt=$($EDEN info --out InfoContent.dinfo.Capabilities.HWAssistedVirtualization | tail -n 1)
+    if [ -z "$virt" ]; then
+        sleep 3
+        continue
+    fi
+    [ "$virt" == "true" ] && echo "with_hw_virt=true" >>.env
+    break
+done
 
 # Test's config. file
 -- eden-config.yml --
