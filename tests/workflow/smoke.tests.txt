@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 21}}
+{{$tests := 22}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -77,3 +77,5 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/shutd
 /bin/echo EVE reset (21/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_reset
 
+/bin/echo EVE security tests (22/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/sec_eden
