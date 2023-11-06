@@ -29,8 +29,8 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 			Commands: []*cobra.Command{
 				newEdgeNodeReboot(controllerMode),
 				newEdgeNodeShutdown(controllerMode),
-				newEdgeNodeEVEImageUpdate(controllerMode, cfg),
-				newEdgeNodeEVEImageRemove(controllerMode, cfg),
+				newEdgeNodeEVEImageUpdate(controllerMode),
+				newEdgeNodeEVEImageRemove(controllerMode),
 				newEdgeNodeEVEImageUpdateRetry(controllerMode),
 				newEdgeNodeUpdate(controllerMode),
 				newEdgeNodeGetConfig(controllerMode),
@@ -96,7 +96,7 @@ func newEdgeNodeShutdown(controllerMode string) *cobra.Command {
 	return edgeNodeShutdown
 }
 
-func newEdgeNodeEVEImageUpdate(controllerMode string, cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newEdgeNodeEVEImageUpdate(controllerMode string) *cobra.Command {
 	var baseOSVersion, registry string
 	var baseOSImageActivate, baseOSVDrive bool
 
@@ -121,7 +121,7 @@ func newEdgeNodeEVEImageUpdate(controllerMode string, cfg *openevec.EdenSetupArg
 	return edgeNodeEVEImageUpdate
 }
 
-func newEdgeNodeEVEImageRemove(controllerMode string, cfg *openevec.EdenSetupArgs) *cobra.Command {
+func newEdgeNodeEVEImageRemove(controllerMode string) *cobra.Command {
 	var baseOSVersion string
 
 	var edgeNodeEVEImageRemove = &cobra.Command{
@@ -131,7 +131,7 @@ func newEdgeNodeEVEImageRemove(controllerMode string, cfg *openevec.EdenSetupArg
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			baseOSImage := args[0]
-			if err := openEVEC.EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, cfg.Eden.Dist); err != nil {
+			if err := openEVEC.EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage); err != nil {
 				log.Fatal(err)
 			}
 		},
