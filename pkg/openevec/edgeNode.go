@@ -18,7 +18,6 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -74,7 +73,7 @@ func (openEVEC *OpenEVEC) EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, reg
 	registryToUse := registry
 	switch registry {
 	case "local":
-		registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
+		registryToUse = fmt.Sprintf("%s:%d", openEVEC.cfg.Registry.IP, openEVEC.cfg.Registry.Port)
 	case "remote":
 		registryToUse = ""
 	}
@@ -138,7 +137,8 @@ func checkIsFileOrURL(pathToCheck string) (isFile bool, pathToRet string, err er
 	}
 }
 
-func (openEVEC *OpenEVEC) EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage, edenDist string) error {
+func (openEVEC *OpenEVEC) EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, baseOSImage string) error {
+	cfg := *openEVEC.cfg
 	isFile, baseOSImage, err := checkIsFileOrURL(baseOSImage)
 	if err != nil {
 		return fmt.Errorf("checkIsFileOrURL: %w", err)
@@ -153,10 +153,10 @@ func (openEVEC *OpenEVEC) EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, 
 		r, _ := url.Parse(baseOSImage)
 		switch r.Scheme {
 		case "http", "https":
-			if err = os.MkdirAll(filepath.Join(edenDist, "tmp"), 0755); err != nil {
+			if err = os.MkdirAll(filepath.Join(cfg.Eden.Dist, "tmp"), 0755); err != nil {
 				return fmt.Errorf("cannot create dir for download image %w", err)
 			}
-			rootFsPath = filepath.Join(edenDist, "tmp", path.Base(r.Path))
+			rootFsPath = filepath.Join(cfg.Eden.Dist, "tmp", path.Base(r.Path))
 			defer os.Remove(rootFsPath)
 			if err := utils.DownloadFile(rootFsPath, baseOSImage); err != nil {
 				return fmt.Errorf("DownloadFile error: %w", err)
