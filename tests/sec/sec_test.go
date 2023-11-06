@@ -93,7 +93,6 @@ func TestMain(m *testing.M) {
 func TestAppArmorEnabled(t *testing.T) {
 	log.Println("TestAppArmorEnabled started")
 	defer log.Println("TestAppArmorEnabled finished")
-	t.Parallel()
 
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 	tc.WaitForState(edgeNode, 60)
@@ -107,4 +106,84 @@ func TestAppArmorEnabled(t *testing.T) {
 	if exits != "Y" {
 		t.Fatal("AppArmor is not enabled")
 	}
+}
+
+func TestCheckMountOptions(t *testing.T) {
+	log.Println("TestCheckMountOptions started")
+	defer log.Println("TestCheckMountOptions finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	fail := false
+	mounts, err := rnode.getMountPoints("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// checl of mounts of type proc are secure
+	misconfig := checkMountOptionsByType("proc", mounts, []string{"nosuid", "nodev", "noexec"})
+	if len(misconfig) > 0 {
+		for _, msg := range misconfig {
+			t.Logf("[FAIL] %s", msg)
+		}
+		fail = true
+	}
+
+	// TODO: set hidepid=2 on /proc and this to the above list
+	misconfig = checkMountOptionsByType("proc", mounts, []string{"hidepid=2"})
+	if len(misconfig) > 0 {
+		for _, msg := range misconfig {
+			t.Logf("[FAIL] %s", msg)
+		}
+	}
+
+	// check of mounts of type tmpfs are secure
+	misconfig = checkMountOptionsByType("tmpfs", mounts, []string{"nosuid", "nodev", "noexec"})
+	if len(misconfig) > 0 {
+		for _, msg := range misconfig {
+			t.Logf("[FAIL] %s", msg)
+		}
+		fail = true
+	}
+
+	if fail {
+		t.Fatal("Some mount options are not secure, see logs above")
+	}
+}
+
+func checkMountSecurityOptions(mount mount, secureOptions []string) []string {
+	secOptNotFound := make([]string, 0)
+
+	for _, option := range secureOptions {
+		if !strings.Contains(mount.Options, option) {
+			secOptNotFound = append(secOptNotFound, fmt.Sprintf("'%s' option is not set on %s", option, mount.Path))
+		}
+	}
+
+	return secOptNotFound
+}
+
+func checkMountOptionsByType(mountType string, mounts []mount, options []string) []string {
+	secOptNotFound := make([]string, 0)
+	for _, mount := range mounts {
+		if mount.Type == mountType {
+			misses := checkMountSecurityOptions(mount, options)
+			secOptNotFound = append(secOptNotFound, misses...)
+		}
+	}
+
+	return secOptNotFound
+}
+
+func checkMountOptionsByPath(mountPath string, mounts []mount, options []string) []string {
+	secOptNotFound := make([]string, 0)
+	for _, mount := range mounts {
+		if mount.Path == mountPath {
+			misses := checkMountSecurityOptions(mount, options)
+			secOptNotFound = append(secOptNotFound, misses...)
+		}
+	}
+
+	return secOptNotFound
 }

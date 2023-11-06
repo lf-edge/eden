@@ -1,6 +1,7 @@
 package sec_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +11,12 @@ import (
 	"github.com/lf-edge/eden/pkg/openevec"
 	"github.com/lf-edge/eden/pkg/utils"
 )
+
+type mount struct {
+	Path    string `json:"path"`
+	Type    string `json:"type"`
+	Options string `json:"options"`
+}
 
 type remoteNode struct {
 	openEVEC *openevec.OpenEVEC
@@ -85,4 +92,33 @@ func (node *remoteNode) readFile(fileName string) ([]byte, error) {
 
 	command := fmt.Sprintf("cat %s", fileName)
 	return node.runCommand(command)
+}
+
+func (node *remoteNode) getMountPoints(mtype string) ([]mount, error) {
+	mountCommand := "mount -l"
+	if mtype != "" {
+		mountCommand = fmt.Sprintf("mount -l -t %s", mtype)
+	}
+
+	command := mountCommand + ` | awk '
+	BEGIN { print " [ "}
+	{
+		printf " %s {\"path\": \"%s\", \"type\": \"%s\", \"options\": \"%s\"}", separator, $3, $5, $6;
+		separator = ",";
+	}
+	END { print " ] " }
+	'`
+
+	out, err := node.runCommand(command)
+	if err != nil {
+		return nil, err
+	}
+
+	var mounts []mount
+	if err := json.Unmarshal(out, &mounts); err != nil {
+		return nil, err
+
+	}
+
+	return mounts, nil
 }
