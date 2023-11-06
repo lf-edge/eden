@@ -3,14 +3,17 @@ package cmd
 import (
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/types"
+	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
 )
 
-func newVolumeCmd() *cobra.Command {
+func newVolumeCmd(configName, verbosity *string) *cobra.Command {
+	cfg := &openevec.EdenSetupArgs{}
 	var volumeCmd = &cobra.Command{
-		Use: "volume",
+		Use:               "volume",
+		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 	}
 
 	groups := CommandGroups{

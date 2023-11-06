@@ -14,7 +14,6 @@ import (
 	"github.com/lf-edge/eve/api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func (openEVEC *OpenEVEC) VolumeLs(outputFormat types.OutputFormat) error {
@@ -83,7 +82,7 @@ func (openEVEC *OpenEVEC) VolumeCreate(appLink, registry, diskSize, volumeName, 
 		registryToUse := registry
 		switch registry {
 		case "local":
-			registryToUse = fmt.Sprintf("%s:%d", viper.GetString("registry.ip"), viper.GetInt("registry.port"))
+			registryToUse = fmt.Sprintf("%s:%d", openEVEC.cfg.Registry.IP, openEVEC.cfg.Registry.Port)
 		case "remote":
 			registryToUse = ""
 		}
