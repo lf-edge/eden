@@ -14,10 +14,10 @@ alias eden-config 'eden config delete \!:1; eden_config default'
 # Unset irrelevant variables.
 eden_deactivate nondestructive
 
-setenv EDEN_HOME "{{EdenConfig "eden.root"}}"
+setenv EDEN_HOME "{{.Eden.Root}}"
 
 set _OLD_EDEN_PATH="$PATH:q"
-setenv PATH "$EDEN_HOME/{{EdenConfig "eden.bin-dist"}}:$PATH:q"
+setenv PATH "{{.Eden.BinDir}}:$PATH:q"
 
 if ( $?EDEN_DISABLE_PROMPT ) then
     if ( $EDEN_DISABLE_PROMPT == "" ) then
