@@ -22,6 +22,7 @@ require (
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
+	github.com/onsi/gomega v1.19.0
 	github.com/packethost/packngo v0.25.0
 	github.com/rogpeppe/go-internal v1.6.2
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b

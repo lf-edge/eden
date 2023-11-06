@@ -5,7 +5,9 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"html/template"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -352,14 +354,25 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 			cfgDir, err)
 	} else {
 		shPath := viper.GetString("eden.root") + "/scripts/shell/"
-		if err := generateScripts(shPath+"activate.sh.tmpl",
-			cfgDir+"activate.sh", cfg.ConfigName); err != nil {
+
+		activateShFile, err := os.Create(cfgDir + "activate.sh")
+		defer activateShFile.Close()
+		if err != nil {
 			return err
 		}
-		if err := generateScripts(shPath+"activate.csh.tmpl",
-			cfgDir+"activate.csh", cfg.ConfigName); err != nil {
+		if err = ParseTemplateFile(shPath+"activate.sh.tmpl", cfg, activateShFile); err != nil {
 			return err
 		}
+
+		activateCshFile, err := os.Create(cfgDir + "activate.csh")
+		defer activateCshFile.Close()
+		if err != nil {
+			return err
+		}
+		if err = ParseTemplateFile(shPath+"activate.csh.tmpl", cfg, activateCshFile); err != nil {
+			return err
+		}
+
 		fmt.Println("To activate EDEN settings run:")
 		fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
 		fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
@@ -828,4 +841,22 @@ func (openEVEC *OpenEVEC) EdenImport(tarFile string, rewriteRoot bool) error {
 	}
 
 	return nil
+}
+
+// ParseTemplateFile fills EdenSetupArgs variable into template stored in file and writes result to io.Writer
+func ParseTemplateFile(path string, cfg EdenSetupArgs, w io.Writer) error {
+	t, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.New("").Parse(string(t))
+
+	if err != nil {
+		return err
+	}
+
+	err = tmpl.Execute(w, cfg)
+
+	return err
 }
