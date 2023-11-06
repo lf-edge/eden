@@ -35,22 +35,6 @@ import (
 	"golang.org/x/term"
 )
 
-func generateScripts(in string, out string, configFile string) error {
-	tmpl, err := os.ReadFile(in)
-	if err != nil {
-		return err
-	}
-	script, err := utils.RenderTemplate(configFile, string(tmpl))
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(out, []byte(script), 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (openEVEC *OpenEVEC) SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, grubOptions []string, netboot, installer bool) error {
 
 	cfg := *openEVEC.cfg
