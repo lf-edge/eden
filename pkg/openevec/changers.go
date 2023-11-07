@@ -5,14 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eve/api/go/config"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type configChanger interface {
@@ -116,19 +114,6 @@ type adamChanger struct {
 }
 
 func (ctx *adamChanger) getController() (controller.Cloud, error) {
-	if ctx.adamURL != "" { // overwrite config only if url defined
-		ipPort := strings.Split(ctx.adamURL, ":")
-		ip := ipPort[0]
-		if ip == "" {
-			return nil, fmt.Errorf("cannot get ip/hostname from %s", ctx.adamURL)
-		}
-		port := "80"
-		if len(ipPort) > 1 {
-			port = ipPort[1]
-		}
-		viper.Set("adam.ip", ip)
-		viper.Set("adam.port", port)
-	}
 	ctrl, err := controller.CloudPrepare()
 	if err != nil {
 		return nil, fmt.Errorf("CloudPrepare error: %w", err)
