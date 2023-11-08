@@ -152,6 +152,41 @@ func TestCheckMountOptions(t *testing.T) {
 	}
 }
 
+func TestCheckTmpIsSecure(t *testing.T) {
+	log.Println("TestCheckTempIsSecure started")
+	defer log.Println("TestCheckTempIsSecure finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	mounts, err := rnode.getMountPoints("tmpfs")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fail := false
+	for _, mount := range mounts {
+		p := perm{}
+		if err := rnode.getPathPerm(mount.Path, &p); err != nil {
+			t.Fatal(err)
+		}
+
+		if p.user != "root" || p.group != "root" {
+			t.Logf("[FAIL] %s is not owned by root:root", mount.Path)
+			fail = true
+		}
+
+		if !strings.Contains(p.perms, "t") {
+			t.Logf("[FAIL] %s is not sticky", mount.Path)
+			fail = true
+		}
+	}
+
+	if fail {
+		t.Fatal("Some tmpfs mounts are not secure, see logs above")
+	}
+}
+
 func checkMountSecurityOptions(mount mount, secureOptions []string) []string {
 	secOptNotFound := make([]string, 0)
 

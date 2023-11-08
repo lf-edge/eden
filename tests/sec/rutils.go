@@ -18,6 +18,14 @@ type mount struct {
 	Options string `json:"options"`
 }
 
+type perm struct {
+	uid   int
+	gid   int
+	user  string
+	group string
+	perms string
+}
+
 type remoteNode struct {
 	openEVEC *openevec.OpenEVEC
 }
@@ -66,7 +74,7 @@ func (node *remoteNode) runCommand(command string) ([]byte, error) {
 	return out, nil
 }
 
-func (node *remoteNode) fileExists(fileName string) (bool, error) {
+func (node *remoteNode) pathExists(fileName string) (bool, error) {
 	command := fmt.Sprintf("if stat \"%s\"; then echo \"1\"; else echo \"0\"; fi", fileName)
 	out, err := node.runCommand(command)
 	if err != nil {
@@ -81,7 +89,7 @@ func (node *remoteNode) fileExists(fileName string) (bool, error) {
 }
 
 func (node *remoteNode) readFile(fileName string) ([]byte, error) {
-	exist, err := node.fileExists(fileName)
+	exist, err := node.pathExists(fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +100,30 @@ func (node *remoteNode) readFile(fileName string) ([]byte, error) {
 
 	command := fmt.Sprintf("cat %s", fileName)
 	return node.runCommand(command)
+}
+
+func (node *remoteNode) getPathPerm(path string, perm *perm) error {
+	exist, err := node.pathExists(path)
+	if err != nil {
+		return err
+	}
+
+	if !exist {
+		return fmt.Errorf("file/dir %s does not exist", path)
+	}
+
+	command := fmt.Sprintf("stat -c \"%%u %%g %%U %%G %%A\" %s", path)
+	out, err := node.runCommand(command)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Sscanf(string(out), "%d %d %s %s %s", &perm.uid, &perm.gid, &perm.user, &perm.group, &perm.perms)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (node *remoteNode) getMountPoints(mtype string) ([]mount, error) {
