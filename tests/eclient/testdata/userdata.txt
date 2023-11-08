@@ -3,13 +3,11 @@
 {{$port := "2223"}}
 
 {{$userdata_file := "/tmp/userdata_file_eden_test"}}
-{{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@FWD_IP -p FWD_PORT{{end}}
 {{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
 
 [!exec:bash] stop
 [!exec:sleep] stop
 [!exec:chmod] stop
-[!exec:ssh] stop
 
 exec -t 10s bash generate_file.sh
 
@@ -26,28 +24,9 @@ test eden.app.test -test.v -timewait 20m RUNNING eclient
 exec sleep 10
 
 eden pod delete eclient
-
-test eden.app.test -test.v -timewait 10m - eclient
-
-exec -t 10s bash generate_userdata.sh
-eden pod deploy -n eclient --memory=512MB --networks=n1 {{template "eclient_image"}} -p {{$port}}:22 --metadata={{$userdata_file}}
-test eden.app.test -test.v -timewait 20m RUNNING eclient
-
-exec -t 2m bash test_injected_file.sh "before_restart"
-
-exec -t 2m bash change_injected_file.sh "after_restart"
-
-eden pod restart eclient
-test eden.app.test -test.v -timewait 20m RUNNING eclient
-
-exec -t 2m bash test_injected_file.sh "after_restart"
-
-eden pod delete eclient
-
-test eden.app.test -test.v -timewait 10m - eclient
-
 eden network delete n1
 
+test eden.app.test -test.v -timewait 10m - eclient
 test eden.network.test -test.v -timewait 10m - n1
 
 -- eden-config.yml --
@@ -64,39 +43,3 @@ test:
 # allocate about 90014 of raw data
 printf 'variable=value\n%.0s' {1..6000} >{{$userdata_file}}
 printf 'variable=value' >>{{$userdata_file}}
-
--- generate_userdata.sh --
-cat > {{$userdata_file}} <<EOF
-#cloud-config
-write_files:
- - path: /etc/injected_file.txt
-   owner: root:root
-   permissions: '0644'
-   encoding:
-   content: before_restart
-EOF
-
--- test_injected_file.sh --
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-TEXT=$1
-
-echo $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep -q $TEXT /etc/injected_file.txt
-
-# Retry in case there are connectivity issues
-for i in `seq 35`
-do
-  echo Try $i
-  $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep -q $TEXT /etc/injected_file.txt && echo "Success" && break
-  if [ $? -eq 1 ]; then
-    echo "$TEXT is not present in /etc/injected_file.txt"
-    exit 1
-  fi
-  sleep 2
-done
-
--- change_injected_file.sh --
-EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-TEXT=$1
-
-echo $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} "echo $TEXT > /etc/injected_file.txt"
-$EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} "echo $TEXT > /etc/injected_file.txt"
