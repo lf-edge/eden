@@ -90,6 +90,25 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
+func TestCordumpDisabled(t *testing.T) {
+	log.Println("TestCordumpDisabled started")
+	defer log.Println("TestCordumpDisabled finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	// check if cordump is disabled
+	out, err := rnode.runCommand("sysctl kernel.core_pattern")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Println(string(out))
+	if strings.Contains(string(out), "core") {
+		t.Fatal("Core dumps are enabled")
+	}
+}
+
 func TestProcessRunningAsRoot(t *testing.T) {
 	// TODO : this is not a proper way to check, but good for now
 	log.Println("TestProcessRunningAsRoot started")
