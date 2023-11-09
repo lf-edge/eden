@@ -90,6 +90,24 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
+func TestUmask(t *testing.T) {
+	log.Println("TestUmask started")
+	defer log.Println("TestUmask finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	// check if umask is set to 077 (600 on files, 700 on directories)
+	out, err := rnode.runCommand("umask")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(out) != "077" {
+		t.Fatal("Umask is not set to 077")
+	}
+}
+
 func TestNoHiddenExectuableExists(t *testing.T) {
 	log.Println("TestNoHiddenExectuableExists started")
 	defer log.Println("TestNoHiddenExectuableExists finished")
