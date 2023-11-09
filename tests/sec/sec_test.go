@@ -1,6 +1,7 @@
 package sec_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -88,6 +89,53 @@ func TestMain(m *testing.M) {
 	// Finally, we need to cleanup whatever objects may be in in the
 	// project we created and then we can exit
 	os.Exit(res)
+}
+
+func TestUnconfinedProcesses(t *testing.T) {
+	log.Println("TestUnconfinedProcesses started")
+	defer log.Println("TestUnconfinedProcesses finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	// check if there are any processes with capablities
+	command := `ps -eZ | awk '
+	BEGIN { print " [ "}
+	/LABEL/ {next}
+	{
+		printf " %s {\"label\": \"%s\", \"cmd\": \"%s\"}", separator, $1, $5;
+		separator = ",";
+	}
+	END { print " ] " }
+	'`
+
+	out, err := rnode.runCommand(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	processes := []struct {
+		Label string `json:"label"`
+		Cmd   string `json:"cmd"`
+	}{}
+
+	err = json.Unmarshal(out, &processes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fail := false
+	for _, process := range processes {
+		if process.Label == "unconfined" {
+			t.Logf("Unconfined process found: %s", process.Cmd)
+			fail = true
+		}
+	}
+
+	if fail {
+		// TODO : this not a proper way to check, but good for now
+		t.Fatal("There are unconfined processes running on the system")
+	}
 }
 
 func TestUmask(t *testing.T) {
