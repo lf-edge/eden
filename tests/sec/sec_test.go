@@ -90,6 +90,26 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
+func TestProcessRunningAsRoot(t *testing.T) {
+	// TODO : this is not a proper way to check, but good for now
+	log.Println("TestProcessRunningAsRoot started")
+	defer log.Println("TestProcessRunningAsRoot finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	// check if there are any processes running as root
+	out, err := rnode.runCommand("ps aux -U root -u root")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(out) > 0 {
+		log.Println(string(out))
+		t.Fatal("There are processes running as root on the system")
+	}
+}
+
 func TestAppArmorEnabled(t *testing.T) {
 	log.Println("TestAppArmorEnabled started")
 	defer log.Println("TestAppArmorEnabled finished")
