@@ -90,6 +90,27 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
+func TestNoHiddenExectuableExists(t *testing.T) {
+	log.Println("TestNoHiddenExectuableExists started")
+	defer log.Println("TestNoHiddenExectuableExists finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	// check if there are any hidden binaries
+	out, err := rnode.runCommand("find / -name '.*' -executable -type f 2>/dev/null")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(out) > 0 {
+		log.Println("Hidden executables found: ")
+		log.Println(string(out))
+
+		t.Fatal("There are hidden executables on the system")
+	}
+}
+
 func TestCordumpDisabled(t *testing.T) {
 	log.Println("TestCordumpDisabled started")
 	defer log.Println("TestCordumpDisabled finished")
