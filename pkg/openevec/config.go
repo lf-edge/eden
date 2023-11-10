@@ -22,6 +22,12 @@ type EServerConfig struct {
 	Tag    string       `mapstructure:"tag" cobraflag:"eserver-tag"`
 	IP     string       `mapstructure:"ip"`
 	Images ImagesConfig `mapstructure:"images"`
+	EVEIP  string       `mapstructure:"eve-ip"`
+}
+
+type EClientConfig struct {
+	Tag   string `mapstructure:"tag"`
+	Image string `mapstructure:"image"`
 }
 
 type ImagesConfig struct {
@@ -34,14 +40,16 @@ type EdenConfig struct {
 	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath:""`
 	Dist         string `mapstructure:"dist"`
 	Root         string `mapstructure:"root"`
-	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key" resolvepath:""`
+	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key"`
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
+	Tests        string `mapstructure:"tests" resolvepath:""`
 
 	EServer EServerConfig `mapstructure:"eserver"`
 
-	Images ImagesConfig `mapstructure:"images"`
+	EClient EClientConfig `mapstructure:"eclient"`
+	Images  ImagesConfig  `mapstructure:"images"`
 }
 
 type RedisConfig struct {
@@ -74,6 +82,7 @@ type AdamConfig struct {
 	CertsEVEIP  string `mapstructure:"eve-ip" cobraflag:"eve-ip"`
 	APIv1       bool   `mapstructure:"v1" cobrafalg:"force"`
 	Force       bool   `mapstructure:"force" cobraflag:"force"`
+	CA          string `mapstructure:"ca"`
 
 	Redis   RedisConfig   `mapstructure:"redis"`
 	Remote  RemoteConfig  `mapstructure:"remote"`
@@ -95,7 +104,7 @@ type EveConfig struct {
 	QemuConfig      QemuConfig            `mapstructure:"qemu"`
 
 	QemuFirmware   []string          `mapstructure:"firmware" cobraflag:"eve-firmware"`
-	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path" resolvepath:""`
+	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path"`
 	QemuDTBPath    string            `mapstructure:"dtb-part" cobraflag:"dtb-part" resolvepath:""`
 	QemuOS         string            `mapstructure:"os" cobraflag:"eve-os"`
 	ImageFile      string            `mapstructure:"image-file" cobraflag:"image-file" resolvepath:""`
@@ -114,7 +123,6 @@ type EveConfig struct {
 	QemuMemory     int               `mapstructure:"ram" cobraflag:"memory"`
 	ImageSizeMB    int               `mapstructure:"disk" cobraflag:"image-size"`
 	DevModel       string            `mapstructure:"devmodel" cobraflag:"devmodel"`
-	DevModelFile   string            `mapstructure:"devmodelfile"`
 	Ssid           string            `mapstructure:"ssid" cobraflag:"ssid"`
 	Password       string            `mapstructure:"password" cobraflag:"password"`
 	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
@@ -153,7 +161,7 @@ type GcpConfig struct {
 }
 
 type SdnConfig struct {
-	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file" resolvepath:""`
+	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file"`
 	SourceDir      string `mapstructure:"source-dir" cobraflag:"sdn-source-dir" resolvepath:""`
 	RAM            int    `mapstructure:"ram" cobraflag:"sdn-ram"`
 	CPU            int    `mapstructure:"cpu" cobraflag:"sdn-cpu"`
@@ -180,6 +188,7 @@ type EdenSetupArgs struct {
 
 	ConfigFile string
 	ConfigName string
+	EdenDir    string
 }
 
 // PodConfig store configuration for Pod deployment
