@@ -2,6 +2,7 @@ package openevec
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -356,4 +357,46 @@ func ConfigCheck(configName string) error {
 		}
 	}
 	return nil
+}
+
+func getValStrRepr(v reflect.Value) string {
+	if v.Kind() == reflect.String {
+		return fmt.Sprintf("'%v'", v.Interface())
+	} else {
+		return fmt.Sprintf("%v", v.Interface())
+	}
+}
+
+func WriteConfig(dst reflect.Value, writer io.Writer, nestLevel int) {
+	for i := 0; i < dst.NumField(); i++ {
+		if structTag := dst.Type().Field(i).Tag.Get("mapstructure"); structTag != "" {
+			io.WriteString(writer, strings.Repeat("  ", nestLevel))
+			switch dst.Field(i).Kind() {
+			case reflect.Struct:
+				io.WriteString(writer, structTag+":\n")
+				WriteConfig(dst.Field(i), writer, nestLevel+1)
+			case reflect.Map:
+				io.WriteString(writer, structTag+":\n")
+				iter := dst.Field(i).MapRange()
+				for iter.Next() {
+					k := iter.Key()
+					v := iter.Value()
+					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
+					// We assume that map cannot have structure as value
+					io.WriteString(writer, fmt.Sprintf("%v: %s\n", k.Interface(), getValStrRepr(v)))
+				}
+			case reflect.Slice:
+				io.WriteString(writer, structTag+":\n")
+				for j := 0; j < dst.Field(i).Len(); j++ {
+					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
+					elem := dst.Field(i).Index(j)
+					io.WriteString(writer, fmt.Sprintf("- %v\n", getValStrRepr(elem)))
+				}
+			case reflect.String: // we need to wrap string in quotes
+				io.WriteString(writer, fmt.Sprintf("%s: '%v'\n", structTag, dst.Field(i)))
+			default:
+				io.WriteString(writer, fmt.Sprintf("%s: %v\n", structTag, dst.Field(i)))
+			}
+		}
+	}
 }
