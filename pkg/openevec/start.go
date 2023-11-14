@@ -6,7 +6,6 @@ import (
 
 	"github.com/lf-edge/eden/pkg/eden"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func (openEVEC *OpenEVEC) StartAdam() error {
@@ -25,15 +24,6 @@ func (openEVEC *OpenEVEC) StartAdam() error {
 		return fmt.Errorf("cannot start adam: %w", err)
 	}
 	log.Infof("Adam is runnig and accessible on port %d", cfg.Adam.Port)
-	return nil
-}
-
-func stopAdam(_ string) error {
-	adamRm := viper.GetBool("adam-rm")
-
-	if err := eden.StopAdam(adamRm); err != nil {
-		return fmt.Errorf("cannot stop adam: %w", err)
-	}
 	return nil
 }
 
