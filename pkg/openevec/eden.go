@@ -337,7 +337,7 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 		fmt.Printf("Directory %s access error: %s\n",
 			cfgDir, err)
 	} else {
-		shPath := viper.GetString("eden.root") + "/scripts/shell/"
+		shPath := cfg.Eden.Root + "/scripts/shell/"
 
 		activateShFile, err := os.Create(cfgDir + "activate.sh")
 		defer activateShFile.Close()
