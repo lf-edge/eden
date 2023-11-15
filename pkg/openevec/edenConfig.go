@@ -81,9 +81,6 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 		}
 		log.Infof("Config file generated: %s", cfg.ConfigFile)
 	}
-	if err := ReloadConfigDetails(cfg); err != nil {
-		return err
-	}
 
 	context, err := utils.ContextLoad()
 	if err != nil {
