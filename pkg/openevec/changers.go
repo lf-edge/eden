@@ -14,7 +14,6 @@ import (
 )
 
 type configChanger interface {
-	getControllerAndDev() (controller.Cloud, *device.Ctx, error)
 	getControllerAndDevFromConfig(cfg *EdenSetupArgs) (controller.Cloud, *device.Ctx, error)
 	setControllerAndDev(controller.Cloud, *device.Ctx) error
 }
@@ -45,10 +44,6 @@ func changerByControllerMode(controllerMode string) (configChanger, error) {
 		return nil, fmt.Errorf("not implemented type: %s", modeType)
 	}
 	return changer, nil
-}
-
-func (ctx *fileChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
-	return ctx.getControllerAndDevFromConfig(nil)
 }
 
 func (ctx *fileChanger) setControllerAndDev(ctrl controller.Cloud, dev *device.Ctx) error {
@@ -119,18 +114,6 @@ func (ctx *adamChanger) getController() (controller.Cloud, error) {
 		return nil, fmt.Errorf("CloudPrepare error: %w", err)
 	}
 	return ctrl, nil
-}
-
-func (ctx *adamChanger) getControllerAndDev() (controller.Cloud, *device.Ctx, error) {
-	ctrl, err := ctx.getController()
-	if err != nil {
-		return nil, nil, fmt.Errorf("getController error: %w", err)
-	}
-	devFirst, err := ctrl.GetDeviceCurrent()
-	if err != nil {
-		return nil, nil, fmt.Errorf("GetDeviceCurrent error: %w", err)
-	}
-	return ctrl, devFirst, nil
 }
 
 func (ctx *adamChanger) getControllerAndDevFromConfig(cfg *EdenSetupArgs) (controller.Cloud, *device.Ctx, error) {
