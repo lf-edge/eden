@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -54,6 +54,20 @@ func ReloadConfigDetails(cfg *EdenSetupArgs) error {
 	return nil
 }
 
+func saveConfig(cfg *EdenSetupArgs) error {
+	if err := os.MkdirAll(filepath.Dir(cfg.ConfigFile), 0755); err != nil {
+		return fmt.Errorf("Error creating folders: %v", err)
+	}
+	file, err := os.Create(cfg.ConfigFile)
+	if err != nil {
+		return fmt.Errorf("Error creating file %v", err)
+	}
+	defer file.Close()
+
+	WriteConfig(reflect.ValueOf(*cfg), file, 0)
+	return nil
+}
+
 func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force bool) error {
 	var err error
 	if cfg.ConfigFile == "" {
@@ -62,10 +76,7 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 			return fmt.Errorf("fail in DefaultConfigPath: %w", err)
 		}
 	}
-	model, err := models.GetDevModelByName(cfg.Eve.DevModel)
-	if err != nil {
-		return fmt.Errorf("GetDevModelByName: %w", err)
-	}
+
 	if _, err := os.Stat(cfg.ConfigFile); !os.IsNotExist(err) {
 		if force {
 			if err := os.Remove(cfg.ConfigFile); err != nil {
@@ -75,24 +86,16 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 			log.Debugf("current config already exists: %s", cfg.ConfigFile)
 		}
 	}
-	if _, err = os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
-		if err = utils.GenerateConfigFile(cfg.ConfigFile); err != nil {
-			return fmt.Errorf("fail in generate yaml: %w", err)
-		}
-		log.Infof("Config file generated: %s", cfg.ConfigFile)
-	}
 
-	context, err := utils.ContextLoad()
+	context, err := utils.ContextInit()
 	if err != nil {
-		return fmt.Errorf("load context error: %w", err)
+		return fmt.Errorf("Init context error: %w", err)
 	}
-	currentContextName := context.Current
 	if currentContext != "" {
 		context.Current = currentContext
-	} else {
-		context.Current = "default"
 	}
 	cfg.ConfigFile = context.GetCurrentConfig()
+
 	if contextFile != "" {
 		if err := utils.CopyFile(contextFile, cfg.ConfigFile); err != nil {
 			return fmt.Errorf("cannot copy file: %w", err)
@@ -100,45 +103,13 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 		log.Infof("Context file generated: %s", contextFile)
 	} else {
 		if _, err := os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
-			if err = utils.GenerateConfigFileDiff(cfg.ConfigFile, context); err != nil {
-				return fmt.Errorf("error generate config: %w", err)
-			}
-			log.Infof("Context file generated: %s", cfg.ConfigFile)
+			saveConfig(cfg)
+
+			log.Infof("Config file generated: %s", cfg.ConfigFile)
 		} else {
 			log.Infof("Config file already exists %s", cfg.ConfigFile)
 		}
 	}
-	context.SetContext(context.Current)
-	if err := ReloadConfigDetails(cfg); err != nil {
-		return err
-	}
-
-	// we prepare viper config here from EdenSetupArgs
-	// to feed into GenerateConfigFileFromViper
-
-	if cfg.Eve.Arch != "" {
-		viper.Set("eve.arch", cfg.Eve.Arch)
-		imageDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist)
-		switch cfg.Eve.Arch {
-		case "amd64":
-			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
-				filepath.Join(imageDist, "eve", "OVMF_VARS.fd")})
-		case "arm64":
-			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "OVMF.fd")})
-		}
-	}
-	if cfg.Eve.Ssid != "" {
-		viper.Set("eve.ssid", cfg.Eve.Ssid)
-	}
-
-	for k, v := range model.Config() {
-		viper.Set(k, v)
-	}
-
-	if err = utils.GenerateConfigFileFromViper(); err != nil {
-		return fmt.Errorf("error writing config: %w", err)
-	}
-	context.SetContext(currentContextName)
 
 	return nil
 }
@@ -161,10 +132,6 @@ func ConfigList() error {
 }
 
 func ValidateConfigFromViper() error {
-	cfg := &EdenSetupArgs{}
-	if err := viper.Unmarshal(cfg); err != nil {
-		return fmt.Errorf("unable to decode into config struct, %w", err)
-	}
 	return nil
 }
 
@@ -203,10 +170,14 @@ func ConfigSet(target, contextKeySet, contextValueSet string) error {
 					return fmt.Errorf("error reading config: %w", err)
 				}
 				viper.Set(contextKeySet, objToStore)
-				if err = ValidateConfigFromViper(); err != nil {
-					return fmt.Errorf("ValidateConfigFromViper: %w", err)
+
+				cfg := &EdenSetupArgs{}
+				if err := viper.Unmarshal(cfg); err != nil {
+					return fmt.Errorf("unable to decode into config struct, %w", err)
 				}
-				if err = utils.GenerateConfigFileFromViper(); err != nil {
+				cfg.ConfigFile = context.GetCurrentConfig()
+
+				if err = saveConfig(cfg); err != nil {
 					return fmt.Errorf("error writing config: %w", err)
 				}
 			}
@@ -343,9 +314,6 @@ func ConfigDelete(target string, cfg *EdenSetupArgs) error {
 	}
 	context.Current = target
 	configFile := context.GetCurrentConfig()
-	if err := ReloadConfigDetails(cfg); err != nil {
-		log.Infof("Failed to ReloadConfigDetails: %s", err.Error())
-	}
 	if _, err := os.Stat(cfg.Eve.QemuFileToSave); !os.IsNotExist(err) {
 		if err := os.Remove(cfg.Eve.QemuFileToSave); err == nil {
 			log.Infof("deleted qemu config %s", cfg.Eve.QemuFileToSave)

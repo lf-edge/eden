@@ -40,7 +40,7 @@ type EdenConfig struct {
 	CertsDir     string `mapstructure:"certs-dist" cobraflag:"certs-dist" resolvepath:""`
 	Dist         string `mapstructure:"dist"`
 	Root         string `mapstructure:"root"`
-	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key"`
+	SSHKey       string `mapstructure:"ssh-key" cobraflag:"ssh-key" resolvepath:""`
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
@@ -294,7 +294,7 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 		return nil, fmt.Errorf("unable to decode into config struct, %w", err)
 	}
 
-	resolvePath(reflect.ValueOf(cfg).Elem())
+	resolvePath(cfg.Eden.Root, reflect.ValueOf(cfg).Elem())
 
 	if configFile == "" {
 		configFile, _ = utils.DefaultConfigPath()
@@ -310,17 +310,17 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 	return cfg, nil
 }
 
-func resolvePath(v reflect.Value) {
+func resolvePath(path string, v reflect.Value) {
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		if _, ok := v.Type().Field(i).Tag.Lookup("resolvepath"); ok {
 			if f.IsValid() && f.CanSet() && f.Kind() == reflect.String {
 				val := f.Interface().(string)
-				f.SetString(utils.ResolveAbsPath(val))
+				f.SetString(utils.ResolveAbsPathWithRoot(path, val))
 			}
 		}
 		if f.Kind() == reflect.Struct {
-			resolvePath(f)
+			resolvePath(path, f)
 		}
 	}
 }
