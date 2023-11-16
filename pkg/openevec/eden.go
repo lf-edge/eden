@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
@@ -512,8 +513,7 @@ func (openEVEC *OpenEVEC) EdenClean(configName, configDist, vmName string, curre
 		} else {
 			log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 		}
-		if err := eden.CleanContext(cfg.Eve.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile), cfg.Eve.Pid, cfg.Eve.CertsUUID,
-			cfg.Sdn.PidFile, vmName, configSaved, cfg.Eve.Remote); err != nil {
+		if err := openEVEC.cleanContext(vmName, configSaved); err != nil {
 			return fmt.Errorf("cannot CleanContext: %w", err)
 		}
 	} else {
@@ -524,6 +524,109 @@ func (openEVEC *OpenEVEC) EdenClean(configName, configDist, vmName string, curre
 		}
 	}
 	log.Infof("CleanEden done")
+	return nil
+}
+
+func (openEVEC *OpenEVEC) cleanContext(vmName string, configSaved string) (err error) {
+	cfg := openEVEC.cfg
+	imagesDist := filepath.Dir(cfg.Eve.ImageFile)
+
+	edenDir, err := utils.DefaultEdenDir()
+	if err != nil {
+		return fmt.Errorf("CleanContext: %s", err)
+	}
+
+	eveStatusFile := filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", cfg.Eve.CertsUUID))
+	if _, err = os.Stat(eveStatusFile); !os.IsNotExist(err) {
+		ctrl, err := controller.CloudPrepare()
+		if err != nil {
+			return fmt.Errorf("CleanContext: error in CloudPrepare: %s", err)
+		}
+		log.Debugf("Get devUUID for onboardUUID %s", cfg.Eve.CertsUUID)
+		devUUID, err := ctrl.DeviceGetByOnboardUUID(cfg.Eve.CertsUUID)
+		if err != nil {
+			return fmt.Errorf("CleanContext: %s", err)
+		}
+		log.Debugf("Deleting devUUID %s", devUUID)
+		if err := ctrl.DeviceRemove(devUUID); err != nil {
+			log.Errorf("CleanContext: %s", err)
+		}
+		log.Debugf("Deleting onboardUUID %s", cfg.Eve.CertsUUID)
+		if err := ctrl.OnboardRemove(cfg.Eve.CertsUUID); err != nil {
+			log.Errorf("CleanContext: %s", err)
+		}
+		localViper := viper.New()
+		localViper.SetConfigFile(eveStatusFile)
+		if err := localViper.ReadInConfig(); err != nil {
+			log.Debug(err)
+		} else {
+			eveConfigFile := localViper.GetString("eve-config")
+			if _, err = os.Stat(eveConfigFile); !os.IsNotExist(err) {
+				if err := os.Remove(eveConfigFile); err != nil {
+					log.Debug(err)
+				}
+			}
+		}
+		if err = os.RemoveAll(eveStatusFile); err != nil {
+			return fmt.Errorf("CleanContext: error in %s delete: %s", eveStatusFile, err)
+		}
+	}
+	if !cfg.Eve.Remote {
+		devModel := viper.GetString("eve.devModel")
+		switch devModel {
+		case defaults.DefaultVBoxModel:
+			if err := eden.StopEVEVBox(vmName); err != nil {
+				log.Infof("cannot stop EVE: %s", err)
+			} else {
+				log.Infof("EVE stopped")
+			}
+			if err := eden.DeleteEVEVBox(vmName); err != nil {
+				log.Infof("cannot delete EVE: %s", err)
+			}
+		case defaults.DefaultParallelsModel:
+			if err := eden.StopEVEParallels(vmName); err != nil {
+				log.Infof("cannot stop EVE: %s", err)
+			} else {
+				log.Infof("EVE stopped")
+			}
+			if err := eden.DeleteEVEParallels(vmName); err != nil {
+				log.Infof("cannot delete EVE: %s", err)
+			}
+		default:
+			if err := eden.StopEVEQemu(cfg.Eve.Pid); err != nil {
+				log.Infof("cannot stop EVE: %s", err)
+			} else {
+				log.Infof("EVE stopped")
+			}
+			err := eden.StopSWTPM(filepath.Join(imagesDist, "swtpm"))
+			if err != nil {
+				log.Errorf("cannot stop swtpm: %s", err)
+			} else {
+				log.Infof("swtpm is stopping")
+			}
+		}
+		eden.StopSDN(devModel, cfg.Sdn.PidFile)
+	}
+	if _, err = os.Stat(cfg.Eve.Dist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(cfg.Eve.Dist); err != nil {
+			return fmt.Errorf("CleanContext: error in %s delete: %s", cfg.Eve.Dist, err)
+		}
+	}
+	if _, err = os.Stat(cfg.Eden.CertsDir); !os.IsNotExist(err) {
+		if err = os.RemoveAll(cfg.Eden.CertsDir); err != nil {
+			return fmt.Errorf("CleanContext: error in %s delete: %s", cfg.Eden.CertsDir, err)
+		}
+	}
+	if _, err = os.Stat(imagesDist); !os.IsNotExist(err) {
+		if err = os.RemoveAll(imagesDist); err != nil {
+			return fmt.Errorf("CleanContext: error in %s delete: %s", imagesDist, err)
+		}
+	}
+	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
+		if err = os.RemoveAll(configSaved); err != nil {
+			return fmt.Errorf("CleanContext: error in %s delete: %s", configSaved, err)
+		}
+	}
 	return nil
 }
 
@@ -779,7 +882,7 @@ func (openEVEC *OpenEVEC) EdenImport(tarFile string, rewriteRoot bool) error {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 	}
 	changer := &adamChanger{}
-	ctrl, err := changer.getController()
+	ctrl, err := changer.getController(cfg)
 	if err != nil {
 		return err
 	}
