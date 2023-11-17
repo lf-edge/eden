@@ -10,7 +10,6 @@ import (
 )
 
 func (openEVEC *OpenEVEC) OnboardEve(eveUUID string) error {
-
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
 		return fmt.Errorf("error getting default eden dir %w", err)
@@ -19,7 +18,7 @@ func (openEVEC *OpenEVEC) OnboardEve(eveUUID string) error {
 		return fmt.Errorf("error getting file %w", err)
 	}
 	changer := &adamChanger{}
-	ctrl, err := changer.getController()
+	ctrl, err := changer.getController(openEVEC.cfg)
 	if err != nil {
 		return fmt.Errorf("error fetching controller %w", err)
 	}
@@ -27,7 +26,6 @@ func (openEVEC *OpenEVEC) OnboardEve(eveUUID string) error {
 	if err != nil {
 		return fmt.Errorf("InitVarsFromConfig error: %w", err)
 	}
-	ctrl.SetVars(vars)
 	dev, err := ctrl.GetDeviceCurrent()
 	if err != nil || dev == nil {
 		// create new one if not exists

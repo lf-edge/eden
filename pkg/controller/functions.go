@@ -23,11 +23,7 @@ import (
 )
 
 // CloudPrepare is for init controller connection and obtain device list
-func CloudPrepare() (Cloud, error) {
-	vars, err := utils.InitVars()
-	if err != nil {
-		return nil, fmt.Errorf("utils.InitVars: %s", err)
-	}
+func CloudPrepare(vars *utils.ConfigVars) (Cloud, error) {
 	ctx := &CloudCtx{vars: vars, Controller: &adam.Ctx{}}
 	if err := ctx.InitWithVars(vars); err != nil {
 		return nil, fmt.Errorf("cloud.InitWithVars: %s", err)

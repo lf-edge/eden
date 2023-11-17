@@ -72,16 +72,13 @@ func (ctx *fileChanger) getControllerAndDevFromConfig(cfg *EdenSetupArgs) (contr
 	if _, err := os.Lstat(ctx.fileConfig); os.IsNotExist(err) {
 		return nil, nil, err
 	}
-	ctrl, err := controller.CloudPrepare()
+	vars, err := InitVarsFromConfig(cfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl, err := controller.CloudPrepare(vars)
 	if err != nil {
 		return nil, nil, err
-	}
-	if cfg != nil {
-		vars, err := InitVarsFromConfig(cfg)
-		if err != nil {
-			return nil, nil, fmt.Errorf("InitVarsFromConfig error: %w", err)
-		}
-		ctrl.SetVars(vars)
 	}
 	data, err := os.ReadFile(ctx.fileConfig)
 	if err != nil {
@@ -108,8 +105,12 @@ type adamChanger struct {
 	adamURL string
 }
 
-func (ctx *adamChanger) getController() (controller.Cloud, error) {
-	ctrl, err := controller.CloudPrepare()
+func (ctx *adamChanger) getController(cfg *EdenSetupArgs) (controller.Cloud, error) {
+	vars, err := InitVarsFromConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
+	ctrl, err := controller.CloudPrepare(vars)
 	if err != nil {
 		return nil, fmt.Errorf("CloudPrepare error: %w", err)
 	}
@@ -117,7 +118,7 @@ func (ctx *adamChanger) getController() (controller.Cloud, error) {
 }
 
 func (ctx *adamChanger) getControllerAndDevFromConfig(cfg *EdenSetupArgs) (controller.Cloud, *device.Ctx, error) {
-	ctrl, err := ctx.getController()
+	ctrl, err := ctx.getController(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getController error: %w", err)
 	}

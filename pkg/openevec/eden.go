@@ -535,10 +535,14 @@ func (openEVEC *OpenEVEC) cleanContext(vmName string, configSaved string) (err e
 	if err != nil {
 		return fmt.Errorf("CleanContext: %s", err)
 	}
+	vars, err := InitVarsFromConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("InitVarsFromConfig error: %w", err)
+	}
 
 	eveStatusFile := filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", cfg.Eve.CertsUUID))
 	if _, err = os.Stat(eveStatusFile); !os.IsNotExist(err) {
-		ctrl, err := controller.CloudPrepare()
+		ctrl, err := controller.CloudPrepare(vars)
 		if err != nil {
 			return fmt.Errorf("CleanContext: error in CloudPrepare: %s", err)
 		}
