@@ -26,34 +26,6 @@ func isEncodingNeeded(contextKeySet string) bool {
 	return false
 }
 
-func ReloadConfigDetails(cfg *EdenSetupArgs) error {
-	viperLoaded, err := utils.LoadConfigFile(cfg.ConfigFile)
-	if err != nil {
-		return fmt.Errorf("error reading config: %w", err)
-	}
-	if viperLoaded {
-		cfg.Eve.QemuFirmware = viper.GetStringSlice("eve.firmware")
-		cfg.Eve.QemuConfigPath = utils.ResolveAbsPath(viper.GetString("eve.config-part"))
-		cfg.Eve.QemuDTBPath = utils.ResolveAbsPath(viper.GetString("eve.dtb-part"))
-		cfg.Eve.ImageFile = utils.ResolveAbsPath(viper.GetString("eve.image-file"))
-		cfg.Eve.HostFwd = viper.GetStringMapString("eve.hostfwd")
-		cfg.Eve.QemuFileToSave = utils.ResolveAbsPath(viper.GetString("eve.qemu-config"))
-		cfg.Eve.DevModel = viper.GetString("eve.devmodel")
-		cfg.Eve.Remote = viper.GetBool("eve.remote")
-		cfg.Eve.ModelFile = viper.GetString("eve.devmodelfile")
-		if cfg.Eve.ModelFile != "" {
-			filePath, err := filepath.Abs(cfg.Eve.ModelFile)
-			if err != nil {
-				return fmt.Errorf("cannot get absolute path for devmodelfile (%s): %w", cfg.Eve.ModelFile, err)
-			}
-			if _, err := os.Stat(filePath); err != nil {
-				return fmt.Errorf("cannot parse devmodelfile (%s): %w", cfg.Eve.ModelFile, err)
-			}
-		}
-	}
-	return nil
-}
-
 func saveConfig(cfg *EdenSetupArgs) error {
 	if err := os.MkdirAll(filepath.Dir(cfg.ConfigFile), 0755); err != nil {
 		return fmt.Errorf("Error creating folders: %v", err)
