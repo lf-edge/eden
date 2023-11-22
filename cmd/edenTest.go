@@ -6,7 +6,6 @@ import (
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
-	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +41,7 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 				}
 			}
 
-			vars, err := utils.InitVars()
+			vars, err := openevec.InitVarsFromConfig(cfg)
 
 			if err != nil {
 				return fmt.Errorf("error reading config: %s\n", err)
