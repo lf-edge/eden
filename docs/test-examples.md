@@ -29,7 +29,7 @@ eden eve reset
 eden test tests/eclient -e port_switch -t 20m
 eden eve reset
 # Just a simple test of nginx image -- tested in port_switch test
-#eden test tests/eclient -e ngnix -t 20m
+#eden test tests/eclient -e nginx -t 20m
 eden test tests/eclient -e maridb -t 20m
 eden eve reset
 ## tests/escript
@@ -89,7 +89,7 @@ eden test tests/workflow -e host-only -a '-testdata ../eclient/testdata/'
 eden eve reset
 eden test tests/workflow -e networking_light -a '-testdata ../eclient/testdata/'
 eden eve reset
-eden test tests/workflow -e ngnix -a '-testdata ../eclient/testdata/'
+eden test tests/workflow -e nginx -a '-testdata ../eclient/testdata/'
 eden eve reset
 eden test tests/workflow -e maridb -a '-testdata ../eclient/testdata/'
 eden eve reset

@@ -62,7 +62,7 @@ eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-gapped-switch
 
 /bin/echo Eden Nginx (17/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ngnix
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nginx
 
 /bin/echo Verifying that we can use a switch network instance on a management port (18/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_nonat

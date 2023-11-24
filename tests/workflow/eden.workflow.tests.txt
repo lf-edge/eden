@@ -165,7 +165,7 @@ eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_
 /bin/echo Testing replacement of one application with another (27.2/{{$tests}})
 eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/app_replace_test
 /bin/echo Eden Nginx (28/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ngnix
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nginx
 
 /bin/echo Eden Mariadb (29.1/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
