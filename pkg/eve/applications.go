@@ -30,16 +30,17 @@ type AppInstState struct {
 	ExternalIP   string
 	InternalPort string
 	ExternalPort string
+	Metadata     string
 	MemoryUsed   uint32
 	MemoryAvail  uint32
 	CPUUsage     int
 	Macs         []string
 	Volumes      map[string]uint32
 
-	prevCPUNS     uint64
-	prevCPUNSTime time.Time
-	deleted       bool
-	infoTime      time.Time
+	PrevCPUNS     uint64
+	PrevCPUNSTime time.Time
+	Deleted       bool
+	InfoTime      time.Time
 }
 
 func appStateHeader() string {
@@ -117,7 +118,7 @@ func getPortMapping(appConfig *config.AppInstanceConfig, qemuPorts map[string]st
 }
 
 func (ctx *State) initApplications(ctrl controller.Cloud, dev *device.Ctx) error {
-	ctx.applications = make(map[string]*AppInstState)
+	ctx.Applications = make(map[string]*AppInstState)
 	for _, el := range dev.GetApplicationInstances() {
 		app, err := ctrl.GetApplicationInstanceConfig(el)
 		if err != nil {
@@ -144,24 +145,44 @@ func (ctx *State) initApplications(ctrl controller.Cloud, dev *device.Ctx) error
 			Volumes:      volumes,
 			UUID:         app.Uuidandversion.Uuid,
 		}
-		ctx.applications[app.Uuidandversion.Uuid] = appStateObj
+		ctx.Applications[app.Uuidandversion.Uuid] = appStateObj
 	}
 	return nil
+}
+
+func (ctx *State) applyOldStateApps(state *State) {
+	for stateID, stateEL := range state.Applications {
+		found := false
+		for id := range ctx.Applications {
+			if id != stateID {
+				continue
+			}
+			ctx.Applications[id] = stateEL
+			found = true
+		}
+		if !found {
+			if stateEL.Deleted {
+				continue
+			}
+			stateEL.AdamState = notInControllerConfig
+			ctx.Applications[stateID] = stateEL
+		}
+	}
 }
 
 func (ctx *State) processApplicationsByMetric(msg *metrics.ZMetricMsg) {
 	if appMetrics := msg.GetAm(); appMetrics != nil {
 		for _, appMetric := range appMetrics {
-			for _, el := range ctx.applications {
+			for _, el := range ctx.Applications {
 				if appMetric.AppID == el.UUID {
 					el.MemoryAvail = appMetric.Memory.GetAvailMem()
 					el.MemoryUsed = appMetric.Memory.GetUsedMem()
 					// if not restarted
-					if el.prevCPUNS < appMetric.Cpu.TotalNs {
-						el.CPUUsage = int(float32(appMetric.Cpu.TotalNs-el.prevCPUNS) / float32(msg.GetAtTimeStamp().AsTime().Sub(el.prevCPUNSTime).Nanoseconds()) * 100.0)
+					if el.PrevCPUNS < appMetric.Cpu.TotalNs {
+						el.CPUUsage = int(float32(appMetric.Cpu.TotalNs-el.PrevCPUNS) / float32(msg.GetAtTimeStamp().AsTime().Sub(el.PrevCPUNSTime).Nanoseconds()) * 100.0)
 					}
-					el.prevCPUNS = appMetric.Cpu.TotalNs
-					el.prevCPUNSTime = msg.GetAtTimeStamp().AsTime()
+					el.PrevCPUNS = appMetric.Cpu.TotalNs
+					el.PrevCPUNSTime = msg.GetAtTimeStamp().AsTime()
 					break
 				}
 			}
@@ -169,10 +190,11 @@ func (ctx *State) processApplicationsByMetric(msg *metrics.ZMetricMsg) {
 	}
 }
 
+//nolint:cyclop
 func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 	switch im.GetZtype() {
 	case info.ZInfoTypes_ZiVolume:
-		for _, app := range ctx.applications {
+		for _, app := range ctx.Applications {
 			if len(app.Volumes) == 0 {
 				continue
 			}
@@ -188,8 +210,15 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 				app.EVEState = fmt.Sprintf("%s (%d%%)", info.ZSwState_DOWNLOAD_STARTED.String(), int(percent)/len(app.Volumes))
 			}
 		}
+	case info.ZInfoTypes_ZiAppInstMetaData:
+		for _, app := range ctx.Applications {
+			if im.GetAmdinfo().Uuid == app.UUID {
+				app.Metadata = string(im.GetAmdinfo().Data)
+				break
+			}
+		}
 	case info.ZInfoTypes_ZiApp:
-		appStateObj, ok := ctx.applications[im.GetAinfo().AppID]
+		appStateObj, ok := ctx.Applications[im.GetAinfo().AppID]
 		if !ok {
 			appStateObj = &AppInstState{
 				Name:      im.GetAinfo().AppName,
@@ -197,7 +226,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 				AdamState: notInControllerConfig,
 				UUID:      im.GetAinfo().AppID,
 			}
-			ctx.applications[im.GetAinfo().AppID] = appStateObj
+			ctx.Applications[im.GetAinfo().AppID] = appStateObj
 		}
 		appStateObj.EVEState = im.GetAinfo().State.String()
 		if len(im.GetAinfo().AppErr) > 0 {
@@ -227,20 +256,20 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 		//check appStateObj not defined in adam
 		if appStateObj.AdamState != inControllerConfig {
 			if im.GetAinfo().AppID == appStateObj.UUID {
-				appStateObj.deleted = false //if in recent ZInfoTypes_ZiApp, then not deleted
+				appStateObj.Deleted = false //if in recent ZInfoTypes_ZiApp, then not deleted
 			}
 		}
 		if im.GetAinfo().State == info.ZSwState_INVALID {
-			appStateObj.deleted = true
+			appStateObj.Deleted = true
 		}
-		appStateObj.infoTime = im.AtTimeStamp.AsTime()
+		appStateObj.InfoTime = im.AtTimeStamp.AsTime()
 	case info.ZInfoTypes_ZiNetworkInstance: //try to find ips from NetworkInstances
 		for _, el := range im.GetNiinfo().IpAssignments {
 			// nothing to show if no IpAddress received
 			if len(el.IpAddress) == 0 {
 				continue
 			}
-			for _, appStateObj := range ctx.applications {
+			for _, appStateObj := range ctx.Applications {
 				for ind, mac := range appStateObj.Macs {
 					if mac == el.MacAddress {
 						appStateObj.InternalIP[ind] = el.IpAddress[0]
@@ -250,7 +279,7 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 		}
 	case info.ZInfoTypes_ZiDevice:
 		for _, el := range im.GetDinfo().AppInstances {
-			if _, ok := ctx.applications[el.Uuid]; !ok {
+			if _, ok := ctx.Applications[el.Uuid]; !ok {
 				appStateObj := &AppInstState{
 					Name:      el.Name,
 					Image:     "-",
@@ -258,10 +287,10 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 					EVEState:  "UNKNOWN",
 					UUID:      el.Uuid,
 				}
-				ctx.applications[el.Uuid] = appStateObj
+				ctx.Applications[el.Uuid] = appStateObj
 			}
 		}
-		for _, appStateObj := range ctx.applications {
+		for _, appStateObj := range ctx.Applications {
 			seen := false
 			for _, el := range im.GetDinfo().AppInstances {
 				if appStateObj.UUID == el.Uuid {
@@ -289,12 +318,12 @@ func (ctx *State) processApplicationsByInfo(im *info.ZInfoMsg) {
 				appStateObj.ExternalIP = "127.0.0.1"
 			}
 			//check appStateObj not defined in adam
-			if appStateObj.AdamState != inControllerConfig && appStateObj.infoTime.Before(im.AtTimeStamp.AsTime()) {
-				appStateObj.deleted = true
+			if appStateObj.AdamState != inControllerConfig && appStateObj.InfoTime.Before(im.AtTimeStamp.AsTime()) {
+				appStateObj.Deleted = true
 				for _, el := range im.GetDinfo().AppInstances {
-					//if in recent ZInfoTypes_ZiDevice with timestamp after ZInfoTypes_ZiApp, than not deleted
+					//if in recent ZInfoTypes_ZiDevice with timestamp after ZInfoTypes_ZiApp, then not deleted
 					if el.Uuid == appStateObj.UUID {
-						appStateObj.deleted = false
+						appStateObj.Deleted = false
 					}
 				}
 			}
@@ -308,8 +337,8 @@ func (ctx *State) printPodListLines() error {
 	if _, err := fmt.Fprintln(w, appStateHeader()); err != nil {
 		return err
 	}
-	appStatesSlice := make([]*AppInstState, 0, len(ctx.Applications()))
-	appStatesSlice = append(appStatesSlice, ctx.Applications()...)
+	appStatesSlice := make([]*AppInstState, 0, len(ctx.NotDeletedApplications()))
+	appStatesSlice = append(appStatesSlice, ctx.NotDeletedApplications()...)
 	sort.SliceStable(appStatesSlice, func(i, j int) bool {
 		return appStatesSlice[i].Name < appStatesSlice[j].Name
 	})
@@ -322,7 +351,7 @@ func (ctx *State) printPodListLines() error {
 }
 
 func (ctx *State) printPodListJSON() error {
-	result, err := json.MarshalIndent(ctx.Applications(), "", "    ")
+	result, err := json.MarshalIndent(ctx.NotDeletedApplications(), "", "    ")
 	if err != nil {
 		return err
 	}

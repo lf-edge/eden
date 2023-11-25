@@ -143,34 +143,31 @@ func (openEVEC *OpenEVEC) eveStatusRemote() error {
 	if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
 		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
 	}
-	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
+	if eveState.NodeState().LastSeen.Unix() == 0 {
+		fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...")
+		fmt.Printf("%s EVE memory: %s\n", statusWarn(), "waiting for info...")
+	} else {
 		var ips []string
-		for _, nw := range lastDInfo.Network {
-			ips = append(ips, nw.IPAddrs...)
+		for _, v := range eveState.NodeState().RemoteIPs {
+			ips = append(ips, v...)
 		}
 		fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
-		var lastseen = time.Unix(eveState.InfoAndMetrics().GetLastInfoTime().GetSeconds(), 0)
+		var lastseen = eveState.NodeState().LastSeen
 		var timenow = time.Now().Unix()
 		fmt.Printf("\tLast info received time: %s\n", lastseen)
 		if (timenow - lastseen.Unix()) > 600 {
 			fmt.Printf("\t EVE MIGHT BE DOWN OR CONNECTIVITY BETWEEN EVE AND ADAM WAS LOST\n")
 		}
-	} else {
-		fmt.Printf("%s EVE REMOTE IPs: %s\n", statusWarn(), "waiting for info...")
-	}
-	if lastDMetric := eveState.InfoAndMetrics().GetDeviceMetrics(); lastDMetric != nil {
 		status := statusOK()
-		if lastDMetric.Memory.GetUsedPercentage() >= 70 {
+		if eveState.NodeState().UsedPercentageMem >= 70 {
 			status = statusWarn()
 		}
-		if lastDMetric.Memory.GetUsedPercentage() >= 90 {
+		if eveState.NodeState().UsedPercentageMem >= 90 {
 			status = statusBad()
 		}
 		fmt.Printf("%s EVE memory: %s/%s\n", status,
-			humanize.Bytes((uint64)(lastDMetric.Memory.GetUsedMem()*humanize.MByte)),
-			humanize.Bytes((uint64)(lastDMetric.Memory.GetAvailMem()*humanize.MByte)))
-	} else {
-		fmt.Printf("%s EVE memory: %s\n", statusWarn(), "waiting for info...")
+			humanize.Bytes((uint64)(eveState.NodeState().UsedMem*humanize.MByte)),
+			humanize.Bytes((uint64)(eveState.NodeState().AvailMem*humanize.MByte)))
 	}
 	return nil
 }

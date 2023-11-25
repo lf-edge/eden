@@ -1,11 +1,17 @@
 package eve
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
 	"github.com/lf-edge/eve/api/go/metrics"
 	log "github.com/sirupsen/logrus"
@@ -14,23 +20,22 @@ import (
 const (
 	inControllerConfig    = "IN_CONFIG"
 	notInControllerConfig = "NOT_IN_CONFIG"
+	stateFileTemplate     = "state_store_%s.json"
 )
 
-//State stores representation of EVE state
-//we should assign InfoCallback and MetricCallback to update state
+// State stores representation of EVE state
+// we should assign InfoCallback and MetricCallback to update state
 type State struct {
-	applications   map[string]*AppInstState
-	networks       map[string]*NetInstState
-	volumes        map[string]*VolInstState
-	infoAndMetrics *projects.State
-	device         *device.Ctx
+	Applications map[string]*AppInstState
+	Networks     map[string]*NetInstState
+	Volumes      map[string]*VolInstState
+	EveState     *NodeState
+	device       *device.Ctx
 }
 
-//Init State object with controller and device
+// Init State object with controller and device
 func Init(ctrl controller.Cloud, dev *device.Ctx) (ctx *State) {
-	ctx = &State{device: dev, infoAndMetrics: projects.InitState(dev)}
-	ctx.applications = make(map[string]*AppInstState)
-	ctx.networks = make(map[string]*NetInstState)
+	ctx = &State{device: dev}
 	if err := ctx.initApplications(ctrl, dev); err != nil {
 		log.Fatalf("EVE State initApplications error: %s", err)
 	}
@@ -40,69 +45,122 @@ func Init(ctrl controller.Cloud, dev *device.Ctx) (ctx *State) {
 	if err := ctx.initNetworks(ctrl, dev); err != nil {
 		log.Fatalf("EVE State initNetworks error: %s", err)
 	}
+	if err := ctx.initNodeState(ctrl, dev); err != nil {
+		log.Fatalf("EVE State initNodeState error: %s", err)
+	}
+	if err := ctx.Load(); err != nil {
+		log.Fatalf("EVE State Load error: %s", err)
+	}
 	return
 }
 
-//InfoAndMetrics returns last info and metric objects
-func (ctx *State) InfoAndMetrics() *projects.State {
-	return ctx.infoAndMetrics
+func (ctx *State) getStateFile() (string, error) {
+	edenDir, err := utils.DefaultEdenDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(edenDir, fmt.Sprintf(stateFileTemplate, ctx.device.GetID().String())), nil
 }
 
-//Applications extracts applications states
-func (ctx *State) Applications() []*AppInstState {
-	v := make([]*AppInstState, 0, len(ctx.applications))
-	for _, value := range ctx.applications {
-		if !value.deleted {
+// Store state into file
+func (ctx *State) Store() error {
+	data, err := json.Marshal(ctx)
+	if err != nil {
+		return err
+	}
+	stateFile, err := ctx.getStateFile()
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(stateFile, data, 0600)
+}
+
+// Load state from file
+func (ctx *State) Load() error {
+	stateFile, err := ctx.getStateFile()
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(stateFile)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var obj *State
+	err = json.Unmarshal(data, &obj)
+	if err != nil {
+		return err
+	}
+	ctx.applyOldStateApps(obj)
+	ctx.applyOldStateNetworks(obj)
+	ctx.applyOldStateVolumes(obj)
+	ctx.applyOldStateNodeState(obj)
+	return nil
+}
+
+// Prepared returns true if we have enough info to work
+func (ctx *State) Prepared() bool {
+	return ctx.EveState.LastSeen.Unix() != 0
+}
+
+// NotDeletedApplications extracts AppInstState  which are not marked as deleted
+func (ctx *State) NotDeletedApplications() []*AppInstState {
+	v := make([]*AppInstState, 0, len(ctx.Applications))
+	for _, value := range ctx.Applications {
+		if !value.Deleted {
 			v = append(v, value)
 		}
 	}
 	return v
 }
 
-//Networks extracts networks states
-func (ctx *State) Networks() []*NetInstState {
-	v := make([]*NetInstState, 0, len(ctx.networks))
-	for _, value := range ctx.networks {
-		if !value.deleted {
+// NotDeletedNetworks extracts NetInstState  which are not marked as deleted
+func (ctx *State) NotDeletedNetworks() []*NetInstState {
+	v := make([]*NetInstState, 0, len(ctx.Networks))
+	for _, value := range ctx.Networks {
+		if !value.Deleted {
 			v = append(v, value)
 		}
 	}
 	return v
 }
 
-//Volumes extracts volumes states
-func (ctx *State) Volumes() []*VolInstState {
-	v := make([]*VolInstState, 0, len(ctx.volumes))
-	for _, value := range ctx.volumes {
-		if !value.deleted {
+// NotDeletedVolumes extracts VolInstState which are not marked as deleted
+func (ctx *State) NotDeletedVolumes() []*VolInstState {
+	v := make([]*VolInstState, 0, len(ctx.Volumes))
+	for _, value := range ctx.Volumes {
+		if !value.Deleted {
 			v = append(v, value)
 		}
 	}
 	return v
 }
 
-//InfoCallback should be assigned to feed new values from info messages into state
+// NodeState returns NodeState
+func (ctx *State) NodeState() *NodeState {
+	return ctx.EveState
+}
+
+// InfoCallback should be assigned to feed new values from info messages into state
 func (ctx *State) InfoCallback() einfo.HandlerFunc {
 	return func(msg *info.ZInfoMsg) bool {
 		ctx.processVolumesByInfo(msg)
 		ctx.processApplicationsByInfo(msg)
 		ctx.processNetworksByInfo(msg)
-		if err := ctx.infoAndMetrics.GetInfoProcessingFunction()(msg); err != nil {
-			log.Fatalf("EVE State GetInfoProcessingFunction error: %s", err)
-		}
+		ctx.processNodeStateByInfo(msg)
 		return false
 	}
 }
 
-//MetricCallback should be assigned to feed new values from metric messages into state
+// MetricCallback should be assigned to feed new values from metric messages into state
 func (ctx *State) MetricCallback() emetric.HandlerFunc {
 	return func(msg *metrics.ZMetricMsg) bool {
 		ctx.processVolumesByMetric(msg)
 		ctx.processApplicationsByMetric(msg)
 		ctx.processNetworksByMetric(msg)
-		if err := ctx.infoAndMetrics.GetMetricProcessingFunction()(msg); err != nil {
-			log.Fatalf("EVE State GetMetricProcessingFunction error: %s", err)
-		}
+		ctx.processNodeStateByMetric(msg)
 		return false
 	}
 }

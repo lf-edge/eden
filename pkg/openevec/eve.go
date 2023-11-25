@@ -16,7 +16,6 @@ import (
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
 	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
-	"github.com/lf-edge/eve/api/go/info"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -221,25 +220,17 @@ func (openEVEC *OpenEVEC) VersionEve() error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
-		log.Debugf("getControllerAndDevFromConfig: %s", err.Error())
-		fmt.Println("EVE status: undefined (no onboarded EVE)")
-	} else {
-		var lastDInfo *info.ZInfoMsg
-		var handleInfo = func(im *info.ZInfoMsg) bool {
-			if im.GetZtype() == info.ZInfoTypes_ZiDevice {
-				lastDInfo = im
-			}
-			return false
-		}
-		if err = ctrl.InfoLastCallback(dev.GetID(), map[string]string{"devId": dev.GetID().String()}, handleInfo); err != nil {
-			return fmt.Errorf("fail in get InfoLastCallback: %w", err)
-		}
-		if lastDInfo == nil {
-			log.Info("no info messages")
-		} else {
-			fmt.Println(lastDInfo.GetDinfo().SwList[0].ShortVersion)
-		}
+		return fmt.Errorf("getControllerAndDev: %w", err)
 	}
+	state := eve.Init(ctrl, dev)
+	if err := ctrl.InfoLastCallback(dev.GetID(), nil, state.InfoCallback()); err != nil {
+		return fmt.Errorf("fail in get InfoLastCallback: %w", err)
+	}
+	if err := ctrl.MetricLastCallback(dev.GetID(), nil, state.MetricCallback()); err != nil {
+		return fmt.Errorf("fail in get MetricLastCallback: %w", err)
+	}
+	//nolint:forbidigo
+	fmt.Println(state.NodeState().Version)
 	return nil
 }
 
@@ -291,12 +282,12 @@ func (openEVEC *OpenEVEC) GetEveIP(ifName string) string {
 		log.Error(err)
 		return ""
 	}
-	for _, nw := range networks {
-		if nw.LocalName == ifName {
-			if len(nw.IPAddrs) == 0 {
+	for ifNameKey, ips := range networks {
+		if ifNameKey == ifName {
+			if len(ips) == 0 {
 				return ""
 			}
-			return nw.IPAddrs[0]
+			return ips[0]
 		}
 	}
 	return ""
@@ -509,7 +500,7 @@ func (openEVEC *OpenEVEC) NewLinkEve(command, eveInterfaceName, vmName string) e
 	return nil
 }
 
-func (openEVEC *OpenEVEC) getEveNetworkInfo() (networks []*info.ZInfoNetwork, err error) {
+func (openEVEC *OpenEVEC) getEveNetworkInfo() (ips map[string][]string, err error) {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
@@ -522,8 +513,5 @@ func (openEVEC *OpenEVEC) getEveNetworkInfo() (networks []*info.ZInfoNetwork, er
 	if err = ctrl.MetricLastCallback(dev.GetID(), nil, eveState.MetricCallback()); err != nil {
 		return nil, fmt.Errorf("MetricLastCallback failed: %w", err)
 	}
-	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
-		networks = append(networks, lastDInfo.Network...)
-	}
-	return networks, nil
+	return eveState.NodeState().RemoteIPs, nil
 }

@@ -13,8 +13,6 @@ import (
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve/api/go/info"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // This context holds all the configuration items in the same
@@ -40,25 +38,23 @@ var (
 
 	tc *projects.TestContext
 
-	lastRebootTime *timestamppb.Timestamp
+	lastRebootTime time.Time
 )
 
 func checkReboot(t *testing.T, edgeNode *device.Ctx) projects.ProcInfoFunc {
-	return func(im *info.ZInfoMsg) error {
-		if im.GetZtype() != info.ZInfoTypes_ZiDevice {
-			return nil
-		}
-		currentLastRebootTime := im.GetDinfo().LastRebootTime
-		if !proto.Equal(lastRebootTime, currentLastRebootTime) {
-			if im.GetDinfo().LastRebootReason == "" &&
-				currentLastRebootTime.AsTime().Unix() == 0 {
+	return func(_ *info.ZInfoMsg) error {
+		eveState := tc.GetState(edgeNode).GetEVEState()
+		currentLastRebootTime := eveState.NodeState().LastRebootTime
+		if !lastRebootTime.Equal(currentLastRebootTime) {
+			if eveState.NodeState().LastRebootReason == "" &&
+				currentLastRebootTime.Unix() == 0 {
 				// device may not fill the info
 				return nil
 			}
 			lastRebootTime = currentLastRebootTime
-			fmt.Printf("rebooted with reason %s at %s/n", im.GetDinfo().LastRebootReason, lastRebootTime.AsTime())
-			if !strings.Contains(im.GetDinfo().LastRebootReason, "NORMAL") {
-				err := fmt.Errorf("abnormal reboot: %s", im.GetDinfo().LastRebootReason)
+			fmt.Printf("rebooted with reason %s at %s/n", eveState.NodeState().LastRebootReason, lastRebootTime)
+			if !strings.Contains(eveState.NodeState().LastRebootReason, "NORMAL") {
+				err := fmt.Errorf("abnormal reboot: %s", eveState.NodeState().LastRebootReason)
 				if *reboot {
 					//if we use this test to do reboot, abnormal one must errored the test
 					t.Fatal(err)
@@ -167,11 +163,13 @@ func TestReboot(t *testing.T) {
 	t.Log(utils.AddTimestamp(fmt.Sprintf("reboot: %t", *reboot)))
 	t.Log(utils.AddTimestamp(fmt.Sprintf("count: %d", *count)))
 
-	lastRebootTime = tc.GetState(edgeNode).GetDinfo().LastRebootTime
+	nodeState := tc.GetState(edgeNode).GetEVEState().NodeState()
 
-	t.Log(utils.AddTimestamp(fmt.Sprintf("LastRebootTime: %s", lastRebootTime.AsTime())))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("LastRebootTime: %s", nodeState.LastRebootTime)))
 
-	t.Log(utils.AddTimestamp(fmt.Sprintf("LastRebootReason: %s", tc.GetState(edgeNode).GetDinfo().LastRebootReason)))
+	t.Log(utils.AddTimestamp(fmt.Sprintf("LastRebootReason: %s", nodeState.LastRebootReason)))
+
+	lastRebootTime = nodeState.LastRebootTime
 
 	tc.AddProcInfo(edgeNode, checkReboot(t, edgeNode))
 

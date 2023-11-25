@@ -25,7 +25,7 @@ type NetInstState struct {
 	AdamState   string
 	EveState    string
 	Activated   bool
-	deleted     bool
+	Deleted     bool
 }
 
 func netInstStateHeader() string {
@@ -40,7 +40,7 @@ func (netInstStateObj *NetInstState) toString() string {
 }
 
 func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
-	ctx.networks = make(map[string]*NetInstState)
+	ctx.Networks = make(map[string]*NetInstState)
 	for _, el := range dev.GetNetworkInstances() {
 		ni, err := ctrl.GetNetworkInstanceConfig(el)
 		if err != nil {
@@ -55,15 +55,35 @@ func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
 			CIDR:        ni.Ip.Subnet,
 			NetworkType: ni.InstType.String(),
 		}
-		ctx.networks[ni.Uuidandversion.Uuid] = netInstStateObj
+		ctx.Networks[ni.Uuidandversion.Uuid] = netInstStateObj
 	}
 	return nil
+}
+
+func (ctx *State) applyOldStateNetworks(state *State) {
+	for stateID, stateEL := range state.Networks {
+		found := false
+		for id := range ctx.Networks {
+			if id != stateID {
+				continue
+			}
+			ctx.Networks[id] = stateEL
+			found = true
+		}
+		if !found {
+			if stateEL.Deleted {
+				continue
+			}
+			stateEL.AdamState = notInControllerConfig
+			ctx.Networks[stateID] = stateEL
+		}
+	}
 }
 
 func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 	switch im.GetZtype() {
 	case info.ZInfoTypes_ZiNetworkInstance:
-		netInstStateObj, ok := ctx.networks[im.GetNiinfo().GetNetworkID()]
+		netInstStateObj, ok := ctx.Networks[im.GetNiinfo().GetNetworkID()]
 		if !ok {
 			netInstStateObj = &NetInstState{
 				Name:        im.GetNiinfo().GetDisplayname(),
@@ -73,7 +93,7 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 				EveState:    "UNKNOWN",
 				NetworkType: (config.ZNetworkInstType)(int32(im.GetNiinfo().InstType)).String(),
 			}
-			ctx.networks[im.GetNiinfo().GetNetworkID()] = netInstStateObj
+			ctx.Networks[im.GetNiinfo().GetNetworkID()] = netInstStateObj
 		}
 		netInstStateObj.EveState = im.GetNiinfo().State.String()
 		netInstStateObj.Activated = im.GetNiinfo().Activated
@@ -98,12 +118,12 @@ func (ctx *State) processNetworksByInfo(im *info.ZInfoMsg) {
 		if !netInstStateObj.Activated &&
 			im.GetNiinfo().State != info.ZNetworkInstanceState_ZNETINST_STATE_INIT &&
 			netInstStateObj.AdamState == notInControllerConfig {
-			netInstStateObj.deleted = true
+			netInstStateObj.Deleted = true
 		}
 
 		if im.GetNiinfo().State == info.ZNetworkInstanceState_ZNETINST_STATE_UNSPECIFIED &&
 			netInstStateObj.AdamState == notInControllerConfig {
-			netInstStateObj.deleted = true
+			netInstStateObj.Deleted = true
 		}
 	}
 }
@@ -112,7 +132,7 @@ func (ctx *State) processNetworksByMetric(msg *metrics.ZMetricMsg) {
 	if networkMetrics := msg.GetNm(); networkMetrics != nil {
 		for _, networkMetric := range networkMetrics {
 			// XXX use [uuid] instead of loop
-			for _, el := range ctx.networks {
+			for _, el := range ctx.Networks {
 				if networkMetric.NetworkID == el.UUID {
 					el.Stats = networkMetric.GetNetworkStats().String()
 					break
@@ -128,8 +148,8 @@ func (ctx *State) printNetListLines() error {
 	if _, err := fmt.Fprintln(w, netInstStateHeader()); err != nil {
 		return err
 	}
-	netInstStatesSlice := make([]*NetInstState, 0, len(ctx.Networks()))
-	netInstStatesSlice = append(netInstStatesSlice, ctx.Networks()...)
+	netInstStatesSlice := make([]*NetInstState, 0, len(ctx.NotDeletedNetworks()))
+	netInstStatesSlice = append(netInstStatesSlice, ctx.NotDeletedNetworks()...)
 	sort.SliceStable(netInstStatesSlice, func(i, j int) bool {
 		return netInstStatesSlice[i].Name < netInstStatesSlice[j].Name
 	})
@@ -142,7 +162,7 @@ func (ctx *State) printNetListLines() error {
 }
 
 func (ctx *State) printNetListJSON() error {
-	result, err := json.MarshalIndent(ctx.Networks(), "", "    ")
+	result, err := json.MarshalIndent(ctx.NotDeletedNetworks(), "", "    ")
 	if err != nil {
 		return err
 	}

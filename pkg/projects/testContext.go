@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-//GetControllerMode parse url with controller
+// GetControllerMode parse url with controller
 func GetControllerMode(controllerMode string) (modeType, modeURL string, err error) {
 	params := utils.GetParams(controllerMode, defaults.DefaultControllerModePattern)
 	if len(params) == 0 {
@@ -37,7 +37,7 @@ func GetControllerMode(controllerMode string) (modeType, modeURL string, err err
 	return
 }
 
-//TestContext is main structure for running tests
+// TestContext is main structure for running tests
 type TestContext struct {
 	cloud     controller.Cloud
 	project   *Project
@@ -51,7 +51,7 @@ type TestContext struct {
 	addTime   time.Duration
 }
 
-//NewTestContext creates new TestContext
+// NewTestContext creates new TestContext
 func NewTestContext() *TestContext {
 	var (
 		err       error
@@ -127,7 +127,7 @@ func NewTestContext() *TestContext {
 	return tstCtx
 }
 
-//GetNodeDescriptions returns list of nodes from config
+// GetNodeDescriptions returns list of nodes from config
 func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	if eveList := viper.GetStringMap("test.eve"); len(eveList) > 0 {
 		for name := range eveList {
@@ -147,7 +147,7 @@ func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	return
 }
 
-//GetController returns current controller
+// GetController returns current controller
 func (tc *TestContext) GetController() controller.Cloud {
 	if tc.cloud == nil {
 		log.Fatal("Controller not initialized")
@@ -155,12 +155,12 @@ func (tc *TestContext) GetController() controller.Cloud {
 	return tc.cloud
 }
 
-//InitProject init project object with defined name
+// InitProject init project object with defined name
 func (tc *TestContext) InitProject(name string) {
 	tc.project = &Project{name: name}
 }
 
-//AddEdgeNodesFromDescription adds EdgeNodes from description in test.eve param
+// AddEdgeNodesFromDescription adds EdgeNodes from description in test.eve param
 func (tc *TestContext) AddEdgeNodesFromDescription() {
 	for _, node := range tc.GetNodeDescriptions() {
 		edgeNode := node.GetEdgeNode(tc)
@@ -180,10 +180,10 @@ func (tc *TestContext) AddEdgeNodesFromDescription() {
 	}
 }
 
-//GetEdgeNodeOpts pattern to pass device modifications
+// GetEdgeNodeOpts pattern to pass device modifications
 type GetEdgeNodeOpts func(*device.Ctx) bool
 
-//WithTest assign *testing.T for device
+// WithTest assign *testing.T for device
 func (tc *TestContext) WithTest(t *testing.T) GetEdgeNodeOpts {
 	return func(d *device.Ctx) bool {
 		tc.tests[d] = t
@@ -191,7 +191,7 @@ func (tc *TestContext) WithTest(t *testing.T) GetEdgeNodeOpts {
 	}
 }
 
-//GetEdgeNode return node from context
+// GetEdgeNode return node from context
 func (tc *TestContext) GetEdgeNode(opts ...GetEdgeNodeOpts) *device.Ctx {
 Node:
 	for _, el := range tc.nodes {
@@ -205,12 +205,12 @@ Node:
 	return nil
 }
 
-//AddNode add node to test context
+// AddNode add node to test context
 func (tc *TestContext) AddNode(node *device.Ctx) {
 	tc.nodes = append(tc.nodes, node)
 }
 
-//UpdateEdgeNode update edge node
+// UpdateEdgeNode update edge node
 func (tc *TestContext) UpdateEdgeNode(edgeNode *device.Ctx, opts ...EdgeNodeOption) {
 	for _, opt := range opts {
 		opt(edgeNode)
@@ -218,7 +218,7 @@ func (tc *TestContext) UpdateEdgeNode(edgeNode *device.Ctx, opts ...EdgeNodeOpti
 	tc.ConfigSync(edgeNode)
 }
 
-//NewEdgeNode creates edge node
+// NewEdgeNode creates edge node
 func (tc *TestContext) NewEdgeNode(opts ...EdgeNodeOption) *device.Ctx {
 	d := device.CreateEdgeNode()
 	for _, opt := range opts {
@@ -231,7 +231,7 @@ func (tc *TestContext) NewEdgeNode(opts ...EdgeNodeOption) *device.Ctx {
 	return d
 }
 
-//ConfigSync send config to controller
+// ConfigSync send config to controller
 func (tc *TestContext) ConfigSync(edgeNode *device.Ctx) {
 	if edgeNode.GetState() == device.NotOnboarded {
 		if err := tc.GetController().OnBoardDev(edgeNode); err != nil {
@@ -245,13 +245,13 @@ func (tc *TestContext) ConfigSync(edgeNode *device.Ctx) {
 	}
 }
 
-//ExpandOnSuccess adds additional time to global timeout on every success check
+// ExpandOnSuccess adds additional time to global timeout on every success check
 func (tc *TestContext) ExpandOnSuccess(secs int) {
 	tc.addTime = time.Duration(secs) * time.Second
 }
 
-//WaitForProcWithErrorCallback blocking execution until the time elapses or all Procs gone
-//and fires callback in case of timeout
+// WaitForProcWithErrorCallback blocking execution until the time elapses or all Procs gone
+// and fires callback in case of timeout
 func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback) {
 	defer func() { tc.addTime = 0 }() //reset addTime on exit
 	defer tc.procBus.clean()
@@ -290,8 +290,8 @@ func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback)
 	}
 }
 
-//WaitForProc blocking execution until the time elapses or all Procs gone
-//returns error on timeout
+// WaitForProc blocking execution until the time elapses or all Procs gone
+// returns error on timeout
 func (tc *TestContext) WaitForProc(secs int) {
 	timeout := time.Duration(secs) * time.Second
 	callback := func() {
@@ -305,42 +305,42 @@ func (tc *TestContext) WaitForProc(secs int) {
 	tc.WaitForProcWithErrorCallback(secs, callback)
 }
 
-//AddProcLog add processFunction, that will get all logs for edgeNode
+// AddProcLog add processFunction, that will get all logs for edgeNode
 func (tc *TestContext) AddProcLog(edgeNode *device.Ctx, processFunction ProcLogFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcAppLog add processFunction, that will get all app logs for edgeNode
+// AddProcAppLog add processFunction, that will get all app logs for edgeNode
 func (tc *TestContext) AddProcAppLog(edgeNode *device.Ctx, appUUID uuid.UUID, processFunction ProcAppLogFunc) {
 	tc.procBus.addAppProc(edgeNode, appUUID, processFunction)
 }
 
-//AddProcFlowLog add processFunction, that will get all FlowLogs for edgeNode
+// AddProcFlowLog add processFunction, that will get all FlowLogs for edgeNode
 func (tc *TestContext) AddProcFlowLog(edgeNode *device.Ctx, processFunction ProcLogFlowFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcInfo add processFunction, that will get all info for edgeNode
+// AddProcInfo add processFunction, that will get all info for edgeNode
 func (tc *TestContext) AddProcInfo(edgeNode *device.Ctx, processFunction ProcInfoFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcMetric add processFunction, that will get all metrics for edgeNode
+// AddProcMetric add processFunction, that will get all metrics for edgeNode
 func (tc *TestContext) AddProcMetric(edgeNode *device.Ctx, processFunction ProcMetricFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcTimer add processFunction, that will fire with time intervals for edgeNode
+// AddProcTimer add processFunction, that will fire with time intervals for edgeNode
 func (tc *TestContext) AddProcTimer(edgeNode *device.Ctx, processFunction ProcTimerFunc) {
 	tc.procBus.addProc(edgeNode, processFunction)
 }
 
-//StartTrackingState init function for State monitoring
-//if onlyNewElements set no use old information from controller
+// StartTrackingState init function for State monitoring
+// if onlyNewElements set no use old information from controller
 func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 	tc.states = map[*device.Ctx]*State{}
 	for _, dev := range tc.nodes {
-		curState := InitState(dev)
+		curState := InitState(tc.cloud, dev)
 		tc.states[dev] = curState
 		if !onlyNewElements {
 			//process all events from controller
@@ -355,7 +355,7 @@ func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 	}
 }
 
-//WaitForState wait for State initialization from controller
+// WaitForState wait for State initialization from controller
 func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 	state, isOk := tc.states[edgeNode]
 	if !isOk {
@@ -391,7 +391,7 @@ func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 	}
 }
 
-//GetState returns State object for edgeNode
+// GetState returns State object for edgeNode
 func (tc *TestContext) GetState(edgeNode *device.Ctx) *State {
 	return tc.states[edgeNode]
 }

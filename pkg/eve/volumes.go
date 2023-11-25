@@ -29,10 +29,10 @@ type VolInstState struct {
 	EveState      string
 	LastError     string
 	Ref           string
-	contentTreeID string
+	ContentTreeID string
 	MountPoint    string
 	OriginType    string
-	deleted       bool
+	Deleted       bool
 }
 
 func volInstStateHeader() string {
@@ -51,7 +51,7 @@ func (volInstStateObj *VolInstState) toString() string {
 }
 
 func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
-	ctx.volumes = make(map[string]*VolInstState)
+	ctx.Volumes = make(map[string]*VolInstState)
 	for _, el := range dev.GetVolumes() {
 		vi, err := ctrl.GetVolume(el)
 		if err != nil {
@@ -95,19 +95,39 @@ func (ctx *State) initVolumes(ctrl controller.Cloud, dev *device.Ctx) error {
 			MaxSize:       "-",
 			MountPoint:    strings.Join(mountPoint, ";"),
 			Ref:           strings.Join(ref, ";"),
-			contentTreeID: contentTreeID,
+			ContentTreeID: contentTreeID,
 			OriginType:    vi.GetOrigin().GetType().String(),
 		}
-		ctx.volumes[vi.GetUuid()] = volInstStateObj
+		ctx.Volumes[vi.GetUuid()] = volInstStateObj
 	}
 	return nil
+}
+
+func (ctx *State) applyOldStateVolumes(state *State) {
+	for stateID, stateEL := range state.Volumes {
+		found := false
+		for id := range ctx.Volumes {
+			if id != stateID {
+				continue
+			}
+			ctx.Volumes[id] = stateEL
+			found = true
+		}
+		if !found {
+			if stateEL.Deleted {
+				continue
+			}
+			stateEL.AdamState = notInControllerConfig
+			ctx.Volumes[stateID] = stateEL
+		}
+	}
 }
 
 func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 	switch im.GetZtype() {
 	case info.ZInfoTypes_ZiVolume:
 		infoObject := im.GetVinfo()
-		volInstStateObj, ok := ctx.volumes[infoObject.GetUuid()]
+		volInstStateObj, ok := ctx.Volumes[infoObject.GetUuid()]
 		if !ok {
 			volInstStateObj = &VolInstState{
 				Name:       infoObject.GetDisplayName(),
@@ -119,9 +139,9 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 				MountPoint: "-",
 				Ref:        "-",
 			}
-			ctx.volumes[infoObject.GetUuid()] = volInstStateObj
+			ctx.Volumes[infoObject.GetUuid()] = volInstStateObj
 		}
-		volInstStateObj.deleted =
+		volInstStateObj.Deleted =
 			infoObject.DisplayName == "" || infoObject.State == info.ZSwState_INVALID
 		if volInstStateObj.VolumeType != config.Format_FmtUnknown.String() &&
 			volInstStateObj.VolumeType != config.Format_CONTAINER.String() {
@@ -143,8 +163,8 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 		}
 	case info.ZInfoTypes_ZiContentTree:
 		infoObject := im.GetCinfo()
-		for _, el := range ctx.volumes {
-			if infoObject.Uuid == el.contentTreeID {
+		for _, el := range ctx.Volumes {
+			if infoObject.Uuid == el.ContentTreeID {
 				el.EveState = infoObject.GetState().String()
 				if infoObject.GetErr() != nil {
 					el.LastError = infoObject.GetErr().String()
@@ -162,7 +182,7 @@ func (ctx *State) processVolumesByInfo(im *info.ZInfoMsg) {
 func (ctx *State) processVolumesByMetric(msg *metrics.ZMetricMsg) {
 	if volumeMetrics := msg.GetVm(); volumeMetrics != nil {
 		for _, volumeMetric := range volumeMetrics {
-			volInstStateObj, ok := ctx.volumes[volumeMetric.GetUuid()]
+			volInstStateObj, ok := ctx.Volumes[volumeMetric.GetUuid()]
 			if ok {
 				volInstStateObj.Size = humanize.Bytes(volumeMetric.GetUsedBytes())
 			}
@@ -175,8 +195,8 @@ func (ctx *State) printVolumeListLines() error {
 	if _, err := fmt.Fprintln(w, volInstStateHeader()); err != nil {
 		return err
 	}
-	volInstStatesSlice := make([]*VolInstState, 0, len(ctx.Volumes()))
-	volInstStatesSlice = append(volInstStatesSlice, ctx.Volumes()...)
+	volInstStatesSlice := make([]*VolInstState, 0, len(ctx.NotDeletedVolumes()))
+	volInstStatesSlice = append(volInstStatesSlice, ctx.NotDeletedVolumes()...)
 	sort.SliceStable(volInstStatesSlice, func(i, j int) bool {
 		return volInstStatesSlice[i].Name < volInstStatesSlice[j].Name
 	})
@@ -189,7 +209,7 @@ func (ctx *State) printVolumeListLines() error {
 }
 
 func (ctx *State) printVolumeListJSON() error {
-	result, err := json.MarshalIndent(ctx.Volumes(), "", "    ")
+	result, err := json.MarshalIndent(ctx.NotDeletedVolumes(), "", "    ")
 	if err != nil {
 		return err
 	}
