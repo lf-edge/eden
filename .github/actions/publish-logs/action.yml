@@ -27,16 +27,16 @@ runs:
         echo "$(jq '.severity' trace.log|grep err|wc -l)"
         echo "::endgroup::"
         echo "::group::Errors by source"
-        echo "errors by source: $(jq -s 'map(select(.severity|contains("err")))|group_by(.source)|map({"source": .[0].source, "total":length})|sort_by(.total)|reverse[]' trace.log)"
+        echo "errors by source: $(jq -s 'map(select(.severity//""|contains("err")))|group_by(.source)|map({"source": .[0].source, "total":length})|sort_by(.total)|reverse[]' trace.log)"
         echo "::endgroup::"
         echo "::group::Error log content duplicates"
-        echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.content)|map(select(length>1))' trace.log)"
+        echo "$(jq -s 'map(select(.severity//"" | contains("err")))|group_by(.content)|map(select(length>1))' trace.log)"
         echo "::endgroup::"
         echo "::group::Error log function filename duplicates"
-        echo "$(jq -s 'map(select(.severity | contains("err")))|group_by(.filename)|map(select(length>10))|map({"source": .[0].source, "filename": .[0].filename, "function": .[0].function, "content": [.[].content], "total":length})|sort_by(.total)| reverse[]' trace.log)"
+        echo "$(jq -s 'map(select(.severity//"" | contains("err")))|group_by(.filename)|map(select(length>10))|map({"source": .[0].source, "filename": .[0].filename, "function": .[0].function, "content": [.[].content], "total":length})|sort_by(.total)| reverse[]' trace.log)"
         echo "::endgroup::"
         echo "::group::Segfaults"
-        echo "$(jq -s 'map(select(.content | contains("segfault at")))' trace.log)"|tee segfaults.log
+        echo "$(jq -s 'map(select(.content//"" | contains("segfault at")))' trace.log)"|tee segfaults.log
         [ "$(jq length segfaults.log)" -gt 0 ] && echo "::warning::segfaults found, you can see them in Log counting->Segfaults section"
         echo "::endgroup::"
       shell: bash
