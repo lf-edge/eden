@@ -91,6 +91,24 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
+func TestKernelModuleSigning(t *testing.T) {
+	log.Println("TestKernelModuleSigning started")
+	defer log.Println("TestKernelModuleSigning finished")
+
+	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
+	tc.WaitForState(edgeNode, 60)
+
+	out, err := rnode.runCommand("cat /proc/config.gz | gunzip > /tmp/running.config && cat /tmp/running.config | grep CONFIG_MODULE_SIG_FORCE")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	status := strings.TrimSpace(string(out))
+	if status != "CONFIG_MODULE_SIG_FORCE=y" {
+		t.Fatal("Kernel module signing is not enabled")
+	}
+}
+
 func TestUnconfinedProcesses(t *testing.T) {
 	log.Println("TestUnconfinedProcesses started")
 	defer log.Println("TestUnconfinedProcesses finished")
