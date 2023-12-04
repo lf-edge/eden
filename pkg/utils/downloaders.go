@@ -25,6 +25,7 @@ type EVEDescription struct {
 	Tag         string
 	Format      string
 	ImageSizeMB int
+	PullImage   bool
 }
 
 // Image extracts image tag from EVEDescription
@@ -75,8 +76,10 @@ func DownloadUEFI(eve EVEDescription, outputDir string) (err error) {
 	if err != nil {
 		return err
 	}
-	if err := PullImage(image); err != nil {
-		return fmt.Errorf("ImagePull (%s): %s", image, err)
+	if eve.PullImage {
+		if err := PullImage(image); err != nil {
+			return fmt.Errorf("ImagePull (%s): %s", image, err)
+		}
 	}
 	if err := SaveImageAndExtract(image, outputDir, "/bits/firmware"); err != nil {
 		return fmt.Errorf("SaveImageAndExtract: %w", err)
@@ -90,9 +93,11 @@ func DownloadEveLive(eve EVEDescription, outputFile string) (err error) {
 	if err != nil {
 		return err
 	}
-	log.Debugf("Try ImagePull with (%s)", image)
-	if err := PullImage(image); err != nil {
-		return fmt.Errorf("ImagePull (%s): %s", image, err)
+	if eve.PullImage {
+		log.Debugf("Try ImagePull with (%s)", image)
+		if err := PullImage(image); err != nil {
+			return fmt.Errorf("ImagePull (%s): %s", image, err)
+		}
 	}
 	if eve.ConfigPath != "" {
 		if _, err := os.Stat(eve.ConfigPath); os.IsNotExist(err) {
@@ -281,9 +286,11 @@ func DownloadEveNetBoot(eve EVEDescription, outputDir string) (err error) {
 	if err != nil {
 		return err
 	}
-	log.Debugf("Try ImagePull with (%s)", image)
-	if err := PullImage(image); err != nil {
-		return fmt.Errorf("ImagePull (%s): %s", image, err)
+	if eve.PullImage {
+		log.Debugf("Try ImagePull with (%s)", image)
+		if err := PullImage(image); err != nil {
+			return fmt.Errorf("ImagePull (%s): %s", image, err)
+		}
 	}
 	if eve.ConfigPath != "" {
 		if _, err := os.Stat(eve.ConfigPath); os.IsNotExist(err) {

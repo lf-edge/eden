@@ -71,6 +71,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	setupCmd.Flags().StringToStringVarP(&cfg.Eve.HostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	setupCmd.Flags().StringVarP(&cfg.Eve.QemuFileToSave, "qemu-config", "", cfg.Eve.QemuFileToSave, "file to save qemu config")
 	setupCmd.Flags().StringVarP(&cfg.Eve.HV, "eve-hv", "", defaults.DefaultEVEHV, "hv of rootfs to use")
+	setupCmd.Flags().BoolVarP(&cfg.Eve.PullImage, "pull-image", "", true, "Download latest EVE")
 
 	setupCmd.Flags().StringVarP(&cfg.Eden.Images.EServerImageDist, "image-dist", "", cfg.Eden.Images.EServerImageDist, "image dist for eserver")
 	setupCmd.Flags().StringVarP(&cfg.Eden.BinDir, "bin-dist", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultBinDist), "directory for binaries")

@@ -80,6 +80,7 @@ func newConfigAddCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	configAddCmd.Flags().StringVar(&cfg.Eve.Ssid, "ssid", "", "set ssid of wifi for rpi")
 	configAddCmd.Flags().StringVar(&cfg.Eve.Arch, "arch", "", "arch of EVE (amd64 or arm64)")
 	configAddCmd.Flags().StringVar(&cfg.Eve.ModelFile, "devmodel-file", "", "File to use for overwrite of model defaults")
+	configAddCmd.Flags().BoolVarP(&cfg.Eve.PullImage, "pull-image", "", true, "Download latest EVE")
 	configAddCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 
 	return configAddCmd

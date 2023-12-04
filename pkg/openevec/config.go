@@ -118,6 +118,7 @@ type EveConfig struct {
 	Password       string            `mapstructure:"password" cobraflag:"password"`
 	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
 	Accel          bool              `mapstructure:"accel" cobraflag:"eve-accel"`
+	PullImage      bool              `mapstructure:"latest" cobraflag:"pull-image"`
 
 	Pid            string `mapstructure:"pid" cobraflag:"eve-pid" resolvepath:""`
 	Log            string `mapstructure:"log" cobraflag:"eve-log" resolvepath:""`

@@ -147,6 +147,7 @@ func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg Eden
 		Tag:         cfg.Eve.Tag,
 		Format:      imageFormat,
 		ImageSizeMB: cfg.Eve.ImageSizeMB,
+		Latest:      cfg.Eve.PullImage,
 	}
 	if cfg.Eve.CustomInstaller.Path != "" {
 		// With installer image already prepared, install only UEFI.
