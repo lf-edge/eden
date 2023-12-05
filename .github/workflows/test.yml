@@ -6,9 +6,13 @@ on:
     inputs:
       eve_image:
         type: string
+      eve_artifact_name:
+        type: string
   workflow_call:
     inputs:
       eve_image:
+        type: string
+      eve_artifact_name:
         type: string
 
 jobs:
@@ -48,6 +52,7 @@ jobs:
           tpm_enabled: ${{ matrix.tpm }}
           suite: "smoke.tests.txt"
           eve_image:  ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
 
   networking:
     name: Networking test suite
@@ -66,6 +71,7 @@ jobs:
           tpm_enabled: true
           suite: "networking.tests.txt"
           eve_image:   ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
 
   storage:
     continue-on-error: true
@@ -88,6 +94,7 @@ jobs:
           tpm_enabled: true
           suite: "storage.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
 
   lpc-loc:
     name: LPC LOC test suite
@@ -106,6 +113,7 @@ jobs:
           tpm_enabled: true
           suite: "lpc-loc.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
 
   eve-upgrade:
     continue-on-error: true
@@ -128,6 +136,7 @@ jobs:
           tpm_enabled: true
           suite: "eve-upgrade.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
 
   user-apps:
     name: User apps test suite
@@ -146,4 +155,5 @@ jobs:
           tpm_enabled: true
           suite: "user-apps.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
 
