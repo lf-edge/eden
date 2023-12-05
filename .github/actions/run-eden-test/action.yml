@@ -13,6 +13,8 @@ inputs:
     type: string
   eve_image:
     type: string
+  eve_artifact_name:
+    type: string
 
 runs:
   using: 'composite'
@@ -23,6 +25,7 @@ runs:
         file_system: ${{ inputs.file_system }}
         tpm_enabled: ${{ inputs.tpm_enabled }}
         eve_image: ${{ inputs.eve_image }}
+        eve_artifact_name: ${{ inputs.eve_artifact_name }}
     - name: Run tests
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash
