@@ -10,6 +10,8 @@ inputs:
     type: bool
   eve_image:
     type: string
+  eve_artifact_name:
+    type: string
 
 runs:
   using: 'composite'
@@ -53,6 +55,16 @@ runs:
         ./eden config set default --key=eve.cpu --value=2
       shell: bash
       working-directory: "./eden"
+    - name: Download artifact if specified
+      if: github.event.inputs.eve_artifact_name != ''
+      uses: actions/download-artifact@v3
+      with:
+        name: inputs.eve_artifact_name
+    - name: Load containers to docker if specified
+      if: github.event.inputs.eve_artifact_name != ''
+      run: |
+        docker load -q -i ${{ inputs.eve_artifact_name }}.tar
+      shell: bash
     - name: Setup eve version
       run: |
         image=${{ inputs.eve_image }}
