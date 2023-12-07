@@ -15,9 +15,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-//Controller is an interface of controller
+// Controller is an interface of controller
 type Controller interface {
-	CertsGet(devUUID uuid.UUID) (out string, err error)
+	GetECDHCert(devUUID uuid.UUID) ([]byte, error)
+	SigningCertGet() (signCert []byte, err error)
 	ConfigGet(devUUID uuid.UUID) (out string, err error)
 	ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error)
 	LogAppsChecker(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc, mode eapps.LogCheckerMode, timeout time.Duration) (err error)

@@ -22,8 +22,11 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve-api/go/auth"
+	"github.com/lf-edge/eve-api/go/certs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -39,11 +42,11 @@ type Ctx struct {
 	serverCA          string
 	insecureTLS       bool
 	AdamRemote        bool
-	AdamRemoteRedis   bool   //use redis for obtain logs and info
-	AdamRedisURLEden  string //string with redis url for obtain logs and info
-	AdamCaching       bool   //enable caching of adam`s logs/info
-	AdamCachingRedis  bool   //caching to redis instead of files
-	AdamCachingPrefix string //custom prefix for file or stream naming for cache
+	AdamRemoteRedis   bool   // use redis for obtain logs and info
+	AdamRedisURLEden  string // string with redis url for obtain logs and info
+	AdamCaching       bool   // enable caching of adam`s logs/info
+	AdamCachingRedis  bool   // caching to redis instead of files
+	AdamCachingPrefix string // custom prefix for file or stream naming for cache
 }
 
 // parseRedisURL try to use string from config to obtain redis url
@@ -196,9 +199,26 @@ func (adam *Ctx) ConfigGet(devUUID uuid.UUID) (out string, err error) {
 	return adam.getObj(path.Join("/admin/device", devUUID.String(), "config"), mimeProto)
 }
 
-// CertsGet get attest certs for devID
-func (adam *Ctx) CertsGet(devUUID uuid.UUID) (out string, err error) {
-	return adam.getObj(path.Join("/admin/device", devUUID.String(), "certs"), mimeJSON)
+// GetECDHCert get cert for ECDH exchange for devID
+func (adam *Ctx) GetECDHCert(devUUID uuid.UUID) ([]byte, error) {
+	attestData, err := adam.getObj(path.Join("/admin/device", devUUID.String(), "certs"), mimeJSON)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get attestation certificates from cloud for %s", devUUID)
+	}
+	req := &types.Zcerts{}
+	if err := json.Unmarshal([]byte(attestData), req); err != nil {
+		return nil, fmt.Errorf("cannot unmarshal attest: %w", err)
+	}
+	var devCert []byte
+	for _, c := range req.Certs {
+		if c.Type == certs.ZCertType_CERT_TYPE_DEVICE_ECDH_EXCHANGE {
+			devCert = c.Cert
+		}
+	}
+	if len(devCert) == 0 {
+		return nil, fmt.Errorf("no DEVICE_ECDH_EXCHANGE certificate")
+	}
+	return devCert, nil
 }
 
 // RequestLastCallback check request by pattern from existence files with callback
@@ -404,4 +424,29 @@ func (adam *Ctx) GetGlobalOptions() (*types.GlobalOptions, error) {
 		return nil, err
 	}
 	return &globalOptions, nil
+}
+
+// SigningCertGet gets signing certificate from Adam
+func (adam *Ctx) SigningCertGet() (signCert []byte, err error) {
+	certsData, err := adam.getObj("/api/v2/edgedevice/certs", mimeProto)
+	if err != nil {
+		return nil, err
+	}
+	zcloudMsg := &auth.AuthContainer{}
+	err = proto.Unmarshal([]byte(certsData), zcloudMsg)
+	if err != nil {
+		return nil, err
+	}
+	ctrlCert := &certs.ZControllerCert{}
+	err = proto.Unmarshal(zcloudMsg.ProtectedPayload.Payload, ctrlCert)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range ctrlCert.Certs {
+		// there should be only one signing certificate, so we return the first one we find
+		if c.Type == certs.ZCertType_CERT_TYPE_CONTROLLER_SIGNING {
+			return c.Cert, nil
+		}
+	}
+	return nil, fmt.Errorf("no signing certificate found")
 }

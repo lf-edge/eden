@@ -3,10 +3,10 @@ package utils
 import (
 	"crypto/sha256"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eve-api/go/evecommon"
 )
 
@@ -23,26 +23,16 @@ type CommonCryptoConfig struct {
 // 1. Calculate sha of controller cert.
 // 2. Calculate sha of device cert.
 // 3. Calculate symmetric key.
-func GetCommonCryptoConfig(devCert []byte, controllerCert, controllerKey string) (*CommonCryptoConfig, error) {
-	ctrlEncCert, rErr := os.ReadFile(controllerCert)
-	if rErr != nil {
-		return nil, rErr
-	}
-	//first trim space from controller cert before calculating hash.
-	strCtrlEncCert := string(ctrlEncCert)
+func GetCommonCryptoConfig(devCert, signCert, controllerKey []byte) (*CommonCryptoConfig, error) {
+	// first trim space from controller cert before calculating hash.
+	strCtrlEncCert := string(signCert)
 	controllerEncCertSha := sha256.Sum256([]byte(strings.TrimSpace(strCtrlEncCert)))
 
-	//calculate sha256 of devCert.
+	// calculate sha256 of devCert.
 	devCertSha := sha256.Sum256(devCert)
 
-	//read controller encryption priv key and
-	//use it for computing symmetric key.
-	ctrlPrivKey, rErr := os.ReadFile(controllerKey)
-	if rErr != nil {
-		return nil, rErr
-	}
-	//calculate symmetric key.
-	symmetricKey, syErr := calculateSymmetricKeyForEcdhAES(devCert, ctrlPrivKey)
+	// calculate symmetric key.
+	symmetricKey, syErr := calculateSymmetricKeyForEcdhAES(devCert, controllerKey)
 	if syErr != nil {
 		return nil, syErr
 	}
@@ -57,13 +47,13 @@ func GetCommonCryptoConfig(devCert []byte, controllerCert, controllerKey string)
 // CreateCipherCtx for edge dev config.
 func CreateCipherCtx(cmnCryptoCfg *CommonCryptoConfig) (*evecommon.CipherContext, error) {
 	if cmnCryptoCfg.DevCertHash == nil {
-		return nil, fmt.Errorf("Empty device certificate in create cipher context method")
+		return nil, fmt.Errorf("empty device certificate in create cipher context method")
 	}
 
 	cipherCtx := &evecommon.CipherContext{}
 
-	//prepare ctx using controller and device cert hash.
-	//append device cert has and controller cert hash.
+	// prepare ctx using controller and device cert hash.
+	// append device cert has and controller cert hash.
 	var uid uuid.UUID
 	appendedHash := append(cmnCryptoCfg.ControllerEncCertHash[:16], cmnCryptoCfg.DevCertHash[:16]...)
 	ctxID := uuid.NewSHA1(uid, appendedHash)
@@ -77,4 +67,20 @@ func CreateCipherCtx(cmnCryptoCfg *CommonCryptoConfig) (*evecommon.CipherContext
 	cipherCtx.ControllerCertHash = cmnCryptoCfg.ControllerEncCertHash[:16]
 
 	return cipherCtx, nil
+}
+
+// AddCipherCtxToDev add cipher context to device, unless it already exists.
+// It returns the existing or the added cipher context.
+func AddCipherCtxToDev(dev *device.Ctx, cipherCtx *evecommon.CipherContext) *evecommon.CipherContext {
+	// check if we already have cipherCtx with the same certificates
+	for _, c := range dev.GetCipherContexts() {
+		sameCipherCtx := CompareSlices(c.DeviceCertHash, cipherCtx.DeviceCertHash) &&
+			CompareSlices(c.ControllerCertHash, cipherCtx.ControllerCertHash)
+		if sameCipherCtx {
+			return c
+		}
+	}
+
+	dev.SetCipherContexts(append(dev.GetCipherContexts(), cipherCtx))
+	return cipherCtx
 }

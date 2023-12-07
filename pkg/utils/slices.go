@@ -3,8 +3,8 @@ package utils
 import "reflect"
 
 // DelEleInSlice delete an element from slice by index
-//  - arr: the reference of slice
-//  - index: the index of element will be deleted
+//   - arr: the reference of slice
+//   - index: the index of element will be deleted
 func DelEleInSlice(arr interface{}, index int) {
 	vField := reflect.ValueOf(arr)
 	value := vField.Elem()
@@ -15,8 +15,8 @@ func DelEleInSlice(arr interface{}, index int) {
 }
 
 // DelEleInSliceByFunction delete an element from slice by function
-//  - arr: the reference of slice
-//  - f: delete if it returns true on element of slice
+//   - arr: the reference of slice
+//   - f: delete if it returns true on element of slice
 func DelEleInSliceByFunction(arr interface{}, f func(interface{}) bool) {
 	vField := reflect.ValueOf(arr)
 	value := vField.Elem()
@@ -40,4 +40,20 @@ func FindEleInSlice(slice []string, val string) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+// CompareSlices compares two slices of comparable types. It returns true if
+// they are equal and false otherwise.
+func CompareSlices[T comparable](lhs, rhs []T) bool {
+	if len(lhs) != len(rhs) {
+		return false
+	}
+
+	for i := range lhs {
+		if lhs[i] != rhs[i] {
+			return false
+		}
+	}
+
+	return true
 }
