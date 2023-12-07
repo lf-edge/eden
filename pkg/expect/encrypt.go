@@ -1,16 +1,13 @@
 package expect
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 
-	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve-api/go/certs"
 	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/evecommon"
 	log "github.com/sirupsen/logrus"
@@ -53,51 +50,41 @@ func (exp *AppExpectation) applyDatastoreCipher(datastoreConfig *config.Datastor
 }
 
 func (exp *AppExpectation) prepareCipherData(encBlock *evecommon.EncryptionBlock) (*evecommon.CipherBlock, error) {
-	attestData, err := exp.ctrl.CertsGet(exp.device.GetID())
+	// get device certificate from the controller
+	devCert, err := exp.ctrl.GetECDHCert(exp.device.GetID())
 	if err != nil {
-		log.Errorf("cannot get attestation certificates from cloud for %s will use plaintext", exp.device.GetID())
+		log.Errorf("cannot get device certificate from cloud. will use plaintext. error: %s", err)
 		return nil, nil
 	}
+
+	// get signing certificate from the controller
+	signCert, err := exp.ctrl.SigningCertGet()
+	if err != nil {
+		log.Errorf("cannot get cloud's signing certificate. will use plaintext. error: %s", err)
+		return nil, nil
+	}
+
 	edenHome, err := utils.DefaultEdenDir()
 	if err != nil {
-		return nil, fmt.Errorf("DefaultEdenDir: %s", err)
+		return nil, fmt.Errorf("DefaultEdenDir: %w", err)
 	}
-	req := &types.Zcerts{}
-	if err := json.Unmarshal([]byte(attestData), req); err != nil {
-		return nil, fmt.Errorf("cannot unmarshal attest: %v", err)
-	}
-	var cert []byte
-	for _, c := range req.Certs {
-		if c.Type == certs.ZCertType_CERT_TYPE_DEVICE_ECDH_EXCHANGE {
-			cert = c.Cert
-		}
-	}
-	if len(cert) == 0 {
-		return nil, fmt.Errorf("no DEVICE_ECDH_EXCHANGE certificate")
-	}
-	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
-	cryptoConfig, err := utils.GetCommonCryptoConfig(cert, filepath.Join(globalCertsDir, "signing.pem"), filepath.Join(globalCertsDir, "signing-key.pem"))
+	keyPath := filepath.Join(edenHome, defaults.DefaultCertsDist, "signing-key.pem")
+	ctrlPrivKey, err := os.ReadFile(keyPath)
 	if err != nil {
-		return nil, fmt.Errorf("GetCommonCryptoConfig: %v", err)
+		return nil, fmt.Errorf("cannot read %s: %w", keyPath, err)
+	}
+
+	cryptoConfig, err := utils.GetCommonCryptoConfig(devCert, signCert, ctrlPrivKey)
+	if err != nil {
+		return nil, fmt.Errorf("GetCommonCryptoConfig: %w", err)
 	}
 	cipherCtx, err := utils.CreateCipherCtx(cryptoConfig)
 	if err != nil {
-		return nil, fmt.Errorf("CreateCipherCtx: %v", err)
+		return nil, fmt.Errorf("CreateCipherCtx: %w", err)
 	}
-	appendCipherCtx := true
-	for _, c := range exp.device.GetCipherContexts() {
-		// we do not change controller certificates
-		if bytes.Equal(c.DeviceCertHash, cipherCtx.DeviceCertHash) {
-			cipherCtx = c
-			appendCipherCtx = false
-		}
-	}
-	if appendCipherCtx {
-		exp.device.SetCipherContexts(append(exp.device.GetCipherContexts(), cipherCtx))
-	}
-	cipherBlock, err := utils.CryptoConfigWrapper(encBlock, cryptoConfig, cipherCtx)
-	if err != nil {
-		return nil, fmt.Errorf("CryptoConfigWrapper: %v", err)
-	}
-	return cipherBlock, nil
+
+	// add cipher context to device or return a matching existing one
+	cipherCtx = utils.AddCipherCtxToDev(exp.device, cipherCtx)
+
+	return utils.CryptoConfigWrapper(encBlock, cryptoConfig, cipherCtx)
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
@@ -24,6 +25,7 @@ func newAdamCmd(configName, verbosity *string) *cobra.Command {
 				newStartAdamCmd(cfg),
 				newStopAdamCmd(),
 				newStatusAdamCmd(),
+				newChangeCertCmd(),
 			},
 		},
 	}
@@ -90,4 +92,28 @@ func newStatusAdamCmd() *cobra.Command {
 	}
 
 	return statusAdamCmd
+}
+
+func newChangeCertCmd() *cobra.Command {
+	var certFile string
+
+	var changeCertCmd = &cobra.Command{
+		Use:   "change-signing-cert",
+		Short: "change signing certificate for adam",
+		Long:  `Set Adam's signing certificate from a file.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			certData, err := os.ReadFile(certFile)
+			if err != nil {
+				log.Fatalf("Failed to read certificate file: %s", err)
+			}
+
+			if err := openEVEC.ChangeSigningCert(certData); err != nil {
+				log.Fatalf("Failed to upload certificate to adam: %s", err)
+			}
+		},
+	}
+
+	changeCertCmd.Flags().StringVarP(&certFile, "cert-file", "", "", "path to the signing certificate file")
+
+	return changeCertCmd
 }
