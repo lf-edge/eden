@@ -7,6 +7,7 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/openevec"
+	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -44,6 +45,32 @@ func newCertsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	certsCmd.Flags().StringVar(&cfg.Eve.Ssid, "ssid", "", "SSID for wifi")
 	certsCmd.Flags().StringVar(&cfg.Eve.Password, "password", "", "password for wifi")
 	certsCmd.Flags().StringArrayVar(&grubOptions, "grub-options", []string{}, "append lines to grub options")
+
+	return certsCmd
+}
+
+func newGenSigningCertCmd() *cobra.Command {
+	var certPath string
+
+	var certsCmd = &cobra.Command{
+		Use:   "gen-signing-cert",
+		Short: "generate new signing certificate for controller",
+		Long:  `Generate a new signing certificate for the controller using the same signing key`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := utils.GenServerCertFromPrevCertAndKey(certPath); err != nil {
+				log.Errorf("cannot generate signing cert: %s", err)
+			} else {
+				log.Info("GenServerCertEllipticFromPrevCertAndKey done")
+			}
+		},
+	}
+
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	certsCmd.Flags().StringVarP(&certPath, "out", "o", filepath.Join(edenHome, defaults.DefaultCertsDist, "signing-new.pem"), "certificate output path")
 
 	return certsCmd
 }

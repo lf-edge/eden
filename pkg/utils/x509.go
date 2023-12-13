@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
 	"crypto/ecdsa"
@@ -104,6 +105,64 @@ func GenServerCertElliptic(cert *x509.Certificate, key *rsa.PrivateKey, serial *
 	ServerCert := genCertECDSA(&ServerTemplate, cert, &priv.PublicKey, key)
 	return ServerCert, priv
 
+}
+
+// GenServerCertFromPrevCertAndKey generate new signing certificate for the controller using the same signing key and saves it to give path
+func GenServerCertFromPrevCertAndKey(writePath string) error {
+	edenHome, err := DefaultEdenDir()
+	if err != nil {
+		return err
+	}
+
+	// Read root cert
+	rootCert, err := ParseCertificate(filepath.Join(edenHome, defaults.DefaultCertsDist, "root-certificate.pem"))
+	if err != nil {
+		return err
+	}
+
+	// Read root key
+	rootKey, err := ParsePrivateKey(filepath.Join(edenHome, defaults.DefaultCertsDist, "root-certificate-key.pem"))
+	if err != nil {
+		return err
+	}
+
+	// Read server cert
+	oldServerCert, err := ParseCertificate(filepath.Join(edenHome, defaults.DefaultCertsDist, "signing.pem"))
+	if err != nil {
+		return err
+	}
+
+	// Read ecdsa server key
+	serverKeyBytes, err := os.ReadFile(filepath.Join(edenHome, defaults.DefaultCertsDist, "signing-key.pem"))
+	if err != nil {
+		return err
+	}
+	var serverKey *ecdsa.PrivateKey
+	for block, rest := pem.Decode(serverKeyBytes); block != nil; block, rest = pem.Decode(rest) {
+		if block.Type == "EC PRIVATE KEY" {
+			serverKey, err = x509.ParseECPrivateKey(block.Bytes)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+
+	// keep all the same except for dates
+	serverTemplate := *oldServerCert
+	serverTemplate.NotBefore = time.Now().Add(-10 * time.Second)
+	serverTemplate.NotAfter = time.Now().AddDate(10, 0, 0)
+
+	// create new certificate and write it to file
+	serverCert := genCertECDSA(&serverTemplate, rootCert, &serverKey.PublicKey, rootKey)
+	certOut, err := os.Create(writePath)
+	if err != nil {
+		return err
+	}
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: serverCert.Raw}); err != nil {
+		return err
+	}
+	return certOut.Close()
 }
 
 // WriteToFiles write cert and key
