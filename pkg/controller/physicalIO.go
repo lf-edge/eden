@@ -2,10 +2,11 @@ package controller
 
 import (
 	"fmt"
-	"github.com/lf-edge/eve/api/go/config"
+
+	"github.com/lf-edge/eve-api/go/config"
 )
 
-//GetPhysicalIO return PhysicalIO config from cloud by ID
+// GetPhysicalIO return PhysicalIO config from cloud by ID
 func (cloud *CloudCtx) GetPhysicalIO(id string) (physicalIO *config.PhysicalIO, err error) {
 	physicalIO, ok := cloud.physicalIOs[id]
 	if !ok {
@@ -14,7 +15,7 @@ func (cloud *CloudCtx) GetPhysicalIO(id string) (physicalIO *config.PhysicalIO, 
 	return physicalIO, nil
 }
 
-//AddPhysicalIO add PhysicalIO config to cloud
+// AddPhysicalIO add PhysicalIO config to cloud
 func (cloud *CloudCtx) AddPhysicalIO(id string, physicalIO *config.PhysicalIO) error {
 	if cloud.physicalIOs == nil {
 		cloud.physicalIOs = make(map[string]*config.PhysicalIO)
@@ -23,7 +24,7 @@ func (cloud *CloudCtx) AddPhysicalIO(id string, physicalIO *config.PhysicalIO) e
 	return nil
 }
 
-//RemovePhysicalIO remove PhysicalIO config to cloud
+// RemovePhysicalIO remove PhysicalIO config to cloud
 func (cloud *CloudCtx) RemovePhysicalIO(id string) error {
 	_, err := cloud.GetPhysicalIO(id)
 	if err != nil {

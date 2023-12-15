@@ -4,15 +4,15 @@ import (
 	"fmt"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/evecommon"
+	"github.com/lf-edge/eve-api/go/config"
+	"github.com/lf-edge/eve-api/go/evecommon"
 	log "github.com/sirupsen/logrus"
 )
 
-//devModelTypeRaspberry is model type for rpi
+// devModelTypeRaspberry is model type for rpi
 const devModelTypeRaspberry devModelType = defaults.DefaultRPIModel
 
-//DevModelRpi is dev model fields
+// DevModelRpi is dev model fields
 type DevModelRpi struct {
 	//physicalIOs is PhysicalIO slice for DevModel
 	physicalIOs []*config.PhysicalIO
@@ -24,7 +24,7 @@ type DevModelRpi struct {
 	bondAdapters []*config.BondAdapter
 }
 
-//Config returns map with config overwrites
+// Config returns map with config overwrites
 func (ctx *DevModelRpi) Config() map[string]interface{} {
 	cfg := make(map[string]interface{})
 	cfg["eve.serial"] = "*"
@@ -36,17 +36,17 @@ func (ctx *DevModelRpi) Config() map[string]interface{} {
 	return cfg
 }
 
-//DiskReadyMessage to show when image is ready
+// DiskReadyMessage to show when image is ready
 func (ctx *DevModelRpi) DiskReadyMessage() string {
 	return "Write file %s to sd (it is in raw format)"
 }
 
-//DiskFormat to use for build image
+// DiskFormat to use for build image
 func (ctx *DevModelRpi) DiskFormat() string {
 	return "raw"
 }
 
-//GetPortConfig returns PortConfig overwrite
+// GetPortConfig returns PortConfig overwrite
 func (ctx *DevModelRpi) GetPortConfig(ssid string, psk string) string {
 	return fmt.Sprintf(`{
 	"Version": 1,
@@ -76,7 +76,7 @@ func (ctx *DevModelRpi) GetPortConfig(ssid string, psk string) string {
 }`, ssid, psk)
 }
 
-//SetWiFiParams set ssid and psk for RPI
+// SetWiFiParams set ssid and psk for RPI
 func (ctx *DevModelRpi) SetWiFiParams(ssid string, psk string) {
 	if ssid != "" {
 		log.Debugf("will set params for ssid %s", ssid)
@@ -114,62 +114,62 @@ func (ctx *DevModelRpi) SetWiFiParams(ssid string, psk string) {
 	}
 }
 
-//Adapters returns adapters of devModel
+// Adapters returns adapters of devModel
 func (ctx *DevModelRpi) Adapters() []*config.SystemAdapter {
 	return ctx.adapters
 }
 
-//SetAdapters sets systems adapters of devModel
+// SetAdapters sets systems adapters of devModel
 func (ctx *DevModelRpi) SetAdapters(adapters []*config.SystemAdapter) {
 	ctx.adapters = adapters
 }
 
-//Networks returns networks of devModel
+// Networks returns networks of devModel
 func (ctx *DevModelRpi) Networks() []*config.NetworkConfig {
 	return ctx.networks
 }
 
-//SetNetworks sets networks of devModel
+// SetNetworks sets networks of devModel
 func (ctx *DevModelRpi) SetNetworks(networks []*config.NetworkConfig) {
 	ctx.networks = networks
 }
 
-//PhysicalIOs returns physicalIOs of devModel
+// PhysicalIOs returns physicalIOs of devModel
 func (ctx *DevModelRpi) PhysicalIOs() []*config.PhysicalIO {
 	return ctx.physicalIOs
 }
 
-//SetPhysicalIOs sets physicalIOs of devModel
+// SetPhysicalIOs sets physicalIOs of devModel
 func (ctx *DevModelRpi) SetPhysicalIOs(physicalIOs []*config.PhysicalIO) {
 	ctx.physicalIOs = physicalIOs
 }
 
-//VlanAdapters returns Vlan adapters of devModel
+// VlanAdapters returns Vlan adapters of devModel
 func (ctx *DevModelRpi) VlanAdapters() []*config.VlanAdapter {
 	return ctx.vlanAdapters
 }
 
-//SetVlanAdapters sets Vlan adapters of devModel
+// SetVlanAdapters sets Vlan adapters of devModel
 func (ctx *DevModelRpi) SetVlanAdapters(vlans []*config.VlanAdapter) {
 	ctx.vlanAdapters = vlans
 }
 
-//BondAdapters returns Bond adapters of devModel
+// BondAdapters returns Bond adapters of devModel
 func (ctx *DevModelRpi) BondAdapters() []*config.BondAdapter {
 	return ctx.bondAdapters
 }
 
-//SetBondAdapters sets Bond adapters of devModel
+// SetBondAdapters sets Bond adapters of devModel
 func (ctx *DevModelRpi) SetBondAdapters(bonds []*config.BondAdapter) {
 	ctx.bondAdapters = bonds
 }
 
-//AdapterForSwitches returns adapterForSwitches of devModel
+// AdapterForSwitches returns adapterForSwitches of devModel
 func (ctx *DevModelRpi) AdapterForSwitches() []string {
 	return nil
 }
 
-//DevModelType returns devModelType of devModel
+// DevModelType returns devModelType of devModel
 func (ctx *DevModelRpi) DevModelType() string {
 	return string(devModelTypeRaspberry)
 }

@@ -16,31 +16,31 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/flowlog"
-	"github.com/lf-edge/eve/api/go/info"
-	"github.com/lf-edge/eve/api/go/logs"
-	"github.com/lf-edge/eve/api/go/metrics"
+	"github.com/lf-edge/eve-api/go/flowlog"
+	"github.com/lf-edge/eve-api/go/info"
+	"github.com/lf-edge/eve-api/go/logs"
+	"github.com/lf-edge/eve-api/go/metrics"
 )
 
-//ProcInfoFunc provides callback to process info
+// ProcInfoFunc provides callback to process info
 type ProcInfoFunc func(info *info.ZInfoMsg) error
 
-//ProcLogFunc provides callback to process log
+// ProcLogFunc provides callback to process log
 type ProcLogFunc func(log *elog.FullLogEntry) error
 
-//ProcLogFlowFunc provides callback to process flowLog
+// ProcLogFlowFunc provides callback to process flowLog
 type ProcLogFlowFunc func(log *flowlog.FlowMessage) error
 
-//ProcMetricFunc provides callback to process metric
+// ProcMetricFunc provides callback to process metric
 type ProcMetricFunc func(metric *metrics.ZMetricMsg) error
 
-//ProcAppLogFunc provides callback to process app log
+// ProcAppLogFunc provides callback to process app log
 type ProcAppLogFunc func(log *logs.LogEntry) error
 
-//Callback provides callback to process
+// Callback provides callback to process
 type Callback func()
 
-//ProcTimerFunc provides callback to process on timer event
+// ProcTimerFunc provides callback to process on timer event
 type ProcTimerFunc func() error
 
 type absFunc struct {

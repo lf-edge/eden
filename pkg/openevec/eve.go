@@ -16,7 +16,7 @@ import (
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/utils"
 	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
-	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve-api/go/info"
 	log "github.com/sirupsen/logrus"
 )
 

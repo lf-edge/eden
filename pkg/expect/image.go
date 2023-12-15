@@ -3,12 +3,12 @@ package expect
 import (
 	"fmt"
 
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//checkImage checks if provided img match expectation
+// checkImage checks if provided img match expectation
 func (exp *AppExpectation) checkImage(img *config.Image, dsID string) bool {
 	if img == nil {
 		return false
@@ -22,7 +22,7 @@ func (exp *AppExpectation) checkImage(img *config.Image, dsID string) bool {
 	return false
 }
 
-//createImage creates Image with provided dsID for AppExpectation
+// createImage creates Image with provided dsID for AppExpectation
 func (exp *AppExpectation) createImage(dsID string) (*config.Image, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -72,8 +72,8 @@ func (exp *AppExpectation) imageFormatEnum() config.Format {
 	return actual
 }
 
-//Image expects image in controller
-//it gets Image with defined in AppExpectation params, or creates new one, if not exists
+// Image expects image in controller
+// it gets Image with defined in AppExpectation params, or creates new one, if not exists
 func (exp *AppExpectation) Image() (image *config.Image) {
 	datastore := exp.DataStore()
 	var err error

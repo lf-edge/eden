@@ -10,8 +10,9 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/certs"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/certs"
+	"github.com/lf-edge/eve-api/go/config"
+	"github.com/lf-edge/eve-api/go/evecommon"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,7 @@ func (exp *AppExpectation) applyUserData(appInstanceConfig *config.AppInstanceCo
 		return
 	}
 	userData := base64.StdEncoding.EncodeToString([]byte(exp.metadata))
-	encBlock := &config.EncryptionBlock{}
+	encBlock := &evecommon.EncryptionBlock{}
 	encBlock.ProtectedUserData = userData
 	cipherBlock, err := exp.prepareCipherData(encBlock)
 	if err != nil {
@@ -37,7 +38,7 @@ func (exp *AppExpectation) applyDatastoreCipher(datastoreConfig *config.Datastor
 	if datastoreConfig.Password == "" && datastoreConfig.ApiKey == "" {
 		return
 	}
-	encBlock := &config.EncryptionBlock{}
+	encBlock := &evecommon.EncryptionBlock{}
 	encBlock.DsAPIKey = datastoreConfig.ApiKey
 	encBlock.DsPassword = datastoreConfig.Password
 	cipherBlock, err := exp.prepareCipherData(encBlock)
@@ -51,7 +52,7 @@ func (exp *AppExpectation) applyDatastoreCipher(datastoreConfig *config.Datastor
 	}
 }
 
-func (exp *AppExpectation) prepareCipherData(encBlock *config.EncryptionBlock) (*config.CipherBlock, error) {
+func (exp *AppExpectation) prepareCipherData(encBlock *evecommon.EncryptionBlock) (*evecommon.CipherBlock, error) {
 	attestData, err := exp.ctrl.CertsGet(exp.device.GetID())
 	if err != nil {
 		log.Errorf("cannot get attestation certificates from cloud for %s will use plaintext", exp.device.GetID())

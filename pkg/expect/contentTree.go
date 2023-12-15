@@ -1,12 +1,12 @@
 package expect
 
 import (
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//imageToContentTree converts image with displayName into ContentTree representation
+// imageToContentTree converts image with displayName into ContentTree representation
 func (exp *AppExpectation) imageToContentTree(image *config.Image, displayName string) *config.ContentTree {
 	id, err := uuid.NewV4()
 	if err != nil {

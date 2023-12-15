@@ -11,12 +11,12 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//createImageHTTP downloads image into EServer directory from http/https endpoint and calculates size and sha256 of image
+// createImageHTTP downloads image into EServer directory from http/https endpoint and calculates size and sha256 of image
 func (exp *AppExpectation) createImageHTTP(id uuid.UUID, dsID string) *config.Image {
 	log.Infof("Starting download of image from %s", exp.appLink)
 	server := &eden.EServer{
@@ -74,7 +74,7 @@ func (exp *AppExpectation) createImageHTTP(id uuid.UUID, dsID string) *config.Im
 	}
 }
 
-//checkImageHTTP checks if provided img match expectation
+// checkImageHTTP checks if provided img match expectation
 func (exp *AppExpectation) checkImageHTTP(img *config.Image, dsID string) bool {
 	if img.DsId == dsID && img.Name == path.Join("eserver", path.Base(exp.appURL)) && img.Iformat == config.Format_QCOW2 {
 		return true
@@ -82,7 +82,7 @@ func (exp *AppExpectation) checkImageHTTP(img *config.Image, dsID string) bool {
 	return false
 }
 
-//checkDataStoreHTTP checks if provided ds match expectation
+// checkDataStoreHTTP checks if provided ds match expectation
 func (exp *AppExpectation) checkDataStoreHTTP(ds *config.DatastoreConfig) bool {
 	if exp.sftpLoad && ds.DType == config.DsType_DsSFTP {
 		if ds.Fqdn == fmt.Sprintf("%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort) {
@@ -103,7 +103,7 @@ func (exp *AppExpectation) checkDataStoreHTTP(ds *config.DatastoreConfig) bool {
 	return false
 }
 
-//createDataStoreHTTP creates datastore, pointed onto EServer sftp endpoint
+// createDataStoreHTTP creates datastore, pointed onto EServer sftp endpoint
 func (exp *AppExpectation) createDataStoreSFTP(id uuid.UUID) *config.DatastoreConfig {
 	var ds = &config.DatastoreConfig{
 		Id:         id.String(),
@@ -121,7 +121,7 @@ func (exp *AppExpectation) createDataStoreSFTP(id uuid.UUID) *config.DatastoreCo
 	return ds
 }
 
-//createDataStoreHTTP creates datastore, pointed onto EServer http endpoint
+// createDataStoreHTTP creates datastore, pointed onto EServer http endpoint
 func (exp *AppExpectation) createDataStoreHTTP(id uuid.UUID) *config.DatastoreConfig {
 	ds := &config.DatastoreConfig{
 		Id:         id.String(),

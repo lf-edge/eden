@@ -13,13 +13,13 @@ import (
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
 
-//StateUpdate refresh state file
+// StateUpdate refresh state file
 func (cloud *CloudCtx) StateUpdate(dev *device.Ctx) (err error) {
 	devConfig, err := cloud.GetConfigBytes(dev, true)
 	if err != nil {
@@ -73,6 +73,7 @@ func getUUID(uuidAndVersion uuidCheckable) (uuid.UUID, error) {
 }
 
 // ConfigParse load config into cloud
+//
 //nolint:cyclop
 func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (*device.Ctx, error) {
 	devID, err := getID(config)
@@ -239,7 +240,7 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (*device.Ctx, e
 	return dev, nil
 }
 
-//ConfigSync set config for devID
+// ConfigSync set config for devID
 func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	devConfig, err := cloud.GetConfigBytes(dev, false)
 	if err != nil {
@@ -261,7 +262,7 @@ func (cloud *CloudCtx) ConfigSync(dev *device.Ctx) (err error) {
 	return nil
 }
 
-//GetDeviceUUID return device object by devUUID
+// GetDeviceUUID return device object by devUUID
 func (cloud *CloudCtx) GetDeviceUUID(devUUID uuid.UUID) (dev *device.Ctx, err error) {
 	for _, el := range cloud.devices {
 		if devUUID.String() == el.GetID().String() {
@@ -271,7 +272,7 @@ func (cloud *CloudCtx) GetDeviceUUID(devUUID uuid.UUID) (dev *device.Ctx, err er
 	return nil, errors.New("no device found")
 }
 
-//GetDeviceCurrent return current device object
+// GetDeviceCurrent return current device object
 func (cloud *CloudCtx) GetDeviceCurrent() (dev *device.Ctx, err error) {
 	id, err := cloud.DeviceGetByOnboardUUID(cloud.vars.EveUUID)
 	if err != nil {
@@ -302,7 +303,7 @@ func (cloud *CloudCtx) processDev(id uuid.UUID, state device.EdgeNodeState) {
 
 }
 
-//GetAllNodes obtains all devices from controller
+// GetAllNodes obtains all devices from controller
 func (cloud *CloudCtx) GetAllNodes() {
 	nodes, err := cloud.DeviceList(types.RegisteredDeviceFilter)
 	if err != nil {
@@ -328,7 +329,7 @@ func (cloud *CloudCtx) GetAllNodes() {
 	}
 }
 
-//AddDevice add device with specified devUUID
+// AddDevice add device with specified devUUID
 func (cloud *CloudCtx) AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error) {
 	for _, el := range cloud.devices {
 		if el.GetID().String() == devUUID.String() {
@@ -341,7 +342,7 @@ func (cloud *CloudCtx) AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error)
 	return
 }
 
-//ApplyDevModel apply networks, adapters and physicalIOs from DevModel to device
+// ApplyDevModel apply networks, adapters and physicalIOs from DevModel to device
 func (cloud *CloudCtx) ApplyDevModel(dev *device.Ctx, devModel models.DevModel) error {
 	var err error
 	if cloud.vars.DevModelFIle != "" {
@@ -424,7 +425,7 @@ func checkIfDatastoresContains(dsID string, ds []*config.DatastoreConfig) bool {
 	return false
 }
 
-//checkContentTreeDs checks dataStores and adds one from contentTree if needed
+// checkContentTreeDs checks dataStores and adds one from contentTree if needed
 func (cloud *CloudCtx) checkContentTreeDs(contentTree *config.ContentTree, dataStores []*config.DatastoreConfig) (result []*config.DatastoreConfig, err error) {
 	dataStore, err := cloud.GetDataStore(contentTree.GetDsId())
 	if err != nil {
@@ -436,7 +437,7 @@ func (cloud *CloudCtx) checkContentTreeDs(contentTree *config.ContentTree, dataS
 	return dataStores, nil
 }
 
-//checkDriveDs checks dataStores and adds one from drive if needed
+// checkDriveDs checks dataStores and adds one from drive if needed
 func (cloud *CloudCtx) checkDriveDs(drive *config.Drive, dataStores []*config.DatastoreConfig) (result []*config.DatastoreConfig, err error) {
 	if drive.Image == nil {
 		return nil, errors.New("empty Image in Drive")
@@ -452,6 +453,7 @@ func (cloud *CloudCtx) checkDriveDs(drive *config.Drive, dataStores []*config.Da
 }
 
 // GetConfigBytes generate json representation of device config
+//
 //nolint:cyclop,maintidx
 func (cloud *CloudCtx) GetConfigBytes(dev *device.Ctx, jsonFormat bool) ([]byte, error) {
 	var contentTrees []*config.ContentTree

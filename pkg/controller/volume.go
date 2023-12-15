@@ -2,11 +2,12 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 )
 
-//GetVolume return Volume config from cloud by ID
+// GetVolume return Volume config from cloud by ID
 func (cloud *CloudCtx) GetVolume(id string) (volume *config.Volume, err error) {
 	for _, volume := range cloud.volumes {
 		if volume.Uuid == id {
@@ -16,7 +17,7 @@ func (cloud *CloudCtx) GetVolume(id string) (volume *config.Volume, err error) {
 	return nil, fmt.Errorf("not found Volume with ID: %s", id)
 }
 
-//AddVolume add Volume config to cloud
+// AddVolume add Volume config to cloud
 func (cloud *CloudCtx) AddVolume(volume *config.Volume) error {
 	for _, vol := range cloud.volumes {
 		if vol.Uuid == volume.GetUuid() {
@@ -27,7 +28,7 @@ func (cloud *CloudCtx) AddVolume(volume *config.Volume) error {
 	return nil
 }
 
-//RemoveVolume remove Volume config to cloud
+// RemoveVolume remove Volume config to cloud
 func (cloud *CloudCtx) RemoveVolume(id string) error {
 	for ind, vol := range cloud.volumes {
 		if vol.Uuid == id {
@@ -38,7 +39,7 @@ func (cloud *CloudCtx) RemoveVolume(id string) error {
 	return fmt.Errorf("not found Volume with ID: %s", id)
 }
 
-//ListVolume return Volume configs from cloud
+// ListVolume return Volume configs from cloud
 func (cloud *CloudCtx) ListVolume() []*config.Volume {
 	return cloud.volumes
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve-api/go/info"
 )
 
 type volState struct {
@@ -114,7 +114,7 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 	return nil
 }
 
-//checkVol wait for info of ZInfoApp type with state
+// checkVol wait for info of ZInfoApp type with state
 func checkVol(state string, volNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		eveState.InfoCallback()(msg) //feed state with new info
@@ -122,8 +122,8 @@ func checkVol(state string, volNames []string) projects.ProcInfoFunc {
 	}
 }
 
-//TestVolStatus wait for application reaching the selected state
-//with a timewait
+// TestVolStatus wait for application reaching the selected state
+// with a timewait
 func TestVolStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 

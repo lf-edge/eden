@@ -13,7 +13,7 @@ import (
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve-api/go/info"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -123,7 +123,7 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 	return nil
 }
 
-//checkApp wait for info of ZInfoApp type with state
+// checkApp wait for info of ZInfoApp type with state
 func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		eveState.InfoCallback()(msg) //feed state with new info
@@ -131,8 +131,8 @@ func checkApp(state string, appNames []string) projects.ProcInfoFunc {
 	}
 }
 
-//TestAppStatus wait for application reaching the selected state
-//with a timewait
+// TestAppStatus wait for application reaching the selected state
+// with a timewait
 func TestAppStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 

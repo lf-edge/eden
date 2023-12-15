@@ -3,7 +3,7 @@ package controller
 import (
 	"fmt"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 )
 
 func (cloud *CloudCtx) getApplicationInstanceInd(id string) (applicationInstanceConfigInd int, err error) {

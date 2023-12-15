@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/evecommon"
+	"github.com/lf-edge/eve-api/go/config"
+	"github.com/lf-edge/eve-api/go/evecommon"
 	"github.com/stretchr/testify/assert"
 )
 

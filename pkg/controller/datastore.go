@@ -2,11 +2,12 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 )
 
-//GetDataStore return DataStore config from cloud by ID
+// GetDataStore return DataStore config from cloud by ID
 func (cloud *CloudCtx) GetDataStore(id string) (ds *config.DatastoreConfig, err error) {
 	for _, dataStore := range cloud.datastores {
 		if dataStore.Id == id {
@@ -16,7 +17,7 @@ func (cloud *CloudCtx) GetDataStore(id string) (ds *config.DatastoreConfig, err 
 	return nil, fmt.Errorf("not found DatastoreConfig with ID: %s", id)
 }
 
-//AddDataStore add DataStore config to cloud
+// AddDataStore add DataStore config to cloud
 func (cloud *CloudCtx) AddDataStore(dataStoreConfig *config.DatastoreConfig) error {
 	for _, dataStore := range cloud.datastores {
 		if dataStore.Id == dataStoreConfig.Id {
@@ -27,7 +28,7 @@ func (cloud *CloudCtx) AddDataStore(dataStoreConfig *config.DatastoreConfig) err
 	return nil
 }
 
-//RemoveDataStore remove DataStore config from cloud
+// RemoveDataStore remove DataStore config from cloud
 func (cloud *CloudCtx) RemoveDataStore(id string) error {
 	for ind, datastore := range cloud.datastores {
 		if datastore.Id == id {
@@ -38,7 +39,7 @@ func (cloud *CloudCtx) RemoveDataStore(id string) error {
 	return fmt.Errorf("not found DataStore with ID: %s", id)
 }
 
-//ListDataStore return DataStore configs from cloud
+// ListDataStore return DataStore configs from cloud
 func (cloud *CloudCtx) ListDataStore() []*config.DatastoreConfig {
 	return cloud.datastores
 }

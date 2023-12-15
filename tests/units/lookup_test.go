@@ -1,10 +1,11 @@
 package templates
 
 import (
-	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/info"
 	"reflect"
 	"testing"
+
+	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve-api/go/info"
 )
 
 // These tests verify the functionality of EDEN utils.LookupWithCallback
@@ -44,7 +45,7 @@ func checkInSlice(el string, sl []string) bool {
 	return false
 }
 
-//TestLookupEmpty try to use empty lookup string
+// TestLookupEmpty try to use empty lookup string
 func TestLookupEmpty(t *testing.T) {
 	q := ""
 	var callback = func(inp reflect.Value) {
@@ -53,8 +54,9 @@ func TestLookupEmpty(t *testing.T) {
 	utils.LookupWithCallback(infoTest, q, callback)
 }
 
-//TestLookupWrong try to use lookup with wrong string
-//  expected not to fire callback
+// TestLookupWrong try to use lookup with wrong string
+//
+//	expected not to fire callback
 func TestLookupWrong(t *testing.T) {
 	q := "wrong"
 	var callback = func(inp reflect.Value) {
@@ -63,8 +65,9 @@ func TestLookupWrong(t *testing.T) {
 	utils.LookupWithCallback(infoTest, q, callback)
 }
 
-//TestLookupBase try to use lookup with first element
-//  expected to receive value of DevId
+// TestLookupBase try to use lookup with first element
+//
+//	expected to receive value of DevId
 func TestLookupBase(t *testing.T) {
 	q := "DevId"
 	var callback = func(inp reflect.Value) {
@@ -76,8 +79,9 @@ func TestLookupBase(t *testing.T) {
 	utils.LookupWithCallback(infoTest, q, callback)
 }
 
-//TestLookupIndex try to use lookup with one indexed element [0]
-//  expected to fire callback one time with MacAddress1
+// TestLookupIndex try to use lookup with one indexed element [0]
+//
+//	expected to fire callback one time with MacAddress1
 func TestLookupIndex(t *testing.T) {
 	q := "InfoContent.Niinfo.IpAssignments[0].MacAddress"
 	var received []string
@@ -97,8 +101,9 @@ func TestLookupIndex(t *testing.T) {
 	}
 }
 
-//TestLookupIndexes try to use lookup with two indexed elements
-//  expected to fire callback one time with IpAddress4
+// TestLookupIndexes try to use lookup with two indexed elements
+//
+//	expected to fire callback one time with IpAddress4
 func TestLookupIndexes(t *testing.T) {
 	q := "InfoContent.Niinfo.IpAssignments[1].IpAddress[1]"
 	var received []string
@@ -120,8 +125,9 @@ func TestLookupIndexes(t *testing.T) {
 	}
 }
 
-//TestLookupBracket try to use lookup with empty brackets to iterate through elements
-//  expected to fire callback two times with MacAddress1 and MacAddress2
+// TestLookupBracket try to use lookup with empty brackets to iterate through elements
+//
+//	expected to fire callback two times with MacAddress1 and MacAddress2
 func TestLookupBracket(t *testing.T) {
 	q := "InfoContent.Niinfo.IpAssignments[].MacAddress"
 	var received []string
@@ -148,8 +154,9 @@ func TestLookupBracket(t *testing.T) {
 	}
 }
 
-//TestLookupBrackets try to use lookup with empty brackets to iterate through elements and with defined index
-//  expected to fire callback two times with IpAddress1 and IpAddress3
+// TestLookupBrackets try to use lookup with empty brackets to iterate through elements and with defined index
+//
+//	expected to fire callback two times with IpAddress1 and IpAddress3
 func TestLookupBrackets(t *testing.T) {
 	q := "InfoContent.Niinfo.IpAssignments[].IpAddress[0]"
 	var received []string
@@ -169,8 +176,9 @@ func TestLookupBrackets(t *testing.T) {
 	}
 }
 
-//TestLookupBracketsEnds try to use lookup with multiple empty brackets to iterate through elements
-//  expected to fire callback four times with all IpAddresses
+// TestLookupBracketsEnds try to use lookup with multiple empty brackets to iterate through elements
+//
+//	expected to fire callback four times with all IpAddresses
 func TestLookupBracketsEnds(t *testing.T) {
 	q := "InfoContent.Niinfo.IpAssignments[].IpAddress[]"
 	var received []string

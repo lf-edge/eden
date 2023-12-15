@@ -21,9 +21,9 @@ import (
 	"github.com/lf-edge/eden/pkg/utils"
 	edgeRegistry "github.com/lf-edge/edge-containers/pkg/registry"
 	"github.com/lf-edge/edge-containers/pkg/resolver"
-	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/info"
-	"github.com/lf-edge/eve/api/go/metrics"
+	"github.com/lf-edge/eve-api/go/config"
+	"github.com/lf-edge/eve-api/go/info"
+	"github.com/lf-edge/eve-api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )

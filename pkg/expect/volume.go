@@ -2,12 +2,13 @@ package expect
 
 import (
 	"fmt"
-	"github.com/lf-edge/eve/api/go/config"
+
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//driveToVolume converts information about drive, its number and content tree into volume representation
+// driveToVolume converts information about drive, its number and content tree into volume representation
 func (exp *AppExpectation) driveToVolume(dr *config.Drive, numberOfDrive int, contentTree *config.ContentTree) *config.Volume {
 	for _, volID := range exp.device.GetVolumes() {
 		el, err := exp.ctrl.GetVolume(volID)
@@ -37,7 +38,7 @@ func (exp *AppExpectation) driveToVolume(dr *config.Drive, numberOfDrive int, co
 	return volume
 }
 
-//Volume generates volume for provided expectation
+// Volume generates volume for provided expectation
 func (exp *AppExpectation) Volume() *config.Volume {
 	img := exp.Image()
 

@@ -1,13 +1,14 @@
 package expect
 
 import (
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 )
 
-//createAppInstanceConfigVM creates appBundle for VM with provided img, netInstance, id and acls
-//  it uses name of app and cpu/mem params from AppExpectation
-//  it use ZArch param to choose VirtualizationMode
+// createAppInstanceConfigVM creates appBundle for VM with provided img, netInstance, id and acls
+//
+//	it uses name of app and cpu/mem params from AppExpectation
+//	it use ZArch param to choose VirtualizationMode
 func (exp *AppExpectation) createAppInstanceConfigVM(img *config.Image, id uuid.UUID) *appBundle {
 	app := &config.AppInstanceConfig{
 		Uuidandversion: &config.UUIDandVersion{

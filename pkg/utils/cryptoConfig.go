@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/evecommon"
+	"github.com/lf-edge/eve-api/go/evecommon"
 )
 
 // CommonCryptoConfig stores information about certificates
@@ -56,12 +55,12 @@ func GetCommonCryptoConfig(devCert []byte, controllerCert, controllerKey string)
 }
 
 // CreateCipherCtx for edge dev config.
-func CreateCipherCtx(cmnCryptoCfg *CommonCryptoConfig) (*config.CipherContext, error) {
+func CreateCipherCtx(cmnCryptoCfg *CommonCryptoConfig) (*evecommon.CipherContext, error) {
 	if cmnCryptoCfg.DevCertHash == nil {
 		return nil, fmt.Errorf("Empty device certificate in create cipher context method")
 	}
 
-	cipherCtx := &config.CipherContext{}
+	cipherCtx := &evecommon.CipherContext{}
 
 	//prepare ctx using controller and device cert hash.
 	//append device cert has and controller cert hash.
@@ -71,8 +70,8 @@ func CreateCipherCtx(cmnCryptoCfg *CommonCryptoConfig) (*config.CipherContext, e
 	cipherCtx.ContextId = ctxID.String()
 
 	cipherCtx.HashScheme = evecommon.HashAlgorithm_HASH_ALGORITHM_SHA256_16BYTES
-	cipherCtx.KeyExchangeScheme = config.KeyExchangeScheme_KEA_ECDH
-	cipherCtx.EncryptionScheme = config.EncryptionScheme_SA_AES_256_CFB
+	cipherCtx.KeyExchangeScheme = evecommon.KeyExchangeScheme_KEA_ECDH
+	cipherCtx.EncryptionScheme = evecommon.EncryptionScheme_SA_AES_256_CFB
 
 	cipherCtx.DeviceCertHash = cmnCryptoCfg.DevCertHash[:16]
 	cipherCtx.ControllerCertHash = cmnCryptoCfg.ControllerEncCertHash[:16]

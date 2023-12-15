@@ -2,8 +2,9 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 )
 
 func (cloud *CloudCtx) getNetworkInstanceInd(id string) (networkInstanceConfigInd int, err error) {
@@ -15,7 +16,7 @@ func (cloud *CloudCtx) getNetworkInstanceInd(id string) (networkInstanceConfigIn
 	return -1, fmt.Errorf("not found networkInstanceConfig with ID: %s", id)
 }
 
-//GetNetworkInstanceConfig return NetworkInstance config from cloud by ID
+// GetNetworkInstanceConfig return NetworkInstance config from cloud by ID
 func (cloud *CloudCtx) GetNetworkInstanceConfig(id string) (networkInstanceConfig *config.NetworkInstanceConfig, err error) {
 	networkInstanceConfigInd, err := cloud.getNetworkInstanceInd(id)
 	if err != nil {
@@ -24,13 +25,13 @@ func (cloud *CloudCtx) GetNetworkInstanceConfig(id string) (networkInstanceConfi
 	return cloud.networkInstances[networkInstanceConfigInd], nil
 }
 
-//AddNetworkInstanceConfig add NetworkInstance config to cloud
+// AddNetworkInstanceConfig add NetworkInstance config to cloud
 func (cloud *CloudCtx) AddNetworkInstanceConfig(networkInstanceConfig *config.NetworkInstanceConfig) error {
 	cloud.networkInstances = append(cloud.networkInstances, networkInstanceConfig)
 	return nil
 }
 
-//RemoveNetworkInstanceConfig remove NetworkInstance config to cloud
+// RemoveNetworkInstanceConfig remove NetworkInstance config to cloud
 func (cloud *CloudCtx) RemoveNetworkInstanceConfig(id string) error {
 	networkInstanceConfigInd, err := cloud.getNetworkInstanceInd(id)
 	if err != nil {
@@ -40,7 +41,7 @@ func (cloud *CloudCtx) RemoveNetworkInstanceConfig(id string) error {
 	return nil
 }
 
-//ListNetworkInstanceConfig return NetworkInstance configs from cloud
+// ListNetworkInstanceConfig return NetworkInstance configs from cloud
 func (cloud *CloudCtx) ListNetworkInstanceConfig() []*config.NetworkInstanceConfig {
 	return cloud.networkInstances
 }

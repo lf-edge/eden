@@ -2,10 +2,11 @@ package controller
 
 import (
 	"fmt"
-	"github.com/lf-edge/eve/api/go/config"
+
+	"github.com/lf-edge/eve-api/go/config"
 )
 
-//GetVlanAdapter return VlanAdapter config from cloud by ID
+// GetVlanAdapter return VlanAdapter config from cloud by ID
 func (cloud *CloudCtx) GetVlanAdapter(id string) (vlanAdapter *config.VlanAdapter, err error) {
 	vlanAdapter, ok := cloud.vlanAdapters[id]
 	if !ok {
@@ -14,7 +15,7 @@ func (cloud *CloudCtx) GetVlanAdapter(id string) (vlanAdapter *config.VlanAdapte
 	return vlanAdapter, nil
 }
 
-//AddVlanAdapter add VlanAdapter config to cloud
+// AddVlanAdapter add VlanAdapter config to cloud
 func (cloud *CloudCtx) AddVlanAdapter(id string, vlanAdapter *config.VlanAdapter) error {
 	if cloud.vlanAdapters == nil {
 		cloud.vlanAdapters = make(map[string]*config.VlanAdapter)
@@ -23,7 +24,7 @@ func (cloud *CloudCtx) AddVlanAdapter(id string, vlanAdapter *config.VlanAdapter
 	return nil
 }
 
-//RemoveVlanAdapter remove VlanAdapter config from cloud
+// RemoveVlanAdapter remove VlanAdapter config from cloud
 func (cloud *CloudCtx) RemoveVlanAdapter(id string) error {
 	_, err := cloud.GetVlanAdapter(id)
 	if err != nil {

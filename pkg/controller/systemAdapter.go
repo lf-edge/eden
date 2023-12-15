@@ -2,10 +2,11 @@ package controller
 
 import (
 	"fmt"
-	"github.com/lf-edge/eve/api/go/config"
+
+	"github.com/lf-edge/eve-api/go/config"
 )
 
-//GetSystemAdapter return SystemAdapter config from cloud by ID
+// GetSystemAdapter return SystemAdapter config from cloud by ID
 func (cloud *CloudCtx) GetSystemAdapter(id string) (systemAdapter *config.SystemAdapter, err error) {
 	systemAdapter, ok := cloud.systemAdapters[id]
 	if !ok {
@@ -14,7 +15,7 @@ func (cloud *CloudCtx) GetSystemAdapter(id string) (systemAdapter *config.System
 	return systemAdapter, nil
 }
 
-//AddSystemAdapter add SystemAdapter config to cloud
+// AddSystemAdapter add SystemAdapter config to cloud
 func (cloud *CloudCtx) AddSystemAdapter(id string, systemAdapter *config.SystemAdapter) error {
 	if cloud.systemAdapters == nil {
 		cloud.systemAdapters = make(map[string]*config.SystemAdapter)
@@ -23,7 +24,7 @@ func (cloud *CloudCtx) AddSystemAdapter(id string, systemAdapter *config.SystemA
 	return nil
 }
 
-//RemoveSystemAdapter remove SystemAdapter config to cloud
+// RemoveSystemAdapter remove SystemAdapter config to cloud
 func (cloud *CloudCtx) RemoveSystemAdapter(id string) error {
 	_, err := cloud.GetSystemAdapter(id)
 	if err != nil {

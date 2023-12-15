@@ -7,12 +7,12 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//createImageFile uploads image into EServer from file and calculates size and sha256 of image
+// createImageFile uploads image into EServer from file and calculates size and sha256 of image
 func (exp *AppExpectation) createImageFile(id uuid.UUID, dsID string) *config.Image {
 	server := &eden.EServer{
 		EServerIP:   exp.ctrl.GetVars().EServerIP,
