@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/evecommon"
+	"github.com/lf-edge/eve-api/go/config"
+	"github.com/lf-edge/eve-api/go/evecommon"
 )
 
 func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {

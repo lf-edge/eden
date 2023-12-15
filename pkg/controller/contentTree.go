@@ -2,11 +2,12 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 )
 
-//GetContentTree return ContentTree config from cloud by ID
+// GetContentTree return ContentTree config from cloud by ID
 func (cloud *CloudCtx) GetContentTree(id string) (contentTree *config.ContentTree, err error) {
 	for _, contentTree := range cloud.contentTrees {
 		if contentTree.Uuid == id {
@@ -16,7 +17,7 @@ func (cloud *CloudCtx) GetContentTree(id string) (contentTree *config.ContentTre
 	return nil, fmt.Errorf("not found ContentTree with ID: %s", id)
 }
 
-//AddContentTree add ContentTree config to cloud
+// AddContentTree add ContentTree config to cloud
 func (cloud *CloudCtx) AddContentTree(contentTree *config.ContentTree) error {
 	for _, tree := range cloud.contentTrees {
 		if tree.Uuid == contentTree.GetUuid() {
@@ -27,7 +28,7 @@ func (cloud *CloudCtx) AddContentTree(contentTree *config.ContentTree) error {
 	return nil
 }
 
-//RemoveContentTree remove ContentTree config to cloud
+// RemoveContentTree remove ContentTree config to cloud
 func (cloud *CloudCtx) RemoveContentTree(id string) error {
 	for ind, contentTree := range cloud.contentTrees {
 		if contentTree.Uuid == id {
@@ -38,7 +39,7 @@ func (cloud *CloudCtx) RemoveContentTree(id string) error {
 	return fmt.Errorf("not found ContentTree with ID: %s", id)
 }
 
-//ListContentTree return ContentTree configs from cloud
+// ListContentTree return ContentTree configs from cloud
 func (cloud *CloudCtx) ListContentTree() []*config.ContentTree {
 	return cloud.contentTrees
 }

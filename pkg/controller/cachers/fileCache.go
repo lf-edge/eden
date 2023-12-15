@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/lf-edge/eden/pkg/controller/types"
-	"github.com/lf-edge/eve/api/go/info"
-	"github.com/lf-edge/eve/api/go/logs"
-	"github.com/lf-edge/eve/api/go/metrics"
+	"github.com/lf-edge/eve-api/go/info"
+	"github.com/lf-edge/eve-api/go/logs"
+	"github.com/lf-edge/eve-api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"

@@ -4,11 +4,11 @@ import (
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 )
 
-//CloudCtx is struct for use with controller
+// CloudCtx is struct for use with controller
 type CloudCtx struct {
 	Controller
 	devices              []*device.Ctx
@@ -27,7 +27,7 @@ type CloudCtx struct {
 	vars                 *utils.ConfigVars
 }
 
-//Cloud is an interface of cloud
+// Cloud is an interface of cloud
 type Cloud interface {
 	Controller
 	AddDevice(devUUID uuid.UUID) (dev *device.Ctx, err error)

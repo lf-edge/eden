@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 )
 
 // VolumeType defines type of empty volumes to use

@@ -7,14 +7,14 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eve/api/go/logs"
+	"github.com/lf-edge/eve-api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/tmc/scp"
 	"golang.org/x/crypto/ssh"
 )
 
-//CheckMessageInAppLog try to find message in logs of app
+// CheckMessageInAppLog try to find message in logs of app
 func (tc *TestContext) CheckMessageInAppLog(edgeNode *device.Ctx, appID uuid.UUID, message string, callbacks ...Callback) ProcTimerFunc {
 	return func() error {
 		foundedMessage := ""
@@ -38,7 +38,7 @@ func (tc *TestContext) CheckMessageInAppLog(edgeNode *device.Ctx, appID uuid.UUI
 	}
 }
 
-//SendCommandSSH try to access SSH with timer and sends command
+// SendCommandSSH try to access SSH with timer and sends command
 func SendCommandSSH(ip *string, port *int, user, password, command string, foreground bool, callbacks ...Callback) ProcTimerFunc {
 	return func() error {
 		if ip != nil && *ip != "" {
@@ -83,7 +83,7 @@ func SendCommandSSH(ip *string, port *int, user, password, command string, foreg
 	}
 }
 
-//SendFileSCP sends a file over SCP
+// SendFileSCP sends a file over SCP
 func SendFileSCP(ip *string, port *int, user, password, filename, destpath string) ProcTimerFunc {
 	return func() error {
 		if ip != nil && *ip != "" {

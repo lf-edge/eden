@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/evecommon"
+	"github.com/lf-edge/eve-api/go/config"
+	"github.com/lf-edge/eve-api/go/evecommon"
 )
 
 // DisksLayoutType stores expectation about disks layout
@@ -194,6 +194,7 @@ func (layout *DisksLayout) GetDisksConfig() (*config.DisksConfig, error) {
 }
 
 // ParseDiskLayout from configuration
+//
 //nolint:cyclop
 func ParseDiskLayout(disksConfig *config.DisksConfig) (*DisksLayout, error) {
 	if disksConfig == nil {

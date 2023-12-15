@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//createImageFile uploads image into local registry from directory
+// createImageFile uploads image into local registry from directory
 func (exp *AppExpectation) createImageDirectory(id uuid.UUID, dsID string) *config.Image {
 	hash, err := utils.SHA256SUMAll(exp.appURL)
 	if err != nil {
@@ -34,7 +34,7 @@ func (exp *AppExpectation) createImageDirectory(id uuid.UUID, dsID string) *conf
 	}
 }
 
-//checkDataStoreDirectory checks if provided ds match expectation
+// checkDataStoreDirectory checks if provided ds match expectation
 func (exp *AppExpectation) checkDataStoreDirectory(ds *config.DatastoreConfig) bool {
 	if ds.DType == config.DsType_DsContainerRegistry {
 		if ds.Fqdn == fmt.Sprintf("docker://%s:%s", exp.ctrl.GetVars().RegistryIP, exp.ctrl.GetVars().RegistryPort) {
@@ -44,7 +44,7 @@ func (exp *AppExpectation) checkDataStoreDirectory(ds *config.DatastoreConfig) b
 	return false
 }
 
-//createDataStoreDirectory creates datastore, pointed onto local registry
+// createDataStoreDirectory creates datastore, pointed onto local registry
 func (exp *AppExpectation) createDataStoreDirectory(id uuid.UUID) *config.DatastoreConfig {
 	ds := &config.DatastoreConfig{
 		Id:         id.String(),

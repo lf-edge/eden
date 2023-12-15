@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lf-edge/eve/api/go/info"
-	"github.com/lf-edge/eve/api/go/profile"
+	"github.com/lf-edge/eve-api/go/info"
+	"github.com/lf-edge/eve-api/go/profile"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )

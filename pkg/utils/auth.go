@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/lf-edge/eve/api/go/auth"
-	"github.com/lf-edge/eve/api/go/certs"
-	"github.com/lf-edge/eve/api/go/evecommon"
+	"github.com/lf-edge/eve-api/go/auth"
+	"github.com/lf-edge/eve-api/go/certs"
+	"github.com/lf-edge/eve-api/go/evecommon"
 )
 
 func PrepareAuthContainer(

@@ -7,16 +7,16 @@ import (
 
 	"github.com/go-redis/redis/v9"
 	"github.com/lf-edge/eden/pkg/controller/types"
-	"github.com/lf-edge/eve/api/go/info"
-	"github.com/lf-edge/eve/api/go/logs"
-	"github.com/lf-edge/eve/api/go/metrics"
+	"github.com/lf-edge/eve-api/go/info"
+	"github.com/lf-edge/eve-api/go/logs"
+	"github.com/lf-edge/eve-api/go/metrics"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-//RedisCache object provides caching objects from controller into redis
+// RedisCache object provides caching objects from controller into redis
 type RedisCache struct {
 	addr          string
 	password      string
@@ -25,7 +25,7 @@ type RedisCache struct {
 	client        *redis.Client
 }
 
-//NewRedisCache creates new RedisCache with provided settings
+// NewRedisCache creates new RedisCache with provided settings
 func NewRedisCache(addr string, password string, databaseID int, streamGetters types.StreamGetters) *RedisCache {
 	return &RedisCache{
 		addr:          addr,
@@ -45,7 +45,7 @@ func (cacher *RedisCache) newRedisClient() (*redis.Client, error) {
 	return client, err
 }
 
-//CheckAndSave process LoaderObjectType from data
+// CheckAndSave process LoaderObjectType from data
 func (cacher *RedisCache) CheckAndSave(devUUID uuid.UUID, typeToProcess types.LoaderObjectType, data []byte) (err error) {
 	if cacher.client == nil {
 		if cacher.client, err = cacher.newRedisClient(); err != nil {

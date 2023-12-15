@@ -11,12 +11,12 @@ import (
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/edge-containers/pkg/registry"
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//createImageDocker creates Image for docker with tag and version from AppExpectation and provided id and datastoreId
+// createImageDocker creates Image for docker with tag and version from AppExpectation and provided id and datastoreId
 func (exp *AppExpectation) createImageDocker(id uuid.UUID, dsID string) *config.Image {
 	ref, err := name.ParseReference(exp.appURL)
 	if err != nil {
@@ -33,7 +33,7 @@ func (exp *AppExpectation) createImageDocker(id uuid.UUID, dsID string) *config.
 	}
 }
 
-//checkImageDocker checks if provided img match expectation
+// checkImageDocker checks if provided img match expectation
 func (exp *AppExpectation) checkImageDocker(img *config.Image, dsID string) bool {
 	if img.DsId == dsID && img.Name == fmt.Sprintf("%s:%s", exp.appURL, exp.appVersion) && img.Iformat == config.Format_CONTAINER {
 		return true
@@ -41,7 +41,7 @@ func (exp *AppExpectation) checkImageDocker(img *config.Image, dsID string) bool
 	return false
 }
 
-//getDataStoreFQDN return fqdn info for datastore based on provided ref of image and registry
+// getDataStoreFQDN return fqdn info for datastore based on provided ref of image and registry
 func (exp *AppExpectation) getDataStoreFQDN(withProto bool) string {
 	if exp.datastoreOverride != "" {
 		return exp.datastoreOverride
@@ -62,7 +62,7 @@ func (exp *AppExpectation) getDataStoreFQDN(withProto bool) string {
 	return fqdn
 }
 
-//checkDataStoreDocker checks if provided ds match expectation
+// checkDataStoreDocker checks if provided ds match expectation
 func (exp *AppExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool {
 	if ds.DType == config.DsType_DsContainerRegistry && ds.Fqdn == exp.getDataStoreFQDN(true) {
 		return true
@@ -70,7 +70,7 @@ func (exp *AppExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 	return false
 }
 
-//createDataStoreDocker creates DatastoreConfig for docker.io with provided id
+// createDataStoreDocker creates DatastoreConfig for docker.io with provided id
 func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
 	return &config.DatastoreConfig{
 		Id:         id.String(),
@@ -84,7 +84,7 @@ func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 	}
 }
 
-//applyRootFSType try to parse manifest to get Annotations provided in https://github.com/lf-edge/edge-containers/blob/master/docs/annotations.md
+// applyRootFSType try to parse manifest to get Annotations provided in https://github.com/lf-edge/edge-containers/blob/master/docs/annotations.md
 func (exp *AppExpectation) applyRootFSType(image *config.Image) error {
 	if exp.appLink == defaults.DefaultDummyExpect {
 		log.Debug("skip applyRootFSType")
@@ -125,7 +125,7 @@ func (exp *AppExpectation) applyRootFSType(image *config.Image) error {
 	return nil
 }
 
-//obtainVolumeInfo try to parse docker manifest of defined image and return array of mount points
+// obtainVolumeInfo try to parse docker manifest of defined image and return array of mount points
 func (exp *AppExpectation) obtainVolumeInfo(image *config.Image) ([]string, error) {
 	if exp.appLink == defaults.DefaultDummyExpect {
 		log.Debug("skip obtainVolumeInfo")
@@ -152,7 +152,7 @@ func (exp *AppExpectation) obtainVolumeInfo(image *config.Image) ([]string, erro
 	return mountPoints, nil
 }
 
-//prepareImage generates new image for mountable volume
+// prepareImage generates new image for mountable volume
 func (exp *AppExpectation) prepareImage() *config.Image {
 	appLink := defaults.DefaultEmptyVolumeLinkQcow2
 	switch exp.volumesType {
@@ -180,8 +180,9 @@ func (exp *AppExpectation) prepareImage() *config.Image {
 	return tempExp.Image()
 }
 
-//createAppInstanceConfigDocker creates appBundle for docker with provided img, netInstance, id and acls
-//  it uses name of app and cpu/mem params from AppExpectation
+// createAppInstanceConfigDocker creates appBundle for docker with provided img, netInstance, id and acls
+//
+//	it uses name of app and cpu/mem params from AppExpectation
 func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) *appBundle {
 	log.Debugf("Try to obtain info about volumes, please wait")
 	mountPointsList, err := exp.obtainVolumeInfo(img)

@@ -35,9 +35,9 @@ import (
 "github.com/lf-edge/eden/pkg/projects"
 "github.com/lf-edge/eden/pkg/tests"
 "github.com/lf-edge/eden/pkg/utils"
-"github.com/lf-edge/eve/api/go/flowlog"
-"github.com/lf-edge/eve/api/go/info"
-"github.com/lf-edge/eve/api/go/metrics"
+"github.com/lf-edge/eve-api/go/flowlog"
+"github.com/lf-edge/eve-api/go/info"
+"github.com/lf-edge/eve-api/go/metrics"
 ...
 )
 ```
@@ -53,9 +53,9 @@ There are 3 distinct categories of imports in our example:
 These imports are straight from the EVE API:
 
 ```go
-"github.com/lf-edge/eve/api/go/flowlog"
-"github.com/lf-edge/eve/api/go/info"
-"github.com/lf-edge/eve/api/go/metrics"
+"github.com/lf-edge/eve-api/go/flowlog"
+"github.com/lf-edge/eve-api/go/info"
+"github.com/lf-edge/eve-api/go/metrics"
 ```
 
 If we want to use the data structures that come from the EVE device - which we

@@ -2,12 +2,13 @@ package expect
 
 import (
 	"fmt"
-	"github.com/lf-edge/eve/api/go/config"
+
+	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-//checkDataStore checks if provided ds match expectation
+// checkDataStore checks if provided ds match expectation
 func (exp *AppExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 	if ds == nil {
 		return false
@@ -23,7 +24,7 @@ func (exp *AppExpectation) checkDataStore(ds *config.DatastoreConfig) bool {
 	return false
 }
 
-//createDataStore creates DatastoreConfig for AppExpectation
+// createDataStore creates DatastoreConfig for AppExpectation
 func (exp *AppExpectation) createDataStore() (*config.DatastoreConfig, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -44,8 +45,8 @@ func (exp *AppExpectation) createDataStore() (*config.DatastoreConfig, error) {
 	}
 }
 
-//DataStore expects datastore in controller
-//it gets DatastoreConfig with defined in AppExpectation params, or creates new one, if not exists
+// DataStore expects datastore in controller
+// it gets DatastoreConfig with defined in AppExpectation params, or creates new one, if not exists
 func (exp *AppExpectation) DataStore() (datastore *config.DatastoreConfig) {
 	var err error
 	for _, ds := range exp.ctrl.ListDataStore() {

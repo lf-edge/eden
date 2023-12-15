@@ -10,8 +10,8 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/cachers"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eve/api/go/info"
-	"github.com/lf-edge/eve/api/go/logs"
+	"github.com/lf-edge/eve-api/go/info"
+	"github.com/lf-edge/eve-api/go/logs"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -27,7 +27,7 @@ const (
 
 type getClient = func() *http.Client
 
-//RemoteLoader implements loader from http backend of controller
+// RemoteLoader implements loader from http backend of controller
 type RemoteLoader struct {
 	curCount     uint64
 	lastCount    uint64
@@ -41,7 +41,7 @@ type RemoteLoader struct {
 	cache        cachers.CacheProcessor
 }
 
-//NewRemoteLoader return loader from files
+// NewRemoteLoader return loader from files
 func NewRemoteLoader(getClient getClient, urlGetters types.URLGetters) *RemoteLoader {
 	log.Debugf("HTTP NewRemoteLoader init")
 	return &RemoteLoader{
@@ -53,12 +53,12 @@ func NewRemoteLoader(getClient getClient, urlGetters types.URLGetters) *RemoteLo
 	}
 }
 
-//SetRemoteCache add cache layer
+// SetRemoteCache add cache layer
 func (loader *RemoteLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
-//Clone create copy
+// Clone create copy
 func (loader *RemoteLoader) Clone() Loader {
 	return &RemoteLoader{
 		urlGetters:   loader.urlGetters,
@@ -91,12 +91,12 @@ func (loader *RemoteLoader) getURL(typeToProcess types.LoaderObjectType) string 
 	}
 }
 
-//SetUUID set device UUID
+// SetUUID set device UUID
 func (loader *RemoteLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-//SetAppUUID set app UUID
+// SetAppUUID set app UUID
 func (loader *RemoteLoader) SetAppUUID(appUUID uuid.UUID) {
 	loader.appUUID = appUUID
 }
@@ -217,12 +217,12 @@ repeatLoop:
 	return fmt.Errorf("all connection attempts failed")
 }
 
-//ProcessExisting for observe existing files
+// ProcessExisting for observe existing files
 func (loader *RemoteLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	return loader.repeatableConnection(process, typeToProcess, false)
 }
 
-//ProcessStream for observe new files
+// ProcessStream for observe new files
 func (loader *RemoteLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	done := make(chan error)
 	if timeoutSeconds != 0 {

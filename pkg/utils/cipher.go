@@ -7,11 +7,11 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 
-	"github.com/lf-edge/eve/api/go/config"
+	"github.com/lf-edge/eve-api/go/evecommon"
 	"google.golang.org/protobuf/proto"
 )
 
-//internal encryption method
+// internal encryption method
 func aesEncrypt(iv, symmetricKey, plaintext []byte) ([]byte, error) {
 	ciphertext := make([]byte, len(plaintext))
 	aesBlockEncrypter, err := aes.NewCipher(symmetricKey)
@@ -23,12 +23,12 @@ func aesEncrypt(iv, symmetricKey, plaintext []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-//create cipher block
-func createCipherBlock(plainText []byte, cipherCtxID string, cmnCryptoCfg *CommonCryptoConfig, iv []byte) (*config.CipherBlock, error) {
+// create cipher block
+func createCipherBlock(plainText []byte, cipherCtxID string, cmnCryptoCfg *CommonCryptoConfig, iv []byte) (*evecommon.CipherBlock, error) {
 	if cmnCryptoCfg.DevCertHash == nil {
 		return nil, fmt.Errorf("empty device certificate in create cipher block method")
 	}
-	cipherBlock := &config.CipherBlock{}
+	cipherBlock := &evecommon.CipherBlock{}
 	cipherBlock.CipherContextId = cipherCtxID
 	shaOfPlainTextSecret := sha256.Sum256(plainText)
 	cipherBlock.ClearTextSha256 = shaOfPlainTextSecret[:]
@@ -44,10 +44,10 @@ func createCipherBlock(plainText []byte, cipherCtxID string, cmnCryptoCfg *Commo
 	return cipherBlock, nil
 }
 
-//CryptoConfigWrapper create cipherCtx and encrypt secrets for all the objects.
-func CryptoConfigWrapper(encBlock *config.EncryptionBlock, cmnCryptoCfg *CommonCryptoConfig, cipherCtx *config.CipherContext) (*config.CipherBlock, error) {
-	//Prepare initial value by appending device cert has and controller cert hash
-	//and calculate sha of that.
+// CryptoConfigWrapper create cipherCtx and encrypt secrets for all the objects.
+func CryptoConfigWrapper(encBlock *evecommon.EncryptionBlock, cmnCryptoCfg *CommonCryptoConfig, cipherCtx *evecommon.CipherContext) (*evecommon.CipherBlock, error) {
+	// Prepare initial value by appending device cert hash and controller cert hash
+	// and calculate sha of that.
 	var concatIV []byte
 	concatIV = append(concatIV, cipherCtx.ControllerCertHash[:8]...)
 	concatIV = append(concatIV, cipherCtx.DeviceCertHash[:8]...)

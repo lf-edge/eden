@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lf-edge/eve/api/go/config"
-	"github.com/lf-edge/eve/api/go/evecommon"
+	"github.com/lf-edge/eve-api/go/config"
+	"github.com/lf-edge/eve-api/go/evecommon"
 )
 
 // devModelType is type of dev model

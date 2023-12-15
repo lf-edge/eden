@@ -10,7 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/projects"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/api/go/info"
+	"github.com/lf-edge/eve-api/go/info"
 )
 
 type nwState struct {
@@ -110,7 +110,7 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 	return nil
 }
 
-//checkNet wait for info of ZInfoApp type with state
+// checkNet wait for info of ZInfoApp type with state
 func checkNet(state string, volNames []string) projects.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		eveState.InfoCallback()(msg) //feed state with new info
@@ -118,8 +118,8 @@ func checkNet(state string, volNames []string) projects.ProcInfoFunc {
 	}
 }
 
-//TestNetworkStatus wait for networks reaching the selected state
-//with a timewait
+// TestNetworkStatus wait for networks reaching the selected state
+// with a timewait
 func TestNetworkStatus(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 
