@@ -1,0 +1,423 @@
+{
+  "deviceIoList": [
+    {
+      "ptype": 1,
+      "phylabel": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "eth0",
+      "assigngrp": "eth0",
+      "usage": 1,
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1"
+      },
+      "logicallabel": "eth1",
+      "assigngrp": "eth1",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": false
+      }
+    }
+  ],
+  "networks": [
+    {
+      "id": "6605d17b-3273-4108-8e6e-4965441ebe01",
+      "type": 4,
+      "ip": {
+        "dhcp": 4
+      }
+    },
+    {
+      "id": "9d003e2a-d8c4-4b44-a983-98aff1f957ec",
+      "type": 4,
+      "ip": {
+        "dhcp": 2
+      }
+    }
+  ],
+  "systemAdapterList": [
+    {
+      "name": "eth0",
+      "uplink": true,
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01"
+    },
+    {
+      "name": "eth1",
+      "networkUUID": "9d003e2a-d8c4-4b44-a983-98aff1f957ec"
+    }
+  ],
+  "networkInstances": [
+    {
+      "uuidandversion": {
+        "uuid": "3bc88a2c-3253-40ac-bb49-6a18d476eaf4",
+        "version": "1"
+      },
+      "displayname": "airgap1",
+      "instType": 2,
+      "activate": true,
+      "cfg": {},
+      "ipType": 1,
+      "ip": {
+        "subnet": "172.28.1.0/24",
+        "gateway": "172.28.1.1",
+        "dns": [
+          "172.28.1.1"
+        ],
+        "dhcpRange": {
+          "start": "172.28.1.100",
+          "end": "172.28.1.200"
+        }
+      },
+      "staticRoutes": [
+        {
+          "destinationNetwork": "10.21.21.0/24",
+          "gateway": "172.28.1.2"
+        }
+      ]
+    },
+    {
+      "uuidandversion": {
+        "uuid": "93d3ced2-e63a-4349-b031-9662ac970329",
+        "version": "1"
+      },
+      "displayname": "airgap2",
+      "instType": 2,
+      "activate": true,
+      "cfg": {},
+      "ipType": 1,
+      "ip": {
+        "subnet": "172.28.2.0/24",
+        "gateway": "172.28.2.1",
+        "dns": [
+          "172.28.2.1"
+        ],
+        "dhcpRange": {
+          "start": "172.28.2.100",
+          "end": "172.28.2.200"
+        }
+      },
+      "staticRoutes": [
+        {
+          "destinationNetwork": "0.0.0.0/0",
+          "gateway": "172.28.2.2"
+        }
+      ]
+    },
+    {
+      "uuidandversion": {
+        "uuid": "9ca83da9-94e8-48b4-9ae8-3f188c5c694a",
+        "version": "1"
+      },
+      "displayname": "ni-eth0",
+      "instType": 2,
+      "activate": true,
+      "port": {
+        "type": 1,
+        "name": "eth0"
+      },
+      "cfg": {},
+      "ipType": 1,
+      "ip": {
+        "subnet": "10.50.0.0/24",
+        "gateway": "10.50.0.1",
+        "dns": [
+          "10.50.0.1"
+        ],
+        "dhcpRange": {
+          "start": "10.50.0.2",
+          "end": "10.50.0.254"
+        }
+      }
+    },
+    {
+      "uuidandversion": {
+        "uuid": "207239ec-2d71-4f40-a698-c21c6422fe3d",
+        "version": "1"
+      },
+      "displayname": "ni-eth1",
+      "instType": 1,
+      "activate": true,
+      "port": {
+        "type": 1,
+        "name": "eth1"
+      },
+      "cfg": {},
+      "ipType": 1,
+      "ip": {}
+    }
+  ],
+  "apps": [
+    {
+      "uuidandversion": {
+        "uuid": "cee082fd-3a43-4599-bbd3-8216ffa8652d",
+        "version": "1"
+      },
+      "displayname": "app-client1",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "398710ca-bf4f-46b0-b012-0d4e32214ba4",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "ni-eth0",
+          "networkId": "9ca83da9-94e8-48b4-9ae8-3f188c5c694a",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        },
+        {
+          "name": "airgap1",
+          "networkId": "3bc88a2c-3253-40ac-bb49-6a18d476eaf4",
+          "addr": "172.28.1.3",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "d8fe3e53-cc6c-4cee-8562-b406a1a8ada7",
+          "mount_dir": "/"
+        }
+      ]
+    },
+    {
+      "uuidandversion": {
+        "uuid": "5341bfb9-c828-4f98-807e-e9763d4dc316",
+        "version": "1"
+      },
+      "displayname": "app-client2",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "398710ca-bf4f-46b0-b012-0d4e32214ba4",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "airgap2",
+          "networkId": "93d3ced2-e63a-4349-b031-9662ac970329",
+          "addr": "172.28.2.3",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "cee944a3-ae6f-4887-9d8d-adcc0ed02370",
+          "mount_dir": "/"
+        }
+      ]
+    },
+    {
+      "uuidandversion": {
+        "uuid": "4d88a7c5-64fc-43ee-a58a-f5944bc7872c",
+        "version": "1"
+      },
+      "displayname": "app-gw",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "398710ca-bf4f-46b0-b012-0d4e32214ba4",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "ni-eth1",
+          "networkId": "207239ec-2d71-4f40-a698-c21c6422fe3d",
+          "macAddress": "02:01:02:03:04:05",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        },
+        {
+          "name": "airgap1",
+          "networkId": "3bc88a2c-3253-40ac-bb49-6a18d476eaf4",
+          "addr": "172.28.1.2",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        },
+        {
+          "name": "airgap2",
+          "networkId": "93d3ced2-e63a-4349-b031-9662ac970329",
+          "addr": "172.28.2.2",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "5605093b-c7cf-4beb-bb6b-14d86d39c42b",
+          "mount_dir": "/"
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "uuid": "d8fe3e53-cc6c-4cee-8562-b406a1a8ada7",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app-client1-volume"
+    },
+    {
+      "uuid": "cee944a3-ae6f-4887-9d8d-adcc0ed02370",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app-client2-volume"
+    },
+    {
+      "uuid": "5605093b-c7cf-4beb-bb6b-14d86d39c42b",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app-gw-volume"
+    }
+  ],
+  "contentInfo": [
+    {
+      "uuid": "63d3b01f-f44f-4007-ba33-6e720bd52992",
+      "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "URL": "lfedge/eden-eclient:8a279cd",
+      "iformat": 8,
+      "displayName": "eden-eclient"
+    }
+  ],
+  "datastores": [
+    {
+      "id": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "dType": 5,
+      "fqdn": "docker://index.docker.io"
+    }
+  ],
+  "configItems": [
+    {
+      "key": "newlog.allow.fastupload",
+      "value": "true"
+    },
+    {
+      "key": "timer.config.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.download.retry",
+      "value": "60"
+    },
+    {
+      "key": "debug.default.loglevel",
+      "value": "debug"
+    },
+    {
+      "key": "debug.disable.dhcp.all-ones.netmask",
+      "value": "false"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport1",
+      "adminUP": true
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "ports": ["eveport0"]
+    },
+    {
+      "logicalLabel": "bridge1",
+      "ports": ["eveport1"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network0",
+      "bridge": "bridge0",
+      "subnet": "172.22.12.0/24",
+      "gwIP": "172.22.12.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.12.10",
+          "toIP": "172.22.12.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server", "httpserver0"]
+      }
+    },
+    {
+      "logicalLabel": "network1",
+      "bridge": "bridge1",
+      "subnet": "10.203.10.0/24",
+      "gwIP": "10.203.10.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "10.203.10.100",
+          "toIP": "10.203.10.200"
+        },
+        "staticEntries": [
+          {
+            "mac": "02:01:02:03:04:05",
+            "ip": "10.203.10.150"
+          }
+        ],
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": false,
+        "reachableEndpoints": ["dns-server", "httpserver1"],
+        "routesTowardsEVE": [
+          {
+            "dstNetwork": "172.28.1.0/24",
+            "gateway": "10.203.10.150"
+          },
+          {
+            "dstNetwork": "172.28.2.0/24",
+            "gateway": "10.203.10.150"
+          }
+        ]
+      }
+    }
+  ],
+  "endpoints": {
+    "dnsServers": [
+      {
+        "logicalLabel": "dns-server",
+        "fqdn": "mdns-server.sdn",
+        "subnet": "10.16.16.0/24",
+        "ip": "10.16.16.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          }
+        ],
+        "upstreamServers": [
+          "1.1.1.1",
+          "8.8.8.8"
+        ]
+      }
+    ],
+    "httpServers": [
+      {
+        "logicalLabel": "httpserver0",
+        "fqdn": "httpserver0.sdn",
+        "subnet": "10.20.20.0/24",
+        "ip": "10.20.20.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server no. 0\n"
+          }
+        }
+      },
+      {
+        "logicalLabel": "httpserver1",
+        "fqdn": "httpserver1.sdn",
+        "subnet": "10.21.21.0/24",
+        "ip": "10.21.21.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server no. 1\n"
+          }
+        }
+      }
+    ]
+  }
+}
