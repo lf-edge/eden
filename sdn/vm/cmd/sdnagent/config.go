@@ -369,6 +369,10 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			ep := a.getEndpoint(dnsServer)
 			dnsServers = append(dnsServers, net.ParseIP(ep.IP))
 		}
+		gatewayIP := gwIP.IP
+		if dhcp.WithoutDefaultRoute {
+			gatewayIP = nil
+		}
 		intendedCfg.PutItem(configitems.DhcpServer{
 			ServerName:     network.LogicalLabel,
 			NetNamespace:   nsName,
@@ -376,7 +380,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			VethPeerIfName: brInIfName,
 			Subnet:         subnet,
 			IPRange:        ipRange,
-			GatewayIP:      gwIP.IP,
+			GatewayIP:      gatewayIP,
 			DomainName:     dhcp.DomainName,
 			DNSServers:     dnsServers,
 			NTPServer:      ntpServer,
