@@ -332,6 +332,8 @@ type DHCP struct {
 	// IPRange : a range of IP addresses to allocate from.
 	// Not applicable for IPv6.
 	IPRange IPRange `json:"ipRange"`
+	// WithoutDefaultRoute : do not advertise default route to DHCP clients.
+	WithoutDefaultRoute bool `json:"withoutDefaultRoute"`
 	// DomainName : name of the domain assigned to the network.
 	// It is propagated to clients using the DHCP option 15 (24 in DHCPv6).
 	DomainName string `json:"domainName"`

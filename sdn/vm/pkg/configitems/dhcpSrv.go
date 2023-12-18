@@ -204,11 +204,13 @@ func (c *DhcpServerConfigurator) createDnsmasqConfFile(server DhcpServer) error 
 		}
 	}
 	// Default gateway.
-	if len(server.GatewayIP) != 0 {
-		// IPv6 needs to be handled with radvd.
-		if !isIPv6 {
+	// Note that gateway for IPv6 needs to be handled with radvd.
+	if !isIPv6 {
+		if len(server.GatewayIP) != 0 {
 			gwIP := server.GatewayIP.String()
 			file.WriteString(fmt.Sprintf("dhcp-option=option:router,%s\n", gwIP))
+		} else {
+			file.WriteString("dhcp-option=option:router\n")
 		}
 	}
 	// DNS servers.
