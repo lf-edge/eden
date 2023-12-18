@@ -383,6 +383,20 @@ type Router struct {
 	ReachableEndpoints []string `json:"reachableEndpoints"`
 	// ReachableNetworks : Logical labels of reachable networks.
 	ReachableNetworks []string `json:"reachableNetworks"`
+	// RoutesTowardsEVE : a set of routes for traffic going towards EVE.
+	// This is typically used if one of the apps running on EVE is used as a gateway
+	// for other apps. Static routes are then needed on the Eden-SDN side to route
+	// returning traffic back via that gw app.
+	RoutesTowardsEVE []IPRoute `json:"routesTowardsEVE"`
+}
+
+// IPRoute : a single IP route entry.
+type IPRoute struct {
+	// DstNetwork : destination network address in the CIDR format:
+	// <IP-address>/<prefix-length>
+	DstNetwork string `json:"dstNetwork"`
+	// Gateway IP address. It should be from within the EVE port network subnet.
+	Gateway string `json:"gateway"`
 }
 
 // Firewall : network firewall.

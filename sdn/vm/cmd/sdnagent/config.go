@@ -490,6 +490,45 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			GwIP: hostGwIP,
 		}, nil)
 	}
+	// - routes towards EVE
+	var routesTowardsEVE []api.IPRoute
+	if network.Router != nil {
+		routesTowardsEVE = network.Router.RoutesTowardsEVE
+	}
+	for _, route := range routesTowardsEVE {
+		_, dstNetwork, _ := net.ParseCIDR(route.DstNetwork)
+		gatewayIP := net.ParseIP(route.Gateway)
+		intendedCfg.PutItem(configitems.IPRule{
+			SrcNet:   dstNetwork,
+			Table:    rt,
+			Priority: networkIPRulePriority,
+		}, nil)
+		intendedCfg.PutItem(configitems.IPRule{
+			DstNet:   dstNetwork,
+			Table:    rt,
+			Priority: networkIPRulePriority,
+		}, nil)
+		intendedCfg.PutItem(configitems.Route{
+			NetNamespace: nsName,
+			Table:        syscall.RT_TABLE_MAIN,
+			DstNet:       dstNetwork,
+			OutputIf: configitems.RouteOutIf{
+				VethName:       brVethName,
+				VethPeerIfName: brInIfName,
+			},
+			GwIP: gatewayIP,
+		}, nil)
+		intendedCfg.PutItem(configitems.Route{
+			NetNamespace: configitems.MainNsName,
+			Table:        rt,
+			DstNet:       dstNetwork,
+			OutputIf: configitems.RouteOutIf{
+				VethName:       rtVethName,
+				VethPeerIfName: rtOutIfName,
+			},
+			GwIP: inIP.IP,
+		}, nil)
+	}
 	// - everything else is unreachable
 	intendedCfg.PutItem(configitems.Route{
 		NetNamespace: configitems.MainNsName,

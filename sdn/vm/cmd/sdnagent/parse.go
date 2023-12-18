@@ -222,6 +222,33 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 		}
 	}
 
+	// Validate routes towards EVE.
+	for _, network := range netModel.Networks {
+		if network.Router == nil {
+			continue
+		}
+		_, subnet, _ := net.ParseCIDR(network.Subnet)
+		for _, route := range network.Router.RoutesTowardsEVE {
+			if _, _, err = net.ParseCIDR(route.DstNetwork); err != nil {
+				err = fmt.Errorf("network %s route %+v has invalid destination: %w",
+					network.LogicalLabel, route, err)
+				return
+			}
+			gwIP := net.ParseIP(route.Gateway)
+			if gwIP == nil {
+				err = fmt.Errorf("network %s route %+v has invalid gateway IP (%s)",
+					network.LogicalLabel, route, route.Gateway)
+				return
+			}
+			if !subnet.Contains(gwIP) {
+				err = fmt.Errorf("network %s route %+v has gateway IP (%s) "+
+					"which is not from within the network subnet",
+					network.LogicalLabel, route, route.Gateway)
+				return
+			}
+		}
+	}
+
 	// TODO: check that within a network it is IPv4 or IPv6, not both (for now)
 	return nil
 }
