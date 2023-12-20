@@ -19,8 +19,26 @@ rm -rf /run/*
 mkdir -p /run/sshd
 mkdir -p /run/nginx
 
+# eclient can be also used as a router app
+IP_FORWARDING="$(sysctl -n net.ipv4.ip_forward)"
+if [ "$IP_FORWARDING" -eq 1 ]; then
+    # With bare containers (eve.accel=false), IP forwarding is always enabled.
+    echo "IP forwarding is already enabled"
+else
+    echo "Enabling IP forwarding..."
+    sysctl -w net.ipv4.ip_forward=1 && echo "IP forwarding is now enabled"
+fi
+
 nginx
 
 /usr/sbin/sshd -h /root/.ssh/id_rsa
 
-avahi-daemon
+avahi-daemon -D
+
+# For app_logs test.
+echo "Started eclient"
+
+# Running shell as the entrypoint allows to enter the container using
+# `eve attach-app-console <console-id>/cons` and have interactive session.
+# This is useful when a deployed container cannot be accessed via ssh over the network.
+while true; do /bin/sh; done
