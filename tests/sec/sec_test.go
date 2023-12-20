@@ -91,6 +91,7 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
+//nolint:paralleltest
 func TestKernelModuleSigning(t *testing.T) {
 	log.Println("TestKernelModuleSigning started")
 	defer log.Println("TestKernelModuleSigning finished")
@@ -109,6 +110,7 @@ func TestKernelModuleSigning(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestUnconfinedProcesses(t *testing.T) {
 	log.Println("TestUnconfinedProcesses started")
 	defer log.Println("TestUnconfinedProcesses finished")
@@ -116,7 +118,7 @@ func TestUnconfinedProcesses(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 	tc.WaitForState(edgeNode, 60)
 
-	// check if there are any processes with capablities
+	// check if there are any processes with capabilities
 	command := `ps -eZ | awk '
 	BEGIN { print " [ "}
 	/LABEL/ {next}
@@ -151,11 +153,12 @@ func TestUnconfinedProcesses(t *testing.T) {
 	}
 
 	if fail {
-		// TODO : this not a proper way to check, but good for now
+		// XXX : this not a proper way to check, but good for now
 		t.Fatal("There are unconfined processes running on the system")
 	}
 }
 
+//nolint:paralleltest
 func TestUmask(t *testing.T) {
 	log.Println("TestUmask started")
 	defer log.Println("TestUmask finished")
@@ -174,6 +177,7 @@ func TestUmask(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestNoHiddenExectuableExists(t *testing.T) {
 	log.Println("TestNoHiddenExectuableExists started")
 	defer log.Println("TestNoHiddenExectuableExists finished")
@@ -195,6 +199,7 @@ func TestNoHiddenExectuableExists(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestCordumpDisabled(t *testing.T) {
 	log.Println("TestCordumpDisabled started")
 	defer log.Println("TestCordumpDisabled finished")
@@ -202,7 +207,7 @@ func TestCordumpDisabled(t *testing.T) {
 	edgeNode := tc.GetEdgeNode(tc.WithTest(t))
 	tc.WaitForState(edgeNode, 60)
 
-	// check if cordump is disabled
+	// check if coredump is disabled
 	out, err := rnode.runCommand("sysctl kernel.core_pattern")
 	if err != nil {
 		t.Fatal(err)
@@ -214,8 +219,9 @@ func TestCordumpDisabled(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestProcessRunningAsRoot(t *testing.T) {
-	// TODO : this is not a proper way to check, but good for now
+	// XXX : this is not a proper way to check, but good for now
 	log.Println("TestProcessRunningAsRoot started")
 	defer log.Println("TestProcessRunningAsRoot finished")
 
@@ -234,6 +240,7 @@ func TestProcessRunningAsRoot(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestAppArmorEnabled(t *testing.T) {
 	log.Println("TestAppArmorEnabled started")
 	defer log.Println("TestAppArmorEnabled finished")
@@ -252,6 +259,7 @@ func TestAppArmorEnabled(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestCheckMountOptions(t *testing.T) {
 	log.Println("TestCheckMountOptions started")
 	defer log.Println("TestCheckMountOptions finished")
@@ -274,7 +282,7 @@ func TestCheckMountOptions(t *testing.T) {
 		fail = true
 	}
 
-	// TODO: set hidepid=2 on /proc and this to the above list
+	// XXX: set hidepid=2 on /proc and this to the above list
 	misconfig = checkMountOptionsByType("proc", mounts, []string{"hidepid=2"})
 	if len(misconfig) > 0 {
 		for _, msg := range misconfig {
@@ -296,6 +304,7 @@ func TestCheckMountOptions(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestCheckTmpIsSecure(t *testing.T) {
 	log.Println("TestCheckTempIsSecure started")
 	defer log.Println("TestCheckTempIsSecure finished")
