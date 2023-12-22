@@ -1,6 +1,7 @@
 package configitems
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -44,6 +45,8 @@ type DhcpServer struct {
 	// IPRange : a range of IP addresses to allocate from.
 	// Not applicable for IPv6 (SLAAC is used instead).
 	IPRange IPRange
+	// StaticEntries : list of MAC->IP entries statically configured for the DHCP server.
+	StaticEntries []MACToIP
 	// GatewayIP : address of the default gateway to advertise (DHCP option 3).
 	GatewayIP net.IP
 	// DomainName : name of the domain assigned to the network.
@@ -79,6 +82,12 @@ type IPRange struct {
 	ToIP net.IP
 }
 
+// MACToIP maps MAC address to IP address.
+type MACToIP struct {
+	MAC net.HardwareAddr
+	IP  net.IP
+}
+
 // Name
 func (s DhcpServer) Name() string {
 	return s.ServerName
@@ -101,6 +110,7 @@ func (s DhcpServer) Equal(other depgraph.Item) bool {
 		s.VethName == s2.VethName &&
 		s.VethPeerIfName == s2.VethPeerIfName &&
 		equalIPNets(s.Subnet, s2.Subnet) &&
+		equalStaticEntries(s.StaticEntries, s2.StaticEntries) &&
 		s.IPRange.FromIP.Equal(s2.IPRange.FromIP) &&
 		s.IPRange.ToIP.Equal(s2.IPRange.ToIP) &&
 		s.GatewayIP.Equal(s2.GatewayIP) &&
@@ -183,6 +193,10 @@ func (c *DhcpServerConfigurator) createDnsmasqConfFile(server DhcpServer) error 
 		netmask := net.IP(server.Subnet.Mask)
 		file.WriteString(fmt.Sprintf("dhcp-range=%s,%s,%s,60m\n",
 			server.IPRange.FromIP, server.IPRange.ToIP, netmask))
+	}
+	for _, entry := range server.StaticEntries {
+		file.WriteString(fmt.Sprintf("dhcp-host=%s,%s\n",
+			entry.MAC.String(), entry.IP.String()))
 	}
 	file.WriteString(fmt.Sprintf("dhcp-leasefile=%s\n",
 		dnsmasqLeaseFile(srvName)))
@@ -447,6 +461,19 @@ func equalIPLists(ips1, ips2 []net.IP) bool {
 	}
 	for i := range ips1 {
 		if !ips1[i].Equal(ips2[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func equalStaticEntries(list1, list2 []MACToIP) bool {
+	if len(list1) != len(list2) {
+		return false
+	}
+	for i := range list1 {
+		if !list1[i].IP.Equal(list2[i].IP) ||
+			!bytes.Equal(list1[i].MAC, list2[i].MAC) {
 			return false
 		}
 	}

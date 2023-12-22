@@ -373,6 +373,14 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 		if dhcp.WithoutDefaultRoute {
 			gatewayIP = nil
 		}
+		var staticEntries []configitems.MACToIP
+		for _, entry := range dhcp.StaticEntries {
+			mac, _ := net.ParseMAC(entry.MAC)
+			staticEntries = append(staticEntries, configitems.MACToIP{
+				MAC: mac,
+				IP:  net.ParseIP(entry.IP),
+			})
+		}
 		intendedCfg.PutItem(configitems.DhcpServer{
 			ServerName:     network.LogicalLabel,
 			NetNamespace:   nsName,
@@ -380,6 +388,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			VethPeerIfName: brInIfName,
 			Subnet:         subnet,
 			IPRange:        ipRange,
+			StaticEntries:  staticEntries,
 			GatewayIP:      gatewayIP,
 			DomainName:     dhcp.DomainName,
 			DNSServers:     dnsServers,
