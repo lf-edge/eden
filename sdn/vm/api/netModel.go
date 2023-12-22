@@ -332,6 +332,8 @@ type DHCP struct {
 	// IPRange : a range of IP addresses to allocate from.
 	// Not applicable for IPv6.
 	IPRange IPRange `json:"ipRange"`
+	// StaticEntries : list of MAC->IP entries statically configured for the DHCP server.
+	StaticEntries []MACToIP `json:"staticEntries"`
 	// WithoutDefaultRoute : do not advertise default route to DHCP clients.
 	WithoutDefaultRoute bool `json:"withoutDefaultRoute"`
 	// DomainName : name of the domain assigned to the network.
@@ -360,6 +362,14 @@ type DHCP struct {
 	// Eden-SDN will announce either IP address or FQDN depending on whether any of the assigned
 	// private DNS servers is able to resolve the NetbootServer domain name.
 	NetbootServer string `json:"netbootServer"`
+}
+
+// MACToIP maps MAC address to IP address.
+type MACToIP struct {
+	// MAC address.
+	MAC string `json:"mac"`
+	// IP address.
+	IP string `json:"ip"`
 }
 
 // DNSClientConfig : DNS configuration for a client.

@@ -197,6 +197,18 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 				network.LogicalLabel)
 			return
 		}
+		for _, entry := range dhcp.StaticEntries {
+			if _, err = net.ParseMAC(entry.MAC); err != nil {
+				err = fmt.Errorf("network %s has static DHCP entry with invalid MAC (%s)",
+					network.LogicalLabel, entry.MAC)
+				return
+			}
+			if ip := net.ParseIP(entry.IP); ip == nil {
+				err = fmt.Errorf("network %s has static DHCP entry with invalid IP (%s)",
+					network.LogicalLabel, entry.IP)
+				return
+			}
+		}
 	}
 
 	// Do not mix VLAN and non-VLAN network with the same bridge
