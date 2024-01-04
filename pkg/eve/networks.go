@@ -46,13 +46,17 @@ func (ctx *State) initNetworks(ctrl controller.Cloud, dev *device.Ctx) error {
 		if err != nil {
 			return fmt.Errorf("no netInst in cloud %s: %s", el, err)
 		}
+		var subnet string
+		if ni.Ip != nil {
+			subnet = ni.Ip.Subnet
+		}
 		netInstStateObj := &NetInstState{
 			Name:        ni.GetDisplayname(),
 			UUID:        ni.Uuidandversion.Uuid,
 			Stats:       "-",
 			AdamState:   inControllerConfig,
 			EveState:    "UNKNOWN",
-			CIDR:        ni.Ip.Subnet,
+			CIDR:        subnet,
 			NetworkType: ni.InstType.String(),
 		}
 		ctx.networks[ni.Uuidandversion.Uuid] = netInstStateObj

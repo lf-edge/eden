@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os/exec"
 	"reflect"
 
 	"github.com/lf-edge/eden/sdn/vm/pkg/maclookup"
@@ -226,9 +227,18 @@ func (c *BridgeConfigurator) handleModify(oldBridgeCfg, newBridgeCfg Bridge) (er
 	// Update VLAN filering.
 	vlanFiltering := len(newBridgeCfg.VLANs) > 0
 	if *bridge.VlanFiltering != vlanFiltering {
-		if err := netlink.BridgeSetVlanFiltering(bridge, vlanFiltering); err != nil {
-			err = fmt.Errorf("failed to set VLAN filtering to %t for bridge %s: %v",
-				vlanFiltering, ifName, err)
+		// netlink.BridgeSetVlanFiltering seems to be broken, it keeps returning EBUSY.
+		// Let's use ip command instead.
+		val := "0"
+		if vlanFiltering {
+			val = "1"
+		}
+		args := []string{"link", "set", "dev", ifName, "type", "bridge",
+			"vlan_filtering", val}
+		output, err := exec.Command("ip", args...).CombinedOutput()
+		if err != nil {
+			err = fmt.Errorf("failed to set VLAN filtering to %t for bridge %s: %s",
+				vlanFiltering, ifName, output)
 			log.Error(err)
 			return err
 		}

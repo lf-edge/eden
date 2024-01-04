@@ -1,0 +1,140 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport1",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport2",
+      "adminUP": true
+    }
+  ],
+  "bonds": [
+    {
+      "logicalLabel": "bond0",
+      "ports": ["eveport0", "eveport1"],
+      "mode": "balance-rr"
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "bonds": ["bond0"],
+      "ports": ["eveport2"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network-10",
+      "bridge": "bridge0",
+      "vlanID": 10,
+      "subnet": "172.22.10.0/24",
+      "gwIP": "172.22.10.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.10.10",
+          "toIP": "172.22.10.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server"]
+      }
+    },
+    {
+      "logicalLabel": "network-20",
+      "bridge": "bridge0",
+      "vlanID": 20,
+      "subnet": "172.22.20.0/24",
+      "gwIP": "172.22.20.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.20.10",
+          "toIP": "172.22.20.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": false,
+        "reachableEndpoints": ["dns-server", "httpserver-20"]
+      }
+    },
+    {
+      "logicalLabel": "network-30",
+      "bridge": "bridge0",
+      "vlanID": 30,
+      "subnet": "172.22.30.0/24",
+      "gwIP": "172.22.30.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.30.10",
+          "toIP": "172.22.30.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": false,
+        "reachableEndpoints": ["dns-server", "httpserver-30"]
+      }
+    }
+  ],
+  "endpoints": {
+    "dnsServers": [
+      {
+        "logicalLabel": "dns-server",
+        "fqdn": "dns-server.sdn",
+        "subnet": "10.16.16.0/24",
+        "ip": "10.16.16.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          }
+        ],
+        "upstreamServers": [
+          "1.1.1.1",
+          "8.8.8.8"
+        ]
+      }
+    ],
+    "httpServers": [
+      {
+        "logicalLabel": "httpserver-20",
+        "fqdn": "httpserver-20.sdn",
+        "subnet": "10.20.20.0/24",
+        "ip": "10.20.20.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server for VLAN 20\n"
+          }
+        }
+      },
+      {
+        "logicalLabel": "httpserver-30",
+        "fqdn": "httpserver-30.sdn",
+        "subnet": "10.30.30.0/24",
+        "ip": "10.30.30.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server for VLAN 30\n"
+          }
+        }
+      }
+    ]
+  }
+}
