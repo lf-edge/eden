@@ -75,7 +75,7 @@ func newVolumeCreateCmd() *cobra.Command {
 	volumeCreateCmd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
 	volumeCreateCmd.Flags().StringVar(&diskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
 	volumeCreateCmd.Flags().StringVarP(&volumeName, "name", "n", "", "name of volume, random if empty")
-	volumeCreateCmd.Flags().StringVar(&volumeType, "format", "", "volume type (qcow2, raw, qcow, vmdk, vhdx or oci)")
+	volumeCreateCmd.Flags().StringVar(&volumeType, "format", "", "volume type (qcow2, raw, qcow, vmdk, vhdx, iso or oci)")
 	volumeCreateCmd.Flags().BoolVar(&sftpLoad, "sftp", false, "force eserver to use sftp")
 	volumeCreateCmd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	volumeCreateCmd.Flags().StringVar(&datastoreOverride, "datastoreOverride", "", "Override datastore path for volume (when we use different URL for Eden and EVE or for local datastore)")
