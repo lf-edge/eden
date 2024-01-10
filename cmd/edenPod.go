@@ -92,7 +92,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 
 	podDeployCmd.Flags().StringVar(&pc.AppMemory, "memory", humanize.Bytes(defaults.DefaultAppMem*1024), "memory for app")
 	podDeployCmd.Flags().StringVar(&pc.DiskSize, "disk-size", humanize.Bytes(0), "disk size (empty or 0 - same as in image)")
-	podDeployCmd.Flags().StringVar(&pc.VolumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx or oci); set it to none to not use volumes")
+	podDeployCmd.Flags().StringVar(&pc.VolumeType, "volume-type", "qcow2", "volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx, iso or oci); set it to none to not use volumes")
 	podDeployCmd.Flags().StringSliceVarP(&pc.PortPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podDeployCmd.Flags().StringVarP(&pc.Metadata, "metadata", "", "", "Metadata for pod. If file path provided, will use content of it")
 	podDeployCmd.Flags().StringVarP(&pc.Name, "name", "n", "", "name for pod")
@@ -101,7 +101,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().Uint32Var(&pc.AppCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
 	podDeployCmd.Flags().StringSliceVar(&pc.AppAdapters, "adapters", nil, "adapters to assign to the application instance")
 	podDeployCmd.Flags().StringSliceVar(&pc.Networks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")
-	podDeployCmd.Flags().StringVar(&pc.ImageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
+	podDeployCmd.Flags().StringVar(&pc.ImageFormat, "format", "", "format for image, one of 'container','qcow2','raw','qcow','vmdk','vhdx','iso'; if not provided, defaults to container image for docker and oci transports, qcow2 for file and http/s transports")
 	podDeployCmd.Flags().BoolVar(&pc.ACLOnlyHost, "only-host", false, "Allow access only to host and external networks")
 	podDeployCmd.Flags().BoolVar(&pc.NoHyper, "no-hyper", false, "Run pod without hypervisor")
 	podDeployCmd.Flags().StringVar(&pc.Registry, "registry", "remote", "Select registry to use for containers (remote/local)")

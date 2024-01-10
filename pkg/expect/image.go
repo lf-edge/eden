@@ -66,6 +66,8 @@ func (exp *AppExpectation) imageFormatEnum() config.Format {
 		actual = config.Format_VMDK
 	case "vhdx":
 		actual = config.Format_VHDX
+	case "iso":
+		actual = config.Format_ISO
 	default:
 		actual = defaultFormat
 	}
