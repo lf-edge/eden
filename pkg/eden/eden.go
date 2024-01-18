@@ -130,53 +130,20 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 		return err
 	}
 	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
-	serverCertPath := filepath.Join(globalCertsDir, "server.pem")
-	serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
-	cert, err := os.ReadFile(serverCertPath)
-	if err != nil {
-		return fmt.Errorf("StartAdam: cannot load %s: %s", serverCertPath, err)
-	}
-	key, err := os.ReadFile(serverKeyPath)
-	if err != nil {
-		return fmt.Errorf("StartAdam: cannot load %s: %s", serverKeyPath, err)
-	}
-	envs := []string{
-		fmt.Sprintf("SERVER_CERT=%s", cert),
-		fmt.Sprintf("SERVER_KEY=%s", key),
-	}
-	if !apiV1 {
-		signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
-		signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
-		signingCert, err := os.ReadFile(signingCertPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", signingCertPath, err)
-		}
-		signingKey, err := os.ReadFile(signingKeyPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", signingKeyPath, err)
-		}
-		envs = append(envs, fmt.Sprintf("SIGNING_CERT=%s", signingCert))
-		envs = append(envs, fmt.Sprintf("SIGNING_KEY=%s", signingKey))
 
-		encryptCertPath := filepath.Join(globalCertsDir, "encrypt.pem")
-		encryptKeyPath := filepath.Join(globalCertsDir, "encrypt-key.pem")
-		encryptCert, err := os.ReadFile(encryptCertPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptCertPath, err)
-		}
-		encryptKey, err := os.ReadFile(encryptKeyPath)
-		if err != nil {
-			return fmt.Errorf("StartAdam: cannot load %s: %s", encryptKeyPath, err)
-		}
-		envs = append(envs, fmt.Sprintf("ENCRYPT_CERT=%s", encryptCert))
-		envs = append(envs, fmt.Sprintf("ENCRYPT_KEY=%s", encryptKey))
-	}
 	portMap := map[string]string{"8080": strconv.Itoa(adamPort)}
-	volumeMap := map[string]string{"/adam/run": fmt.Sprintf("%s/run", adamPath)}
-	adamServerCommand := strings.Fields("server --conf-dir ./run/conf")
+	volumeMap := map[string]string{
+		globalCertsDir: globalCertsDir,
+	}
+
+	var adamServerCommand []string
+
 	if adamPath == "" {
-		volumeMap = map[string]string{"/adam/run": ""}
+		volumeMap["/adam/run"] = ""
 		adamServerCommand = strings.Fields("server")
+	} else {
+		volumeMap["/adam/run"] = fmt.Sprintf("%s/run", adamPath)
+		adamServerCommand = strings.Fields("server --conf-dir ./run/conf")
 	}
 	if adamRemoteRedisURL != "" {
 		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
@@ -189,10 +156,32 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 		}
 		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--db-url %s", adamRemoteRedisURL))...)
 	}
+
+	serverCertPath := filepath.Join(globalCertsDir, "server.pem")
+	adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--server-cert %s", serverCertPath))...)
+
+	serverKeyPath := filepath.Join(globalCertsDir, "server-key.pem")
+	adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--server-key %s", serverKeyPath))...)
+
+	if !apiV1 {
+		signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
+		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--signing-cert %s", signingCertPath))...)
+
+		signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
+		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--signing-key %s", signingKeyPath))...)
+
+		encryptCertPath := filepath.Join(globalCertsDir, "encrypt.pem")
+		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--encrypt-cert %s", encryptCertPath))...)
+
+		encryptKeyPath := filepath.Join(globalCertsDir, "encrypt-key.pem")
+		adamServerCommand = append(adamServerCommand, strings.Fields(fmt.Sprintf("--encrypt-key %s", encryptKeyPath))...)
+	}
+
 	adamServerCommand = append(adamServerCommand, opts...)
+
 	if adamForce {
 		_ = utils.StopContainer(defaults.DefaultAdamContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
+		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, nil); err != nil {
 			return fmt.Errorf("StartAdam: error in create adam container: %s", err)
 		}
 	} else {
@@ -201,7 +190,7 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 			return fmt.Errorf("StartAdam: error in get state of adam container: %s", err)
 		}
 		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, envs); err != nil {
+			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, nil); err != nil {
 				return fmt.Errorf("StartAdam: error in create adam container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
