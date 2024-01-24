@@ -7,7 +7,7 @@ require (
 	github.com/amitbet/vncproxy v0.0.0-20200118084310-ea8f9b510913
 	github.com/containerd/containerd v1.6.18
 	github.com/docker/distribution v2.8.2+incompatible
-	github.com/docker/docker v20.10.24+incompatible
+	github.com/docker/docker v20.10.27+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.15.0
