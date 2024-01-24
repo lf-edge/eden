@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/lf-edge/eden/eserver/api"
-	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/models"
@@ -762,106 +761,6 @@ func MakeEveInRepo(desc utils.EVEDescription, dist string) (image, additional st
 		return "", "", fmt.Errorf("MakeEveInRepo: unsupported arch %s", desc.Arch)
 	}
 	return
-}
-
-// CleanContext cleanup only context data
-func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmName string, configSaved string, remote bool) (err error) {
-	edenDir, err := utils.DefaultEdenDir()
-	if err != nil {
-		return fmt.Errorf("CleanContext: %s", err)
-	}
-	eveStatusFile := filepath.Join(edenDir, fmt.Sprintf("state-%s.yml", eveUUID))
-	if _, err = os.Stat(eveStatusFile); !os.IsNotExist(err) {
-		ctrl, err := controller.CloudPrepare()
-		if err != nil {
-			return fmt.Errorf("CleanContext: error in CloudPrepare: %s", err)
-		}
-		log.Debugf("Get devUUID for onboardUUID %s", eveUUID)
-		devUUID, err := ctrl.DeviceGetByOnboardUUID(eveUUID)
-		if err != nil {
-			return fmt.Errorf("CleanContext: %s", err)
-		}
-		log.Debugf("Deleting devUUID %s", devUUID)
-		if err := ctrl.DeviceRemove(devUUID); err != nil {
-			log.Errorf("CleanContext: %s", err)
-		}
-		log.Debugf("Deleting onboardUUID %s", eveUUID)
-		if err := ctrl.OnboardRemove(eveUUID); err != nil {
-			log.Errorf("CleanContext: %s", err)
-		}
-		localViper := viper.New()
-		localViper.SetConfigFile(eveStatusFile)
-		if err := localViper.ReadInConfig(); err != nil {
-			log.Debug(err)
-		} else {
-			eveConfigFile := localViper.GetString("eve-config")
-			if _, err = os.Stat(eveConfigFile); !os.IsNotExist(err) {
-				if err := os.Remove(eveConfigFile); err != nil {
-					log.Debug(err)
-				}
-			}
-		}
-		if err = os.RemoveAll(eveStatusFile); err != nil {
-			return fmt.Errorf("CleanContext: error in %s delete: %s", eveStatusFile, err)
-		}
-	}
-	if !remote {
-		devModel := viper.GetString("eve.devModel")
-		switch devModel {
-		case defaults.DefaultVBoxModel:
-			if err := StopEVEVBox(vmName); err != nil {
-				log.Infof("cannot stop EVE: %s", err)
-			} else {
-				log.Infof("EVE stopped")
-			}
-			if err := DeleteEVEVBox(vmName); err != nil {
-				log.Infof("cannot delete EVE: %s", err)
-			}
-		case defaults.DefaultParallelsModel:
-			if err := StopEVEParallels(vmName); err != nil {
-				log.Infof("cannot stop EVE: %s", err)
-			} else {
-				log.Infof("EVE stopped")
-			}
-			if err := DeleteEVEParallels(vmName); err != nil {
-				log.Infof("cannot delete EVE: %s", err)
-			}
-		default:
-			if err := StopEVEQemu(evePID); err != nil {
-				log.Infof("cannot stop EVE: %s", err)
-			} else {
-				log.Infof("EVE stopped")
-			}
-			err := StopSWTPM(filepath.Join(imagesDist, "swtpm"))
-			if err != nil {
-				log.Errorf("cannot stop swtpm: %s", err)
-			} else {
-				log.Infof("swtpm is stopping")
-			}
-		}
-		StopSDN(devModel, sdnPID)
-	}
-	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
-		if err = os.RemoveAll(eveDist); err != nil {
-			return fmt.Errorf("CleanContext: error in %s delete: %s", eveDist, err)
-		}
-	}
-	if _, err = os.Stat(certsDist); !os.IsNotExist(err) {
-		if err = os.RemoveAll(certsDist); err != nil {
-			return fmt.Errorf("CleanContext: error in %s delete: %s", certsDist, err)
-		}
-	}
-	if _, err = os.Stat(imagesDist); !os.IsNotExist(err) {
-		if err = os.RemoveAll(imagesDist); err != nil {
-			return fmt.Errorf("CleanContext: error in %s delete: %s", imagesDist, err)
-		}
-	}
-	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
-		if err = os.RemoveAll(configSaved); err != nil {
-			return fmt.Errorf("CleanContext: error in %s delete: %s", configSaved, err)
-		}
-	}
-	return nil
 }
 
 // StopEden teardown Eden

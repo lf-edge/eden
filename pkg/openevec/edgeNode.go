@@ -273,15 +273,14 @@ func (openEVEC *OpenEVEC) EdgeNodeGetConfig(controllerMode, fileWithConfig strin
 }
 
 func (openEVEC *OpenEVEC) EdgeNodeSetConfig(fileWithConfig string) error {
-	ctrl, err := controller.CloudPrepare()
-	if err != nil {
-		return fmt.Errorf("CloudPrepare: %w", err)
-	}
 	vars, err := InitVarsFromConfig(openEVEC.cfg)
 	if err != nil {
 		return fmt.Errorf("InitVarsFromConfig error: %w", err)
 	}
-	ctrl.SetVars(vars)
+	ctrl, err := controller.CloudPrepare(vars)
+	if err != nil {
+		return fmt.Errorf("CloudPrepare: %w", err)
+	}
 	devFirst, err := ctrl.GetDeviceCurrent()
 	if err != nil {
 		return fmt.Errorf("GetDeviceCurrent error: %w", err)
@@ -382,15 +381,14 @@ func (openEVEC *OpenEVEC) EdgeNodeSetOptions(controllerMode, fileWithConfig stri
 }
 
 func (openEVEC *OpenEVEC) ControllerGetOptions(fileWithConfig string) error {
-	ctrl, err := controller.CloudPrepare()
-	if err != nil {
-		return fmt.Errorf("CloudPrepare error: %w", err)
-	}
 	vars, err := InitVarsFromConfig(openEVEC.cfg)
 	if err != nil {
 		return fmt.Errorf("InitVarsFromConfig error: %w", err)
 	}
-	ctrl.SetVars(vars)
+	ctrl, err := controller.CloudPrepare(vars)
+	if err != nil {
+		return fmt.Errorf("CloudPrepare error: %w", err)
+	}
 	res, err := ctrl.GetGlobalOptions()
 	if err != nil {
 		return fmt.Errorf("GetGlobalOptions error: %w", err)
@@ -410,15 +408,14 @@ func (openEVEC *OpenEVEC) ControllerGetOptions(fileWithConfig string) error {
 }
 
 func (openEVEC *OpenEVEC) ControllerSetOptions(fileWithConfig string) error {
-	ctrl, err := controller.CloudPrepare()
-	if err != nil {
-		return fmt.Errorf("CloudPrepare error: %w", err)
-	}
 	vars, err := InitVarsFromConfig(openEVEC.cfg)
 	if err != nil {
 		return fmt.Errorf("InitVarsFromConfig error: %w", err)
 	}
-	ctrl.SetVars(vars)
+	ctrl, err := controller.CloudPrepare(vars)
+	if err != nil {
+		return fmt.Errorf("CloudPrepare error: %w", err)
+	}
 	var newOptionsBytes []byte
 	if fileWithConfig != "" {
 		newOptionsBytes, err = os.ReadFile(fileWithConfig)
