@@ -281,6 +281,19 @@ Or to run the workflow tests:
 EDEN_TEST=small eden test tests/workflow -v debug
 ```
 
+Because most workflow tests already contain a setup phase you only need minimal preparation before running them - here is an example of running smoke test workflow (as done in `.github/actions/setup-environment/action.yml` and `.github/actions/run-eden-test/action.yml`):
+
+```console
+(optional) make clean
+make build
+make build-tests
+eden config add default
+eden setup
+eden test tests/workflow/ -s smoke.tests.txt
+```
+
+Here it is important not to do the setup with `make run`, because it doesn't include a call to `eden+ports.sh` that sets up port forwarding for the tests.
+
 For tests that accept parameters, simply pass them after the test path. For
 example, to run Log/Metrics/Info test
 in debug mode with timeout of 600 seconds and requiring 3 messages of each type:
