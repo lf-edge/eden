@@ -33,6 +33,7 @@ jobs:
   smoke:
     continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
         tpm: [true, false]
