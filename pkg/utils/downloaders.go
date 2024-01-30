@@ -78,8 +78,8 @@ func DownloadUEFI(eve EVEDescription, outputDir string) (err error) {
 	if err := PullImage(image); err != nil {
 		return fmt.Errorf("ImagePull (%s): %s", image, err)
 	}
-	if err := SaveImageAndExtract(image, outputDir, "/bits/firmware"); err != nil {
-		return fmt.Errorf("SaveImageAndExtract: %w", err)
+	if err := ExtractFromImage(image, outputDir, "/bits/firmware"); err != nil {
+		return fmt.Errorf("ExtractFromImage: %w", err)
 	}
 	return nil
 }
