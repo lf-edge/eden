@@ -29,6 +29,7 @@ linters:
     - maligned          # Too opinionated on existing structs
     - nestif            # Too opinionated on existing code
     - gomoddirectives   # We use replacements in go mod
+    - cyclop            # Raises warnings even for relatively simple functions
 
 issues:
   max-issues-per-linter: 0
