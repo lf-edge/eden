@@ -1,14 +1,12 @@
 package utils
 
 import (
-	"archive/tar"
 	"bufio"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -31,12 +29,12 @@ func CreateDockerNetwork(name string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("NewClientWithOpts: %s", err)
+		return fmt.Errorf("NewClientWithOpts: %w", err)
 	}
-	//check existing networks
+	// check existing networks
 	result, err := cli.NetworkList(ctx, types.NetworkListOptions{})
 	if err != nil {
-		return fmt.Errorf("NetworkListOptions: %s", err)
+		return fmt.Errorf("NetworkListOptions: %w", err)
 	}
 	for _, el := range result {
 		if el.Name == name {
@@ -57,7 +55,7 @@ func RemoveGeneratedVolumeOfContainer(containerName string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("NewClientWithOpts: %s", err)
+		return fmt.Errorf("NewClientWithOpts: %w", err)
 	}
 	return cli.VolumeRemove(ctx, volumeName, true)
 }
@@ -68,7 +66,7 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("NewClientWithOpts: %s", err)
+		return fmt.Errorf("NewClientWithOpts: %w", err)
 	}
 	if err = PullImage(imageName); err != nil {
 		return err
@@ -107,11 +105,11 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 				Source: dockerVolumeName(containerName),
 				Target: target,
 			})
-			user = "" //non-root user required only for TypeBind for delete
+			user = "" // non-root user required only for TypeBind for delete
 		}
 	}
 	if err = CreateDockerNetwork(defaults.DefaultDockerNetworkName); err != nil {
-		return fmt.Errorf("CreateDockerNetwork: %s", err)
+		return fmt.Errorf("CreateDockerNetwork: %w", err)
 	}
 	hostConfig := &container.HostConfig{
 		PortBindings: portBinding,
@@ -130,11 +128,11 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 		Env:          envs,
 	}, hostConfig, nil, nil, containerName)
 	if err != nil {
-		return fmt.Errorf("ContainerCreate: %s", err)
+		return fmt.Errorf("ContainerCreate: %w", err)
 	}
 
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return fmt.Errorf("ContainerStart: %s", err)
+		return fmt.Errorf("ContainerStart: %w", err)
 	}
 
 	log.Infof("started container: %s", resp.ID)
@@ -147,12 +145,12 @@ func GetDockerNetworks() ([]*net.IPNet, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return nil, fmt.Errorf("client.NewClientWithOpts: %s", err)
+		return nil, fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	networkTypes := types.NetworkListOptions{}
 	resp, err := cli.NetworkList(ctx, networkTypes)
 	if err != nil {
-		return nil, fmt.Errorf("GetNetworks: %s", err)
+		return nil, fmt.Errorf("GetNetworks: %w", err)
 	}
 	for _, el := range resp {
 		for _, ipam := range el.IPAM.Config {
@@ -170,18 +168,18 @@ func PullImage(image string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+		return fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	_, _, err = cli.ImageInspectWithRaw(ctx, image)
-	if err == nil { //local image is ok
+	if err == nil { // local image is ok
 		return nil
 	}
 	resp, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
-		return fmt.Errorf("imagePull: %s", err)
+		return fmt.Errorf("imagePull: %w", err)
 	}
 	if err = writeToLog(resp); err != nil {
-		return fmt.Errorf("imagePull LOG: %s", err)
+		return fmt.Errorf("imagePull LOG: %w", err)
 	}
 	return nil
 }
@@ -191,7 +189,7 @@ func HasImage(image string) (bool, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return false, fmt.Errorf("client.NewClientWithOpts: %s", err)
+		return false, fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	_, _, err = cli.ImageInspectWithRaw(ctx, image)
 	if err == nil { // has the image
@@ -208,11 +206,11 @@ func CreateImage(dir, tag, platform string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+		return fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	dockerFile := filepath.Join(dir, "Dockerfile")
 	if _, err := os.Stat(dockerFile); os.IsNotExist(err) {
-		//write simple Dockerfile if not exists
+		// write simple Dockerfile if not exists
 		defer os.Remove(dockerFile)
 		if err := os.WriteFile(dockerFile, []byte("FROM scratch\nCOPY . /\n"), 0777); err != nil {
 			return err
@@ -240,7 +238,7 @@ func TagImage(oldTag, newTag string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+		return fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	if err := cli.ImageTag(ctx, oldTag, newTag); err != nil {
 		return fmt.Errorf("unable to tag %s to %s", oldTag, newTag)
@@ -253,13 +251,13 @@ func PushImage(image, remote string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("client.NewClientWithOpts: %s", err)
+		return fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	remoteName := image
 	if remote != "" {
 		ref, err := name.ParseReference(image)
 		if err != nil {
-			return fmt.Errorf("error parsing name %s: %v", image, err)
+			return fmt.Errorf("error parsing name %s: %w", image, err)
 		}
 		remoteName = strings.Replace(ref.Name(), ref.Context().Registry.Name(), remote, 1)
 	}
@@ -268,10 +266,10 @@ func PushImage(image, remote string) error {
 	}
 	resp, err := cli.ImagePush(ctx, remoteName, types.ImagePushOptions{})
 	if err != nil {
-		return fmt.Errorf("imagePush: %v", err)
+		return fmt.Errorf("imagePush: %w", err)
 	}
 	if err = writeToLog(resp); err != nil {
-		return fmt.Errorf("imagePush LOG: %s", err)
+		return fmt.Errorf("imagePush LOG: %w", err)
 	}
 	return nil
 }
@@ -281,7 +279,7 @@ func SaveImage(image string) (io.ReadCloser, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return nil, fmt.Errorf("client.NewClientWithOpts: %s", err)
+		return nil, fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	reader, err := cli.ImageSave(ctx, []string{image})
 	if err != nil {
@@ -290,14 +288,36 @@ func SaveImage(image string) (io.ReadCloser, error) {
 	return reader, err
 }
 
-// SaveImageAndExtract from docker to outputDir only for path defaultEvePrefixInTar in docker rootfs
-func SaveImageAndExtract(image, outputDir, defaultEvePrefixInTar string) error {
-	reader, err := SaveImage(image)
+// ExtractFromImage creates a container from an image, copies a file or directory from it, and then removes the container.
+func ExtractFromImage(imageName, localPath, containerPath string) error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return err
+		return fmt.Errorf("client.NewClientWithOpts: %w", err)
+	}
+
+	// Create a temporary container
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: imageName,
+	}, nil, nil, nil, "")
+	if err != nil {
+		return fmt.Errorf("error creating container: %w", err)
+	}
+	containerID := resp.ID
+	defer func() {
+		if err := cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true}); err != nil {
+			log.Errorf("ContainerRemove error: %s", err)
+		}
+	}()
+
+	// Open a TAR-reader containing the copied file / directory from the container
+	reader, _, err := cli.CopyFromContainer(ctx, containerID, containerPath)
+	if err != nil {
+		return fmt.Errorf("error copying from container: %w", err)
 	}
 	defer reader.Close()
-	return ExtractFilesFromDocker(reader, outputDir, defaultEvePrefixInTar)
+
+	return ExtractFromTar(reader, localPath)
 }
 
 // SaveImageToTar creates tar from image
@@ -310,7 +330,7 @@ func SaveImageToTar(image, tarFile string) error {
 
 	f, err := os.Create(tarFile)
 	if err != nil {
-		return fmt.Errorf("unable to create tar file %s: %v", tarFile, err)
+		return fmt.Errorf("unable to create tar file %s: %w", tarFile, err)
 	}
 	defer f.Close()
 	_, _ = io.Copy(f, reader)
@@ -434,97 +454,6 @@ func writeToLog(reader io.ReadCloser) error {
 	return nil
 }
 
-// ExtractFilesFromDocker extract all files from docker layer into directory
-// if prefixDirectory is not empty, remove it from path
-func ExtractFilesFromDocker(u io.ReadCloser, directory string, prefixDirectory string) error {
-	if err := os.MkdirAll(directory, 0755); err != nil {
-		return fmt.Errorf("ExtractFilesFromDocker: MkdirAll() failed: %s", err.Error())
-	}
-	tarReader := tar.NewReader(u)
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("ExtractFilesFromDocker: Next() failed: %s", err.Error())
-		}
-		switch header.Typeflag {
-		case tar.TypeReg:
-			if strings.TrimSpace(filepath.Ext(header.Name)) == ".tar" {
-				log.Infof("Extract layer %s", header.Name)
-				if err = extractLayersFromDocker(tarReader, directory, prefixDirectory); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// if prefixDirectory is empty, extract all
-func extractLayersFromDocker(u io.Reader, directory string, prefixDirectory string) error {
-	// path inside tar is relative
-	prefixDirectory = strings.TrimLeft(prefixDirectory, "/")
-	pathBuilder := func(oldPath string) string {
-		return path.Join(directory, strings.TrimPrefix(oldPath, prefixDirectory))
-	}
-	tarReader := tar.NewReader(u)
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("ExtractFilesFromDocker: Next() failed: %s", err.Error())
-		}
-		//extract only from directory of interest
-		if prefixDirectory != "" && strings.TrimPrefix(header.Name, prefixDirectory) == header.Name {
-			continue
-		}
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.MkdirAll(pathBuilder(header.Name), 0755); err != nil {
-				return fmt.Errorf("ExtractFilesFromDocker: Mkdir() failed: %s", err.Error())
-			}
-		case tar.TypeReg:
-			if _, err := os.Lstat(pathBuilder(header.Name)); err == nil {
-				err = os.Remove(pathBuilder(header.Name))
-				if err != nil {
-					return fmt.Errorf("ExtractFilesFromDocker: cannot remove old file: %s", err.Error())
-				}
-			}
-			outFile, err := os.Create(pathBuilder(header.Name))
-			if err != nil {
-				return fmt.Errorf("ExtractFilesFromDocker: Create() failed: %s", err.Error())
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return fmt.Errorf("ExtractFilesFromDocker: Copy() failed: %s", err.Error())
-			}
-			if err := outFile.Close(); err != nil {
-				return fmt.Errorf("ExtractFilesFromDocker: outFile.Close() failed: %s", err.Error())
-			}
-		case tar.TypeLink, tar.TypeSymlink:
-			if _, err := os.Lstat(pathBuilder(header.Name)); err == nil {
-				err = os.Remove(pathBuilder(header.Name))
-				if err != nil {
-					return fmt.Errorf("ExtractFilesFromDocker: cannot remove old symlink: %s", err.Error())
-				}
-			}
-			if err := os.Symlink(pathBuilder(header.Linkname), pathBuilder(header.Name)); err != nil {
-				return fmt.Errorf("ExtractFilesFromDocker: Symlink(%s, %s) failed: %s",
-					pathBuilder(header.Name), pathBuilder(header.Linkname), err.Error())
-			}
-		default:
-			return fmt.Errorf(
-				"ExtractFilesFromDocker: uknown type: '%s' in %s",
-				string([]byte{header.Typeflag}),
-				header.Name)
-		}
-	}
-	return nil
-}
-
 // RunDockerCommand is run wrapper for docker container
 func RunDockerCommand(image string, command string, volumeMap map[string]string) (result string, err error) {
 	log.Debugf("Try to call 'docker run %s %s' with volumes %s", image, command, volumeMap)
@@ -536,7 +465,7 @@ func RunDockerCommand(image string, command string, volumeMap map[string]string)
 	if err := PullImage(image); err != nil {
 		return "", err
 	}
-	var mounts []mount.Mount
+	mounts := make([]mount.Mount, 0, len(volumeMap)) // Preallocate the mounts slice with a capacity equal to the length of volumeMap
 	for target, source := range volumeMap {
 		mounts = append(mounts, mount.Mount{
 			Type:   mount.TypeBind,

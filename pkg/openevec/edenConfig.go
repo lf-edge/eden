@@ -124,10 +124,10 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 		imageDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist)
 		switch cfg.Eve.Arch {
 		case "amd64":
-			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "OVMF_CODE.fd"),
-				filepath.Join(imageDist, "eve", "OVMF_VARS.fd")})
+			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "firmware", "OVMF_CODE.fd"),
+				filepath.Join(imageDist, "eve", "firmware", "OVMF_VARS.fd")})
 		case "arm64":
-			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "OVMF.fd")})
+			viper.Set("eve.firmware", []string{filepath.Join(imageDist, "eve", "firmware", "OVMF.fd")})
 		}
 	}
 	if cfg.Eve.Ssid != "" {
