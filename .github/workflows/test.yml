@@ -12,6 +12,8 @@ on:  # yamllint disable-line rule:truthy
         type: string
       eve_artifact_name:
         type: string
+      artifact_run_id:
+        type: string
   workflow_call:
     inputs:
       eden_version:
@@ -21,6 +23,8 @@ on:  # yamllint disable-line rule:truthy
       eve_image:
         type: string
       eve_artifact_name:
+        type: string
+      artifact_run_id:
         type: string
 
 jobs:
@@ -62,6 +66,7 @@ jobs:
           suite: "smoke.tests.txt"
           eve_image:  ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
 
   networking:
     name: Networking test suite
@@ -82,6 +87,7 @@ jobs:
           suite: "networking.tests.txt"
           eve_image:   ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
 
   storage:
     continue-on-error: true
@@ -106,6 +112,7 @@ jobs:
           suite: "storage.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
 
   lpc-loc:
     name: LPC LOC test suite
@@ -126,6 +133,7 @@ jobs:
           suite: "lpc-loc.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
 
   eve-upgrade:
     continue-on-error: true
@@ -150,6 +158,7 @@ jobs:
           suite: "eve-upgrade.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
 
   user-apps:
     name: User apps test suite
@@ -170,4 +179,4 @@ jobs:
           suite: "user-apps.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
-
+          artifact_run_id: ${{ inputs.artifact_run_id }}
