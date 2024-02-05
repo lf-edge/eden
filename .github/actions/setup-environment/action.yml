@@ -12,6 +12,8 @@ inputs:
     type: string
   eve_artifact_name:
     type: string
+  artifact_run_id:
+    type: string
 
 runs:
   using: 'composite'
@@ -56,14 +58,18 @@ runs:
       shell: bash
       working-directory: "./eden"
     - name: Download artifact if specified
-      if: github.event.inputs.eve_artifact_name != ''
-      uses: actions/download-artifact@v3
+      if: inputs.eve_artifact_name != ''
+      uses: actions/download-artifact@v4
       with:
-        name: inputs.eve_artifact_name
+        github-token: ${{ github.token }}
+        name: ${{ inputs.eve_artifact_name }}
+        path: artifacts  # this is the directory where it will put the artifact, not its name
+        run-id: ${{ inputs.artifact_run_id }}
     - name: Load containers to docker if specified
-      if: github.event.inputs.eve_artifact_name != ''
+      if: inputs.eve_artifact_name != ''
       run: |
-        docker load -q -i ${{ inputs.eve_artifact_name }}.tar
+        docker load -q -i artifacts/${{ inputs.eve_artifact_name }}.tar
+        docker image ls
       shell: bash
     - name: Setup eve version
       run: |
