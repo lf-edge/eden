@@ -16,7 +16,7 @@ jobs:
         run: |
           ip a
       - name: get eden
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Set up QEMU
@@ -58,9 +58,9 @@ jobs:
           ./eden config add setup --devmodel general
           ./eden --config setup setup
           ./eden --config setup clean
-          ./eden config delete setup         
-          
-          # try download and build from repo 
+          ./eden config delete setup
+
+          # try download and build from repo
           ./eden config add setup
           # use stable tag as eve tag and branch may differ
           ./eden config set setup --key eve.tag --value="8.6.0"

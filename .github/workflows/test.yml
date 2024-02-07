@@ -1,9 +1,13 @@
 ---
 name: Test
 
-on:
+on:  # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
+      eden_version:
+        type: string
+        required: false
+        default: ''  # if not provided: When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event. Otherwise, uses the default branch.
       eve_image:
         type: string
       runner:
@@ -11,6 +15,10 @@ on:
         default: buildjet-4vcpu-ubuntu-2204
   workflow_call:
     inputs:
+      eden_version:
+        type: string
+        required: false
+        default: ''  # if not provided: When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event. Otherwise, uses the default branch.
       eve_image:
         type: string
       runner:
@@ -28,9 +36,10 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Smoke tests
         uses: ./eden/.github/actions/run-eden-test
@@ -46,9 +55,10 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Networking tests
         uses: ./eden/.github/actions/run-eden-test
@@ -68,9 +78,10 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Storage tests
         uses: ./eden/.github/actions/run-eden-test
@@ -86,9 +97,10 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run LPC LOC tests
         uses: ./eden/.github/actions/run-eden-test
@@ -108,9 +120,10 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run EVE upgrade tests
         uses: ./eden/.github/actions/run-eden-test
@@ -126,9 +139,10 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run User apps upgrade tests
         uses: ./eden/.github/actions/run-eden-test
