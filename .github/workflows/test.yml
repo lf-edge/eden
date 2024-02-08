@@ -50,7 +50,7 @@ jobs:
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
@@ -71,7 +71,7 @@ jobs:
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
@@ -96,7 +96,7 @@ jobs:
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
@@ -117,7 +117,7 @@ jobs:
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
@@ -142,7 +142,7 @@ jobs:
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
@@ -163,7 +163,7 @@ jobs:
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
