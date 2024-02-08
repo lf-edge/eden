@@ -30,7 +30,7 @@ jobs:
         fs: ["zfs", "ext4"]
     steps:
       - name: get eden
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.1
       - name: setup go
         uses: actions/setup-go@v3
         with:
