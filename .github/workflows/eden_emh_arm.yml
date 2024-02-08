@@ -21,7 +21,7 @@ jobs:
           sudo add-apt-repository ppa:longsleep/golang-backports
           sudo apt install -y golang jq expect
       - name: Get eden
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.1
       - name: Create ubuntu server on packet hosting
         id: ubuntu
         run: |
