@@ -851,11 +851,6 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmNam
 			return fmt.Errorf("CleanContext: error in %s delete: %s", certsDist, err)
 		}
 	}
-	if _, err = os.Stat(imagesDist); !os.IsNotExist(err) {
-		if err = os.RemoveAll(imagesDist); err != nil {
-			return fmt.Errorf("CleanContext: error in %s delete: %s", imagesDist, err)
-		}
-	}
 	if _, err = os.Stat(configSaved); !os.IsNotExist(err) {
 		if err = os.RemoveAll(configSaved); err != nil {
 			return fmt.Errorf("CleanContext: error in %s delete: %s", configSaved, err)
