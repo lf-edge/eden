@@ -93,7 +93,7 @@ const (
 	DefaultIsLocal               = false
 	DefaultEVEHV                 = "kvm"
 	DefaultCpus                  = 4
-	DefaultMemory                = 4096
+	DefaultMemory                = 8192
 	DefaultEVESerial             = "31415926"
 	NetDHCPID                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
 	NetDHCPID2                   = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
