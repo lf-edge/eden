@@ -1,0 +1,77 @@
+# Test of controller certificate change
+# This test validates the re-encryption of an application's user data
+# following a change in the controller's certificate, accompanied by an edge node reboot.
+# The test involves deploying three applications to make sure the config is (re)applied to all of them.
+
+{{$port := "2223"}}
+
+{{$userdata := "variable=value"}}
+{{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:chmod] stop
+
+exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
+
+eden network create 10.11.12.0/24 -n n1
+eden pod deploy -n eclient1 --memory=512MB --networks=n1 {{template "eclient_image"}} -p {{$port}}:22 --metadata={{$userdata}}
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient1
+
+# generate new controller certificate
+eden utils gen-signing-cert -o /tmp/signing-new.pem
+
+# upload new certificate to controller, resign old config and reapply it
+eden adam change-signing-cert --cert-file /tmp/signing-new.pem
+
+# wait for changes to be applied
+test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.reconnecting.app'
+
+eden pod deploy -n eclient2 --memory=512MB --networks=n1 {{template "eclient_image"}} --metadata={{$userdata}}
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient2
+
+# check EVE got the new signing certificate
+exec -t 2m bash check_sign_cert.sh
+
+# send reboot command and wait in background
+test eden.reboot.test -test.v -timewait=20m -reboot=1 -count=1 &
+
+# wait for RUNNING state after reboot
+test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient1
+test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient2
+
+eden pod deploy -n eclient3 --memory=512MB --networks=n1 {{template "eclient_image"}} --metadata={{$userdata}}
+
+# check all apps are RUNNING
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient1
+test eden.app.test -test.v -timewait 20m RUNNING eclient2
+test eden.app.test -test.v -timewait 20m RUNNING eclient3
+
+# cleanup
+eden pod delete eclient1
+eden pod delete eclient2
+eden pod delete eclient3
+eden network delete n1
+
+test eden.app.test -test.v -timewait 10m - eclient1
+test eden.app.test -test.v -timewait 10m - eclient2
+test eden.app.test -test.v -timewait 10m - eclient3
+test eden.network.test -test.v -timewait 10m - n1
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- check_sign_cert.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh cat /persist/certs/server-signing-cert.pem > /tmp/server-signing-cert.pem
+diff -Z /tmp/signing-new.pem /tmp/server-signing-cert.pem
