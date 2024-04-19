@@ -157,7 +157,8 @@ jobs:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: true
           suite: "eve-upgrade.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
+          eve_image: lf-edge/eve:11.0.5-lts
+          env_vars: EVE_VERSION=${{ inputs.eve_image }} SKIP_RESET=y
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
 

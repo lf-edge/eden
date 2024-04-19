@@ -10,6 +10,9 @@
 # If environment variable EVE_VERSION set, use it instead of default
 {{if $env}}{{$eve_ver = $env}}{{end}}
 
+# If environment variable SKIP_RESET is set to 'y', do not reset back to the original EVE version.
+{{$skip_reset := EdenGetEnv "SKIP_RESET"}}
+
 # We want to test update logic of current image
 # Will use predefined HV
 {{$eve_hv := "kvm"}}
@@ -73,11 +76,13 @@ stdout '{{ $short_version }}'
 # Decrease update testing time
 eden controller edge-node update --config timer.test.baseimage.update=30
 
+{{if (ne $skip_reset "y")}}
 # Reset EVE version
 test eden.escript.test -test.run TestEdenScripts/revert_eve_image_update -test.v -testdata {{EdenConfig "eden.tests"}}/update_eve_image/testdata/
 
 # Reset EVE config
 eden eve reset
+{{end}}
 
 # Test's config file
 -- eden-config.yml --
