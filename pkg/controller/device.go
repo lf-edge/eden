@@ -638,6 +638,7 @@ volumeLoop:
 			Uuid:    dev.GetID().String(),
 			Version: strconv.Itoa(dev.GetConfigVersion()),
 		},
+		DeviceName:         dev.GetID().String(),
 		Volumes:            volumes,
 		ContentInfo:        contentTrees,
 		Apps:               applicationInstances,
