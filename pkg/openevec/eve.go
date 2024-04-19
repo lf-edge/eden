@@ -82,7 +82,8 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 		imageDir := filepath.Dir(cfg.Sdn.ImageFile)
 		firmware := []string{"OVMF_CODE.fd", "OVMF_VARS.fd"}
 		for i := range firmware {
-			firmware[i] = utils.ResolveAbsPath(filepath.Join(imageDir, firmware[i]))
+			firmware[i] = utils.ResolveAbsPath(
+				filepath.Join(imageDir, "firmware", firmware[i]))
 		}
 		sdnConfig := edensdn.SdnVMConfig{
 			Architecture: cfg.Eve.Arch,
