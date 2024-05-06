@@ -30,6 +30,12 @@ func (vm *SdnVMQemuRunner) Start() error {
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,"+
 		"host=localhost,server,nodelay,nowait,telnet,logfile=%s ",
 		vm.TelnetPort, vm.ConsoleLogFile)
+	// Please note that the SDN agent uses maxMTU=16110, which is the limit imposed
+	// by the e1000 device. Should a different network device be used, do not forget
+	// to update maxMTU value accordingly.
+	// Virtio driver used for arm64 architecture does not impose any MTU limit,
+	// meaning that MTU can be up to the theoretical limit of 65535 bytes
+	// (but we still use 16110 as maxMTU even for arm64).
 	netDev := "e1000"
 	hostOS := strings.ToLower(vm.HostOS)
 	if hostOS == "" {

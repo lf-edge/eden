@@ -21,6 +21,8 @@ type Bond struct {
 	IfName string
 	// AggregatedPhysIfs : list of physical interfaces aggregated by this bond.
 	AggregatedPhysIfs []PhysIf
+	// MTU : Maximum transmission unit size.
+	MTU uint16
 }
 
 // Name
@@ -42,7 +44,8 @@ func (b Bond) Type() string {
 func (b Bond) Equal(other depgraph.Item) bool {
 	b2 := other.(Bond)
 	return reflect.DeepEqual(b.Bond, b2.Bond) &&
-		reflect.DeepEqual(b.AggregatedPhysIfs, b2.AggregatedPhysIfs)
+		reflect.DeepEqual(b.AggregatedPhysIfs, b2.AggregatedPhysIfs) &&
+		b.MTU == b2.MTU
 }
 
 // External returns false.
@@ -127,6 +130,11 @@ func (c *BondConfigurator) Create(ctx context.Context, item depgraph.Item) error
 			bond.ArpIpTargets = append(bond.ArpIpTargets, ip)
 		}
 	}
+	if bondCfg.MTU == 0 {
+		bond.MTU = defaultMTU
+	} else {
+		bond.MTU = int(bondCfg.MTU)
+	}
 	err := netlink.LinkAdd(bond)
 	if err != nil {
 		err = fmt.Errorf("failed to add bond: %v", err)
@@ -203,7 +211,7 @@ func (c *BondConfigurator) disaggregateInterface(aggrIfMAC net.HardwareAddr) err
 	return nil
 }
 
-// Modify is able to change the set of aggregated interfaces.
+// Modify is able to change the set of aggregated interfaces and MTU.
 func (c *BondConfigurator) Modify(ctx context.Context, oldItem, newItem depgraph.Item) (err error) {
 	oldBondCfg := oldItem.(Bond)
 	newBondCfg := newItem.(Bond)
@@ -256,6 +264,20 @@ func (c *BondConfigurator) Modify(ctx context.Context, oldItem, newItem depgraph
 			}
 		}
 	}
+	// Update MTU settings.
+	newMTU := newBondCfg.MTU
+	if newMTU == 0 {
+		newMTU = defaultMTU
+	}
+	if bond.MTU != int(newMTU) {
+		err = netlink.LinkSetMTU(bondLink, int(newMTU))
+		if err != nil {
+			err = fmt.Errorf("failed to set MTU %d for bond %s: %w",
+				newMTU, oldBondCfg.IfName, err)
+			log.Error(err)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -287,7 +309,7 @@ func (c *BondConfigurator) Delete(ctx context.Context, item depgraph.Item) error
 }
 
 // NeedsRecreate returns true if Bond attributes have changed.
-// The set of aggregated interfaces can be changed without recreating Bond.
+// The set of aggregated interfaces and MTU can be changed without recreating Bond.
 func (c *BondConfigurator) NeedsRecreate(oldItem, newItem depgraph.Item) (recreate bool) {
 	oldBondCfg := oldItem.(Bond)
 	newBondCfg := newItem.(Bond)
