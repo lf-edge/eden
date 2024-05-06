@@ -26,7 +26,8 @@ RUN apk add --no-cache lshw \
     setserial \
     avahi \
     lsblk \
-    tcpdump && \
+    tcpdump \
+    iputils && \
     apk --no-cache --repository https://dl-cdn.alpinelinux.org/alpine/edge/community add -U --upgrade dhcping sysbench
 
 COPY --from=build /out /
