@@ -157,6 +157,7 @@ func (a *agent) getIntendedHostConnectivity() dg.Graph {
 		},
 		Usage:   configitems.IfUsageL3,
 		AdminUP: true,
+		MTU:     maxMTU,
 	}, nil)
 	intendedCfg.PutItem(configitems.Sysctl{
 		EnableIPv4Forwarding:  true,
@@ -232,7 +233,7 @@ func (a *agent) getIntendedBridges() dg.Graph {
 			ParentLL: masterID.logicalLabel,
 			Usage:    usage,
 			AdminUP:  port.AdminUP,
-			MTU:      port.MTU,
+			MTU:      maxMTU,
 		}, nil)
 	}
 	for _, bond := range a.netModel.Bonds {
@@ -252,6 +253,7 @@ func (a *agent) getIntendedBridges() dg.Graph {
 			Bond:              bond,
 			IfName:            a.bondIfName(bond.LogicalLabel),
 			AggregatedPhysIfs: aggrPhysIfs,
+			MTU:               maxMTU,
 		}, nil)
 	}
 	for _, bridge := range a.netModel.Bridges {
@@ -289,6 +291,7 @@ func (a *agent) getIntendedBridges() dg.Graph {
 			PhysIfs:      physIfs,
 			BondIfs:      bonds,
 			VLANs:        vlans,
+			MTU:          maxMTU,
 		}, nil)
 	}
 	return intendedCfg
@@ -317,6 +320,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			IfName:       brInIfName,
 			NetNamespace: nsName,
 			IPAddresses:  []*net.IPNet{gwIP},
+			MTU:          network.MTU,
 		},
 		Peer2: configitems.VethPeer{
 			IfName:       brOutIfName,
@@ -325,6 +329,7 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 				IfName: a.bridgeIfName(network.Bridge),
 				VLAN:   network.VlanID,
 			},
+			MTU: network.MTU,
 		},
 	}, nil)
 
@@ -338,13 +343,13 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 			IfName:       rtInIfName,
 			NetNamespace: nsName,
 			IPAddresses:  []*net.IPNet{inIP},
-			MTU:          maxMTU, // do not limit MTU on this link
+			MTU:          network.MTU,
 		},
 		Peer2: configitems.VethPeer{
 			IfName:       rtOutIfName,
 			NetNamespace: configitems.MainNsName,
 			IPAddresses:  []*net.IPNet{outIP},
-			MTU:          maxMTU, // do not limit MTU on this link
+			MTU:          network.MTU,
 		},
 	}, nil)
 

@@ -70,6 +70,8 @@ type Endpoint struct {
 	// IP should be inside of the Subnet.
 	IP string `json:"ip"`
 	// MTU of the endpoint's interface.
+	// If not defined (zero value), the default MTU for Ethernet, which is 1500 bytes,
+	// will be set.
 	MTU uint16 `json:"mtu"`
 }
 

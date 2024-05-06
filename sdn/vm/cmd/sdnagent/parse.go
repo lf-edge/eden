@@ -18,7 +18,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const maxMTU = 9000
+const (
+	// Minimum accepted MTU value.
+	// Eventually, Eden-SDN will incorporate IPv6 support.
+	// As per RFC 8200, the MTU must not be less than 1280 bytes to accommodate IPv6 packets.
+	minMTU = 1280
+	// Maximum MTU supported by the e1000 driver (used for interfaces connecting
+	// Eden-SDN with the EVE VM).
+	maxMTU = 16110
+)
 
 type parsedNetModel struct {
 	api.NetworkModel
@@ -108,15 +116,6 @@ func (a *agent) validatePorts(netModel *parsedNetModel) (err error) {
 		if _, err = net.ParseMAC(port.EVEConnect.MAC); err != nil {
 			err = fmt.Errorf("EVE-side of port %s has invalid MAC address: %v",
 				port.LogicalLabel, err)
-			return
-		}
-	}
-
-	// MTU should be no more than 9000.
-	for _, port := range netModel.Ports {
-		if port.MTU > maxMTU {
-			err = fmt.Errorf("MTU %d configured for port %s is too large",
-				port.MTU, port.LogicalLabel)
 			return
 		}
 	}
@@ -258,6 +257,20 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 					network.LogicalLabel, route, route.Gateway)
 				return
 			}
+		}
+	}
+
+	// Validate MTU settings.
+	for _, network := range netModel.Networks {
+		if network.MTU != 0 && network.MTU < minMTU {
+			err = fmt.Errorf("MTU %d configured for network %s is too small",
+				network.MTU, network.LogicalLabel)
+			return
+		}
+		if network.MTU > maxMTU {
+			err = fmt.Errorf("MTU %d configured for network %s is too large",
+				network.MTU, network.LogicalLabel)
+			return
 		}
 	}
 
@@ -438,7 +451,12 @@ func (a *agent) validateEndpoint(endpoint api.Endpoint) (err error) {
 			"subnet (%s)", endpoint.LogicalLabel, endpoint.IP, endpoint.Subnet)
 		return
 	}
-	// MTU should be no more than 9000.
+	// Validate MTU settings.
+	if endpoint.MTU != 0 && endpoint.MTU < minMTU {
+		err = fmt.Errorf("MTU %d configured for endpoint %s is too small",
+			endpoint.MTU, endpoint.LogicalLabel)
+		return
+	}
 	if endpoint.MTU > maxMTU {
 		err = fmt.Errorf("MTU %d configured for endpoint %s is too large",
 			endpoint.MTU, endpoint.LogicalLabel)

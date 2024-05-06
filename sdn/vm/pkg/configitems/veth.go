@@ -183,14 +183,23 @@ func (c *VethConfigurator) configurePeer(peer VethPeer) error {
 	}
 	if peer.MasterBridge != nil {
 		// Put veth peer under the bridge.
-		bridge, err := netlink.LinkByName(peer.MasterBridge.IfName)
+		brIfName := peer.MasterBridge.IfName
+		bridge, err := netlink.LinkByName(brIfName)
 		if err != nil {
-			return fmt.Errorf("failed to put veth peer %s under bridge %s: %w",
-				peer.IfName, peer.MasterBridge.IfName, err)
+			return fmt.Errorf("failed to get bridge %s "+
+				"(for enslavement of veth peer %s): %w", brIfName, peer.IfName, err)
 		}
+		mtu := bridge.Attrs().MTU
 		err = netlink.LinkSetMaster(link, bridge)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to put veth peer %s under bridge %s: %w",
+				peer.IfName, brIfName, err)
+		}
+		// MTU is sometimes lost when new interface is put under the bridge.
+		err = netlink.LinkSetMTU(bridge, mtu)
+		if err != nil {
+			return fmt.Errorf("failed to restore bridge %s MTU %d "+
+				"(after enslaving veth peer %s): %w", brIfName, mtu, peer.IfName, err)
 		}
 		if peer.MasterBridge.VLAN != 0 {
 			err = netlink.BridgeVlanAdd(link, peer.MasterBridge.VLAN,

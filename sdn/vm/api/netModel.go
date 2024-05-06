@@ -89,8 +89,6 @@ type Port struct {
 	// MAC address assigned to the interface on the SDN side.
 	// If not specified by the user, Eden will generate a random MAC address.
 	MAC string `json:"mac"`
-	// MTU : Maximum transmission unit (for the SDN side).
-	MTU uint16 `json:"mtu"`
 	// AdminUP : whether the interface should be UP on the SDN side.
 	// Put down to test link-down scenarios on EVE.
 	AdminUP bool `json:"adminUP"`
@@ -217,6 +215,10 @@ type Network struct {
 	Subnet string `json:"subnet"`
 	// GwIP should be inside the Subnet.
 	GwIP string `json:"gwIP"`
+	// MTU : Maximum transmission unit size set for this network.
+	// If not defined (zero value), the default MTU for Ethernet, which is 1500 bytes,
+	// will be set.
+	MTU uint16 `json:"mtu"`
 	// DHCP configuration.
 	DHCP DHCP `json:"dhcp"`
 	// TransparentProxy : Logical label of a TransparentProxy endpoint, performing

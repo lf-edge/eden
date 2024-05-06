@@ -26,6 +26,8 @@ type Bridge struct {
 	// VLANs : list of VLANs used with this bridge.
 	// If empty then this bridge is used without VLAN filtering.
 	VLANs []uint16
+	// MTU : Maximum transmission unit size.
+	MTU uint16
 }
 
 // Name
@@ -49,7 +51,8 @@ func (b Bridge) Equal(other depgraph.Item) bool {
 	return b.LogicalLabel == b2.LogicalLabel &&
 		reflect.DeepEqual(b.PhysIfs, b2.PhysIfs) &&
 		reflect.DeepEqual(b.BondIfs, b2.BondIfs) &&
-		reflect.DeepEqual(b.VLANs, b2.VLANs)
+		reflect.DeepEqual(b.VLANs, b2.VLANs) &&
+		b.MTU == b2.MTU
 }
 
 // External returns false.
@@ -121,6 +124,7 @@ func (c *BridgeConfigurator) Create(ctx context.Context, item depgraph.Item) err
 }
 
 func (c *BridgeConfigurator) putIfUnderBridge(bridge *netlink.Bridge, ifName string) error {
+	mtu := bridge.MTU
 	link, err := netlink.LinkByName(ifName)
 	if err != nil {
 		return err
@@ -134,6 +138,11 @@ func (c *BridgeConfigurator) putIfUnderBridge(bridge *netlink.Bridge, ifName str
 		return err
 	}
 	err = netlink.LinkSetUp(link)
+	if err != nil {
+		return err
+	}
+	// MTU is sometimes lost when new interface is put under the bridge.
+	err = netlink.LinkSetMTU(bridge, mtu)
 	if err != nil {
 		return err
 	}
@@ -337,6 +346,20 @@ func (c *BridgeConfigurator) handleModify(oldBridgeCfg, newBridgeCfg Bridge) (er
 		}
 		err := c.updateVLANs(newBondIf, oldBridgeCfg.VLANs, newBridgeCfg.VLANs)
 		if err != nil {
+			log.Error(err)
+			return err
+		}
+	}
+	// Update MTU settings.
+	newMTU := newBridgeCfg.MTU
+	if newMTU == 0 {
+		newMTU = defaultMTU
+	}
+	if bridge.MTU != int(newMTU) {
+		err = netlink.LinkSetMTU(bridgeLink, int(newMTU))
+		if err != nil {
+			err = fmt.Errorf("failed to set MTU %d for bridge %s: %w",
+				newMTU, ifName, err)
 			log.Error(err)
 			return err
 		}
