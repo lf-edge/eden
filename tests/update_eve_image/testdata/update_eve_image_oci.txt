@@ -1,5 +1,5 @@
 # Default EVE version to update
-{{$eve_ver := "9.6.0"}}
+{{$eve_ver := "12.0.1"}}
 
 # Default EVE registry to update
 {{$eve_registry := "lfedge/eve"}}
