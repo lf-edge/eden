@@ -63,7 +63,7 @@ exec sleep 10
 
 # check purging of app with large volume
 eden pod purge eclient-mount
-test eden.app.test -test.v -timewait 2m PURGING eclient-mount
+test eden.app.test -test.v -timewait 2m HALTING eclient-mount
 test eden.app.test -test.v -timewait 10m RUNNING eclient-mount
 
 exec sleep 10
