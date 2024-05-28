@@ -33,10 +33,10 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/thediveo/enumflag v0.10.1
 	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef
-	golang.org/x/crypto v0.17.0
-	golang.org/x/net v0.17.0
+	golang.org/x/crypto v0.21.0
+	golang.org/x/net v0.23.0
 	golang.org/x/oauth2 v0.7.0
-	golang.org/x/term v0.15.0
+	golang.org/x/term v0.18.0
 	golang.org/x/text v0.14.0
 	google.golang.org/api v0.114.0
 	google.golang.org/protobuf v1.33.0
@@ -118,7 +118,7 @@ require (
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/grpc v1.56.3 // indirect
