@@ -365,12 +365,13 @@ func (e TransparentProxy) ReferencesFromItem() []LogicalLabelRef {
 // iPXE-enabled client).
 //
 // Example config for dnsmasq:
-//   # Boot for iPXE. The idea is to send two different
-//   # filenames, the first loads iPXE, and the second tells iPXE what to
-//   # load. The dhcp-match sets the ipxe tag for requests from iPXE.
-//   #dhcp-boot=undionly.kpxe
-//   #dhcp-match=set:ipxe,175 # iPXE sends a 175 option.
-//   #dhcp-boot=tag:ipxe,http://boot.ipxe.org/demo/boot.php
+//
+//	# Boot for iPXE. The idea is to send two different
+//	# filenames, the first loads iPXE, and the second tells iPXE what to
+//	# load. The dhcp-match sets the ipxe tag for requests from iPXE.
+//	#dhcp-boot=undionly.kpxe
+//	#dhcp-match=set:ipxe,175 # iPXE sends a 175 option.
+//	#dhcp-boot=tag:ipxe,http://boot.ipxe.org/demo/boot.php
 //
 // [1] https://ipxe.org/howto/chainloading
 type NetbootServer struct {
