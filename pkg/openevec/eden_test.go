@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	"github.com/lf-edge/eden/pkg/openevec"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 )
 
 func TestParseTemplateFile(t *testing.T) {
 	t.Parallel()
 
-	g := NewGomegaWithT(t)
+	g := gomega.NewGomegaWithT(t)
 
 	var buf bytes.Buffer
 
@@ -26,7 +26,7 @@ func TestParseTemplateFile(t *testing.T) {
 
 	const tmpl = "{{.Eden.Root}} {{.Eden.BinDir}}"
 	_, err = f.Write([]byte(tmpl))
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(gomega.BeNil())
 
 	const rootVal = "rv"
 	const binDirVal = "bdv"
@@ -42,5 +42,5 @@ func TestParseTemplateFile(t *testing.T) {
 		return
 	}
 
-	g.Expect(buf.String()).To(BeEquivalentTo(fmt.Sprintf("%s %s", rootVal, binDirVal)))
+	g.Expect(buf.String()).To(gomega.BeEquivalentTo(fmt.Sprintf("%s %s", rootVal, binDirVal)))
 }
