@@ -192,6 +192,10 @@ fi
 DN="$1"
 TIMESTAMP="${2:-0}"
 CMD="${3:-COMMAND_UNSPECIFIED}"
+EXPECTED_CMD="$CMD"
+if [ "$CMD" = "RESTARTING" || "$CMD" = "PURGING" ]; then
+    EXPECTED_CMD="HALTING"
+fi
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 CONFIG="{\"displayname\": \"$DN\", \"timestamp\": $TIMESTAMP, \"command\": \"$CMD\"}"
@@ -199,7 +203,7 @@ CONFIG="{\"displayname\": \"$DN\", \"timestamp\": $TIMESTAMP, \"command\": \"$CM
 while true; do
     echo "$CONFIG" | $EDEN sdn fwd eth0 {{template "mngr_port"}} -- {{template "ssh"}} 'cat > {{template "app_cmd_file"}}'
     APP_CMD_FILE_CONTENT="$($EDEN sdn fwd eth0 {{template "mngr_port"}} -- {{template "ssh"}} "cat {{template "app_cmd_file"}}")"
-    echo "$APP_CMD_FILE_CONTENT" | grep "$CMD" && break
+    echo "$APP_CMD_FILE_CONTENT" | grep "$EXPECTED_CMD" && break
     sleep 1
 done
 
