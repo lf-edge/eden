@@ -73,16 +73,10 @@ runs:
       shell: bash
     - name: Setup eve version
       run: |
-        image=${{ inputs.eve_image }}
-        if [[ -n "$image" && "$image" == *:* ]]; then
-          echo "Setting up eve image ${image}"
-          eve_pr_registry=$(echo "$image" |  cut -d ':' -f 1)
-          eve_pr=$(echo "$image" |  cut -d ':' -f 2 | cut -d "-" -f1)
-          ./eden config set default --key=eve.registry --value="$eve_pr_registry"
-          ./eden config set default --key=eve.tag --value="$eve_pr"
-        else
-          echo "Skipping setting up eve image ${image}"
-        fi
+        eve_pr_registry="christophzededa/eve-test"
+        eve_pr="latest"
+        ./eden config set default --key=eve.registry --value="$eve_pr_registry"
+        ./eden config set default --key=eve.tag --value="$eve_pr"
       shell: bash
       working-directory: "./eden"
     - name: Setup ext4
