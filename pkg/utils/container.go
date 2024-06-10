@@ -9,7 +9,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/docker/distribution/context"
 	"github.com/docker/docker/api/types"
@@ -371,8 +370,11 @@ func StopContainer(containerName string, remove bool) error {
 					return err
 				}
 			} else {
-				timeout := time.Duration(10) * time.Second
-				if err = cli.ContainerStop(ctx, cont.ID, &timeout); err != nil {
+				timeout := 10
+				//if err = cli.ContainerStop(ctx, cont.ID, &timeout); err != nil {
+				if err = cli.ContainerStop(ctx, cont.ID, container.StopOptions{
+					Timeout: &timeout,
+				}); err != nil {
 					return err
 				}
 			}
