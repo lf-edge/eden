@@ -276,6 +276,8 @@ func TestInfo(t *testing.T) {
 	tc.AddProcInfo(edgeNode, func(ei *info.ZInfoMsg) error {
 		return func(t *testing.T, edgeNode *device.Ctx,
 			ei *info.ZInfoMsg) error {
+
+			fmt.Printf(">>> got info %+v\n", ei)
 			name := edgeNode.GetID()
 			if query != nil {
 				if einfo.ZInfoFind(ei, query) {
