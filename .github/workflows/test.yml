@@ -53,7 +53,6 @@ jobs:
     needs: determine-runner
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
-      - uses: actions/checkout@v3
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
@@ -69,9 +68,6 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
 
   networking:
     name: Networking test suite
