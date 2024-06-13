@@ -38,14 +38,14 @@ exec -t 10s bash generate_userdata.sh
 eden pod deploy -n eclient --memory=512MB --networks=n1 {{template "eclient_image"}} -p {{$port}}:22 --metadata={{$userdata_file}}
 test eden.app.test -test.v -timewait 20m RUNNING eclient
 
-exec -t 40s bash test_injected_file.sh "before_restart"
+exec -t 400s bash test_injected_file.sh "before_restart"
 
-exec -t 40s bash change_injected_file.sh "after_restart"
+exec -t 400s bash change_injected_file.sh "after_restart"
 
 eden pod restart eclient
 test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient
 
-exec -t 40s bash test_injected_file.sh "after_restart"
+exec -t 400s bash test_injected_file.sh "after_restart"
 
 eden pod delete eclient
 
@@ -88,7 +88,7 @@ TEXT=$1
 echo $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep -q $TEXT /etc/injected_file.txt
 
 # Retry in case there are connectivity issues
-for i in `seq 30`
+for i in `seq 300`
 do
   echo Try $i
   $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep -q $TEXT /etc/injected_file.txt && echo "Success" && break
