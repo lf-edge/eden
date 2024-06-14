@@ -6,7 +6,7 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     steps:
       - name: setup
         run: |
@@ -30,7 +30,7 @@ jobs:
           make LINUXKIT_TARGET=build DOCKER_PLATFORM=linux/arm64 build-docker
           make LINUXKIT_TARGET=build DOCKER_PLATFORM=linux/amd64 build-docker
   setup:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     steps:
       - name: setup
         run: |

@@ -6,7 +6,7 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   yetus:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1

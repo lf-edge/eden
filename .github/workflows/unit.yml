@@ -6,7 +6,7 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   unit:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     steps:
       - name: get eden
         uses: actions/checkout@v4.1.1

@@ -7,7 +7,7 @@ on:  # yamllint disable-line rule:truthy
 # yamllint disable rule:line-length
 jobs:
   integration:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:

@@ -7,7 +7,7 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   check-secrets:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     outputs:
       available: ${{ steps.secrets.outputs.defined }}
     steps:
@@ -20,7 +20,7 @@ jobs:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
   integration:
     name: Integration GCP test (${{ matrix.hv }};${{ matrix.fs }})
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     needs: [check-secrets]
     if: needs.check-secrets.outputs.available == 'true'
     strategy:
