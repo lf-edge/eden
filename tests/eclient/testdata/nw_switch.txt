@@ -48,6 +48,7 @@ stdout '0% packet loss'
 stdout '100% packet loss'
 
 message 'Switching to 2nd network'
+# TODO: eden pod modify has no timeout!!!
 eden pod modify pong --networks n2
 test eden.app.test -test.v -timewait 15m RUNNING pong
 

@@ -71,7 +71,7 @@ jobs:
 
   networking:
     name: Networking test suite
-    needs: [smoke, determine-runner]
+    needs: [determine-runner]
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
@@ -96,7 +96,7 @@ jobs:
       matrix:
         file_system: ['ext4', 'zfs']
     name: Storage test suite
-    needs: [smoke, determine-runner]
+    needs: [determine-runner]
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
@@ -117,7 +117,7 @@ jobs:
 
   lpc-loc:
     name: LPC LOC test suite
-    needs: [smoke, determine-runner]
+    needs: [determine-runner]
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
@@ -142,7 +142,7 @@ jobs:
       matrix:
         file_system: ['ext4', 'zfs']
     name: EVE upgrade test suite
-    needs: [smoke, determine-runner]
+    needs: [determine-runner]
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
@@ -163,7 +163,7 @@ jobs:
 
   user-apps:
     name: User apps test suite
-    needs: [smoke, determine-runner]
+    needs: [determine-runner]
     runs-on: ${{ needs.determine-runner.outputs.runner }}
     steps:
       - name: Get code
@@ -172,7 +172,7 @@ jobs:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run User apps upgrade tests
+      - name: Run User apps tests
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -181,3 +181,46 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
+
+  unstable:
+    name: Unstable test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run Unstable tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "unstable.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+
+  virtualization:
+    name: Virtualization test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run Virtualization tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "virtualization.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+          require_virtualization: true

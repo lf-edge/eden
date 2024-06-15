@@ -40,9 +40,3 @@ eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_
 
 /bin/echo Testing replacement of one application with another (7/{{$tests}})
 eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/app_replace_test
-
-/bin/echo Eden Mariadb (8/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
-
-/bin/echo Eden nodered (9/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nodered

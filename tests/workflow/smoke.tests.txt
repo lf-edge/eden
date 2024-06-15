@@ -66,12 +66,8 @@ eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/fail_
 
 /bin/echo Eden app metadata test (17/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/metadata
-/bin/echo Eden app userdata test (18/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/userdata
 /bin/echo Eden app log test (19/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_logs
-/bin/echo Eden change controller certificate test (20/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ctrl_cert_change
 
 /bin/echo Eden Shutdown test (21/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/shutdown_test

@@ -34,8 +34,6 @@ eden.escript.test -test.run TestEdenScripts/template_check
 
 /bin/echo Eden basic network test (5/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_test
-/bin/echo Eden basic VLAN test (6/{{$tests}})
-eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/switch_net_vlans
 /bin/echo Eden basic VLAN test (7/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/vlans_and_bonds
 
@@ -44,28 +42,12 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/acl
 /bin/echo Eden Network light (9/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/networking_light
 
-/bin/echo Eden Networks switch (10/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nw_switch
 /bin/echo Eden Network Ports switch (11/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_switch
 /bin/echo Eden Network portmap test (12/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_forward
-/bin/echo Eden test app info (13/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dhcp
 /bin/echo Eden test app info (14/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dns
 
-/bin/echo Eden VNC (15/{{$tests}})
-eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test
-
-/bin/echo Eden Networking via switch test (16/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-gapped-switch
-
 /bin/echo Eden Nginx (17/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nginx
-
-/bin/echo Verifying that we can use a switch network instance on a management port (18/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_nonat
-
-/bin/echo Testing quick replace of network instances (19/{{$tests}})
-eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_replace_test
