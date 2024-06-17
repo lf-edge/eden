@@ -156,16 +156,17 @@ TIME="$4"
 
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 CONFIG="{
-  \"logical-label\": \"wwan0\",
-  \"latitude\": $LAT,
-  \"longitude\": $LONG,
-  \"altitude\": $ALT,
-  \"utc-timestamp\": $TIME,
-  \"horizontal-uncertainty\": 16.00,
-  \"vertical-uncertainty\": 25.10,
-  \"horizontal-reliability\": \"medium\",
-  \"vertical-reliability\": \"low\"}"
-echo "$CONFIG" | $EDEN eve ssh 'cat > /run/wwan/location.json'
+  \"LogicalLabel\": \"wwan0\",
+  \"Latitude\": $LAT,
+  \"Longitude\": $LONG,
+  \"Altitude\": $ALT,
+  \"UTCTimestamp\": $TIME,
+  \"HorizontalUncertainty\": 16.00,
+  \"VerticalUncertainty\": 25.10,
+  \"HorizontalReliability\": \"medium\",
+  \"VerticalReliability\": \"low\"
+}"
+echo "$CONFIG" | $EDEN eve ssh 'cat > /run/wwan/WwanLocationInfo/global.json'
 
 -- wait-for-location-lps.sh --
 EXPTIME="$1"

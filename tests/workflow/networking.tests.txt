@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 19}}
+{{$tests := 12}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -34,20 +34,20 @@ eden.escript.test -test.run TestEdenScripts/template_check
 
 /bin/echo Eden basic network test (5/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_test
-/bin/echo Eden basic VLAN test (7/{{$tests}})
+/bin/echo Eden basic VLAN test (6/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/vlans_and_bonds
 
-/bin/echo Eden ACL to particular host (8/{{$tests}})
+/bin/echo Eden ACL to particular host (7/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/acl
-/bin/echo Eden Network light (9/{{$tests}})
+/bin/echo Eden Network light (8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/networking_light
 
-/bin/echo Eden Network Ports switch (11/{{$tests}})
+/bin/echo Eden Network Ports switch (9/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_switch
-/bin/echo Eden Network portmap test (12/{{$tests}})
+/bin/echo Eden Network portmap test (10/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_forward
-/bin/echo Eden test app info (14/{{$tests}})
+/bin/echo Eden test app info (11/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dns
 
-/bin/echo Eden Nginx (17/{{$tests}})
+/bin/echo Eden Nginx (12/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nginx

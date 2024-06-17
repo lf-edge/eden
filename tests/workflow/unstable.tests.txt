@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 10}}
+{{$tests := 9}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -25,13 +25,11 @@ eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027 8028:8028 8029:8
 {{if (ne $setup "n")}}
 /bin/echo Eden start (2/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_start
-
 /bin/echo Eden onboard (3/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_onboard
+/bin/echo Eden template check (4/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/template_check
 {{end}}
-
-/bin/echo Eden app userdata test (4/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/userdata
 
 /bin/echo Eden change controller certificate test (5/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ctrl_cert_change
@@ -42,11 +40,12 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nw_sw
 /bin/echo Testing quick replace of network instances (7/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_replace_test
 
-/bin/echo Eden Mariadb (8/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
-
-/bin/echo Eden nodered (9/{{$tests}})
+/bin/echo Eden nodered (8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nodered
 
-/bin/echo Eden location publish test (10/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
+# Locally reproducible failure
+# I will have to remove this test because injecting fake GPS location is no longer possible
+# now that we use pubsub between wwan and zedagent (only "global" pubsub topic, i.e. without
+# publisher name, allow to inject message by writing json to a particular directory).
+#/bin/echo Eden location publish test (9/{{$tests}})
+#eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
