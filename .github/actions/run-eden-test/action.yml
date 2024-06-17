@@ -55,6 +55,9 @@ runs:
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash
       working-directory: "./eden"
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
     - name: Collect info
       if: failure()
       uses: ./eden/.github/actions/collect-info
