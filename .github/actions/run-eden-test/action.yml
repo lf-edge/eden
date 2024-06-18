@@ -44,9 +44,6 @@ runs:
       uses: ./eden/.github/actions/publish-logs
       with:
         report_name: eden-report-${{ inputs.suite }}-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
-    - name: Setup tmate session
-      if: ${{ failure() }}
-      uses: mxschmitt/action-tmate@v3
     - name: Clean up after test
       if: always()
       run: |
