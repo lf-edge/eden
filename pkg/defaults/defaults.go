@@ -175,7 +175,7 @@ const (
 	DefaultGcpBucketName   = "eve-live"
 	DefaultGcpProjectName  = "lf-edge-eve"
 	DefaultGcpZone         = "us-west1-a"
-	DefaultGcpMachineType  = "n1-highcpu-4"
+	DefaultGcpMachineType  = "n1-standard-2" // 2 vCPU 7.5 GB RAM
 	DefaultGcpRulePriority = 10
 
 	//defaults for packet

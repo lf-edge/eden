@@ -40,9 +40,11 @@ jobs:
       - id: fork-check
         run: |
           if [[ "${{ github.event.repository.full_name}}" == "lf-edge/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "lf-edge/eden" ]]; then
+            echo "Using: buildjet-4vcpu-ubuntu-2204"
             echo "runner=buildjet-4vcpu-ubuntu-2204" >> "$GITHUB_OUTPUT"
           else
-            echo "runner=ubuntu-22.04" >> "$GITHUB_OUTPUT"
+            echo "Using: ubuntu-latest"
+            echo "runner=ubuntu-latest" >> "$GITHUB_OUTPUT"
           fi
 
   smoke:
