@@ -200,6 +200,7 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@v2
         with:
           comment_on_pr: true
+          proc_trace_sys_enable: true
       - name: Run Unstable tests
         uses: ./eden/.github/actions/run-eden-test
         with:
