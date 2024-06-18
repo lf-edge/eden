@@ -45,145 +45,145 @@ jobs:
             echo "runner=ubuntu-22.04" >> "$GITHUB_OUTPUT"
           fi
 
-          #  smoke:
-          #    continue-on-error: true
-          #    strategy:
-          #      fail-fast: false
-          #      matrix:
-          #        file_system: ['ext4', 'zfs']
-          #        tpm: [true, false]
-          #    name: Smoke tests
-          #    needs: determine-runner
-          #    runs-on: ${{ needs.determine-runner.outputs.runner }}
-          #    steps:
-          #      - name: Get code
-          #        uses: actions/checkout@v4.1.1
-          #        with:
-          #          repository: "lf-edge/eden"
-          #          ref: ${{ inputs.eden_version }}
-          #          path: "./eden"
-          #      - name: Run Smoke tests
-          #        uses: ./eden/.github/actions/run-eden-test
-          #        with:
-          #          file_system: ${{ matrix.file_system }}
-          #          tpm_enabled: ${{ matrix.tpm }}
-          #          suite: "smoke.tests.txt"
-          #          eve_image: ${{ inputs.eve_image }}
-          #          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          #          artifact_run_id: ${{ inputs.artifact_run_id }}
-          #
-          #  networking:
-          #    name: Networking test suite
-          #    needs: [determine-runner]
-          #    runs-on: ${{ needs.determine-runner.outputs.runner }}
-          #    steps:
-          #      - name: Get code
-          #        uses: actions/checkout@v4.1.1
-          #        with:
-          #          repository: "lf-edge/eden"
-          #          ref: ${{ inputs.eden_version }}
-          #          path: "./eden"
-          #      - name: Run Networking tests
-          #        uses: ./eden/.github/actions/run-eden-test
-          #        with:
-          #          file_system: "ext4"
-          #          tpm_enabled: true
-          #          suite: "networking.tests.txt"
-          #          eve_image: ${{ inputs.eve_image }}
-          #          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          #          artifact_run_id: ${{ inputs.artifact_run_id }}
-          #
-          #  storage:
-          #    continue-on-error: true
-          #    strategy:
-          #      matrix:
-          #        file_system: ['ext4', 'zfs']
-          #    name: Storage test suite
-          #    needs: [determine-runner]
-          #    runs-on: ${{ needs.determine-runner.outputs.runner }}
-          #    steps:
-          #      - name: Get code
-          #        uses: actions/checkout@v4.1.1
-          #        with:
-          #          repository: "lf-edge/eden"
-          #          ref: ${{ inputs.eden_version }}
-          #          path: "./eden"
-          #      - name: Run Storage tests
-          #        uses: ./eden/.github/actions/run-eden-test
-          #        with:
-          #          file_system: ${{ matrix.file_system }}
-          #          tpm_enabled: true
-          #          suite: "storage.tests.txt"
-          #          eve_image: ${{ inputs.eve_image }}
-          #          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          #          artifact_run_id: ${{ inputs.artifact_run_id }}
-          #
-          #  lpc-loc:
-          #    name: LPC LOC test suite
-          #    needs: [determine-runner]
-          #    runs-on: ${{ needs.determine-runner.outputs.runner }}
-          #    steps:
-          #      - name: Get code
-          #        uses: actions/checkout@v4.1.1
-          #        with:
-          #          repository: "lf-edge/eden"
-          #          ref: ${{ inputs.eden_version }}
-          #          path: "./eden"
-          #      - name: Run LPC LOC tests
-          #        uses: ./eden/.github/actions/run-eden-test
-          #        with:
-          #          file_system: "ext4"
-          #          tpm_enabled: true
-          #          suite: "lpc-loc.tests.txt"
-          #          eve_image: ${{ inputs.eve_image }}
-          #          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          #          artifact_run_id: ${{ inputs.artifact_run_id }}
-          #
-          #  eve-upgrade:
-          #    continue-on-error: true
-          #    strategy:
-          #      matrix:
-          #        file_system: ['ext4', 'zfs']
-          #    name: EVE upgrade test suite
-          #    needs: [determine-runner]
-          #    runs-on: ${{ needs.determine-runner.outputs.runner }}
-          #    steps:
-          #      - name: Get code
-          #        uses: actions/checkout@v4.1.1
-          #        with:
-          #          repository: "lf-edge/eden"
-          #          ref: ${{ inputs.eden_version }}
-          #          path: "./eden"
-          #      - name: Run EVE upgrade tests
-          #        uses: ./eden/.github/actions/run-eden-test
-          #        with:
-          #          file_system: ${{ matrix.file_system }}
-          #          tpm_enabled: true
-          #          suite: "eve-upgrade.tests.txt"
-          #          eve_image: ${{ inputs.eve_image }}
-          #          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          #          artifact_run_id: ${{ inputs.artifact_run_id }}
-          #
-          #  user-apps:
-          #    name: User apps test suite
-          #    needs: [determine-runner]
-          #    runs-on: ${{ needs.determine-runner.outputs.runner }}
-          #    steps:
-          #      - name: Get code
-          #        uses: actions/checkout@v4.1.1
-          #        with:
-          #          repository: "lf-edge/eden"
-          #          ref: ${{ inputs.eden_version }}
-          #          path: "./eden"
-          #      - name: Run User apps tests
-          #        uses: ./eden/.github/actions/run-eden-test
-          #        with:
-          #          file_system: "ext4"
-          #          tpm_enabled: true
-          #          suite: "user-apps.tests.txt"
-          #          eve_image: ${{ inputs.eve_image }}
-          #          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          #          artifact_run_id: ${{ inputs.artifact_run_id }}
+  smoke:
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        file_system: ['ext4', 'zfs']
+        tpm: [true, false]
+    name: Smoke tests
+    needs: determine-runner
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run Smoke tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: ${{ matrix.file_system }}
+          tpm_enabled: ${{ matrix.tpm }}
+          suite: "smoke.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+
+  networking:
+    name: Networking test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run Networking tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "networking.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+
+  storage:
+    continue-on-error: true
+    strategy:
+      matrix:
+        file_system: ['ext4', 'zfs']
+    name: Storage test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run Storage tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: ${{ matrix.file_system }}
+          tpm_enabled: true
+          suite: "storage.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+
+  lpc-loc:
+    name: LPC LOC test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run LPC LOC tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "lpc-loc.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+
+  eve-upgrade:
+    continue-on-error: true
+    strategy:
+      matrix:
+        file_system: ['ext4', 'zfs']
+    name: EVE upgrade test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run EVE upgrade tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: ${{ matrix.file_system }}
+          tpm_enabled: true
+          suite: "eve-upgrade.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+
+  user-apps:
+    name: User apps test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run User apps tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "user-apps.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
 
   unstable:
     name: Unstable test suite
@@ -211,24 +211,24 @@ jobs:
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
 
-            #  virtualization:
-            #    name: Virtualization test suite
-            #    needs: [determine-runner]
-            #    runs-on: ${{ needs.determine-runner.outputs.runner }}
-            #    steps:
-            #      - name: Get code
-            #        uses: actions/checkout@v4.1.1
-            #        with:
-            #          repository: "lf-edge/eden"
-            #          ref: ${{ inputs.eden_version }}
-            #          path: "./eden"
-            #      - name: Run Virtualization tests
-            #        uses: ./eden/.github/actions/run-eden-test
-            #        with:
-            #          file_system: "ext4"
-            #          tpm_enabled: true
-            #          suite: "virtualization.tests.txt"
-            #          eve_image: ${{ inputs.eve_image }}
-            #          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-            #          artifact_run_id: ${{ inputs.artifact_run_id }}
-            #          require_virtualization: true
+  virtualization:
+    name: Virtualization test suite
+    needs: [determine-runner]
+    runs-on: ${{ needs.determine-runner.outputs.runner }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Run Virtualization tests
+        uses: ./eden/.github/actions/run-eden-test
+        with:
+          file_system: "ext4"
+          tpm_enabled: true
+          suite: "virtualization.tests.txt"
+          eve_image: ${{ inputs.eve_image }}
+          eve_artifact_name: ${{ inputs.eve_artifact_name }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
+          require_virtualization: true
