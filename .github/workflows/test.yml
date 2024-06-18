@@ -27,6 +27,9 @@ on:  # yamllint disable-line rule:truthy
       artifact_run_id:
         type: string
 
+permissions:
+  pull-requests: write
+
 jobs:
   determine-runner:
     name: Determine best available runner
@@ -193,6 +196,10 @@ jobs:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@v2
+        with:
+          comment_on_pr: true
       - name: Run Unstable tests
         uses: ./eden/.github/actions/run-eden-test
         with:
