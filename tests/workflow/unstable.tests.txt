@@ -43,9 +43,5 @@ eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/netwo
 /bin/echo Eden nodered (8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nodered
 
-# Locally reproducible failure
-# I will have to remove this test because injecting fake GPS location is no longer possible
-# now that we use pubsub between wwan and zedagent (only "global" pubsub topic, i.e. without
-# publisher name, allow to inject message by writing json to a particular directory).
-#/bin/echo Eden location publish test (9/{{$tests}})
-#eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
+/bin/echo Eden location publish test (9/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location

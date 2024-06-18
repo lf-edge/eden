@@ -5,6 +5,11 @@
 # like it was extracted by the wwan microservice. Then we test if this location data
 # are properly published to applications, local profile server and to the controller.
 
+# I will have to remove this test because injecting a fake GPS location is no longer possible
+# now that we use pubsub between wwan and zedagent (only "global" pubsub topic, i.e. without
+# publisher name, allow to inject message by writing json to a particular directory).
+skip 'Skip because injecting a fake GPS location is no longer possible'
+
 {{define "mngr_port"}}8027{{end}}
 {{define "app_port"}}8028{{end}}
 {{define "token"}}server_token_123{{end}}
