@@ -23,6 +23,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Collect Workflow Telemetry
+      uses: catchpoint/workflow-telemetry-action@v2
+      with:
+        proc_trace_sys_enable: true
+        comment_on_pr: false
     - name: Setup Environment
       uses: ./eden/.github/actions/setup-environment
       with:
