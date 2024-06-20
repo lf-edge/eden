@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 9}}
+{{$tests := 11}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -25,22 +25,29 @@ eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027 8028:8028 8029:8
 {{if (ne $setup "n")}}
 /bin/echo Eden start (2/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_start
-
 /bin/echo Eden onboard (3/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_onboard
 /bin/echo Eden template check (4/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/template_check
 {{end}}
 
-/bin/echo Eden profile test (5/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/profile
+/bin/echo Verifying that we can use a switch network instance on a management port (5/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_nonat
 
-/bin/echo Eden test radio silence (6/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/radio_silence
-/bin/echo Eden test app info (7/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_local_info
-/bin/echo Eden test dev info (8/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/dev_local_info
-/bin/echo Eden location publish test (9/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
+/bin/echo Test DHCP service provided to applications (6/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dhcp
 
+/bin/echo Basic VLAN test (7/{{$tests}})
+eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/switch_net_vlans
+
+/bin/echo Test VLANs and Bonds (8/{{$tests}})
+eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/vlans_and_bonds
+
+/bin/echo Test networking via air-gapped switch network instance (9/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-gapped-switch
+
+#/bin/echo Test Mariadb (10/{{$tests}})
+#eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/maridb
+
+/bin/echo Test VNC access (11/{{$tests}})
+eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test

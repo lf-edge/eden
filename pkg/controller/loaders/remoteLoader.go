@@ -226,7 +226,7 @@ func (loader *RemoteLoader) ProcessExisting(process ProcessFunction, typeToProce
 func (loader *RemoteLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	done := make(chan error)
 	if timeoutSeconds != 0 {
-		time.AfterFunc(timeoutSeconds*time.Second, func() {
+		time.AfterFunc(timeoutSeconds, func() {
 			done <- fmt.Errorf("timeout")
 		})
 	}

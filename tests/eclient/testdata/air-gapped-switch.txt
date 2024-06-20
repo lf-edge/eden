@@ -14,6 +14,12 @@
 [!exec:ssh] stop
 [!exec:chmod] stop
 
+# Application needs to be privileged (or run inside a VM) to be allowed to assign IP address
+# to an interface.
+exec -t 2m bash check_vm_support.sh
+source .env
+[!env:with_hw_virt] skip 'Missing HW-assisted virtualization capability'
+
 exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 # Starting of reboot detector with 1 reboot limit
@@ -67,6 +73,21 @@ stdout 'no network with indirect found'
 eden network ls
 ! stdout '^direct\s'
 ! stdout '^indirect\s'
+
+-- check_vm_support.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+:>.env
+while true;
+do
+    virt=$($EDEN info --out InfoContent.dinfo.Capabilities.HWAssistedVirtualization | tail -n 1)
+    if [ -z "$virt" ]; then
+        sleep 3
+        continue
+    fi
+    [ "$virt" == "true" ] && echo "with_hw_virt=true" >>.env
+    break
+done
 
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}

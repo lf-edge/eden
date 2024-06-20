@@ -11,6 +11,12 @@
 [!exec:ssh] stop
 [!exec:chmod] stop
 
+# MariaDB crashes when run as a native container.
+# Most likely it expects some elevated privileges which bare containers do not have.
+exec -t 2m bash check_vm_support.sh
+source .env
+[!env:with_hw_virt] skip 'Missing HW-assisted virtualization capability'
+
 exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 # Starting of reboot detector with a 1 reboot limit
@@ -43,6 +49,21 @@ eden pod delete eclient
 eden pod delete {{$server}}
 
 test eden.app.test -test.v -timewait 10m - eclient {{$server}}
+
+-- check_vm_support.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+:>.env
+while true;
+do
+    virt=$($EDEN info --out InfoContent.dinfo.Capabilities.HWAssistedVirtualization | tail -n 1)
+    if [ -z "$virt" ]; then
+        sleep 3
+        continue
+    fi
+    [ "$virt" == "true" ] && echo "with_hw_virt=true" >>.env
+    break
+done
 
 -- wait_ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
