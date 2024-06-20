@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//RedisLoader implements loader from redis backend of controller
+// RedisLoader implements loader from redis backend of controller
 type RedisLoader struct {
 	lastID        string
 	addr          string
@@ -28,7 +28,7 @@ type RedisLoader struct {
 	appUUID       uuid.UUID
 }
 
-//NewRedisLoader return loader from redis
+// NewRedisLoader return loader from redis
 func NewRedisLoader(addr string, password string, databaseID int, streamGetters types.StreamGetters) *RedisLoader {
 	log.Debugf("NewRedisLoader init")
 	return &RedisLoader{
@@ -39,12 +39,12 @@ func NewRedisLoader(addr string, password string, databaseID int, streamGetters 
 	}
 }
 
-//SetRemoteCache add cache layer
+// SetRemoteCache add cache layer
 func (loader *RedisLoader) SetRemoteCache(cache cachers.CacheProcessor) {
 	loader.cache = cache
 }
 
-//Clone create copy
+// Clone create copy
 func (loader *RedisLoader) Clone() Loader {
 	return &RedisLoader{
 		addr:          loader.addr,
@@ -77,12 +77,12 @@ func (loader *RedisLoader) getStream(typeToProcess types.LoaderObjectType) strin
 	}
 }
 
-//SetUUID set device UUID
+// SetUUID set device UUID
 func (loader *RedisLoader) SetUUID(devUUID uuid.UUID) {
 	loader.devUUID = devUUID
 }
 
-//SetAppUUID set app UUID
+// SetAppUUID set app UUID
 func (loader *RedisLoader) SetAppUUID(appUUID uuid.UUID) {
 	loader.appUUID = appUUID
 }
@@ -216,7 +216,7 @@ func (loader *RedisLoader) getOrCreateClient() (*redis.Client, error) {
 	return loader.client, err
 }
 
-//ProcessExisting for observe existing files
+// ProcessExisting for observe existing files
 func (loader *RedisLoader) ProcessExisting(process ProcessFunction, typeToProcess types.LoaderObjectType) error {
 	if _, err := loader.getOrCreateClient(); err != nil {
 		return err
@@ -224,14 +224,14 @@ func (loader *RedisLoader) ProcessExisting(process ProcessFunction, typeToProces
 	return loader.repeatableConnection(process, typeToProcess, false)
 }
 
-//ProcessStream for observe new files
+// ProcessStream for observe new files
 func (loader *RedisLoader) ProcessStream(process ProcessFunction, typeToProcess types.LoaderObjectType, timeoutSeconds time.Duration) (err error) {
 	if _, err := loader.getOrCreateClient(); err != nil {
 		return err
 	}
 	done := make(chan error)
 	if timeoutSeconds != 0 {
-		time.AfterFunc(timeoutSeconds*time.Second, func() {
+		time.AfterFunc(timeoutSeconds, func() {
 			done <- fmt.Errorf("timeout")
 		})
 	}

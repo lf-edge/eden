@@ -128,7 +128,7 @@ func (loader *FileLoader) ProcessStream(process ProcessFunction, typeToProcess t
 	done := make(chan error)
 
 	if timeoutSeconds != 0 {
-		time.AfterFunc(timeoutSeconds*time.Second, func() {
+		time.AfterFunc(timeoutSeconds, func() {
 			done <- fmt.Errorf("timeout")
 		})
 	}

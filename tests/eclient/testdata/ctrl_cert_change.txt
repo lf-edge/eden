@@ -39,8 +39,7 @@ exec -t 2m bash check_sign_cert.sh
 test eden.reboot.test -test.v -timewait=20m -reboot=1 -count=1 &
 
 # wait for RUNNING state after reboot
-test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient1
-test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient2
+test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient1 eclient2
 
 eden pod deploy -n eclient3 --memory=512MB --networks=n1 {{template "eclient_image"}} --metadata={{$userdata}}
 

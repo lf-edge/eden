@@ -14,6 +14,8 @@ inputs:
     type: string
   artifact_run_id:
     type: string
+  require_virtualization:
+    type: bool
 
 runs:
   using: 'composite'
@@ -48,7 +50,12 @@ runs:
     - name: Configure
       run: |
         ./eden config add default
-        if lscpu | grep -oEq "vmx|svm"; then
+        require_virt="${{ inputs.require_virtualization }}"
+        if [[ "$require_virt" == "true" ]]; then
+          if ! lscpu | grep -oEq "vmx|svm"; then
+            echo "Missing required HW-assisted virtualization support"
+            exit 1
+          fi
           ./eden config set default --key=eve.accel --value=true
         else
           ./eden config set default --key=eve.accel --value=false

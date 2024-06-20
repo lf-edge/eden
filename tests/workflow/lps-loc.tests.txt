@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 8}}
+{{$tests := 9}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -32,14 +32,14 @@ eden.escript.test -test.run TestEdenScripts/eden_onboard
 eden.escript.test -test.run TestEdenScripts/template_check
 {{end}}
 
-/bin/echo Eden 2 dockers test (5/{{$tests}})
-eden.escript.test -testdata ../docker/testdata/ -test.run TestEdenScripts/2dockers_test
+/bin/echo Eden profile test (5/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/profile
 
-/bin/echo Eden 2 dockers test with app state detector (6/{{$tests}})
-eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/2dockers_test
-
-/bin/echo Testing replacement of one application with another (7/{{$tests}})
-eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/app_replace_test
-
-/bin/echo Eden nodered (8/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nodered
+/bin/echo Eden test radio silence (6/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/radio_silence
+/bin/echo Eden test app info (7/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_local_info
+/bin/echo Eden test dev info (8/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/dev_local_info
+/bin/echo Eden location publish test (9/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location

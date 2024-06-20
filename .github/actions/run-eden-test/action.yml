@@ -17,6 +17,8 @@ inputs:
     type: string
   artifact_run_id:
     type: string
+  require_virtualization:
+    type: bool
 
 runs:
   using: 'composite'
@@ -29,6 +31,7 @@ runs:
         eve_image: ${{ inputs.eve_image }}
         eve_artifact_name: ${{ inputs.eve_artifact_name }}
         artifact_run_id: ${{ inputs.artifact_run_id }}
+        require_virtualization: ${{ inputs.require_virtualization }}
     - name: Run tests
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash
