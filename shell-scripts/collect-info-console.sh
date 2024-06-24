@@ -18,7 +18,7 @@ for i in $(seq 3); do
   {
     echo "eve verbose off"; echo "eve enter debug"; sleep 3;
     echo "which collect-info.sh"; sleep 3
-  } | telnet localhost 7777 | tee telnet.stdout
+  } | telnet 127.1 17777 | tee telnet.stdout
   grep -q "/usr/bin/collect-info.sh" telnet.stdout && break
   sleep 60
 done
@@ -27,7 +27,7 @@ for i in $(seq 3); do
   {
     echo "rm -f /persist/eve-info*"; echo "/usr/bin/collect-info.sh";
     sleep $((WAIT_TIME+60*(i-1)))
-  } | telnet localhost 7777 | tee telnet.stdout
+  } | telnet 127.1 17777 | tee telnet.stdout
   TGZNAME="$(sed -n "s/EVE info is collected '\(.*\)'/\1/p" telnet.stdout)"
   [ -n "${TGZNAME}" ] && break
 done
@@ -44,7 +44,7 @@ for i in $(seq 3); do
     # This is fairly quick even on Github runners - around 10 seconds, but depends
     # on the tarball size.
     sleep $((20+60*(i-1)))
-  } | telnet localhost 7777 | sed -n "s/>>>\(.*\)<<</\1/p" | base64 -id > "${OUTPUT}"
+  } | telnet 127.1 17777 | sed -n "s/>>>\(.*\)<<</\1/p" | base64 -id > "${OUTPUT}"
   [ -s "${OUTPUT}" ] && break
   echo "Failed to receive eve-info tarball, retrying..."
 done
