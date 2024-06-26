@@ -14,6 +14,14 @@ on:  # yamllint disable-line rule:truthy
         type: string
       artifact_run_id:
         type: string
+      docker_account:  # if not provided: use anonymous docker user
+        type: string
+        required: false
+        default: ''
+      docker_token:
+        type: string
+        required: false
+        default: ''
   workflow_call:
     inputs:
       eden_version:
@@ -26,6 +34,14 @@ on:  # yamllint disable-line rule:truthy
         type: string
       artifact_run_id:
         type: string
+      docker_account:  # if not provided: use anonymous docker user
+        type: string
+        required: false
+        default: ''
+      docker_token:
+        type: string
+        required: false
+        default: ''
 
 jobs:
   determine-runner:
@@ -68,6 +84,8 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
+          docker_account: ${{ inputs.docker_account }}
+          docker_token: ${{ inputs.docker_token }}
 
   networking:
     name: Networking test suite
@@ -89,6 +107,8 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
+          docker_account: ${{ inputs.docker_account }}
+          docker_token: ${{ inputs.docker_token }}
 
   storage:
     continue-on-error: true
@@ -114,6 +134,8 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
+          docker_account: ${{ inputs.docker_account }}
+          docker_token: ${{ inputs.docker_token }}
 
   lps-loc:
     name: LPS LOC test suite
@@ -135,6 +157,8 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
+          docker_account: ${{ inputs.docker_account }}
+          docker_token: ${{ inputs.docker_token }}
 
   eve-upgrade:
     continue-on-error: true
@@ -160,6 +184,8 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
+          docker_account: ${{ inputs.docker_account }}
+          docker_token: ${{ inputs.docker_token }}
 
   user-apps:
     name: User apps test suite
@@ -181,6 +207,8 @@ jobs:
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
+          docker_account: ${{ inputs.docker_account }}
+          docker_token: ${{ inputs.docker_token }}
 
   virtualization:
     name: Virtualization test suite
@@ -203,3 +231,5 @@ jobs:
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           require_virtualization: true
+          docker_account: ${{ inputs.docker_account }}
+          docker_token: ${{ inputs.docker_token }}
