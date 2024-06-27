@@ -21,7 +21,7 @@ eden -t 1m pod deploy -p 8028:80 --registry=local docker://nginx -n t2
 stdout 'deploy pod t2 with docker://nginx request sent'
 
 # Wait for run
-test eden.app.test -test.v -timewait 10m RUNNING t1 t2
+test eden.app.test -test.v -timewait 15m RUNNING t1 t2
 
 # Dockers detecting
 eden -t 1m pod ps

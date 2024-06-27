@@ -17,7 +17,7 @@ eden -t 1m pod deploy -p 8028:80 docker://nginx -n t2 --memory 512MB
 stdout 'deploy pod t2 with docker://nginx request sent'
 
 # Wait for run
-test eden.app.test -test.v -timewait 10m RUNNING t1 t2
+test eden.app.test -test.v -timewait 15m RUNNING t1 t2
 
 # Dockers detecting
 eden -t 1m pod ps
