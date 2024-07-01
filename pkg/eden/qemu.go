@@ -11,12 +11,25 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/utils"
 	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	// It shouldn't take longer than 1 minute for EVE boot to commence
+	// after starting the qemu process.
+	eveStartTimeout = time.Minute
+	// Try at most 5 times to start EVE boot process.
+	// Sometimes qemu can hang even before the EVE kernel starts to boot.
+	// This is likely caused by some issue in qemu or in the host system.
+	// Since it is not EVE-related, we will try to re-start qemu 5 times
+	// before giving up.
+	eveStartRetryAttempts = 5
 )
 
 // StartSWTPM starts swtpm process and use stateDir as state, log, pid and socket location
@@ -200,8 +213,40 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		}
 	} else {
 		log.Infof("With pid: %s ; log: %s", pidFile, logFile)
-		if err := utils.RunCommandNohup(qemuCommand, logFile, pidFile, strings.Fields(qemuOptions)...); err != nil {
-			return fmt.Errorf("StartEVEQemu: %s", err)
+		var bootStarted bool
+		for i := 0; i < eveStartRetryAttempts; i++ {
+			startTime := time.Now()
+			err = utils.RunCommandNohup(qemuCommand, logFile, pidFile,
+				strings.Fields(qemuOptions)...)
+			if err != nil {
+				return fmt.Errorf("StartEVEQemu: %s", err)
+			}
+			for time.Since(startTime) < eveStartTimeout {
+				content, err := os.ReadFile(logFile)
+				if err != nil {
+					return fmt.Errorf("StartEVEQemu: cannot open log file %s: %s",
+						pidFile, err)
+				}
+				if strings.Contains(string(content), "Linux version") {
+					bootStarted = true
+					break
+				}
+				time.Sleep(2 * time.Second)
+			}
+			if bootStarted {
+				return nil
+			}
+			err = StopEVEQemu(pidFile)
+			if err != nil {
+				return fmt.Errorf("StartEVEQemu: failed to stop stuck qemu: %s", err)
+			}
+			// Wait for ports to get released.
+			time.Sleep(5 * time.Second)
+		}
+		if !bootStarted {
+			return fmt.Errorf(
+				"StartEVEQemu: EVE boot has not started even after %d retry attempts",
+				eveStartRetryAttempts)
 		}
 	}
 	return nil
