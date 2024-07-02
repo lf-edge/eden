@@ -42,7 +42,7 @@ const (
 	DefaultIP                   = "192.168.0.1"
 	DefaultEVEIP                = "192.168.1.2"
 	DefaultEserverPort          = 8888
-	DefaultTelnetPort           = 7777
+	DefaultTelnetPort           = 17777
 	DefaultQemuMonitorPort      = 7788
 	DefaultQemuNetdevSocketPort = 7790
 	DefaultSSHPort              = 2222
