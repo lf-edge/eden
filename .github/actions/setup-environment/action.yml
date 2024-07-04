@@ -57,6 +57,9 @@ runs:
             exit 1
           fi
           ./eden config set default --key=eve.accel --value=true
+        elif lscpu | grep -oEq "vmx|svm"; then
+          # Virtualization is not required but using acceleration is still preferred.
+          ./eden config set default --key=eve.accel --value=true
         else
           ./eden config set default --key=eve.accel --value=false
         fi
