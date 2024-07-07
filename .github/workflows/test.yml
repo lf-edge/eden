@@ -70,7 +70,7 @@ jobs:
           suite: "smoke.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ secrets.artifact_run_id }}
+          artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
           docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
 
