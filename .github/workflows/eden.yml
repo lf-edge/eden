@@ -16,4 +16,3 @@ jobs:
     uses: ./.github/workflows/test.yml
     with:
       eve_image: "lfedge/eve:12.5.0"
-    secrets: inherit
