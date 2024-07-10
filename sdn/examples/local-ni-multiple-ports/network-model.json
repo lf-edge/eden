@@ -1,0 +1,165 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport1",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport2",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport3",
+      "adminUP": true
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "ports": ["eveport0"]
+    },
+    {
+      "logicalLabel": "bridge1",
+      "ports": ["eveport1"]
+    },
+    {
+      "logicalLabel": "bridge2",
+      "ports": ["eveport2"]
+    },
+    {
+      "logicalLabel": "bridge3",
+      "ports": ["eveport3"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network0",
+      "bridge": "bridge0",
+      "subnet": "172.22.10.0/24",
+      "gwIP": "172.22.10.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.10.10",
+          "toIP": "172.22.10.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server0"],
+        "publicNTP": "132.163.96.2"
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server0", "httpserver0"]
+      }
+    },
+    {
+      "logicalLabel": "network1",
+      "bridge": "bridge1",
+      "subnet": "172.28.20.0/24",
+      "gwIP": "172.28.20.1",
+      "dhcp": {
+        "enable": false
+      },
+      "router": {
+        "outsideReachability": false,
+        "reachableEndpoints": ["dns-server0"]
+      }
+    },
+    {
+      "logicalLabel": "network2",
+      "bridge": "bridge2",
+      "subnet": "192.168.30.0/24",
+      "gwIP": "192.168.30.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "192.168.30.10",
+          "toIP": "192.168.30.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server1"],
+        "withoutDefaultRoute": false,
+        "publicNTP": "128.138.140.44"
+      },
+      "router": {
+        "outsideReachability": false,
+        "reachableEndpoints": ["dns-server1", "httpserver0"]
+      }
+    },
+    {
+      "logicalLabel": "network3",
+      "bridge": "bridge3",
+      "subnet": "10.40.40.0/24",
+      "gwIP": "10.40.40.1",
+      "dhcp": {
+        "enable": false
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server1", "httpserver0"]
+      }
+    }
+  ],
+  "endpoints": {
+    "dnsServers": [
+      {
+        "logicalLabel": "dns-server0",
+        "fqdn": "dns-server0.sdn",
+        "subnet": "10.16.16.0/24",
+        "ip": "10.16.16.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          },
+          {
+            "fqdn": "endpoint-fqdn.httpserver0",
+            "ip": "endpoint-ip.httpserver0"
+          }
+        ],
+        "upstreamServers": [
+          "1.1.1.1",
+          "8.8.8.8"
+        ]
+      },
+      {
+        "logicalLabel": "dns-server1",
+        "fqdn": "dns-server1.sdn",
+        "subnet": "10.17.17.0/24",
+        "ip": "10.17.17.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          },
+          {
+            "fqdn": "endpoint-fqdn.httpserver0",
+            "ip": "endpoint-ip.httpserver0"
+          }
+        ],
+        "upstreamServers": [
+          "8.8.8.8"
+        ]
+      }
+    ],
+    "httpServers": [
+      {
+        "logicalLabel": "httpserver0",
+        "fqdn": "httpserver0.sdn",
+        "subnet": "10.88.88.0/24",
+        "ip": "10.88.88.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server\n"
+          }
+        }
+      }
+    ]
+  }
+}
