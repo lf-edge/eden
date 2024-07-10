@@ -17,7 +17,7 @@ jobs:
         if: ${{ env.DOCKERHUB_TOKEN != '' }}
         run: echo "defined=true" >> $GITHUB_OUTPUT
         env:
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
   build:
     runs-on: ubuntu-22.04
     needs: [check-secrets]
@@ -32,8 +32,8 @@ jobs:
       - name: Login to DockerHUB
         id: login
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" |\
-             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.RELEASE_DOCKERHUB_TOKEN }}" |\
+             docker login -u "${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}" --password-stdin
       - name: Build and push
         run: |
           make DOCKER_TARGET=push LINUXKIT_TARGET=push DOCKER_PLATFORM=linux/arm64,linux/amd64 build-docker
