@@ -10,10 +10,12 @@ import (
 
 var intOne = big.NewInt(1)
 var internalIPv4Base *ipAsInt
+var internalIPv4Subnet *net.IPNet
 
 func init() {
 	// 240.0.0.0/4 is reserved
 	internalIPv4Base = ipToInt(net.ParseIP("240.0.0.0"))
+	_, internalIPv4Subnet, _ = net.ParseCIDR("240.0.0.0/4")
 }
 
 type ipAsInt struct {
