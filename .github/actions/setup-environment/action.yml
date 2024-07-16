@@ -94,7 +94,7 @@ runs:
       working-directory: "./eden"
     - name: Setup ext4
       if: inputs.file_system == 'ext4'
-      run: ./eden setup -v debug
+      run: ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args nowatchdog "'
       shell: bash
       working-directory: "./eden"
     - name: Setup zfs
@@ -102,6 +102,6 @@ runs:
       run: |
         ./eden config set default --key=eve.disks --value=4
         ./eden config set default --key=eve.disk --value=4096
-        ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
+        ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level nowatchdog "'
       shell: bash
       working-directory: "./eden"

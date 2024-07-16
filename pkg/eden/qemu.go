@@ -157,7 +157,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	if qemuOS != "linux" && qemuOS != "darwin" {
 		return fmt.Errorf("StartEVEQemu: OS not supported: %s", qemuOS)
 	}
-	qemuOptions += "-watchdog-action reset "
+	//qemuOptions += "-watchdog-action reset "
 
 	if isInstaller {
 		// Run EVE installer, then start EVE VM again but without the installer image.
