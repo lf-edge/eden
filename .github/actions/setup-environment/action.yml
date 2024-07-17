@@ -40,7 +40,7 @@ runs:
     - name: Install Packages
       run: |
         sudo add-apt-repository ppa:stefanberger/swtpm-jammy
-        sudo apt install -y qemu-utils qemu-system-x86 jq swtpm util-linux
+        sudo apt install -y qemu-utils qemu-system-x86 jq swtpm util-linux socat
       shell: bash
     - name: Build tests
       run: |
