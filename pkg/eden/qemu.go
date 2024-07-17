@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
@@ -39,6 +40,34 @@ func StopSWTPM(stateDir string) error {
 	command := "swtpm"
 	pidFile := filepath.Join(stateDir, fmt.Sprintf("%s.pid", command))
 	return utils.StopCommandWithPid(pidFile)
+}
+
+func startQMPLogger(qmpSockFile string, qmpLogFile string) error {
+	shellcmd := fmt.Sprintf(
+		"echo '{\"execute\": \"qmp_capabilities\"}' | " +
+		"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
+		qmpSockFile, qmpLogFile)
+	opts := []string{
+		"-c", shellcmd,
+	}
+
+	var err error
+
+	// Retry a few times if socket is not available yet
+	n := 5
+	for n > 0 {
+		if err = utils.RunCommandNohup("sh", "", "", opts...); err != nil {
+			time.Sleep(1 * time.Second)
+			n--
+			continue
+		}
+		break
+	}
+	if err != nil {
+		 return fmt.Errorf("startQMPLogger: can't connect to the QMP socket, presumably QEMU did not start")
+	}
+
+	return nil
 }
 
 // StartEVEQemu function run EVE in qemu
@@ -193,6 +222,12 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
 
+	qmpSockFile := filepath.Join(filepath.Dir(pidFile), "qmp.sock")
+	qmpLogFile := filepath.Join(filepath.Dir(pidFile), "qmp.log")
+
+	// QMP sock
+	qemuOptions += fmt.Sprintf("-qmp unix:%s,server,wait=off", qmpSockFile)
+
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
 	if foreground {
 		if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {
@@ -202,6 +237,11 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		log.Infof("With pid: %s ; log: %s", pidFile, logFile)
 		if err := utils.RunCommandNohup(qemuCommand, logFile, pidFile, strings.Fields(qemuOptions)...); err != nil {
 			return fmt.Errorf("StartEVEQemu: %s", err)
+		}
+		err = startQMPLogger(qmpSockFile, qmpLogFile)
+		if err != nil {
+			// Not critical, so just print and continue
+			log.Errorf("%v", err)
 		}
 	}
 	return nil
