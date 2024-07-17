@@ -43,10 +43,39 @@ func StopSWTPM(stateDir string) error {
 }
 
 func startQMPLogger(qmpSock string, qmpLog string) error {
+	//XXX
+	{
+		opts := []string{"-c","echo '{\"execute\": \"qmp_capabilities\"}'"}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX1 %v", err)
+	}
+	{
+		opts := []string{"-c","socat -V"}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX2 %v", err)
+	}
+	{
+		opts := []string{"-c","ls -la /tmp"}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX3 %v", err)
+	}
+	{
+		opts := []string{"-c",
+			os.ExpandEnv(fmt.Sprintf("ls -la $(dirname %s)", qmpLog))}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX4 %v", err)
+	}
+	{
+		opts := []string{"-c",
+			os.ExpandEnv(fmt.Sprintf("touch $(dirname %s)/XXX", qmpLog))}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX5 %v", err)
+	}
+
 	shellcmd := fmt.Sprintf(
 		"echo '{\"execute\": \"qmp_capabilities\"}' | " +
 		"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
-		"/tmp/qmp.sock", qmpLog)
+		"/tmp/qmp.sock", "/tmp/qmp.log")
 	opts := []string{
 		"-c", shellcmd,
 	}
@@ -54,9 +83,10 @@ func startQMPLogger(qmpSock string, qmpLog string) error {
 	var err error
 
 	// Retry a few times if socket is not available yet
-	n := 5
+	n := 10
 	for n > 0 {
 		if err = utils.RunCommandNohup("bash", "", "", opts...); err != nil {
+			log.Errorf(">>> XXX ERR: %v", err)
 			time.Sleep(1 * time.Second)
 			n--
 			continue
@@ -65,6 +95,8 @@ func startQMPLogger(qmpSock string, qmpLog string) error {
 	}
 	if err != nil {
 		 return fmt.Errorf("startQMPLogger: can't connect to the QMP socket, presumably QEMU did not start")
+	} else {
+		log.Errorf(">>>>XXXX QMP LOGGER RUNNING")
 	}
 
 	return nil
