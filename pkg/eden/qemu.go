@@ -46,7 +46,7 @@ func startQMPLogger(qmpSock string, qmpLog string) error {
 	shellcmd := fmt.Sprintf(
 		"echo '{\"execute\": \"qmp_capabilities\"}' | " +
 		"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
-		qmpSock, qmpLog)
+		"/tmp/qmp.sock", qmpLog)
 	opts := []string{
 		"-c", shellcmd,
 	}
@@ -56,7 +56,7 @@ func startQMPLogger(qmpSock string, qmpLog string) error {
 	// Retry a few times if socket is not available yet
 	n := 5
 	for n > 0 {
-		if err = utils.RunCommandNohup("sh", "", "", opts...); err != nil {
+		if err = utils.RunCommandNohup("bash", "", "", opts...); err != nil {
 			time.Sleep(1 * time.Second)
 			n--
 			continue
@@ -224,7 +224,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	}
 
 	// QMP sock
-	qemuOptions += fmt.Sprintf("-qmp unix:%s,server,wait=off", qmpSock)
+	qemuOptions += fmt.Sprintf("-qmp unix:/tmp/qmp.sock,server,wait=off")
 
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
 	if foreground {
