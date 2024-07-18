@@ -14,6 +14,4 @@ jobs:
   run_tests:
     name: Execute Eden test workflow
     uses: ./.github/workflows/test.yml
-    with:
-      eve_image: "lfedge/eve:12.4.0"
     secrets: inherit
