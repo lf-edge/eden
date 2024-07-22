@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
@@ -41,10 +42,71 @@ func StopSWTPM(stateDir string) error {
 	return utils.StopCommandWithPid(pidFile)
 }
 
+func startQMPLogger(qmpSock string, qmpLog string) error {
+	//XXX
+	{
+		opts := []string{"-c","echo '{\"execute\": \"qmp_capabilities\"}'"}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX1 %v", err)
+	}
+	{
+		opts := []string{"-c","socat -V"}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX2 %v", err)
+	}
+	{
+		opts := []string{"-c","ls -la /tmp"}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX3 %v", err)
+	}
+	{
+		opts := []string{"-c",
+			os.ExpandEnv(fmt.Sprintf("ls -la $(dirname %s)", qmpLog))}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX4 %v", err)
+	}
+	{
+		opts := []string{"-c",
+			os.ExpandEnv(fmt.Sprintf("touch $(dirname %s)/XXX", qmpLog))}
+		err := utils.RunCommandForeground("bash", opts...);
+		log.Errorf(">>> XXX5 %v", err)
+	}
+
+	shellcmd := fmt.Sprintf(
+		"echo '{\"execute\": \"qmp_capabilities\"}' | " +
+		"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
+		"/tmp/qmp.sock", "/tmp/qmp.log")
+	opts := []string{
+		"-c", shellcmd,
+	}
+
+	var err error
+
+	// Retry a few times if socket is not available yet
+	n := 10
+	for n > 0 {
+		if err = utils.RunCommandNohup("bash", "", "", opts...); err != nil {
+			log.Errorf(">>> XXX ERR: %v", err)
+			time.Sleep(1 * time.Second)
+			n--
+			continue
+		}
+		break
+	}
+	if err != nil {
+		 return fmt.Errorf("startQMPLogger: can't connect to the QMP socket, presumably QEMU did not start")
+	} else {
+		log.Errorf(">>>>XXXX QMP LOGGER RUNNING")
+	}
+
+	return nil
+}
+
 // StartEVEQemu function run EVE in qemu
 func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstaller bool,
 	qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort, netDevBasePort int,
-	qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile, pidFile string,
+	qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile, pidFile,
+	qmpSock, qmpLog string,
 	netModel sdnapi.NetworkModel, withSDN bool, tapInterface, usbImagePath string,
 	swtpm, foreground bool) (err error) {
 	var qemuCommand, qemuOptions string
@@ -157,7 +219,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	if qemuOS != "linux" && qemuOS != "darwin" {
 		return fmt.Errorf("StartEVEQemu: OS not supported: %s", qemuOS)
 	}
-	qemuOptions += "-watchdog-action reset "
+	qemuOptions += "-watchdog-action inject-nmi "
 
 	if isInstaller {
 		// Run EVE installer, then start EVE VM again but without the installer image.
@@ -193,6 +255,9 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
 
+	// QMP sock
+	qemuOptions += fmt.Sprintf("-qmp unix:/tmp/qmp.sock,server,wait=off")
+
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
 	if foreground {
 		if err := utils.RunCommandForeground(qemuCommand, strings.Fields(qemuOptions)...); err != nil {
@@ -202,6 +267,11 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		log.Infof("With pid: %s ; log: %s", pidFile, logFile)
 		if err := utils.RunCommandNohup(qemuCommand, logFile, pidFile, strings.Fields(qemuOptions)...); err != nil {
 			return fmt.Errorf("StartEVEQemu: %s", err)
+		}
+		err = startQMPLogger(qmpSock, qmpLog)
+		if err != nil {
+			// Not critical, so just print and continue
+			log.Errorf("%v", err)
 		}
 	}
 	return nil

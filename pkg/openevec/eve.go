@@ -138,13 +138,13 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 		}
 		log.Infof("SDN started, network model was submitted.")
 	}
+	currentPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	// Create USB network config override image if requested.
 	var usbImagePath string
 	if cfg.Eve.UsbNetConfFile != "" {
-		currentPath, err := os.Getwd()
-		if err != nil {
-			return err
-		}
 		usbImagePath = filepath.Join(currentPath, defaults.DefaultDist, "usb.img")
 		err = utils.CreateUsbNetConfImg(cfg.Eve.UsbNetConfFile, usbImagePath)
 		if err != nil {
@@ -169,10 +169,18 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 			log.Infof("swtpm is starting")
 		}
 	}
+
+	qmpSock := filepath.Join(currentPath, defaults.DefaultDist, "qmp.sock")
+	qmpLog := filepath.Join(currentPath, defaults.DefaultDist, "qmp.log")
+
 	// Start EVE VM.
-	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
-		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetDevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
-		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), tapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
+	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile,
+		imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
+		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetDevSocketPort,
+		cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
+		cfg.Eve.Pid, qmpSock, qmpLog, netModel,
+		isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel),
+		tapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err.Error())
 	} else {
 		log.Infof("EVE is starting")
