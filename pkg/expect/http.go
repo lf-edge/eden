@@ -96,7 +96,7 @@ func (exp *AppExpectation) checkDataStoreHTTP(ds *config.DatastoreConfig) bool {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if exp.httpDirectLoad && ds.Fqdn == fmt.Sprintf("%s://%s", u.Scheme, u.Hostname()) {
+		if exp.httpDirectLoad && ds.Fqdn == fmt.Sprintf("%s://%s", u.Scheme, u.Host) {
 			return true
 		}
 	}
@@ -142,7 +142,9 @@ func (exp *AppExpectation) createDataStoreHTTP(id uuid.UUID) *config.DatastoreCo
 		if u.Scheme == "https" {
 			ds.DType = config.DsType_DsHttps
 		}
-		ds.Fqdn = fmt.Sprintf("%s://%s", u.Scheme, u.Hostname())
+		// Use Host, just in case the http datastore address has a port number,
+		// we want to preserve it.
+		ds.Fqdn = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 	} else {
 		ds.Fqdn = fmt.Sprintf("http://%s:%s", exp.ctrl.GetVars().AdamDomain, exp.ctrl.GetVars().EServerPort)
 	}
