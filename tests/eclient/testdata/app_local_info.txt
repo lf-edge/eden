@@ -73,7 +73,7 @@ exec -t 1m bash get-appinfo-status.sh app1
 ! stdout 'lastCmdTimestamp'
 ! stderr .
 exec -t 1m bash put-appinfo-cmd.sh app1 123 COMMAND_PURGE &
-exec -t 5m bash wait-for-app-state.sh app1 HALTING
+exec -t 5m bash wait-for-app-state.sh app1 "PURGING|HALTING"
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
 exec -t 5m bash wait-for-volume.sh app1
 stdout DELIVERED
@@ -92,7 +92,7 @@ exec -t 5m bash wait-ssh.sh {{template "app_port"}}
 # Note that eve sums local and remote purge counters.
 exec -t 1m bash create-file-in-app1.sh /root/purge_test
 eden pod purge app1
-exec -t 5m bash wait-for-app-state.sh app1 HALTING
+exec -t 5m bash wait-for-app-state.sh app1 "PURGING|HALTING"
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
 exec -t 5m bash wait-for-volume.sh app1
 stdout DELIVERED
@@ -109,7 +109,7 @@ exec -t 5m bash wait-ssh.sh {{template "app_port"}}
 exec -t 1m bash create-file-in-app1.sh /run/restart_test
 exec -t 1m bash create-file-in-app1.sh /root/purge_test
 exec -t 1m bash put-appinfo-cmd.sh app1 456 COMMAND_RESTART &
-exec -t 5m bash wait-for-app-state.sh app1 HALTING
+exec -t 5m bash wait-for-app-state.sh app1 "RESTARTING|HALTING"
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
 exec -t 1m bash get-appinfo-status.sh app1
 stdout '"lastCmdTimestamp": "456"'
@@ -123,7 +123,7 @@ exec -t 1m bash file-exists-in-app1.sh /root/purge_test
 exec -t 1m bash create-file-in-app1.sh /run/restart_test
 exec -t 1m bash create-file-in-app1.sh /root/purge_test
 eden pod restart app1
-exec -t 5m bash wait-for-app-state.sh app1 HALTING
+exec -t 5m bash wait-for-app-state.sh app1 "RESTARTING|HALTING"
 exec -t 5m bash wait-for-app-state.sh app1 RUNNING
 exec -t 1m bash get-appinfo-status.sh app1
 stdout '"lastCmdTimestamp": "456"'
@@ -212,7 +212,7 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 while true; do
     APPINFO="$($EDEN sdn fwd eth0 {{template "mngr_port"}} -- {{template "ssh"}} "cat {{template "app_info_status_file"}}")"
     APPINFO="$(echo "$APPINFO" | jq --arg APP "$APP" '.appsInfo[] | select(.name==$APP)')"
-    echo "$APPINFO" | grep "$EXPSTATE" && break
+    echo "$APPINFO" | grep -E "$EXPSTATE" && break
     sleep 1
 done
 

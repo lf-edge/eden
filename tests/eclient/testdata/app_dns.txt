@@ -61,7 +61,7 @@ stdout 'Address:\s*172.26.11.1'
 # Repeat DNS resolution tests after purging (we had bugs affecting this scenario).
 message 'Purging app1'
 eden pod purge app1
-test eden.app.test -test.v -timewait 5m HALTING app1
+test eden.app.test -test.v -timewait 5m PURGING app1
 test eden.app.test -test.v -timewait 5m RUNNING app1
 
 message 'Re-checking accessibility after purge of app1'

@@ -559,8 +559,9 @@ func (openEVEC *OpenEVEC) PodModify(appName string, podNetworks, portPublish, ac
 			if needPurge {
 				processingFunction := func(im *info.ZInfoMsg) bool {
 					if im.Ztype == info.ZInfoTypes_ZiApp {
-						// waiting for halting state
-						if im.GetAinfo().State == info.ZSwState_HALTING {
+						// waiting for purging or halting state
+						if im.GetAinfo().State == info.ZSwState_PURGING ||
+							im.GetAinfo().State == info.ZSwState_HALTING {
 							return true
 						}
 					}
