@@ -222,8 +222,16 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 		qemuOptions += fmt.Sprintf("-readconfig %s ", qemuConfigFile)
 	}
 
-	qmpSockFile := filepath.Join(filepath.Dir(pidFile), "qmp.sock")
-	qmpLogFile := filepath.Join(filepath.Dir(pidFile), "qmp.log")
+	context, err := utils.ContextLoad()
+	if err != nil {
+		return fmt.Errorf("StartEVEQemu: load context error: %w", err)
+	}
+
+	qmpSockFile := fmt.Sprintf("%s-qmp.sock", strings.ToLower(context.Current))
+	qmpLogFile := fmt.Sprintf("%s-qmp.log", strings.ToLower(context.Current))
+
+	qmpSockFile = filepath.Join(filepath.Dir(pidFile), qmpSockFile)
+	qmpLogFile = filepath.Join(filepath.Dir(pidFile), qmpLogFile)
 
 	// QMP sock
 	qemuOptions += fmt.Sprintf("-qmp unix:%s,server,wait=off", qmpSockFile)
