@@ -62,6 +62,13 @@ func checkNewLastState(appName, state string) bool {
 	appStates, ok := states[appName]
 	if ok {
 		lastState := appStates[len(appStates)-1]
+		// PURGING and RESTARTING are not published by EVE since 12.3
+		if state == "PURGING" || state == "RESTARTING" {
+			if lastState.state == "HALTING" {
+				// The expected state was reached.
+				return false
+			}
+		}
 		if lastState.state != state {
 			return true
 		}
