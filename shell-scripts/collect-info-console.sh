@@ -13,21 +13,34 @@ OUTPUT="eve-info.tar.gz"
 # to complete (which is what we set from Github actions).
 WAIT_TIME="${1:-20}"
 
+# Get the port number used for the EVE console.
+CONSOLE_PORT="$(./eden config get --key eve.telnet-port)"
+if ! echo "$CONSOLE_PORT" | grep -qE '^[0-9]+$'; then
+    echo "Failed to get EVE console port"
+    exit 1
+fi
+
+# Check if EVE is running and is listening on the console port.
+if ! netstat -nl | grep -qE ".*:${CONSOLE_PORT}.*LISTEN"; then
+    echo "EVE is not running or listening on the console port"
+    exit 1
+fi
+
 # Switch to debug container where collect-info.sh is installed.
 for i in $(seq 3); do
   {
     echo "eve verbose off"; echo "eve enter debug"; sleep 3;
     echo "which collect-info.sh"; sleep 3
-  } | telnet 127.1 17777 | tee telnet.stdout
+  } | telnet 127.1 "${CONSOLE_PORT}" | tee telnet.stdout
   grep -q "/usr/bin/collect-info.sh" telnet.stdout && break
   sleep 60
 done
 
 for i in $(seq 3); do
   {
-    echo "rm -f /persist/eve-info*"; echo "/usr/bin/collect-info.sh";
+    echo "rm -rf /persist/eve-info*"; echo "/usr/bin/collect-info.sh";
     sleep $((WAIT_TIME+60*(i-1)))
-  } | telnet 127.1 17777 | tee telnet.stdout
+  } | telnet 127.1 "${CONSOLE_PORT}" | tee telnet.stdout
   TGZNAME="$(sed -n "s/EVE info is collected '\(.*\)'/\1/p" telnet.stdout)"
   [ -n "${TGZNAME}" ] && break
 done
@@ -39,12 +52,11 @@ fi
 
 for i in $(seq 3); do
   {
-    # Filename does not fit on one console line, we have to use asterisk.
-    echo "echo \>\>\>\$(base64 -w 0 /persist/eve-info*)\<\<\<";
-    # This is fairly quick even on Github runners - around 10 seconds, but depends
-    # on the tarball size.
-    sleep $((20+60*(i-1)))
-  } | telnet 127.1 17777 | sed -n "s/>>>\(.*\)<<</\1/p" | base64 -id > "${OUTPUT}"
+    echo "TGZNAME=$TGZNAME";
+    echo "base64 -w 0 \$TGZNAME > /persist/eve-info.base64"
+    echo "echo \>\>\>\$(cat /persist/eve-info.base64)\<\<\<";
+    sleep $((WAIT_TIME+60*(i-1)))
+  } | telnet 127.1 "${CONSOLE_PORT}" | sed -n "s/>>>\(.*\)<<</\1/p" | base64 -id > "${OUTPUT}"
   [ -s "${OUTPUT}" ] && break
   echo "Failed to receive eve-info tarball, retrying..."
 done
