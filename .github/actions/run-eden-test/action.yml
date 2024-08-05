@@ -67,7 +67,7 @@ runs:
       if: always()
       run: |
         ./eden stop
-        make clean
-        docker system prune -f -a
+        make clean >/dev/null
+        docker system prune -f -a >/dev/null
       shell: bash
       working-directory: "./eden"
