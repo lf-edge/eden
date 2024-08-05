@@ -18,6 +18,21 @@ if ./eden eve status | grep -q "no onboarded EVE"; then
   exit 1
 fi
 
+# Get the qemu-forwarded port number used for the ssh access
+# and check if EVE is running and is listening on this port.
+# Do this only if Eden-SDN is not used.
+if [ "$(./eden config get --key sdn.disable)" = "true" ]; then
+  SSH_PORT="$(./eden config get --key eve.hostfwd | jq -r 'to_entries[] | select(.value == "22") | .key')"
+  if ! echo "$SSH_PORT" | grep -qE '^[0-9]+$'; then
+    echo "Failed to get EVE ssh port"
+    exit 1
+  fi
+  if ! netstat -nl | grep -qE ".*:${SSH_PORT}.*LISTEN"; then
+    echo "EVE is not running or listening on the ssh port"
+    exit 1
+  fi
+fi
+
 # Give EVE 5 minutes at most to enable ssh access.
 # This delay is typically needed if tests failed early.
 for i in $(seq 60); do
