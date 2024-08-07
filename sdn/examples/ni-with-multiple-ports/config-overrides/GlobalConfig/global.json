@@ -1,0 +1,9 @@
+{
+  "GlobalSettings": {
+    "network.fallback.any.eth": {
+      "Key": "network.fallback.any.eth",
+      "ItemType": 4,
+      "TriStateValue": 1
+    }
+  }
+}
