@@ -25,6 +25,7 @@ type NetInstanceExpectation struct {
 	netInstType      string
 	uplinkAdapter    string
 	staticDNSEntries map[string][]string
+	enableFlowlog    bool
 }
 
 // checkNetworkInstance checks if provided netInst match expectation
@@ -60,12 +61,13 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 			Uuid:    id.String(),
 			Version: "1",
 		},
-		InstType: config.ZNetworkInstType_ZnetInstLocal, //we use local networks for now
-		Activate: true,
-		Port:     adapter,
-		Cfg:      &config.NetworkInstanceOpaqueConfig{},
-		IpType:   config.AddressType_IPV4,
-		Ip:       &config.Ipspec{},
+		InstType:       config.ZNetworkInstType_ZnetInstLocal, //we use local networks for now
+		Activate:       true,
+		Port:           adapter,
+		Cfg:            &config.NetworkInstanceOpaqueConfig{},
+		IpType:         config.AddressType_IPV4,
+		Ip:             &config.Ipspec{},
+		DisableFlowlog: !instanceExpect.enableFlowlog,
 	}
 	if instanceExpect.netInstType == "switch" {
 		netInst.InstType = config.ZNetworkInstType_ZnetInstSwitch
