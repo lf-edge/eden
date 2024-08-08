@@ -163,6 +163,18 @@ func WithStaticDNSEntries(networkName string, dnsEntries []string) ExpectationOp
 	}
 }
 
+// WithFlowlog enables flow logging for the given network instance.
+func WithFlowlog(networkName string) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		for _, netInstance := range expectation.netInstances {
+			if netInstance.name != networkName {
+				continue
+			}
+			netInstance.enableFlowlog = true
+		}
+	}
+}
+
 // WithDiskSize set disk size for created app (equals with image size if not defined)
 func WithDiskSize(diskSizeBytes int64) ExpectationOption {
 	return func(expectation *AppExpectation) {

@@ -93,7 +93,8 @@ func (openEVEC *OpenEVEC) NetworkNetstat(niName string, outputFormat types.Outpu
 	return nil
 }
 
-func (openEVEC *OpenEVEC) NetworkCreate(subnet, networkType, networkName, uplinkAdapter string, staticDNSEntries []string) error {
+func (openEVEC *OpenEVEC) NetworkCreate(subnet, networkType, networkName, uplinkAdapter string,
+	staticDNSEntries []string, enableFlowlog bool) error {
 	if networkType != "local" && networkType != "switch" {
 		return fmt.Errorf("network type %s not supported now", networkType)
 	}
@@ -108,6 +109,9 @@ func (openEVEC *OpenEVEC) NetworkCreate(subnet, networkType, networkName, uplink
 	var opts []expect.ExpectationOption
 	opts = append(opts, expect.AddNetInstanceAndPortPublish(subnet, networkType, networkName, nil, uplinkAdapter))
 	opts = append(opts, expect.WithStaticDNSEntries(networkName, staticDNSEntries))
+	if enableFlowlog {
+		opts = append(opts, expect.WithFlowlog(networkName))
+	}
 	expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, "", opts...)
 	netInstancesConfigs := expectation.NetworkInstances()
 mainloop:
