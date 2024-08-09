@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 13}}
+{{$tests := 14}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -35,22 +35,25 @@ eden.escript.test -test.run TestEdenScripts/template_check
 /bin/echo Eden basic network test (5/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_test
 
-/bin/echo Eden ACL to particular host (6/{{$tests}})
-eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/acl
-/bin/echo Eden Network light (7/{{$tests}})
+/bin/echo Eden ACLs without flow logging (6/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/acl --args="EDEN_FLOWLOG=n"
+/bin/echo Eden ACLs with flow logging (7/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/acl --args="EDEN_FLOWLOG=y"
+
+/bin/echo Eden Network light (8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/networking_light
 
-/bin/echo Eden Networks switch (8/{{$tests}})
+/bin/echo Eden Networks switch (9/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nw_switch
-/bin/echo Eden Network Ports switch (9/{{$tests}})
+/bin/echo Eden Network Ports switch (10/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_switch
-/bin/echo Eden Network portmap test (10/{{$tests}})
+/bin/echo Eden Network portmap test (11/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/port_forward
-/bin/echo Eden Test DNS service provided to applications (11/{{$tests}})
+/bin/echo Eden Test DNS service provided to applications (12/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_dns
 
-/bin/echo Eden Nginx (12/{{$tests}})
+/bin/echo Eden Nginx (13/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nginx
 
-/bin/echo Testing quick replace of network instances (13/{{$tests}})
+/bin/echo Testing quick replace of network instances (14/{{$tests}})
 eden.escript.test -testdata ../network/testdata/ -test.run TestEdenScripts/network_replace_test

@@ -31,6 +31,9 @@ func TestEdenScripts(t *testing.T) {
 		split := strings.SplitN(fl, "=", 2)
 		if len(split) == 2 {
 			flagsParsed[strings.TrimSpace(split[0])] = strings.TrimSpace(split[1])
+			// Also store the key=value argument into the environment variables so that
+			// it can be used with EdenGetEnv inside Go templates.
+			os.Setenv(split[0], split[1])
 		}
 	}
 

@@ -1,4 +1,4 @@
-# Test particular host access
+# Test application ACLs
 
 {{define "ssh"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@FWD_IP -p FWD_PORT{{end}}
 
@@ -11,6 +11,13 @@
 {{$network_name := "n1"}}
 
 {{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
+
+{{$flowlog := EdenGetEnv "EDEN_FLOWLOG"}}
+{{$flowlog_opt := ""}}
+{{if (eq $flowlog "y")}}
+{{$flowlog_opt = "--enable-flowlog"}}
+{{end}}
+
 
 [!exec:bash] stop
 [!exec:sleep] stop
@@ -32,7 +39,7 @@ exec -t 10m bash dns_lookup.sh zededa.com
 source .env
 
 # Create network for which ACLs will be defined.
-eden network create 10.11.12.0/24 -n {{$network_name}} -s {{$fake_domain}}:$host_ip
+eden network create 10.11.12.0/24 -n {{$network_name}} {{$flowlog_opt}} -s {{$fake_domain}}:$host_ip
 test eden.network.test -test.v -timewait 10m ACTIVATED {{$network_name}}
 
 # First app is only allowed to access github.com and $long_domain.
@@ -75,6 +82,7 @@ stderr 'Connected to {{$long_domain}}'
 ! exec -t 1m bash curl.sh 2224 google.com
 ! stderr 'Connected'
 
+{{if (eq $flowlog "y")}}
 # Wait for network packets information
 exec -t 10m bash wait_netstat.sh curl-acl1 google.com github.com {{$long_domain}} {{$fake_domain}}
 stdout 'google.com'
@@ -88,6 +96,7 @@ stdout 'github.com'
 stdout '{{$long_domain}}'
 ! stdout '{{$fake_domain}}'
 stdout 'ieee.org'
+{{end}}
 
 # Cleanup - undeploy applications
 eden pod delete curl-acl1

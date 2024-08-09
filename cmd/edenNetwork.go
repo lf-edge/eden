@@ -93,6 +93,7 @@ func newNetworkNetstatCmd() *cobra.Command {
 func newNetworkCreateCmd() *cobra.Command {
 	var networkType, networkName, uplinkAdapter string
 	var staticDNSEntries []string
+	var enableFlowlog bool
 
 	//networkCreateCmd is command for create network instance in EVE
 	var networkCreateCmd = &cobra.Command{
@@ -104,7 +105,8 @@ func newNetworkCreateCmd() *cobra.Command {
 			if len(args) == 1 {
 				subnet = args[0]
 			}
-			if err := openEVEC.NetworkCreate(subnet, networkType, networkName, uplinkAdapter, staticDNSEntries); err != nil {
+			if err := openEVEC.NetworkCreate(subnet, networkType, networkName, uplinkAdapter,
+				staticDNSEntries, enableFlowlog); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -114,6 +116,7 @@ func newNetworkCreateCmd() *cobra.Command {
 	networkCreateCmd.Flags().StringVarP(&networkName, "name", "n", "", "Name of network (empty for auto generation)")
 	networkCreateCmd.Flags().StringVarP(&uplinkAdapter, "uplink", "u", "eth0", "Name of uplink adapter, set to 'none' to not use uplink")
 	networkCreateCmd.Flags().StringArrayVarP(&staticDNSEntries, "static-dns-entries", "s", []string{}, "List of static DNS entries in format HOSTNAME:IP_ADDR,IP_ADDR,...")
+	networkCreateCmd.Flags().BoolVar(&enableFlowlog, "enable-flowlog", false, "enable flow logging (EVE collecting and publishing records of application network flows)")
 
 	return networkCreateCmd
 }
