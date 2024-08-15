@@ -13,7 +13,7 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.20'
+          go-version: '1.22'
       - name: run tests
         run: go test -json $(go list ./... | grep -v /eden/tests/) > test.json
       - name: Annotate tests
