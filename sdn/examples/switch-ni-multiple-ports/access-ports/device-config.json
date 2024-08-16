@@ -1,0 +1,282 @@
+{
+  "deviceIoList": [
+    {
+      "ptype": 1,
+      "phylabel": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "eth0",
+      "assigngrp": "eth0",
+      "usage": 1,
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1"
+      },
+      "logicallabel": "eth1",
+      "assigngrp": "eth1",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": false
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth2",
+      "phyaddrs": {
+        "Ifname": "eth2"
+      },
+      "logicallabel": "eth2",
+      "assigngrp": "eth2",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": false
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth3",
+      "phyaddrs": {
+        "Ifname": "eth3"
+      },
+      "logicallabel": "eth3",
+      "assigngrp": "eth3",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": false
+      }
+    }
+  ],
+  "networks": [
+    {
+      "id": "6605d17b-3273-4108-8e6e-4965441ebe01",
+      "type": 4,
+      "ip": {
+        "dhcp": 4
+      }
+    },
+    {
+      "id": "9d003e2a-d8c4-4b44-a983-98aff1f957ec",
+      "type": 0,
+      "ip": {
+        "dhcp": 2
+      }
+    }
+  ],
+  "systemAdapterList": [
+    {
+      "name": "eth0",
+      "uplink": true,
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01"
+    },
+    {
+      "name": "eth1",
+      "sharedLabels": ["switch-port"],
+      "networkUUID": "9d003e2a-d8c4-4b44-a983-98aff1f957ec"
+    },
+    {
+      "name": "eth2",
+      "sharedLabels": ["switch-port", "end-devices"],
+      "networkUUID": "9d003e2a-d8c4-4b44-a983-98aff1f957ec"
+    },
+    {
+      "name": "eth3",
+      "sharedLabels": ["switch-port", "end-devices"],
+      "networkUUID": "9d003e2a-d8c4-4b44-a983-98aff1f957ec"
+    }
+  ],
+  "networkInstances": [
+    {
+      "uuidandversion": {
+        "uuid": "207239ec-2d71-4f40-a698-c21c6422fe3d",
+        "version": "1"
+      },
+      "displayname": "multi-port-switch",
+      "instType": 1,
+      "activate": true,
+      "port": {
+        "type": 1,
+        "name": "switch-port"
+      },
+      "cfg": {},
+      "ipType": 1,
+      "ip": {},
+      "stp": {
+        "portsWithBpduGuard": "end-devices"
+      },
+      "disableFlowlog": true,
+      "vlanAccessPorts": [
+        {
+          "vlanId": 100,
+          "accessPort": "eth2"
+        },
+        {
+          "vlanId": 200,
+          "accessPort": "eth3"
+        }
+      ]
+    }
+  ],
+  "apps": [
+    {
+      "uuidandversion": {
+        "uuid": "cee082fd-3a43-4599-bbd3-8216ffa8652d",
+        "version": "1"
+      },
+      "displayname": "app1",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "398710ca-bf4f-46b0-b012-0d4e32214ba4",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "eth0",
+          "networkId": "207239ec-2d71-4f40-a698-c21c6422fe3d",
+          "accessVlanId": 100,
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "d8fe3e53-cc6c-4cee-8562-b406a1a8ada7",
+          "mount_dir": "/"
+        }
+      ]
+    },
+    {
+      "uuidandversion": {
+        "uuid": "5341bfb9-c828-4f98-807e-e9763d4dc316",
+        "version": "1"
+      },
+      "displayname": "app2",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "398710ca-bf4f-46b0-b012-0d4e32214ba4",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "eth0",
+          "networkId": "207239ec-2d71-4f40-a698-c21c6422fe3d",
+          "accessVlanId": 200,
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "cee944a3-ae6f-4887-9d8d-adcc0ed02370",
+          "mount_dir": "/"
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "uuid": "d8fe3e53-cc6c-4cee-8562-b406a1a8ada7",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app1-volume"
+    },
+    {
+      "uuid": "cee944a3-ae6f-4887-9d8d-adcc0ed02370",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app2-volume"
+    }
+  ],
+  "contentInfo": [
+    {
+      "uuid": "63d3b01f-f44f-4007-ba33-6e720bd52992",
+      "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "URL": "lfedge/eden-eclient:8a279cd",
+      "iformat": 8,
+      "displayName": "eden-eclient"
+    }
+  ],
+  "datastores": [
+    {
+      "id": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "dType": 5,
+      "fqdn": "docker://index.docker.io"
+    }
+  ],
+  "configItems": [
+    {
+      "key": "newlog.allow.fastupload",
+      "value": "true"
+    },
+    {
+      "key": "timer.config.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.download.retry",
+      "value": "60"
+    },
+    {
+      "key": "debug.default.loglevel",
+      "value": "debug"
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport1",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport2",
+      "adminUP": true
+    },
+    {
+      "logicalLabel": "eveport3",
+      "adminUP": true
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "ports": ["eveport0"]
+    },
+    {
+      "logicalLabel": "bridge1",
+      "ports": ["eveport1"]
+    },
+    {
+      "logicalLabel": "bridge2",
+      "ports": ["eveport2"]
+    },
+    {
+      "logicalLabel": "bridge3",
+      "ports": ["eveport3"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network0",
+      "bridge": "bridge0",
+      "subnet": "172.22.12.0/24",
+      "gwIP": "172.22.12.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.12.10",
+          "toIP": "172.22.12.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server"]
+      }
+    },
+    {
+      "logicalLabel": "network1-100",
+      "vlanID": 100,
+      "bridge": "bridge1",
+      "subnet": "10.203.10.0/24",
+      "gwIP": "10.203.10.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "10.203.10.100",
+          "toIP": "10.203.10.200"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server"]
+      }
+    },
+    {
+      "logicalLabel": "network1-200",
+      "vlanID": 200,
+      "bridge": "bridge1",
+      "subnet": "10.203.20.0/24",
+      "gwIP": "10.203.20.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "10.203.20.100",
+          "toIP": "10.203.20.200"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server"]
+      }
+    }
+  ],
+  "endpoints": {
+    "dnsServers": [
+      {
+        "logicalLabel": "dns-server",
+        "fqdn": "dns-server.sdn",
+        "subnet": "10.16.16.0/24",
+        "ip": "10.16.16.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          },
+          {
+            "fqdn": "endpoint-fqdn.httpserver100",
+            "ip": "endpoint-ip.httpserver100"
+          },
+          {
+            "fqdn": "endpoint-fqdn.httpserver200",
+            "ip": "endpoint-ip.httpserver200"
+          }
+        ],
+        "upstreamServers": [
+          "1.1.1.1",
+          "8.8.8.8"
+        ]
+      }
+    ],
+    "httpServers": [
+      {
+        "logicalLabel": "httpserver100",
+        "fqdn": "httpserver100.sdn",
+        "subnet": "10.203.10.0/24",
+        "ip": "10.203.10.10",
+        "httpPort": 80,
+        "directL2Connect": {
+          "bridge": "bridge2",
+          "vlanID": 100
+        },
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server for VLAN 100\n"
+          }
+        }
+      },
+      {
+        "logicalLabel": "httpserver200",
+        "fqdn": "httpserver200.sdn",
+        "subnet": "10.203.20.0/24",
+        "ip": "10.203.20.10",
+        "httpPort": 80,
+        "directL2Connect": {
+          "bridge": "bridge3",
+          "vlanID": 200
+        },
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server for VLAN 200\n"
+          }
+        }
+      }
+    ]
+  }
+}
