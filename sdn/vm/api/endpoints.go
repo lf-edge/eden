@@ -69,6 +69,9 @@ type Endpoint struct {
 	Subnet string `json:"subnet"`
 	// IP should be inside of the Subnet.
 	IP string `json:"ip"`
+	// DirectL2Connect : configure direct L2 connectivity between the endpoint and EVE.
+	// Use alternatively or additionally to Subnet+IP options.
+	DirectL2Connect DirectL2EpConnect `json:"directL2Connect"`
 	// MTU of the endpoint's interface.
 	// If not defined (zero value), the default MTU for Ethernet, which is 1500 bytes,
 	// will be set.
@@ -85,9 +88,29 @@ func (e Endpoint) ItemLogicalLabel() string {
 	return e.LogicalLabel
 }
 
-// ReferencesFromItem (overshadowed by endpoint specializations).
+// EndpointBridgeRefPrefix : prefix used for references to bridges from endpoints.
+const EndpointBridgeRefPrefix = "bridge-endpoint-"
+
+// ReferencesFromItem can be further extended by endpoint specializations.
 func (e Endpoint) ReferencesFromItem() []LogicalLabelRef {
-	return nil
+	var refs []LogicalLabelRef
+	if e.DirectL2Connect.Bridge != "" {
+		refs = append(refs, LogicalLabelRef{
+			ItemType:         Bridge{}.ItemType(),
+			ItemLogicalLabel: e.DirectL2Connect.Bridge,
+			RefKey:           EndpointBridgeRefPrefix + e.LogicalLabel,
+		})
+	}
+	return refs
+}
+
+// DirectL2EpConnect : direct L2 connection between an endpoint and EVE.
+type DirectL2EpConnect struct {
+	// Logical label of a Bridge to which the endpoint is connected.
+	Bridge string `json:"bridge"`
+	// Access VLAN ID.
+	// Leave zero value to express intent of not using VLAN filtering for this endpoint.
+	VlanID uint16 `json:"vlanID"`
 }
 
 // Client emulates a remote client.
@@ -122,7 +145,7 @@ func (e DNSServer) ItemCategory() string {
 
 // ReferencesFromItem
 func (e DNSServer) ReferencesFromItem() []LogicalLabelRef {
-	var refs []LogicalLabelRef
+	refs := e.Endpoint.ReferencesFromItem()
 	for i, entry := range e.StaticEntries {
 		if strings.HasPrefix(entry.FQDN, EndpointFQDNRefPrefix) {
 			refKey := fmt.Sprintf("dns-server-%s-entry-%d-fqdn", e.LogicalLabel, i)
@@ -200,7 +223,7 @@ func (e HTTPServer) ItemCategory() string {
 
 // ReferencesFromItem
 func (e HTTPServer) ReferencesFromItem() []LogicalLabelRef {
-	var refs []LogicalLabelRef
+	refs := e.Endpoint.ReferencesFromItem()
 	for _, dns := range e.PrivateDNS {
 		refs = append(refs, LogicalLabelRef{
 			ItemType:         Endpoint{}.ItemType(),
@@ -271,7 +294,7 @@ func (e ExplicitProxy) ItemCategory() string {
 
 // ReferencesFromItem
 func (e ExplicitProxy) ReferencesFromItem() []LogicalLabelRef {
-	var refs []LogicalLabelRef
+	refs := e.Endpoint.ReferencesFromItem()
 	for _, dns := range e.PrivateDNS {
 		refs = append(refs, LogicalLabelRef{
 			ItemType:         Endpoint{}.ItemType(),
@@ -338,7 +361,7 @@ func (e TransparentProxy) ItemCategory() string {
 
 // ReferencesFromItem lists references to private DNS servers (if there are any).
 func (e TransparentProxy) ReferencesFromItem() []LogicalLabelRef {
-	refs := make([]LogicalLabelRef, 0, len(e.PrivateDNS))
+	refs := e.Endpoint.ReferencesFromItem()
 	for _, dns := range e.PrivateDNS {
 		refs = append(refs, LogicalLabelRef{
 			ItemType:         Endpoint{}.ItemType(),

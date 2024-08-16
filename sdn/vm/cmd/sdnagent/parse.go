@@ -210,18 +210,21 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 		}
 	}
 
-	// Do not mix VLAN and non-VLAN network with the same bridge
-	for _, bridge := range a.netModel.Bridges {
+	// Do not mix VLAN and non-VLAN network/endpoint with the same bridge
+	for _, bridge := range netModel.Bridges {
 		var netWithVlan, netWithoutVlan bool
-		labeledItem := a.netModel.items.getItem(api.Bridge{}.ItemType(), bridge.LogicalLabel)
+		labeledItem := netModel.items.getItem(api.Bridge{}.ItemType(), bridge.LogicalLabel)
 		for refKey, refBy := range labeledItem.referencedBy {
-			if !strings.HasPrefix(refKey, api.NetworkBridgeRefPrefix) {
-				continue
+			var vlanID uint16
+			if strings.HasPrefix(refKey, api.NetworkBridgeRefPrefix) {
+				network := netModel.items[refBy].LabeledItem
+				vlanID = network.(api.Network).VlanID
+			} else if strings.HasPrefix(refKey, api.EndpointBridgeRefPrefix) {
+				endpoint := a.labeledItemToEndpoint(netModel.items[refBy])
+				vlanID = endpoint.DirectL2Connect.VlanID
 			}
-			network := a.netModel.items[refBy].LabeledItem
-			vlanID := network.(api.Network).VlanID
 			if (vlanID == 0 && netWithVlan) || (vlanID != 0 && netWithoutVlan) {
-				err = fmt.Errorf("bridge %s with both VLAN and non-VLAN networks",
+				err = fmt.Errorf("bridge %s with both VLAN and non-VLAN networks/endpoints",
 					bridge.LogicalLabel)
 				return
 			}
@@ -427,40 +430,38 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 
 func (a *agent) validateEndpoint(endpoint api.Endpoint) (err error) {
 	// Validate Subnet.
-	_, subnet, err := net.ParseCIDR(endpoint.Subnet)
-	if err != nil {
-		err = fmt.Errorf("endpoint %s with invalid subnet '%s': %w",
-			endpoint.LogicalLabel, endpoint.Subnet, err)
-		return
-	}
-	ones, bits := subnet.Mask.Size()
-	if bits-ones < 2 {
-		err = fmt.Errorf("endpoint %s uses subnet with less than 2 host IPs (%s)",
-			endpoint.LogicalLabel, endpoint.Subnet)
-		return
-	}
-	// Validate IP address.
-	ip := net.ParseIP(endpoint.IP)
-	if ip == nil {
-		err = fmt.Errorf("endpoint %s with invalid IP address (%s)",
-			endpoint.LogicalLabel, endpoint.IP)
-		return
-	}
-	if !subnet.Contains(ip) {
-		err = fmt.Errorf("endpoint %s has IP (%s) address outside of the configured "+
-			"subnet (%s)", endpoint.LogicalLabel, endpoint.IP, endpoint.Subnet)
-		return
+	if endpoint.Subnet != "" {
+		_, subnet, err := net.ParseCIDR(endpoint.Subnet)
+		if err != nil {
+			return fmt.Errorf("endpoint %s with invalid subnet '%s': %w",
+				endpoint.LogicalLabel, endpoint.Subnet, err)
+		}
+		ones, bits := subnet.Mask.Size()
+		if bits-ones < 2 {
+			return fmt.Errorf("endpoint %s uses subnet with less than 2 host IPs (%s)",
+				endpoint.LogicalLabel, endpoint.Subnet)
+		}
+		// Validate IP address.
+		if endpoint.IP != "" {
+			ip := net.ParseIP(endpoint.IP)
+			if ip == nil {
+				return fmt.Errorf("endpoint %s with invalid IP address (%s)",
+					endpoint.LogicalLabel, endpoint.IP)
+			}
+			if !subnet.Contains(ip) {
+				return fmt.Errorf("endpoint %s has IP (%s) address outside of the configured "+
+					"subnet (%s)", endpoint.LogicalLabel, endpoint.IP, endpoint.Subnet)
+			}
+		}
 	}
 	// Validate MTU settings.
 	if endpoint.MTU != 0 && endpoint.MTU < minMTU {
-		err = fmt.Errorf("MTU %d configured for endpoint %s is too small",
+		return fmt.Errorf("MTU %d configured for endpoint %s is too small",
 			endpoint.MTU, endpoint.LogicalLabel)
-		return
 	}
 	if endpoint.MTU > maxMTU {
-		err = fmt.Errorf("MTU %d configured for endpoint %s is too large",
+		return fmt.Errorf("MTU %d configured for endpoint %s is too large",
 			endpoint.MTU, endpoint.LogicalLabel)
-		return
 	}
 	return nil
 }

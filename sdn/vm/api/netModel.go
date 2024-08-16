@@ -167,6 +167,8 @@ type Bridge struct {
 	Ports []string `json:"ports"`
 	// Logical labels of bonds.
 	Bonds []string `json:"bonds"`
+	// WithSTP: enable to run the Spanning Tree Protocol (STP).
+	WithSTP bool `json:"withSTP"`
 }
 
 // ItemType

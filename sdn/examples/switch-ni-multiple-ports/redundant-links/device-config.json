@@ -1,0 +1,191 @@
+{
+  "deviceIoList": [
+    {
+      "ptype": 1,
+      "phylabel": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "eth0",
+      "assigngrp": "eth0",
+      "usage": 1,
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1"
+      },
+      "logicallabel": "eth1",
+      "assigngrp": "eth1",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": false
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth2",
+      "phyaddrs": {
+        "Ifname": "eth2"
+      },
+      "logicallabel": "eth2",
+      "assigngrp": "eth2",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": false
+      }
+    }
+  ],
+  "networks": [
+    {
+      "id": "6605d17b-3273-4108-8e6e-4965441ebe01",
+      "type": 4,
+      "ip": {
+        "dhcp": 4
+      }
+    },
+    {
+      "id": "9d003e2a-d8c4-4b44-a983-98aff1f957ec",
+      "type": 0,
+      "ip": {
+        "dhcp": 2
+      }
+    }
+  ],
+  "systemAdapterList": [
+    {
+      "name": "eth0",
+      "uplink": true,
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01"
+    },
+    {
+      "name": "eth1",
+      "sharedLabels": ["switch-port"],
+      "networkUUID": "9d003e2a-d8c4-4b44-a983-98aff1f957ec"
+    },
+    {
+      "name": "eth2",
+      "sharedLabels": ["switch-port"],
+      "networkUUID": "9d003e2a-d8c4-4b44-a983-98aff1f957ec"
+    }
+  ],
+  "networkInstances": [
+    {
+      "uuidandversion": {
+        "uuid": "207239ec-2d71-4f40-a698-c21c6422fe3d",
+        "version": "1"
+      },
+      "displayname": "multi-port-switch",
+      "instType": 1,
+      "activate": true,
+      "port": {
+        "type": 1,
+        "name": "switch-port"
+      },
+      "cfg": {},
+      "ipType": 1,
+      "ip": {},
+      "disableFlowlog": true
+    }
+  ],
+  "apps": [
+    {
+      "uuidandversion": {
+        "uuid": "4d88a7c5-64fc-43ee-a58a-f5944bc7872c",
+        "version": "1"
+      },
+      "displayname": "app",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "398710ca-bf4f-46b0-b012-0d4e32214ba4",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "eth0",
+          "networkId": "207239ec-2d71-4f40-a698-c21c6422fe3d",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "5605093b-c7cf-4beb-bb6b-14d86d39c42b",
+          "mount_dir": "/"
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "uuid": "5605093b-c7cf-4beb-bb6b-14d86d39c42b",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app-volume"
+    }
+  ],
+  "contentInfo": [
+    {
+      "uuid": "63d3b01f-f44f-4007-ba33-6e720bd52992",
+      "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "URL": "lfedge/eden-eclient:8a279cd",
+      "iformat": 8,
+      "displayName": "eden-eclient"
+    }
+  ],
+  "datastores": [
+    {
+      "id": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "dType": 5,
+      "fqdn": "docker://index.docker.io"
+    }
+  ],
+  "configItems": [
+    {
+      "key": "newlog.allow.fastupload",
+      "value": "true"
+    },
+    {
+      "key": "timer.config.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.download.retry",
+      "value": "60"
+    },
+    {
+      "key": "debug.default.loglevel",
+      "value": "debug"
+    }
+  ]
+}

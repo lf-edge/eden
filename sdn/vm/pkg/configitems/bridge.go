@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"reflect"
 
@@ -28,6 +29,8 @@ type Bridge struct {
 	VLANs []uint16
 	// MTU : Maximum transmission unit size.
 	MTU uint16
+	// WithSTP: enable to run the Spanning Tree Protocol (STP).
+	WithSTP bool
 }
 
 // Name
@@ -52,7 +55,7 @@ func (b Bridge) Equal(other depgraph.Item) bool {
 		reflect.DeepEqual(b.PhysIfs, b2.PhysIfs) &&
 		reflect.DeepEqual(b.BondIfs, b2.BondIfs) &&
 		reflect.DeepEqual(b.VLANs, b2.VLANs) &&
-		b.MTU == b2.MTU
+		b.MTU == b2.MTU && b.WithSTP == b2.WithSTP
 }
 
 // External returns false.
@@ -363,6 +366,26 @@ func (c *BridgeConfigurator) handleModify(oldBridgeCfg, newBridgeCfg Bridge) (er
 			log.Error(err)
 			return err
 		}
+	}
+	// Update the STP state.
+	if err = c.startOrStopSTP(ifName, newBridgeCfg.WithSTP); err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
+}
+
+func (c *BridgeConfigurator) startOrStopSTP(brIfName string, start bool) error {
+	sysOptVal := "0"
+	action := "stop"
+	if start {
+		sysOptVal = "1"
+		action = "start"
+	}
+	sysOptPath := fmt.Sprintf("/sys/class/net/%s/bridge/stp_state", brIfName)
+	err := os.WriteFile(sysOptPath, []byte(sysOptVal), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to %s STP for bridge %s: %w", action, brIfName, err)
 	}
 	return nil
 }

@@ -257,15 +257,24 @@ func (a *agent) getIntendedBridges() dg.Graph {
 		}, nil)
 	}
 	for _, bridge := range a.netModel.Bridges {
-		var vlans []uint16
+		vlans := make(map[uint16]struct{})
 		labeledItem := a.netModel.items.getItem(api.Bridge{}.ItemType(), bridge.LogicalLabel)
 		for refKey, refBy := range labeledItem.referencedBy {
 			if strings.HasPrefix(refKey, api.NetworkBridgeRefPrefix) {
 				network := a.netModel.items[refBy].LabeledItem
 				if vlanID := network.(api.Network).VlanID; vlanID != 0 {
-					vlans = append(vlans, vlanID)
+					vlans[vlanID] = struct{}{}
+				}
+			} else if strings.HasPrefix(refKey, api.EndpointBridgeRefPrefix) {
+				endpoint := a.getEndpoint(refBy.logicalLabel)
+				if vlanID := endpoint.DirectL2Connect.VlanID; vlanID != 0 {
+					vlans[vlanID] = struct{}{}
 				}
 			}
+		}
+		var vlanList []uint16
+		for vlanID := range vlans {
+			vlanList = append(vlanList, vlanID)
 		}
 		var physIfs []configitems.PhysIf
 		var bonds []string
@@ -290,8 +299,9 @@ func (a *agent) getIntendedBridges() dg.Graph {
 			LogicalLabel: bridge.LogicalLabel,
 			PhysIfs:      physIfs,
 			BondIfs:      bonds,
-			VLANs:        vlans,
+			VLANs:        vlanList,
 			MTU:          maxMTU,
+			WithSTP:      bridge.WithSTP,
 		}, nil)
 	}
 	return intendedCfg
@@ -429,13 +439,17 @@ func (a *agent) getIntendedNetwork(network api.Network) dg.Graph {
 		},
 		GwIP: outIP.IP,
 	}, nil)
-	// - route for every endpoint
+	// - route for every L3-connected endpoint
 	epTypename := api.Endpoint{}.ItemType()
 	for itemID, item := range a.netModel.items {
 		if itemID.typename != epTypename {
 			continue
 		}
 		ep := a.labeledItemToEndpoint(item)
+		if ep.DirectL2Connect.Bridge != "" {
+			// This endpoint has direct L2 connection to EVE, skip.
+			continue
+		}
 		_, epSubnet, _ := net.ParseCIDR(ep.Subnet)
 		reachable := network.Router == nil ||
 			strListContains(network.Router.ReachableEndpoints, ep.LogicalLabel)
@@ -827,9 +841,6 @@ func (a *agent) getIntendedHttpSrvEp(httpSrv api.HTTPServer) dg.Graph {
 
 func (a *agent) putEpCommonConfig(graph dg.Graph, ep api.Endpoint, dnsClient *api.DNSClientConfig) {
 	vethName, inIfName, outIfName := a.endpointVethName(ep.LogicalLabel)
-	_, subnet, _ := net.ParseCIDR(ep.Subnet) // already validated
-	epIP := &net.IPNet{IP: net.ParseIP(ep.IP), Mask: subnet.Mask}
-	gwIP := a.genEndpointGwIP(subnet, epIP.IP)
 	nsName := a.endpointNsName(ep.LogicalLabel)
 	netNs := configitems.NetNamespace{
 		NsName: nsName,
@@ -849,35 +860,61 @@ func (a *agent) putEpCommonConfig(graph dg.Graph, ep api.Endpoint, dnsClient *ap
 		}
 	}
 	graph.PutItem(netNs, nil)
+	// Prepare IP config.
+	l2Direct := ep.DirectL2Connect.Bridge != ""
+	var subnet, epIP, gwIP *net.IPNet
+	var epIPs, gwIPs []*net.IPNet
+	if ep.IP != "" && ep.Subnet != "" {
+		// ep.Subnet and ep.IP are already validated
+		_, subnet, _ = net.ParseCIDR(ep.Subnet)
+		epIP = &net.IPNet{IP: net.ParseIP(ep.IP), Mask: subnet.Mask}
+		epIPs = append(epIPs, epIP)
+	}
+	if !l2Direct && subnet != nil && epIP != nil {
+		gwIP = a.genEndpointGwIP(subnet, epIP.IP)
+		gwIPs = append(gwIPs, gwIP)
+	}
+	// Connect endpoint using a VETH.
+	var masterBridge *configitems.MasterBridge
+	if l2Direct {
+		masterBridge = &configitems.MasterBridge{
+			IfName: a.bridgeIfName(ep.DirectL2Connect.Bridge),
+			VLAN:   ep.DirectL2Connect.VlanID,
+		}
+	}
 	graph.PutItem(configitems.Veth{
 		VethName: vethName,
 		Peer1: configitems.VethPeer{
 			IfName:       inIfName,
 			NetNamespace: nsName,
-			IPAddresses:  []*net.IPNet{epIP},
+			IPAddresses:  epIPs,
 			MTU:          ep.MTU,
 		},
 		Peer2: configitems.VethPeer{
 			IfName:       outIfName,
 			NetNamespace: configitems.MainNsName,
-			IPAddresses:  []*net.IPNet{gwIP},
+			IPAddresses:  gwIPs,
 			MTU:          ep.MTU,
+			MasterBridge: masterBridge,
 		},
 	}, nil)
-	defaultDst := allIPv4
-	isIPv6 := len(subnet.IP) == net.IPv6len
-	if isIPv6 {
-		defaultDst = allIPv6
+	// Configure default route.
+	if !l2Direct && subnet != nil && gwIP != nil {
+		defaultDst := allIPv4
+		isIPv6 := len(subnet.IP) == net.IPv6len
+		if isIPv6 {
+			defaultDst = allIPv6
+		}
+		graph.PutItem(configitems.Route{
+			NetNamespace: nsName,
+			DstNet:       defaultDst,
+			OutputIf: configitems.RouteOutIf{
+				VethName:       vethName,
+				VethPeerIfName: inIfName,
+			},
+			GwIP: gwIP.IP,
+		}, nil)
 	}
-	graph.PutItem(configitems.Route{
-		NetNamespace: nsName,
-		DstNet:       defaultDst,
-		OutputIf: configitems.RouteOutIf{
-			VethName:       vethName,
-			VethPeerIfName: inIfName,
-		},
-		GwIP: gwIP.IP,
-	}, nil)
 }
 
 func (a *agent) bondIfName(logicalLabel string) string {
