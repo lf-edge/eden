@@ -153,7 +153,7 @@ func (exp *AppExpectation) obtainVolumeInfo(image *config.Image) ([]string, erro
 }
 
 // prepareImage generates new image for mountable volume
-func (exp *AppExpectation) prepareImage() *config.Image {
+func (exp *AppExpectation) prepareImage() (*config.Image, error) {
 	appLink := defaults.DefaultEmptyVolumeLinkQcow2
 	switch exp.volumesType {
 	case VolumeQcow2:
@@ -169,21 +169,25 @@ func (exp *AppExpectation) prepareImage() *config.Image {
 	case VolumeVMDK:
 		appLink = defaults.DefaultEmptyVolumeLinkVMDK
 	case VolumeNone:
-		return nil
+		return nil, fmt.Errorf("no volume type defined")
 	}
 	if !strings.Contains(appLink, "://") {
 		//if we use file, we must resolve absolute path
 		appLink = fmt.Sprintf("file://%s", utils.ResolveAbsPath(appLink))
 	}
-	tempExp := AppExpectationFromURL(exp.ctrl, exp.device, appLink, "")
+	tempExp, err := AppExpectationFromURL(exp.ctrl, exp.device, appLink, "")
+	if err != nil {
+		return nil, fmt.Errorf("cannot create AppExpectationFromURL: %s", err)
+	}
+
 	tempExp.imageFormat = string(exp.volumesType)
-	return tempExp.Image()
+	return tempExp.Image(), nil
 }
 
 // createAppInstanceConfigDocker creates appBundle for docker with provided img, netInstance, id and acls
 //
 //	it uses name of app and cpu/mem params from AppExpectation
-func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) *appBundle {
+func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id uuid.UUID) (*appBundle, error) {
 	log.Debugf("Try to obtain info about volumes, please wait")
 	mountPointsList, err := exp.obtainVolumeInfo(img)
 	if err != nil {
@@ -226,7 +230,11 @@ func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 
 	if len(mountPointsList) > 0 {
 		// we need to add volumes for every mount point
-		image := exp.prepareImage()
+		image, err := exp.prepareImage()
+		if err != nil {
+			return nil, fmt.Errorf("cannot prepare image: %v", err)
+		}
+
 		for ind, el := range mountPointsList {
 			if image != nil {
 				drive := &config.Drive{
@@ -257,5 +265,5 @@ func (exp *AppExpectation) createAppInstanceConfigDocker(img *config.Image, id u
 		appInstanceConfig: app,
 		contentTrees:      contentTrees,
 		volumes:           volumes,
-	}
+	}, nil
 }

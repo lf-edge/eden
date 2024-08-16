@@ -41,7 +41,10 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	var bundle *appBundle
 	switch exp.appType {
 	case dockerApp, directoryApp:
-		bundle = exp.createAppInstanceConfigDocker(img, id)
+		bundle, err = exp.createAppInstanceConfigDocker(img, id)
+		if err != nil {
+			return nil, err
+		}
 	case httpApp, httpsApp, fileApp:
 		bundle = exp.createAppInstanceConfigVM(img, id)
 	default:
@@ -57,7 +60,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 			for _, el := range splitLink {
 				splitArgs := strings.SplitN(el, "=", 2)
 				if len(splitArgs) < 2 {
-					log.Fatalf("cannot parse volume (must have src and dst): %s", el)
+					return nil, fmt.Errorf("cannot parse volume (must have src and dst): %s", el)
 				}
 				switch splitArgs[0] {
 				case "source", "src":
@@ -78,7 +81,11 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 				return false
 			})
 		}
-		tempExp := AppExpectationFromURL(exp.ctrl, exp.device, proccessedLink, "")
+		tempExp, err := AppExpectationFromURL(exp.ctrl, exp.device, proccessedLink, "")
+		if err != nil {
+			return nil, fmt.Errorf("cannot create AppExpectationFromURL: %s", err)
+		}
+
 		if tempExp.appType != dockerApp {
 			//we should not overwrite type for docker
 			tempExp.imageFormat = string(exp.volumesType)
@@ -119,7 +126,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	for _, k := range exp.netInstances {
 		ni, ok := netInstances[k]
 		if !ok {
-			log.Fatalf("broken network instance pointer: %v", k)
+			return nil, fmt.Errorf("broken network instance pointer: %v", k)
 		}
 		usageCounter := niUsageCounter[ni.Displayname]
 		bundle.appInstanceConfig.Interfaces = append(bundle.appInstanceConfig.Interfaces, &config.NetworkAdapter{
@@ -154,24 +161,24 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 
 // Application expectation gets or creates Image definition, gets or create NetworkInstance definition,
 // gets AppInstanceConfig and returns it or creates AppInstanceConfig, adds it into internal controller and returns it
-func (exp *AppExpectation) Application() *config.AppInstanceConfig {
+func (exp *AppExpectation) Application() (*config.AppInstanceConfig, error) {
 	image := exp.Image()
 	networkInstances := exp.NetworkInstances()
 	for _, appID := range exp.device.GetApplicationInstances() {
 		app, err := exp.ctrl.GetApplicationInstanceConfig(appID)
 		if err != nil {
-			log.Fatalf("no app %s found in controller: %s", appID, err)
+			return nil, fmt.Errorf("no app %s found in controller: %s", appID, err)
 		}
 		if exp.checkAppInstanceConfig(app) {
-			return app
+			return app, nil
 		}
 	}
 	bundle, err := exp.createAppInstanceConfig(image, networkInstances)
 	if err != nil {
-		log.Fatalf("cannot create app: %s", err)
+		return nil, fmt.Errorf("createAppInstanceConfig: %s", err)
 	}
 	if err = exp.ctrl.AddApplicationInstanceConfig(bundle.appInstanceConfig); err != nil {
-		log.Fatalf("AddApplicationInstanceConfig: %s", err)
+		return nil, fmt.Errorf("AddApplicationInstanceConfig: %s", err)
 	}
 	if exp.appLink == defaults.DefaultDummyExpect {
 		log.Debug("skip modify of entities")
@@ -185,5 +192,5 @@ func (exp *AppExpectation) Application() *config.AppInstanceConfig {
 			exp.device.SetVolumeConfigs(append(exp.device.GetVolumes(), el.Uuid))
 		}
 	}
-	return bundle.appInstanceConfig
+	return bundle.appInstanceConfig, nil
 }

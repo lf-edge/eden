@@ -114,7 +114,7 @@ func tryPredictAppType(appLink string) string {
 //	podName - name of app
 //	device - device to set updates in volumes and content trees
 //	opts can be used to modify parameters of expectation
-func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink string, podName string, opts ...ExpectationOption) (expectation *AppExpectation) {
+func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink string, podName string, opts ...ExpectationOption) (expectation *AppExpectation, err error) {
 	var adapter = &config.Adapter{
 		Name: "eth0",
 		Type: evecommon.PhyIoType_PhyIoNetEth,
@@ -145,7 +145,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	case "arm64":
 		expectation.virtualizationMode = config.VmMode_PV
 	default:
-		log.Fatalf("Unexpected arch %s", expectation.ctrl.GetVars().ZArch)
+		return nil, fmt.Errorf("Unexpected arch %s", expectation.ctrl.GetVars().ZArch)
 	}
 	for _, opt := range opts {
 		opt(expectation)
@@ -161,24 +161,24 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 		for _, el := range ni.portsReceived {
 			splitted := strings.Split(el, ":")
 			if len(splitted) != 2 {
-				log.Fatalf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT", el)
+				return nil, fmt.Errorf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT", el)
 			}
 			extPort, err := strconv.Atoi(splitted[0])
 			if err != nil {
-				log.Fatalf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT: %s", el, err)
+				return nil, fmt.Errorf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT: %s", el, err)
 			}
 			if extPort == 22 {
-				log.Fatalf("Port 22 already in use")
+				return nil, fmt.Errorf("Port 22 already in use")
 			}
 			intPort, err := strconv.Atoi(splitted[1])
 			if err != nil {
-				log.Fatalf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT: %s", el, err)
+				return nil, fmt.Errorf("Cannot use %s in format EXTERNAL_PORT:INTERNAL_PORT: %s", el, err)
 			}
 			if len(qemuPorts) > 0 { //not empty forwarding rules, need to check for existing
 				for _, qv := range qemuPorts {
 					portNum, err := strconv.Atoi(qv)
 					if err != nil {
-						log.Fatalf("Port map port %s could not be converted to Integer", qv)
+						return nil, fmt.Errorf("Port map port %s could not be converted to Integer", qv)
 					}
 					if portNum == extPort || (portNum+defaults.DefaultPortMapOffset) == extPort {
 						ni.ports[extPort] = intPort
@@ -195,7 +195,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 			for _, appID := range device.GetApplicationInstances() {
 				app, err := ctrl.GetApplicationInstanceConfig(appID)
 				if err != nil {
-					log.Fatalf("app %s not found: %s", appID, err)
+					return nil, fmt.Errorf("app %s not found: %s", appID, err)
 				}
 				if app.Displayname == expectation.oldAppName {
 					//if we try to modify the app, we skip this check
@@ -206,7 +206,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 						for _, match := range acl.Matches {
 							for ip := range ni.ports {
 								if match.Type == "lport" && match.Value == strconv.Itoa(ip) {
-									log.Fatalf("Port %d already in use", ip)
+									return nil, fmt.Errorf("Port %d already in use", ip)
 								}
 							}
 						}
@@ -226,7 +226,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	//parse provided appLink to obtain params
 	params := utils.GetParams(appLink, defaults.DefaultPodLinkPattern)
 	if len(params) == 0 {
-		log.Fatalf("fail to parse (oci|docker|http(s)|file|directory)://(<TAG>[:<VERSION>] | <URL> | <PATH>) from argument (%s)", appLink)
+		return nil, fmt.Errorf("fail to parse (oci|docker|http(s)|file|directory)://(<TAG>[:<VERSION>] | <URL> | <PATH>) from argument (%s)", appLink)
 	}
 	expectation.appType = 0
 	expectation.appURL = ""
@@ -234,7 +234,7 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	ok := false
 	appType := ""
 	if appType, ok = params["TYPE"]; !ok || appType == "" {
-		log.Fatalf("cannot parse appType (not [docker]): %s", appLink)
+		return nil, fmt.Errorf("cannot parse appType (not [docker]): %s", appLink)
 	}
 	switch appType {
 	case "docker", "oci":
@@ -250,14 +250,14 @@ func AppExpectationFromURL(ctrl controller.Cloud, device *device.Ctx, appLink st
 	case "":
 		expectation.appType = dockerApp
 	default:
-		log.Fatalf("format not supported %s", appType)
+		return nil, fmt.Errorf("format not supported %s", appType)
 	}
 	if expectation.appURL, ok = params["TAG"]; !ok || expectation.appURL == "" {
-		log.Fatalf("cannot parse appTag: %s", appLink)
+		return nil, fmt.Errorf("cannot parse appTag: %s", appLink)
 	}
 	if expectation.appVersion, ok = params["VERSION"]; expectation.appType == dockerApp && (!ok || expectation.appVersion == "") {
 		log.Debugf("cannot parse appVersion from %s will use latest", appLink)
 		expectation.appVersion = "latest"
 	}
-	return
+	return expectation, nil
 }

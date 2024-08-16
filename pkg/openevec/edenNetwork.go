@@ -112,7 +112,10 @@ func (openEVEC *OpenEVEC) NetworkCreate(subnet, networkType, networkName, uplink
 	if enableFlowlog {
 		opts = append(opts, expect.WithFlowlog(networkName))
 	}
-	expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, "", opts...)
+	expectation, err := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, "", opts...)
+	if err != nil {
+		return fmt.Errorf("AppExpectationFromURL: %w", err)
+	}
 	netInstancesConfigs := expectation.NetworkInstances()
 mainloop:
 	for _, el := range netInstancesConfigs {

@@ -87,7 +87,10 @@ func (openEVEC *OpenEVEC) VolumeCreate(appLink, registry, diskSize, volumeName, 
 			registryToUse = ""
 		}
 		opts = append(opts, expect.WithRegistry(registryToUse))
-		expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, volumeName, opts...)
+		expectation, err := expect.AppExpectationFromURL(ctrl, dev, appLink, volumeName, opts...)
+		if err != nil {
+			return fmt.Errorf("AppExpectationFromURL: %w", err)
+		}
 		volumeConfig := expectation.Volume()
 		log.Infof("create volume %s with %s request sent", volumeConfig.DisplayName, appLink)
 	}
