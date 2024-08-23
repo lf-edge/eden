@@ -34,6 +34,7 @@ require (
 	github.com/thediveo/enumflag v0.10.1
 	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef
 	golang.org/x/crypto v0.21.0
+	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
 	golang.org/x/net v0.23.0
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/term v0.18.0
