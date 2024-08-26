@@ -73,6 +73,9 @@ jobs:
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
           docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          aziot_id_scope: ${{ secrets.AZIOT_ID_SCOPE }}
+          aziot_connection_string: ${{ secrets.AZIOT_CONNECTION_STRING }}
+
 
   networking:
     name: Networking test suite
