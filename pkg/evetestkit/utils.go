@@ -94,9 +94,9 @@ func createEveNode(node *device.Ctx, tc *projects.TestContext) (*EveNode, error)
 }
 
 func (node *EveNode) getAppConfig(appName string) *appInstanceConfig {
-	for _, app := range node.apps {
-		if app.name == appName {
-			return &app
+	for i := range node.apps {
+		if node.apps[i].name == appName {
+			return &node.apps[i]
 		}
 	}
 	return nil
