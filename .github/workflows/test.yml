@@ -64,6 +64,9 @@ jobs:
           path: "./eden"
       - name: Run Smoke tests
         uses: ./eden/.github/actions/run-eden-test
+        env:
+          AZIOT_ID_SCOPE: ${{ secrets.AZIOT_ID_SCOPE }}
+          AZIOT_CONNECTION_STRING: ${{ secrets.AZIOT_CONNECTION_STRING }}
         with:
           file_system: ${{ matrix.file_system }}
           tpm_enabled: ${{ matrix.tpm }}
