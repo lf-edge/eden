@@ -332,6 +332,44 @@ func WithSSH(user, pass, port string) AppOption {
 	}
 }
 
+// EveRebootNode reboots the EVE node.
+func (node *EveNode) EveRebootNode() error {
+	return node.controller.EdgeNodeReboot("")
+}
+
+// EveRebootAndWait reboots the EVE node and waits for it to come back.
+func (node *EveNode) EveRebootAndWait(timeoutSeconds uint) error {
+	out, err := node.EveRunCommand("uptime -s")
+	if err != nil {
+		return err
+	}
+	uptimeOne := strings.TrimSpace(string(out))
+
+	if err := node.EveRebootNode(); err != nil {
+		return err
+	}
+
+	start := time.Now()
+	for {
+		if time.Since(start) > time.Duration(timeoutSeconds)*time.Second {
+			return fmt.Errorf("timeout waiting for the node to reboot and come back")
+		}
+
+		out, err := node.EveRunCommand("uptime -s")
+		if err != nil {
+			continue
+		}
+
+		if uptimeOne != strings.TrimSpace(string(out)) {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+
+	return nil
+}
+
 // EveDeployApp deploys a VM/App on the EVE node
 func (node *EveNode) EveDeployApp(appLink string, pc openevec.PodConfig, options ...AppOption) error {
 	node.apps = append(node.apps, appInstanceConfig{name: pc.Name})
