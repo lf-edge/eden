@@ -1,0 +1,7 @@
+---
+eden:
+    # test binary
+    test-bin: "eden.vtpm.test"
+
+    # test scenario
+    test-scenario: "eden.vtpm.tests.txt"
