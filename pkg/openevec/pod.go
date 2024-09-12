@@ -139,8 +139,15 @@ func (openEVEC *OpenEVEC) PodDeploy(appLink string, pc PodConfig, cfg *EdenSetup
 	opts = append(opts, expect.WithDatastoreOverride(pc.DatastoreOverride))
 	opts = append(opts, expect.WithStartDelay(pc.StartDelay))
 	opts = append(opts, expect.WithPinCpus(pc.PinCpus))
-	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, pc.Name, opts...)
-	appInstanceConfig := expectation.Application()
+	expectation, err := expect.AppExpectationFromURL(ctrl, dev, appLink, pc.Name, opts...)
+	if err != nil {
+		return fmt.Errorf("AppExpectationFromURL: %w", err)
+	}
+
+	appInstanceConfig, err := expectation.Application()
+	if err != nil {
+		return fmt.Errorf("failed to create application: %w", err)
+	}
 	dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 		return fmt.Errorf("setControllerAndDev: %w", err)
@@ -525,8 +532,16 @@ func (openEVEC *OpenEVEC) PodModify(appName string, podNetworks, portPublish, ac
 			opts = append(opts, expect.WithVLANs(vlansParsed))
 			opts = append(opts, expect.WithOldApp(appName))
 			opts = append(opts, expect.WithStartDelay(startDelay))
-			expectation := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, appName, opts...)
-			appInstanceConfig := expectation.Application()
+			expectation, err := expect.AppExpectationFromURL(ctrl, dev, defaults.DefaultDummyExpect, appName, opts...)
+			if err != nil {
+				return fmt.Errorf("AppExpectationFromURL: %w", err)
+			}
+
+			appInstanceConfig, err := expectation.Application()
+			if err != nil {
+				return fmt.Errorf("failed to create application: %w", err)
+			}
+
 			needPurge := false
 			if len(app.Interfaces) != len(appInstanceConfig.Interfaces) {
 				needPurge = true

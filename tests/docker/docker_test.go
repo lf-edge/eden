@@ -182,9 +182,15 @@ func TestDockerStart(t *testing.T) {
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
 
-	expectation := expect.AppExpectationFromURL(tc.GetController(), edgeNode, *appLink, appName, opts...)
+	expectation, err := expect.AppExpectationFromURL(tc.GetController(), edgeNode, *appLink, appName, opts...)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	appInstanceConfig := expectation.Application()
+	appInstanceConfig, err := expectation.Application()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	t.Log(utils.AddTimestamp("Add app to list"))
 
