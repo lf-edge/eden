@@ -5,9 +5,9 @@ inputs:
   file_system:
     required: true
     type: string
-  tpm_enabled:
+  crypto_module:
     required: true
-    type: bool
+    type: string
   eve_image:
     type: string
   eve_artifact_name:
@@ -60,7 +60,10 @@ runs:
         else
           ./eden config set default --key=eve.accel --value=false
         fi
-        ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
+        crypto_module="${{ inputs.crypto_module }}"
+        if [[ "$crypto_module" == "tpm" ]]; then
+          ./eden config set default --key=eve.tpm --value=true
+        fi
         ./eden config set default --key=eve.cpu --value=2
       shell: bash
       working-directory: "./eden"
