@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 23}}
+{{$tests := 24}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -39,6 +39,10 @@ eden.escript.test -test.run TestEdenScripts/template_check
 eden.escript.test -test.run TestEdenScripts/eve_restart
 {{end}}
 {{end}}
+
+# just for testing, will move it down
+/bin/echo EVE VTPM tests (24/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_vtpm
 
 /bin/echo Eden Log test (6/{{$tests}})
 eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/log_test
