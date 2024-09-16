@@ -179,7 +179,12 @@ func (node *EveNode) AppWaitForRunningState(appName string, timeoutSeconds uint)
 			return err
 		}
 
-		if strings.ToLower(state) == "running" {
+		state = strings.ToLower(state)
+		if strings.Contains(state, "halting") {
+			return fmt.Errorf("app %s is in halting state", appName)
+		}
+
+		if state == "running" {
 			return nil
 		}
 
