@@ -51,3 +51,52 @@ sleep 5
 eden utils debug save flamegraph1.svg --perf-location="/persist/perf1.data"
 eden utils debug save flamegraph2.svg --perf-location="/persist/perf2.data"
 ```
+
+## Debug Go tests in VS Code
+
+To debug Go tests, first ensure you have the debugger installed:
+
+```bash
+go install github.com/go-delve/delve/cmd/dlv@latest
+```
+
+Next, make sure you have a debug target in your test Makefile, this target compiles the test with debug information into a final binary named `debug`:
+
+```bash
+debug:
+    CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -gcflags "all=-N -l" -o $@ *.go
+    dlv dap --listen=:12345
+```
+
+Finally, ensure you have properly set up your `.vscode/launch.json`:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Eden Test",
+      "type": "go",
+      "request": "launch",
+      "mode": "exec",
+      "program": "${fileDirname}/debug",
+      "args": [],
+      "showLog": true,
+      "port": 12345,
+    }
+  ]
+}
+```
+
+At this stage, simply open the test file in VS Code. Open a new terminal in VS Code, navigate to your test directory and run `make debug` :
+
+```bash
+$ cd tests/sec
+$ make debug
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -c -gcflags "all=-N -l" -o debug *.go
+dlv dap --listen=:12345
+DAP server listening at: 0.0.0.0:12345
+2024-08-28T14:59:52+03:00 warning layer=rpc Listening for remote connections (connections are not authenticated nor encrypted)
+```
+
+Finally, put a breakpoint in the part of the code you're interested in and press F5 or go to the menu "Run -> Start Debugging" to start debugging.
