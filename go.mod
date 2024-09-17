@@ -33,11 +33,11 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/thediveo/enumflag v0.10.1
 	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef
-	golang.org/x/crypto v0.21.0
+	golang.org/x/crypto v0.22.0
 	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
-	golang.org/x/net v0.23.0
+	golang.org/x/net v0.24.0
 	golang.org/x/oauth2 v0.10.0
-	golang.org/x/term v0.18.0
+	golang.org/x/term v0.19.0
 	golang.org/x/text v0.14.0
 	google.golang.org/api v0.126.0
 	google.golang.org/protobuf v1.33.0
@@ -106,7 +106,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
-	github.com/opencontainers/runc v1.1.12 // indirect
+	github.com/opencontainers/runc v1.1.14 // indirect
 	github.com/opencontainers/runtime-spec v1.1.0-rc.1 // indirect
 	github.com/opencontainers/selinux v1.11.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
@@ -132,7 +132,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.19.0 // indirect
 	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/tools v0.10.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 // indirect
