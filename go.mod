@@ -7,7 +7,7 @@ require (
 	github.com/amitbet/vncproxy v0.0.0-20200118084310-ea8f9b510913
 	github.com/containerd/containerd v1.7.11
 	github.com/docker/distribution v2.8.2+incompatible
-	github.com/docker/docker v24.0.9+incompatible
+	github.com/docker/docker v25.0.6+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.15.0
@@ -67,6 +67,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v24.0.6+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
@@ -103,7 +104,7 @@ require (
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
+	github.com/moby/sys/user v0.3.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
 	github.com/opencontainers/runc v1.1.12 // indirect
