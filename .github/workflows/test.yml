@@ -50,8 +50,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        file_system: ['ext4', 'zfs']
-        tpm: [true, false]
+        file_system: ["ext4", "zfs"]
+        crypto_module: ["tpm", "no-tpm"]
     name: Smoke tests
     needs: determine-runner
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
@@ -66,7 +66,7 @@ jobs:
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
-          tpm_enabled: ${{ matrix.tpm }}
+          crypto_module: ${{ matrix.crypto_module }}
           suite: "smoke.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
@@ -92,7 +92,7 @@ jobs:
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
-          tpm_enabled: true
+          crypto_module: "tpm"
           suite: "networking.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
@@ -104,7 +104,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        file_system: ['ext4', 'zfs']
+        file_system: ["ext4", "zfs"]
     name: Storage test suite
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
@@ -119,7 +119,7 @@ jobs:
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
-          tpm_enabled: true
+          crypto_module: "tpm"
           suite: "storage.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
@@ -142,7 +142,7 @@ jobs:
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
-          tpm_enabled: true
+          crypto_module: "tpm"
           suite: "lps-loc.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
@@ -169,7 +169,7 @@ jobs:
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
-          tpm_enabled: true
+          crypto_module: "tpm"
           suite: "eve-upgrade.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
@@ -192,7 +192,7 @@ jobs:
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
-          tpm_enabled: true
+          crypto_module: "tpm"
           suite: "user-apps.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
@@ -201,6 +201,10 @@ jobs:
           docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
 
   virtualization:
+    continue-on-error: true
+    strategy:
+      matrix:
+        crypto_module: ["tmp", "no-tpm"]
     name: Virtualization test suite
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner_virt) }}
@@ -215,7 +219,7 @@ jobs:
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
-          tpm_enabled: true
+          crypto_module: ${{ matrix.crypto_module }}
           suite: "virtualization.tests.txt"
           eve_image: ${{ inputs.eve_image }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
