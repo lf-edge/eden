@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 11}}
+{{$tests := 12}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "y"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -51,3 +51,6 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-g
 
 /bin/echo Test VNC access (11/{{$tests}})
 eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test
+
+/bin/echo EVE VcomLink tests (12/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_vcom
