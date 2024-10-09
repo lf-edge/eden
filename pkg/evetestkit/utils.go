@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/docker/docker/pkg/namesgenerator"
@@ -55,6 +56,7 @@ type EveNode struct {
 	tc         *projects.TestContext
 	apps       []appInstanceConfig
 	ip         string
+	t          *testing.T
 }
 
 // AppOption is a function that sets the configuration for the app running on
@@ -408,6 +410,25 @@ func (node *EveNode) EveDeployApp(appLink string, pc openevec.PodConfig, options
 // EveIsTpmEnabled checks if EVE node is running with (SW)TPM enabled
 func (node *EveNode) EveIsTpmEnabled() bool {
 	return node.cfg.Eve.TPM
+}
+
+func (node *EveNode) LogTimeFatalf(format string, args ...interface{}) {
+	out := utils.AddTimestampf(format+"\n", args...)
+	if node.t != nil {
+		node.t.Fatal(out)
+	} else {
+		fmt.Print(out)
+		os.Exit(1)
+	}
+}
+
+func (node *EveNode) LogTimeInfof(format string, args ...interface{}) {
+	out := utils.AddTimestampf(format+"\n", args...)
+	if node.t != nil {
+		node.t.Logf(out)
+	} else {
+		fmt.Print(out)
+	}
 }
 
 func (node *EveNode) discoverEveIP() error {
