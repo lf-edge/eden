@@ -173,10 +173,17 @@ func (node *EveNode) EveDeleteFile(fileName string) error {
 // AppWaitForRunningState waits for an app to start and become running on the EVE node
 func (node *EveNode) AppWaitForRunningState(appName string, timeoutSeconds uint) error {
 	start := time.Now()
+	lastState := ""
+
 	for {
 		state, err := node.AppGetState(appName)
 		if err != nil {
 			return err
+		}
+
+		if lastState != state {
+			fmt.Println(utils.AddTimestampf("App %s state changed to: %s", appName, state))
+			lastState = state
 		}
 
 		state = strings.ToLower(state)
@@ -192,7 +199,7 @@ func (node *EveNode) AppWaitForRunningState(appName string, timeoutSeconds uint)
 			return fmt.Errorf("timeout waiting for app %s to start", appName)
 		}
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -210,7 +217,10 @@ func (node *EveNode) AppWaitForSSH(appName string, timeoutSeconds uint) error {
 			return fmt.Errorf("timeout waiting for SSH connection")
 		}
 
-		time.Sleep(5 * time.Second)
+		fmt.Println(utils.AddTimestampf("Still waiting for SSH connection (%d/%d seconds)",
+			int(time.Since(start).Seconds()), timeoutSeconds))
+
+		time.Sleep(3 * time.Second)
 	}
 }
 
@@ -291,6 +301,14 @@ func (node *EveNode) AppSSHExec(appName, command string) (string, error) {
 
 // AppSCPCopy copies a file from the local machine to the app VM running on the EVE node.
 func (node *EveNode) AppSCPCopy(appName, localFile, remoteFile string) error {
+	info, err := os.Stat(localFile)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("file %s does not exist", localFile)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("file %s is a directory", localFile)
+	}
+
 	appConfig := node.getAppConfig(appName)
 	if appConfig == nil {
 		return fmt.Errorf("app %s not found, make sure to deploy app/vm with WithSSH option", appName)
@@ -369,7 +387,9 @@ func (node *EveNode) EveRebootAndWait(timeoutSeconds uint) error {
 			break
 		}
 
-		time.Sleep(5 * time.Second)
+		fmt.Println(utils.AddTimestampf("Still waiting for node to boot up (%d/%d seconds)",
+			int(time.Since(start).Seconds()), timeoutSeconds))
+		time.Sleep(3 * time.Second)
 	}
 
 	return nil
