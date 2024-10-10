@@ -4,12 +4,11 @@ import (
 	"strings"
 
 	"github.com/bloomberg/go-testgroup"
-	log "github.com/sirupsen/logrus"
 )
 
 func (grp *SmokeTests) TestAppArmorEnabled(t *testgroup.T) {
-	log.Println("TestAppArmorEnabled started")
-	defer log.Println("TestAppArmorEnabled finished")
+	eveNode.LogTimeInfof("TestAppArmorEnabled started")
+	defer eveNode.LogTimeInfof("TestAppArmorEnabled finished")
 
 	appArmorStatus := "/sys/module/apparmor/parameters/enabled"
 	out, err := eveNode.EveReadFile(appArmorStatus)
@@ -19,6 +18,6 @@ func (grp *SmokeTests) TestAppArmorEnabled(t *testgroup.T) {
 
 	exits := strings.TrimSpace(string(out))
 	if exits != "Y" {
-		t.Fatal("AppArmor is not enabled")
+		eveNode.LogTimeFatalf("AppArmor is not enabled")
 	}
 }
