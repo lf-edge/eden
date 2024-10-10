@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -32,20 +33,52 @@ const (
 	// AppDefaultCloudConfig is a default cloud-init configuration for the VM which just
 	// enables ssh password authentication and sets the password to "passw0rd".
 	AppDefaultCloudConfig = "#cloud-config\npassword: " + AppDefaultSSHPass + "\nchpasswd: { expire: False }\nssh_pwauth: True\n"
+	Ubuntu2204            = "22.04"
 )
 
 var (
 	controllerVerbosiry = "warn"
 	edenConfEnv         = defaults.DefaultConfigEnv
+	ubuntu2204          = fixedAppInstanceConfig{
+		appLink: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img",
+		sshPort: "8027",
+		sshUser: AppDefaultSSHUser,
+		sshPass: AppDefaultSSHPass,
+		os:      "ubuntu-server-cloudimg-amd64",
+		version: Ubuntu2204,
+	}
 )
+
+type fixedAppInstanceConfig struct {
+	appLink string
+	sshPort string
+	sshUser string
+	sshPass string
+	os      string
+	version string
+}
+
+type appInternals struct {
+	sshPort string
+	sshUser string
+	sshPass string
+	os      string
+	version string
+}
 
 // appInstanceConfig is a struct that holds the information about the app
 // running on the EVE node
 type appInstanceConfig struct {
-	name    string
-	sshPort string
-	sshUser string
-	sshPass string
+	name           string
+	internal       appInternals
+	destructiveUse bool
+}
+
+type TestScript struct {
+	Name           string
+	DstPath        string
+	Content        string
+	MakeExecutable bool
 }
 
 // EveNode is a struct that holds the information about the remote node
@@ -57,6 +90,7 @@ type EveNode struct {
 	apps       []appInstanceConfig
 	ip         string
 	t          *testing.T
+	ts         []TestScript
 }
 
 // AppOption is a function that sets the configuration for the app running on
@@ -65,6 +99,15 @@ type AppOption func(n *EveNode, appName string)
 
 // TestOption is a function that sets the configuration for the test
 type TestOption func()
+
+func dumpToTemp(name, content string) (string, error) {
+	path := path.Join("/tmp/", name)
+	err := os.WriteFile(path, []byte(content), 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write script: %v", err)
+	}
+	return path, nil
+}
 
 func getEdenConfig() (*openevec.EdenSetupArgs, error) {
 	conf := os.Getenv(edenConfEnv)
@@ -102,6 +145,15 @@ func (node *EveNode) getAppConfig(appName string) *appInstanceConfig {
 		}
 	}
 	return nil
+}
+
+// GetAppNames returns the names of the apps running on the EVE node
+func (node *EveNode) GetAppNames() []string {
+	names := make([]string, len(node.apps))
+	for i, app := range node.apps {
+		names[i] = app.name
+	}
+	return names
 }
 
 // EveRunCommand runs a command on the EVE node
@@ -271,12 +323,12 @@ func (node *EveNode) AppSSHExec(appName, command string) (string, error) {
 		return "", fmt.Errorf("app %s not found, make sure to deploy app/vm with WithSSH option", appName)
 	}
 
-	host := fmt.Sprintf("%s:%s", node.ip, appConfig.sshPort)
+	host := fmt.Sprintf("%s:%s", node.ip, appConfig.internal.sshPort)
 
 	config := &ssh.ClientConfig{
-		User: appConfig.sshUser,
+		User: appConfig.internal.sshUser,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(appConfig.sshPass),
+			ssh.Password(appConfig.internal.sshPass),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         30 * time.Second,
@@ -316,12 +368,12 @@ func (node *EveNode) AppSCPCopy(appName, localFile, remoteFile string) error {
 		return fmt.Errorf("app %s not found, make sure to deploy app/vm with WithSSH option", appName)
 	}
 
-	host := fmt.Sprintf("%s:%s", node.ip, appConfig.sshPort)
+	host := fmt.Sprintf("%s:%s", node.ip, appConfig.internal.sshPort)
 
 	config := &ssh.ClientConfig{
-		User: appConfig.sshUser,
+		User: appConfig.internal.sshUser,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(appConfig.sshPass),
+			ssh.Password(appConfig.internal.sshPass),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         30 * time.Second,
@@ -346,14 +398,54 @@ func (node *EveNode) AppSCPCopy(appName, localFile, remoteFile string) error {
 	return nil
 }
 
+// TestScript copies the test scripts to the app VM running on the EVE node,
+// makes them executable and sets the path to the copied script in the input.
+func (node *EveNode) CopyTestScripts(appName, basetPath string, scripts *[]TestScript) error {
+	for i := range *scripts {
+		// don't need a copy
+		script := &(*scripts)[i]
+		srcPath, err := dumpToTemp(script.Name, script.Content)
+		if err != nil {
+			return fmt.Errorf("failed to get path to %s: %w", script.Name, err)
+		}
+
+		script.DstPath = path.Join(basetPath, script.Name)
+		err = node.AppSCPCopy(appName, srcPath, script.DstPath)
+		if err != nil {
+			return fmt.Errorf("failed to copy %s to the vm: %w", script.Name, err)
+		}
+
+		if script.MakeExecutable {
+			command := fmt.Sprintf("chmod +x %s", script.DstPath)
+			_, err = node.AppSSHExec(appName, command)
+			if err != nil {
+				return fmt.Errorf("failed to make %s executable: %w", script.Name, err)
+			}
+		}
+
+		node.ts = append(node.ts, *script)
+	}
+
+	return nil
+}
+
+func (node *EveNode) GetCopiedScriptPath(scriptName string) string {
+	for _, script := range node.ts {
+		if script.Name == scriptName {
+			return script.DstPath
+		}
+	}
+	return ""
+}
+
 // WithSSH is an option that sets the SSH configuration for the app running on
 // the EVE node, this should be use with DeployVM function.
 func WithSSH(user, pass, port string) AppOption {
 	return func(n *EveNode, appName string) {
 		a := n.getAppConfig(appName)
-		a.sshUser = user
-		a.sshPass = pass
-		a.sshPort = port
+		a.internal.sshUser = user
+		a.internal.sshPass = pass
+		a.internal.sshPort = port
 	}
 }
 
@@ -398,13 +490,61 @@ func (node *EveNode) EveRebootAndWait(timeoutSeconds uint) error {
 }
 
 // EveDeployApp deploys a VM/App on the EVE node
-func (node *EveNode) EveDeployApp(appLink string, pc openevec.PodConfig, options ...AppOption) error {
-	node.apps = append(node.apps, appInstanceConfig{name: pc.Name})
+func (node *EveNode) EveDeployApp(appLink, os, version string, destructiveUse bool, pc openevec.PodConfig, options ...AppOption) error {
+	app := appInstanceConfig{name: pc.Name, destructiveUse: destructiveUse}
 	for _, option := range options {
 		option(node, pc.Name)
 	}
 
+	if !destructiveUse {
+		for _, a := range node.apps {
+			if a == app {
+				node.LogTimeInfof("app %s already deployed", pc.Name)
+				return nil
+			}
+		}
+	}
+
+	node.apps = append(node.apps, app)
 	return node.controller.PodDeploy(appLink, pc, node.cfg)
+}
+
+func (node *EveNode) EveDeployUbuntu(version, name string, destructiveUse bool) (string, error) {
+	var app appInstanceConfig
+	var pubPorts []string
+	var appLink string
+	switch version {
+	case "22.04":
+		app = appInstanceConfig{
+			internal: appInternals{
+				sshPort: ubuntu2204.sshPort,
+				sshUser: ubuntu2204.sshUser,
+				sshPass: ubuntu2204.sshPass,
+				os:      ubuntu2204.os,
+				version: ubuntu2204.version,
+			},
+		}
+		pubPorts = []string{ubuntu2204.sshPort + ":22"}
+		appLink = ubuntu2204.appLink
+	default:
+		return "", fmt.Errorf("unsupported Ubuntu version: %s", version)
+	}
+
+	if !destructiveUse {
+		for _, a := range node.apps {
+			if a.internal == app.internal {
+				node.LogTimeInfof("app %s already deployed, reusing...", a.name)
+				return a.name, nil
+			}
+		}
+	}
+
+	app.name = name
+	app.destructiveUse = destructiveUse
+	pc := GetDefaultVMConfig(name, AppDefaultCloudConfig, pubPorts)
+	node.apps = append(node.apps, app)
+
+	return app.name, node.controller.PodDeploy(appLink, pc, node.cfg)
 }
 
 // EveIsTpmEnabled checks if EVE node is running with (SW)TPM enabled
