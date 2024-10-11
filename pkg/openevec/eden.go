@@ -376,7 +376,7 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL s
 		}
 		if zedControlURL == "" {
 			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
-				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
+				cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
 				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
 			}
 			log.Info("GenerateEveCerts done")

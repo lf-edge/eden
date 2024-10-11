@@ -385,7 +385,7 @@ func StatusEServer() (status string, err error) {
 }
 
 // GenerateEveCerts function generates certs for EVE
-func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, password string, grubOptions []string, apiV1 bool) (err error) {
+func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, arch, password string, grubOptions []string, apiV1 bool) (err error) {
 	model, err := models.GetDevModelByName(devModel)
 	if err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
@@ -495,7 +495,7 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, passwor
 			}
 		}
 	}
-	if model.DevModelType() == defaults.DefaultQemuModel && viper.GetString("eve.arch") == "arm64" {
+	if model.DevModelType() == defaults.DefaultQemuModel && arch == "arm64" {
 		// we need to properly set console for qemu arm64
 		grubOptions = append(grubOptions, "set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\"")
 	}
