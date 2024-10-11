@@ -523,7 +523,7 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, arch, p
 }
 
 // PutEveCerts function put certs for zedcontrol
-func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
+func PutEveCerts(certsDir, devModel, ssid, arch, password string) (err error) {
 	model, err := models.GetDevModelByName(devModel)
 	if err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
@@ -591,7 +591,7 @@ func PutEveCerts(certsDir, devModel, ssid, password string) (err error) {
 			}
 		}
 	}
-	if model.DevModelType() == defaults.DefaultQemuModel && viper.GetString("eve.arch") == "arm64" {
+	if model.DevModelType() == defaults.DefaultQemuModel && arch == "arm64" {
 		// we need to properly set console for qemu arm64
 		if err := os.WriteFile(filepath.Join(certsDir, "grub.cfg"), []byte("set_global dom0_console \"console=ttyAMA0,115200 $dom0_console\""), 0666); err != nil {
 			return fmt.Errorf("GenerateEveCerts: %s", err)
