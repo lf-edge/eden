@@ -754,7 +754,7 @@ func MakeEveInRepo(desc utils.EVEDescription, dist string) (image, additional st
 }
 
 // CleanContext cleanup only context data
-func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmName string, configSaved string, remote bool) (err error) {
+func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmName string, configSaved string, remote, sdnDisable bool) (err error) {
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
 		return fmt.Errorf("CleanContext: %s", err)
@@ -828,7 +828,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmNam
 				log.Infof("swtpm is stopping")
 			}
 		}
-		StopSDN(devModel, sdnPID)
+		StopSDN(devModel, sdnPID, sdnDisable)
 	}
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
@@ -855,7 +855,7 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmNam
 
 // StopEden teardown Eden
 func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool,
-	evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string) {
+	evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string, sdnDisable bool) {
 	if err := StopAdam(adamRm); err != nil {
 		log.Infof("cannot stop adam: %s", err)
 	} else {
@@ -877,12 +877,12 @@ func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool,
 		log.Infof("eserver stopped")
 	}
 	if !eveRemote {
-		StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName)
+		StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName, sdnDisable)
 	}
 }
 
 // StopEve stops EVE, vTPM and SDN.
-func StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string) {
+func StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string, sdnDisable bool) {
 	if devModel == defaults.DefaultVBoxModel {
 		if err := StopEVEVBox(vmName); err != nil {
 			log.Infof("cannot stop EVE: %s", err)
@@ -910,11 +910,11 @@ func StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string) {
 			}
 		}
 	}
-	StopSDN(devModel, sdnPidFile)
+	StopSDN(devModel, sdnPidFile, sdnDisable)
 }
 
-func StopSDN(devModel, sdnPidFile string) {
-	if devModel != defaults.DefaultQemuModel || viper.GetBool("sdn.disable") {
+func StopSDN(devModel, sdnPidFile string, sdnDisable bool) {
+	if devModel != defaults.DefaultQemuModel || sdnDisable {
 		// SDN is not running, nothing to do
 		return
 	}
@@ -937,11 +937,11 @@ func StopSDN(devModel, sdnPidFile string) {
 // CleanEden teardown Eden and cleanup
 func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
 	registryDist, configDist, evePID, sdnPID, configSaved string, remote bool,
-	devModel, vmName string) (err error) {
+	devModel, vmName string, sdnDisable bool) (err error) {
 	command := "swtpm"
 	swtpmPidFile := filepath.Join(imagesDist, fmt.Sprintf("%s.pid", command))
 	StopEden(true, true, true, true, remote,
-		evePID, swtpmPidFile, sdnPID, devModel, vmName)
+		evePID, swtpmPidFile, sdnPID, devModel, vmName, sdnDisable)
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
 			return fmt.Errorf("1 CleanEden: error in %s delete: %s", eveDist, err)
