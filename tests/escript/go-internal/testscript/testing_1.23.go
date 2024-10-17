@@ -1,5 +1,5 @@
-//go:build go1.18 && !go1.23
-// +build go1.18,!go1.23
+//go:build go1.23
+// +build go1.23
 
 package testscript
 
@@ -45,6 +45,10 @@ func (d nopTestDeps) ResetCoverage() {
 }
 
 func (d nopTestDeps) SnapshotCoverage() {
+	return
+}
+
+func (d nopTestDeps) InitRuntimeCoverage() (mode string, tearDown func(coverprofile string, gocoverdir string) (string, error), snapcov func() float64) {
 	return
 }
 
