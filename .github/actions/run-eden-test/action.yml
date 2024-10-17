@@ -13,6 +13,10 @@ inputs:
     type: string
   eve_image:
     type: string
+  eve_log_level:
+    type: string
+    required: false
+    default: 'info'
   eve_artifact_name:
     type: string
   artifact_run_id:
@@ -55,6 +59,7 @@ runs:
         file_system: ${{ inputs.file_system }}
         tpm_enabled: ${{ inputs.tpm_enabled }}
         eve_image: ${{ inputs.eve_image }}
+        eve_log_level: ${{ inputs.eve_log_level }}
         eve_artifact_name: ${{ inputs.eve_artifact_name }}
         artifact_run_id: ${{ inputs.artifact_run_id }}
         require_virtualization: ${{ inputs.require_virtualization }}
