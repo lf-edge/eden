@@ -10,6 +10,10 @@ on:  # yamllint disable-line rule:truthy
         default: ''  # if not provided: When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event. Otherwise, uses the default branch.
       eve_image:
         type: string
+      eve_log_level:
+        type: string
+        required: false
+        default: 'info'
       eve_artifact_name:
         type: string
       artifact_run_id:
@@ -22,6 +26,10 @@ on:  # yamllint disable-line rule:truthy
         default: ''  # if not provided: When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event. Otherwise, uses the default branch.
       eve_image:
         type: string
+      eve_log_level:
+        type: string
+        required: false
+        default: 'info'
       eve_artifact_name:
         type: string
       artifact_run_id:
@@ -69,6 +77,7 @@ jobs:
           tpm_enabled: ${{ matrix.tpm }}
           suite: "smoke.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
@@ -95,6 +104,7 @@ jobs:
           tpm_enabled: true
           suite: "networking.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
@@ -122,6 +132,7 @@ jobs:
           tpm_enabled: true
           suite: "storage.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
@@ -145,6 +156,7 @@ jobs:
           tpm_enabled: true
           suite: "lps-loc.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
@@ -172,6 +184,7 @@ jobs:
           tpm_enabled: true
           suite: "eve-upgrade.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
@@ -195,6 +208,7 @@ jobs:
           tpm_enabled: true
           suite: "user-apps.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
@@ -218,6 +232,7 @@ jobs:
           tpm_enabled: true
           suite: "virtualization.tests.txt"
           eve_image: ${{ inputs.eve_image }}
+          eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           require_virtualization: true
