@@ -28,23 +28,6 @@ on:  # yamllint disable-line rule:truthy
         type: string
 
 jobs:
-  determine-runner:
-    name: Determine best available runner
-    runs-on: ubuntu-latest
-    outputs:
-      runner: ${{ steps.fork-check.outputs.runner }}
-      runner_virt: ${{ steps.fork-check.outputs.runner_virt }}
-    steps:
-      - id: fork-check
-        run: |
-          if [[ "${{ github.event.repository.full_name}}" == "lf-edge/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "lf-edge/eden" ]]; then
-            echo "runner=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
-            echo "runner_virt=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
-          else
-            echo "runner=['ubuntu-22.04']" >> "$GITHUB_OUTPUT"
-            echo "runner_virt=['ubuntu-22.04']" >> "$GITHUB_OUTPUT"
-          fi
-
   smoke:
     continue-on-error: true
     strategy:
@@ -53,8 +36,7 @@ jobs:
         file_system: ['ext4', 'zfs']
         tpm: [true, false]
     name: Smoke tests
-    needs: determine-runner
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v4.1.1
@@ -79,8 +61,7 @@ jobs:
 
   networking:
     name: Networking test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v4.1.1
@@ -106,8 +87,7 @@ jobs:
       matrix:
         file_system: ['ext4', 'zfs']
     name: Storage test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v4.1.1
@@ -129,8 +109,7 @@ jobs:
 
   lps-loc:
     name: LPS LOC test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v4.1.1
@@ -156,8 +135,7 @@ jobs:
       matrix:
         file_system: ['ext4', 'zfs']
     name: EVE upgrade test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v4.1.1
@@ -179,8 +157,7 @@ jobs:
 
   user-apps:
     name: User apps test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v4.1.1
@@ -202,8 +179,7 @@ jobs:
 
   virtualization:
     name: Virtualization test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner_virt) }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Get code
         uses: actions/checkout@v4.1.1
