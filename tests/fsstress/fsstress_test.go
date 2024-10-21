@@ -17,7 +17,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/info"
@@ -43,7 +43,7 @@ var (
 	direct     = flag.Bool("direct", true, "Load image from url, not from eserver")
 	password   = flag.String("password", "passw0rd", "Password to use for ssh")
 	appLink    = flag.String("applink", "https://cloud-images.ubuntu.com/releases/impish/release-20220201/ubuntu-21.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
-	tc         *projects.TestContext
+	tc         *testcontext.TestContext
 	externalIP string
 	appName    string
 )
@@ -55,7 +55,7 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("FSstress test")
 
-	tc = projects.NewTestContext()
+	tc = testcontext.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestFSstress", time.Now())
 
@@ -82,7 +82,7 @@ func setAppName() {
 }
 
 // checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
-func checkAppRunning(appName string) projects.ProcInfoFunc {
+func checkAppRunning(appName string) testcontext.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
 			if msg.GetAinfo().AppName == appName {
@@ -96,7 +96,7 @@ func checkAppRunning(appName string) projects.ProcInfoFunc {
 }
 
 // getEVEIP wait for IPs of EVE and returns them
-func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
+func getEVEIP(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
 			eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]")
@@ -116,7 +116,7 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 }
 
 // checkAppAbsent check if APP undefined in EVE
-func checkAppAbsent(appName string) projects.ProcInfoFunc {
+func checkAppAbsent(appName string) testcontext.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiDevice {
 			for _, app := range msg.GetDinfo().AppInstances {
@@ -134,7 +134,7 @@ func checkAppAbsent(appName string) projects.ProcInfoFunc {
 // and returns success if less than 1 minutes left
 // also it checks existence of fsstress process on VM
 // and in case of not existence or some issues with connection it fails test immediately
-func CheckTimeWorkOfTest(t *testing.T, edgeNode *device.Ctx, timeStart time.Time) projects.ProcTimerFunc {
+func CheckTimeWorkOfTest(t *testing.T, edgeNode *device.Ctx, timeStart time.Time) testcontext.ProcTimerFunc {
 	return func() error {
 		df := time.Since(timeStart)
 		if df >= *timewait-time.Minute {
@@ -149,19 +149,19 @@ func CheckTimeWorkOfTest(t *testing.T, edgeNode *device.Ctx, timeStart time.Time
 	}
 }
 
-func sshCommand(edgeNode *device.Ctx, command string) projects.ProcTimerFunc {
+func sshCommand(edgeNode *device.Ctx, command string) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemote() {
 			if externalIP == "" {
 				return nil
 			}
-			sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, command, true)
+			sendSSHCommand := testcontext.SendCommandSSH(&externalIP, sshPort, "ubuntu", *password, command, true)
 			return sendSSHCommand()
 		}
 		return tc.PortForwardCommand(func(fwdPort uint16) error {
 			localhostIP := "127.0.0.1"
 			sshPort := int(fwdPort)
-			sendSSHCommand := projects.SendCommandSSH(&localhostIP, &sshPort, "ubuntu", *password, command, true)
+			sendSSHCommand := testcontext.SendCommandSSH(&localhostIP, &sshPort, "ubuntu", *password, command, true)
 			return sendSSHCommand()
 		}, "eth0", uint16(*sshPort))
 	}
@@ -323,7 +323,7 @@ func TestRunStress(t *testing.T) {
 	}
 
 	t.Log(utils.AddTimestamp("Send script on guest VM"))
-	result = projects.SendFileSCP(&externalIP, sshPort, "ubuntu", *password, pathScript, "/home/ubuntu/run-script.sh")()
+	result = testcontext.SendFileSCP(&externalIP, sshPort, "ubuntu", *password, pathScript, "/home/ubuntu/run-script.sh")()
 	if result == nil {
 		t.Fatal(utils.AddTimestamp("Error in scp"))
 	}

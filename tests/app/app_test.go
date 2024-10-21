@@ -10,7 +10,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/eapps"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/eve"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/info"
@@ -26,7 +26,7 @@ type appState struct {
 var (
 	timewait = flag.Duration("timewait", 10*time.Minute, "Timewait for items waiting")
 	newitems = flag.Bool("check-new", false, "Check only new info messages")
-	tc       *projects.TestContext
+	tc       *testcontext.TestContext
 	states   map[string][]appState
 	eveState *eve.State
 )
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 
 	tests.TestArgsParse()
 
-	tc = projects.NewTestContext()
+	tc = testcontext.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestAppState", time.Now())
 
@@ -131,7 +131,7 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 }
 
 // checkApp wait for info of ZInfoApp type with state
-func checkApp(state string, appNames []string) projects.ProcInfoFunc {
+func checkApp(state string, appNames []string) testcontext.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		eveState.InfoCallback()(msg) //feed state with new info
 		return checkState(eveState, state, appNames)

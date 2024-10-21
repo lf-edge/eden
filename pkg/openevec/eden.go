@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -337,14 +336,16 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 		fmt.Printf("Directory %s access error: %s\n",
 			cfgDir, err)
 	} else {
-		shPath := cfg.Eden.Root + "/scripts/shell/"
-
 		activateShFile, err := os.Create(cfgDir + "activate.sh")
 		defer activateShFile.Close()
 		if err != nil {
 			return err
 		}
-		if err = ParseTemplateFile(shPath+"activate.sh.tmpl", cfg, activateShFile); err != nil {
+		tmpl, err := template.New("").Parse(defaults.DefaultActivateShTemplate)
+		if err != nil {
+			return err
+		}
+		if err = tmpl.Execute(activateShFile, cfg); err != nil {
 			return err
 		}
 
@@ -353,7 +354,11 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 		if err != nil {
 			return err
 		}
-		if err = ParseTemplateFile(shPath+"activate.csh.tmpl", cfg, activateCshFile); err != nil {
+		tmpl, err = template.New("").Parse(defaults.DefaultActivateCshTemplate)
+		if err != nil {
+			return err
+		}
+		if err = tmpl.Execute(activateShFile, cfg); err != nil {
 			return err
 		}
 
@@ -366,29 +371,24 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 }
 
 func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL string, grubOptions []string) error {
-	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
-		wifiPSK := ""
-		if cfg.Eve.Ssid != "" {
-			fmt.Printf("Enter password for wifi %s: ", cfg.Eve.Ssid)
-			pass, _ := term.ReadPassword(0)
-			wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(cfg.Eve.Ssid), 4096, 32, sha1.New)))
-			fmt.Println()
+	wifiPSK := ""
+	if cfg.Eve.Ssid != "" {
+		fmt.Printf("Enter password for wifi %s: ", cfg.Eve.Ssid)
+		pass, _ := term.ReadPassword(0)
+		wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(cfg.Eve.Ssid), 4096, 32, sha1.New)))
+		fmt.Println()
+	}
+	if zedControlURL == "" {
+		if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
+			cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
+			return fmt.Errorf("cannot GenerateEveCerts: %w", err)
 		}
-		if zedControlURL == "" {
-			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
-				cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
-				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
-			}
-			log.Info("GenerateEveCerts done")
-		} else {
-			if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK); err != nil {
-				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
-			}
-			log.Info("GenerateEveCerts done")
-		}
-	} else {
 		log.Info("GenerateEveCerts done")
-		log.Infof("Certs already exists in certs dir: %s", cfg.Eden.CertsDir)
+	} else {
+		if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK); err != nil {
+			return fmt.Errorf("cannot GenerateEveCerts: %w", err)
+		}
+		log.Info("GenerateEveCerts done")
 	}
 	if zedControlURL == "" {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsEVEIP,
@@ -829,7 +829,7 @@ func (openEVEC *OpenEVEC) EdenImport(tarFile string, rewriteRoot bool) error {
 
 // ParseTemplateFile fills EdenSetupArgs variable into template stored in file and writes result to io.Writer
 func ParseTemplateFile(path string, cfg EdenSetupArgs, w io.Writer) error {
-	t, err := ioutil.ReadFile(path)
+	t, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}

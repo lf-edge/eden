@@ -1,11 +1,28 @@
 package utils
 
 import (
+	"fmt"
 	"math/rand"
 	"regexp"
 	"strings"
 	"time"
 )
+
+// GetControllerMode parse url with controller
+func GetControllerMode(controllerMode, modePattern string) (modeType, modeURL string, err error) {
+	params := GetParams(controllerMode, modePattern)
+	if len(params) == 0 {
+		return "", "", fmt.Errorf("cannot parse mode (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
+	}
+	ok := false
+	if modeType, ok = params["Type"]; !ok {
+		return "", "", fmt.Errorf("cannot parse modeType (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
+	}
+	if modeURL, ok = params["URL"]; !ok {
+		return "", "", fmt.Errorf("cannot parse modeURL (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
+	}
+	return
+}
 
 // GetParams parse line with regexp into map
 func GetParams(line, regEx string) (paramsMap map[string]string) {
