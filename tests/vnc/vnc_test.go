@@ -236,9 +236,15 @@ func TestVNCVMStart(t *testing.T) {
 
 	}
 
-	expectation := expect.AppExpectationFromURL(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, opts...)
+	expectation, err := expect.AppExpectationFromURL(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, opts...)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	appInstanceConfig := expectation.Application()
+	appInstanceConfig, err := expectation.Application()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	externalPort = getVNCPort(*vncDisplay)
 

@@ -214,9 +214,15 @@ func TestFSStressVMStart(t *testing.T) {
 
 	}
 
-	expectation := expect.AppExpectationFromURL(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, opts...)
+	expectation, err := expect.AppExpectationFromURL(tc.GetController(), edgeNode, appLinkFunc(tc.GetController().GetVars().ZArch), appName, opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	appInstanceConfig := expectation.Application()
+	appInstanceConfig, err := expectation.Application()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Log("Add app to list")
 
