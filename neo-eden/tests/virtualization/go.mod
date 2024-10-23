@@ -10,6 +10,7 @@ replace github.com/lf-edge/eve/libs/depgraph => github.com/lf-edge/eve/libs/depg
 
 require (
 	github.com/bloomberg/go-testgroup v1.1.1
+	github.com/google/go-tpm v0.9.1
 	github.com/lf-edge/eden v0.0.0-00010101000000-000000000000
 	github.com/lf-edge/eve/pkg/pillar v0.0.0-20241007211854-2e52abc05d63
 	github.com/sirupsen/logrus v1.9.3
@@ -47,11 +48,16 @@ require (
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/eriknordmark/ipinfo v0.0.0-20230728132417-2d8f4da903d7 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.15.5 // indirect
 	github.com/go-redis/redis/v9 v9.0.0-beta.1 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -67,11 +73,13 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
+	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67 // indirect
 	github.com/lf-edge/eden/sdn/vm v0.0.0-00010101000000-000000000000 // indirect
 	github.com/lf-edge/edge-containers v0.0.0-20240207093504-5dfda0619b80 // indirect
 	github.com/lf-edge/eve-api/go v0.0.0-20240829123634-7c8ebda876ff // indirect
 	github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496 // indirect
+	github.com/lf-edge/eve/pkg/kube/cnirpc v0.0.0-20240315102754-0f6d1f182e0d // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -110,6 +118,8 @@ require (
 	github.com/subosito/gotenv v1.4.0 // indirect
 	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef // indirect
 	github.com/vbatts/tar-split v0.11.3 // indirect
+	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
+	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.48.0 // indirect
 	go.opentelemetry.io/otel v1.23.1 // indirect

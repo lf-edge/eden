@@ -25,6 +25,7 @@ const (
 	appWait            = 60 * 10 // 10 minutes
 	sshWait            = 60 * 5  // 5 minutes
 	nodeRebootWait     = 60 * 5  // 5 minutes
+	aziotwait          = 30      // seconds
 	testScriptBasePath = "/home/ubuntu/"
 )
 
@@ -47,14 +48,17 @@ func TestVirtualization(t *testing.T) {
 		t.Skipf("Skip %s tests in non-%s workflow", testSuiteName, testSuiteName)
 	}
 
+	defer func() {
+		for _, app := range eveNode.GetAppNames() {
+			err := eveNode.AppStopAndRemove(app)
+			if err != nil {
+				eveNode.LogTimeFatalf("Failed to remove app %s: %v", app, err)
+			}
+		}
+	}()
+
 	eveNode.SetTesting(t)
 	testgroup.RunSerially(t, group)
-	for _, app := range eveNode.GetAppNames() {
-		err := eveNode.AppStopAndRemove(app)
-		if err != nil {
-			eveNode.LogTimeFatalf("Failed to remove app %s: %v", app, err)
-		}
-	}
 }
 
 func waitForApp(appName string, appWait, sshWait uint) error {
