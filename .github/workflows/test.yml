@@ -28,6 +28,7 @@ on:  # yamllint disable-line rule:truthy
         type: string
 
 jobs:
+  
   smoke:
     continue-on-error: true
     strategy:
@@ -38,6 +39,11 @@ jobs:
     name: Smoke tests
     runs-on: ubuntu-22.04
     steps:
+      - name: Print info
+        run:  |
+          nproc
+          cat /proc/cpuinfo
+        shell: bash
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
@@ -63,6 +69,11 @@ jobs:
     name: Networking test suite
     runs-on: ubuntu-22.04
     steps:
+      - name: Print info
+        run:  |
+          nproc
+          cat /proc/cpuinfo
+        shell: bash
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
@@ -89,6 +100,11 @@ jobs:
     name: Storage test suite
     runs-on: ubuntu-22.04
     steps:
+      - name: Print info
+        run:  |
+          nproc
+          cat /proc/cpuinfo
+        shell: bash
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
@@ -111,6 +127,11 @@ jobs:
     name: LPS LOC test suite
     runs-on: ubuntu-22.04
     steps:
+      - name: Print info
+        run:  |
+          nproc
+          cat /proc/cpuinfo
+        shell: bash
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
@@ -137,6 +158,11 @@ jobs:
     name: EVE upgrade test suite
     runs-on: ubuntu-22.04
     steps:
+      - name: Print info
+        run:  |
+          nproc
+          cat /proc/cpuinfo
+        shell: bash
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
@@ -159,6 +185,11 @@ jobs:
     name: User apps test suite
     runs-on: ubuntu-22.04
     steps:
+      - name: Print info
+        run:  |
+          nproc
+          cat /proc/cpuinfo
+        shell: bash
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
@@ -181,6 +212,11 @@ jobs:
     name: Virtualization test suite
     runs-on: ubuntu-22.04
     steps:
+      - name: Print info
+        run:  |
+          nproc
+          cat /proc/cpuinfo
+        shell: bash
       - name: Get code
         uses: actions/checkout@v4.1.1
         with:
