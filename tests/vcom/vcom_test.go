@@ -122,7 +122,7 @@ func TestVcomLinkTpmRequestEK(t *testing.T) {
 	appName := tk.GetRandomAppName(projectName + "-")
 	pubPorts := []string{sshPort + ":22"}
 	pc := tk.GetDefaultVMConfig(appName, tk.AppDefaultCloudConfig, pubPorts)
-	err = eveNode.EveDeployApp(appLink, pc, tk.WithSSH(tk.AppDefaultSSHUser, tk.AppDefaultSSHPass, sshPort))
+	err = eveNode.EveDeployApp(appLink, true, pc, tk.WithSSH(tk.AppDefaultSSHUser, tk.AppDefaultSSHPass, sshPort))
 	if err != nil {
 		logFatalf("Failed to deploy app: %v", err)
 	}
