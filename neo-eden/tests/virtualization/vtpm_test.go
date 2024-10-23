@@ -26,9 +26,9 @@ func (grp *VirtualizationTests) TestVtpmIsStatePreservation(_ *testgroup.T) {
 	}
 
 	eveNode.LogTimeInfof("Executing the script to create the necessary TPM keys...")
-	_, err = eveNode.AppSSHExec(appName, eveNode.GetCopiedScriptPath("make_tpm_keys.sh"))
+	out, err := eveNode.AppSSHExec(appName, eveNode.GetCopiedScriptPath("make_tpm_keys.sh"))
 	if err != nil {
-		eveNode.LogTimeFatalf("Failed to execute TPM key creation script in VM: %v", err)
+		eveNode.LogTimeFatalf("Failed to execute make_tpm_keys.sh script in VM: %v,\nOutput : %s", err, out)
 	}
 
 	eveNode.LogTimeInfof("Rebooting the EVE node and check the vTPM state is preserved...")
@@ -42,9 +42,9 @@ func (grp *VirtualizationTests) TestVtpmIsStatePreservation(_ *testgroup.T) {
 	}
 
 	eveNode.LogTimeInfof("Rebooting the script to check the vTPM state is preserved...")
-	_, err = eveNode.AppSSHExec(appName, eveNode.GetCopiedScriptPath("check_tpm_keys.sh"))
+	out, err = eveNode.AppSSHExec(appName, eveNode.GetCopiedScriptPath("check_tpm_keys.sh"))
 	if err != nil {
-		eveNode.LogTimeFatalf("Failed to execute TPM key creation script in VM: %v", err)
+		eveNode.LogTimeFatalf("Failed to execute check_tpm_keys.sh script in VM: %v,\nOutput : %s", err, out)
 	}
 
 	eveNode.LogTimeInfof("TestVtpmIsStatePreservation passed")
