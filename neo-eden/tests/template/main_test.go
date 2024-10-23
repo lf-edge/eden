@@ -15,7 +15,7 @@ import (
 type TemplateTest struct{}
 
 // This is the name of the test suite, it is used to create the project name
-// rename it acording to the test suite you are writing.
+// rename it according to the test suite you are writing.
 const testSuiteName = "Template"
 const projectName = testSuiteName + "-tests"
 
@@ -54,7 +54,7 @@ func TestTemplate(t *testing.T) {
 // func (grp *TemplateTest) Test*(*testgroup.T) are run by the test runner.
 // it is better to keeo each test (or group of related tests) in a separate file.
 // Please note that file name must end with _test.go to be recognized by go test.
-func (grp *TemplateTest) TestSimpleTest(t *testgroup.T) {
+func (grp *TemplateTest) TestSimpleTest(_ *testgroup.T) {
 	eveNode.LogTimeInfof("TestSimpleTest started")
 	defer eveNode.LogTimeInfof("TestSimpleTest finished")
 
