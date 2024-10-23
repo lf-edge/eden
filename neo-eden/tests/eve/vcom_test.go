@@ -6,11 +6,11 @@ import (
 	"github.com/bloomberg/go-testgroup"
 )
 
-func (grp *SmokeTests) TestVcomLinkTpmRequestEK(t *testgroup.T) {
+func (grp *SmokeTests) TestVcomLinkTpmRequestEK(_ *testgroup.T) {
 	eveNode.LogTimeInfof("TestVcomLinkTpmRequestEK started")
 	defer eveNode.LogTimeInfof("TestVcomLinkTpmRequestEK finished")
 
-	t.Log("Checking if vcomlink is running on EVE")
+	eveNode.LogTimeInfof("Checking if vcomlink is running on EVE")
 	stat, err := eveNode.EveRunCommand("eve exec pillar ss -l --vsock")
 	if err != nil {
 		eveNode.LogTimeFatalf("Failed to check if vcomlink is running: %v", err)

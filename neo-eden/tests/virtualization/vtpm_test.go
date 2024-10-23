@@ -5,7 +5,7 @@ import (
 	tk "github.com/lf-edge/eden/pkg/evetestkit"
 )
 
-func (grp *VirtualizationTests) TestVtpmIsStatePreservation(t *testgroup.T) {
+func (grp *VirtualizationTests) TestVtpmIsStatePreservation(_ *testgroup.T) {
 	eveNode.LogTimeInfof("TestVtpmIsStatePreservation started")
 	defer eveNode.LogTimeInfof("TestVtpmIsStatePreservation finished")
 

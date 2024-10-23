@@ -39,7 +39,7 @@ func decodeError(data []byte) (*vcom.Error, error) {
 	return errMsg, nil
 }
 
-func (grp *VirtualizationTests) TestVcomLinkTpmRequestEK(t *testgroup.T) {
+func (grp *VirtualizationTests) TestVcomLinkTpmRequestEK(_ *testgroup.T) {
 	eveNode.LogTimeInfof("TestvComLinkTpmRequestEK started")
 	defer eveNode.LogTimeInfof("TestvComLinkTpmRequestEK finished")
 
