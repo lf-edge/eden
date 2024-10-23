@@ -33,7 +33,6 @@ const (
 	// AppDefaultCloudConfig is a default cloud-init configuration for the VM which just
 	// enables ssh password authentication and sets the password to "passw0rd".
 	AppDefaultCloudConfig = "#cloud-config\npassword: " + AppDefaultSSHPass + "\nchpasswd: { expire: False }\nssh_pwauth: True\n"
-	Ubuntu2204            = "22.04"
 )
 
 var (
@@ -45,7 +44,7 @@ var (
 		sshUser: AppDefaultSSHUser,
 		sshPass: AppDefaultSSHPass,
 		os:      "ubuntu-server-cloudimg-amd64",
-		version: Ubuntu2204,
+		version: "22.04",
 	}
 )
 
@@ -74,6 +73,8 @@ type appInstanceConfig struct {
 	destructiveUse bool
 }
 
+// TestScript is a struct that holds the information about the test scripts
+// that are copied to the app VM running on the EVE node.
 type TestScript struct {
 	Name           string
 	DstPath        string
@@ -398,7 +399,7 @@ func (node *EveNode) AppSCPCopy(appName, localFile, remoteFile string) error {
 	return nil
 }
 
-// TestScript copies the test scripts to the app VM running on the EVE node,
+// CopyTestScripts copies the test scripts to the app VM running on the EVE node,
 // makes them executable and sets the path to the copied script in the input.
 func (node *EveNode) CopyTestScripts(appName, basetPath string, scripts *[]TestScript) error {
 	for i := range *scripts {
@@ -429,6 +430,7 @@ func (node *EveNode) CopyTestScripts(appName, basetPath string, scripts *[]TestS
 	return nil
 }
 
+// GetCopiedScriptPath returns the path to the copied script on the app VM running on the EVE node.
 func (node *EveNode) GetCopiedScriptPath(scriptName string) string {
 	for _, script := range node.ts {
 		if script.Name == scriptName {
@@ -490,7 +492,7 @@ func (node *EveNode) EveRebootAndWait(timeoutSeconds uint) error {
 }
 
 // EveDeployApp deploys a VM/App on the EVE node
-func (node *EveNode) EveDeployApp(appLink, os, version string, destructiveUse bool, pc openevec.PodConfig, options ...AppOption) error {
+func (node *EveNode) EveDeployApp(appLink string, destructiveUse bool, pc openevec.PodConfig, options ...AppOption) error {
 	app := appInstanceConfig{name: pc.Name, destructiveUse: destructiveUse}
 	for _, option := range options {
 		option(node, pc.Name)
@@ -509,6 +511,7 @@ func (node *EveNode) EveDeployApp(appLink, os, version string, destructiveUse bo
 	return node.controller.PodDeploy(appLink, pc, node.cfg)
 }
 
+// EveDeployUbuntu deploys an Ubuntu VM on the EVE node
 func (node *EveNode) EveDeployUbuntu(version, name string, destructiveUse bool) (string, error) {
 	var app appInstanceConfig
 	var pubPorts []string
@@ -552,6 +555,8 @@ func (node *EveNode) EveIsTpmEnabled() bool {
 	return node.cfg.Eve.TPM
 }
 
+// LogTimeFatalf logs a message with a timestamp, if it is called in the context
+// of a test function it will call t.Fatal, otherwise it will call os.Exit(1)
 func (node *EveNode) LogTimeFatalf(format string, args ...interface{}) {
 	out := utils.AddTimestampf(format+"\n", args...)
 	if node.t != nil {
@@ -562,6 +567,8 @@ func (node *EveNode) LogTimeFatalf(format string, args ...interface{}) {
 	}
 }
 
+// LogTimeInfof logs a message with a timestamp, if it is called in the context
+// of a test function it will call t.Logf, otherwise it will call fmt.Print
 func (node *EveNode) LogTimeInfof(format string, args ...interface{}) {
 	out := utils.AddTimestampf(format+"\n", args...)
 	if node.t != nil {
