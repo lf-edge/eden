@@ -529,7 +529,7 @@ func (node *EveNode) EveDeployUbuntu(version, name string, destructiveUse bool) 
 	var pubPorts []string
 	var appLink string
 	switch version {
-	case "22.04":
+	case Ubuntu2204:
 		app = appInstanceConfig{
 			internal: appInternals{
 				sshPort: ubuntu2204.sshPort,
@@ -541,6 +541,18 @@ func (node *EveNode) EveDeployUbuntu(version, name string, destructiveUse bool) 
 		}
 		pubPorts = []string{ubuntu2204.sshPort + ":22"}
 		appLink = ubuntu2204.appLink
+	case Ubuntu2004:
+		app = appInstanceConfig{
+			internal: appInternals{
+				sshPort: ubuntu2004.sshPort,
+				sshUser: ubuntu2004.sshUser,
+				sshPass: ubuntu2004.sshPass,
+				os:      ubuntu2004.os,
+				version: ubuntu2004.version,
+			},
+		}
+		pubPorts = []string{ubuntu2004.sshPort + ":22"}
+		appLink = ubuntu2004.appLink
 	default:
 		return "", fmt.Errorf("unsupported Ubuntu version: %s", version)
 	}
