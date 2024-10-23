@@ -47,6 +47,7 @@ func TestVirtualization(t *testing.T) {
 		t.Skipf("Skip %s tests in non-%s workflow", testSuiteName, testSuiteName)
 	}
 
+	eveNode.SetTesting(t)
 	testgroup.RunSerially(t, group)
 	for _, app := range eveNode.GetAppNames() {
 		err := eveNode.AppStopAndRemove(app)

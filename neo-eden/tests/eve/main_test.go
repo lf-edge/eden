@@ -37,5 +37,6 @@ func TestSmoke(t *testing.T) {
 		t.Skipf("Skip %s tests in non-%s workflow", testSuiteName, testSuiteName)
 	}
 
+	eveNode.SetTesting(t)
 	testgroup.RunSerially(t, group)
 }

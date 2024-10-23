@@ -44,7 +44,7 @@ func (grp *VirtualizationTests) TestVcomLinkTpmRequestEK(t *testgroup.T) {
 	defer eveNode.LogTimeInfof("TestvComLinkTpmRequestEK finished")
 
 	if !eveNode.EveIsTpmEnabled() {
-		t.Skip("TPM is not enabled, skipping test")
+		eveNode.LogTimeFatalf("TPM is not enabled!")
 	}
 
 	eveNode.LogTimeInfof("Checking if vComLink is reachable from a VM, deploying Ubuntu %s...", tk.Ubuntu2204)

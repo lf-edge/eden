@@ -6,8 +6,8 @@ import (
 )
 
 func (grp *VirtualizationTests) TestVtpmIsStatePreservation(t *testgroup.T) {
-	t.Log("TestVtpmIsStatePreservation started")
-	defer t.Log("TestVtpmIsStatePreservation finished")
+	eveNode.LogTimeInfof("TestVtpmIsStatePreservation started")
+	defer eveNode.LogTimeInfof("TestVtpmIsStatePreservation finished")
 
 	appName := tk.GetRandomAppName(projectName + "-")
 	appName, err := eveNode.EveDeployUbuntu(tk.Ubuntu2204, appName, false)

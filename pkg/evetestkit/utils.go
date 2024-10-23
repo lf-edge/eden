@@ -578,6 +578,10 @@ func (node *EveNode) LogTimeInfof(format string, args ...interface{}) {
 	}
 }
 
+func (node *EveNode) SetTesting(t *testing.T) {
+	node.t = t
+}
+
 func (node *EveNode) discoverEveIP() error {
 	if node.edgenode.GetRemoteAddr() == "" {
 		eveIPCIDR, err := node.tc.GetState(node.edgenode).LookUp("Dinfo.Network[0].IPAddrs[0]")
