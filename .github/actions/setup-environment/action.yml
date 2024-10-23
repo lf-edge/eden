@@ -10,6 +10,10 @@ inputs:
     type: bool
   eve_image:
     type: string
+  eve_log_level:
+    type: string
+    required: false
+    default: 'info'
   eve_artifact_name:
     type: string
   artifact_run_id:
@@ -90,6 +94,10 @@ runs:
         else
           echo "Skipping setting up eve image ${image}"
         fi
+      shell: bash
+      working-directory: "./eden"
+    - name: Set eve log level
+      run: ./eden config set default --key=eve.log-level --value=${{ inputs.eve_log_level }}
       shell: bash
       working-directory: "./eden"
     - name: Setup ext4
