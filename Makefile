@@ -99,7 +99,7 @@ unit-test:
 $(EMPTY_DRIVE).%:
 	qemu-img create -f $* $@ $(EMPTY_DRIVE_SIZE)
 
-build-tests: build testbin
+build-tests: build testbin neo-testbin
 install: build
 	CGO_ENABLED=0 go install .
 
@@ -127,6 +127,9 @@ $(LINUXKIT): $(BUILDTOOLS_DIR)
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
 
+neo-testbin:
+	make -C neo-eden/tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
+
 config: build
 ifeq ($(OS), $(HOSTOS))
 	$(LOCALBIN) config add default -v $(DEBUG) $(CONFIG)
@@ -145,7 +148,7 @@ stop: build
 dist: build-tests
 	tar cvzf dist/eden_dist.tgz dist/bin dist/scripts dist/tests dist/*.txt
 
-.PHONY: all clean test build build-tests tests-export config setup stop testbin dist
+.PHONY: all clean test build build-tests tests-export config setup stop testbin neo-testbin dist
 
 push-multi-arch-eserver:
 	@echo "Build and $(DOCKER_TARGET) eserver image $(ESERVER_TAG):$(ESERVER_VERSION)"

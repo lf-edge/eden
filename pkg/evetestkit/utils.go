@@ -33,6 +33,10 @@ const (
 	// AppDefaultCloudConfig is a default cloud-init configuration for the VM which just
 	// enables ssh password authentication and sets the password to "passw0rd".
 	AppDefaultCloudConfig = "#cloud-config\npassword: " + AppDefaultSSHPass + "\nchpasswd: { expire: False }\nssh_pwauth: True\n"
+	// Ubuntu2204 indicates the version of Ubuntu 22.04
+	Ubuntu2204 = "22.04"
+	// Ubuntu2004 indicates the version of Ubuntu 20.04
+	Ubuntu2004 = "20.04"
 )
 
 var (
@@ -45,6 +49,14 @@ var (
 		sshPass: AppDefaultSSHPass,
 		os:      "ubuntu-server-cloudimg-amd64",
 		version: "22.04",
+	}
+	ubuntu2004 = fixedAppInstanceConfig{
+		appLink: "https://cloud-images.ubuntu.com/releases/20.04/release/ubuntu-20.04-server-cloudimg-amd64.img",
+		sshPort: "8027",
+		sshUser: AppDefaultSSHUser,
+		sshPass: AppDefaultSSHPass,
+		os:      "ubuntu-server-cloudimg-amd64",
+		version: Ubuntu2004,
 	}
 )
 
@@ -517,7 +529,7 @@ func (node *EveNode) EveDeployUbuntu(version, name string, destructiveUse bool) 
 	var pubPorts []string
 	var appLink string
 	switch version {
-	case "22.04":
+	case Ubuntu2204:
 		app = appInstanceConfig{
 			internal: appInternals{
 				sshPort: ubuntu2204.sshPort,
@@ -529,6 +541,18 @@ func (node *EveNode) EveDeployUbuntu(version, name string, destructiveUse bool) 
 		}
 		pubPorts = []string{ubuntu2204.sshPort + ":22"}
 		appLink = ubuntu2204.appLink
+	case Ubuntu2004:
+		app = appInstanceConfig{
+			internal: appInternals{
+				sshPort: ubuntu2004.sshPort,
+				sshUser: ubuntu2004.sshUser,
+				sshPass: ubuntu2004.sshPass,
+				os:      ubuntu2004.os,
+				version: ubuntu2004.version,
+			},
+		}
+		pubPorts = []string{ubuntu2004.sshPort + ":22"}
+		appLink = ubuntu2004.appLink
 	default:
 		return "", fmt.Errorf("unsupported Ubuntu version: %s", version)
 	}
@@ -576,6 +600,23 @@ func (node *EveNode) LogTimeInfof(format string, args ...interface{}) {
 	} else {
 		fmt.Print(out)
 	}
+}
+
+// LogTimeErrorf logs an error message with a timestamp, if it is called in the context
+// of a test function it will call t.Fail and t.Logf, otherwise it will call fmt.Print
+func (node *EveNode) LogTimeErrorf(format string, args ...interface{}) {
+	out := utils.AddTimestampf(format+"\n", args...)
+	if node.t != nil {
+		node.t.Fail()
+		node.t.Logf(out)
+	} else {
+		fmt.Print(out)
+	}
+}
+
+// SetTesting sets the testing.T object for the EveNode
+func (node *EveNode) SetTesting(t *testing.T) {
+	node.t = t
 }
 
 func (node *EveNode) discoverEveIP() error {
