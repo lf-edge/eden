@@ -1,7 +1,6 @@
 package sec_test
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,7 +45,6 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Eve onboard failed: %s", err)
 	}
 
-	fmt.Println("INITIALIZING TEST FROM CONFIG")
 	node, err := tk.InitilizeTestFromConfig(projectName, cfg, tk.WithControllerVerbosity("debug"))
 	if err != nil {
 		log.Fatalf("Failed to initialize test: %v", err)

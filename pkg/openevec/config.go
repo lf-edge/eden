@@ -44,7 +44,7 @@ type EdenConfig struct {
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
-	Tests        string `mapstructure:"tests" resolvepath:""`
+	Tests        string `mapstructure:"tests"`
 
 	EServer EServerConfig `mapstructure:"eserver"`
 
@@ -134,8 +134,8 @@ type EveConfig struct {
 	Remote         bool   `mapstructure:"remote"`
 	RemoteAddr     string `mapstructure:"remote-addr"`
 	ModelFile      string `mapstructure:"devmodelfile" cobraflag:"devmodel-file"`
-	Cert           string `mapstructure:"cert"`
-	DeviceCert     string `mapstructure:"device-cert"`
+	Cert           string `mapstructure:"cert" resolvepath:""`
+	DeviceCert     string `mapstructure:"device-cert" resolvepath:""`
 	Name           string `mapstructure:"name"`
 	AdamLogLevel   string `mapstructure:"adam-log-level"`
 	LogLevel       string `mapstructure:"log-level"`
@@ -376,35 +376,50 @@ func getValStrRepr(v reflect.Value) string {
 	}
 }
 
-func WriteConfig(dst reflect.Value, writer io.Writer, nestLevel int) {
+func WriteConfig(dst reflect.Value, root string, writer io.Writer, nestLevel int) {
+	if dst.Kind() == reflect.Ptr {
+		dst = dst.Elem()
+	}
+
 	for i := 0; i < dst.NumField(); i++ {
 		if structTag := dst.Type().Field(i).Tag.Get("mapstructure"); structTag != "" {
 			io.WriteString(writer, strings.Repeat("  ", nestLevel))
-			switch dst.Field(i).Kind() {
+			f := dst.Field(i)
+			fieldType := dst.Type().Field(i)
+
+			switch f.Kind() {
 			case reflect.Struct:
 				io.WriteString(writer, structTag+":\n")
-				WriteConfig(dst.Field(i), writer, nestLevel+1)
+				// Pass the addressable value of the struct if it can be set, else create a pointer and pass
+				if f.CanAddr() {
+					WriteConfig(f.Addr(), root, writer, nestLevel+1)
+				} else {
+					WriteConfig(f, root, writer, nestLevel+1)
+				}
 			case reflect.Map:
 				io.WriteString(writer, structTag+":\n")
-				iter := dst.Field(i).MapRange()
+				iter := f.MapRange()
 				for iter.Next() {
 					k := iter.Key()
 					v := iter.Value()
 					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
-					// We assume that map cannot have structure as value
 					io.WriteString(writer, fmt.Sprintf("%v: %s\n", k.Interface(), getValStrRepr(v)))
 				}
 			case reflect.Slice:
 				io.WriteString(writer, structTag+":\n")
-				for j := 0; j < dst.Field(i).Len(); j++ {
+				for j := 0; j < f.Len(); j++ {
 					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
-					elem := dst.Field(i).Index(j)
+					elem := f.Index(j)
 					io.WriteString(writer, fmt.Sprintf("- %v\n", getValStrRepr(elem)))
 				}
-			case reflect.String: // we need to wrap string in quotes
-				io.WriteString(writer, fmt.Sprintf("%s: '%v'\n", structTag, dst.Field(i)))
+			case reflect.String:
+				val := f.String()
+				if _, ok := fieldType.Tag.Lookup("resolvepath"); ok {
+					val = strings.TrimPrefix(val, root+"/")
+				}
+				io.WriteString(writer, fmt.Sprintf("%s: '%v'\n", structTag, val))
 			default:
-				io.WriteString(writer, fmt.Sprintf("%s: %v\n", structTag, dst.Field(i)))
+				io.WriteString(writer, fmt.Sprintf("%s: %v\n", structTag, f.Interface()))
 			}
 		}
 	}

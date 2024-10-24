@@ -76,26 +76,6 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 			log.Debugf("current config already exists: %s", cfg.ConfigFile)
 		}
 	}
-	// if _, err = os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
-
-	// 	dir := filepath.Dir(cfg.ConfigFile)
-	// 	if err = os.MkdirAll(dir, os.ModePerm); err != nil {
-	// 		return fmt.Errorf("Error creating folders %v", err)
-	// 	}
-
-	// 	file, err := os.Create(cfg.ConfigFile)
-	// 	if err != nil {
-	// 		return fmt.Errorf("Error creating file 111 %v", err)
-	// 	}
-	// 	defer file.Close()
-
-	// 	WriteConfig(reflect.ValueOf(*cfg), file, 0)
-
-	// 	log.Infof("Config file generated: %s", cfg.ConfigFile)
-	// }
-	// if err := ReloadConfigDetails(cfg); err != nil {
-	// 	return err
-	// }
 
 	context, err := utils.ContextLoad()
 	if err != nil {
@@ -124,12 +104,6 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 		}
 	}
 	context.SetContext(context.Current)
-	// if err := ReloadConfigDetails(cfg); err != nil {
-	// 	return err
-	// }
-
-	// we prepare viper config here from EdenSetupArgs
-	// to feed into GenerateConfigFileFromViper
 
 	if cfg.Eve.Arch != "" {
 		viper.Set("eve.arch", cfg.Eve.Arch)
@@ -157,15 +131,12 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 
 	file, err := os.Create(cfg.ConfigFile)
 	if err != nil {
-		return fmt.Errorf("Error creating file 111 %v", err)
+		return fmt.Errorf("Error creating file %v", err)
 	}
 	defer file.Close()
 
-	WriteConfig(reflect.ValueOf(*cfg), file, 0)
+	WriteConfig(reflect.ValueOf(cfg), cfg.Eden.Root, file, 0)
 
-	// if err = utils.GenerateConfigFileFromViper(); err != nil {
-	// 	return fmt.Errorf("error writing config: %w", err)
-	// }
 	context.SetContext(currentContextName)
 
 	return nil

@@ -54,7 +54,7 @@ func TestViperSerializeFromWriteConfig(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	openevec.WriteConfig(reflect.ValueOf(cfg), &buf, 0)
+	openevec.WriteConfig(reflect.ValueOf(cfg), "", &buf, 0)
 
 	v := viper.New()
 	v.SetConfigType("yaml")
@@ -80,7 +80,7 @@ func TestConfigSliceType(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	openevec.WriteConfig(reflect.ValueOf(cfg), &buf, 0)
+	openevec.WriteConfig(reflect.ValueOf(cfg), "", &buf, 0)
 
 	v := viper.New()
 	v.SetConfigType("yaml")
