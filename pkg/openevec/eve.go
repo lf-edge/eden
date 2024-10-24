@@ -213,7 +213,7 @@ func (openEVEC *OpenEVEC) StopEve(vmName string) error {
 			}
 		}
 	}
-	eden.StopSDN(cfg.Eve.DevModel, cfg.Sdn.PidFile)
+	eden.StopSDN(cfg.Eve.DevModel, cfg.Sdn.PidFile, cfg.Sdn.Disable)
 	return nil
 }
 

@@ -1,4 +1,4 @@
-package projects
+package testcontext
 
 import (
 	"fmt"
@@ -56,7 +56,7 @@ type processingBus struct {
 	proc map[*device.Ctx][]*absFunc
 }
 
-func initBus(tc *TestContext) *processingBus {
+func InitBus(tc *TestContext) *processingBus {
 	return &processingBus{tc: tc, proc: map[*device.Ctx][]*absFunc{}, wg: &sync.WaitGroup{}}
 }
 
@@ -80,7 +80,7 @@ func (lb *processingBus) processReturn(edgeNode *device.Ctx, procFunc *absFunc, 
 		}
 		procFunc.disabled = true
 		toRet := utils.AddTimestamp(fmt.Sprintf("%T done with return: %s", procFunc.proc, result.Error()))
-		if t, ok := lb.tc.tests[edgeNode]; ok {
+		if t, ok := lb.tc.Tests[edgeNode]; ok {
 			t.Log(toRet)
 		}
 		log.Info(toRet)

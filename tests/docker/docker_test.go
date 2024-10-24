@@ -13,7 +13,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/info"
@@ -33,7 +33,7 @@ var (
 	cpus         = flag.Uint("cpus", 1, "Cpu number for app")
 	memory       = flag.String("memory", "1G", "Memory for app")
 	nohyper      = flag.Bool("nohyper", false, "Do not use a hypervisor")
-	tc           *projects.TestContext
+	tc           *testcontext.TestContext
 	externalIP   string
 	portPublish  []string
 	appName      string
@@ -46,7 +46,7 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Docker app deployment Test")
 
-	tc = projects.NewTestContext()
+	tc = testcontext.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestDockerDeploy", time.Now())
 
@@ -62,7 +62,7 @@ func TestMain(m *testing.M) {
 }
 
 // checkAppDeployStarted wait for info of ZInfoApp type with mention of deployed AppName
-func checkAppDeployStarted(appName string) projects.ProcInfoFunc {
+func checkAppDeployStarted(appName string) testcontext.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
 			if msg.GetAinfo().AppName == appName {
@@ -74,7 +74,7 @@ func checkAppDeployStarted(appName string) projects.ProcInfoFunc {
 }
 
 // checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
-func checkAppRunning(appName string) projects.ProcInfoFunc {
+func checkAppRunning(appName string) testcontext.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
 			if msg.GetAinfo().AppName == appName {
@@ -88,7 +88,7 @@ func checkAppRunning(appName string) projects.ProcInfoFunc {
 }
 
 // getEVEIP wait for IPs of EVE and returns them
-func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
+func getEVEIP(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
 			eveIP, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]")
@@ -108,7 +108,7 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 }
 
 // checkAppAccess try to access APP with timer
-func checkAppAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
+func checkAppAccess(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemote() {
 			if externalIP == "" {
@@ -132,7 +132,7 @@ func checkAppAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
 }
 
 // checkAppAbsent check if APP undefined in EVE
-func checkAppAbsent(appName string) projects.ProcInfoFunc {
+func checkAppAbsent(appName string) testcontext.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiDevice {
 			for _, app := range msg.GetDinfo().AppInstances {

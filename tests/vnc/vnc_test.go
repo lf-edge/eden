@@ -16,7 +16,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/info"
@@ -44,7 +44,7 @@ var (
 	appLink      = flag.String("applink", "https://cloud-images.ubuntu.com/releases/groovy/release-20210108/ubuntu-20.10-server-cloudimg-%s.img", "Link to qcow2 image. You can pass %s for automatically set of arch (amd64/arm64)")
 	doPanic      = flag.Bool("panic", false, "Test kernel panic")
 	doLogger     = flag.Bool("logger", false, "Test logger print to console")
-	tc           *projects.TestContext
+	tc           *testcontext.TestContext
 	externalIP   string
 	externalPort int
 	appName      string
@@ -57,7 +57,7 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("VNC access to app Test")
 
-	tc = projects.NewTestContext()
+	tc = testcontext.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestVNCAccess", time.Now())
 
@@ -91,7 +91,7 @@ func getVNCPort(vncDisplay int) int {
 }
 
 // checkAppRunning wait for info of ZInfoApp type with mention of deployed AppName and ZSwState_RUNNING state
-func checkAppRunning(t *testing.T, appName string) projects.ProcInfoFunc {
+func checkAppRunning(t *testing.T, appName string) testcontext.ProcInfoFunc {
 	lastState := info.ZSwState_INVALID
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiApp {
@@ -110,7 +110,7 @@ func checkAppRunning(t *testing.T, appName string) projects.ProcInfoFunc {
 }
 
 // getEVEIP wait for IPs of EVE and returns them
-func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
+func getEVEIP(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
 			eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]")
@@ -130,7 +130,7 @@ func getEVEIP(edgeNode *device.Ctx) projects.ProcTimerFunc {
 }
 
 // checkVNCAccess try to access APP via VNC with timer
-func checkVNCAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
+func checkVNCAccess(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemote() {
 			if externalIP == "" {
@@ -152,26 +152,26 @@ func checkVNCAccess(edgeNode *device.Ctx) projects.ProcTimerFunc {
 	}
 }
 
-func sshCommand(edgeNode *device.Ctx, command string, foreground bool) projects.ProcTimerFunc {
+func sshCommand(edgeNode *device.Ctx, command string, foreground bool) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemote() {
 			if externalIP == "" {
 				return nil
 			}
-			sendSSHCommand := projects.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", command, foreground)
+			sendSSHCommand := testcontext.SendCommandSSH(&externalIP, sshPort, "ubuntu", "passw0rd", command, foreground)
 			return sendSSHCommand()
 		}
 		return tc.PortForwardCommand(func(fwdPort uint16) error {
 			localhostIP := "127.0.0.1"
 			sshPort := int(fwdPort)
-			sendSSHCommand := projects.SendCommandSSH(&localhostIP, &sshPort, "ubuntu", "passw0rd", command, foreground)
+			sendSSHCommand := testcontext.SendCommandSSH(&localhostIP, &sshPort, "ubuntu", "passw0rd", command, foreground)
 			return sendSSHCommand()
 		}, "eth0", uint16(*sshPort))
 	}
 }
 
 // checkAppAbsent check if APP undefined in EVE
-func checkAppAbsent(t *testing.T, appName string) projects.ProcInfoFunc {
+func checkAppAbsent(t *testing.T, appName string) testcontext.ProcInfoFunc {
 	lastState := info.ZSwState_INVALID
 	return func(msg *info.ZInfoMsg) error {
 		if msg.Ztype == info.ZInfoTypes_ZiDevice {

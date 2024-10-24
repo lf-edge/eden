@@ -18,7 +18,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/flowlog"
@@ -46,7 +46,7 @@ var (
 	                   //    ...
 	                   // }
 	*/
-	tc *projects.TestContext
+	tc *testcontext.TestContext
 
 	query = map[string]string{}
 	found bool
@@ -95,7 +95,7 @@ func TestMain(m *testing.M) {
 
 	tests.TestArgsParse()
 
-	tc = projects.NewTestContext()
+	tc = testcontext.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestLogInfoMetric", time.Now())
 

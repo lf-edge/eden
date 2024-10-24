@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/info"
@@ -38,12 +38,12 @@ var (
 
 	number int
 
-	tc *projects.TestContext
+	tc *testcontext.TestContext
 
 	lastRebootTime *timestamppb.Timestamp
 )
 
-func checkReboot(t *testing.T, edgeNode *device.Ctx) projects.ProcInfoFunc {
+func checkReboot(t *testing.T, edgeNode *device.Ctx) testcontext.ProcInfoFunc {
 	return func(im *info.ZInfoMsg) error {
 		if im.GetZtype() != info.ZInfoTypes_ZiDevice {
 			return nil
@@ -91,7 +91,7 @@ func TestMain(m *testing.M) {
 
 	tests.TestArgsParse()
 
-	tc = projects.NewTestContext()
+	tc = testcontext.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestReboot", time.Now())
 

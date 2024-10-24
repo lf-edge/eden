@@ -5,7 +5,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/emetric"
 	"github.com/lf-edge/eden/pkg/device"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eve-api/go/info"
 	"github.com/lf-edge/eve-api/go/metrics"
 	log "github.com/sirupsen/logrus"
@@ -22,13 +22,13 @@ type State struct {
 	applications   map[string]*AppInstState
 	networks       map[string]*NetInstState
 	volumes        map[string]*VolInstState
-	infoAndMetrics *projects.State
+	infoAndMetrics *testcontext.State
 	device         *device.Ctx
 }
 
 // Init State object with controller and device
 func Init(ctrl controller.Cloud, dev *device.Ctx) (ctx *State) {
-	ctx = &State{device: dev, infoAndMetrics: projects.InitState(dev)}
+	ctx = &State{device: dev, infoAndMetrics: testcontext.InitState(dev)}
 	ctx.applications = make(map[string]*AppInstState)
 	ctx.networks = make(map[string]*NetInstState)
 	if err := ctx.initApplications(ctrl, dev); err != nil {
@@ -44,7 +44,7 @@ func Init(ctrl controller.Cloud, dev *device.Ctx) (ctx *State) {
 }
 
 // InfoAndMetrics returns last info and metric objects
-func (ctx *State) InfoAndMetrics() *projects.State {
+func (ctx *State) InfoAndMetrics() *testcontext.State {
 	return ctx.infoAndMetrics
 }
 

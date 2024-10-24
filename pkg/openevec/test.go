@@ -44,7 +44,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.AdamIP = cfg.Adam.CertsIP
 	cv.AdamPort = strconv.Itoa(cfg.Adam.Port)
 	cv.AdamDomain = cfg.Adam.CertsDomain
-	cv.AdamDir = utils.ResolveAbsPath(cfg.Adam.Dist)
+	cv.AdamDir = utils.ResolveAbsPathWithRoot(cfg.Eden.Root, cfg.Adam.Dist)
 	cv.AdamCA = caCertPath
 	cv.AdamRedisURLEden = cfg.Adam.Redis.RemoteURL
 	cv.AdamRemote = cfg.Adam.Remote.Enabled
@@ -53,17 +53,17 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.AdamCachingPrefix = cfg.Adam.Caching.Prefix
 	cv.AdamCachingRedis = cfg.Adam.Caching.Redis
 
-	cv.SSHKey = utils.ResolveAbsPath(cfg.Eden.SSHKey)
+	cv.SSHKey = cfg.Eden.SSHKey
 	cv.EdenBinDir = cfg.Eden.BinDir
 	cv.EdenProg = cfg.Eden.EdenBin
 	cv.TestProg = cfg.Eden.TestBin
 	cv.TestScenario = cfg.Eden.TestScenario
-	cv.EServerImageDist = utils.ResolveAbsPath(cfg.Eden.Images.EServerImageDist)
+	cv.EServerImageDist = utils.ResolveAbsPathWithRoot(cfg.Eden.Root, cfg.Eden.Images.EServerImageDist)
 	cv.EServerPort = strconv.Itoa(cfg.Eden.EServer.Port)
 	cv.EServerIP = cfg.Eden.EServer.IP
 
-	cv.EveCert = utils.ResolveAbsPath(cfg.Eve.Cert)
-	cv.EveDeviceCert = utils.ResolveAbsPath(cfg.Eve.DeviceCert)
+	cv.EveCert = utils.ResolveAbsPathWithRoot(cfg.Eden.Root, cfg.Eve.Cert)
+	cv.EveDeviceCert = utils.ResolveAbsPathWithRoot(cfg.Eden.Root, cfg.Eve.DeviceCert)
 	cv.EveSerial = cfg.Eve.Serial
 	cv.EveDist = cfg.Eve.Dist
 	cv.EveQemuConfig = cfg.Eve.QemuFileToSave
@@ -71,7 +71,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.EveSSID = cfg.Eve.Ssid
 	cv.EveHV = cfg.Eve.HV
 	cv.DevModel = cfg.Eve.DevModel
-	cv.DevModelFIle = cfg.Eve.DevModelFile
+	cv.DevModelFIle = cfg.Eve.ModelFile
 	cv.EveName = cfg.Eve.Name
 	cv.EveUUID = cfg.Eve.CertsUUID
 	cv.AdamLogLevel = cfg.Eve.AdamLogLevel
