@@ -10,6 +10,7 @@ import (
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve-api/go/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -210,6 +211,7 @@ type PodConfig struct {
 	OpenStackMetadata bool
 	DatastoreOverride string
 	ACLOnlyHost       bool
+	VirtMode          config.VmMode
 }
 
 func Merge(dst, src reflect.Value, flags *pflag.FlagSet) {

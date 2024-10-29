@@ -77,6 +77,7 @@ func (openEVEC *OpenEVEC) PodDeploy(appLink string, pc PodConfig, cfg *EdenSetup
 	opts = append(opts, expect.WithVnc(pc.VncDisplay))
 	opts = append(opts, expect.WithVncPassword(pc.VncPassword))
 	opts = append(opts, expect.WithAppAdapters(pc.AppAdapters))
+	opts = append(opts, expect.WithVirtualizationMode(pc.VirtMode))
 	if len(pc.Networks) > 0 {
 		for i, el := range pc.Networks {
 			if i == 0 {
