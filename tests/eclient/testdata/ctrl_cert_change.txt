@@ -74,3 +74,8 @@ test:
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 $EDEN eve ssh cat /persist/certs/server-signing-cert.pem > /tmp/server-signing-cert.pem
 diff -Z /tmp/signing-new.pem /tmp/server-signing-cert.pem
+status=$?
+if [ $status -ne 0 ]; then
+    echo "Error: Current server signing certificate does not match the uploaded one." >&2
+fi
+exit $status
