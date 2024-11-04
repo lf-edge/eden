@@ -158,7 +158,7 @@ eve:
     log-level: '{{parse "eve.log-level"}}'
 
     #min level of logs sent to controller
-    adam-log-level: '{{parse "eve.adam-log-level"}}'
+    remote-log-level: '{{parse "eve.remote-log-level"}}'
 
     #port for telnet (console access)
     telnet-port: {{parse "eve.telnet-port"}}

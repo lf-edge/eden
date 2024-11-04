@@ -153,7 +153,7 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 			Remote:         defaults.DefaultEVERemote,
 			RemoteAddr:     defaults.DefaultEVEHost,
 			LogLevel:       defaults.DefaultEveLogLevel,
-			AdamLogLevel:   defaults.DefaultAdamLogLevel,
+			RemoteLogLevel: defaults.DefaultRemoteLogLevel,
 			Ssid:           "",
 			Disks:          defaults.DefaultAdditionalDisks,
 			BootstrapFile:  "",
