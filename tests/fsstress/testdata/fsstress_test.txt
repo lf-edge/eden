@@ -41,7 +41,7 @@ eden controller edge-node update --config timer.metric.interval=60
 
 # Reset log verbosity
 eden controller edge-node update --config debug.default.loglevel={{EdenConfig "eve.log-level"}}
-eden controller edge-node update --config debug.default.remote.loglevel={{EdenConfig "eve.adam-log-level"}}
+eden controller edge-node update --config debug.default.remote.loglevel={{EdenConfig "eve.remote-log-level"}}
 
 # Test's config. file
 -- eden-config.yml --
