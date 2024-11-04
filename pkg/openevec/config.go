@@ -138,7 +138,7 @@ type EveConfig struct {
 	Cert           string `mapstructure:"cert" resolvepath:""`
 	DeviceCert     string `mapstructure:"device-cert" resolvepath:""`
 	Name           string `mapstructure:"name"`
-	AdamLogLevel   string `mapstructure:"adam-log-level"`
+	RemoteLogLevel string `mapstructure:"remote-log-level"`
 	LogLevel       string `mapstructure:"log-level"`
 	Disks          int    `mapstructure:"disks"`
 	BootstrapFile  string `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`

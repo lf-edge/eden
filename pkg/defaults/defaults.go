@@ -120,8 +120,8 @@ const (
 	DefaultRequestsRedisPrefix   = "REQUESTS_EVE_"
 	DefaultFlowLogRedisPrefix    = "FLOW_MESSAGE_EVE_"
 
-	DefaultEveLogLevel  = "info" // min level of logs saved in files on EVE device
-	DefaultAdamLogLevel = "info" // min level of logs sent from EVE to Adam
+	DefaultEveLogLevel    = "info" // min level of logs saved in files on EVE device
+	DefaultRemoteLogLevel = "info" // min level of logs sent from EVE to Adam
 
 	DefaultQemuAccelDarwin      = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelDarwinArm64 = "-machine virt,accel=hvf,usb=off,dump-guest-core=off -cpu host "
