@@ -15,5 +15,5 @@ jobs:
     name: Execute Eden test workflow
     uses: ./.github/workflows/test.yml
     with:
-      eve_image: "lfedge/eve:13.3.0"
+      eve_image: "milan4zededa/eve:master75340228"
     secrets: inherit
