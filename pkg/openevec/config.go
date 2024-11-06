@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -323,49 +322,6 @@ func resolvePath(path string, v reflect.Value) {
 			resolvePath(path, f)
 		}
 	}
-}
-
-func ConfigCheck(configName string) error {
-	configFile := utils.GetConfig(configName)
-	configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
-
-	abs, err := filepath.Abs(configSaved)
-	if err != nil {
-		return fmt.Errorf("fail in reading filepath: %s\n", err.Error())
-	}
-
-	if _, err = os.Lstat(abs); os.IsNotExist(err) {
-		if err = utils.CopyFile(configFile, abs); err != nil {
-			return fmt.Errorf("copying fail %s\n", err.Error())
-		}
-	} else {
-
-		viperLoaded, err := utils.LoadConfigFile(abs)
-		if err != nil {
-			return fmt.Errorf("error reading config %s: %s\n", abs, err.Error())
-		}
-		if viperLoaded {
-			confOld := viper.AllSettings()
-
-			if _, err = utils.LoadConfigFile(configFile); err != nil {
-				return fmt.Errorf("error reading config %s: %s", configFile, err.Error())
-			}
-
-			confCur := viper.AllSettings()
-
-			if reflect.DeepEqual(confOld, confCur) {
-				log.Infof("Config file %s is the same as %s\n", configFile, configSaved)
-			} else {
-				return fmt.Errorf("the current configuration file %s is different from the saved %s. You can fix this with the commands 'eden config clean' and 'eden config add/set/edit'.\n", configFile, abs)
-			}
-		} else {
-			/* Incorrect saved config -- just rewrite by current */
-			if err = utils.CopyFile(configFile, abs); err != nil {
-				return fmt.Errorf("copying fail %s\n", err.Error())
-			}
-		}
-	}
-	return nil
 }
 
 func getValStrRepr(v reflect.Value) string {

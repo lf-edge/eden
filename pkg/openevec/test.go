@@ -95,7 +95,6 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 }
 
 func Test(tstCfg *TestArgs) error {
-	fmt.Println("SOME TEST")
 	switch {
 	case tstCfg.TestList != "":
 		tests.RunTest(tstCfg.TestProg, []string{"-test.list", tstCfg.TestList}, "", tstCfg.TestTimeout, tstCfg.FailScenario, tstCfg.ConfigFile, tstCfg.Verbosity)

@@ -6,11 +6,14 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/lf-edge/eden/pkg/defaults"
 )
 
 // GetControllerMode parse url with controller
-func GetControllerMode(controllerMode, modePattern string) (modeType, modeURL string, err error) {
-	params := GetParams(controllerMode, modePattern)
+func GetControllerMode(controllerMode string) (modeType, modeURL string, err error) {
+
+	params := GetParams(controllerMode, defaults.DefaultControllerModePattern)
 	if len(params) == 0 {
 		return "", "", fmt.Errorf("cannot parse mode (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
 	}

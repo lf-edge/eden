@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/lf-edge/eden/pkg/controller"
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
@@ -29,7 +28,7 @@ func changerByControllerMode(controllerMode string) (configChanger, error) {
 	if controllerMode == "" {
 		return &adamChanger{}, nil
 	}
-	modeType, modeURL, err := utils.GetControllerMode(controllerMode, defaults.DefaultControllerModePattern)
+	modeType, modeURL, err := utils.GetControllerMode(controllerMode)
 	if err != nil {
 		return nil, err
 	}

@@ -27,7 +27,10 @@ func TestMain(m *testing.M) {
 	}
 	twoLevelsUp := filepath.Dir(filepath.Dir(currentPath))
 
-	cfg := openevec.GetDefaultConfig(twoLevelsUp)
+	cfg, err := openevec.GetDefaultConfig(twoLevelsUp)
+	if err != nil {
+		log.Fatalf("Failed to generate default config %v\n", err)
+	}
 
 	if err = openevec.ConfigAdd(cfg, cfg.ConfigName, "", false); err != nil {
 		log.Fatal(err)
@@ -45,7 +48,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Eve onboard failed: %s", err)
 	}
 
-	node, err := tk.InitilizeTestFromConfig(projectName, cfg, tk.WithControllerVerbosity("debug"))
+	node, err := tk.InitializeTestFromConfig(projectName, cfg, tk.WithControllerVerbosity("debug"))
 	if err != nil {
 		log.Fatalf("Failed to initialize test: %v", err)
 	}

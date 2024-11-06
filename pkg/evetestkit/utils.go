@@ -638,7 +638,7 @@ func GetDefaultVMConfig(appName, cloudConfig string, portPub []string) openevec.
 
 // WithControllerVerbosity sets the verbosity level of the controller,
 // possible values are: panic, fatal, error, debug, info, trace, warn
-// This is an option for InitilizeTest.
+// This is an option for InitializeTest.
 func WithControllerVerbosity(verbosity string) TestOption {
 	return func() {
 		controllerVerbosiry = verbosity
@@ -646,7 +646,7 @@ func WithControllerVerbosity(verbosity string) TestOption {
 }
 
 // WithEdenConfigEnv sets the environment variable that holds the path to the
-// eden configuration file. This is an option for InitilizeTest.
+// eden configuration file. This is an option for InitializeTest.
 func WithEdenConfigEnv(env string) TestOption {
 	return func() {
 		edenConfEnv = env
@@ -659,11 +659,11 @@ func GetRandomAppName(prefix string) string {
 	return prefix + namesgenerator.GetRandomName(rnd.Intn(1))
 }
 
-// InitilizeTest is used to provide setup and teardown for the rest of the
+// InitializeTest is used to provide setup and teardown for the rest of the
 // tests. As part of setup we make sure that context has a slice of
 // EVE instances that we can operate on. It grabs the first one in the slice
 // for running tests.
-func InitilizeTest(projectName string, options ...TestOption) (*EveNode, error) {
+func InitializeTest(projectName string, options ...TestOption) (*EveNode, error) {
 	var edgenode *device.Ctx
 	tests.TestArgsParse()
 	tc := testcontext.NewTestContext()
@@ -777,7 +777,7 @@ func NewTestContextFromConfig(cfg *openevec.EdenSetupArgs) (*testcontext.TestCon
 
 }
 
-func InitilizeTestFromConfig(projectName string, cfg *openevec.EdenSetupArgs, options ...TestOption) (*EveNode, error) {
+func InitializeTestFromConfig(projectName string, cfg *openevec.EdenSetupArgs, options ...TestOption) (*EveNode, error) {
 	var edgenode *device.Ctx
 	tc, err := NewTestContextFromConfig(cfg)
 	if err != nil {
@@ -791,8 +791,8 @@ func InitilizeTestFromConfig(projectName string, cfg *openevec.EdenSetupArgs, op
 	// or UUIDs that were passed in) in the context. This is the first place
 	// where we're using zcli-like API:
 	for _, node := range tc.GetNodeDescriptions() {
-		edgeNode := node.GetEdgeNode(tc)
-		if edgeNode == nil {
+		edgenode = node.GetEdgeNode(tc)
+		if edgenode == nil {
 			// Couldn't find existing edgeNode record in the controller.
 			// Need to create it from scratch now:
 			// this is modeled after: zcli edge-node create <name>
@@ -803,27 +803,26 @@ func InitilizeTestFromConfig(projectName string, cfg *openevec.EdenSetupArgs, op
 			// [--network=<network>...]
 			//
 			// XXX: not sure if struct (giving us optional fields) would be better
-			edgeNode = tc.NewEdgeNode(tc.WithNodeDescription(node), tc.WithCurrentProject())
+			edgenode = tc.NewEdgeNode(tc.WithNodeDescription(node), tc.WithCurrentProject())
 		} else {
 			// make sure to move EdgeNode to the project we created, again
 			// this is modeled after zcli edge-node update <name> [--title=<title>]
 			// [--lisp-mode=experimental|default] [--project=<project>]
 			// [--clear-onboarding-certs] [--config=<key:value>...] [--network=<network>...]
-			edgeNode.SetProject(projectName)
+			edgenode.SetProject(projectName)
 		}
 
-		edgenode = edgeNode
-		tc.ConfigSync(edgeNode)
+		tc.ConfigSync(edgenode)
 
 		// finally we need to make sure that the edgeNode is in a state that we need
 		// it to be, before the test can run -- this could be multiple checks on its
 		// status, but for example:
-		if edgeNode.GetState() == device.NotOnboarded {
+		if edgenode.GetState() == device.NotOnboarded {
 			return nil, fmt.Errorf("node is not onboarded now")
 		}
 
 		// this is a good node -- lets add it to the test context
-		tc.AddNode(edgeNode)
+		tc.AddNode(edgenode)
 	}
 
 	tc.StartTrackingState(false)

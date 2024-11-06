@@ -13,24 +13,24 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func GetDefaultConfig(currentPath string) *EdenSetupArgs {
+func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 	ip, err := utils.GetIPForDockerAccess()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	id, err := uuid.NewV4()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	imageDist := filepath.Join(currentPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultImageDist))
-	certsDist := filepath.Join(currentPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultCertsDist))
+	imageDist := filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultImageDist))
+	certsDist := filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultCertsDist))
 
 	firmware := []string{filepath.Join(imageDist, "eve", "OVMF.fd")}
 	if runtime.GOARCH == "amd64" {
@@ -41,11 +41,11 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 
 	defaultEdenConfig := &EdenSetupArgs{
 		Eden: EdenConfig{
-			Root:         filepath.Join(currentPath, defaults.DefaultDist),
-			Tests:        filepath.Join(currentPath, defaults.DefaultDist, "tests"),
+			Root:         filepath.Join(projectRootPath, defaults.DefaultDist),
+			Tests:        filepath.Join(projectRootPath, defaults.DefaultDist, "tests"),
 			Download:     true,
 			BinDir:       defaults.DefaultBinDist,
-			SSHKey:       filepath.Join(currentPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultSSHKey)),
+			SSHKey:       filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultSSHKey)),
 			CertsDir:     certsDist,
 			TestBin:      defaults.DefaultTestProg,
 			EdenBin:      "eden",
@@ -134,8 +134,8 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 			QemuMemory:     defaults.DefaultMemory,
 			ImageSizeMB:    defaults.DefaultEVEImageSize,
 			Serial:         defaults.DefaultEVESerial,
-			Pid:            filepath.Join(currentPath, defaults.DefaultDist, fmt.Sprintf("%s-eve.pid", strings.ToLower(defaults.DefaultContext))),
-			Log:            filepath.Join(currentPath, defaults.DefaultDist, fmt.Sprintf("%s-eve.log", strings.ToLower(defaults.DefaultContext))),
+			Pid:            filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-eve.pid", strings.ToLower(defaults.DefaultContext))),
+			Log:            filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-eve.log", strings.ToLower(defaults.DefaultContext))),
 			TelnetPort:     defaults.DefaultTelnetPort,
 			TPM:            defaults.DefaultTPMEnabled,
 			ImageFile:      filepath.Join(imageDist, "eve", "live.img"),
@@ -178,16 +178,16 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 		Sdn: SdnConfig{
 			RAM:            defaults.DefaultSdnMemory,
 			CPU:            defaults.DefaultSdnCpus,
-			ConsoleLogFile: filepath.Join(currentPath, defaults.DefaultDist, "sdn-console.log"),
+			ConsoleLogFile: filepath.Join(projectRootPath, defaults.DefaultDist, "sdn-console.log"),
 			Disable:        true,
 			TelnetPort:     defaults.DefaultSdnTelnetPort,
 			MgmtPort:       defaults.DefaultSdnMgmtPort,
-			PidFile:        filepath.Join(currentPath, defaults.DefaultDist, "sdn.pid"),
+			PidFile:        filepath.Join(projectRootPath, defaults.DefaultDist, "sdn.pid"),
 			SSHPort:        defaults.DefaultSdnSSHPort,
-			SourceDir:      filepath.Join(currentPath, "sdn"),
+			SourceDir:      filepath.Join(projectRootPath, "sdn"),
 			ConfigDir:      filepath.Join(edenDir, fmt.Sprintf("%s-sdn", "default")),
 			ImageFile:      filepath.Join(imageDist, "eden", "sdn-efi.qcow2"),
-			LinuxkitBin:    filepath.Join(currentPath, defaults.DefaultBuildtoolsDir, "linuxkit"),
+			LinuxkitBin:    filepath.Join(projectRootPath, defaults.DefaultBuildtoolsDir, "linuxkit"),
 			NetModelFile:   "",
 		},
 
@@ -204,7 +204,7 @@ func GetDefaultConfig(currentPath string) *EdenSetupArgs {
 		EdenDir:    edenDir,
 	}
 
-	return defaultEdenConfig
+	return defaultEdenConfig, nil
 }
 
 func GetDefaultPodConfig() *PodConfig {

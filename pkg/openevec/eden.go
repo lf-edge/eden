@@ -371,24 +371,29 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 }
 
 func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL string, grubOptions []string) error {
-	wifiPSK := ""
-	if cfg.Eve.Ssid != "" {
-		fmt.Printf("Enter password for wifi %s: ", cfg.Eve.Ssid)
-		pass, _ := term.ReadPassword(0)
-		wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(cfg.Eve.Ssid), 4096, 32, sha1.New)))
-		fmt.Println()
-	}
-	if zedControlURL == "" {
-		if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
-			cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
-			return fmt.Errorf("cannot GenerateEveCerts: %w", err)
+	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
+		wifiPSK := ""
+		if cfg.Eve.Ssid != "" {
+			fmt.Printf("Enter password for wifi %s: ", cfg.Eve.Ssid)
+			pass, _ := term.ReadPassword(0)
+			wifiPSK = strings.ToLower(hex.EncodeToString(pbkdf2.Key(pass, []byte(cfg.Eve.Ssid), 4096, 32, sha1.New)))
+			fmt.Println()
 		}
-		log.Info("GenerateEveCerts done")
+		if zedControlURL == "" {
+			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
+				cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
+				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
+			}
+			log.Info("GenerateEveCerts done")
+		} else {
+			if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK); err != nil {
+				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
+			}
+			log.Info("GenerateEveCerts done")
+		}
 	} else {
-		if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK); err != nil {
-			return fmt.Errorf("cannot GenerateEveCerts: %w", err)
-		}
 		log.Info("GenerateEveCerts done")
+		log.Infof("Certs already exists in certs dir: %s", cfg.Eden.CertsDir)
 	}
 	if zedControlURL == "" {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsEVEIP,

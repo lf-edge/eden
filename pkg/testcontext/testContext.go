@@ -57,7 +57,7 @@ func NewTestContext() *TestContext {
 		log.Fatalf("LoadConfigFile %s", err)
 	}
 	if viperLoaded {
-		modeType, modeURL, err := utils.GetControllerMode(viper.GetString("test.controller"), defaults.DefaultControllerModePattern)
+		modeType, modeURL, err := utils.GetControllerMode(viper.GetString("test.controller"))
 		if err != nil {
 			log.Debug(err)
 		}
