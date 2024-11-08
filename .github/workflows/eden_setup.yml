@@ -58,6 +58,7 @@ jobs:
           # check separate (non-default) config
           ./eden config add setup
           ./eden config set setup --key=eve.accel --value=false
+          ./eden config set setup --key=eve.firmware --value="$(pwd)/firmware/OVMF_CODE.fd $(pwd)/firmware/OVMF_VARS.fd"
           ./eden --config setup setup
           ./eden --config setup start
           ./eden --config setup eve onboard

@@ -63,6 +63,7 @@ runs:
           ./eden config set default --key=eve.accel --value=true
         else
           ./eden config set default --key=eve.accel --value=false
+          ./eden config set default --key=eve.firmware --value="$(pwd)/firmware/OVMF_CODE.fd $(pwd)/firmware/OVMF_VARS.fd"
         fi
         ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
         ./eden config set default --key=eve.cpu --value=2
