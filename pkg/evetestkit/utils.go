@@ -494,6 +494,8 @@ func (node *EveNode) EveRebootAndWait(timeoutSeconds uint) error {
 // EveDeployApp deploys a VM/App on the EVE node
 func (node *EveNode) EveDeployApp(appLink string, destructiveUse bool, pc openevec.PodConfig, options ...AppOption) error {
 	app := appInstanceConfig{name: pc.Name, destructiveUse: destructiveUse}
+	node.apps = append(node.apps, app)
+
 	for _, option := range options {
 		option(node, pc.Name)
 	}
@@ -507,7 +509,6 @@ func (node *EveNode) EveDeployApp(appLink string, destructiveUse bool, pc openev
 		}
 	}
 
-	node.apps = append(node.apps, app)
 	return node.controller.PodDeploy(appLink, pc, node.cfg)
 }
 
