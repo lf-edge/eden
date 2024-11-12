@@ -5,9 +5,9 @@ inputs:
   file_system:
     required: true
     type: string
-  tpm_enabled:
+  crypto_module:
     required: true
-    type: bool
+    type: string
   suite:
     required: true
     type: string
@@ -57,7 +57,7 @@ runs:
       uses: ./eden/.github/actions/setup-environment
       with:
         file_system: ${{ inputs.file_system }}
-        tpm_enabled: ${{ inputs.tpm_enabled }}
+        crypto_module: ${{ inputs.crypto_module }}
         eve_image: ${{ inputs.eve_image }}
         eve_log_level: ${{ inputs.eve_log_level }}
         eve_artifact_name: ${{ inputs.eve_artifact_name }}
