@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -13,11 +14,13 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
+	"github.com/lf-edge/eden/pkg/controller/adam"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
+	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/openevec"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/tmc/scp"
@@ -87,7 +90,7 @@ type EveNode struct {
 	controller *openevec.OpenEVEC
 	edgenode   *device.Ctx
 	cfg        *openevec.EdenSetupArgs
-	tc         *projects.TestContext
+	tc         *testcontext.TestContext
 	apps       []appInstanceConfig
 	ip         string
 	t          *testing.T
@@ -130,7 +133,7 @@ func getOpenEVEC() (*openevec.OpenEVEC, *openevec.EdenSetupArgs, error) {
 	return openevec.CreateOpenEVEC(cfg), cfg, nil
 }
 
-func createEveNode(node *device.Ctx, tc *projects.TestContext) (*EveNode, error) {
+func createEveNode(node *device.Ctx, tc *testcontext.TestContext) (*EveNode, error) {
 	evec, cfg, err := getOpenEVEC()
 	if err != nil {
 		return nil, fmt.Errorf("can't create OpenEVEC: %w", err)
@@ -636,7 +639,7 @@ func GetDefaultVMConfig(appName, cloudConfig string, portPub []string) openevec.
 
 // WithControllerVerbosity sets the verbosity level of the controller,
 // possible values are: panic, fatal, error, debug, info, trace, warn
-// This is an option for InitilizeTest.
+// This is an option for InitializeTest.
 func WithControllerVerbosity(verbosity string) TestOption {
 	return func() {
 		controllerVerbosiry = verbosity
@@ -644,7 +647,7 @@ func WithControllerVerbosity(verbosity string) TestOption {
 }
 
 // WithEdenConfigEnv sets the environment variable that holds the path to the
-// eden configuration file. This is an option for InitilizeTest.
+// eden configuration file. This is an option for InitializeTest.
 func WithEdenConfigEnv(env string) TestOption {
 	return func() {
 		edenConfEnv = env
@@ -657,14 +660,14 @@ func GetRandomAppName(prefix string) string {
 	return prefix + namesgenerator.GetRandomName(rnd.Intn(1))
 }
 
-// InitilizeTest is used to provide setup and teardown for the rest of the
+// InitializeTest is used to provide setup and teardown for the rest of the
 // tests. As part of setup we make sure that context has a slice of
 // EVE instances that we can operate on. It grabs the first one in the slice
 // for running tests.
-func InitilizeTest(projectName string, options ...TestOption) (*EveNode, error) {
+func InitializeTest(projectName string, options ...TestOption) (*EveNode, error) {
 	var edgenode *device.Ctx
 	tests.TestArgsParse()
-	tc := projects.NewTestContext()
+	tc := testcontext.NewTestContext()
 
 	// Registering our own project namespace with controller for easy cleanup
 	tc.InitProject(fmt.Sprintf("%s_%s", projectName, time.Now()))
@@ -719,6 +722,123 @@ func InitilizeTest(projectName string, options ...TestOption) (*EveNode, error) 
 	rnode, err := createEveNode(edgenode, tc)
 	if err != nil {
 		return nil, fmt.Errorf("can't create RemoteNode: %w", err)
+	}
+
+	// get the IP address of the EVE node
+	err = rnode.discoverEveIP()
+	if err != nil {
+		return nil, fmt.Errorf("can't get the IP address of the EVE node: %w", err)
+	}
+
+	return rnode, nil
+}
+
+func NewTestContextFromConfig(cfg *openevec.EdenSetupArgs) (*testcontext.TestContext, error) {
+	var (
+		err       error
+		sdnClient *edensdn.SdnClient
+		withSdn   bool
+	)
+
+	devModel := cfg.Eve.DevModel
+	eveRemote := cfg.Eve.Remote
+	withSdn = !cfg.Sdn.Disable &&
+		devModel == defaults.DefaultQemuModel &&
+		!eveRemote
+	if withSdn {
+		sdnSSHPort := cfg.Sdn.SSHPort
+		sdnMgmtPort := cfg.Sdn.MgmtPort
+		sdnSourceDir := filepath.Join(cfg.Eden.Root, strings.TrimSpace(cfg.Sdn.SourceDir))
+		sdnSSHKeyPath := filepath.Join(sdnSourceDir, "vm/cert/ssh/id_rsa")
+		sdnClient = &edensdn.SdnClient{
+			SSHPort:    uint16(sdnSSHPort),
+			SSHKeyPath: sdnSSHKeyPath,
+			MgmtPort:   uint16(sdnMgmtPort),
+		}
+	}
+
+	vars, err := openevec.InitVarsFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	ctx := &controller.CloudCtx{Controller: &adam.Ctx{}}
+	ctx.SetVars(vars)
+	if err := ctx.InitWithVars(vars); err != nil {
+		return nil, err
+	}
+	ctx.GetAllNodes()
+	tstCtx := &testcontext.TestContext{
+		Cloud:     ctx,
+		Tests:     map[*device.Ctx]*testing.T{},
+		SdnClient: sdnClient,
+		WithSdn:   withSdn,
+	}
+	tstCtx.ProcBus = testcontext.InitBus(tstCtx)
+	return tstCtx, nil
+
+}
+
+func InitializeTestFromConfig(projectName string, cfg *openevec.EdenSetupArgs, options ...TestOption) (*EveNode, error) {
+	var edgenode *device.Ctx
+	tc, err := NewTestContextFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Registering our own project namespace with controller for easy cleanup
+	tc.InitProject(fmt.Sprintf("%s_%s", projectName, time.Now()))
+
+	// Create representation of EVE instances (based on the names
+	// or UUIDs that were passed in) in the context. This is the first place
+	// where we're using zcli-like API:
+	for _, node := range tc.GetNodeDescriptions() {
+		edgenode = node.GetEdgeNode(tc)
+		if edgenode == nil {
+			// Couldn't find existing edgeNode record in the controller.
+			// Need to create it from scratch now:
+			// this is modeled after: zcli edge-node create <name>
+			// --project=<project> --model=<model> [--title=<title>]
+			// ([--edge-node-certificate=<certificate>] |
+			// [--onboarding-certificate=<certificate>] |
+			// [(--onboarding-key=<key> --serial=<serial-number>)])
+			// [--network=<network>...]
+			//
+			// XXX: not sure if struct (giving us optional fields) would be better
+			edgenode = tc.NewEdgeNode(tc.WithNodeDescription(node), tc.WithCurrentProject())
+		} else {
+			// make sure to move EdgeNode to the project we created, again
+			// this is modeled after zcli edge-node update <name> [--title=<title>]
+			// [--lisp-mode=experimental|default] [--project=<project>]
+			// [--clear-onboarding-certs] [--config=<key:value>...] [--network=<network>...]
+			edgenode.SetProject(projectName)
+		}
+
+		tc.ConfigSync(edgenode)
+
+		// finally we need to make sure that the edgeNode is in a state that we need
+		// it to be, before the test can run -- this could be multiple checks on its
+		// status, but for example:
+		if edgenode.GetState() == device.NotOnboarded {
+			return nil, fmt.Errorf("node is not onboarded now")
+		}
+
+		// this is a good node -- lets add it to the test context
+		tc.AddNode(edgenode)
+	}
+
+	tc.StartTrackingState(false)
+
+	// apply options
+	for _, option := range options {
+		option()
+	}
+
+	rnode := &EveNode{
+		controller: openevec.CreateOpenEVEC(cfg),
+		edgenode:   edgenode,
+		tc:         tc,
+		apps:       []appInstanceConfig{},
+		cfg:        cfg,
 	}
 
 	// get the IP address of the EVE node

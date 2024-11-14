@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -337,14 +336,16 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 		fmt.Printf("Directory %s access error: %s\n",
 			cfgDir, err)
 	} else {
-		shPath := viper.GetString("eden.root") + "/scripts/shell/"
-
 		activateShFile, err := os.Create(cfgDir + "activate.sh")
 		defer activateShFile.Close()
 		if err != nil {
 			return err
 		}
-		if err = ParseTemplateFile(shPath+"activate.sh.tmpl", cfg, activateShFile); err != nil {
+		tmpl, err := template.New("").Parse(defaults.DefaultActivateShTemplate)
+		if err != nil {
+			return err
+		}
+		if err = tmpl.Execute(activateShFile, cfg); err != nil {
 			return err
 		}
 
@@ -353,7 +354,11 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 		if err != nil {
 			return err
 		}
-		if err = ParseTemplateFile(shPath+"activate.csh.tmpl", cfg, activateCshFile); err != nil {
+		tmpl, err = template.New("").Parse(defaults.DefaultActivateCshTemplate)
+		if err != nil {
+			return err
+		}
+		if err = tmpl.Execute(activateShFile, cfg); err != nil {
 			return err
 		}
 
@@ -376,12 +381,12 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL s
 		}
 		if zedControlURL == "" {
 			if err := eden.GenerateEveCerts(cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsIP, cfg.Adam.CertsEVEIP, cfg.Eve.CertsUUID,
-				cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
+				cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK, grubOptions, cfg.Adam.APIv1); err != nil {
 				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
 			}
 			log.Info("GenerateEveCerts done")
 		} else {
-			if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, wifiPSK); err != nil {
+			if err := eden.PutEveCerts(cfg.Eden.CertsDir, cfg.Eve.DevModel, cfg.Eve.Ssid, cfg.Eve.Arch, wifiPSK); err != nil {
 				return fmt.Errorf("cannot GenerateEveCerts: %w", err)
 			}
 			log.Info("GenerateEveCerts done")
@@ -513,13 +518,13 @@ func (openEVEC *OpenEVEC) EdenClean(configName, configDist, vmName string, curre
 			log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
 		}
 		if err := eden.CleanContext(cfg.Eve.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile), cfg.Eve.Pid, cfg.Eve.CertsUUID,
-			cfg.Sdn.PidFile, vmName, configSaved, cfg.Eve.Remote); err != nil {
+			cfg.Sdn.PidFile, vmName, configSaved, cfg.Eve.Remote, cfg.Sdn.Disable); err != nil {
 			return fmt.Errorf("cannot CleanContext: %w", err)
 		}
 	} else {
 		if err := eden.CleanEden(cfg.Eve.Dist, cfg.Adam.Dist, cfg.Eden.CertsDir, filepath.Dir(cfg.Eve.ImageFile),
 			cfg.Eden.Images.EServerImageDist, cfg.Redis.Dist, cfg.Registry.Dist, configDist, cfg.Eve.Pid,
-			cfg.Sdn.PidFile, configSaved, cfg.Eve.Remote, cfg.Eve.DevModel, vmName); err != nil {
+			cfg.Sdn.PidFile, configSaved, cfg.Eve.Remote, cfg.Eve.DevModel, vmName, cfg.Sdn.Disable); err != nil {
 			return fmt.Errorf("cannot CleanEden: %w", err)
 		}
 	}
@@ -829,7 +834,7 @@ func (openEVEC *OpenEVEC) EdenImport(tarFile string, rewriteRoot bool) error {
 
 // ParseTemplateFile fills EdenSetupArgs variable into template stored in file and writes result to io.Writer
 func ParseTemplateFile(path string, cfg EdenSetupArgs, w io.Writer) error {
-	t, err := ioutil.ReadFile(path)
+	t, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}

@@ -65,6 +65,7 @@ runs:
           ./eden config set default --key=eve.accel --value=false
           ./eden config set default --key=eve.firmware --value="$(pwd)/firmware/OVMF_CODE.fd $(pwd)/firmware/OVMF_VARS.fd"
         fi
+        ./dist/bin/eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027 8028:8028 8029:8029 8030:8030 8031:8031
         ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
         ./eden config set default --key=eve.cpu --value=2
       shell: bash
@@ -114,5 +115,12 @@ runs:
         ./eden config set default --key=eve.disks --value=4
         ./eden config set default --key=eve.disk --value=4096
         ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
+      shell: bash
+      working-directory: "./eden"
+
+    - name: Start and Onboard
+      run: |
+        ./eden start -v debug
+        ./eden eve onboard -v debug
       shell: bash
       working-directory: "./eden"

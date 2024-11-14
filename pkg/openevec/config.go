@@ -2,9 +2,9 @@ package openevec
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -21,6 +21,12 @@ type EServerConfig struct {
 	Tag    string       `mapstructure:"tag" cobraflag:"eserver-tag"`
 	IP     string       `mapstructure:"ip"`
 	Images ImagesConfig `mapstructure:"images"`
+	EVEIP  string       `mapstructure:"eve-ip"`
+}
+
+type EClientConfig struct {
+	Tag   string `mapstructure:"tag"`
+	Image string `mapstructure:"image"`
 }
 
 type ImagesConfig struct {
@@ -37,10 +43,12 @@ type EdenConfig struct {
 	EdenBin      string `mapstructure:"eden-bin"`
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
+	Tests        string `mapstructure:"tests"`
 
 	EServer EServerConfig `mapstructure:"eserver"`
 
-	Images ImagesConfig `mapstructure:"images"`
+	EClient EClientConfig `mapstructure:"eclient"`
+	Images  ImagesConfig  `mapstructure:"images"`
 }
 
 type RedisConfig struct {
@@ -73,6 +81,7 @@ type AdamConfig struct {
 	CertsEVEIP  string `mapstructure:"eve-ip" cobraflag:"eve-ip"`
 	APIv1       bool   `mapstructure:"v1" cobrafalg:"force"`
 	Force       bool   `mapstructure:"force" cobraflag:"force"`
+	CA          string `mapstructure:"ca"`
 
 	Redis   RedisConfig   `mapstructure:"redis"`
 	Remote  RemoteConfig  `mapstructure:"remote"`
@@ -94,7 +103,7 @@ type EveConfig struct {
 	QemuConfig      QemuConfig            `mapstructure:"qemu"`
 
 	QemuFirmware   []string          `mapstructure:"firmware" cobraflag:"eve-firmware"`
-	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path" resolvepath:""`
+	QemuConfigPath string            `mapstructure:"config-part" cobraflag:"config-path"`
 	QemuDTBPath    string            `mapstructure:"dtb-part" cobraflag:"dtb-part" resolvepath:""`
 	QemuOS         string            `mapstructure:"os" cobraflag:"eve-os"`
 	ImageFile      string            `mapstructure:"image-file" cobraflag:"image-file" resolvepath:""`
@@ -113,7 +122,6 @@ type EveConfig struct {
 	QemuMemory     int               `mapstructure:"ram" cobraflag:"memory"`
 	ImageSizeMB    int               `mapstructure:"disk" cobraflag:"image-size"`
 	DevModel       string            `mapstructure:"devmodel" cobraflag:"devmodel"`
-	DevModelFile   string            `mapstructure:"devmodelfile"`
 	Ssid           string            `mapstructure:"ssid" cobraflag:"ssid"`
 	Password       string            `mapstructure:"password" cobraflag:"password"`
 	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
@@ -125,8 +133,8 @@ type EveConfig struct {
 	Remote         bool   `mapstructure:"remote"`
 	RemoteAddr     string `mapstructure:"remote-addr"`
 	ModelFile      string `mapstructure:"devmodelfile" cobraflag:"devmodel-file"`
-	Cert           string `mapstructure:"cert"`
-	DeviceCert     string `mapstructure:"device-cert"`
+	Cert           string `mapstructure:"cert" resolvepath:""`
+	DeviceCert     string `mapstructure:"device-cert" resolvepath:""`
 	Name           string `mapstructure:"name"`
 	AdamLogLevel   string `mapstructure:"adam-log-level"`
 	LogLevel       string `mapstructure:"log-level"`
@@ -152,7 +160,7 @@ type GcpConfig struct {
 }
 
 type SdnConfig struct {
-	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file" resolvepath:""`
+	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file"`
 	SourceDir      string `mapstructure:"source-dir" cobraflag:"sdn-source-dir" resolvepath:""`
 	RAM            int    `mapstructure:"ram" cobraflag:"sdn-ram"`
 	CPU            int    `mapstructure:"cpu" cobraflag:"sdn-cpu"`
@@ -179,6 +187,7 @@ type EdenSetupArgs struct {
 
 	ConfigFile string
 	ConfigName string
+	EdenDir    string
 }
 
 // PodConfig store configuration for Pod deployment
@@ -284,7 +293,7 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 		return nil, fmt.Errorf("unable to decode into config struct, %w", err)
 	}
 
-	resolvePath(reflect.ValueOf(cfg).Elem())
+	resolvePath(cfg.Eden.Root, reflect.ValueOf(cfg).Elem())
 
 	if configFile == "" {
 		configFile, _ = utils.DefaultConfigPath()
@@ -300,60 +309,107 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 	return cfg, nil
 }
 
-func resolvePath(v reflect.Value) {
+func resolvePath(path string, v reflect.Value) {
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		if _, ok := v.Type().Field(i).Tag.Lookup("resolvepath"); ok {
 			if f.IsValid() && f.CanSet() && f.Kind() == reflect.String {
 				val := f.Interface().(string)
-				f.SetString(utils.ResolveAbsPath(val))
+				f.SetString(utils.ResolveAbsPathWithRoot(path, val))
 			}
 		}
 		if f.Kind() == reflect.Struct {
-			resolvePath(f)
+			resolvePath(path, f)
 		}
 	}
 }
 
-func ConfigCheck(configName string) error {
-	configFile := utils.GetConfig(configName)
-	configSaved := utils.ResolveAbsPath(fmt.Sprintf("%s-%s", configName, defaults.DefaultConfigSaved))
-
-	abs, err := filepath.Abs(configSaved)
-	if err != nil {
-		return fmt.Errorf("fail in reading filepath: %s\n", err.Error())
-	}
-
-	if _, err = os.Lstat(abs); os.IsNotExist(err) {
-		if err = utils.CopyFile(configFile, abs); err != nil {
-			return fmt.Errorf("copying fail %s\n", err.Error())
-		}
+func getValStrRepr(v reflect.Value) string {
+	if v.Kind() == reflect.String {
+		return fmt.Sprintf("'%v'", v.Interface())
 	} else {
+		return fmt.Sprintf("%v", v.Interface())
+	}
+}
 
-		viperLoaded, err := utils.LoadConfigFile(abs)
-		if err != nil {
-			return fmt.Errorf("error reading config %s: %s\n", abs, err.Error())
-		}
-		if viperLoaded {
-			confOld := viper.AllSettings()
+func WriteConfig(dst reflect.Value, root string, writer io.Writer, nestLevel int) {
+	if dst.Kind() == reflect.Ptr {
+		dst = dst.Elem()
+	}
 
-			if _, err = utils.LoadConfigFile(configFile); err != nil {
-				return fmt.Errorf("error reading config %s: %s", configFile, err.Error())
-			}
+	for i := 0; i < dst.NumField(); i++ {
+		if structTag := dst.Type().Field(i).Tag.Get("mapstructure"); structTag != "" {
+			io.WriteString(writer, strings.Repeat("  ", nestLevel))
+			f := dst.Field(i)
+			fieldType := dst.Type().Field(i)
 
-			confCur := viper.AllSettings()
-
-			if reflect.DeepEqual(confOld, confCur) {
-				log.Infof("Config file %s is the same as %s\n", configFile, configSaved)
-			} else {
-				return fmt.Errorf("the current configuration file %s is different from the saved %s. You can fix this with the commands 'eden config clean' and 'eden config add/set/edit'.\n", configFile, abs)
-			}
-		} else {
-			/* Incorrect saved config -- just rewrite by current */
-			if err = utils.CopyFile(configFile, abs); err != nil {
-				return fmt.Errorf("copying fail %s\n", err.Error())
+			switch f.Kind() {
+			case reflect.Struct:
+				io.WriteString(writer, structTag+":\n")
+				// Pass the addressable value of the struct if it can be set, else create a pointer and pass
+				if f.CanAddr() {
+					WriteConfig(f.Addr(), root, writer, nestLevel+1)
+				} else {
+					WriteConfig(f, root, writer, nestLevel+1)
+				}
+			case reflect.Map:
+				io.WriteString(writer, structTag+":\n")
+				iter := f.MapRange()
+				for iter.Next() {
+					k := iter.Key()
+					v := iter.Value()
+					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
+					io.WriteString(writer, fmt.Sprintf("%v: %s\n", k.Interface(), getValStrRepr(v)))
+				}
+			case reflect.Slice:
+				io.WriteString(writer, structTag+":\n")
+				for j := 0; j < f.Len(); j++ {
+					io.WriteString(writer, strings.Repeat("  ", nestLevel+1))
+					elem := f.Index(j)
+					io.WriteString(writer, fmt.Sprintf("- %v\n", getValStrRepr(elem)))
+				}
+			case reflect.String:
+				val := f.String()
+				if _, ok := fieldType.Tag.Lookup("resolvepath"); ok {
+					val = strings.TrimPrefix(val, root+"/")
+				}
+				io.WriteString(writer, fmt.Sprintf("%s: '%v'\n", structTag, val))
+			default:
+				io.WriteString(writer, fmt.Sprintf("%s: %v\n", structTag, f.Interface()))
 			}
 		}
 	}
-	return nil
+}
+
+func PrintDifferences(a, b interface{}, parentField string) {
+	valA := reflect.ValueOf(a)
+	valB := reflect.ValueOf(b)
+
+	if valA.Kind() != reflect.Struct || valB.Kind() != reflect.Struct {
+		if valA.Interface() != valB.Interface() {
+			fmt.Printf("Field %s differs: %v vs %v\n", parentField, valA.Interface(), valB.Interface())
+		}
+		return
+	}
+
+	typeA := valA.Type()
+
+	for i := 0; i < valA.NumField(); i++ {
+		fieldName := typeA.Field(i).Name
+		fieldValA := valA.Field(i)
+		fieldValB := valB.Field(i)
+
+		fullFieldName := fieldName
+		if parentField != "" {
+			fullFieldName = parentField + "." + fieldName
+		}
+
+		if fieldValA.Kind() == reflect.Struct {
+			PrintDifferences(fieldValA.Interface(), fieldValB.Interface(), fullFieldName)
+		} else {
+			if fieldValA.Interface() != fieldValB.Interface() {
+				fmt.Printf("Field %s differs: %v vs %v \n", fullFieldName, fieldValA.Interface(), fieldValB.Interface())
+			}
+		}
+	}
 }

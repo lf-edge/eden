@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 	logInfof("VCOM Test started")
 	defer logInfof("VCOM Test finished")
 
-	node, err := tk.InitilizeTest(projectName, tk.WithControllerVerbosity("debug"))
+	node, err := tk.InitializeTest(projectName, tk.WithControllerVerbosity("debug"))
 	if err != nil {
 		logFatalf("Failed to initialize test: %v", err)
 	}

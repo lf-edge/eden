@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
@@ -10,7 +11,14 @@ import (
 )
 
 func newConfigCmd(configName, verbosity *string) *cobra.Command {
-	cfg := &openevec.EdenSetupArgs{}
+	currentPath, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg, err := openevec.GetDefaultConfig(currentPath)
+	if err != nil {
+		log.Fatalf("Failed to generate default config %v\n", err)
+	}
 	var configCmd = &cobra.Command{
 		Use:               "config",
 		Short:             "work with config",
@@ -73,13 +81,13 @@ func newConfigAddCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuFileToSave, "qemu-config", "", defaults.DefaultQemuFileToSave, "file to save config")
 	configAddCmd.Flags().IntVarP(&cfg.Eve.QemuCpus, "cpus", "", defaults.DefaultCpus, "cpus")
 	configAddCmd.Flags().IntVarP(&cfg.Eve.QemuMemory, "memory", "", defaults.DefaultMemory, "memory (MB)")
-	configAddCmd.Flags().StringSliceVarP(&cfg.Eve.QemuFirmware, "eve-firmware", "", nil, "firmware path")
-	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "config-part", "", "", "path for config drive")
-	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuDTBPath, "dtb-part", "", "", "path for device tree drive (for arm)")
+	configAddCmd.Flags().StringSliceVarP(&cfg.Eve.QemuFirmware, "eve-firmware", "", cfg.Eve.QemuFirmware, "firmware path")
+	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "config-part", "", cfg.Eve.QemuConfigPath, "path for config drive")
+	configAddCmd.Flags().StringVarP(&cfg.Eve.QemuDTBPath, "dtb-part", "", cfg.Eve.QemuDTBPath, "path for device tree drive (for arm)")
 	configAddCmd.Flags().StringToStringVarP(&cfg.Eve.HostFwd, "eve-hostfwd", "", defaults.DefaultQemuHostFwd, "port forward map")
 	configAddCmd.Flags().StringVar(&cfg.Eve.Ssid, "ssid", "", "set ssid of wifi for rpi")
-	configAddCmd.Flags().StringVar(&cfg.Eve.Arch, "arch", "", "arch of EVE (amd64 or arm64)")
-	configAddCmd.Flags().StringVar(&cfg.Eve.ModelFile, "devmodel-file", "", "File to use for overwrite of model defaults")
+	configAddCmd.Flags().StringVar(&cfg.Eve.Arch, "arch", cfg.Eve.Arch, "arch of EVE (amd64 or arm64)")
+	configAddCmd.Flags().StringVar(&cfg.Eve.ModelFile, "devmodel-file", cfg.Eve.ModelFile, "File to use for overwrite of model defaults")
 	configAddCmd.Flags().BoolVarP(&force, "force", "", false, "force overwrite config file")
 
 	return configAddCmd

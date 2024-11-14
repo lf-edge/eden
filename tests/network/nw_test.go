@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/lf-edge/eden/pkg/eve"
-	"github.com/lf-edge/eden/pkg/projects"
+	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/info"
 )
@@ -22,7 +22,7 @@ type nwState struct {
 var (
 	timewait = flag.Duration("timewait", time.Minute, "Timewait for items waiting")
 	newitems = flag.Bool("check-new", false, "Check only new info messages")
-	tc       *projects.TestContext
+	tc       *testcontext.TestContext
 	states   map[string][]nwState
 	eveState *eve.State
 )
@@ -34,7 +34,7 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Network's state test")
 
-	tc = projects.NewTestContext()
+	tc = testcontext.NewTestContext()
 
 	projectName := fmt.Sprintf("%s_%s", "TestNetState", time.Now())
 
@@ -111,7 +111,7 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 }
 
 // checkNet wait for info of ZInfoApp type with state
-func checkNet(state string, volNames []string) projects.ProcInfoFunc {
+func checkNet(state string, volNames []string) testcontext.ProcInfoFunc {
 	return func(msg *info.ZInfoMsg) error {
 		eveState.InfoCallback()(msg) //feed state with new info
 		return checkState(eveState, state, volNames)

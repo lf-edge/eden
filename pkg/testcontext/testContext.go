@@ -1,4 +1,4 @@
-package projects
+package testcontext
 
 import (
 	"fmt"
@@ -21,37 +21,26 @@ import (
 	"github.com/spf13/viper"
 )
 
-//GetControllerMode parse url with controller
-func GetControllerMode(controllerMode string) (modeType, modeURL string, err error) {
-	params := utils.GetParams(controllerMode, defaults.DefaultControllerModePattern)
-	if len(params) == 0 {
-		return "", "", fmt.Errorf("cannot parse mode (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
-	}
-	ok := false
-	if modeType, ok = params["Type"]; !ok {
-		return "", "", fmt.Errorf("cannot parse modeType (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
-	}
-	if modeURL, ok = params["URL"]; !ok {
-		return "", "", fmt.Errorf("cannot parse modeURL (not [file|proto|adam|zedcloud]://<URL>): %s", controllerMode)
-	}
-	return
+// Project structure for test set
+type Project struct {
+	name string
 }
 
-//TestContext is main structure for running tests
+// TestContext is main structure for running tests
 type TestContext struct {
-	cloud     controller.Cloud
+	Cloud     controller.Cloud
 	project   *Project
 	nodes     []*device.Ctx
-	sdnClient *edensdn.SdnClient
-	withSdn   bool
-	procBus   *processingBus
-	tests     map[*device.Ctx]*testing.T
+	SdnClient *edensdn.SdnClient
+	WithSdn   bool
+	ProcBus   *processingBus
+	Tests     map[*device.Ctx]*testing.T
 	states    map[*device.Ctx]*State
 	stopTime  time.Time
 	addTime   time.Duration
 }
 
-//NewTestContext creates new TestContext
+// NewTestContext creates new TestContext
 func NewTestContext() *TestContext {
 	var (
 		err       error
@@ -68,7 +57,7 @@ func NewTestContext() *TestContext {
 		log.Fatalf("LoadConfigFile %s", err)
 	}
 	if viperLoaded {
-		modeType, modeURL, err := GetControllerMode(viper.GetString("test.controller"))
+		modeType, modeURL, err := utils.GetControllerMode(viper.GetString("test.controller"))
 		if err != nil {
 			log.Debug(err)
 		}
@@ -118,16 +107,16 @@ func NewTestContext() *TestContext {
 	}
 	ctx.GetAllNodes()
 	tstCtx := &TestContext{
-		cloud:     ctx,
-		tests:     map[*device.Ctx]*testing.T{},
-		sdnClient: sdnClient,
-		withSdn:   withSdn,
+		Cloud:     ctx,
+		Tests:     map[*device.Ctx]*testing.T{},
+		SdnClient: sdnClient,
+		WithSdn:   withSdn,
 	}
-	tstCtx.procBus = initBus(tstCtx)
+	tstCtx.ProcBus = InitBus(tstCtx)
 	return tstCtx
 }
 
-//GetNodeDescriptions returns list of nodes from config
+// GetNodeDescriptions returns list of nodes from config
 func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	if eveList := viper.GetStringMap("test.eve"); len(eveList) > 0 {
 		for name := range eveList {
@@ -147,20 +136,20 @@ func (tc *TestContext) GetNodeDescriptions() (nodes []*EdgeNodeDescription) {
 	return
 }
 
-//GetController returns current controller
+// GetController returns current controller
 func (tc *TestContext) GetController() controller.Cloud {
-	if tc.cloud == nil {
+	if tc.Cloud == nil {
 		log.Fatal("Controller not initialized")
 	}
-	return tc.cloud
+	return tc.Cloud
 }
 
-//InitProject init project object with defined name
+// InitProject init project object with defined name
 func (tc *TestContext) InitProject(name string) {
 	tc.project = &Project{name: name}
 }
 
-//AddEdgeNodesFromDescription adds EdgeNodes from description in test.eve param
+// AddEdgeNodesFromDescription adds EdgeNodes from description in test.eve param
 func (tc *TestContext) AddEdgeNodesFromDescription() {
 	for _, node := range tc.GetNodeDescriptions() {
 		edgeNode := node.GetEdgeNode(tc)
@@ -180,18 +169,18 @@ func (tc *TestContext) AddEdgeNodesFromDescription() {
 	}
 }
 
-//GetEdgeNodeOpts pattern to pass device modifications
+// GetEdgeNodeOpts pattern to pass device modifications
 type GetEdgeNodeOpts func(*device.Ctx) bool
 
-//WithTest assign *testing.T for device
+// WithTest assign *testing.T for device
 func (tc *TestContext) WithTest(t *testing.T) GetEdgeNodeOpts {
 	return func(d *device.Ctx) bool {
-		tc.tests[d] = t
+		tc.Tests[d] = t
 		return true
 	}
 }
 
-//GetEdgeNode return node from context
+// GetEdgeNode return node from context
 func (tc *TestContext) GetEdgeNode(opts ...GetEdgeNodeOpts) *device.Ctx {
 Node:
 	for _, el := range tc.nodes {
@@ -205,12 +194,12 @@ Node:
 	return nil
 }
 
-//AddNode add node to test context
+// AddNode add node to test context
 func (tc *TestContext) AddNode(node *device.Ctx) {
 	tc.nodes = append(tc.nodes, node)
 }
 
-//UpdateEdgeNode update edge node
+// UpdateEdgeNode update edge node
 func (tc *TestContext) UpdateEdgeNode(edgeNode *device.Ctx, opts ...EdgeNodeOption) {
 	for _, opt := range opts {
 		opt(edgeNode)
@@ -218,7 +207,7 @@ func (tc *TestContext) UpdateEdgeNode(edgeNode *device.Ctx, opts ...EdgeNodeOpti
 	tc.ConfigSync(edgeNode)
 }
 
-//NewEdgeNode creates edge node
+// NewEdgeNode creates edge node
 func (tc *TestContext) NewEdgeNode(opts ...EdgeNodeOption) *device.Ctx {
 	d := device.CreateEdgeNode()
 	for _, opt := range opts {
@@ -231,7 +220,7 @@ func (tc *TestContext) NewEdgeNode(opts ...EdgeNodeOption) *device.Ctx {
 	return d
 }
 
-//ConfigSync send config to controller
+// ConfigSync send config to controller
 func (tc *TestContext) ConfigSync(edgeNode *device.Ctx) {
 	if edgeNode.GetState() == device.NotOnboarded {
 		if err := tc.GetController().OnBoardDev(edgeNode); err != nil {
@@ -245,34 +234,34 @@ func (tc *TestContext) ConfigSync(edgeNode *device.Ctx) {
 	}
 }
 
-//ExpandOnSuccess adds additional time to global timeout on every success check
+// ExpandOnSuccess adds additional time to global timeout on every success check
 func (tc *TestContext) ExpandOnSuccess(secs int) {
 	tc.addTime = time.Duration(secs) * time.Second
 }
 
-//WaitForProcWithErrorCallback blocking execution until the time elapses or all Procs gone
-//and fires callback in case of timeout
+// WaitForProcWithErrorCallback blocking execution until the time elapses or all Procs gone
+// and fires callback in case of timeout
 func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback) {
 	defer func() { tc.addTime = 0 }() //reset addTime on exit
-	defer tc.procBus.clean()
+	defer tc.ProcBus.clean()
 	timeout := time.Duration(secs) * time.Second
 	tc.stopTime = time.Now().Add(timeout)
 	ticker := time.NewTicker(defaults.DefaultRepeatTimeout)
 	defer ticker.Stop()
 	waitChan := make(chan struct{}, 1)
 	go func() {
-		tc.procBus.wg.Wait()
+		tc.ProcBus.wg.Wait()
 		waitChan <- struct{}{}
 	}()
 	for {
 		select {
 		case <-waitChan:
-			for node, el := range tc.tests {
+			for node, el := range tc.Tests {
 				el.Logf("done for device %s", node.GetID())
 			}
 			return
 		case <-ticker.C:
-			for _, el := range tc.tests {
+			for _, el := range tc.Tests {
 				if el.Failed() {
 					// if one of tests failed, we are failed
 					callback()
@@ -281,7 +270,7 @@ func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback)
 			}
 			if time.Now().After(tc.stopTime) {
 				callback()
-				for _, el := range tc.tests {
+				for _, el := range tc.Tests {
 					el.Errorf("WaitForProcWithErrorCallback terminated by timeout %s", timeout)
 				}
 				return
@@ -290,53 +279,53 @@ func (tc *TestContext) WaitForProcWithErrorCallback(secs int, callback Callback)
 	}
 }
 
-//WaitForProc blocking execution until the time elapses or all Procs gone
-//returns error on timeout
+// WaitForProc blocking execution until the time elapses or all Procs gone
+// returns error on timeout
 func (tc *TestContext) WaitForProc(secs int) {
 	timeout := time.Duration(secs) * time.Second
 	callback := func() {
-		if len(tc.tests) == 0 {
+		if len(tc.Tests) == 0 {
 			log.Fatalf("WaitForProc terminated by timeout %s", timeout)
 		}
-		for _, el := range tc.tests {
+		for _, el := range tc.Tests {
 			el.Errorf("WaitForProc terminated by timeout %s", timeout)
 		}
 	}
 	tc.WaitForProcWithErrorCallback(secs, callback)
 }
 
-//AddProcLog add processFunction, that will get all logs for edgeNode
+// AddProcLog add processFunction, that will get all logs for edgeNode
 func (tc *TestContext) AddProcLog(edgeNode *device.Ctx, processFunction ProcLogFunc) {
-	tc.procBus.addProc(edgeNode, processFunction)
+	tc.ProcBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcAppLog add processFunction, that will get all app logs for edgeNode
+// AddProcAppLog add processFunction, that will get all app logs for edgeNode
 func (tc *TestContext) AddProcAppLog(edgeNode *device.Ctx, appUUID uuid.UUID, processFunction ProcAppLogFunc) {
-	tc.procBus.addAppProc(edgeNode, appUUID, processFunction)
+	tc.ProcBus.addAppProc(edgeNode, appUUID, processFunction)
 }
 
-//AddProcFlowLog add processFunction, that will get all FlowLogs for edgeNode
+// AddProcFlowLog add processFunction, that will get all FlowLogs for edgeNode
 func (tc *TestContext) AddProcFlowLog(edgeNode *device.Ctx, processFunction ProcLogFlowFunc) {
-	tc.procBus.addProc(edgeNode, processFunction)
+	tc.ProcBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcInfo add processFunction, that will get all info for edgeNode
+// AddProcInfo add processFunction, that will get all info for edgeNode
 func (tc *TestContext) AddProcInfo(edgeNode *device.Ctx, processFunction ProcInfoFunc) {
-	tc.procBus.addProc(edgeNode, processFunction)
+	tc.ProcBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcMetric add processFunction, that will get all metrics for edgeNode
+// AddProcMetric add processFunction, that will get all metrics for edgeNode
 func (tc *TestContext) AddProcMetric(edgeNode *device.Ctx, processFunction ProcMetricFunc) {
-	tc.procBus.addProc(edgeNode, processFunction)
+	tc.ProcBus.addProc(edgeNode, processFunction)
 }
 
-//AddProcTimer add processFunction, that will fire with time intervals for edgeNode
+// AddProcTimer add processFunction, that will fire with time intervals for edgeNode
 func (tc *TestContext) AddProcTimer(edgeNode *device.Ctx, processFunction ProcTimerFunc) {
-	tc.procBus.addProc(edgeNode, processFunction)
+	tc.ProcBus.addProc(edgeNode, processFunction)
 }
 
-//StartTrackingState init function for State monitoring
-//if onlyNewElements set no use old information from controller
+// StartTrackingState init function for State monitoring
+// if onlyNewElements set no use old information from controller
 func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 	tc.states = map[*device.Ctx]*State{}
 	for _, dev := range tc.nodes {
@@ -347,15 +336,15 @@ func (tc *TestContext) StartTrackingState(onlyNewElements bool) {
 			_ = tc.GetController().InfoLastCallback(dev.GetID(), map[string]string{}, curState.getProcessorInfo())
 			_ = tc.GetController().MetricLastCallback(dev.GetID(), map[string]string{}, curState.getProcessorMetric())
 		}
-		if _, exists := tc.procBus.proc[dev]; !exists {
-			tc.procBus.initCheckers(dev)
+		if _, exists := tc.ProcBus.proc[dev]; !exists {
+			tc.ProcBus.initCheckers(dev)
 		}
-		tc.procBus.proc[dev] = append(tc.procBus.proc[dev], &absFunc{proc: curState.GetInfoProcessingFunction(), disabled: false, states: true})
-		tc.procBus.proc[dev] = append(tc.procBus.proc[dev], &absFunc{proc: curState.GetMetricProcessingFunction(), disabled: false, states: true})
+		tc.ProcBus.proc[dev] = append(tc.ProcBus.proc[dev], &absFunc{proc: curState.GetInfoProcessingFunction(), disabled: false, states: true})
+		tc.ProcBus.proc[dev] = append(tc.ProcBus.proc[dev], &absFunc{proc: curState.GetMetricProcessingFunction(), disabled: false, states: true})
 	}
 }
 
-//WaitForState wait for State initialization from controller
+// WaitForState wait for State initialization from controller
 func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 	state, isOk := tc.states[edgeNode]
 	if !isOk {
@@ -374,24 +363,24 @@ func (tc *TestContext) WaitForState(edgeNode *device.Ctx, secs int) {
 	}()
 	select {
 	case <-waitChan:
-		if el, isOk := tc.tests[edgeNode]; !isOk {
+		if el, isOk := tc.Tests[edgeNode]; !isOk {
 			log.Println("done waiting for State")
 		} else {
 			el.Logf("done waiting for State")
 		}
 		return
 	case <-time.After(timeout):
-		if len(tc.tests) == 0 {
+		if len(tc.Tests) == 0 {
 			log.Fatalf("WaitForState terminated by timeout %s", timeout)
 		}
-		for _, el := range tc.tests {
+		for _, el := range tc.Tests {
 			el.Fatalf("WaitForState terminated by timeout %s", timeout)
 		}
 		return
 	}
 }
 
-//GetState returns State object for edgeNode
+// GetState returns State object for edgeNode
 func (tc *TestContext) GetState(edgeNode *device.Ctx) *State {
 	return tc.states[edgeNode]
 }
@@ -402,7 +391,7 @@ func (tc *TestContext) GetState(edgeNode *device.Ctx) *State {
 // as the destination IP and fwdPort as the destination port.
 func (tc *TestContext) PortForwardCommand(cmd func(fwdPort uint16) error,
 	eveIfName string, targetPort uint16) error {
-	if !tc.withSdn {
+	if !tc.WithSdn {
 		// Find out what the targetPort is (statically) mapped to in the host.
 		targetHostPort := -1
 		hostFwd := viper.GetStringMapString("eve.hostfwd")
@@ -435,7 +424,7 @@ func (tc *TestContext) PortForwardCommand(cmd func(fwdPort uint16) error,
 		return cmd(uint16(targetHostPort))
 	}
 	// Temporarily establish port forwarding using SSH.
-	targetIP, err := tc.sdnClient.GetEveIfIP(eveIfName)
+	targetIP, err := tc.SdnClient.GetEveIfIP(eveIfName)
 	if err != nil {
 		log.Errorf("failed to get EVE IP address: %v", err)
 		return nil
@@ -445,7 +434,7 @@ func (tc *TestContext) PortForwardCommand(cmd func(fwdPort uint16) error,
 		log.Errorf("failed to find unused port number: %v", err)
 		return nil
 	}
-	closeTunnel, err := tc.sdnClient.SSHPortForwarding(localPort, targetPort, targetIP)
+	closeTunnel, err := tc.SdnClient.SSHPortForwarding(localPort, targetPort, targetIP)
 	if err != nil {
 		log.Errorf("failed to establish SSH port forwarding: %v", err)
 		return nil
