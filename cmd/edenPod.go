@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/openevec"
 	edgeRegistry "github.com/lf-edge/edge-containers/pkg/registry"
+	"github.com/lf-edge/eve-api/go/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
@@ -76,6 +79,13 @@ func newPodPublishCmd() *cobra.Command {
 
 func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	var pc openevec.PodConfig
+	var virtMode string
+	switch cfg.Eve.Arch {
+	case "amd64":
+		virtMode = "HVM"
+	case "arm64":
+		virtMode = "PV"
+	}
 
 	var podDeployCmd = &cobra.Command{
 		Use:   "deploy (docker|http(s)|file|directory)://(<TAG|PATH>[:<VERSION>] | <URL for qcow2 image> | <path to qcow2 image>)",
@@ -87,6 +97,17 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			if err := openEVEC.PodDeploy(appLink, pc, cfg); err != nil {
 				log.Fatal(err)
 			}
+		},
+		PreRun: func(cmd *cobra.Command, args []string) {
+			virtMode = strings.ToUpper(virtMode)
+			// XXX : fix this in EVE API
+			if virtMode == "FILLER" {
+				virtMode = "Filler"
+			}
+			if _, ok := config.VmMode_value[virtMode]; !ok {
+				log.Fatalf("Unknown virt-mode: %s", virtMode)
+			}
+			pc.VirtMode = config.VmMode(config.VmMode_value[virtMode])
 		},
 	}
 
@@ -122,6 +143,7 @@ You can set access VLAN ID (VID) for a particular network in the format '<networ
 	podDeployCmd.Flags().StringVar(&pc.DatastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
 	podDeployCmd.Flags().Uint32Var(&pc.StartDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
 	podDeployCmd.Flags().BoolVar(&pc.PinCpus, "pin-cpus", false, "Pin the CPUs used by the pod")
+	podDeployCmd.Flags().StringVar(&virtMode, "virt-mode", virtMode, "Virtualization mode for the pod (PV, HVM, FILLER, FML, NOHYPER, LEGACY)")
 
 	return podDeployCmd
 }
