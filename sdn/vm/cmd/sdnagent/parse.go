@@ -210,32 +210,6 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 		}
 	}
 
-	// Do not mix VLAN and non-VLAN network/endpoint with the same bridge
-	for _, bridge := range netModel.Bridges {
-		var netWithVlan, netWithoutVlan bool
-		labeledItem := netModel.items.getItem(api.Bridge{}.ItemType(), bridge.LogicalLabel)
-		for refKey, refBy := range labeledItem.referencedBy {
-			var vlanID uint16
-			if strings.HasPrefix(refKey, api.NetworkBridgeRefPrefix) {
-				network := netModel.items[refBy].LabeledItem
-				vlanID = network.(api.Network).VlanID
-			} else if strings.HasPrefix(refKey, api.EndpointBridgeRefPrefix) {
-				endpoint := a.labeledItemToEndpoint(netModel.items[refBy])
-				vlanID = endpoint.DirectL2Connect.VlanID
-			}
-			if (vlanID == 0 && netWithVlan) || (vlanID != 0 && netWithoutVlan) {
-				err = fmt.Errorf("bridge %s with both VLAN and non-VLAN networks/endpoints",
-					bridge.LogicalLabel)
-				return
-			}
-			if vlanID == 0 {
-				netWithoutVlan = true
-			} else {
-				netWithVlan = true
-			}
-		}
-	}
-
 	// Validate routes towards EVE.
 	for _, network := range netModel.Networks {
 		if network.Router == nil {
