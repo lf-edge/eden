@@ -1,0 +1,148 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "ports": ["eveport0"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network-10",
+      "bridge": "bridge0",
+      "vlanID": 10,
+      "subnet": "172.22.10.0/24",
+      "gwIP": "172.22.10.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.10.10",
+          "toIP": "172.22.10.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["dns-server", "httpserver-10"]
+      }
+    },
+    {
+      "logicalLabel": "network-20",
+      "bridge": "bridge0",
+      "vlanID": 20,
+      "subnet": "172.22.20.0/24",
+      "gwIP": "172.22.20.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "172.22.20.10",
+          "toIP": "172.22.20.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": false,
+        "reachableEndpoints": ["dns-server", "httpserver-20"]
+      }
+    },
+    {
+      "logicalLabel": "network-untagged",
+      "bridge": "bridge0",
+      "subnet": "192.168.77.0/24",
+      "gwIP": "192.168.77.1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "192.168.77.10",
+          "toIP": "192.168.77.20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["dns-server"]
+      },
+      "router": {
+        "outsideReachability": false,
+        "reachableEndpoints": ["dns-server", "httpserver-untagged"]
+      }
+    }
+  ],
+  "endpoints": {
+    "dnsServers": [
+      {
+        "logicalLabel": "dns-server",
+        "fqdn": "dns-server.sdn",
+        "subnet": "10.16.16.0/24",
+        "ip": "10.16.16.25",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ip"
+          },
+          {
+            "fqdn": "endpoint-fqdn.httpserver-10",
+            "ip": "endpoint-ip.httpserver-10"
+          },
+          {
+            "fqdn": "endpoint-fqdn.httpserver-20",
+            "ip": "endpoint-ip.httpserver-20"
+          },
+          {
+            "fqdn": "endpoint-fqdn.httpserver-untagged",
+            "ip": "endpoint-ip.httpserver-untagged"
+          }
+        ],
+        "upstreamServers": [
+          "1.1.1.1",
+          "8.8.8.8"
+        ]
+      }
+    ],
+    "httpServers": [
+      {
+        "logicalLabel": "httpserver-10",
+        "fqdn": "httpserver-10.sdn",
+        "subnet": "10.16.10.0/24",
+        "ip": "10.16.10.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server for VLAN 10\n"
+          }
+        }
+      },
+      {
+        "logicalLabel": "httpserver-20",
+        "fqdn": "httpserver-20.sdn",
+        "subnet": "10.16.20.0/24",
+        "ip": "10.16.20.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server for VLAN 20\n"
+          }
+        }
+      },
+      {
+        "logicalLabel": "httpserver-untagged",
+        "fqdn": "httpserver-untagged.sdn",
+        "subnet": "10.16.77.0/24",
+        "ip": "10.16.77.70",
+        "httpPort": 80,
+        "paths": {
+          "/helloworld": {
+            "contentType": "text/plain",
+            "content": "Hello world from HTTP server for untagged network\n"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "deviceIoList": [
+    {
+      "ptype": 1,
+      "phylabel": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "ethernet0",
+      "assigngrp": "eth0",
+      "usage": 1
+    }
+  ],
+  "vlans": [
+    {
+      "logicallabel": "mgmt-vlan",
+      "interfaceName": "vlan10",
+      "lowerLayerName": "ethernet0",
+      "vlanId": 10
+    },
+    {
+      "logicallabel": "app-vlan",
+      "interfaceName": "vlan20",
+      "lowerLayerName": "ethernet0",
+      "vlanId": 20
+    }
+  ],
+  "networks": [
+    {
+      "id": "6605d17b-3273-4108-8e6e-4965441ebe01",
+      "type": 4,
+      "ip": {
+        "dhcp": 4
+      }
+    },
+    {
+      "id": "b970ac70-2ef7-4c6b-8bb8-ff8626321313",
+      "type": 4,
+      "ip": {
+        "dhcp": 2
+      }
+    }
+  ],
+  "systemAdapterList": [
+    {
+      "name": "mgmt-vlan",
+      "uplink": true,
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01"
+    },
+    {
+      "name": "app-vlan",
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01"
+    },
+    {
+      "name": "ethernet0",
+      "networkUUID": "6605d17b-3273-4108-8e6e-4965441ebe01"
+    }
+  ],
+  "networkInstances": [
+    {
+      "uuidandversion": {
+        "uuid": "9ca83da9-94e8-48b4-9ae8-3f188c5c694a",
+        "version": "1"
+      },
+      "displayname": "ni1",
+      "instType": 2,
+      "activate": true,
+      "port": {
+        "type": 1,
+        "name": "app-vlan"
+      },
+      "ipType": 1,
+      "ip": {
+        "subnet": "10.50.10.0/24",
+        "gateway": "10.50.10.1",
+        "dns": [
+          "10.50.10.1"
+        ],
+        "dhcpRange": {
+          "start": "10.50.10.2",
+          "end": "10.50.10.254"
+        }
+      }
+    },
+    {
+      "uuidandversion": {
+        "uuid": "0125b9fa-9054-446d-9e9a-1b99175d24a7",
+        "version": "1"
+      },
+      "displayname": "ni2",
+      "instType": 2,
+      "activate": true,
+      "port": {
+        "type": 1,
+        "name": "ethernet0"
+      },
+      "ipType": 1,
+      "ip": {
+        "subnet": "10.50.77.0/24",
+        "gateway": "10.50.77.1",
+        "dns": [
+          "10.50.77.1"
+        ],
+        "dhcpRange": {
+          "start": "10.50.77.2",
+          "end": "10.50.77.254"
+        }
+      }
+    }
+  ],
+  "apps": [
+    {
+      "uuidandversion": {
+        "uuid": "cee082fd-3a43-4599-bbd3-8216ffa8652d",
+        "version": "1"
+      },
+      "displayname": "app1",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "398710ca-bf4f-46b0-b012-0d4e32214ba4",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "eth0",
+          "networkId": "9ca83da9-94e8-48b4-9ae8-3f188c5c694a",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "d8fe3e53-cc6c-4cee-8562-b406a1a8ada7",
+          "mount_dir": "/"
+        }
+      ]
+    },
+    {
+      "uuidandversion": {
+        "uuid": "45ff198d-b295-4ff2-bf69-76977af809fd",
+        "version": "1"
+      },
+      "displayname": "app2",
+      "fixedresources": {
+        "memory": 512000,
+        "maxmem": 512000,
+        "vcpus": 1,
+        "virtualizationMode": 1
+      },
+      "drives": [
+        {
+          "image": {
+            "uuidandversion": {
+              "uuid": "3eec1356-a469-43e3-80e2-67467d06deaf",
+              "version": "1"
+            },
+            "name": "lfedge/eden-eclient:8a279cd",
+            "iformat": 8,
+            "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9"
+          }
+        }
+      ],
+      "activate": true,
+      "interfaces": [
+        {
+          "name": "eth0",
+          "networkId": "0125b9fa-9054-446d-9e9a-1b99175d24a7",
+          "acls": [
+            {
+              "matches": [
+                {
+                  "type": "ip",
+                  "value": "0.0.0.0/0"
+                }
+              ],
+              "id": 1
+            }
+          ]
+        }
+      ],
+      "volumeRefList": [
+        {
+          "uuid": "cee944a3-ae6f-4887-9d8d-adcc0ed02370",
+          "mount_dir": "/"
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "uuid": "d8fe3e53-cc6c-4cee-8562-b406a1a8ada7",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app1-volume"
+    },
+    {
+      "uuid": "cee944a3-ae6f-4887-9d8d-adcc0ed02370",
+      "origin": {
+        "type": 2,
+        "downloadContentTreeID": "63d3b01f-f44f-4007-ba33-6e720bd52992"
+      },
+      "displayName": "app2-volume"
+    }
+  ],
+  "contentInfo": [
+    {
+      "uuid": "63d3b01f-f44f-4007-ba33-6e720bd52992",
+      "dsId": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "URL": "lfedge/eden-eclient:8a279cd",
+      "iformat": 8,
+      "displayName": "eden-eclient"
+    }
+  ],
+  "datastores": [
+    {
+      "id": "f204830d-cce1-4316-aa5e-3e8567cd09a9",
+      "dType": 5,
+      "fqdn": "docker://index.docker.io"
+    }
+  ],
+  "configItems": [
+    {
+      "key": "newlog.allow.fastupload",
+      "value": "true"
+    },
+    {
+      "key": "timer.config.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.download.retry",
+      "value": "60"
+    },
+    {
+      "key": "debug.default.loglevel",
+      "value": "debug"
+    },
+    {
+      "key": "debug.disable.dhcp.all-ones.netmask",
+      "value": "false"
+    }
+  ]
+}

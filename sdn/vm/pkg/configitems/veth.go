@@ -208,6 +208,14 @@ func (c *VethConfigurator) configurePeer(peer VethPeer) error {
 				return fmt.Errorf("failed to add VLAN %d to veth peer %s: %w",
 					peer.MasterBridge.VLAN, peer.IfName, err)
 			}
+			// Do not let untagged traffic to come through this VETH interface.
+			err = netlink.BridgeVlanDel(link, 1, false, true, false, false)
+			// Ignore error if the rule for native VLAN was not automatically added.
+			if err != nil {
+				log.Warnf("Failed to remove native VLAN from veth peer %s: %v",
+					peer.IfName, err)
+				err = nil
+			}
 		}
 	}
 	// Set link UP.
