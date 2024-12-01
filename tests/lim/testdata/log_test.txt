@@ -1,7 +1,19 @@
 {{$test1 := "test eden.lim.test -test.v -timewait 10m -test.run TestLog"}}
 
+# save the current config before changing it
+eden -t 1m controller edge-node get-config --file /tmp/full-config.json
+
+# set the remote log level to info, because the expected message is logged with info level
+eden -t 1m controller edge-node update --config agent.debug.debug.loglevel=info
+eden -t 1m controller edge-node update --config agent.debug.debug.remote.loglevel=info
+# wait for the config changes to apply
+exec sleep 15
+
 # ssh into EVE to force log creation
 exec -t 5m bash ssh.sh &
+
+# restore the original config
+eden -t 1m controller edge-node set-config --file /tmp/full-config.json
 
 # Trying to find messages about ssh in log
 {{$test1}} -out content 'content:.*Disconnected.*'
