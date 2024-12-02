@@ -16,5 +16,4 @@ jobs:
     uses: ./.github/workflows/test.yml
     with:
       eve_image: "lfedge/eve:13.3.0"
-      eden_version: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
