@@ -12,12 +12,12 @@ exec sleep 15
 # ssh into EVE to force log creation
 exec -t 5m bash ssh.sh &
 
-# restore the original config
-eden -t 1m controller edge-node set-config --file /tmp/full-config.json
-
 # Trying to find messages about ssh in log
 {{$test1}} -out content 'content:.*Disconnected.*'
 stdout 'Disconnected from'
+
+# restore the original config
+eden -t 1m controller edge-node set-config --file /tmp/full-config.json
 
 # Test's config. file
 -- eden-config.yml --
