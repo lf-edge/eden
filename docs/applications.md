@@ -40,6 +40,7 @@ Flags:
       --sftp                  Force use of sftp to load http/file image from eserver
       --vnc-display int       display number for VNC pod
       --vnc-password string   VNC password (empty - no password)
+      --vnc-for-shim-vm       Enables VNC for a shim VM
       --volume-size string    volume size (default "200 MiB")
       --volume-type string    volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx or oci); set it to none to not use volumes (default "qcow2")
 

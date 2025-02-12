@@ -206,6 +206,7 @@ type PodConfig struct {
 	NoHyper           bool
 	VncDisplay        int
 	VncPassword       string
+	VncForShimVM      bool
 	DiskSize          string
 	VolumeSize        string
 	AppMemory         string

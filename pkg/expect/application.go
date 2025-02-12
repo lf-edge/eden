@@ -133,6 +133,7 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 	}
 	if exp.vncDisplay >= 0 {
 		bundle.appInstanceConfig.Fixedresources.EnableVnc = true
+		bundle.appInstanceConfig.Fixedresources.EnableVncShimVm = exp.vncForShimVM
 		bundle.appInstanceConfig.Fixedresources.VncDisplay = uint32(exp.vncDisplay)
 		bundle.appInstanceConfig.Fixedresources.VncPasswd = exp.vncPassword
 	}
