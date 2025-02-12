@@ -75,6 +75,13 @@ func WithVncPassword(password string) ExpectationOption {
 	}
 }
 
+// WithVncForShimVM enables VNC for shim VM
+func WithVncForShimVM(vncForShimVM bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.vncForShimVM = vncForShimVM
+	}
+}
+
 // WithMetadata sets metadata for created apps
 // if existing file provided, use its content
 func WithMetadata(metadata string) ExpectationOption {

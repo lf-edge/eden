@@ -98,6 +98,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringVarP(&pc.Name, "name", "n", "", "name for pod")
 	podDeployCmd.Flags().IntVar(&pc.VncDisplay, "vnc-display", -1, "display number for VNC pod")
 	podDeployCmd.Flags().StringVar(&pc.VncPassword, "vnc-password", "", "VNC password (empty - no password)")
+	podDeployCmd.Flags().BoolVar(&pc.VncForShimVM, "vnc-for-shim-vm", false, "Enable VNC for a shim VM")
 	podDeployCmd.Flags().Uint32Var(&pc.AppCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
 	podDeployCmd.Flags().StringSliceVar(&pc.AppAdapters, "adapters", nil, "adapters to assign to the application instance")
 	podDeployCmd.Flags().StringSliceVar(&pc.Networks, "networks", nil, "Networks to connect to app (ports will be mapped to first network). May have <name:[MAC address]> notation.")

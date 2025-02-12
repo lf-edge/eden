@@ -56,6 +56,7 @@ type AppExpectation struct {
 
 	vncDisplay  int
 	vncPassword string
+	vncForShimVM bool
 
 	netInstances []*NetInstanceExpectation
 
