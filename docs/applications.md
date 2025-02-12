@@ -38,7 +38,7 @@ Flags:
   -p, --publish strings       Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT
       --registry string       Select registry to use for containers (remote/local) (default "remote")
       --sftp                  Force use of sftp to load http/file image from eserver
-      --vnc-display uint32    display number for VNC pod (0 - no VNC)
+      --vnc-display int       display number for VNC pod
       --vnc-password string   VNC password (empty - no password)
       --volume-size string    volume size (default "200 MiB")
       --volume-type string    volume type for empty volumes (qcow2, raw, qcow, vmdk, vhdx or oci); set it to none to not use volumes (default "qcow2")

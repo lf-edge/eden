@@ -222,7 +222,7 @@ func TestVNCVMStart(t *testing.T) {
 
 	opts = append(opts, expect.WithMetadata(*metadata))
 
-	opts = append(opts, expect.WithVnc(uint32(*vncDisplay)))
+	opts = append(opts, expect.WithVnc(*vncDisplay))
 
 	opts = append(opts, expect.WithVncPassword(*vncPassword))
 

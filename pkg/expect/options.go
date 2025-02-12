@@ -62,7 +62,7 @@ func VolumeTypeByName(name string) VolumeType {
 type ExpectationOption func(expectation *AppExpectation)
 
 // WithVnc enables VNC and sets VNC display number
-func WithVnc(vncDisplay uint32) ExpectationOption {
+func WithVnc(vncDisplay int) ExpectationOption {
 	return func(expectation *AppExpectation) {
 		expectation.vncDisplay = vncDisplay
 	}

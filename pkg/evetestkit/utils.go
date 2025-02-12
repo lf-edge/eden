@@ -616,7 +616,7 @@ func GetDefaultVMConfig(appName, cloudConfig string, portPub []string) openevec.
 	pc.Registry = "remote"
 	pc.VolumeSize = humanize.IBytes(defaults.DefaultVolumeSize)
 	pc.PortPublish = portPub
-	pc.VncDisplay = 0
+	pc.VncDisplay = -1
 	pc.AppCpus = defaults.DefaultAppCPU
 	pc.AppAdapters = nil
 	pc.Networks = nil

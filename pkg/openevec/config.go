@@ -204,7 +204,7 @@ type PodConfig struct {
 	Profiles          []string
 	AppAdapters       []string
 	NoHyper           bool
-	VncDisplay        uint32
+	VncDisplay        int
 	VncPassword       string
 	DiskSize          string
 	VolumeSize        string
