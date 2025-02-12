@@ -54,7 +54,7 @@ type AppExpectation struct {
 
 	baseOSVersion string
 
-	vncDisplay  uint32
+	vncDisplay  int
 	vncPassword string
 
 	netInstances []*NetInstanceExpectation

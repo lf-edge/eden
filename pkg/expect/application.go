@@ -131,9 +131,9 @@ func (exp *AppExpectation) createAppInstanceConfig(img *config.Image, netInstanc
 		})
 		niUsageCounter[ni.Displayname] = usageCounter + 1
 	}
-	if exp.vncDisplay != 0 {
+	if exp.vncDisplay >= 0 {
 		bundle.appInstanceConfig.Fixedresources.EnableVnc = true
-		bundle.appInstanceConfig.Fixedresources.VncDisplay = exp.vncDisplay
+		bundle.appInstanceConfig.Fixedresources.VncDisplay = uint32(exp.vncDisplay)
 		bundle.appInstanceConfig.Fixedresources.VncPasswd = exp.vncPassword
 	}
 	var adapters []*config.Adapter

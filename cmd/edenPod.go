@@ -96,7 +96,7 @@ func newPodDeployCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	podDeployCmd.Flags().StringSliceVarP(&pc.PortPublish, "publish", "p", nil, "Ports to publish in format EXTERNAL_PORT:INTERNAL_PORT")
 	podDeployCmd.Flags().StringVarP(&pc.Metadata, "metadata", "", "", "Metadata for pod. If file path provided, will use content of it")
 	podDeployCmd.Flags().StringVarP(&pc.Name, "name", "n", "", "name for pod")
-	podDeployCmd.Flags().Uint32Var(&pc.VncDisplay, "vnc-display", 0, "display number for VNC pod (0 - no VNC)")
+	podDeployCmd.Flags().IntVar(&pc.VncDisplay, "vnc-display", -1, "display number for VNC pod")
 	podDeployCmd.Flags().StringVar(&pc.VncPassword, "vnc-password", "", "VNC password (empty - no password)")
 	podDeployCmd.Flags().Uint32Var(&pc.AppCpus, "cpus", defaults.DefaultAppCPU, "cpu number for app")
 	podDeployCmd.Flags().StringSliceVar(&pc.AppAdapters, "adapters", nil, "adapters to assign to the application instance")
