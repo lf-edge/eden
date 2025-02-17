@@ -109,7 +109,7 @@ jobs:
           PACKET_TOKEN: ${{ secrets.PACKET_TOKEN }}
       - name: Store raw test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: eden-packet${{ matrix.conf_eden_server }}---eve-packet${{ matrix.conf_eve_server }}-${{ matrix.hv }}
           path: |
