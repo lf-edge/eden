@@ -163,7 +163,7 @@ jobs:
           echo "::endgroup::"
       - name: Store raw test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: eden-report-${{ matrix.hv }}-${{ matrix.fs }}
           path: |
