@@ -39,7 +39,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB-C",
       "assigngrp": "USB-C",
       "phyaddrs": {
@@ -49,7 +49,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB0",
       "assigngrp": "USB-A",
       "phyaddrs": {
@@ -59,7 +59,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB1",
       "assigngrp": "USB-A",
       "phyaddrs": {
@@ -69,7 +69,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB2",
       "assigngrp": "USB-A",
       "phyaddrs": {
@@ -79,7 +79,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB3",
       "assigngrp": "USB-A",
       "phyaddrs": {
@@ -89,7 +89,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB4",
       "assigngrp": "USB-A",
       "phyaddrs": {
@@ -99,7 +99,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB5",
       "assigngrp": "USB-A",
       "phyaddrs": {

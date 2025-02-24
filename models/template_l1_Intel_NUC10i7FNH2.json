@@ -23,7 +23,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB",
       "assigngrp": "",
       "phyaddrs": {
@@ -33,7 +33,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB1",
       "assigngrp": "USB1",
       "phyaddrs": {
@@ -56,7 +56,7 @@
       }
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "Audio",
       "assigngrp": "",
       "phyaddrs": {

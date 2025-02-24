@@ -50,7 +50,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "X60 USB",
       "assigngrp": "USB",
       "phyaddrs": {
@@ -60,7 +60,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "X61 USB",
       "assigngrp": "USB",
       "phyaddrs": {
@@ -70,7 +70,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "X62 USB",
       "assigngrp": "USB",
       "phyaddrs": {
@@ -80,7 +80,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "X63 USB",
       "assigngrp": "USB",
       "phyaddrs": {
