@@ -32,7 +32,7 @@
              "usagePolicy": {}
         },
         {
-             "ztype": 255,
+             "ztype": 1355,
              "phylabel": "DSP",
              "assigngrp": "DSP",
              "phyaddrs": {
