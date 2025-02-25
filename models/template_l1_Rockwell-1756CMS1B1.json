@@ -37,7 +37,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB",
       "assigngrp": "USB",
       "phyaddrs": {
@@ -57,7 +57,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 255,
+      "ztype": 1355,
       "phylabel": "ROCKWELL",
       "assigngrp": "ROCKWELL",
       "phyaddrs": {

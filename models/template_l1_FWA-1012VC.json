@@ -120,7 +120,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB0",
       "assigngrp": "USB",
       "phyaddrs": {
@@ -130,7 +130,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB1",
       "assigngrp": "USB",
       "phyaddrs": {
