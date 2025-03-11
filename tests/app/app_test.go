@@ -1,6 +1,7 @@
 package lim
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -108,7 +109,7 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 				"no app with %s found\n",
 				appName))
 		}
-		return fmt.Errorf(out)
+		return errors.New(out)
 	}
 	for _, app := range eveState.Applications() {
 		if _, inSlice := utils.FindEleInSlice(appNames, app.Name); inSlice {
@@ -125,7 +126,7 @@ func checkState(eveState *eve.State, state string, appNames []string) error {
 				return nil
 			}
 		}
-		return fmt.Errorf(out)
+		return errors.New(out)
 	}
 	return nil
 }
