@@ -1,6 +1,7 @@
 package lim
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -183,7 +184,7 @@ func TestLog(t *testing.T) {
 
 			cnt := count("Received %d logs from %s", name.String())
 			if cnt != "" {
-				return fmt.Errorf(cnt)
+				return errors.New(cnt)
 			}
 			return nil
 		}(t, edgeNode, log)
@@ -253,7 +254,7 @@ func TestAppLog(t *testing.T) {
 
 			cnt := count("Received %d app logs from %s", name.String())
 			if cnt != "" {
-				return fmt.Errorf(cnt)
+				return errors.New(cnt)
 			}
 			return nil
 		}(t, edgeNode, log)
@@ -294,7 +295,7 @@ func TestInfo(t *testing.T) {
 			}
 			cnt := count("Received %d infos from %s", name.String())
 			if cnt != "" {
-				return fmt.Errorf(cnt)
+				return errors.New(cnt)
 			}
 			return nil
 		}(t, edgeNode, ei)
@@ -337,7 +338,7 @@ func TestMetrics(t *testing.T) {
 
 			cnt := count("Received %d metrics from %s", name.String())
 			if cnt != "" {
-				return fmt.Errorf(cnt)
+				return errors.New(cnt)
 			}
 			return nil
 		}(t, edgeNode, metric)
@@ -377,7 +378,7 @@ func TestFlowLog(t *testing.T) {
 
 			cnt := count("Received %d FlowLog from %s", name.String())
 			if cnt != "" {
-				return fmt.Errorf(cnt)
+				return errors.New(cnt)
 			}
 			return nil
 		}(t, edgeNode, log)

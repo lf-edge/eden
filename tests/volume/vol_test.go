@@ -1,6 +1,7 @@
 package lim
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -92,7 +93,7 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 				"no volume with %s found\n",
 				volName)
 		}
-		return fmt.Errorf(out)
+		return errors.New(out)
 	}
 	for _, vol := range eveState.Volumes() {
 		if _, inSlice := utils.FindEleInSlice(volNames, vol.Name); inSlice {
@@ -109,7 +110,7 @@ func checkState(eveState *eve.State, state string, volNames []string) error {
 				return nil
 			}
 		}
-		return fmt.Errorf(out)
+		return errors.New(out)
 	}
 	return nil
 }

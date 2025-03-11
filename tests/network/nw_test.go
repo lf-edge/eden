@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -88,7 +89,7 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 				"no network with %s found\n",
 				netName)
 		}
-		return fmt.Errorf(out)
+		return errors.New(out)
 	}
 	for _, net := range eveState.Networks() {
 		if _, inSlice := utils.FindEleInSlice(netNames, net.Name); inSlice {
@@ -105,7 +106,7 @@ func checkState(eveState *eve.State, state string, netNames []string) error {
 				return nil
 			}
 		}
-		return fmt.Errorf(out)
+		return errors.New(out)
 	}
 	return nil
 }

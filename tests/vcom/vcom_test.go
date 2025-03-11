@@ -38,7 +38,7 @@ func logFatalf(format string, args ...interface{}) {
 func logInfof(format string, args ...interface{}) {
 	out := utils.AddTimestampf(format+"\n", args...)
 	if logT != nil {
-		logT.Logf(out)
+		logT.Log(out)
 	} else {
 		fmt.Print(out)
 	}

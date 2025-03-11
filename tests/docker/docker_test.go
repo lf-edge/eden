@@ -1,6 +1,7 @@
 package lim
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -118,7 +119,7 @@ func checkAppAccess(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 			if err != nil {
 				return nil
 			}
-			return fmt.Errorf(res)
+			return errors.New(res)
 		}
 		return tc.PortForwardCommand(func(fwdPort uint16) error {
 			res, err := utils.RequestHTTPWithTimeout(
@@ -126,7 +127,7 @@ func checkAppAccess(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 			if err != nil {
 				return nil
 			}
-			return fmt.Errorf(res)
+			return errors.New(res)
 		}, "eth0", uint16(*externalPort))
 	}
 }
