@@ -1,6 +1,6 @@
 module github.com/lf-edge/eden
 
-go 1.22
+go 1.23
 
 require (
 	github.com/Insei/rolgo v0.0.2
@@ -19,6 +19,7 @@ require (
 	github.com/lf-edge/eden/sdn/vm v0.0.0-00010101000000-000000000000
 	github.com/lf-edge/edge-containers v0.0.0-20240207093504-5dfda0619b80
 	github.com/lf-edge/eve-api/go v0.0.0-20240829123634-7c8ebda876ff
+	github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/term v0.5.0
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
@@ -33,12 +34,12 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/thediveo/enumflag v0.10.1
 	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef
-	golang.org/x/crypto v0.21.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
-	golang.org/x/net v0.23.0
+	golang.org/x/net v0.36.0
 	golang.org/x/oauth2 v0.16.0
-	golang.org/x/term v0.18.0
-	golang.org/x/text v0.14.0
+	golang.org/x/term v0.29.0
+	golang.org/x/text v0.22.0
 	google.golang.org/api v0.160.0
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/errgo.v2 v2.1.0
@@ -90,7 +91,6 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496 // indirect
-	github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513 // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -128,10 +128,10 @@ require (
 	go.opentelemetry.io/otel v1.23.1 // indirect
 	go.opentelemetry.io/otel/metric v1.23.1 // indirect
 	go.opentelemetry.io/otel/trace v1.23.1 // indirect
-	golang.org/x/mod v0.15.0 // indirect
-	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/tools v0.18.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20240205150955-31a09d347014 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014 // indirect
