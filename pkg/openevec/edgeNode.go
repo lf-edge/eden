@@ -78,7 +78,11 @@ func (openEVEC *OpenEVEC) EdgeNodeEVEImageUpdate(baseOSImage, baseOSVersion, reg
 		registryToUse = ""
 	}
 	opts = append(opts, expect.WithRegistry(registryToUse))
-	expectation := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "", opts...)
+	expectation, err := expect.AppExpectationFromURL(ctrl, dev, baseOSImage, "", opts...)
+	if err != nil {
+		return fmt.Errorf("AppExpectationFromURL: %w", err)
+	}
+
 	if baseOSVDrive {
 		baseOSImageConfig := expectation.BaseOSConfig(baseOSVersion)
 		dev.SetBaseOSConfig(append(dev.GetBaseOSConfigs(), baseOSImageConfig.Uuidandversion.Uuid))
