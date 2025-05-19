@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 )
 
 // NetworkModel is used to declaratively describe the intended state of the networking
@@ -213,16 +214,16 @@ type Network struct {
 	Bridge string `json:"bridge"`
 	// Leave zero value to express intent of not using VLAN for this network.
 	VlanID uint16 `json:"vlanID"`
-	// Subnet : network address + netmask (IPv4 or IPv6).
-	Subnet string `json:"subnet"`
-	// GwIP should be inside the Subnet.
-	GwIP string `json:"gwIP"`
 	// MTU : Maximum transmission unit size set for this network.
 	// If not defined (zero value), the default MTU for Ethernet, which is 1500 bytes,
 	// will be set.
 	MTU uint16 `json:"mtu"`
-	// DHCP configuration.
-	DHCP DHCP `json:"dhcp"`
+	// Single-stack network IP (v4 or v6) configuration.
+	// Define either this or DualStack.
+	NetworkIPConfig
+	// Dual-stack network IP configuration.
+	// Define either this or the (single-stack) embedded NetworkIPConfig.
+	DualStack DualStackNetwork `json:"dualStack"`
 	// TransparentProxy : Logical label of a TransparentProxy endpoint, performing
 	// proxying of both HTTP and HTTPS traffic transparently.
 	// Traffic will flow as follows:
@@ -237,6 +238,47 @@ type Network struct {
 	// Undefined (nil) means that everything should be routed and accessible.
 	// That includes all networks, endpoints and the outside of Eden SDN.
 	Router *Router `json:"router,omitempty"`
+}
+
+// IsDualStack returns true if Network is configured to operate in dual-stack IP mode.
+func (n Network) IsDualStack() bool {
+	return n.DualStack.IPv4.Subnet != "" || n.DualStack.IPv6.Subnet != ""
+}
+
+// HasIPv4Subnet returns true if the network has IPv4 subnet.
+func (n Network) HasIPv4Subnet() bool {
+	if n.IsDualStack() {
+		return true
+	}
+	_, subnet, _ := net.ParseCIDR(n.Subnet)
+	return subnet != nil && subnet.IP.To4() != nil
+}
+
+// HasIPv6Subnet returns true if the network has IPv6 subnet.
+func (n Network) HasIPv6Subnet() bool {
+	if n.IsDualStack() {
+		return true
+	}
+	_, subnet, _ := net.ParseCIDR(n.Subnet)
+	return subnet != nil && subnet.IP.To4() == nil
+}
+
+// NetworkIPConfig : IP configuration for Network.
+type NetworkIPConfig struct {
+	// Subnet : network address + netmask (IPv4 or IPv6).
+	Subnet string `json:"subnet"`
+	// GwIP should be inside the Subnet.
+	GwIP string `json:"gwIP"`
+	// DHCP configuration.
+	DHCP DHCP `json:"dhcp"`
+}
+
+// DualStackNetwork : dual-stack IP configuration for Network.
+type DualStackNetwork struct {
+	// IPv4 config for Network.
+	IPv4 NetworkIPConfig `json:"ipv4"`
+	// IPv6 config for Network.
+	IPv6 NetworkIPConfig `json:"ipv6"`
 }
 
 // ItemType
@@ -327,14 +369,14 @@ func (n Network) ReferencesFromItem() []LogicalLabelRef {
 }
 
 // DHCP configuration.
-// Note that for IPv6 we prefer to use Router Advertisement over DHCPv6 to publish
-// all this information to hosts on the network.
-// But DHCPv6 is still needed and used to convey NTP and netboot configuration (if provided).
+// For IPv6, if only DNS-related options are set, SLAAC remains the sole method
+// for address assignment. Specifying any additional options (e.g., IP range,
+// NTP servers) enables DHCPv6.
 type DHCP struct {
-	// Enable DHCP. Set to false to use EVE with static IP addressing.
+	// Enables DHCP. Set to false to use static IP addressing in EVE.
+	// For IPv6, SLAAC remains available regardless of this setting.
 	Enable bool `json:"enable"`
 	// IPRange : a range of IP addresses to allocate from.
-	// Not applicable for IPv6.
 	IPRange IPRange `json:"ipRange"`
 	// StaticEntries : list of MAC->IP entries statically configured for the DHCP server.
 	StaticEntries []MACToIP `json:"staticEntries"`
@@ -358,7 +400,9 @@ type DHCP struct {
 	// which proxy to use for a given request.
 	// URL example: http://wpad.example.com/wpad.dat
 	// The client will learn the PAC file location using the DHCP option 252.
-	// An alternative approach is to use DNS (with a DNSServer endpoint).
+	// Not supported for IPv6.
+	// An alternative (and the only available for IPv6) approach is to use DNS
+	// (with a DNSServer endpoint).
 	WPAD string `json:"wpad"`
 	// NetbootServer : Logical label of a NetbootServer endpoint which the client should use
 	// to boot EVE OS from. The IP address or FQDN and the provisioning file (iPXE script)
@@ -378,11 +422,15 @@ type MACToIP struct {
 
 // DNSClientConfig : DNS configuration for a client.
 type DNSClientConfig struct {
-	// PublicDNS : list of IP addresses of public DNS servers to announce via DHCP option 6.
-	// For example: ["1.1.1.1", "8.8.8.8"]
+	// PublicDNS specifies a list of IP addresses of public DNS servers.
+	// These will be announced to clients using:
+	// - DHCPv4: via option 6 (Domain Name Server)
+	// - DHCPv6: via option 23 (Recursive DNS Server - RDNSS)
+	// - SLAAC (IPv6): via Router Advertisement (RFC 6106)
+	// Example: ["1.1.1.1", "8.8.8.8"]
 	PublicDNS []string `json:"publicDNS"`
-	// PrivateDNS : list of DNS servers running as endpoints inside Eden SDN,
-	// announced to clients via DHCP option 6.
+	// PrivateDNS : list of DNS servers running as endpoints inside Eden SDN.
+	// These will be announced to clients using the same mechanisms as public DNS servers.
 	// The list should contain logical labels of those endpoints, not IP addresses!
 	PrivateDNS []string `json:"privateDNS"`
 }
@@ -453,12 +501,19 @@ type HostConfig struct {
 	// Eden runs).
 	// Eden SDN requires at least one routable host IP address.
 	HostIPs []string `json:"hostIPs"`
-	// NetworkType : which IP versions are used by the host.
-	// Even if host uses IPv4 only, it is still possible to have IPv6 inside
-	// Eden-SDN. Connectivity between EVE (IPv6) and the controller (IPv4) is established
-	// automatically using DNS64 and NAT64. However, the opposite case (from IPv4 to IPv6)
-	// is not supported. In other words, to test EVE with IPv4, it is required for the host
-	// to use IPv4 (single or dual stack).
+	// NetworkType specifies which IP versions (IPv4, IPv6, or both) are used by the host.
+	//
+	// Note: IPv4-to-IPv6 translation (e.g., DNS64/NAT64) is not currently implemented.
+	// As a result, IP connectivity between EVE and the controller requires matching
+	// IP versions.
+	// To ensure connectivity:
+	// - The host must use the same IP version as EVE, or
+	// - Run in dual-stack mode (supporting both IPv4 and IPv6)
+	//
+	// If Adam is used as the controller, this can be configured by setting the correct
+	// IP version for the Docker bridge network. However, for access to any external
+	// endpoints (e.g. upstream DNS servers), it is required that the host itself
+	// has working connectivity of the required IP version.
 	NetworkType NetworkType `json:"networkType"`
 	// ControllerPort : port on which controller listens for device requests.
 	ControllerPort uint16 `json:"controllerPort"`
@@ -480,7 +535,7 @@ const (
 	Ipv4Only NetworkType = iota
 	// Ipv6Only : host uses IPv6 only.
 	Ipv6Only
-	// DualStack : host tuns with dual stack.
+	// DualStack : host runs with dual stack.
 	DualStack = 8
 )
 

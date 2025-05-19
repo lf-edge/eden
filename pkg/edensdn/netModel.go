@@ -34,17 +34,19 @@ var defaultNetModel = sdnapi.NetworkModel{
 		{
 			LogicalLabel: "network0",
 			Bridge:       "bridge0",
-			Subnet:       "172.22.1.0/24",
-			GwIP:         "172.22.1.1",
-			DHCP: sdnapi.DHCP{
-				Enable: true,
-				IPRange: sdnapi.IPRange{
-					FromIP: "172.22.1.10",
-					ToIP:   "172.22.1.20",
-				},
-				DomainName: "sdn",
-				DNSClientConfig: sdnapi.DNSClientConfig{
-					PrivateDNS: []string{"dns-server0"},
+			NetworkIPConfig: sdnapi.NetworkIPConfig{
+				Subnet: "172.22.1.0/24",
+				GwIP:   "172.22.1.1",
+				DHCP: sdnapi.DHCP{
+					Enable: true,
+					IPRange: sdnapi.IPRange{
+						FromIP: "172.22.1.10",
+						ToIP:   "172.22.1.20",
+					},
+					DomainName: "sdn",
+					DNSClientConfig: sdnapi.DNSClientConfig{
+						PrivateDNS: []string{"dns-server0"},
+					},
 				},
 			},
 		},
@@ -55,8 +57,10 @@ var defaultNetModel = sdnapi.NetworkModel{
 				Endpoint: sdnapi.Endpoint{
 					LogicalLabel: "client0",
 					FQDN:         "client0.sdn",
-					Subnet:       "10.17.17.0/24",
-					IP:           "10.17.17.2",
+					EndpointIPConfig: sdnapi.EndpointIPConfig{
+						Subnet: "10.17.17.0/24",
+						IP:     "10.17.17.2",
+					},
 				},
 			},
 		},
@@ -65,8 +69,10 @@ var defaultNetModel = sdnapi.NetworkModel{
 				Endpoint: sdnapi.Endpoint{
 					LogicalLabel: "dns-server0",
 					FQDN:         "dns-server0.sdn",
-					Subnet:       "10.18.18.0/24",
-					IP:           "10.18.18.2",
+					EndpointIPConfig: sdnapi.EndpointIPConfig{
+						Subnet: "10.18.18.0/24",
+						IP:     "10.18.18.2",
+					},
 				},
 				StaticEntries: []sdnapi.DNSEntry{
 					{
@@ -168,15 +174,24 @@ func addMissingMACs(model *sdnapi.NetworkModel) {
 
 func addMissingHostConfig(netModel *sdnapi.NetworkModel) error {
 	if netModel.Host == nil {
-		hostIP, err := utils.GetIPForDockerAccess()
+		hostIPv4, hostIPv6, err := utils.GetIPForDockerAccess()
 		if err != nil {
 			return fmt.Errorf("failed to find suitable host IP: %v", err)
 		}
-		netModel.Host = &sdnapi.HostConfig{
-			HostIPs:     []string{hostIP},
-			NetworkType: sdnapi.Ipv4Only, // XXX For now everything is IPv4 only
-			// ControllerPort is not know at this level, must be filled in by the caller
+		netModel.Host = &sdnapi.HostConfig{}
+		if hostIPv4 != nil {
+			netModel.Host.HostIPs = append(netModel.Host.HostIPs, hostIPv4.String())
+			netModel.Host.NetworkType = sdnapi.Ipv4Only
 		}
+		if hostIPv6 != nil {
+			netModel.Host.HostIPs = append(netModel.Host.HostIPs, hostIPv6.String())
+			if hostIPv4 != nil {
+				netModel.Host.NetworkType = sdnapi.DualStack
+			} else {
+				netModel.Host.NetworkType = sdnapi.Ipv6Only
+			}
+		}
+		// ControllerPort is not know at this level, must be filled in by the caller
 	}
 	return nil
 }

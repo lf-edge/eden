@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/nat"
@@ -23,7 +24,7 @@ import (
 )
 
 // CreateDockerNetwork create network for docker`s containers
-func CreateDockerNetwork(name string) error {
+func CreateDockerNetwork(name string, enableIPv6 bool, ipv6Subnet string) error {
 	log.Debugf("Try to create network %s", name)
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -37,10 +38,40 @@ func CreateDockerNetwork(name string) error {
 	}
 	for _, el := range result {
 		if el.Name == name {
-			return nil
+			var ipv6SubnetFound bool
+			if enableIPv6 {
+				for _, ipam := range el.IPAM.Config {
+					if ipam.Subnet == ipv6Subnet {
+						ipv6SubnetFound = true
+					}
+				}
+			}
+			obsoleteConfig := (el.EnableIPv6 != enableIPv6) || (enableIPv6 && !ipv6SubnetFound)
+			if obsoleteConfig {
+				if err := cli.NetworkRemove(ctx, el.ID); err != nil {
+					return fmt.Errorf("failed to remove docker network %s "+
+						"with obsolete IP settings: %w", name, err)
+				}
+			} else {
+				return nil
+			}
 		}
 	}
-	_, err = cli.NetworkCreate(ctx, name, types.NetworkCreate{})
+	if enableIPv6 {
+		_, err = cli.NetworkCreate(ctx, name, types.NetworkCreate{
+			EnableIPv6: true,
+			IPAM: &network.IPAM{
+				Driver: "default",
+				Config: []network.IPAMConfig{
+					{
+						Subnet: ipv6Subnet,
+					},
+				},
+			},
+		})
+	} else {
+		_, err = cli.NetworkCreate(ctx, name, types.NetworkCreate{})
+	}
 	return err
 }
 
@@ -60,7 +91,8 @@ func RemoveGeneratedVolumeOfContainer(containerName string) error {
 }
 
 // CreateAndRunContainer run container with defined name from image with port and volume mapping and defined command
-func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string, volumeMap map[string]string, command []string, envs []string) error {
+func CreateAndRunContainer(containerName string, imageName string, portMap map[string]string,
+	volumeMap map[string]string, command []string, envs []string, enableIPv6 bool, ipv6Subnet string) error {
 	log.Debugf("Try to start container from image %s with command %s", imageName, command)
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -83,6 +115,12 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 				HostIP:   "0.0.0.0",
 				HostPort: binding,
 			},
+		}
+		if enableIPv6 {
+			portBinding[port] = append(portBinding[port], nat.PortBinding{
+				HostIP:   "::",
+				HostPort: binding,
+			})
 		}
 	}
 	var mounts []mount.Mount
@@ -107,7 +145,8 @@ func CreateAndRunContainer(containerName string, imageName string, portMap map[s
 			user = "" // non-root user required only for TypeBind for delete
 		}
 	}
-	if err = CreateDockerNetwork(defaults.DefaultDockerNetworkName); err != nil {
+	if err = CreateDockerNetwork(
+		defaults.DefaultDockerNetworkName, enableIPv6, ipv6Subnet); err != nil {
 		return fmt.Errorf("CreateDockerNetwork: %w", err)
 	}
 	hostConfig := &container.HostConfig{

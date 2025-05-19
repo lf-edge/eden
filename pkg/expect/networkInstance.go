@@ -72,14 +72,17 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 	if instanceExpect.netInstType == "switch" {
 		netInst.InstType = config.ZNetworkInstType_ZnetInstSwitch
 	} else {
-		subentIPs := utils.GetSubnetIPs(instanceExpect.subnet)
+		gwIP, dhcpStart, dhcpEnd, err := utils.GetNetworkIPs(instanceExpect.subnet)
+		if err != nil {
+			return nil, err
+		}
 		netInst.Ip = &config.Ipspec{
 			Subnet:  instanceExpect.subnet,
-			Gateway: subentIPs[1].String(),
-			Dns:     []string{subentIPs[1].String()},
+			Gateway: gwIP.String(),
+			Dns:     []string{gwIP.String()},
 			DhcpRange: &config.IpRange{
-				Start: subentIPs[2].String(),
-				End:   subentIPs[len(subentIPs)-2].String(),
+				Start: dhcpStart.String(),
+				End:   dhcpEnd.String(),
 			},
 		}
 	}

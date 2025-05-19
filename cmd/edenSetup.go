@@ -76,6 +76,9 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 
 	setupCmd.Flags().StringVar(&cfg.Eve.BootstrapFile, "eve-bootstrap-file", "", "path to device config (in JSON) for bootstrapping")
 
+	setupCmd.Flags().BoolVarP(&cfg.Eden.EnableIPv6, "enable-ipv6", "", false, "enable IPv6 connectivity for the Eden docker network")
+	setupCmd.Flags().StringVarP(&cfg.Eden.IPv6Subnet, "ipv6-subnet", "", defaults.DefaultDockerNetIPv6Subnet, "IPv6 subnet for the Eden docker network")
+
 	addSdnConfigDirOpt(setupCmd, cfg)
 	addSdnImageOpt(setupCmd, cfg)
 	addSdnDisableOpt(setupCmd, cfg)

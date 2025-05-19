@@ -2,6 +2,7 @@ package openevec
 
 import (
 	"fmt"
+	"net"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -14,9 +15,15 @@ import (
 )
 
 func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
-	ip, err := utils.GetIPForDockerAccess()
+	ipv4, ipv6, err := utils.GetIPForDockerAccess()
 	if err != nil {
 		return nil, err
+	}
+	var ip string
+	if ipv4 != nil {
+		ip = ipv4.String()
+	} else {
+		ip = ipv6.String()
 	}
 
 	edenDir, err := utils.DefaultEdenDir()
@@ -50,6 +57,8 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 			TestBin:      defaults.DefaultTestProg,
 			EdenBin:      "eden",
 			TestScenario: defaults.DefaultTestScenario,
+			EnableIPv6:   false,
+			IPv6Subnet:   defaults.DefaultDockerNetIPv6Subnet,
 
 			Images: ImagesConfig{
 				EServerImageDist: defaults.DefaultEserverDist,
@@ -85,7 +94,7 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 				RemoteURL: fmt.Sprintf("%s:%d", defaults.DefaultRedisContainerName, defaults.DefaultRedisPort),
 				Tag:       defaults.DefaultRedisTag,
 				Port:      defaults.DefaultRedisPort,
-				Eden:      fmt.Sprintf("%s:%d", ip, defaults.DefaultRedisPort),
+				Eden:      net.JoinHostPort(ip, fmt.Sprintf("%d", defaults.DefaultRedisPort)),
 			},
 
 			Remote: RemoteConfig{
@@ -189,6 +198,8 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 			ImageFile:      filepath.Join(imageDist, "eden", "sdn-efi.qcow2"),
 			LinuxkitBin:    filepath.Join(projectRootPath, defaults.DefaultBuildtoolsDir, "linuxkit"),
 			NetModelFile:   "",
+			EnableIPv6:     false,
+			IPv6Subnet:     defaults.DefaultSdnIPv6Subnet,
 		},
 
 		Gcp: GcpConfig{

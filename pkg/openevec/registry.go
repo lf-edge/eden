@@ -10,16 +10,18 @@ import (
 )
 
 func (openEVEC *OpenEVEC) RegistryStart() error {
-	cfg := openEVEC.cfg.Registry
+	cfg := openEVEC.cfg
+	regCfg := openEVEC.cfg.Registry
 	command, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("cannot obtain executable path: %w", err)
 	}
 	log.Infof("Executable path: %s", command)
-	if err := eden.StartRegistry(cfg.Port, cfg.Tag, cfg.Dist); err != nil {
+	if err := eden.StartRegistry(regCfg.Port, regCfg.Tag, regCfg.Dist,
+		cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		return fmt.Errorf("cannot start registry: %w", err)
 	}
-	log.Infof("registry is running and accessible on port %d", cfg.Port)
+	log.Infof("registry is running and accessible on port %d", regCfg.Port)
 	return nil
 }
 

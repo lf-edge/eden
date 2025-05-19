@@ -47,7 +47,8 @@ func newStartEserverCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 			}
 			log.Infof("Executable path: %s", command)
 
-			if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.Images.EServerImageDist, cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag); err != nil {
+			if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.Images.EServerImageDist,
+				cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag, cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 				log.Errorf("cannot start eserver: %s", err)
 			} else {
 				log.Infof("Eserver is running and accesible on port %d", cfg.Eden.EServer.Port)

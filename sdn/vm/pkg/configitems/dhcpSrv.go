@@ -28,7 +28,7 @@ const (
 	dhcpSrvNamePrefix = "dhcpsrv-"
 )
 
-// DhcpServer : DHCP server.
+// DhcpServer : DHCP/DHCPv6 server.
 type DhcpServer struct {
 	// ServerName : logical name for the DHCP server.
 	ServerName string
@@ -40,30 +40,50 @@ type DhcpServer struct {
 	// VethPeerIfName : interface name of that side of the veth pair on which
 	// the server should listen. It should be inside NetNamespace.
 	VethPeerIfName string
-	// Subnet : network address + netmask (IPv4 or IPv6).
-	Subnet *net.IPNet
-	// IPRange : a range of IP addresses to allocate from.
-	// Not applicable for IPv6 (SLAAC is used instead).
-	IPRange IPRange
+	// IPv4Subnet : IPv4 network address + netmask.
+	// Can be nil (but then IPv6Subnet must be defined).
+	// Both IPv4Subnet and IPv6Subnet can be defined (dual-stack is supported).
+	IPv4Subnet *net.IPNet
+	// IPv6Subnet : IPv6 network address + netmask.
+	// Can be nil (but then IPv4Subnet must be defined).
+	// Both IPv4Subnet and IPv6Subnet can be defined (dual-stack is supported).
+	IPv6Subnet *net.IPNet
+	// IPv4Range : a range of IPv4 addresses to allocate from.
+	// Should be inside IPv4Subnet.
+	// Undefined if entire IPv4Subnet should be used or in the IPv6-only mode.
+	IPv4Range IPRange
+	// IPv6Range : a range of IPv6 addresses to allocate from.
+	// Should be inside IPv6Subnet.
+	// Undefined if entire IPv6Subnet should be used or in the IPv6-only mode.
+	IPv6Range IPRange
 	// StaticEntries : list of MAC->IP entries statically configured for the DHCP server.
 	StaticEntries []MACToIP
-	// GatewayIP : address of the default gateway to advertise (DHCP option 3).
-	GatewayIP net.IP
+	// GatewayIPv4 : IPv4 address of the default gateway to advertise (DHCP option 3).
+	// Leave undefined in the IPv6-only mode or when the client should not install
+	// the default IPv4 route.
+	GatewayIPv4 net.IP
 	// DomainName : name of the domain assigned to the network.
 	// It is propagated to clients using the DHCP option 15 (24 in DHCPv6).
 	DomainName string
-	// DNSServers : list of IP addresses of DNS servers to announce via DHCP option 6.
+	// DNSServers : list of IP addresses of DNS servers to announce via DHCP option 6
+	// (23 in DHCPv6).
+	// The list combines IPv4 and IPv6 DNS servers.
 	DNSServers []net.IP
 	// NTP server to announce via DHCP option 42 (56 in DHCPv6).
-	// Optional argument, leave empty to disable.
-	NTPServer string
+	// Optional argument, leave nil to disable.
+	IPv4NTPServer string
+	// NTP server to announce via DHCPv6 option 56.
+	// Optional argument, leave nil to disable.
+	IPv6NTPServer string
 	// WPAD : URL with a location of a PAC file, announced using the Web Proxy Auto-Discovery
 	// Protocol (WPAD) and DHCP.
 	// The client will learn the PAC file location using the DHCP option 252.
 	// Optional argument, leave empty to disable.
 	WPAD string
+
+	//nolint:godox
 	// TODO: Netboot
-	//  Example dnsmasq.conf:
+	//  Example dnsmasq.conf for Netboot:
 	//    # use custom tftp-server instead machine running dnsmasq
 	//    dhcp-boot=pxelinux,server.name,192.168.1.100
 	//    # Boot for iPXE. The idea is to send two different
@@ -109,14 +129,18 @@ func (s DhcpServer) Equal(other depgraph.Item) bool {
 	return s.NetNamespace == s2.NetNamespace &&
 		s.VethName == s2.VethName &&
 		s.VethPeerIfName == s2.VethPeerIfName &&
-		equalIPNets(s.Subnet, s2.Subnet) &&
+		equalIPNets(s.IPv4Subnet, s2.IPv4Subnet) &&
+		equalIPNets(s.IPv6Subnet, s2.IPv6Subnet) &&
 		equalStaticEntries(s.StaticEntries, s2.StaticEntries) &&
-		s.IPRange.FromIP.Equal(s2.IPRange.FromIP) &&
-		s.IPRange.ToIP.Equal(s2.IPRange.ToIP) &&
-		s.GatewayIP.Equal(s2.GatewayIP) &&
+		s.IPv4Range.FromIP.Equal(s2.IPv4Range.FromIP) &&
+		s.IPv4Range.ToIP.Equal(s2.IPv4Range.ToIP) &&
+		s.IPv6Range.FromIP.Equal(s2.IPv6Range.FromIP) &&
+		s.IPv6Range.ToIP.Equal(s2.IPv6Range.ToIP) &&
+		s.GatewayIPv4.Equal(s2.GatewayIPv4) &&
 		s.DomainName == s2.DomainName &&
 		equalIPLists(s.DNSServers, s2.DNSServers) &&
-		s.NTPServer == s2.NTPServer &&
+		s.IPv4NTPServer == s2.IPv4NTPServer &&
+		s.IPv6NTPServer == s2.IPv6NTPServer &&
 		s.WPAD == s2.WPAD
 }
 
@@ -168,83 +192,99 @@ func (c *DhcpServerConfigurator) Create(ctx context.Context, item depgraph.Item)
 }
 
 func (c *DhcpServerConfigurator) createDnsmasqConfFile(server DhcpServer) error {
-	isIPv6 := len(server.Subnet.IP) == net.IPv6len
 	if err := ensureDir(dnsmasqConfDir); err != nil {
 		return err
 	}
 	srvName := dhcpSrvNamePrefix + server.ServerName
 	cfgPath := dnsmasqConfigPath(srvName)
-	file, err := os.Create(cfgPath)
+	f, err := os.Create(cfgPath)
 	if err != nil {
 		err = fmt.Errorf("failed to create config file %s: %w", cfgPath, err)
 		log.Error(err)
 		return err
 	}
-	defer file.Close()
-	// PID file is also used by Delete method.
-	file.WriteString(fmt.Sprintf("pid-file=%s\n", dnsmasqPidFile(srvName)))
-	// To enable dnsmasq's DHCP server functionality.
-	if isIPv6 {
-		// Do Router Advertisements and stateless DHCPv6 for this subnet. Clients will
-		// not get addresses from DHCP, but they will get other configuration information.
-		// They will use SLAAC for addresses.
-		file.WriteString(fmt.Sprintf("dhcp-range=%s,ra-stateless\n", server.Subnet))
-	} else {
-		netmask := net.IP(server.Subnet.Mask)
-		file.WriteString(fmt.Sprintf("dhcp-range=%s,%s,%s,60m\n",
-			server.IPRange.FromIP, server.IPRange.ToIP, netmask))
+	defer f.Close()
+
+	// Base configuration
+	fmt.Fprintf(f, "pid-file=%s\n", dnsmasqPidFile(srvName))
+	fmt.Fprintf(f, "dhcp-leasefile=%s\n", dnsmasqLeaseFile(srvName))
+	fmt.Fprintf(f, "log-dhcp\n")
+	fmt.Fprintf(f, "log-facility=%s\n", dnsmasqLogFile(srvName))
+	fmt.Fprintf(f, "port=0\n") // To disable dnsmasq's DNS server functionality.
+	fmt.Fprintf(f, "interface=%s\n", server.VethPeerIfName)
+
+	// IPv4 DHCP range
+	if server.IPv4Subnet != nil {
+		start4 := server.IPv4Range.FromIP.String()
+		end4 := server.IPv4Range.ToIP.String()
+		fmt.Fprintf(f, "dhcp-range=%s,%s,60m\n", start4, end4)
+
+		if server.GatewayIPv4 != nil {
+			// DHCP option 3.
+			fmt.Fprintf(f, "dhcp-option=option:router,%s\n", server.GatewayIPv4.String())
+		}
+		if server.DomainName != "" {
+			// DHCP option 15.
+			fmt.Fprintf(f, "dhcp-option=option:domain-name,%s\n", server.DomainName)
+		}
+		if server.IPv4NTPServer != "" {
+			// DHCP option 42.
+			fmt.Fprintf(f, "dhcp-option=option:ntp-server,%s\n", server.IPv4NTPServer)
+		}
+		if server.WPAD != "" {
+			// DHCP option 252: WPAD.
+			fmt.Fprintf(f, "dhcp-option=252,%s\n", server.WPAD)
+		}
 	}
+
+	// IPv6 DHCP range
+	if server.IPv6Subnet != nil {
+		start6 := server.IPv6Range.FromIP.String()
+		end6 := server.IPv6Range.ToIP.String()
+		prefixLen, _ := server.IPv6Subnet.Mask.Size()
+		fmt.Fprintf(f, "dhcp-range=%s,%s,%d,60m\n", start6, end6, prefixLen)
+
+		if server.DomainName != "" {
+			// DHCPv6 option 24.
+			fmt.Fprintf(f, "dhcp-option=option6:domain-search,%s\n", server.DomainName)
+		}
+		if server.IPv6NTPServer != "" {
+			// DHCPv6 option 56.
+			fmt.Fprintf(f, "dhcp-option=option6:ntp-server,[%s]\n", server.IPv6NTPServer)
+		}
+	}
+
+	// DNS servers
+	var dns4 []string
+	var dns6 []string
+	for _, dns := range server.DNSServers {
+		if dns.To4() != nil {
+			dns4 = append(dns4, dns.String())
+		} else {
+			dns6 = append(dns6, fmt.Sprintf("[%s]", dns.String()))
+		}
+	}
+	if len(dns4) > 0 && server.IPv4Subnet != nil {
+		// DHCP option 6.
+		fmt.Fprintf(f, "dhcp-option=option:dns-server,%s\n", strings.Join(dns4, ","))
+	}
+	if len(dns6) > 0 && server.IPv6Subnet != nil {
+		// DHCPv6 option 23.
+		fmt.Fprintf(f, "dhcp-option=option6:dns-server,%s\n", strings.Join(dns6, ","))
+	}
+
+	// Static host entries
 	for _, entry := range server.StaticEntries {
-		file.WriteString(fmt.Sprintf("dhcp-host=%s,%s\n",
-			entry.MAC.String(), entry.IP.String()))
-	}
-	file.WriteString(fmt.Sprintf("dhcp-leasefile=%s\n",
-		dnsmasqLeaseFile(srvName)))
-	// To disable dnsmasq's DNS server functionality.
-	file.WriteString("port=0\n")
-	// Set the interface on which dnsmasq operates.
-	file.WriteString(fmt.Sprintf("interface=%s\n", server.VethPeerIfName))
-	// Logging.
-	file.WriteString("log-dhcp\n")
-	file.WriteString(fmt.Sprintf("log-facility=%s\n", dnsmasqLogFile(srvName)))
-	// Domain name.
-	if server.DomainName != "" {
-		if isIPv6 {
-			file.WriteString(fmt.Sprintf("dhcp-option=option:domain-search,%s\n",
-				server.DomainName))
+		mac := entry.MAC.String()
+		ip := entry.IP.String()
+		if entry.IP.To4() != nil {
+			fmt.Fprintf(f, "dhcp-host=%s,%s\n", mac, ip)
 		} else {
-			file.WriteString(fmt.Sprintf("dhcp-option=option:domain-name,%s\n",
-				server.DomainName))
+			fmt.Fprintf(f, "dhcp-host=%s,[%s]\n", mac, ip)
 		}
 	}
-	// Default gateway.
-	// Note that gateway for IPv6 needs to be handled with radvd.
-	if !isIPv6 {
-		if len(server.GatewayIP) != 0 {
-			gwIP := server.GatewayIP.String()
-			file.WriteString(fmt.Sprintf("dhcp-option=option:router,%s\n", gwIP))
-		} else {
-			file.WriteString("dhcp-option=option:router\n")
-		}
-	}
-	// DNS servers.
-	if len(server.DNSServers) > 0 {
-		var addrList []string
-		for _, srvIP := range server.DNSServers {
-			addrList = append(addrList, srvIP.String())
-		}
-		file.WriteString(fmt.Sprintf("dhcp-option=option:dns-server,%s\n",
-			strings.Join(addrList, ",")))
-	}
-	// NTP Server.
-	if server.NTPServer != "" {
-		file.WriteString(fmt.Sprintf("dhcp-option=option:ntp-server,%s\n", server.NTPServer))
-	}
-	// WPAD.
-	if server.WPAD != "" {
-		file.WriteString(fmt.Sprintf("dhcp-option=252,%s\n", server.WPAD))
-	}
-	if err = file.Sync(); err != nil {
+
+	if err = f.Sync(); err != nil {
 		err = fmt.Errorf("failed to sync config file %s: %w", cfgPath, err)
 		log.Error(err)
 		return err

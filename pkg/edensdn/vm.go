@@ -39,6 +39,8 @@ type SdnVMConfig struct {
 	NetDevBasePort uint16 // QEMU-specific
 	PidFile        string
 	ConsoleLogFile string
+	EnableIPv6     bool
+	IPv6Subnet     string
 }
 
 // SdnMgmtSubnet : IP configuration for Eden-SDN management network.

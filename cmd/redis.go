@@ -45,7 +45,8 @@ func newStartRedisCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 				log.Fatalf("cannot obtain executable path: %s", err)
 			}
 			log.Infof("Executable path: %s", command)
-			if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, cfg.Redis.Force, cfg.Redis.Tag); err != nil {
+			if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, cfg.Redis.Force, cfg.Redis.Tag,
+				cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 				log.Errorf("cannot start redis: %s", err)
 			} else {
 				log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)

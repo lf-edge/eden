@@ -127,7 +127,11 @@ func (c *BondConfigurator) Create(ctx context.Context, item depgraph.Item) error
 				log.Warnf("Failed to parse ARP monitor IP target '%s'", ipTarget)
 				continue
 			}
-			bond.ArpIpTargets = append(bond.ArpIpTargets, ip)
+			if ip.To4() == nil {
+				log.Warnf("ARP monitor IP target '%s' is not IPv4 address", ipTarget)
+				continue
+			}
+			bond.ArpIpTargets = append(bond.ArpIpTargets, ip.To4())
 		}
 	}
 	if bondCfg.MTU == 0 {

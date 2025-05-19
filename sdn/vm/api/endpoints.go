@@ -63,12 +63,12 @@ type Endpoint struct {
 	LogicalLabel string `json:"logicalLabel"`
 	// FQDN : Fully qualified domain name of the endpoint.
 	FQDN string `json:"fqdn"`
-	// Subnet : network address + netmask (IPv4 or IPv6).
-	// Subnet needs to fit at least two host IP addresses,
-	// one for the endpoint, another for a gateway.
-	Subnet string `json:"subnet"`
-	// IP should be inside of the Subnet.
-	IP string `json:"ip"`
+	// Single-stack endpoint IP (v4 or v6) configuration.
+	// Define either this or DualStack.
+	EndpointIPConfig
+	// Dual-stack endpoint IP configuration.
+	// Define either this or the (single-stack) embedded EndpointIPConfig.
+	DualStack DualStackEndpoint `json:"dualStack"`
 	// DirectL2Connect : configure direct L2 connectivity between the endpoint and EVE.
 	// Use alternatively or additionally to Subnet+IP options.
 	DirectL2Connect DirectL2EpConnect `json:"directL2Connect"`
@@ -76,6 +76,29 @@ type Endpoint struct {
 	// If not defined (zero value), the default MTU for Ethernet, which is 1500 bytes,
 	// will be set.
 	MTU uint16 `json:"mtu"`
+}
+
+// IsDualStack returns true if Endpoint is configured to operate in dual-stack IP mode.
+func (e Endpoint) IsDualStack() bool {
+	return e.DualStack.IPv4.Subnet != "" || e.DualStack.IPv6.Subnet != ""
+}
+
+// EndpointIPConfig : IP configuration for Endpoint.
+type EndpointIPConfig struct {
+	// Subnet : network address + netmask (IPv4 or IPv6).
+	// Subnet needs to fit at least two host IP addresses,
+	// one for the endpoint, another for a gateway.
+	Subnet string `json:"subnet"`
+	// IP should be inside the Subnet.
+	IP string `json:"ip"`
+}
+
+// DualStackEndpoint : dual-stack IP configuration for Endpoint.
+type DualStackEndpoint struct {
+	// IPv4 config for Endpoint.
+	IPv4 EndpointIPConfig `json:"ipv4"`
+	// IPv6 config for Endpoint.
+	IPv6 EndpointIPConfig `json:"ipv6"`
 }
 
 // ItemType
@@ -174,13 +197,24 @@ const (
 	// (instead of directly entering the FQDN).
 	// Can be used in DNSEntry.FQDN.
 	EndpointFQDNRefPrefix = "endpoint-fqdn." // Followed by the endpoint logical label.
-	// EndpointIPRefPrefix : prefix used to symbolically reference endpoint IP
+	// EndpointIPRefPrefix : prefix used to symbolically reference endpoint IP address(es).
 	// (instead of directly entering the IP address).
+	// Translates to both IPv4 and IPv6 address if Endpoint runs in dual-stack mode.
 	// Can be used in DNSEntry.IP.
 	EndpointIPRefPrefix = "endpoint-ip." // Followed by the endpoint logical label.
-	// AdamIPRef : string used to symbolically reference adam IP address.
+	// EndpointIPv4RefPrefix : prefix used to symbolically reference endpoint IPv4 address.
+	EndpointIPv4RefPrefix = "endpoint-ipv4." // Followed by the endpoint logical label.
+	// EndpointIPv6RefPrefix : prefix used to symbolically reference endpoint IPv6 address.
+	EndpointIPv6RefPrefix = "endpoint-ipv6." // Followed by the endpoint logical label.
+	// AdamIPRef : string used to symbolically reference adam IP address(es).
+	// Translates to both IPv4 and IPv6 address if Adam runs in dual-stack mode.
 	// Can be used in DNSEntry.IP.
 	AdamIPRef = "adam-ip"
+	// AdamIPv4Ref : string used to symbolically reference Adam IPv4 address.
+	AdamIPv4Ref = "adam-ipv4"
+	// AdamIPv6Ref : string used to symbolically reference Adam IPv6 address.
+	// Can be used in DNSEntry.IP.
+	AdamIPv6Ref = "adam-ipv6"
 )
 
 // DNSEntry : Mapping between FQDN and an IP address.
@@ -191,8 +225,21 @@ type DNSEntry struct {
 	FQDN string `json:"fqdn"`
 	// IP address or a special value that Eden-SDN will automatically translate
 	// to the corresponding IP address:
-	//  - "endpoint-ip.<endpoint-logical-label>" - translated to IP address of the endpoint
-	//  - "adam-ip" - translated to IP address on which Adam (open-source controller) is deployed and accessible
+	//  - "endpoint-ip.<endpoint-logical-label>"
+	//        - translated to IP address(es) of the endpoint
+	//        - translates to both IPv4 and IPv6 addresses if endpoint runs in dual-stack mode
+	//  - "endpoint-ipv4.<endpoint-logical-label>"
+	//        - translated to IPv4 address of the endpoint
+	//  - "endpoint-ipv6.<endpoint-logical-label>"
+	//        - translated to IPv6 address of the endpoint
+	//  - "adam-ip"
+	//        - translated to IP address(es) on which Adam (open-source controller)
+	//          is deployed and accessible
+	//        - translates to both IPv4 and IPv6 addresses if Adam runs in dual-stack mode
+	//  - "adam-ipv4"
+	//        - translated to IPv4 address of Adam controller
+	//  - "adam-ipv6"
+	//        - translated to IPv6 address of Adam controller
 	IP string `json:"ip"`
 }
 

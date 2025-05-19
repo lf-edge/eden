@@ -19,26 +19,30 @@ func runTransparentProxy(proxyConfig config.ProxyConfig) {
 	// Run HTTP proxy.
 	httpPort := proxyConfig.HTTPPort.Port
 	if httpPort != 0 {
-		httpProxy := newProxy(proxyConfig)
-		installProxyHandlers(proxyConfig, false, true, httpProxy)
-		proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, httpPort)
-		go func() {
-			log.Fatalln(http.ListenAndServe(proxyAddr, httpProxy))
-		}()
+		for _, listenIP := range proxyConfig.ListenIPs {
+			httpProxy := newProxy(proxyConfig)
+			installProxyHandlers(proxyConfig, false, true, httpProxy)
+			proxyAddr := net.JoinHostPort(listenIP, fmt.Sprintf("%d", httpPort))
+			go func(addr string, proxy *goproxy.ProxyHttpServer) {
+				log.Fatalln(http.ListenAndServe(addr, proxy))
+			}(proxyAddr, httpProxy)
+		}
 	}
 
 	// Run HTTPS proxy(ies).
 	for _, port := range proxyConfig.HTTPSPorts {
-		httpsProxy := newProxy(proxyConfig)
-		installProxyHandlers(proxyConfig, true, true, httpsProxy)
-		go func(port uint16) {
-			proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, port)
-			listener, err := net.Listen("tcp", proxyAddr)
-			if err != nil {
-				log.Fatalf("Error listening for HTTPS connections: %v", err)
-			}
-			tproxyListener(listener, port, httpsProxy)
-		}(port.Port)
+		for _, listenIP := range proxyConfig.ListenIPs {
+			httpsProxy := newProxy(proxyConfig)
+			installProxyHandlers(proxyConfig, true, true, httpsProxy)
+			go func(ip string, port uint16, proxy *goproxy.ProxyHttpServer) {
+				proxyAddr := net.JoinHostPort(ip, fmt.Sprintf("%d", port))
+				listener, err := net.Listen("tcp", proxyAddr)
+				if err != nil {
+					log.Fatalf("Error listening for HTTPS connections: %v", err)
+				}
+				tproxyListener(listener, port, proxy)
+			}(listenIP, port.Port, httpsProxy)
+		}
 	}
 }
 

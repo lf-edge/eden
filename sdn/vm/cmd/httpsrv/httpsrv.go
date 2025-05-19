@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -67,15 +68,16 @@ func main() {
 	}
 
 	if httpSrvConfig.HTTPPort != 0 {
-		srvAddr := fmt.Sprintf("%s:%d", httpSrvConfig.ListenIP, httpSrvConfig.HTTPPort)
-		go func() {
-			log.Debugf("HTTP server listening on %s", srvAddr)
-			log.Fatalln(http.ListenAndServe(srvAddr, nil))
-		}()
+		for _, listenIP := range httpSrvConfig.ListenIPs {
+			srvAddr := net.JoinHostPort(listenIP, fmt.Sprintf("%d", httpSrvConfig.HTTPPort))
+			go func(addr string) {
+				log.Debugf("HTTP server listening on %s", addr)
+				log.Fatalln(http.ListenAndServe(addr, nil))
+			}(srvAddr)
+		}
 	}
 
 	if httpSrvConfig.HTTPSPort != 0 {
-		srvAddr := fmt.Sprintf("%s:%d", httpSrvConfig.ListenIP, httpSrvConfig.HTTPSPort)
 		certFile, err := os.CreateTemp("", "httpsrv-*.cert")
 		if err != nil {
 			log.Fatalf("failed to create temporary file for the certificate: %v", err)
@@ -100,10 +102,16 @@ func main() {
 		}
 		log.Debugf("Storing server certificate to file %s", certFile.Name())
 		log.Debugf("Storing server key to file %s", keyFile.Name())
-		go func() {
-			log.Debugf("HTTPS server listening on %s", srvAddr)
-			log.Fatalln(http.ListenAndServeTLS(srvAddr, certFile.Name(), keyFile.Name(), nil))
-		}()
+
+		for _, listenIP := range httpSrvConfig.ListenIPs {
+			srvAddr := net.JoinHostPort(
+				listenIP, fmt.Sprintf("%d", httpSrvConfig.HTTPSPort))
+			go func(addr string) {
+				log.Debugf("HTTPS server listening on %s", addr)
+				log.Fatalln(
+					http.ListenAndServeTLS(addr, certFile.Name(), keyFile.Name(), nil))
+			}(srvAddr)
+		}
 	}
 
 	cancelChan := make(chan os.Signal, 1)

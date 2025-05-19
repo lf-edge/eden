@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -11,7 +12,6 @@ import (
 
 const (
 	defaultPort = 6666
-	defaultIP   = "0.0.0.0"
 )
 
 func logRequest(next http.Handler) http.Handler {
@@ -24,7 +24,7 @@ func logRequest(next http.Handler) http.Handler {
 func main() {
 	debug := flag.Bool("debug", false, "Set Debug log level")
 	port := flag.Uint("port", defaultPort, "Port on which to listen")
-	ip := flag.String("ip", defaultIP, "IP address on which to listen")
+	ip := flag.String("ip", "", "IP address on which to listen")
 	flag.Parse()
 
 	if *debug {
@@ -50,7 +50,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler: router,
-		Addr:    fmt.Sprintf("%s:%d", *ip, *port),
+		Addr:    net.JoinHostPort(*ip, fmt.Sprintf("%d", *port)),
 	}
 	log.Fatal(srv.ListenAndServe())
 }

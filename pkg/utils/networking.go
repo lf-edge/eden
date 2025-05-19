@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -90,7 +91,7 @@ func GetSubnetsNotUsed(count int) ([]IFInfo, error) {
 
 // GetIPForDockerAccess is service function to obtain IP for adam access
 // The function is filter out docker bridge
-func GetIPForDockerAccess() (ip string, err error) {
+func GetIPForDockerAccess() (ipv4, ipv6 net.IP, err error) {
 	networks, err := GetDockerNetworks()
 	if err != nil {
 		log.Errorf("GetDockerNetworks: %s", err)
@@ -102,21 +103,26 @@ func GetIPForDockerAccess() (ip string, err error) {
 out:
 	for _, a := range addrs {
 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				for _, el := range networks {
-					if el.Contains(ipnet.IP) {
-						continue out
-					}
+			for _, el := range networks {
+				if el.Contains(ipnet.IP) {
+					continue out
 				}
-				ip = ipnet.IP.String()
+			}
+			if ipv4 == nil && ipnet.IP.To4() != nil {
+				ipv4 = ipnet.IP.To4()
+			}
+			if ipv6 == nil && ipnet.IP.To4() == nil {
+				ipv6 = ipnet.IP.To16()
+			}
+			if ipv4 != nil && ipv6 != nil {
 				break
 			}
 		}
 	}
-	if ip == "" {
-		return "", errors.New("no IP found")
+	if ipv4 == nil && ipv6 == nil {
+		return ipv4, ipv6, errors.New("no IP found")
 	}
-	return ip, nil
+	return ipv4, ipv6, nil
 }
 
 // ResolveURL concatenate parts of url
@@ -132,25 +138,55 @@ func ResolveURL(b, p string) (string, error) {
 	return base.ResolveReference(u).String(), nil
 }
 
-// GetSubnetIPs return all IPs from subnet
-func GetSubnetIPs(subnet string) (result []net.IP) {
-	ip, ipnet, err := net.ParseCIDR(subnet)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
-		result = append(result, net.ParseIP(ip.String()))
-	}
-	return
+// ipToBigInt converts net.IP to *big.Int
+func ipToBigInt(ip net.IP) *big.Int {
+	return big.NewInt(0).SetBytes(ip)
 }
 
-func inc(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
-		}
+// bigIntToIP converts *big.Int to net.IP of the given length
+func bigIntToIP(i *big.Int, length int) net.IP {
+	b := i.Bytes()
+	if len(b) < length {
+		padded := make([]byte, length)
+		copy(padded[length-len(b):], b)
+		b = padded
 	}
+	return b
+}
+
+// GetNetworkIPs returns the first, second, and last usable IPs from a *net.IPNet.
+func GetNetworkIPs(subnet string) (gateway, dhcpStart, dhcpEnd net.IP, err error) {
+	_, ipNet, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return nil, nil, nil,
+			fmt.Errorf("failed to parse network subnet %s: %w", subnet, err)
+	}
+	networkIP := ipNet.IP
+	prefixLen, bits := ipNet.Mask.Size()
+
+	if bits-prefixLen < 2 {
+		return nil, nil, nil,
+			fmt.Errorf("subnet too small: need at least 2 host bits (got /%d)", prefixLen)
+	}
+
+	ipLen := len(networkIP)
+	networkInt := ipToBigInt(networkIP.Mask(ipNet.Mask))
+
+	// First usable IP (gateway): network IP + 1
+	firstUsable := big.NewInt(0).Add(networkInt, big.NewInt(1))
+
+	// Second usable IP (DHCP start): gateway + 1
+	secondUsable := big.NewInt(0).Add(firstUsable, big.NewInt(1))
+
+	// Last usable IP (DHCP end): broadcast - 1 (IPv4) or max IP in range - 1 (IPv6)
+	broadcastInt := big.NewInt(0).Add(networkInt, big.NewInt(0).Lsh(
+		big.NewInt(1), uint(bits-prefixLen)))
+	lastUsable := big.NewInt(0).Sub(broadcastInt, big.NewInt(2))
+
+	gateway = bigIntToIP(firstUsable, ipLen)
+	dhcpStart = bigIntToIP(secondUsable, ipLen)
+	dhcpEnd = bigIntToIP(lastUsable, ipLen)
+	return gateway, dhcpStart, dhcpEnd, nil
 }
 
 // GetFileSizeURL returns file size for url

@@ -36,10 +36,10 @@ type HttpServer struct {
 	// (other types of interfaces are currently not supported)
 	// Can be empty (if the server is not associated with any particular interface).
 	VethName string
-	// ListenIP : IP address on which the server should listen.
+	// ListenIPs : IP addresses on which the server should listen.
 	// Can be empty to listen on all available interfaces instead of just
-	// the interface with the given host address
-	ListenIP net.IP
+	// the interfaces with the given host addresses.
+	ListenIPs []net.IP
 	// HTTPPort : port to listen for HTTP requests.
 	// Zero value can be used to disable HTTP.
 	HTTPPort uint16
@@ -82,7 +82,7 @@ func (s HttpServer) Equal(other depgraph.Item) bool {
 	}
 	return s.NetNamespace == s2.NetNamespace &&
 		s.VethName == s2.VethName &&
-		s.ListenIP.Equal(s2.ListenIP) &&
+		equalIPLists(s.ListenIPs, s2.ListenIPs) &&
 		s.HTTPPort == s2.HTTPPort &&
 		s.HTTPSPort == s2.HTTPSPort &&
 		s.CertPEM == s2.CertPEM &&
@@ -143,12 +143,12 @@ func (c *HttpServerConfigurator) createHttpSrvConfFile(httpSrv HttpServer) error
 	}
 	serverName := httpSrv.ServerName
 	// Prepare configuration.
-	var listenIP string
-	if httpSrv.ListenIP != nil {
-		listenIP = httpSrv.ListenIP.String()
+	listenIPs := make([]string, 0, len(httpSrv.ListenIPs))
+	for _, ip := range httpSrv.ListenIPs {
+		listenIPs = append(listenIPs, ip.String())
 	}
 	config := httpsrvcfg.HttpSrvConfig{
-		ListenIP:  listenIP,
+		ListenIPs: listenIPs,
 		LogFile:   httpSrvLogFile(serverName),
 		PidFile:   httpSrvPidFile(serverName),
 		Verbose:   true,

@@ -243,6 +243,12 @@ eden:
     #test scenario
     test-scenario: '{{parse "eden.test-scenario"}}'
 
+    #enable IPv6 connectivity for docker network interconnecting components deployed by Eden
+    enable-ipv6: '{{parse "eden.enable-ipv6"}}'
+
+    #IPv6 subnet used for docker network interconnecting components deployed by Eden
+    ipv6-subnet: '{{parse "eden.ipv6-subnet"}}'
+
 gcp:
     #path to the key to interact with gcp
     key: '{{parse "gcp.key"}}'
@@ -315,6 +321,12 @@ sdn:
     #path to JSON file with network model to apply into SDN
     #leave empty for default network model
     network-model: '{{parse "sdn.network-model"}}'
+
+    #Enable IPv6 connectivity for Eden-SDN
+    enable-ipv6: '{{parse "sdn.enable-ipv6"}}'
+
+    #IPv6 subnet to use between Eden-SDN and the host
+    ipv6-subnet: '{{parse "sdn.ipv6-subnet"}}'
 `
 
 // DefaultQemuTemplate is configuration template for qemu

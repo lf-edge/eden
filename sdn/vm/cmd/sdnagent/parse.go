@@ -30,8 +30,9 @@ const (
 
 type parsedNetModel struct {
 	api.NetworkModel
-	items  labeledItems
-	hostIP net.IP
+	items    labeledItems
+	hostIPv4 net.IP
+	hostIPv6 net.IP
 }
 
 type labeledItems map[itemID]*labeledItem
@@ -139,72 +140,32 @@ func (a *agent) validatePorts(netModel *parsedNetModel) (err error) {
 }
 
 func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
-	// Validate network Subnet, gateway IP and VLANs.
+	// Validate network IP config.
 	for _, network := range netModel.Networks {
-		if _, _, err = net.ParseCIDR(network.Subnet); err != nil {
-			err = fmt.Errorf("network %s has invalid subnet: %w",
-				network.LogicalLabel, err)
-			return
-		}
-		if gwIP := net.ParseIP(network.GwIP); gwIP == nil {
-			err = fmt.Errorf("network %s has invalid gateway IP (%s)",
-				network.LogicalLabel, network.GwIP)
-			return
-		}
-	}
-
-	// Validate DHCP config.
-	for _, network := range netModel.Networks {
-		_, subnet, _ := net.ParseCIDR(network.Subnet)
-		dhcp := network.DHCP
-		if !dhcp.Enable {
-			continue
-		}
-		if dhcp.IPRange.FromIP != "" {
-			fromIP := net.ParseIP(dhcp.IPRange.FromIP)
-			if fromIP == nil {
-				err = fmt.Errorf("network %s has invalid DHCP range FromIP (%s)",
-					network.LogicalLabel, dhcp.IPRange.FromIP)
+		if network.IsDualStack() {
+			ipv4Conf := network.DualStack.IPv4
+			ipv6Conf := network.DualStack.IPv6
+			err = a.validateNetworkIPConfig(network.LogicalLabel, ipv4Conf, true, false)
+			if err != nil {
 				return
 			}
-			toIP := net.ParseIP(dhcp.IPRange.ToIP)
-			if toIP == nil {
-				err = fmt.Errorf("network %s has invalid DHCP range ToIP (%s)",
-					network.LogicalLabel, dhcp.IPRange.ToIP)
+			err = a.validateNetworkIPConfig(network.LogicalLabel, ipv6Conf, false, true)
+			if err != nil {
 				return
 			}
-			if !subnet.Contains(fromIP) || !subnet.Contains(toIP) {
-				err = fmt.Errorf("network %s has DHCP IP range outside of the subnet",
-					network.LogicalLabel)
-				return
+			// It does not make sense to define different domain name for IPv4 and IPv6.
+			if ipv4Conf.DHCP.DomainName != "" && ipv6Conf.DHCP.DomainName != "" {
+				if ipv4Conf.DHCP.DomainName != ipv6Conf.DHCP.DomainName {
+					err = fmt.Errorf(
+						"dual-stack network %s is defined with two different domain names",
+						network.LogicalLabel)
+					return
+				}
 			}
-			if bytes.Compare(fromIP, toIP) > 0 {
-				err = fmt.Errorf("network %s has DHCP IP range where FromIP > ToIP",
-					network.LogicalLabel)
-				return
-			}
-		}
-		for _, dns := range dhcp.PublicDNS {
-			if dnsIP := net.ParseIP(dns); dnsIP == nil {
-				err = fmt.Errorf("network %s has invalid public DNS server IP (%s)",
-					network.LogicalLabel, dns)
-				return
-			}
-		}
-		if dhcp.PrivateNTP != "" && dhcp.PublicNTP != "" {
-			err = fmt.Errorf("network %s has both public and private NTP configured",
-				network.LogicalLabel)
-			return
-		}
-		for _, entry := range dhcp.StaticEntries {
-			if _, err = net.ParseMAC(entry.MAC); err != nil {
-				err = fmt.Errorf("network %s has static DHCP entry with invalid MAC (%s)",
-					network.LogicalLabel, entry.MAC)
-				return
-			}
-			if ip := net.ParseIP(entry.IP); ip == nil {
-				err = fmt.Errorf("network %s has static DHCP entry with invalid IP (%s)",
-					network.LogicalLabel, entry.IP)
+		} else {
+			err = a.validateNetworkIPConfig(network.LogicalLabel, network.NetworkIPConfig,
+				false, false)
+			if err != nil {
 				return
 			}
 		}
@@ -215,7 +176,14 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 		if network.Router == nil {
 			continue
 		}
-		_, subnet, _ := net.ParseCIDR(network.Subnet)
+		// Subnets are already validated.
+		var subnet1, subnet2 *net.IPNet
+		if network.IsDualStack() {
+			_, subnet1, _ = net.ParseCIDR(network.DualStack.IPv4.Subnet)
+			_, subnet2, _ = net.ParseCIDR(network.DualStack.IPv6.Subnet)
+		} else {
+			_, subnet1, _ = net.ParseCIDR(network.Subnet)
+		}
 		for _, route := range network.Router.RoutesTowardsEVE {
 			if _, _, err = net.ParseCIDR(route.DstNetwork); err != nil {
 				err = fmt.Errorf("network %s route %+v has invalid destination: %w",
@@ -228,9 +196,11 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 					network.LogicalLabel, route, route.Gateway)
 				return
 			}
-			if !subnet.Contains(gwIP) {
+			routable := (subnet1 != nil && subnet1.Contains(gwIP)) ||
+				(subnet2 != nil && subnet2.Contains(gwIP))
+			if !routable {
 				err = fmt.Errorf("network %s route %+v has gateway IP (%s) "+
-					"which is not from within the network subnet",
+					"which is not from within the network subnet(s)",
 					network.LogicalLabel, route, route.Gateway)
 				return
 			}
@@ -250,15 +220,114 @@ func (a *agent) validateNetworks(netModel *parsedNetModel) (err error) {
 			return
 		}
 	}
+	return nil
+}
 
-	// TODO: check that within a network it is IPv4 or IPv6, not both (for now)
+func (a *agent) validateNetworkIPConfig(netLabel string, netIPConf api.NetworkIPConfig,
+	shouldBeIPv4, shouldBeIPv6 bool) error {
+	// Validate network Subnet and gateway IP.
+	_, subnet, err := net.ParseCIDR(netIPConf.Subnet)
+	if err != nil {
+		return fmt.Errorf("network %s has invalid subnet: %w", netLabel, err)
+	}
+	if shouldBeIPv4 && subnet.IP.To4() == nil {
+		return fmt.Errorf("expected IPv4 subnet for network %s, got: %v",
+			netLabel, subnet)
+	}
+	if shouldBeIPv6 && subnet.IP.To4() != nil {
+		return fmt.Errorf("expected IPv6 subnet for network %s, got: %v",
+			netLabel, subnet)
+	}
+	// Make sure that remaining fields have the same IP version as Subnet.
+	shouldBeIPv4 = subnet.IP.To4() != nil
+	shouldBeIPv6 = subnet.IP.To4() == nil
+	gwIP := net.ParseIP(netIPConf.GwIP)
+	if gwIP == nil {
+		return fmt.Errorf("network %s has invalid gateway IP (%s)",
+			netLabel, netIPConf.GwIP)
+	}
+	// This also checks that gwIP has the correct IP version.
+	if !subnet.Contains(gwIP) {
+		return fmt.Errorf(
+			"network %s has gateway IP (%s) which is not inside the subnet (%s)",
+			netLabel, netIPConf.GwIP, netIPConf.Subnet)
+	}
+
+	// Validate DHCP config.
+	dhcp := netIPConf.DHCP
+	if !dhcp.Enable {
+		return nil
+	}
+	if dhcp.IPRange.FromIP != "" {
+		fromIP := net.ParseIP(dhcp.IPRange.FromIP)
+		if fromIP == nil {
+			return fmt.Errorf("network %s has invalid DHCP range FromIP (%s)",
+				netLabel, dhcp.IPRange.FromIP)
+		}
+		toIP := net.ParseIP(dhcp.IPRange.ToIP)
+		if toIP == nil {
+			return fmt.Errorf("network %s has invalid DHCP range ToIP (%s)",
+				netLabel, dhcp.IPRange.ToIP)
+		}
+		// This also checks that fromIP and toIP have the correct IP version.
+		if !subnet.Contains(fromIP) || !subnet.Contains(toIP) {
+			return fmt.Errorf("network %s has DHCP IP range outside of the subnet",
+				netLabel)
+		}
+		if bytes.Compare(fromIP, toIP) > 0 {
+			return fmt.Errorf("network %s has DHCP IP range where FromIP > ToIP",
+				netLabel)
+		}
+	}
+	for _, dns := range dhcp.PublicDNS {
+		dnsIP := net.ParseIP(dns)
+		if dnsIP == nil {
+			return fmt.Errorf("network %s has invalid public DNS server IP (%s)",
+				netLabel, dns)
+		}
+		if shouldBeIPv4 && dnsIP.To4() == nil {
+			return fmt.Errorf("expected IPv4 DNS server address for network %s, got: %v",
+				netLabel, dnsIP)
+		}
+		if shouldBeIPv6 && dnsIP.To4() != nil {
+			return fmt.Errorf("expected IPv6 DNS server address for network %s, got: %v",
+				netLabel, dnsIP)
+		}
+	}
+	if dhcp.PrivateNTP != "" && dhcp.PublicNTP != "" {
+		return fmt.Errorf("network %s has both public and private NTP configured",
+			netLabel)
+	}
+	for _, entry := range dhcp.StaticEntries {
+		if _, err = net.ParseMAC(entry.MAC); err != nil {
+			return fmt.Errorf("network %s has static DHCP entry with invalid MAC (%s)",
+				netLabel, entry.MAC)
+		}
+		ip := net.ParseIP(entry.IP)
+		if ip == nil {
+			return fmt.Errorf("network %s has static DHCP entry with invalid IP (%s)",
+				netLabel, entry.IP)
+		}
+		if shouldBeIPv4 && ip.To4() == nil {
+			return fmt.Errorf("expected IPv4 static DHCP entry for network %s, got: %v",
+				netLabel, ip)
+		}
+		if shouldBeIPv6 && ip.To4() != nil {
+			return fmt.Errorf("expected IPv6 static DHCP entry for network %s, got: %v",
+				netLabel, ip)
+		}
+	}
+	if shouldBeIPv6 && dhcp.WPAD != "" {
+		return fmt.Errorf(
+			"network %s configured with WPAD URL (%s) which is not supported for IPv6",
+			netLabel, dhcp.WPAD)
+	}
 	return nil
 }
 
 func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
-	// TODO
-	//  - NetbootArtifacts:
-	//      - exactly one is entrypoint, Filename and URL are non-empty
+	//nolint:godox
+	// TODO: NetbootArtifacts
 	for _, client := range netModel.Endpoints.Clients {
 		if err = a.validateEndpoint(client.Endpoint); err != nil {
 			return
@@ -282,7 +351,11 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 				return
 			}
 			if strings.HasPrefix(entry.IP, api.EndpointIPRefPrefix) ||
-				strings.HasPrefix(entry.IP, api.AdamIPRef) {
+				strings.HasPrefix(entry.IP, api.EndpointIPv4RefPrefix) ||
+				strings.HasPrefix(entry.IP, api.EndpointIPv6RefPrefix) ||
+				entry.IP == api.AdamIPRef ||
+				entry.IP == api.AdamIPv4Ref ||
+				entry.IP == api.AdamIPv6Ref {
 				// Do not try to parse IP, it is a symbolic reference.
 				continue
 			}
@@ -403,31 +476,25 @@ func (a *agent) validateEndpoints(netModel *parsedNetModel) (err error) {
 }
 
 func (a *agent) validateEndpoint(endpoint api.Endpoint) (err error) {
-	// Validate Subnet.
-	if endpoint.Subnet != "" {
-		_, subnet, err := net.ParseCIDR(endpoint.Subnet)
+	if endpoint.IsDualStack() {
+		err = a.validateEndpointIPConfig(endpoint.LogicalLabel, endpoint.DualStack.IPv4,
+			true, false)
 		if err != nil {
-			return fmt.Errorf("endpoint %s with invalid subnet '%s': %w",
-				endpoint.LogicalLabel, endpoint.Subnet, err)
+			return
 		}
-		ones, bits := subnet.Mask.Size()
-		if bits-ones < 2 {
-			return fmt.Errorf("endpoint %s uses subnet with less than 2 host IPs (%s)",
-				endpoint.LogicalLabel, endpoint.Subnet)
+		err = a.validateEndpointIPConfig(endpoint.LogicalLabel, endpoint.DualStack.IPv6,
+			false, true)
+		if err != nil {
+			return
 		}
-		// Validate IP address.
-		if endpoint.IP != "" {
-			ip := net.ParseIP(endpoint.IP)
-			if ip == nil {
-				return fmt.Errorf("endpoint %s with invalid IP address (%s)",
-					endpoint.LogicalLabel, endpoint.IP)
-			}
-			if !subnet.Contains(ip) {
-				return fmt.Errorf("endpoint %s has IP (%s) address outside of the configured "+
-					"subnet (%s)", endpoint.LogicalLabel, endpoint.IP, endpoint.Subnet)
-			}
+	} else {
+		err = a.validateEndpointIPConfig(endpoint.LogicalLabel, endpoint.EndpointIPConfig,
+			false, false)
+		if err != nil {
+			return
 		}
 	}
+
 	// Validate MTU settings.
 	if endpoint.MTU != 0 && endpoint.MTU < minMTU {
 		return fmt.Errorf("MTU %d configured for endpoint %s is too small",
@@ -436,6 +503,44 @@ func (a *agent) validateEndpoint(endpoint api.Endpoint) (err error) {
 	if endpoint.MTU > maxMTU {
 		return fmt.Errorf("MTU %d configured for endpoint %s is too large",
 			endpoint.MTU, endpoint.LogicalLabel)
+	}
+	return nil
+}
+
+func (a *agent) validateEndpointIPConfig(epLabel string, epIPConf api.EndpointIPConfig,
+	shouldBeIPv4, shouldBeIPv6 bool) error {
+	if epIPConf.Subnet == "" {
+		// L2-only endpoint.
+		return nil
+	}
+	_, subnet, err := net.ParseCIDR(epIPConf.Subnet)
+	if err != nil {
+		return fmt.Errorf("endpoint %s with invalid subnet '%s': %w",
+			epLabel, epIPConf.Subnet, err)
+	}
+	if shouldBeIPv4 && subnet.IP.To4() == nil {
+		return fmt.Errorf("expected IPv4 subnet for endpoint %s, got: %v",
+			epLabel, subnet)
+	}
+	if shouldBeIPv6 && subnet.IP.To4() != nil {
+		return fmt.Errorf("expected IPv6 subnet for endpoint %s, got: %v",
+			epLabel, subnet)
+	}
+	ones, bits := subnet.Mask.Size()
+	if bits-ones < 2 {
+		return fmt.Errorf("endpoint %s uses subnet with less than 2 host IPs (%s)",
+			epLabel, epIPConf.Subnet)
+	}
+	// Validate IP address.
+	ip := net.ParseIP(epIPConf.IP)
+	if ip == nil {
+		return fmt.Errorf("endpoint %s with invalid IP address (%s)",
+			epLabel, epIPConf.IP)
+	}
+	// This also checks that endpoint IP has the correct IP version.
+	if !subnet.Contains(ip) {
+		return fmt.Errorf("endpoint %s has IP (%s) address outside of the configured "+
+			"subnet (%s)", epLabel, epIPConf.IP, epIPConf.Subnet)
 	}
 	return nil
 }
@@ -482,8 +587,11 @@ func (a *agent) validateHostConfig(netModel *parsedNetModel) (err error) {
 		}
 		if ip.IsGlobalUnicast() {
 			routableHostIP = true
-			netModel.hostIP = ip
-			break
+			if ip.To4() != nil {
+				netModel.hostIPv4 = ip.To4()
+			} else {
+				netModel.hostIPv6 = ip.To16()
+			}
 		}
 	}
 	if !routableHostIP {

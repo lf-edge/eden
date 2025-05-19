@@ -1,0 +1,55 @@
+{
+  "ports": [
+    {
+      "logicalLabel": "eveport0",
+      "adminUP": true
+    }
+  ],
+  "bridges": [
+    {
+      "logicalLabel": "bridge0",
+      "ports": ["eveport0"]
+    }
+  ],
+  "networks": [
+    {
+      "logicalLabel": "network0",
+      "bridge": "bridge0",
+      "subnet": "fd5e:1821:efe1::/64",
+      "gwIP": "fd5e:1821:efe1::1",
+      "dhcp": {
+        "enable": true,
+        "ipRange": {
+          "fromIP": "fd5e:1821:efe1::10",
+          "toIP": "fd5e:1821:efe1::20"
+        },
+        "domainName": "sdn",
+        "privateDNS": ["my-dns-server"]
+      },
+      "router": {
+        "outsideReachability": true,
+        "reachableEndpoints": ["my-dns-server"]
+      }
+    }
+  ],
+  "endpoints": {
+    "dnsServers": [
+      {
+        "logicalLabel": "my-dns-server",
+        "fqdn": "my-dns-server.sdn",
+        "subnet": "fd30:eff3:45b1:5243::/64",
+        "ip": "fd30:eff3:45b1:5243::53",
+        "staticEntries": [
+          {
+            "fqdn": "mydomain.adam",
+            "ip": "adam-ipv6"
+          }
+        ],
+        "upstreamServers": [
+          "2001:4860:4860::8888",
+          "2606:4700:4700::1111"
+        ]
+      }
+    ]
+  }
+}

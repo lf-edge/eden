@@ -30,6 +30,8 @@ linters:
     - nestif            # Too opinionated on existing code
     - gomoddirectives   # We use replacements in go mod
     - cyclop            # Raises warnings even for relatively simple functions
+    - ifshort           # Proposes changes which make code less readable
+    - maintidx          # Raises warnings even for relatively simple functions
 
 issues:
   max-issues-per-linter: 0
