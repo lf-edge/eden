@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -282,9 +283,15 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		log.Fatal(err)
 	}
 
-	ip, err := GetIPForDockerAccess()
+	ipv4, ipv6, err := GetIPForDockerAccess()
 	if err != nil {
 		return err
+	}
+	var ip string
+	if ipv4 != nil {
+		ip = ipv4.String()
+	} else {
+		ip = ipv6.String()
 	}
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -330,7 +337,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "adam.ip":
 			return ip
 		case "adam.redis.eden":
-			return fmt.Sprintf("%s:%d", ip, defaults.DefaultRedisPort)
+			return net.JoinHostPort(ip, fmt.Sprintf("%d", defaults.DefaultRedisPort))
 		case "adam.redis.adam":
 			return fmt.Sprintf("%s:%d", defaults.DefaultRedisContainerName, defaults.DefaultRedisPort)
 		case "adam.force":
@@ -470,6 +477,10 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultTestProg
 		case "eden.test-scenario":
 			return defaults.DefaultTestScenario
+		case "eden.enable-ipv6":
+			return false
+		case "eden.ipv6-subnet":
+			return defaults.DefaultDockerNetIPv6Subnet
 
 		case "gcp.key":
 			return ""
@@ -519,6 +530,10 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultSdnMgmtPort
 		case "sdn.network-model":
 			return ""
+		case "sdn.enable-ipv6":
+			return false
+		case "sdn.ipv6-subnet":
+			return defaults.DefaultSdnIPv6Subnet
 
 		default:
 			log.Fatalf("Not found argument %s in config", inp)

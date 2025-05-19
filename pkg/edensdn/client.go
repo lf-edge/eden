@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -194,7 +195,8 @@ func (client *SdnClient) SSHIntoSdnVM() error {
 // Close the tunnel by running returned "close" function.
 func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 	targetIP string) (close func(), err error) {
-	fwdArgs := fmt.Sprintf("%d:%s:%d", localPort, targetIP, targetPort)
+	targetAddr := net.JoinHostPort(targetIP, strconv.Itoa(int(targetPort)))
+	fwdArgs := fmt.Sprintf("%d:%s", localPort, targetAddr)
 	args := client.sshArgs("-v", "-T", "-L", fwdArgs, "tail", "-f", "/dev/null")
 	cmd := exec.Command("ssh", args...)
 	stdout, err := cmd.StdoutPipe()
@@ -213,6 +215,8 @@ func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 			"forwarded to remote address %s:%d", localPort, targetIP, targetPort)
 		listenMsg := fmt.Sprintf("Local forwarding listening on 127.0.0.1 port %d",
 			localPort)
+		listenMsgIPv6 := fmt.Sprintf("Local forwarding listening on ::1 port %d",
+			localPort)
 		sshReadyMsg := "Entering interactive session"
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
@@ -221,6 +225,9 @@ func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 				fwdReady = true
 			}
 			if strings.Contains(line, listenMsg) {
+				listenerReady = true
+			}
+			if strings.Contains(line, listenMsgIPv6) {
 				listenerReady = true
 			}
 			if strings.Contains(line, sshReadyMsg) {

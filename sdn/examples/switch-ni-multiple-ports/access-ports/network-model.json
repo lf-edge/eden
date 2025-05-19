@@ -131,8 +131,7 @@
         "ip": "10.203.10.10",
         "httpPort": 80,
         "directL2Connect": {
-          "bridge": "bridge2",
-          "vlanID": 100
+          "bridge": "bridge2"
         },
         "paths": {
           "/helloworld": {
@@ -148,8 +147,7 @@
         "ip": "10.203.20.10",
         "httpPort": 80,
         "directL2Connect": {
-          "bridge": "bridge3",
-          "vlanID": 200
+          "bridge": "bridge3"
         },
         "paths": {
           "/helloworld": {

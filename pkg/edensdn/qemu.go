@@ -80,10 +80,19 @@ func (vm *SdnVMQemuRunner) Start() error {
 		socketPort++
 	}
 
+	// IPv6 config.
+	ipv6Conf := "off"
+	if vm.EnableIPv6 {
+		ipv6Conf = "on"
+		if vm.IPv6Subnet != "" {
+			ipv6Conf += ",ipv6-net=" + vm.IPv6Subnet
+		}
+	}
+
 	// Management port.
-	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,net=%s,dhcpstart=%s,ipv6=off,"+
-		"hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:6666", len(vm.NetModel.Ports), vm.MgmtSubnet.String(),
-		vm.MgmtSubnet.DHCPStart.String(), vm.SSHPort, vm.MgmtPort)
+	qemuOptions += fmt.Sprintf("-netdev user,id=eth%d,ipv4=on,net=%s,"+
+		"dhcpstart=%s,ipv6=%s,hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:6666", len(vm.NetModel.Ports),
+		vm.MgmtSubnet.String(), vm.MgmtSubnet.DHCPStart.String(), ipv6Conf, vm.SSHPort, vm.MgmtPort)
 	qemuOptions += fmt.Sprintf(" -device %s,netdev=eth%d,mac=%s ", netDev,
 		len(vm.NetModel.Ports), GenerateSdnMgmtMAC())
 	_ = os.Chmod(vm.SSHKeyPath, 0600)

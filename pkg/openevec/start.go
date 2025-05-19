@@ -20,7 +20,8 @@ func (openEVEC *OpenEVEC) StartAdam() error {
 		cfg.Adam.Redis.RemoteURL = ""
 	}
 
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, cfg.Adam.Force, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, cfg.Adam.Force, cfg.Adam.Tag,
+		cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1, cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		return fmt.Errorf("cannot start adam: %w", err)
 	}
 	log.Infof("Adam is runnig and accessible on port %d", cfg.Adam.Port)
@@ -38,7 +39,8 @@ func (openEVEC *OpenEVEC) GetAdamStatus() (string, error) {
 
 func (openEVEC *OpenEVEC) StartRedis() error {
 	cfg := openEVEC.cfg
-	if err := eden.StartRedis(cfg.Redis.Port, cfg.Adam.Redis.Dist, cfg.Redis.Force, cfg.Redis.Tag); err != nil {
+	if err := eden.StartRedis(cfg.Redis.Port, cfg.Adam.Redis.Dist, cfg.Redis.Force, cfg.Redis.Tag,
+		cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		return fmt.Errorf("cannot start redis: %w", err)
 	}
 	log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
@@ -47,7 +49,8 @@ func (openEVEC *OpenEVEC) StartRedis() error {
 
 func (openEVEC *OpenEVEC) StartRegistry() error {
 	cfg := openEVEC.cfg
-	if err := eden.StartRegistry(cfg.Registry.Port, cfg.Registry.Tag, cfg.Registry.Dist); err != nil {
+	if err := eden.StartRegistry(cfg.Registry.Port, cfg.Registry.Tag, cfg.Registry.Dist,
+		cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		return fmt.Errorf("cannot start registry: %w", err)
 	}
 	log.Infof("registry is running and accesible on port %d", cfg.Registry.Port)
@@ -56,7 +59,8 @@ func (openEVEC *OpenEVEC) StartRegistry() error {
 
 func (openEVEC *OpenEVEC) StartEServer() error {
 	cfg := openEVEC.cfg
-	if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.Images.EServerImageDist, cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag); err != nil {
+	if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.Images.EServerImageDist,
+		cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag, cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		return fmt.Errorf("cannot start eserver: %w", err)
 	}
 	log.Infof("Eserver is running and accesible on port %d", cfg.Eden.EServer.Port)

@@ -26,40 +26,44 @@ import (
 func runExplicitProxy(proxyConfig config.ProxyConfig) {
 	// Run HTTP proxy.
 	if proxyConfig.HTTPPort.Port != 0 {
-		httpProxy := newProxy(proxyConfig)
-		installProxyHandlers(proxyConfig, false, false, httpProxy)
-		runExplicitProxyListener(proxyConfig, proxyConfig.HTTPPort, httpProxy)
+		runExplicitProxyListener(proxyConfig, proxyConfig.HTTPPort, false)
 	}
 
 	// Run HTTPS proxy(ies).
 	for _, port := range proxyConfig.HTTPSPorts {
-		httpsProxy := newProxy(proxyConfig)
-		installProxyHandlers(proxyConfig, true, false, httpsProxy)
-		runExplicitProxyListener(proxyConfig, port, httpsProxy)
+		runExplicitProxyListener(proxyConfig, port, true)
 	}
 }
 
-func runExplicitProxyListener(proxyConfig config.ProxyConfig, proxyPort sdnapi.ProxyPort,
-	proxy *goproxy.ProxyHttpServer) {
+func runExplicitProxyListener(
+	proxyConfig config.ProxyConfig, proxyPort sdnapi.ProxyPort, https bool) {
 	var listenHTTPS bool
 	if proxyPort.ListenProto == sdnapi.ProxyListenProtoHTTPS {
 		listenHTTPS = true
 	}
 	if listenHTTPS {
-		ip := net.ParseIP(proxyConfig.ListenIP)
-		if ip == nil {
-			log.Fatalf("Failed to parse proxy IP: %v", proxyConfig.ListenIP)
+		for _, listenIP := range proxyConfig.ListenIPs {
+			ip := net.ParseIP(listenIP)
+			if ip == nil {
+				log.Fatalf("Failed to parse proxy IP: %v", listenIP)
+			}
+			proxy := newProxy(proxyConfig)
+			installProxyHandlers(proxyConfig, https, false, proxy)
+			go func(ip net.IP, port uint16, proxy *goproxy.ProxyHttpServer) {
+				log.Fatalln(listenAndServeTLS(ip, port, proxyConfig.Hostname,
+					[]byte(proxyConfig.CACertPEM), []byte(proxyConfig.CAKeyPEM),
+					proxy))
+			}(ip, proxyPort.Port, proxy)
 		}
-		go func(port uint16) {
-			log.Fatalln(listenAndServeTLS(ip, port, proxyConfig.Hostname,
-				[]byte(proxyConfig.CACertPEM), []byte(proxyConfig.CAKeyPEM),
-				proxy))
-		}(proxyPort.Port)
 	} else {
-		proxyAddr := fmt.Sprintf("%s:%d", proxyConfig.ListenIP, proxyPort.Port)
-		go func() {
-			log.Fatalln(http.ListenAndServe(proxyAddr, proxy))
-		}()
+		for _, listenIP := range proxyConfig.ListenIPs {
+			proxyAddr := net.JoinHostPort(listenIP, fmt.Sprintf("%d", proxyPort.Port))
+			proxy := newProxy(proxyConfig)
+			installProxyHandlers(proxyConfig, https, false, proxy)
+			go func(addr string, proxy *goproxy.ProxyHttpServer) {
+				log.Fatalln(http.ListenAndServe(addr, proxy))
+			}(proxyAddr, proxy)
+		}
 	}
 }
 
@@ -99,7 +103,7 @@ func listenAndServeTLS(ip net.IP, port uint16, hostname string,
 			ip, hostname, err)
 	}
 
-	addr := fmt.Sprintf("%s:%d", ip.String(), port)
+	addr := net.JoinHostPort(ip.String(), fmt.Sprintf("%d", port))
 	server := &http.Server{Addr: addr, Handler: handler}
 
 	config := &tls.Config{MinVersion: tls.VersionTLS12}

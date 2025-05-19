@@ -1,6 +1,6 @@
 module github.com/lf-edge/eden/sdn/vm
 
-go 1.16
+go 1.22
 
 require (
 	github.com/elazarl/goproxy v0.0.0-20220529153421-8ea89ba92021

@@ -16,9 +16,10 @@ require (
 	github.com/google/go-containerregistry v0.19.1
 	github.com/google/uuid v1.6.0
 	github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67
-	github.com/lf-edge/eden/sdn/vm v0.0.0-00010101000000-000000000000
+	github.com/lf-edge/eden/sdn/vm v0.0.0-20250314212201-6f1e0716172f
 	github.com/lf-edge/edge-containers v0.0.0-20240207093504-5dfda0619b80
 	github.com/lf-edge/eve-api/go v0.0.0-20240829123634-7c8ebda876ff
+	github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/term v0.5.0
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
@@ -90,7 +91,6 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496 // indirect
-	github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513 // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

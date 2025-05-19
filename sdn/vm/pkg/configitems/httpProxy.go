@@ -37,10 +37,10 @@ type HttpProxy struct {
 	// (other types of interfaces are currently not supported)
 	// Can be empty (if the proxy is not associated with any particular interface).
 	VethName string
-	// ListenIP : IP address on which the proxy should listen.
+	// ListenIPs : IP addresses on which the proxy should listen.
 	// Can be empty to listen on all available interfaces instead of just
-	// the interface with the given host address
-	ListenIP net.IP
+	// the interfaces with the given host addresses.
+	ListenIPs []net.IP
 	// Hostname : domain name of the proxy.
 	Hostname string
 	// HTTPPort : specify on which port+protocol to listen for requests
@@ -101,7 +101,7 @@ func (p HttpProxy) Equal(other depgraph.Item) bool {
 	}
 	return p.NetNamespace == p2.NetNamespace &&
 		p.VethName == p2.VethName &&
-		p.ListenIP.Equal(p2.ListenIP) &&
+		equalIPLists(p.ListenIPs, p2.ListenIPs) &&
 		p.Hostname == p2.Hostname &&
 		p.HTTPPort == p2.HTTPPort &&
 		p.Transparent == p2.Transparent &&
@@ -163,12 +163,12 @@ func (c *HttpProxyConfigurator) createGoproxyConfFile(proxy HttpProxy) error {
 	}
 	proxyName := proxy.ProxyName
 	// Prepare configuration.
-	var listenIP string
-	if proxy.ListenIP != nil {
-		listenIP = proxy.ListenIP.String()
+	listenIPs := make([]string, 0, len(proxy.ListenIPs))
+	for _, ip := range proxy.ListenIPs {
+		listenIPs = append(listenIPs, ip.String())
 	}
 	config := goproxycfg.ProxyConfig{
-		ListenIP:    listenIP,
+		ListenIPs:   listenIPs,
 		Hostname:    proxy.Hostname,
 		HTTPPort:    proxy.HTTPPort,
 		HTTPSPorts:  proxy.HTTPSPorts,

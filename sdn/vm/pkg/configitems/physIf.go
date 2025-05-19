@@ -33,7 +33,10 @@ func (p PhysIf) Type() string {
 
 // Equal is a comparison method for two PhysIf instances.
 func (p PhysIf) Equal(other depgraph.Item) bool {
-	p2 := other.(PhysIf)
+	p2, isPhysIf := other.(PhysIf)
+	if !isPhysIf {
+		return false
+	}
 	return p.LogicalLabel == p2.LogicalLabel
 }
 

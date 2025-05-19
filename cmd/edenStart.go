@@ -84,4 +84,5 @@ func addSdnStartOpts(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
 	addSdnLogOpt(parentCmd, cfg)
 	addSdnImageOpt(parentCmd, cfg)
 	addSdnDisableOpt(parentCmd, cfg)
+	addSdnIPv6Opt(parentCmd, cfg)
 }

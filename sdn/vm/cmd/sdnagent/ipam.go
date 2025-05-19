@@ -9,13 +9,18 @@ import (
 )
 
 var intOne = big.NewInt(1)
-var internalIPv4Base *ipAsInt
-var internalIPv4Subnet *net.IPNet
+var internalIPv4Base, internalIPv6Base *ipAsInt
+var internalIPv4Subnet, internalIPv6Subnet *net.IPNet
 
 func init() {
-	// 240.0.0.0/4 is reserved
+	// 240.0.0.0/4 is reserved for internal use in SDN VM,
+	// to allocate subnets between Network namespaces and the SDN Router.
 	internalIPv4Base = ipToInt(net.ParseIP("240.0.0.0"))
 	_, internalIPv4Subnet, _ = net.ParseCIDR("240.0.0.0/4")
+	// fdfb:a84d:cb2a::/48 is reserved for internal use in SDN VM,
+	// to allocate subnets between Network namespaces and the SDN Router.
+	internalIPv6Base = ipToInt(net.ParseIP("fdfb:a84d:cb2a::"))
+	_, internalIPv6Subnet, _ = net.ParseCIDR("fdfb:a84d:cb2a::/48")
 }
 
 type ipAsInt struct {
@@ -93,14 +98,21 @@ func (ip *ipAsInt) ToIP() net.IP {
 }
 
 func (a *agent) genVethIPsForNetwork(logicalLabel string, ipv6 bool) (ip1, ip2 *net.IPNet) {
-	if ipv6 {
-		// TODO
-		log.Fatal("IPv6 is not yet implemented")
-	}
 	index, hasIndex := a.networkIndex[logicalLabel]
 	if !hasIndex {
 		log.Fatalf("missing index for network %s", logicalLabel)
 	}
+	if ipv6 {
+		// Each network is allocated /64 subnet for internally used veths.
+		mask := net.CIDRMask(64, 128)
+		base := internalIPv6Base.Copy()
+		subnet := new(big.Int).Lsh(big.NewInt(int64(index)), 64)
+		base.num.Or(base.num, subnet)
+		ip1 = &net.IPNet{IP: base.Inc(1).ToIP(), Mask: mask}
+		ip2 = &net.IPNet{IP: base.Inc(1).ToIP(), Mask: mask}
+		return
+	}
+
 	// Each network is allocated /30 subnet for internally used veths.
 	mask := net.CIDRMask(30, 32)
 	base := internalIPv4Base.Copy()

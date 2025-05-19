@@ -38,7 +38,8 @@ const bootstrapFilename = "bootstrap-config.pb"
 
 // StartRedis function run redis in docker with mounted redisPath:/data
 // if redisForce is set, it recreates container
-func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string) (err error) {
+func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag string,
+	enableIPv6 bool, ipv6Subnet string) (err error) {
 	portMap := map[string]string{"6379": strconv.Itoa(redisPort)}
 	volumeMap := map[string]string{"/data": redisPath}
 	redisServerCommand := strings.Fields("redis-server --appendonly yes")
@@ -61,7 +62,9 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 	}
 	if redisForce {
 		_ = utils.StopContainer(defaults.DefaultRedisContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
+		if err := utils.CreateAndRunContainer(
+			defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag,
+			portMap, volumeMap, redisServerCommand, nil, enableIPv6, ipv6Subnet); err != nil {
 			return fmt.Errorf("StartRedis: error in create redis container: %s", err)
 		}
 	} else {
@@ -70,7 +73,9 @@ func StartRedis(redisPort int, redisPath string, redisForce bool, redisTag strin
 			return fmt.Errorf("StartRedis: error in get state of redis container: %s", err)
 		}
 		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag, portMap, volumeMap, redisServerCommand, nil); err != nil {
+			if err := utils.CreateAndRunContainer(
+				defaults.DefaultRedisContainerName, defaults.DefaultRedisContainerRef+":"+redisTag,
+				portMap, volumeMap, redisServerCommand, nil, enableIPv6, ipv6Subnet); err != nil {
 				return fmt.Errorf("StartRedis: error in create redis container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
@@ -124,7 +129,8 @@ func StatusRedis() (status string, err error) {
 
 // StartAdam function run adam in docker with mounted adamPath/run:/adam/run
 // if adamForce is set, it recreates container
-func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, adamRemoteRedisURL string, apiV1 bool, opts ...string) (err error) {
+func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string,
+	adamRemoteRedisURL string, apiV1 bool, enableIPv6 bool, ipv6Subnet string, opts ...string) (err error) {
 	edenHome, err := utils.DefaultEdenDir()
 	if err != nil {
 		return err
@@ -181,7 +187,9 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 
 	if adamForce {
 		_ = utils.StopContainer(defaults.DefaultAdamContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, nil); err != nil {
+		if err := utils.CreateAndRunContainer(
+			defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag,
+			portMap, volumeMap, adamServerCommand, nil, enableIPv6, ipv6Subnet); err != nil {
 			return fmt.Errorf("StartAdam: error in create adam container: %s", err)
 		}
 	} else {
@@ -190,7 +198,9 @@ func StartAdam(adamPort int, adamPath string, adamForce bool, adamTag string, ad
 			return fmt.Errorf("StartAdam: error in get state of adam container: %s", err)
 		}
 		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag, portMap, volumeMap, adamServerCommand, nil); err != nil {
+			if err := utils.CreateAndRunContainer(
+				defaults.DefaultAdamContainerName, defaults.DefaultAdamContainerRef+":"+adamTag,
+				portMap, volumeMap, adamServerCommand, nil, enableIPv6, ipv6Subnet); err != nil {
 				return fmt.Errorf("StartAdam: error in create adam container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {
@@ -243,7 +253,7 @@ func StatusAdam() (status string, err error) {
 }
 
 // StartRegistry function run registry in docker
-func StartRegistry(port int, tag, registryPath string, opts ...string) (err error) {
+func StartRegistry(port int, tag, registryPath string, enableIPv6 bool, ipv6Subnet string, opts ...string) (err error) {
 	containerName := defaults.DefaultRegistryContainerName
 	ref := defaults.DefaultRegistryContainerRef
 	serviceName := "registry"
@@ -256,7 +266,8 @@ func StartRegistry(port int, tag, registryPath string, opts ...string) (err erro
 		return fmt.Errorf("StartRegistry: error in get state of %s container: %s", serviceName, err)
 	}
 	if state == "" {
-		if err := utils.CreateAndRunContainer(containerName, ref+":"+tag, portMap, volumeMap, cmd, nil); err != nil {
+		if err := utils.CreateAndRunContainer(
+			containerName, ref+":"+tag, portMap, volumeMap, cmd, nil, enableIPv6, ipv6Subnet); err != nil {
 			return fmt.Errorf("StartRegistry: error in create %s container: %s", serviceName, err)
 		}
 	} else if !strings.Contains(state, "running") {
@@ -313,7 +324,8 @@ func StatusRegistry() (status string, err error) {
 
 // StartEServer function run eserver in docker
 // if eserverForce is set, it recreates container
-func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTag string) (err error) {
+func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTag string,
+	enableIPv6 bool, ipv6Subnet string) (err error) {
 	portMap := map[string]string{"8888": strconv.Itoa(serverPort)}
 	volumeMap := map[string]string{"/eserver/run/eserver/": imageDist}
 	eserverServerCommand := strings.Fields("server")
@@ -323,7 +335,9 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 	}
 	if eserverForce {
 		_ = utils.StopContainer(defaults.DefaultEServerContainerName, true)
-		if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand, nil); err != nil {
+		if err := utils.CreateAndRunContainer(
+			defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag,
+			portMap, volumeMap, eserverServerCommand, nil, enableIPv6, ipv6Subnet); err != nil {
 			return fmt.Errorf("StartEServer: error in create eserver container: %s", err)
 		}
 	} else {
@@ -332,7 +346,9 @@ func StartEServer(serverPort int, imageDist string, eserverForce bool, eserverTa
 			return fmt.Errorf("StartEServer: error in get state of eserver container: %s", err)
 		}
 		if state == "" {
-			if err := utils.CreateAndRunContainer(defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag, portMap, volumeMap, eserverServerCommand, nil); err != nil {
+			if err := utils.CreateAndRunContainer(
+				defaults.DefaultEServerContainerName, defaults.DefaultEServerContainerRef+":"+eserverTag,
+				portMap, volumeMap, eserverServerCommand, nil, enableIPv6, ipv6Subnet); err != nil {
 				return fmt.Errorf("StartEServer: error in create eserver container: %s", err)
 			}
 		} else if !strings.Contains(state, "running") {

@@ -38,4 +38,6 @@ const (
 	HTTPServerTypename = "HTTP-Server"
 	// TrafficControlTypename : typename for TC rules applied to physical interface.
 	TrafficControlTypename = "Traffic-Control"
+	// RadvdTypename : typename for radvd - router advertisement daemon for IPv6.
+	RadvdTypename = "Radvd"
 )

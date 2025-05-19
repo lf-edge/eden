@@ -67,7 +67,7 @@ func (openEVEC *OpenEVEC) SetupEden(configName, configDir, softSerial, zedContro
 	}
 
 	// Build Eden-SDN VM image unless the SDN is disabled.
-	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if cfg.IsSdnEnabled() {
 		if err := setupSdn(cfg); err != nil {
 			return fmt.Errorf("cannot setup Sdn: %w", err)
 		}
@@ -196,7 +196,8 @@ func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg Eden
 		if err := utils.DownloadEveNetBoot(eveDesc, filepath.Dir(cfg.Eve.ImageFile)); err != nil {
 			return fmt.Errorf("cannot download EVE: %w", err)
 		}
-		if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.EServer.Images.EServerImageDist, cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag); err != nil {
+		if err := eden.StartEServer(cfg.Eden.EServer.Port, cfg.Eden.EServer.Images.EServerImageDist,
+			cfg.Eden.EServer.Force, cfg.Eden.EServer.Tag, cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 			log.Errorf("cannot start eserver: %s", err.Error())
 		} else {
 			log.Infof("Eserver is running and accessible on port %d", cfg.Eden.EServer.Port)
@@ -370,7 +371,8 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 	return nil
 }
 
-func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL string, grubOptions []string) error {
+func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial,
+	zedControlURL string, grubOptions []string) error {
 	if _, err := os.Stat(filepath.Join(cfg.Eden.CertsDir, "root-certificate.pem")); os.IsNotExist(err) {
 		wifiPSK := ""
 		if cfg.Eve.Ssid != "" {
@@ -397,14 +399,14 @@ func setupConfigDir(cfg EdenSetupArgs, eveConfigDir, softSerial, zedControlURL s
 	}
 	if zedControlURL == "" {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, cfg.Adam.CertsDomain, cfg.Adam.CertsEVEIP,
-			cfg.Adam.Port, cfg.Adam.APIv1, softSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
+			cfg.Adam.Port, cfg.Adam.APIv1, softSerial, cfg.Eve.BootstrapFile, cfg.IsSdnEnabled())
 		if err != nil {
 			return fmt.Errorf("cannot GenerateEVEConfig: %w", err)
 		}
 		log.Info("GenerateEVEConfig done")
 	} else {
 		err := eden.GenerateEVEConfig(cfg.Eve.DevModel, cfg.Eden.CertsDir, zedControlURL, "", 0,
-			false, softSerial, cfg.Eve.BootstrapFile, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel))
+			false, softSerial, cfg.Eve.BootstrapFile, cfg.IsSdnEnabled())
 		if err != nil {
 			return fmt.Errorf("cannot GenerateEVEConfig: %w", err)
 		}
@@ -704,12 +706,14 @@ func (openEVEC *OpenEVEC) EdenExport(tarFile string) error {
 	cfg := openEVEC.cfg
 	changer := &adamChanger{}
 	// we need to obtain information about EVE from Adam
-	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag); err != nil {
+	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag,
+		cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		return fmt.Errorf("cannot start redis: %w", err)
 	} else {
 		log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 	}
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag,
+		cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1, cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		return fmt.Errorf("cannot start adam: %w", err)
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)
@@ -773,12 +777,14 @@ func (openEVEC *OpenEVEC) EdenImport(tarFile string, rewriteRoot bool) error {
 		}
 	}
 	// we need to put information about EVE into Adam
-	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag); err != nil {
+	if err := eden.StartRedis(cfg.Redis.Port, cfg.Redis.Dist, false, cfg.Redis.Tag,
+		cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		log.Errorf("cannot start redis: %s", err.Error())
 	} else {
 		log.Infof("Redis is running and accessible on port %d", cfg.Redis.Port)
 	}
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, false, cfg.Adam.Tag,
+		cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1, cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		log.Errorf("cannot start adam: %s", err.Error())
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)

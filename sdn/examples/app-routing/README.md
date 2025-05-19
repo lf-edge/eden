@@ -162,12 +162,9 @@ default via 10.50.0.1 dev eth0
 10.20.20.0/24 via 10.50.0.1 dev eth0
 10.21.21.0/24 via 10.50.1.1 dev eth1
 10.22.22.0/24 via 10.50.2.1 dev eth2
-10.50.0.0/24 via 10.50.0.1 dev eth0
-10.50.0.1 dev eth0 scope link src 10.50.0.2
-10.50.1.0/24 via 10.50.1.1 dev eth1
-10.50.1.1 dev eth1 scope link src 10.50.1.2
-10.50.2.0/24 via 10.50.2.1 dev eth2
-10.50.2.1 dev eth2 scope link src 10.50.2.2
+10.50.0.0/24 dev eth0 proto kernel scope link src 10.50.0.2
+10.50.1.0/24 dev eth1 proto kernel scope link src 10.50.1.2
+10.50.2.0/24 dev eth2 proto kernel scope link src 10.50.2.2
 172.22.12.0/24 via 10.50.0.1 dev eth0
 192.168.55.0/24 via 10.50.1.1 dev eth1
 ```
@@ -315,11 +312,9 @@ Inside the application, check IP routing table:
 ```shell
 app-client1$ ip route
 default via 10.50.0.1 dev eth0
-10.50.0.0/24 via 10.50.0.1 dev eth0
-10.50.0.1 dev eth0 scope link src 10.50.0.2
-10.21.21.0/24 via 172.28.1.1 dev eth1
-172.28.1.0/24 via 172.28.1.1 dev eth1
-172.28.1.1 dev eth1 scope link src 172.28.1.3
+10.21.21.0/24 via 172.28.1.2 dev eth1
+10.50.0.0/24 dev eth0 proto kernel scope link src 10.50.0.2
+172.28.1.0/24 dev eth1 proto kernel scope link src 172.28.1.3
 ```
 
 Try to access `httpserver0`, this should not be routed via `app-gw`:
@@ -348,9 +343,8 @@ Check IP routing table:
 
 ```shell
 app-client2$ ip route
-default via 172.28.2.1 dev eth0
-172.28.2.0/24 via 172.28.2.1 dev eth0
-172.28.2.1 dev eth0 scope link src 172.28.2.3
+default via 172.28.2.2 dev eth0
+172.28.2.0/24 dev eth0 proto kernel scope link src 172.28.2.3
 ```
 
 Try to access `httpserver1`. This, just like any request from `app-client2`, will be routed
@@ -370,8 +364,3 @@ CONSOLE="$(eve list-app-consoles | grep 4d88a7c5-64fc-43ee-a58a-f5944bc7872c | g
 eve attach-app-console "$CONSOLE"
 tcpdump -i any -n
 ```
-
-Please be aware that in both examples, you have the opportunity to experiment with
-the `debug.disable.dhcp.all-ones.netmask` config property. Initially, you can try the default
-value of `false`, then switch to `true`, and observe how the IP routing tables of applications
-differ while the behavior from the application's perspective remains consistent.

@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/elazarl/goproxy"
 	"github.com/elazarl/goproxy/ext/auth"
@@ -102,9 +102,9 @@ func installProxyHandlers(proxyConfig config.ProxyConfig, https, transparent boo
 
 func dstPortIs(port, defaultPort uint16) goproxy.ReqConditionFunc {
 	return func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
-		dstHost := strings.Split(req.URL.Host, ":")
-		if len(dstHost) > 1 {
-			dstPort, err := strconv.Atoi(dstHost[1])
+		_, dstPortStr, err := net.SplitHostPort(req.URL.Host)
+		if err == nil {
+			dstPort, err := strconv.Atoi(dstPortStr)
 			if err != nil {
 				log.Errorf("Failed to convert dst port: %v", err)
 				return false
@@ -123,7 +123,7 @@ func dstHostIs(host string) goproxy.ReqConditionFunc {
 			// default rule matching any host
 			return true
 		}
-		dstHost := strings.Split(req.URL.Host, ":")[0]
+		dstHost, _, _ := net.SplitHostPort(req.URL.Host)
 		log.Debugf("dstHostIs %v: %s vs. %s", req, dstHost, host)
 		return dstHost == host
 	}

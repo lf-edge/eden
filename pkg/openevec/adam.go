@@ -24,7 +24,8 @@ func (openEVEC *OpenEVEC) AdamStart() error {
 	if !cfg.Adam.Remote.Redis {
 		cfg.Adam.Redis.RemoteURL = ""
 	}
-	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, cfg.Adam.Force, cfg.Adam.Tag, cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1); err != nil {
+	if err := eden.StartAdam(cfg.Adam.Port, cfg.Adam.Dist, cfg.Adam.Force, cfg.Adam.Tag,
+		cfg.Adam.Redis.RemoteURL, cfg.Adam.APIv1, cfg.Eden.EnableIPv6, cfg.Eden.IPv6Subnet); err != nil {
 		log.Errorf("cannot start adam: %s", err.Error())
 	} else {
 		log.Infof("Adam is running and accessible on port %d", cfg.Adam.Port)

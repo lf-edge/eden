@@ -268,7 +268,12 @@ func (c *NetNamespaceConfigurator) Modify(ctx context.Context, oldItem, newItem 
 
 // Delete removes network namespace.
 func (c *NetNamespaceConfigurator) Delete(ctx context.Context, item depgraph.Item) error {
-	ns := item.(NetNamespace)
+	ns, isNetNs := item.(NetNamespace)
+	if !isNetNs {
+		err := fmt.Errorf("unexpected item type: %T", item)
+		log.Error(err)
+		return err
+	}
 	nsName := normNetNsName(ns.NsName)
 	if nsName == MainNsName {
 		// Main network namespace cannot be deleted.

@@ -7,10 +7,10 @@ import (
 // HttpSrvConfig : HTTP server configuration formatted with JSON and passed to httpsrv
 // using the "-c" command line argument.
 type HttpSrvConfig struct {
-	// ListenIP : IP address to listen on.
+	// ListenIPs : IP addresses to listen on.
 	// Leave empty to listen on all available interfaces instead of just
-	// the interface with the given host address.
-	ListenIP string `json:"listenIP"`
+	// the interfaces with the given host address.
+	ListenIPs []string `json:"listenIPs"`
 	// LogFile : file to write all log messages into.
 	LogFile string `json:"logFile"`
 	// PidFile : file to write httpsrv process PID.

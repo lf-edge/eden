@@ -44,6 +44,8 @@ type EdenConfig struct {
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
 	Tests        string `mapstructure:"tests"`
+	EnableIPv6   bool   `mapstructure:"enable-ipv6" cobraflag:"enable-ipv6"`
+	IPv6Subnet   string `mapstructure:"ipv6-subnet" cobraflag:"ipv6-subnet"`
 
 	EServer EServerConfig `mapstructure:"eserver"`
 
@@ -173,6 +175,8 @@ type SdnConfig struct {
 	MgmtPort       int    `mapstructure:"mgmt-port" cobraflag:"sdn-mgmt-port"`
 	PidFile        string `mapstructure:"pid" cobraflag:"sdn-pid" resolvepath:""`
 	SSHPort        int    `mapstructure:"ssh-port" cobraflag:"sdn-ssh-port"`
+	EnableIPv6     bool   `mapstructure:"enable-ipv6" cobraflag:"sdn-enable-ipv6"`
+	IPv6Subnet     string `mapstructure:"ipv6-subnet" cobraflag:"sdn-ipv6-subnet"`
 }
 
 type EdenSetupArgs struct {
@@ -188,6 +192,13 @@ type EdenSetupArgs struct {
 	ConfigFile string
 	ConfigName string
 	EdenDir    string
+}
+
+// IsSdnEnabled returns true only if kvm/qemu is used, which is the only hypervisor supported
+// by SDN right now.
+func (setupArgs *EdenSetupArgs) IsSdnEnabled() bool {
+	return !setupArgs.Sdn.Disable && setupArgs.Eve.DevModel == defaults.DefaultQemuModel &&
+		!setupArgs.Eve.Remote
 }
 
 // PodConfig store configuration for Pod deployment

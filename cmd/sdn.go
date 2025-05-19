@@ -339,3 +339,8 @@ func addSdnConfigDirOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
 func addSdnLinuxkitOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
 	parentCmd.Flags().StringVarP(&cfg.Sdn.LinuxkitBin, "sdn-linuxkit-bin", "", "", "path to linuxkit binary used to build SDN VM")
 }
+
+func addSdnIPv6Opt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().BoolVarP(&cfg.Sdn.EnableIPv6, "sdn-enable-ipv6", "", false, "Enable IPv6 connectivity for Eden-SDN")
+	parentCmd.Flags().StringVarP(&cfg.Sdn.IPv6Subnet, "sdn-ipv6-subnet", "", defaults.DefaultSdnIPv6Subnet, "IPv6 subnet to use between Eden-SDN and the host")
+}

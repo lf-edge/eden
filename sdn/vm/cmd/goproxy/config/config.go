@@ -7,10 +7,10 @@ import (
 // ProxyConfig : proxy configuration formatted with JSON and passed to goproxy
 // using the "-c" command line argument.
 type ProxyConfig struct {
-	// ListenIP : IP address to listen on.
+	// ListenIPs : IP addresses to listen on.
 	// Leave empty to listen on all available interfaces instead of just
-	// the interface with the given host address.
-	ListenIP string `json:"listenIP"`
+	// the interfaces with the given host addresses.
+	ListenIPs []string `json:"listenIPs"`
 	// Hostname : domain name of the proxy.
 	Hostname string `json:"hostname"`
 	// HTTPPort : specify on which port+protocol to listen for requests

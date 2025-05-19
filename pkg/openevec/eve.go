@@ -54,7 +54,7 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 	// Load network model and prepare SDN config.
 	var err error
 	var netModel sdnapi.NetworkModel
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) || cfg.Sdn.NetModelFile == "" {
+	if !cfg.IsSdnEnabled() || cfg.Sdn.NetModelFile == "" {
 		netModel, err = edensdn.GetDefaultNetModel()
 		if err != nil {
 			return err
@@ -74,7 +74,7 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 		// than Adam is being used.
 		netModel.Host.ControllerPort = 443
 	}
-	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if cfg.IsSdnEnabled() {
 		nets, err := utils.GetSubnetsNotUsed(1)
 		if err != nil {
 			return fmt.Errorf("failed to get unused IP subnet: %w", err)
@@ -106,6 +106,8 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 			NetDevBasePort: uint16(cfg.Eve.QemuConfig.NetDevSocketPort),
 			PidFile:        cfg.Sdn.PidFile,
 			ConsoleLogFile: cfg.Sdn.ConsoleLogFile,
+			EnableIPv6:     cfg.Sdn.EnableIPv6,
+			IPv6Subnet:     cfg.Sdn.IPv6Subnet,
 		}
 		sdnVmRunner, err := edensdn.GetSdnVMRunner(cfg.Eve.DevModel, sdnConfig)
 		if err != nil {
@@ -172,7 +174,7 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
 		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetDevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
-		cfg.Eve.Pid, netModel, isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel), tapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
+		cfg.Eve.Pid, netModel, cfg.IsSdnEnabled(), tapInterface, usbImagePath, cfg.Eve.TPM, false); err != nil {
 		log.Errorf("cannot start eve: %s", err.Error())
 	} else {
 		log.Infof("EVE is starting")
@@ -270,7 +272,7 @@ func (openEVEC *OpenEVEC) StatusEve(vmName string) error {
 
 func (openEVEC *OpenEVEC) GetEveIP(ifName string) string {
 	cfg := openEVEC.cfg
-	if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if cfg.IsSdnEnabled() {
 		// EVE VM is behind SDN VM.
 		if ifName == "" {
 			ifName = "eth0"
@@ -434,7 +436,7 @@ func (openEVEC *OpenEVEC) NewLinkEve(command, eveInterfaceName, vmName string) e
 	if eveInterfaceName != "" {
 		eveIfNames = append(eveIfNames, eveInterfaceName)
 	} else {
-		if isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+		if cfg.IsSdnEnabled() {
 			client := &edensdn.SdnClient{
 				SSHPort:    uint16(cfg.Sdn.SSHPort),
 				SSHKeyPath: sdnSSHKeyPath(cfg.Sdn.SourceDir),

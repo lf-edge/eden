@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/utils"
 	sdnapi "github.com/lf-edge/eden/sdn/vm/api"
@@ -41,15 +40,6 @@ func sdnSSHKeyPath(sdnSourceDir string) string {
 	return filepath.Join(sdnSourceDir, "vm/cert/ssh/id_rsa")
 }
 
-// Run after loading these options from config:
-//   - devModel = viper.GetString("eve.devmodel")
-//   - eveRemote = viper.GetBool("eve.remote")
-//   - loadSdnOptsFromViper()
-func isSdnEnabled(sdnDisable, eveRemote bool, devModel string) bool {
-	// Only supported with QEMU for now.
-	return !sdnDisable && devModel == defaults.DefaultQemuModel && !eveRemote
-}
-
 func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, args ...string) error {
 	cfg := openEVEC.cfg
 	const fwdIPLabel = "FWD_IP"
@@ -75,7 +65,7 @@ func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetP
 	}
 
 	// Case 2: EVE is running inside VM on this host, but without SDN in between
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		if fromEp != "" {
 			log.Warnf("Cannot execute command from an endpoint without SDN running, " +
 				"argument \"from-ep\" will be ignored")
@@ -178,7 +168,7 @@ func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetP
 
 func (openEVEC *OpenEVEC) SdnStatus() error {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return fmt.Errorf("Sdn is not enabled")
 	}
 	processStatus, err := utils.StatusCommandWithPid(cfg.Sdn.PidFile)
@@ -210,7 +200,7 @@ func (openEVEC *OpenEVEC) SdnStatus() error {
 
 func (openEVEC *OpenEVEC) SdnNetModelGet() (string, error) {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
 	client := &edensdn.SdnClient{
@@ -231,7 +221,7 @@ func (openEVEC *OpenEVEC) SdnNetModelGet() (string, error) {
 
 func (openEVEC *OpenEVEC) SdnNetModelApply(ref string) error {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return fmt.Errorf("SDN is not enabled")
 	}
 	var err error
@@ -280,7 +270,7 @@ func (openEVEC *OpenEVEC) SdnNetModelApply(ref string) error {
 
 func (openEVEC *OpenEVEC) SdnNetConfigGraph() (string, error) {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
 	client := &edensdn.SdnClient{
@@ -297,7 +287,7 @@ func (openEVEC *OpenEVEC) SdnNetConfigGraph() (string, error) {
 
 func (openEVEC *OpenEVEC) SdnSsh() error {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return fmt.Errorf("SDN is not enabled")
 	}
 	client := &edensdn.SdnClient{
@@ -313,7 +303,7 @@ func (openEVEC *OpenEVEC) SdnSsh() error {
 
 func (openEVEC *OpenEVEC) SdnLogs() (string, error) {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
 	client := &edensdn.SdnClient{
@@ -330,7 +320,7 @@ func (openEVEC *OpenEVEC) SdnLogs() (string, error) {
 
 func (openEVEC *OpenEVEC) SdnMgmtIp() (string, error) {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return "", fmt.Errorf("SDN is not enabled")
 	}
 	client := &edensdn.SdnClient{
@@ -350,7 +340,7 @@ func (openEVEC *OpenEVEC) SdnMgmtIp() (string, error) {
 
 func (openEVEC *OpenEVEC) SdnEpExec(epName, command string, args []string) error {
 	cfg := openEVEC.cfg
-	if !isSdnEnabled(cfg.Sdn.Disable, cfg.Eve.Remote, cfg.Eve.DevModel) {
+	if !cfg.IsSdnEnabled() {
 		return fmt.Errorf("SDN is not enabled")
 	}
 	client := &edensdn.SdnClient{
