@@ -176,7 +176,7 @@ func TestLog(t *testing.T) {
 			}
 			t.Log(utils.AddTimestamp(fmt.Sprintf("LOG %d(%d) from %s:\n", items+1, *number, name)))
 			if len(*out) == 0 {
-				elog.LogPrn(log, types.OutputFormatLines)
+				elog.LogPrint(log, types.OutputFormatLines)
 			} else {
 				elog.LogItemPrint(log, types.OutputFormatLines,
 					strings.Split(*out, ":")).Print()
