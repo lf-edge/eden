@@ -100,13 +100,13 @@ func LogItemFind(le *FullLogEntry, query map[string]string) bool {
 // HandleFactory implements HandlerFunc which prints log in the provided format
 func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 	return func(le *FullLogEntry) bool {
-		LogPrn(le, format)
+		LogPrint(le, format)
 		return once
 	}
 }
 
-// LogPrn print Log data
-func LogPrn(le *FullLogEntry, format types.OutputFormat) {
+// LogPrint print Log data
+func LogPrint(le *FullLogEntry, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
 		b, err := protojson.Marshal(le)
