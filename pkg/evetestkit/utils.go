@@ -15,6 +15,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
+	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/edensdn"
@@ -142,6 +143,23 @@ func createEveNode(node *device.Ctx, tc *testcontext.TestContext) (*EveNode, err
 	return &EveNode{controller: evec, edgenode: node, tc: tc, apps: []appInstanceConfig{}, cfg: cfg}, nil
 }
 
+// UpdateNodeGlobalConfig updates the node's global configuration
+func (node *EveNode) UpdateNodeGlobalConfig(deviceItems, configItems map[string]string) error {
+	controllerMode := ""
+	return node.controller.EdgeNodeUpdate(controllerMode, deviceItems, configItems)
+}
+
+// GetConfig retrieves the configuration file from the EVE node
+func (node *EveNode) GetConfig(configFile string) error {
+	controllerMode := ""
+	return node.controller.EdgeNodeGetConfig(controllerMode, configFile)
+}
+
+// SetConfig sets the configuration file on the EVE node
+func (node *EveNode) SetConfig(configFile string) error {
+	return node.controller.EdgeNodeSetConfig(configFile)
+}
+
 func (node *EveNode) getAppConfig(appName string) *appInstanceConfig {
 	for i := range node.apps {
 		if node.apps[i].name == appName {
@@ -184,7 +202,8 @@ func (node *EveNode) EveRunCommand(command string) ([]byte, error) {
 
 // EveFileExists checks if a file exists on EVE node
 func (node *EveNode) EveFileExists(fileName string) (bool, error) {
-	command := fmt.Sprintf("if stat \"%s\"; then echo \"1\"; else echo \"0\"; fi", fileName)
+	// let's allow globbing - globbing is cool
+	command := fmt.Sprintf("if stat %s; then echo \"1\"; else echo \"0\"; fi", fileName)
 	out, err := node.EveRunCommand(command)
 	if err != nil {
 		return false, err
@@ -600,6 +619,11 @@ func (node *EveNode) discoverEveIP() error {
 
 	node.ip = node.edgenode.GetRemoteAddr()
 	return nil
+}
+
+// FindLogOnAdam queries Adam for specified log entry and returns nil if found or error (e.g. timeout) if not
+func (node *EveNode) FindLogOnAdam(query map[string]string, mode elog.LogCheckerMode, timeout time.Duration) error {
+	return node.controller.EdenFindLogs(query, mode, timeout)
 }
 
 // GetDefaultVMConfig returns a default configuration for a VM
