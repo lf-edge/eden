@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lf-edge/eden/pkg/controller/eflowlog"
 	"github.com/lf-edge/eden/pkg/controller/einfo"
@@ -543,7 +544,7 @@ func (openEVEC *OpenEVEC) EdenLog(outputFormat types.OutputFormat, follow bool, 
 
 	handleFunc := func(le *elog.FullLogEntry) bool {
 		if printFields == nil {
-			elog.LogPrn(le, outputFormat)
+			elog.LogPrint(le, outputFormat)
 		} else {
 			elog.LogItemPrint(le, outputFormat, printFields).Print()
 		}
@@ -567,6 +568,22 @@ func (openEVEC *OpenEVEC) EdenLog(outputFormat types.OutputFormat, follow bool, 
 		}
 	}
 	return nil
+}
+
+// EdenFindLogs finds logs in the controller and processes them using the provided handler function.
+func (openEVEC *OpenEVEC) EdenFindLogs(query map[string]string, mode elog.LogCheckerMode, timeout time.Duration) error {
+	changer := &adamChanger{}
+	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
+	}
+	devUUID := devFirst.GetID()
+	handler := func(logEntry *elog.FullLogEntry) bool {
+		elog.LogPrint(logEntry, types.OutputFormatLines)
+		return true
+	}
+
+	return ctrl.LogChecker(devUUID, query, handler, mode, timeout)
 }
 
 func (openEVEC *OpenEVEC) EdenNetStat(outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
