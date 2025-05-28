@@ -58,7 +58,11 @@ setup: testbin $(BINDIR) $(DATADIR)
 	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(BINDIR)
 	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
 
-.PHONY: test build setup clean all testbin
+debug:
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go test -c -gcflags "all=-N -l" -o $@ *.go
+	dlv dap --listen=:12345 --headless=true
+
+.PHONY: test build setup clean all testbin debug
 
 help:
 	@echo "EDEN is the harness for testing EVE and ADAM"
