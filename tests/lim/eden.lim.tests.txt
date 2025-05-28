@@ -1,3 +1,3 @@
-eden.escript.test -test.run TestEdenScripts/log_test
+eden.lim.test -test.v -timewait 10m -test.run TestLogInGolang
 eden.escript.test -test.run TestEdenScripts/info_test
 eden.escript.test -test.run TestEdenScripts/metric_test

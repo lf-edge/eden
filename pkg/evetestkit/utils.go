@@ -143,6 +143,16 @@ func createEveNode(node *device.Ctx, tc *testcontext.TestContext) (*EveNode, err
 	return &EveNode{controller: evec, edgenode: node, tc: tc, apps: []appInstanceConfig{}, cfg: cfg}, nil
 }
 
+// GetEdgeNode returns the edgenode property of type device.Ctx
+func (node *EveNode) GetEdgeNode() *device.Ctx {
+	return node.edgenode
+}
+
+// GetTestContext returns the test context created in InitializeTest
+func (node *EveNode) GetTestContext() *testcontext.TestContext {
+	return node.tc
+}
+
 // UpdateNodeGlobalConfig updates the node's global configuration
 func (node *EveNode) UpdateNodeGlobalConfig(deviceItems, configItems map[string]string) error {
 	controllerMode := ""
