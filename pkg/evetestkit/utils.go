@@ -142,6 +142,57 @@ func createEveNode(node *device.Ctx, tc *testcontext.TestContext) (*EveNode, err
 	return &EveNode{controller: evec, edgenode: node, tc: tc, apps: []appInstanceConfig{}, cfg: cfg}, nil
 }
 
+// UpdateNodeGlobalConfig updates the node's global configuration
+func (node *EveNode) UpdateNodeGlobalConfig(deviceItems, configItems map[string]string) error {
+	controllerMode := ""
+	return node.controller.EdgeNodeUpdate(controllerMode, deviceItems, configItems)
+}
+
+// GetConfig retrieves the configuration file from the EVE node
+func (node *EveNode) GetConfig(configFile string) error {
+	controllerMode := ""
+	return node.controller.EdgeNodeGetConfig(controllerMode, configFile)
+}
+
+// SetConfig sets the configuration file on the EVE node
+func (node *EveNode) SetConfig(configFile string) error {
+	return node.controller.EdgeNodeSetConfig(configFile)
+}
+
+// WaitForConfigApplied waits for the configuration to be applied on the EVE node
+func (node *EveNode) WaitForConfigApplied(timeout time.Duration) error {
+	// Get initial checkpoint timestamp
+	out, err := node.EveRunCommand("stat -c %Y /persist/checkpoint")
+	if err != nil {
+		return fmt.Errorf("failed to get initial checkpoint timestamp: %w", err)
+	}
+	initialTimestamp := strings.TrimSpace(string(out))
+
+	// Start timer
+	start := time.Now()
+
+	// Poll for changes
+	for {
+		if time.Since(start) > timeout {
+			return fmt.Errorf("timeout waiting for configuration to be applied")
+		}
+
+		out, err := node.EveRunCommand("stat -c %Y /persist/checkpoint")
+		if err != nil {
+			// Continue polling on error as the file might be temporarily unavailable
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		currentTimestamp := strings.TrimSpace(string(out))
+		if currentTimestamp != initialTimestamp {
+			return nil
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func (node *EveNode) getAppConfig(appName string) *appInstanceConfig {
 	for i := range node.apps {
 		if node.apps[i].name == appName {
