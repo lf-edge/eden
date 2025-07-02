@@ -136,7 +136,7 @@ func TestFaultyConfig(t *testing.T) {
 		logFatalf("Vector is not running on EVE node after applying the faulty config")
 	}
 
-	logInfof("STEP %d: check the config hashes", step)
+	logInfof("STEP %d: check vector is still using the valid config", step)
 	step++
 
 	cmd = "sha256sum /persist/vector/config/vector.yaml"
@@ -145,21 +145,116 @@ func TestFaultyConfig(t *testing.T) {
 		logFatalf("Failed to run ssh '%s': %v", cmd, err)
 	}
 	hashConfig := strings.Split(strings.TrimSpace(string(out)), " ")[0]
-	if hashConfig == hashFaultyConfig {
-		logInfof("Faulty config was applied")
-	} else {
-		logFatalf("Faulty config was NOT applied. Expected hash %s. Actual hash %s", hashFaultyConfig, hashConfig)
+	switch hashConfig {
+	case hashValidConfig:
+		logInfof("Still using valid config")
+	case hashFaultyConfig:
+		logFatalf("Faulty config was applied!")
+	default:
+		logFatalf("Unexpected config hash: expected %s or %s, got %s", hashValidConfig, hashFaultyConfig, hashConfig)
+	}
+}
+
+func TestEmptyConfig(t *testing.T) {
+	// Initialize the the logger to use testing.T instance
+	logT = t
+
+	logInfof("TestEmptyConfig started")
+	defer logInfof("TestEmptyConfig finished")
+
+	step := 1
+
+	logInfof("secure the initial config")
+	if err := eveNode.GetConfig("/tmp/initial_config"); err != nil {
+		logFatalf("Failed to get initial config: %v", err)
 	}
 
-	cmd = "sha256sum /persist/vector/config/vector.yaml.bak"
+	defer func() {
+		logInfof("revert to the initial config")
+		if err := eveNode.SetConfig("/tmp/initial_config"); err != nil {
+			logFatalf("Failed to get back to the initial config: %v", err)
+		}
+	}()
+
+	logInfof("STEP %d: check vector is running", step)
+	step++
+
+	cmd := "eve status | grep vector"
+	out, err := eveNode.EveRunCommand(cmd)
+	if err != nil {
+		logFatalf("Failed to run ssh '%s': %v", cmd, err)
+	}
+	if strings.Contains(string(out), "RUNNING") {
+		logInfof("Vector is running on EVE node")
+	} else {
+		logFatalf("Vector is not running on EVE node")
+	}
+
+	logInfof("STEP %d: get hash of the current config", step)
+	step++
+
+	cmd = "sha256sum /persist/vector/config/vector.yaml"
 	out, err = eveNode.EveRunCommand(cmd)
 	if err != nil {
 		logFatalf("Failed to run ssh '%s': %v", cmd, err)
 	}
-	hashBackupConfig := strings.Split(strings.TrimSpace(string(out)), " ")[0]
-	if hashBackupConfig == hashValidConfig {
-		logInfof("Valid config was backed up")
+	hashCurrentConfig := strings.Split(strings.TrimSpace(string(out)), " ")[0]
+
+	logInfof("STEP %d: set empty vector config", step)
+	step++
+
+	eveNode.UpdateNodeGlobalConfig(
+		nil,
+		map[string]string{
+			"vector.config": "",
+		},
+	)
+
+	logInfof("STEP %d: wait for the new config to be applied", step)
+	step++
+
+	// Wait for the new config to be applied
+	if err := eveNode.WaitForConfigApplied(60 * time.Second); err != nil {
+		logFatalf("Failed to wait for the new config to be applied: %v", err)
+	}
+
+	logInfof("STEP %d: check that vector is still running", step)
+	step++
+
+	cmd = "eve status | grep vector"
+	out, err = eveNode.EveRunCommand(cmd)
+	if err != nil {
+		logFatalf("Failed to run ssh '%s': %v", cmd, err)
+	}
+	if strings.Contains(string(out), "RUNNING") {
+		logInfof("Vector is still running on EVE node despite the empty config")
 	} else {
-		logFatalf("Valid config was NOT backed up. Expected hash %s. Actual hash %s", hashValidConfig, hashBackupConfig)
+		logFatalf("Vector is not running on EVE node after applying the empty config")
+	}
+
+	logInfof("STEP %d: check vector is using the default config", step)
+	step++
+
+	cmd = "eve exec vector sha256sum /etc/vector/vector.yaml"
+	out, err = eveNode.EveRunCommand(cmd)
+	if err != nil {
+		logFatalf("Failed to run ssh '%s': %v", cmd, err)
+	}
+	hashDefaultConfig := strings.Split(strings.TrimSpace(string(out)), " ")[0]
+
+	cmd = "sha256sum /persist/vector/config/vector.yaml"
+	out, err = eveNode.EveRunCommand(cmd)
+	if err != nil {
+		logFatalf("Failed to run ssh '%s': %v", cmd, err)
+	}
+	hashConfig := strings.Split(strings.TrimSpace(string(out)), " ")[0]
+
+	switch hashConfig {
+	case hashDefaultConfig:
+		logInfof("Using default config")
+	case hashCurrentConfig:
+		logFatalf("Still using the current config, not the default one!")
+	default:
+		logFatalf("Unexpected config hash: expected %s or %s, got %s", hashDefaultConfig, hashCurrentConfig, hashConfig)
 	}
 }
