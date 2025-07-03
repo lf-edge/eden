@@ -68,7 +68,17 @@ export ZARCH
 
 LINUXKIT=$(BUILDTOOLS_DIR)/linuxkit
 LINUXKIT_VERSION=v1.7.0
-LINUXKIT_SOURCE=https://github.com/linuxkit/linuxkit.git
+
+.PHONY: linuxkit
+linuxkit: $(LINUXKIT)
+
+LINUXKIT_SOURCE=https://github.com/linuxkit/linuxkit
+
+$(LINUXKIT): $(BUILDTOOLS_DIR)/linuxkit-$(LINUXKIT_VERSION)
+	$(QUIET)ln -sf  $(notdir $<) $@
+
+$(BUILDTOOLS_DIR)/linuxkit-$(LINUXKIT_VERSION): $(BUILDTOOLS_DIR)
+	$(QUIET) curl -L -o $@ $(LINUXKIT_SOURCE)/releases/download/$(LINUXKIT_VERSION)/linuxkit-$(HOSTOS)-$(HOSTARCH) && chmod +x $@
 
 .DEFAULT_GOAL := help
 
@@ -110,20 +120,10 @@ $(LOCALBIN): $(BINDIR) cmd/*.go pkg/*/*.go pkg/*/*/*.go
 	mkdir -p dist/scripts/shell
 	cp -r shell-scripts/* dist/scripts/shell/
 
-build-tools: $(LINUXKIT)
-	@echo Done building $<
-
 $(BIN): $(LOCALBIN)
 	ln -sf $(BIN)-$(OS)-$(ARCH) $(BINDIR)/$@
 	ln -sf $(LOCALBIN) $@
 	ln -sf bin/$@ $(WORKDIR)/$@
-
-$(LINUXKIT): $(BUILDTOOLS_DIR)
-	@rm -rf /tmp/linuxkit
-	@git clone $(LINUXKIT_SOURCE) /tmp/linuxkit
-	@cd /tmp/linuxkit && git checkout $(LINUXKIT_VERSION)
-	@cd /tmp/linuxkit/src/cmd/linuxkit && GO111MODULE=on CGO_ENABLED=0 go build -o $@ -mod=vendor .
-	@rm -rf /tmp/linuxkit
 
 testbin: config
 	make -C tests DEBUG=$(DEBUG) ARCH=$(ARCH) OS=$(OS) WORKDIR=$(WORKDIR) build
@@ -206,7 +206,6 @@ help:
 	@echo "   clean         full cleanup of test harness"
 	@echo "   build         build utilities (OS and ARCH options supported, for ex. OS=linux ARCH=arm64)"
 	@echo "   build-docker  build all docker images of EDEN"
-	@echo "   build-tools   build linuxkit (used to build SDN VM)"
 	@echo
 	@echo "You can use some parameters:"
 	@echo "   CONFIG        additional parameters for 'eden config add default', for ex. \"make CONFIG='--devmodel RPi4' run\" or \"make CONFIG='--devmodel GCP' run\""
