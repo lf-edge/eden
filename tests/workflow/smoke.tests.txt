@@ -41,7 +41,7 @@ eden.escript.test -test.run TestEdenScripts/eve_restart
 {{end}}
 
 /bin/echo Eden Log test (6/{{$tests}})
-eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/log_test
+eden.lim.test -test.v -timewait 10m -test.run TestLogInGolang
 /bin/echo Eden SSH test (7/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ssh
 /bin/echo Eden Info test (8/{{$tests}})
