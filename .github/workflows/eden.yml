@@ -1,7 +1,7 @@
 ---
 name: Eden
 on: # yamllint disable-line rule:truthy
-  pull_request:
+  pull_request_target:
     branches: [master]
     paths-ignore:
       - 'docs/**'
