@@ -80,8 +80,8 @@ jobs:
           eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
           aziot_id_scope: ${{ secrets.AZIOT_ID_SCOPE }}
           aziot_connection_string: ${{ secrets.AZIOT_CONNECTION_STRING }}
 
@@ -107,8 +107,8 @@ jobs:
           eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   storage:
     continue-on-error: true
@@ -135,8 +135,8 @@ jobs:
           eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   lps-loc:
     name: LPS LOC test suite
@@ -159,8 +159,8 @@ jobs:
           eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   eve-upgrade:
     continue-on-error: true
@@ -187,8 +187,8 @@ jobs:
           eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   user-apps:
     name: User apps test suite
@@ -211,8 +211,8 @@ jobs:
           eve_log_level: ${{ inputs.eve_log_level }}
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   virtualization:
     name: Virtualization test suite
@@ -236,5 +236,5 @@ jobs:
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           require_virtualization: true
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
