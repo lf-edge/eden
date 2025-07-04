@@ -17,6 +17,8 @@ jobs:
           ip a
       - name: get eden
         uses: actions/checkout@v4.1.1
+        with:
+            ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Set up QEMU
@@ -47,6 +49,8 @@ jobs:
           ip a
       - name: get eden
         uses: actions/checkout@v4.1.1
+        with:
+            ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Set up QEMU
