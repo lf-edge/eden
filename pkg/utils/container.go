@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bufio"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -10,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/docker/cli/cli/config"
 	"github.com/docker/distribution/context"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -20,6 +23,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/lf-edge/eden/pkg/defaults"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -201,6 +205,37 @@ func GetDockerNetworks() ([]*net.IPNet, error) {
 	return results, nil
 }
 
+func extractRegistry(image string) string {
+	if strings.Contains(image, "/") {
+		parts := strings.Split(image, "/")
+		if strings.Contains(parts[0], ".") || strings.Contains(parts[0], ":") || parts[0] == "localhost" {
+			return parts[0]
+		}
+	}
+	return "https://index.docker.io/v1/"
+}
+
+func getEncodedAuth(image string) (string, error) {
+	registry := extractRegistry(image)
+
+	cfg, err := config.Load("")
+	if err != nil {
+		return "", fmt.Errorf("failed to load docker config: %w", err)
+	}
+
+	authConfig, err := cfg.GetAuthConfig(registry)
+	if err != nil {
+		return "", fmt.Errorf("failed to get auth config for registry %s: %w", registry, err)
+	}
+
+	encodedJSON, err := json.Marshal(authConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal auth config: %w", err)
+	}
+
+	return base64.StdEncoding.EncodeToString(encodedJSON), nil
+}
+
 // PullImage from docker
 func PullImage(image string) error {
 	ctx := context.Background()
@@ -209,13 +244,24 @@ func PullImage(image string) error {
 		return fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
 	_, _, err = cli.ImageInspectWithRaw(ctx, image)
-	if err == nil { // local image is ok
-		return nil
+	if err == nil {
+		return nil // Image already present
 	}
-	resp, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
+
+	authStr, err := getEncodedAuth(image)
+	if err != nil {
+		log.Warnf("Falling back to anonymous pull: %v", err)
+		authStr = ""
+	}
+
+	resp, err := cli.ImagePull(ctx, image, types.ImagePullOptions{
+		RegistryAuth: authStr,
+	})
 	if err != nil {
 		return fmt.Errorf("imagePull: %w", err)
 	}
+	defer resp.Close()
+
 	if err = writeToLog(resp); err != nil {
 		return fmt.Errorf("imagePull LOG: %w", err)
 	}

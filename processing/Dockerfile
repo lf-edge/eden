@@ -1,6 +1,6 @@
-FROM lfedge/eve-alpine:12.1.0 as build
-ENV BUILD_PKGS git
-ENV PKGS perl gawk git
+FROM lfedge/eve-alpine:12.1.0 AS build
+ENV BUILD_PKGS=git
+ENV PKGS="perl gawk git"
 RUN eve-alpine-deploy.sh
 
 WORKDIR /out
