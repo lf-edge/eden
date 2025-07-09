@@ -3,6 +3,7 @@ package expect
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -73,11 +74,13 @@ func (exp *AppExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 // createDataStoreDocker creates DatastoreConfig for docker.io with provided id
 func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
 	return &config.DatastoreConfig{
-		Id:         id.String(),
-		DType:      config.DsType_DsContainerRegistry,
-		Fqdn:       exp.getDataStoreFQDN(true),
-		ApiKey:     "",
-		Password:   "",
+		Id:    id.String(),
+		DType: config.DsType_DsContainerRegistry,
+		Fqdn:  exp.getDataStoreFQDN(true),
+		// Quick fix for docker registry auth!
+		// TODO : get this value either from eden config or pod config command
+		ApiKey:     strings.TrimSpace(os.Getenv("DOCKERHUB_PULL_USER")),
+		Password:   strings.TrimSpace(os.Getenv("DOCKERHUB_PULL_TOKEN")),
 		Dpath:      "",
 		Region:     "",
 		CipherData: nil,
