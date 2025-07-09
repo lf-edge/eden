@@ -1,7 +1,9 @@
 package utils
 
 import (
+	// Standard library
 	"bufio"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,18 +14,21 @@ import (
 	"path/filepath"
 	"strings"
 
+	// Docker SDK (use consistent version)
+	"github.com/distribution/reference"
 	"github.com/docker/cli/cli/config"
-	"github.com/docker/distribution/context"
+	"github.com/docker/cli/cli/config/configfile"
+	ct "github.com/docker/cli/cli/config/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/registry"
 	"github.com/docker/go-connections/nat"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/lf-edge/eden/pkg/defaults"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -205,27 +210,101 @@ func GetDockerNetworks() ([]*net.IPNet, error) {
 	return results, nil
 }
 
-func extractRegistry(image string) string {
-	if strings.Contains(image, "/") {
-		parts := strings.Split(image, "/")
-		if strings.Contains(parts[0], ".") || strings.Contains(parts[0], ":") || parts[0] == "localhost" {
-			return parts[0]
+func NormalizeRegistry(imageRef string) string {
+	// Handle docker:// prefix if present
+	imageRef = strings.TrimPrefix(imageRef, "docker://")
+
+	// Parse the image reference using the current recommended function
+	ref, err := reference.ParseNormalizedNamed(imageRef)
+	if err == nil {
+		domain := reference.Domain(ref)
+		switch domain {
+		case "docker.io", "":
+			return registry.IndexServer // "index.docker.io"
+		default:
+			return domain
 		}
 	}
-	return "https://index.docker.io/v1/"
+
+	// Fallback for invalid references - extract host:port
+	parts := strings.SplitN(imageRef, "/", 2)
+	hostPart := parts[0]
+	return hostPart
 }
 
-func getEncodedAuth(image string) (string, error) {
-	registry := extractRegistry(image)
+func getRegistryAuth(image string) (*ct.AuthConfig, error) {
+	registry := NormalizeRegistry(image)
+
+	log.Infof("Normalized registry for image %s: %s", image, registry)
 
 	cfg, err := config.Load("")
 	if err != nil {
-		return "", fmt.Errorf("failed to load docker config: %w", err)
+		return nil, fmt.Errorf("failed to load docker config: %w", err)
+	}
+
+	log.Infof("Loaded Docker config (encoded) %s", cfg.GetFilename())
+
+	// Debug: Print config file content if it exists
+	if cfg.GetFilename() != "" {
+		if err := debugPrintConfigFile(cfg.GetFilename()); err != nil {
+			return nil, err
+		}
+	}
+
+	// Debug: Print all credentials if available
+	if err := debugPrintAllCredentials(cfg); err != nil {
+		log.Info("No credentials found in docker config")
 	}
 
 	authConfig, err := cfg.GetAuthConfig(registry)
 	if err != nil {
-		return "", fmt.Errorf("failed to get auth config for registry %s: %w", registry, err)
+		return nil, fmt.Errorf("failed to get auth config for registry %s: %w", registry, err)
+	}
+
+	// Return pointer to authConfig
+	return &ct.AuthConfig{
+		Username:      authConfig.Username,
+		Password:      authConfig.Password,
+		Auth:          authConfig.Auth,
+		ServerAddress: authConfig.ServerAddress,
+		IdentityToken: authConfig.IdentityToken,
+		RegistryToken: authConfig.RegistryToken,
+	}, nil
+}
+
+// Helper function to print config file content
+func debugPrintConfigFile(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("failed to open docker config file %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	log.Debugf("Docker config file %s content:", filename)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		log.Debug(scanner.Text())
+	}
+	return scanner.Err()
+}
+
+// Helper function to print all credentials
+func debugPrintAllCredentials(cfg *configfile.ConfigFile) error {
+	allConf, err := cfg.GetAllCredentials()
+	if err != nil {
+		return err
+	}
+
+	for _, conf := range allConf {
+		log.Debugf("Registry: %s, Username: %s", conf.ServerAddress, conf.Username)
+	}
+	return nil
+}
+
+func getEncodedAuth(image string) (string, error) {
+	authConfig, err := getRegistryAuth(image)
+	if err != nil {
+		return "", fmt.Errorf("getEncodedAuth: failed to get docker auth config for image %s: %w", image, err)
 	}
 
 	encodedJSON, err := json.Marshal(authConfig)
@@ -234,6 +313,20 @@ func getEncodedAuth(image string) (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(encodedJSON), nil
+}
+
+// get docker auth as plain text user and access token
+func GetDockerAuthPlain(fqdn string) (string, string, error) {
+	authConfig, err := getRegistryAuth(fqdn)
+	if err != nil {
+		return "", "", fmt.Errorf("GetDockerAuthPlain: failed to get docker auth config for fqdn %s: %w", fqdn, err)
+	}
+
+	if authConfig.Password == "" && authConfig.Username == "" {
+		return "", "", fmt.Errorf("no Docker credentials found for fqdn %s", fqdn)
+	}
+	log.Infof("loaded docker credentials for: %s", fqdn)
+	return authConfig.Username, authConfig.Password, nil
 }
 
 // PullImage from docker
@@ -279,7 +372,7 @@ func HasImage(image string) (bool, error) {
 	if err == nil { // has the image
 		return true, nil
 	}
-	// theoretically, this should distinguishe
+	// theoretically, this should distinguish
 	return false, nil
 }
 

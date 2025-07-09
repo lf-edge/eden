@@ -72,12 +72,17 @@ func (exp *AppExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 
 // createDataStoreDocker creates DatastoreConfig for docker.io with provided id
 func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
+	fqdn := exp.getDataStoreFQDN(true)
+	user, password, err := utils.GetDockerAuthPlain(fqdn)
+	if err != nil {
+		log.Errorf("cannot get docker plain auth for %s: %v", fqdn, err)
+	}
 	return &config.DatastoreConfig{
 		Id:         id.String(),
 		DType:      config.DsType_DsContainerRegistry,
-		Fqdn:       exp.getDataStoreFQDN(true),
-		ApiKey:     "",
-		Password:   "",
+		Fqdn:       fqdn,
+		ApiKey:     user,
+		Password:   password,
 		Dpath:      "",
 		Region:     "",
 		CipherData: nil,

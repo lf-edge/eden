@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/cli/cli/config"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/tests/escript/go-internal/imports"
 	"github.com/lf-edge/eden/tests/escript/go-internal/internal/os/execpath"
@@ -311,6 +312,7 @@ func (ts *TestScript) setup() string {
 			"WORK=" + ts.workdir, // must be first for ts.abbrev
 			"PATH=" + os.Getenv("PATH"),
 			"DOCKER_HOST=" + os.Getenv("DOCKER_HOST"),
+			config.EnvOverrideConfigDir + "=" + config.Dir(),
 			tempEnvName() + "=" + filepath.Join(ts.workdir, "tmp"),
 			"devnull=" + os.DevNull,
 			"/=" + string(os.PathSeparator),
