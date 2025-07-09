@@ -90,6 +90,13 @@ func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.Datastore
 		}
 	}
 
+	fmt.Println("DEBUG: docker credentials:", username)
+	if (password != "") {
+		fmt.Println("DEBUG: password is NOT NULL! :)")
+	} else {
+		fmt.Println("DEBUG: password is NULL! :(")
+	}
+
 	// Return the new datastore
 	return &config.DatastoreConfig{
 		Id:         id.String(),
