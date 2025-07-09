@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -72,12 +73,30 @@ func (exp *AppExpectation) checkDataStoreDocker(ds *config.DatastoreConfig) bool
 
 // createDataStoreDocker creates DatastoreConfig for docker.io with provided id
 func (exp *AppExpectation) createDataStoreDocker(id uuid.UUID) *config.DatastoreConfig {
+	// Resolve credentials for this datastore using the default keychain
+	username := ""
+	password := ""
+	fqdn := exp.getDataStoreFQDN(false)
+
+	target, err := name.NewRegistry(fqdn)
+	if err == nil {
+		authenticator, err := authn.DefaultKeychain.Resolve(target)
+		if err == nil {
+			authConfig, err := authenticator.Authorization()
+			if err == nil {
+				username = authConfig.Username
+				password = authConfig.Password
+			}
+		}
+	}
+
+	// Return the new datastore
 	return &config.DatastoreConfig{
 		Id:         id.String(),
 		DType:      config.DsType_DsContainerRegistry,
 		Fqdn:       exp.getDataStoreFQDN(true),
-		ApiKey:     "",
-		Password:   "",
+		ApiKey:     username,
+		Password:   password,
 		Dpath:      "",
 		Region:     "",
 		CipherData: nil,
