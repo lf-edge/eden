@@ -42,6 +42,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Print Public IP Address
+      run: |
+        echo "Public IP Address of the runner:"
+        curl -s https://api.ipify.org
+      shell: bash
+        
     - name: Collect Workflow Telemetry
       uses: catchpoint/workflow-telemetry-action@v2
       with:
