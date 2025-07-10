@@ -53,233 +53,233 @@ jobs:
             echo "runner_virt=['ubuntu-22.04']" >> "$GITHUB_OUTPUT"
           fi
 
-  smoke:
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        file_system: ['ext4', 'zfs']
-        tpm: [true, false]
-    name: Smoke tests
-    needs: determine-runner
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
-    steps:
-      - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_PULL_USER }}
-          password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-      - name: Get code
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: "lf-edge/eden"
-          ref: ${{ inputs.eden_version }}
-          path: "./eden"
-      - name: Run Smoke tests
-        uses: ./eden/.github/actions/run-eden-test
-        with:
-          file_system: ${{ matrix.file_system }}
-          tpm_enabled: ${{ matrix.tpm }}
-          suite: "smoke.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
-          eve_log_level: ${{ inputs.eve_log_level }}
-          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
-          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-          aziot_id_scope: ${{ secrets.AZIOT_ID_SCOPE }}
-          aziot_connection_string: ${{ secrets.AZIOT_CONNECTION_STRING }}
+  # smoke:
+  #   continue-on-error: true
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       file_system: ['ext4', 'zfs']
+  #       tpm: [true, false]
+  #   name: Smoke tests
+  #   needs: determine-runner
+  #   runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+  #   steps:
+  #     - name: Dockerhub Login
+  #       if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #     - name: Get code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         repository: "lf-edge/eden"
+  #         ref: ${{ inputs.eden_version }}
+  #         path: "./eden"
+  #     - name: Run Smoke tests
+  #       uses: ./eden/.github/actions/run-eden-test
+  #       with:
+  #         file_system: ${{ matrix.file_system }}
+  #         tpm_enabled: ${{ matrix.tpm }}
+  #         suite: "smoke.tests.txt"
+  #         eve_image: ${{ inputs.eve_image }}
+  #         eve_log_level: ${{ inputs.eve_log_level }}
+  #         eve_artifact_name: ${{ inputs.eve_artifact_name }}
+  #         artifact_run_id: ${{ inputs.artifact_run_id }}
+  #         docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #         aziot_id_scope: ${{ secrets.AZIOT_ID_SCOPE }}
+  #         aziot_connection_string: ${{ secrets.AZIOT_CONNECTION_STRING }}
 
 
-  networking:
-    name: Networking test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
-    steps:
-      - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_PULL_USER }}
-          password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-      - name: Get code
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: "lf-edge/eden"
-          ref: ${{ inputs.eden_version }}
-          path: "./eden"
-      - name: Run Networking tests
-        uses: ./eden/.github/actions/run-eden-test
-        with:
-          file_system: "ext4"
-          tpm_enabled: true
-          suite: "networking.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
-          eve_log_level: ${{ inputs.eve_log_level }}
-          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
-          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  # networking:
+  #   name: Networking test suite
+  #   needs: [determine-runner]
+  #   runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+  #   steps:
+  #     - name: Dockerhub Login
+  #       if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #     - name: Get code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         repository: "lf-edge/eden"
+  #         ref: ${{ inputs.eden_version }}
+  #         path: "./eden"
+  #     - name: Run Networking tests
+  #       uses: ./eden/.github/actions/run-eden-test
+  #       with:
+  #         file_system: "ext4"
+  #         tpm_enabled: true
+  #         suite: "networking.tests.txt"
+  #         eve_image: ${{ inputs.eve_image }}
+  #         eve_log_level: ${{ inputs.eve_log_level }}
+  #         eve_artifact_name: ${{ inputs.eve_artifact_name }}
+  #         artifact_run_id: ${{ inputs.artifact_run_id }}
+  #         docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
-  storage:
-    continue-on-error: true
-    strategy:
-      matrix:
-        file_system: ['ext4', 'zfs']
-    name: Storage test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
-    steps:
-      - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_PULL_USER }}
-          password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-      - name: Get code
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: "lf-edge/eden"
-          ref: ${{ inputs.eden_version }}
-          path: "./eden"
-      - name: Run Storage tests
-        uses: ./eden/.github/actions/run-eden-test
-        with:
-          file_system: ${{ matrix.file_system }}
-          tpm_enabled: true
-          suite: "storage.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
-          eve_log_level: ${{ inputs.eve_log_level }}
-          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
-          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  # storage:
+  #   continue-on-error: true
+  #   strategy:
+  #     matrix:
+  #       file_system: ['ext4', 'zfs']
+  #   name: Storage test suite
+  #   needs: [determine-runner]
+  #   runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+  #   steps:
+  #     - name: Dockerhub Login
+  #       if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #     - name: Get code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         repository: "lf-edge/eden"
+  #         ref: ${{ inputs.eden_version }}
+  #         path: "./eden"
+  #     - name: Run Storage tests
+  #       uses: ./eden/.github/actions/run-eden-test
+  #       with:
+  #         file_system: ${{ matrix.file_system }}
+  #         tpm_enabled: true
+  #         suite: "storage.tests.txt"
+  #         eve_image: ${{ inputs.eve_image }}
+  #         eve_log_level: ${{ inputs.eve_log_level }}
+  #         eve_artifact_name: ${{ inputs.eve_artifact_name }}
+  #         artifact_run_id: ${{ inputs.artifact_run_id }}
+  #         docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
-  lps-loc:
-    name: LPS LOC test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
-    steps:
-      - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_PULL_USER }}
-          password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-      - name: Get code
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: "lf-edge/eden"
-          ref: ${{ inputs.eden_version }}
-          path: "./eden"
-      - name: Run LPS and LOC tests
-        uses: ./eden/.github/actions/run-eden-test
-        with:
-          file_system: "ext4"
-          tpm_enabled: true
-          suite: "lps-loc.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
-          eve_log_level: ${{ inputs.eve_log_level }}
-          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
-          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  # lps-loc:
+  #   name: LPS LOC test suite
+  #   needs: [determine-runner]
+  #   runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+  #   steps:
+  #     - name: Dockerhub Login
+  #       if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #     - name: Get code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         repository: "lf-edge/eden"
+  #         ref: ${{ inputs.eden_version }}
+  #         path: "./eden"
+  #     - name: Run LPS and LOC tests
+  #       uses: ./eden/.github/actions/run-eden-test
+  #       with:
+  #         file_system: "ext4"
+  #         tpm_enabled: true
+  #         suite: "lps-loc.tests.txt"
+  #         eve_image: ${{ inputs.eve_image }}
+  #         eve_log_level: ${{ inputs.eve_log_level }}
+  #         eve_artifact_name: ${{ inputs.eve_artifact_name }}
+  #         artifact_run_id: ${{ inputs.artifact_run_id }}
+  #         docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
-  eve-upgrade:
-    continue-on-error: true
-    strategy:
-      matrix:
-        file_system: ['ext4', 'zfs']
-    name: EVE upgrade test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
-    steps:
-      - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_PULL_USER }}
-          password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-      - name: Get code
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: "lf-edge/eden"
-          ref: ${{ inputs.eden_version }}
-          path: "./eden"
-      - name: Run EVE upgrade tests
-        uses: ./eden/.github/actions/run-eden-test
-        with:
-          file_system: ${{ matrix.file_system }}
-          tpm_enabled: true
-          suite: "eve-upgrade.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
-          eve_log_level: ${{ inputs.eve_log_level }}
-          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
-          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  # eve-upgrade:
+  #   continue-on-error: true
+  #   strategy:
+  #     matrix:
+  #       file_system: ['ext4', 'zfs']
+  #   name: EVE upgrade test suite
+  #   needs: [determine-runner]
+  #   runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+  #   steps:
+  #     - name: Dockerhub Login
+  #       if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #     - name: Get code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         repository: "lf-edge/eden"
+  #         ref: ${{ inputs.eden_version }}
+  #         path: "./eden"
+  #     - name: Run EVE upgrade tests
+  #       uses: ./eden/.github/actions/run-eden-test
+  #       with:
+  #         file_system: ${{ matrix.file_system }}
+  #         tpm_enabled: true
+  #         suite: "eve-upgrade.tests.txt"
+  #         eve_image: ${{ inputs.eve_image }}
+  #         eve_log_level: ${{ inputs.eve_log_level }}
+  #         eve_artifact_name: ${{ inputs.eve_artifact_name }}
+  #         artifact_run_id: ${{ inputs.artifact_run_id }}
+  #         docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
-  user-apps:
-    name: User apps test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
-    steps:
-      - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_PULL_USER }}
-          password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-      - name: Get code
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: "lf-edge/eden"
-          ref: ${{ inputs.eden_version }}
-          path: "./eden"
-      - name: Run User apps tests
-        uses: ./eden/.github/actions/run-eden-test
-        with:
-          file_system: "ext4"
-          tpm_enabled: true
-          suite: "user-apps.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
-          eve_log_level: ${{ inputs.eve_log_level }}
-          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ inputs.artifact_run_id }}
-          docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
-          docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  # user-apps:
+  #   name: User apps test suite
+  #   needs: [determine-runner]
+  #   runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+  #   steps:
+  #     - name: Dockerhub Login
+  #       if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #     - name: Get code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         repository: "lf-edge/eden"
+  #         ref: ${{ inputs.eden_version }}
+  #         path: "./eden"
+  #     - name: Run User apps tests
+  #       uses: ./eden/.github/actions/run-eden-test
+  #       with:
+  #         file_system: "ext4"
+  #         tpm_enabled: true
+  #         suite: "user-apps.tests.txt"
+  #         eve_image: ${{ inputs.eve_image }}
+  #         eve_log_level: ${{ inputs.eve_log_level }}
+  #         eve_artifact_name: ${{ inputs.eve_artifact_name }}
+  #         artifact_run_id: ${{ inputs.artifact_run_id }}
+  #         docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
-  virtualization:
-    name: Virtualization test suite
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner_virt) }}
-    steps:
-      - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_PULL_USER }}
-          password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
-      - name: Get code
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: "lf-edge/eden"
-          ref: ${{ inputs.eden_version }}
-          path: "./eden"
-      - name: Run Virtualization tests
-        uses: ./eden/.github/actions/run-eden-test
-        with:
-          file_system: "ext4"
-          tpm_enabled: true
-          suite: "virtualization.tests.txt"
-          eve_image: ${{ inputs.eve_image }}
-          eve_log_level: ${{ inputs.eve_log_level }}
-          eve_artifact_name: ${{ inputs.eve_artifact_name }}
-          artifact_run_id: ${{ inputs.artifact_run_id }}
-          require_virtualization: true
-          docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
-          docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+  # virtualization:
+  #   name: Virtualization test suite
+  #   needs: [determine-runner]
+  #   runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner_virt) }}
+  #   steps:
+  #     - name: Dockerhub Login
+  #       if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_PULL_USER }}
+  #         password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+  #     - name: Get code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         repository: "lf-edge/eden"
+  #         ref: ${{ inputs.eden_version }}
+  #         path: "./eden"
+  #     - name: Run Virtualization tests
+  #       uses: ./eden/.github/actions/run-eden-test
+  #       with:
+  #         file_system: "ext4"
+  #         tpm_enabled: true
+  #         suite: "virtualization.tests.txt"
+  #         eve_image: ${{ inputs.eve_image }}
+  #         eve_log_level: ${{ inputs.eve_log_level }}
+  #         eve_artifact_name: ${{ inputs.eve_artifact_name }}
+  #         artifact_run_id: ${{ inputs.artifact_run_id }}
+  #         require_virtualization: true
+  #         docker_account: ${{ secrets.RELEASE_DOCKERHUB_ACCOUNT }}
+  #         docker_token: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
 
 
   neoeden:
