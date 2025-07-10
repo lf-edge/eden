@@ -515,8 +515,31 @@ jobs:
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }}
+        run: |
+            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
+            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+            if [ "$PREV_ATTEMPT" -le 0 ]; then
+                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+                exit 0
+            fi
+            prev_conclusion=$(
+                gh api \
+                -X GET \
+                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+            )
+            if [ -z "$prev_conclusion" ]; then
+                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+                exit 1
+            fi
+            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
