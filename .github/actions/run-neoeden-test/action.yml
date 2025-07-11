@@ -1,5 +1,5 @@
-name: 'Run specified Eden test workflow'
-description: 'Setup Eden run specified test from workflow and publish logs'
+name: 'Run Neo-Eden test workflow'
+description: 'Setup Eden, run go test and publish logs'
 
 inputs:
   file_system:
@@ -8,9 +8,6 @@ inputs:
   tpm_enabled:
     required: true
     type: bool
-  suite:
-    required: true
-    type: string
   eve_image:
     type: string
   eve_log_level:
@@ -42,11 +39,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Print Public IP Address
-      run: |
-        echo "Public IP Address of the runner:"
-        curl -s https://api.ipify.org
-        
     - name: Collect Workflow Telemetry
       uses: catchpoint/workflow-telemetry-action@v2
       with:
@@ -68,8 +60,8 @@ runs:
         eve_artifact_name: ${{ inputs.eve_artifact_name }}
         artifact_run_id: ${{ inputs.artifact_run_id }}
         require_virtualization: ${{ inputs.require_virtualization }}
-    - name: Run tests
-      run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
+    - name: Run security tests
+      run: cd tests/sec && go test
       shell: bash
       working-directory: "./eden"
       env:
@@ -91,3 +83,4 @@ runs:
         docker system prune -f -a >/dev/null
       shell: bash
       working-directory: "./eden"
+
