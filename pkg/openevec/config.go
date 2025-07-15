@@ -162,12 +162,12 @@ type GcpConfig struct {
 }
 
 type SdnConfig struct {
+	Version        string `mapstructure:"version" cobraflag:"sdn-version"`
 	ImageFile      string `mapstructure:"image-file" cobraflag:"sdn-image-file"`
 	SourceDir      string `mapstructure:"source-dir" cobraflag:"sdn-source-dir" resolvepath:""`
 	RAM            int    `mapstructure:"ram" cobraflag:"sdn-ram"`
 	CPU            int    `mapstructure:"cpu" cobraflag:"sdn-cpu"`
 	ConfigDir      string `mapstructure:"config-dir" cobraflag:"sdn-config-dir" resolvepath:""`
-	LinuxkitBin    string `mapstructure:"linuxkit-bin" cobraflag:"sdn-linuxkit-bin" resolvepath:""`
 	NetModelFile   string `mapstructure:"network-model" cobraflag:"sdn-network-model" resolvepath:""`
 	ConsoleLogFile string `mapstructure:"console-log" cobraflag:"sdn-console-log" resolvepath:""`
 	Disable        bool   `mapstructure:"disable" cobraflag:"sdn-disable"`

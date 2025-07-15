@@ -106,7 +106,6 @@ func (vm *SdnVMQemuRunner) Start() error {
 	// QEMU config
 	qemuConfigPath := filepath.Join(vm.ConfigDir, "qemu.conf")
 	settings := utils.QemuSettings{
-		Firmware: vm.Firmware,
 		MemoryMB: vm.RAM,
 		CPUs:     vm.CPU,
 	}

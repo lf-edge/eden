@@ -1,5 +1,5 @@
 org: lfedge
-image: eden-sdn
+image: eden-sdn-svc-container
 network: yes
 config:
   binds:

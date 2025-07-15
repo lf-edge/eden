@@ -191,7 +191,7 @@ func (client *SdnClient) SSHIntoSdnVM() error {
 	return utils.RunCommandForeground("ssh", client.sshArgs()...)
 }
 
-// SSHPortFowarding : establish port forwarding between the host and the SDN VM using ssh.
+// SSHPortForwarding : establish port forwarding between the host and the SDN VM using ssh.
 // Close the tunnel by running returned "close" function.
 func (client *SdnClient) SSHPortForwarding(localPort, targetPort uint16,
 	targetIP string) (close func(), err error) {

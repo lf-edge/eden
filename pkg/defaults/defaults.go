@@ -59,6 +59,7 @@ const (
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
 	DefaultMkimageTag           = "8.5.0"
+	DefaultSDNVersion           = "v1.0.0"
 	DefaultImage                = "library/alpine"
 	DefaultAdamContainerRef     = "lfedge/adam"
 	DefaultRedisContainerRef    = "redis"

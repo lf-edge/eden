@@ -15,8 +15,5 @@ onboot:
     image: linuxkit/modprobe:v0.5
     command: ["/bin/sh", "-c", "modprobe -a br_netfilter 2>/dev/null || :"]
 services:
-  - name: eden-sdn
-    image: lfedge/eden-sdn:SDN_TAG
-files:
-  - path: /etc/sdn-version
-    contents: "SDN_TAG"
+  - name: sdn
+    image: SDN_SERVICE_CONTAINER

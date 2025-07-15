@@ -284,6 +284,9 @@ sdn:
     #disable SDN
     disable: '{{parse "sdn.disable"}}'
 
+    #Eden-SDN version
+    version: '{{parse "sdn.version"}}'
+
     #directory with SDN source code
     source-dir: '{{parse "sdn.source-dir"}}'
 
@@ -292,9 +295,6 @@ sdn:
 
     #live image of SDN
     image-file: '{{parse "sdn.image-file"}}'
-
-    #path to linuxkit binary used to build SDN VM
-    linuxkit-bin: '{{parse "sdn.linuxkit-bin"}}'
 
     #CPU count for SDN VM
     cpu: {{parse "sdn.cpu"}}
