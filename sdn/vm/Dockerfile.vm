@@ -1,0 +1,16 @@
+FROM lfedge/eve-alpine:12.1.0 AS tools
+
+ENV PKGS qemu-img tar
+RUN eve-alpine-deploy.sh
+
+FROM lfedge/eve-alpine:12.1.0
+
+COPY --from=tools /out/ /
+COPY entrypoint.sh /
+COPY sdn-bios.img /bits/
+
+ARG SDN_VERSION
+RUN echo "$SDN_VERSION" > /bits/sdn-version
+
+WORKDIR /bits
+ENTRYPOINT ["/entrypoint.sh"]

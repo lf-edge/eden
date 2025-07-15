@@ -185,6 +185,7 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 		},
 
 		Sdn: SdnConfig{
+			Version:        defaults.DefaultSDNVersion,
 			RAM:            defaults.DefaultSdnMemory,
 			CPU:            defaults.DefaultSdnCpus,
 			ConsoleLogFile: filepath.Join(projectRootPath, defaults.DefaultDist, "sdn-console.log"),
@@ -195,8 +196,7 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 			SSHPort:        defaults.DefaultSdnSSHPort,
 			SourceDir:      filepath.Join(projectRootPath, "sdn"),
 			ConfigDir:      filepath.Join(edenDir, fmt.Sprintf("%s-sdn", "default")),
-			ImageFile:      filepath.Join(imageDist, "eden", "sdn-efi.qcow2"),
-			LinuxkitBin:    filepath.Join(projectRootPath, defaults.DefaultBuildtoolsDir, "linuxkit"),
+			ImageFile:      filepath.Join(imageDist, "eden", "eden-sdn.qcow2"),
 			NetModelFile:   "",
 			EnableIPv6:     false,
 			IPv6Subnet:     defaults.DefaultSdnIPv6Subnet,

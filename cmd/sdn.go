@@ -336,8 +336,8 @@ func addSdnConfigDirOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
 	parentCmd.Flags().StringVarP(&cfg.Sdn.ConfigDir, "sdn-config-dir", "", "", "directory where to put generated SDN-related config files")
 }
 
-func addSdnLinuxkitOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
-	parentCmd.Flags().StringVarP(&cfg.Sdn.LinuxkitBin, "sdn-linuxkit-bin", "", "", "path to linuxkit binary used to build SDN VM")
+func addSdnVersionOpt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {
+	parentCmd.Flags().StringVarP(&cfg.Sdn.Version, "sdn-version", "", defaults.DefaultSDNVersion, "Eden-SDN version")
 }
 
 func addSdnIPv6Opt(parentCmd *cobra.Command, cfg *openevec.EdenSetupArgs) {

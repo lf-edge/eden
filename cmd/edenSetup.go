@@ -83,7 +83,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 	addSdnImageOpt(setupCmd, cfg)
 	addSdnDisableOpt(setupCmd, cfg)
 	addSdnSourceDirOpt(setupCmd, cfg)
-	addSdnLinuxkitOpt(setupCmd, cfg)
+	addSdnVersionOpt(setupCmd, cfg)
 
 	return setupCmd
 }

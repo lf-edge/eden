@@ -97,6 +97,28 @@ can be modeled by the network model.
 
 ![Eden-SDN VM](./pics/eden-sdn-vm.png)
 
+## Building
+
+The Eden-SDN VM image is packaged inside the `lfedge/eden-sdn:<version>` container.
+You can build this container using the following Makefile target:
+
+```shell
+make DOCKER_TARGET=build DOCKER_PLATFORM=<os>/<arch> push-multi-arch-sdn
+```
+
+To additionally push the image to the `lfedge/eden-sdn` repository,
+run with `DOCKER_TARGET=push`.
+
+Note that this target is also included as a dependency of `make build-docker`.
+
+The version of Eden-SDN VM is specified in the file `sdn/VERSION`.
+You should manually increment this version whenever you make changes to the code
+under `sdn/vm`. Changes to `sdn/examples` do not require a version bump,
+as examples are not part of the built VM image.
+
+The Eden-SDN client (used to control the VM) is part of the main eden binary
+and is therefore built as part of `make build`.
+
 ## Configuration
 
 Note that Eden-SDN is currently **disabled by default**.
@@ -104,21 +126,29 @@ This is only temporary until the SDN implementation is stabilized and tests are 
 
 To enable Eden-SDN, edit [eden configuration](../docs/config.md) as follows:
 
-```
+```shell
 eden config set $EDEN_CONFIG --key sdn.disable --value false
 ```
+
+To select a particular Eden-SDN version to run, configure `sdn.version`:
+
+```shell
+eden config set $EDEN_CONFIG --key sdn.version --value <version>
+```
+
+(default version is defined in `pkg/defaults/defaults.go` as const `DefaultSDNVersion`)
 
 The network model is configurable in the same way as the device model - using a configuration option
 pointing to a JSON file:
 
-```
+```shell
 eden config set $EDEN_CONFIG --key sdn.network-model --value <path>
 eden config set $EDEN_CONFIG --key eve.devmodelfile --value <path>
 ```
 
 Alternatively, it is possible to select the network model using a command line option for `eden start`:
 
-```
+```shell
 eden start --sdn-network-model <path>
 ```
 
@@ -131,7 +161,7 @@ There are several more configuration options available for Eden-SDN.
 For example, it is possible to change the port used for the SSH access into the SDN VM.
 This may be useful if the default port `6622` is already used by another application.
 
-```
+```shell
 eden config set $EDEN_CONFIG --key sdn.ssh-port --value 11122
 ```
 
@@ -144,20 +174,20 @@ A running Eden-SDN can be managed using `eden sdn` commands.
 
 For example, to SSH into Eden-SDN VM run:
 
-```
+```shell
 eden sdn ssh
 ```
 
 Status of a running Eden-SDN can be displayed with:
 
-```
+```shell
 eden sdn status
 ```
 
 Network model can be changed in run-time as long as the number of EVE interfaces remains unchanged
 (which would require restart of EVE and SDN VMs with different parameters):
 
-```
+```shell
 eden sdn net-model apply <path>
 ```
 
@@ -175,7 +205,7 @@ with an actual IP address and a port number, and run command from the host or fr
 (see `--from-ep` option).
 For example (to SSH into `eclient` app deployed inside EVE and exposed on `eth0` on port `2222`):
 
-```
+```shell
 eden sdn fwd eth0 2222 ssh -I ./dist/tests/eclient/image/cert/id_rsa root@FWD_IP FWD_PORT
 ```
 

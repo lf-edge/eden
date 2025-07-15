@@ -1,0 +1,4 @@
+# Eden-SDN version. Increment this manually whenever changes are made to sdn/vm.
+# You do NOT need to bump this version when adding new examples to sdn/examples,
+# as those are not included in the built eden-sdn image.
+v1.0.0

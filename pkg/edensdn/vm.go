@@ -29,7 +29,6 @@ type SdnVMConfig struct {
 	ConfigDir      string
 	CPU            int
 	RAM            int // in MB
-	Firmware       []string
 	NetModel       model.NetworkModel
 	TelnetPort     uint16
 	SSHPort        uint16

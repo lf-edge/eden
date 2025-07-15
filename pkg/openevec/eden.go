@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -432,74 +431,28 @@ func setupSdn(cfg EdenSetupArgs) error {
 	if err := os.MkdirAll(cfg.Sdn.ConfigDir, 0777); err != nil {
 		return fmt.Errorf("failed to create directory for SDN config files: %w", err)
 	}
-	// Get Eden-Sdn version.
-	sdnVmSrcDir := filepath.Join(cfg.Sdn.SourceDir, "vm")
-	cmdArgs := []string{"pkg", "show-tag", sdnVmSrcDir}
-	output, err := exec.Command(cfg.Sdn.LinuxkitBin, cmdArgs...).Output()
+	// Try to pull the eden-sdn container.
+	sdnImage := fmt.Sprintf("%s:%s", defaults.DefaultEdenSDNContainerRef, cfg.Sdn.Version)
+	err := utils.PullImage(sdnImage)
 	if err != nil {
-		var stderr string
-		if ee, ok := err.(*exec.ExitError); ok {
-			stderr = string(ee.Stderr)
-		} else {
-			stderr = err.Error()
-		}
-		return fmt.Errorf("linuxkit pkg show-tag failed: %v", stderr)
+		return fmt.Errorf("failed to pull eden-sdn container: %w\n"+
+			"Did you forget to build it with 'make push-multi-arch-sdn' or 'make build-docker'?",
+			err)
 	}
-	sdnTag := strings.Split(string(output), ":")[1]
-	sdnTag = strings.TrimSpace(sdnTag)
-	// Build or preferably pull eden-sdn container.
-	homeDir := filepath.Join(cfg.Eden.Root, "linuxkit-home")
-	envVars := append(os.Environ(), fmt.Sprintf("HOME=%s", homeDir))
-	sdnImage := fmt.Sprintf("%s:%s-%s", defaults.DefaultEdenSDNContainerRef, sdnTag, cfg.Eve.Arch)
-	err = utils.PullImage(sdnImage)
-	if err != nil {
-		log.Warnf("failed to pull eden-sdn image (%s, err: %v), "+
-			"trying to build locally instead...", sdnImage, err)
-		platform := fmt.Sprintf("%s/%s", cfg.Eve.QemuOS, cfg.Eve.Arch)
-		cmdArgs = []string{"pkg", "build", "--force", "--platforms", platform,
-			"--docker", "--build-yml", "build.yml", sdnVmSrcDir}
-		err := utils.RunCommandForegroundWithOpts(cfg.Sdn.LinuxkitBin, cmdArgs,
-			utils.SetCommandEnvVars(envVars))
-		if err != nil {
-			return fmt.Errorf("failed to build eden-sdn container: %w", err)
-		}
-	}
-	// Build Eden-SDN VM qcow2 image.
+	// Retrieve Eden-SDN VM qcow2 image.
 	imageDir := filepath.Dir(cfg.Sdn.ImageFile)
 	_ = os.MkdirAll(imageDir, 0777)
-	vmYmlIn, err := os.ReadFile(filepath.Join(cfg.Sdn.SourceDir, "sdn-vm.yml.in"))
+	volumeMap := map[string]string{"/out": imageDir}
+	u, err := utils.RunDockerCommand(sdnImage, "-f qcow2 image", volumeMap)
 	if err != nil {
-		return fmt.Errorf("failed to read eden-sdn vm.yml.in: %w", err)
+		return fmt.Errorf("failed to extract eden-sdn qcow2 image: %w", err)
 	}
-	vmYml := strings.ReplaceAll(string(vmYmlIn), "SDN_TAG", sdnTag)
-	cmdArgs = []string{"build", "--arch", cfg.Eve.Arch, "--format", "qcow2-efi",
-		"--docker", "--dir", imageDir, "--name", "sdn", "-"}
-	err = utils.RunCommandForegroundWithOpts(cfg.Sdn.LinuxkitBin, cmdArgs,
-		utils.SetCommandStdin(vmYml), utils.SetCommandEnvVars(envVars))
-	if err != nil {
-		return fmt.Errorf("failed to build eden-sdn VM image: %w", err)
+	log.Debug(u)
+	// This qcow2 image name is given by sdn/vm/entrypoint.sh
+	imageFilename := filepath.Join(imageDir, "eden-sdn.img.qcow2")
+	if err = utils.CopyFile(imageFilename, cfg.Sdn.ImageFile); err != nil {
+		return fmt.Errorf("cannot copy SDN image to %s: %s", cfg.Sdn.ImageFile, err)
 	}
-	// This image filename is given by linuxkit.
-	imageFilename := filepath.Join(imageDir, "sdn-efi.qcow2")
-	if imageFilename != cfg.Sdn.ImageFile {
-		err = os.Rename(imageFilename, cfg.Sdn.ImageFile)
-		if err != nil {
-			return fmt.Errorf("failed to rename eden-sdn VM image to requested "+
-				"filepath %s: %v", cfg.Sdn.ImageFile, err)
-		}
-	}
-	// Build UEFI for SDN VM
-	eveDesc := utils.EVEDescription{
-		ConfigPath: cfg.Eden.CertsDir,
-		Arch:       cfg.Eve.Arch,
-		HV:         cfg.Eve.HV,
-		Registry:   cfg.Eve.Registry,
-		Tag:        cfg.Eve.Tag,
-	}
-	if err := utils.DownloadUEFI(eveDesc, imageDir); err != nil {
-		return fmt.Errorf("cannot download UEFI (for SDN): %w", err)
-	}
-	log.Infof("download UEFI (for SDN) done")
 	return nil
 }
 

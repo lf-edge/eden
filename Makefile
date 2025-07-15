@@ -5,7 +5,6 @@ DO_DOCKER ?= 1
 
 DOCKER_TARGET ?= load
 DOCKER_PLATFORM ?= $(shell uname -s | tr '[A-Z]' '[a-z]')/$(subst aarch64,arm64,$(subst x86_64,amd64,$(shell uname -m)))
-LINUXKIT_TARGET ?= build
 
 # ESERVER_TAG is the tag for eserver image to build
 ESERVER_TAG ?= "lfedge/eden-http-server"
@@ -33,8 +32,7 @@ ifeq ($(EDEN_VERSION),)
 	EDEN_VERSION = $(shell git describe --always)
 endif
 
-# SDN_DIR is the directory with eden-sdn Dockerfile to build
-SDN_DIR=$(CURDIR)/sdn/vm
+SDN_DIR=$(CURDIR)/sdn
 
 # HOSTARCH is the host architecture
 # ARCH is the target architecture
@@ -158,9 +156,7 @@ push-multi-arch-eden:
 	@docker buildx build --$(DOCKER_TARGET) --platform $(DOCKER_PLATFORM) --tag $(EDEN_TAG):$(EDEN_VERSION) .
 
 push-multi-arch-sdn: $(LINUXKIT)
-	$(eval SDN_TAG = $(shell $(LINUXKIT) pkg show-tag $(SDN_DIR)))
-	@echo "$(LINUXKIT_TARGET) eden-sdn image $(SDN_TAG)"
-	@$(LINUXKIT) pkg $(LINUXKIT_TARGET) --force --platforms $(DOCKER_PLATFORM) --docker --build-yml build.yml $(SDN_DIR)
+	$(MAKE) -C $(SDN_DIR) LINUXKIT=$(LINUXKIT) DOCKER_TARGET=$(DOCKER_TARGET) DOCKER_PLATFORM=$(DOCKER_PLATFORM)
 
 push-multi-arch-processing:
 	@echo "Build and $(DOCKER_TARGET) processing image $(PROCESSING_TAG):$(PROCESSING_VERSION)"

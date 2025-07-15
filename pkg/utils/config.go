@@ -511,9 +511,9 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "sdn.config-dir":
 			return filepath.Join(edenDir, fmt.Sprintf("%s-sdn", context.Current))
 		case "sdn.image-file":
-			return filepath.Join(imageDist, "eden", "sdn-efi.qcow2")
-		case "sdn.linuxkit-bin":
-			return filepath.Join(currentPath, defaults.DefaultBuildtoolsDir, "linuxkit")
+			return filepath.Join(imageDist, "eden", "eden-sdn.qcow2")
+		case "sdn.version":
+			return defaults.DefaultSDNVersion
 		case "sdn.cpu":
 			return defaults.DefaultSdnCpus
 		case "sdn.ram":

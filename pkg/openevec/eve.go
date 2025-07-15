@@ -74,71 +74,12 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 		// than Adam is being used.
 		netModel.Host.ControllerPort = 443
 	}
+	// Start Eden-SDN if enabled.
 	if cfg.IsSdnEnabled() {
-		nets, err := utils.GetSubnetsNotUsed(1)
+		err = openEVEC.StartEdenSDN(netModel)
 		if err != nil {
-			return fmt.Errorf("failed to get unused IP subnet: %w", err)
+			return err
 		}
-		imageDir := filepath.Dir(cfg.Sdn.ImageFile)
-		firmware := []string{"OVMF_CODE.fd", "OVMF_VARS.fd"}
-		for i := range firmware {
-			firmware[i] = utils.ResolveAbsPath(
-				filepath.Join(imageDir, "firmware", firmware[i]))
-		}
-		sdnConfig := edensdn.SdnVMConfig{
-			Architecture: cfg.Eve.Arch,
-			Acceleration: cfg.Eve.Accel,
-			HostOS:       cfg.Eve.QemuOS,
-			ImagePath:    cfg.Sdn.ImageFile,
-			ConfigDir:    cfg.Sdn.ConfigDir,
-			CPU:          cfg.Sdn.CPU,
-			RAM:          cfg.Sdn.RAM,
-			Firmware:     firmware,
-			NetModel:     netModel,
-			TelnetPort:   uint16(cfg.Sdn.TelnetPort),
-			SSHPort:      uint16(cfg.Sdn.SSHPort),
-			SSHKeyPath:   sdnSSHKeyPath(cfg.Sdn.SourceDir),
-			MgmtPort:     uint16(cfg.Sdn.MgmtPort),
-			MgmtSubnet: edensdn.SdnMgmtSubnet{
-				IPNet:     nets[0].Subnet,
-				DHCPStart: nets[0].FirstAddress,
-			},
-			NetDevBasePort: uint16(cfg.Eve.QemuConfig.NetDevSocketPort),
-			PidFile:        cfg.Sdn.PidFile,
-			ConsoleLogFile: cfg.Sdn.ConsoleLogFile,
-			EnableIPv6:     cfg.Sdn.EnableIPv6,
-			IPv6Subnet:     cfg.Sdn.IPv6Subnet,
-		}
-		sdnVmRunner, err := edensdn.GetSdnVMRunner(cfg.Eve.DevModel, sdnConfig)
-		if err != nil {
-			return fmt.Errorf("failed to get SDN VM runner: %w", err)
-		}
-		// Start SDN.
-		err = sdnVmRunner.Start()
-		if err != nil {
-			return fmt.Errorf("cannot start SDN: %w", err)
-		}
-		log.Infof("SDN is starting")
-		// Wait for SDN to start and apply network model.
-		startTime := time.Now()
-		client := &edensdn.SdnClient{
-			SSHPort:  uint16(cfg.Sdn.SSHPort),
-			MgmtPort: uint16(cfg.Sdn.MgmtPort),
-		}
-		for time.Since(startTime) < SdnStartTimeout {
-			time.Sleep(2 * time.Second)
-			if _, err = client.GetSdnStatus(); err == nil {
-				break
-			}
-		}
-		if err != nil {
-			return fmt.Errorf("timeout waiting for SDN to start: %w", err)
-		}
-		err = client.ApplyNetworkModel(netModel)
-		if err != nil {
-			return fmt.Errorf("failed to apply network model: %w", err)
-		}
-		log.Infof("SDN started, network model was submitted.")
 	}
 	// Create USB network config override image if requested.
 	var usbImagePath string
@@ -179,6 +120,69 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 	} else {
 		log.Infof("EVE is starting")
 	}
+	return nil
+}
+
+// StartEdenSDN : starts Eden-SDN VM and applies the provided network model.
+func (openEVEC *OpenEVEC) StartEdenSDN(netModel sdnapi.NetworkModel) error {
+	cfg := openEVEC.cfg
+	nets, err := utils.GetSubnetsNotUsed(1)
+	if err != nil {
+		return fmt.Errorf("failed to get unused IP subnet: %w", err)
+	}
+	sdnConfig := edensdn.SdnVMConfig{
+		Architecture: cfg.Eve.Arch,
+		Acceleration: cfg.Eve.Accel,
+		HostOS:       cfg.Eve.QemuOS,
+		ImagePath:    cfg.Sdn.ImageFile,
+		ConfigDir:    cfg.Sdn.ConfigDir,
+		CPU:          cfg.Sdn.CPU,
+		RAM:          cfg.Sdn.RAM,
+		NetModel:     netModel,
+		TelnetPort:   uint16(cfg.Sdn.TelnetPort),
+		SSHPort:      uint16(cfg.Sdn.SSHPort),
+		SSHKeyPath:   sdnSSHKeyPath(cfg.Sdn.SourceDir),
+		MgmtPort:     uint16(cfg.Sdn.MgmtPort),
+		MgmtSubnet: edensdn.SdnMgmtSubnet{
+			IPNet:     nets[0].Subnet,
+			DHCPStart: nets[0].FirstAddress,
+		},
+		NetDevBasePort: uint16(cfg.Eve.QemuConfig.NetDevSocketPort),
+		PidFile:        cfg.Sdn.PidFile,
+		ConsoleLogFile: cfg.Sdn.ConsoleLogFile,
+		EnableIPv6:     cfg.Sdn.EnableIPv6,
+		IPv6Subnet:     cfg.Sdn.IPv6Subnet,
+	}
+	sdnVMRunner, err := edensdn.GetSdnVMRunner(cfg.Eve.DevModel, sdnConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get SDN VM runner: %w", err)
+	}
+	// Start SDN.
+	err = sdnVMRunner.Start()
+	if err != nil {
+		return fmt.Errorf("cannot start SDN: %w", err)
+	}
+	log.Infof("SDN is starting")
+	// Wait for SDN to start and apply network model.
+	startTime := time.Now()
+	client := &edensdn.SdnClient{
+		SSHPort:  uint16(cfg.Sdn.SSHPort),
+		MgmtPort: uint16(cfg.Sdn.MgmtPort),
+	}
+	for time.Since(startTime) < SdnStartTimeout {
+		time.Sleep(2 * time.Second)
+		if _, err = client.GetSdnStatus(); err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("timeout waiting for SDN to start: %w", err)
+	}
+	err = client.ApplyNetworkModel(netModel)
+	if err != nil {
+		return fmt.Errorf("failed to apply network model: %w", err)
+	}
+	log.Infof("SDN started, network model was submitted.")
 	return nil
 }
 
