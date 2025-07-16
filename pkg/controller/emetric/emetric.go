@@ -3,6 +3,7 @@
 package emetric
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -17,7 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -104,7 +104,7 @@ func MetricItemFind(mm *metrics.ZMetricMsg, query map[string]string) bool {
 func MetricPrn(le *metrics.ZMetricMsg, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
-		b, err := protojson.Marshal(le)
+		b, err := json.Marshal(le)
 		if err != nil {
 			log.Fatal(err)
 		}
