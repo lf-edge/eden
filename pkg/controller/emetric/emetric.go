@@ -3,6 +3,7 @@
 package emetric
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -108,7 +109,7 @@ func MetricItemFind(mm *metrics.ZMetricMsg, query map[string]string) bool {
 func MetricPrn(le *metrics.ZMetricMsg, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
-		b, err := protojson.Marshal(le)
+		b, err := json.Marshal(le)
 		if err != nil {
 			log.Fatal(err)
 		}
