@@ -231,6 +231,7 @@ type PodConfig struct {
 	OpenStackMetadata bool
 	DatastoreOverride string
 	ACLOnlyHost       bool
+	DisableLogs       bool
 }
 
 func Merge(dst, src reflect.Value, flags *pflag.FlagSet) {
