@@ -64,6 +64,11 @@ jobs:
     needs: determine-runner
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
       - name: Dockerhub Login
         if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
         uses: docker/login-action@v3
@@ -97,6 +102,11 @@ jobs:
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
       - name: Dockerhub Login
         if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
         uses: docker/login-action@v3
@@ -131,6 +141,11 @@ jobs:
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
       - name: Dockerhub Login
         if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
         uses: docker/login-action@v3
@@ -161,6 +176,11 @@ jobs:
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
       - name: Dockerhub Login
         if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
         uses: docker/login-action@v3
@@ -195,6 +215,11 @@ jobs:
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
       - name: Dockerhub Login
         if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
         uses: docker/login-action@v3
@@ -225,6 +250,11 @@ jobs:
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
       - name: Dockerhub Login
         if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
         uses: docker/login-action@v3
@@ -255,6 +285,11 @@ jobs:
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner_virt) }}
     steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
       - name: Dockerhub Login
         if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
         uses: docker/login-action@v3

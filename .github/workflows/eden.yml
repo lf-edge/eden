@@ -12,9 +12,16 @@ concurrency:
 
 jobs:
   run_tests:
-    name: Execute Eden test workflow
-    uses: ./.github/workflows/test.yml
-    with:
-      eve_image: "lfedge/eve:13.3.0"
-      eden_version: ${{ github.event.pull_request.head.sha }}
-    secrets: inherit
+    steps:
+      - name: Print Public IP Address
+        run: |
+          echo "Public IP Address of the runner:"
+          curl -s https://api.ipify.org
+        shell: bash
+
+      - name: Execute Eden test workflow
+        uses: ./.github/workflows/test.yml
+        with:
+          eve_image: "lfedge/eve:13.3.0"
+          eden_version: ${{ github.event.pull_request.head.sha }}
+        secrets: inherit
