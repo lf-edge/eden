@@ -7,7 +7,9 @@ FROM lfedge/eve-alpine:12.1.0
 
 COPY --from=tools /out/ /
 COPY entrypoint.sh /
-COPY sdn-bios.img /bits/
+
+ARG TARGETARCH
+COPY sdn-${TARGETARCH}-bios.img /bits/sdn-bios.img
 
 ARG SDN_VERSION
 RUN echo "$SDN_VERSION" > /bits/sdn-version

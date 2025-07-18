@@ -106,6 +106,15 @@ You can build this container using the following Makefile target:
 make DOCKER_TARGET=build DOCKER_PLATFORM=<os>/<arch> push-multi-arch-sdn
 ```
 
+It is also possible to build a multi-platform image by specifying multiple platforms
+in the `DOCKER_PLATFORM` variable:
+
+```shell
+make DOCKER_TARGET=build DOCKER_PLATFORM=<os1>/<arch1>,<os2>/<arch2>,... push-multi-arch-sdn
+```
+
+Replace `<os>/<arch>` entries with the desired target platforms (e.g., `linux/amd64,linux/arm64`).
+
 To additionally push the image to the `lfedge/eden-sdn` repository,
 run with `DOCKER_TARGET=push`.
 
