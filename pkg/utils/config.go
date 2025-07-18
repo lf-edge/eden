@@ -62,7 +62,7 @@ type ConfigVars struct {
 	RegistryIP        string
 	RegistryPort      string
 	LogLevel          string
-	AdamLogLevel      string
+	RemoteLogLevel    string
 }
 
 // InitVars loads vars from viper
@@ -129,7 +129,7 @@ func InitVars() (*ConfigVars, error) {
 			RegistryIP:        viper.GetString("registry.ip"),
 			RegistryPort:      viper.GetString("registry.port"),
 			LogLevel:          viper.GetString("eve.log-level"),
-			AdamLogLevel:      viper.GetString("eve.adam-log-level"),
+			RemoteLogLevel:    viper.GetString("eve.remote-log-level"),
 		}
 		viperAccessMutex.RUnlock()
 		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
@@ -418,8 +418,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultEVEHost
 		case "eve.log-level":
 			return defaults.DefaultEveLogLevel
-		case "eve.adam-log-level":
-			return defaults.DefaultAdamLogLevel
+		case "eve.remote-log-level":
+			return defaults.DefaultRemoteLogLevel
 		case "eve.telnet-port":
 			return defaults.DefaultTelnetPort
 		case "eve.ssid":
