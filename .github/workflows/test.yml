@@ -54,7 +54,6 @@ jobs:
           fi
 
   smoke:
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -133,8 +132,8 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   storage:
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
     name: Storage test suite
@@ -207,8 +206,8 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   eve-upgrade:
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
     name: EVE upgrade test suite
