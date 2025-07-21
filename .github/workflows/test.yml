@@ -54,12 +54,14 @@ jobs:
           fi
 
   smoke:
+    name: Smoke
+    env:
+      JOB_NAME: Smoke
     strategy:
       fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
         tpm: [true, false]
-    name: Smoke tests
     needs: determine-runner
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
@@ -68,19 +70,44 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }} (${{ matrix.file_system }}, ${{ matrix.tpm }})
+        run: |
+          PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
+          # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+          if [ "$PREV_ATTEMPT" -le 0 ]; then
+            echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          prev_conclusion=$(
+            gh api \
+              -X GET \
+              repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+              -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+          )
+          if [ -z "$prev_conclusion" ]; then
+            echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+            exit 1
+          fi
+          echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run Smoke tests
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
@@ -95,9 +122,10 @@ jobs:
           aziot_id_scope: ${{ secrets.AZIOT_ID_SCOPE }}
           aziot_connection_string: ${{ secrets.AZIOT_CONNECTION_STRING }}
 
-
   networking:
-    name: Networking test suite
+    name: Networking
+    env:
+      JOB_NAME: Networking
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
@@ -106,19 +134,44 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }}
+        run: |
+            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
+            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+            if [ "$PREV_ATTEMPT" -le 0 ]; then
+                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+                exit 0
+            fi
+            prev_conclusion=$(
+                gh api \
+                -X GET \
+                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+            )
+            if [ -z "$prev_conclusion" ]; then
+                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+                exit 1
+            fi
+            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run Networking tests
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -132,11 +185,13 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   storage:
+    name: Storage
+    env:
+      JOB_NAME: Storage
     strategy:
       fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
-    name: Storage test suite
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
@@ -145,19 +200,44 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }} (${{ matrix.file_system }})
+        run: |
+            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
+            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+            if [ "$PREV_ATTEMPT" -le 0 ]; then
+                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+                exit 0
+            fi
+            prev_conclusion=$(
+                gh api \
+                -X GET \
+                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+            )
+            if [ -z "$prev_conclusion" ]; then
+                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+                exit 1
+            fi
+            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run Storage tests
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
@@ -171,7 +251,9 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   lps-loc:
-    name: LPS LOC test suite
+    name: LPS/LOC
+    env:
+      JOB_NAME: LPS/LOC
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
@@ -180,19 +262,44 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }}
+        run: |
+            PREV_ATTEMPT=$(($PREV_ATTEMPT - 1 ))
+            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+            if [ "$PREV_ATTEMPT" -le 0 ]; then
+                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+                exit 0
+            fi
+            prev_conclusion=$(
+                gh api \
+                -X GET \
+                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+            )
+            if [ -z "$prev_conclusion" ]; then
+                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+                exit 1
+            fi
+            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run LPS and LOC tests
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -206,11 +313,13 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   eve-upgrade:
+    name: EVE Upgrade
+    env:
+      JOB_NAME: EVE Upgrade
     strategy:
       fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
-    name: EVE upgrade test suite
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
@@ -219,19 +328,44 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }} (${{ matrix.file_system }})
+        run: |
+            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
+            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+            if [ "$PREV_ATTEMPT" -le 0 ]; then
+                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+                exit 0
+            fi
+            prev_conclusion=$(
+                gh api \
+                -X GET \
+                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+            )
+            if [ -z "$prev_conclusion" ]; then
+                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+                exit 1
+            fi
+            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run EVE upgrade tests
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
@@ -245,7 +379,9 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   user-apps:
-    name: User apps test suite
+    name: User Apps
+    env:
+      JOB_NAME: User Apps
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
     steps:
@@ -254,19 +390,44 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }}
+        run: |
+            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
+            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+            if [ "$PREV_ATTEMPT" -le 0 ]; then
+                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+                exit 0
+            fi
+            prev_conclusion=$(
+                gh api \
+                -X GET \
+                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+            )
+            if [ -z "$prev_conclusion" ]; then
+                echo "Could not find matching job in previous attempt" >&2
+                exit 1
+            fi
+            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run User apps tests
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -280,7 +441,9 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
 
   virtualization:
-    name: Virtualization test suite
+    name: Virtualization
+    env:
+      JOB_NAME: Virtualization
     needs: [determine-runner]
     runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner_virt) }}
     steps:
@@ -289,19 +452,44 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FULL_JOB_NAME: ${{ env.JOB_NAME }}
+          PREV_ATTEMPT: ${{ github.run_attempt - 1 }}
+        run: |
+            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+            if [ "$PREV_ATTEMPT" -le 0 ]; then
+                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+                exit 0
+            fi
+            prev_conclusion=$(
+                gh api \
+                -X GET \
+                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
+                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
+            )
+            if [ -z "$prev_conclusion" ]; then
+                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+                exit 1
+            fi
+            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.prev_attempt.outputs.conclusion != 'success' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
-      - name: Run Virtualization tests
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
