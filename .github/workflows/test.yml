@@ -45,7 +45,7 @@ jobs:
     steps:
       - id: fork-check
         run: |
-          if [[ "${{ github.event.repository.full_name}}" == "lf-edge/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "lf-edge/eden" ]]; then
+          if [[ "${{ github.event.repository.full_name}}" == "rene/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "rene/eden" ]]; then
             echo "runner=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
             echo "runner_virt=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
           else
@@ -84,7 +84,7 @@ jobs:
             echo "already_passed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.test_passed.outputs.already_passed != 'true' }}
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -93,7 +93,7 @@ jobs:
         if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Smoke tests
@@ -145,7 +145,7 @@ jobs:
             echo "already_passed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.test_passed.outputs.already_passed != 'true' }}
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -154,7 +154,7 @@ jobs:
         if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Networking tests
@@ -207,7 +207,7 @@ jobs:
             echo "already_passed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.test_passed.outputs.already_passed != 'true' }}
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -216,7 +216,7 @@ jobs:
         if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Storage tests
@@ -265,7 +265,7 @@ jobs:
             echo "already_passed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.test_passed.outputs.already_passed != 'true' }}
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -274,7 +274,7 @@ jobs:
         if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run LPS and LOC tests
@@ -327,7 +327,7 @@ jobs:
             echo "already_passed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.test_passed.outputs.already_passed != 'true' }}
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -336,7 +336,7 @@ jobs:
         if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run EVE upgrade tests
@@ -385,7 +385,7 @@ jobs:
             echo "already_passed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.test_passed.outputs.already_passed != 'true' }}
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -394,7 +394,7 @@ jobs:
         if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run User apps tests
@@ -443,7 +443,7 @@ jobs:
             echo "already_passed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name == 'lf-edge/eve' && steps.test_passed.outputs.already_passed != 'true' }}
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -452,7 +452,7 @@ jobs:
         if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Virtualization tests
