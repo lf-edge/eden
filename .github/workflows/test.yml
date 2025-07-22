@@ -23,7 +23,7 @@ on:  # yamllint disable-line rule:truthy
       eden_version:
         type: string
         required: false
-        default: ''  # if not provided: When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event. Otherwise, uses the default branch.
+        default: ''  # if not provided: when checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event. Otherwise, uses the default branch.
       eve_image:
         type: string
       eve_log_level:
