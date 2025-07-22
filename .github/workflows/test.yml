@@ -45,7 +45,7 @@ jobs:
     steps:
       - id: fork-check
         run: |
-          if [[ "${{ github.event.repository.full_name}}" == "lf-edge/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "lf-edge/eden" ]]; then
+          if [[ "${{ github.event.repository.full_name}}" == "rene/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "rene/eden" ]]; then
             echo "runner=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
             echo "runner_virt=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
           else
@@ -68,19 +68,36 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Download passed-marker artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}-${{ matrix.file_system }}-${{ matrix.tpm }}
+          path: ./marker
+        continue-on-error: true
+      - name: Check if already passed
+        id: test_passed
+        run: |
+          if [[ -f ./marker/passed ]]; then
+            echo "already_passed=true" >> "$GITHUB_OUTPUT"
+            rm -f ./marker/passed
+          else
+            echo "already_passed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Smoke tests
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
@@ -94,6 +111,12 @@ jobs:
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
           aziot_id_scope: ${{ secrets.AZIOT_ID_SCOPE }}
           aziot_connection_string: ${{ secrets.AZIOT_CONNECTION_STRING }}
+      - name: Upload passed-marker artifact
+        if: ${{ success() && steps.test_passed.outputs.already_passed != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}-${{ matrix.file_system }}-${{ matrix.tpm }}
+          path: marker/passed
 
 
   networking:
@@ -106,19 +129,36 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Download passed-marker artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: ./marker
+        continue-on-error: true
+      - name: Check if already passed
+        id: test_passed
+        run: |
+          if [[ -f ./marker/passed ]]; then
+            echo "already_passed=true" >> "$GITHUB_OUTPUT"
+            rm -f ./marker/passed
+          else
+            echo "already_passed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Networking tests
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -130,6 +170,12 @@ jobs:
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+      - name: Upload passed-marker artifact
+        if: ${{ success() && steps.test_passed.outputs.already_passed != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: marker/passed
 
   storage:
     strategy:
@@ -145,19 +191,36 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Download passed-marker artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}-${{ matrix.file_system }}
+          path: ./marker
+        continue-on-error: true
+      - name: Check if already passed
+        id: test_passed
+        run: |
+          if [[ -f ./marker/passed ]]; then
+            echo "already_passed=true" >> "$GITHUB_OUTPUT"
+            rm -f ./marker/passed
+          else
+            echo "already_passed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Storage tests
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
@@ -169,6 +232,12 @@ jobs:
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+      - name: Upload passed-marker artifact
+        if: ${{ success() && steps.test_passed.outputs.already_passed != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}-${{ matrix.file_system }}
+          path: marker/passed
 
   lps-loc:
     name: LPS LOC test suite
@@ -180,19 +249,36 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Download passed-marker artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: ./marker
+        continue-on-error: true
+      - name: Check if already passed
+        id: test_passed
+        run: |
+          if [[ -f ./marker/passed ]]; then
+            echo "already_passed=true" >> "$GITHUB_OUTPUT"
+            rm -f ./marker/passed
+          else
+            echo "already_passed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run LPS and LOC tests
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -204,6 +290,12 @@ jobs:
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+      - name: Upload passed-marker artifact
+        if: ${{ success() && steps.test_passed.outputs.already_passed != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: marker/passed
 
   eve-upgrade:
     strategy:
@@ -219,19 +311,36 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Download passed-marker artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}-${{ matrix.file_system }}
+          path: ./marker
+        continue-on-error: true
+      - name: Check if already passed
+        id: test_passed
+        run: |
+          if [[ -f ./marker/passed ]]; then
+            echo "already_passed=true" >> "$GITHUB_OUTPUT"
+            rm -f ./marker/passed
+          else
+            echo "already_passed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run EVE upgrade tests
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: ${{ matrix.file_system }}
@@ -243,6 +352,12 @@ jobs:
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+      - name: Upload passed-marker artifact
+        if: ${{ success() && steps.test_passed.outputs.already_passed != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}-${{ matrix.file_system }}
+          path: marker/passed
 
   user-apps:
     name: User apps test suite
@@ -254,19 +369,36 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Download passed-marker artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: ./marker
+        continue-on-error: true
+      - name: Check if already passed
+        id: test_passed
+        run: |
+          if [[ -f ./marker/passed ]]; then
+            echo "already_passed=true" >> "$GITHUB_OUTPUT"
+            rm -f ./marker/passed
+          else
+            echo "already_passed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run User apps tests
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -278,6 +410,12 @@ jobs:
           artifact_run_id: ${{ inputs.artifact_run_id }}
           docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+      - name: Upload passed-marker artifact
+        if: ${{ success() && steps.test_passed.outputs.already_passed != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: marker/passed
 
   virtualization:
     name: Virtualization test suite
@@ -289,19 +427,36 @@ jobs:
           echo "Public IP Address of the runner:"
           curl -s https://api.ipify.org
         shell: bash
+      - name: Download passed-marker artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: ./marker
+        continue-on-error: true
+      - name: Check if already passed
+        id: test_passed
+        run: |
+          if [[ -f ./marker/passed ]]; then
+            echo "already_passed=true" >> "$GITHUB_OUTPUT"
+            rm -f ./marker/passed
+          else
+            echo "already_passed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dockerhub Login
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eve'
+        if: ${{ github.event.repository.full_name == 'rene/eve' && steps.test_passed.outputs.already_passed != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
           password: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
       - name: Get code
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: actions/checkout@v4.1.1
         with:
-          repository: "lf-edge/eden"
+          repository: "rene/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
       - name: Run Virtualization tests
+        if: steps.test_passed.outputs.already_passed != 'true'
         uses: ./eden/.github/actions/run-eden-test
         with:
           file_system: "ext4"
@@ -314,3 +469,9 @@ jobs:
           require_virtualization: true
           docker_account: ${{ secrets.DOCKERHUB_PULL_USER }}
           docker_token: ${{ secrets.DOCKERHUB_PULL_TOKEN }}
+      - name: Upload passed-marker artifact
+        if: ${{ success() && steps.test_passed.outputs.already_passed != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-marker-${{ github.job }}-${{ github.sha }}
+          path: marker/passed
