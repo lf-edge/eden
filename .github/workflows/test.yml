@@ -457,8 +457,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FULL_JOB_NAME: ${{ env.JOB_NAME }}
-          PREV_ATTEMPT: ${{ github.run_attempt - 1 }}
         run: |
+            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
             # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
             if [ "$PREV_ATTEMPT" -le 0 ]; then
                 echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
