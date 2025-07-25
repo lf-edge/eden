@@ -1,0 +1,7 @@
+---
+eden:
+    # test binary
+    test-bin: "eden.vector.test"
+
+    # test scenario
+    test-scenario: "eden.vector.tests.txt"

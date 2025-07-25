@@ -53,7 +53,7 @@ const (
 	DefaultRegistryPort         = 5050
 
 	//tags, versions, repos
-	DefaultEVETag               = "14.5.0-rc1" // DefaultEVETag tag for EVE image
+	DefaultEVETag               = "15.8.0" // DefaultEVETag tag for EVE image
 	DefaultAdamTag              = "0.0.57"
 	DefaultRedisTag             = "7"
 	DefaultRegistryTag          = "2.7"
@@ -121,8 +121,8 @@ const (
 	DefaultRequestsRedisPrefix   = "REQUESTS_EVE_"
 	DefaultFlowLogRedisPrefix    = "FLOW_MESSAGE_EVE_"
 
-	DefaultEveLogLevel  = "info" // min level of logs saved in files on EVE device
-	DefaultAdamLogLevel = "info" // min level of logs sent from EVE to Adam
+	DefaultEveLogLevel    = "info" // min level of logs saved in files on EVE device
+	DefaultRemoteLogLevel = "info" // min level of logs sent from EVE to Adam
 
 	DefaultQemuAccelDarwin      = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
 	DefaultQemuAccelDarwinArm64 = "-machine virt,accel=hvf,usb=off,dump-guest-core=off -cpu host "
