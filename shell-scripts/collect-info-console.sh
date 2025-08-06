@@ -38,23 +38,9 @@ done
 
 for i in $(seq 3); do
   {
-    echo "rm -rf /persist/eve-info*"; echo "/usr/bin/collect-info.sh";
-    sleep $((WAIT_TIME+60*(i-1)))
-  } | telnet 127.1 "${CONSOLE_PORT}" | tee telnet.stdout
-  TGZNAME="$(sed -n "s/EVE info is collected '\(.*\)'/\1/p" telnet.stdout)"
-  [ -n "${TGZNAME}" ] && break
-done
-
-if [ -z "${TGZNAME}" ]; then
-  echo "Failed to run collect-info.sh script"
-  exit 1
-fi
-
-for i in $(seq 3); do
-  {
-    echo "TGZNAME=$TGZNAME";
-    echo "base64 -w 0 \$TGZNAME > /persist/eve-info.base64"
-    echo "echo \>\>\>\$(cat /persist/eve-info.base64)\<\<\<";
+    echo 'echo >>>'
+    echo "tar c /persist/eve-info | base64"
+    echo 'echo <<<'
     sleep $((WAIT_TIME+60*(i-1)))
   } | telnet 127.1 "${CONSOLE_PORT}" | sed -n "s/>>>\(.*\)<<</\1/p" | base64 -id > "${OUTPUT}"
   [ -s "${OUTPUT}" ] && break
