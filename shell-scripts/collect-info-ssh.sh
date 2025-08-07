@@ -1,7 +1,7 @@
-#/bin/sh
+#!/bin/sh
 
 # Use output filename without colon, otherwise Github action "upload-artifact" complains.
-OUTPUT="eve-info.tar.gz"
+OUTPUT="eve-info.tar"
 
 ssh() {
   ./eden sdn fwd eth0 22 --\
@@ -45,13 +45,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-TGZNAME="$(cat ssh.stdout  | sed -n "s/EVE info is collected '\(.*\)'/\1/p")"
-if [ -z "${TGZNAME}" ]; then
-  echo "Failed to parse eve-info tarball filename"
-  exit 1
-fi
-
-scp "${TGZNAME}" ${OUTPUT}
+ssh "tar -C /persist -cf - eve-info" > "${OUTPUT}"
 if [ $? -ne 0 ]; then
   echo "Failed to receive eve-info"
   exit 1

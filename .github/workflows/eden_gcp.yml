@@ -167,6 +167,7 @@ jobs:
         with:
           name: eden-report-${{ matrix.hv }}-${{ matrix.fs }}
           path: |
+            ${{ github.workspace }}/eve-info.tar
             ${{ github.workspace }}/eve-info.tar.gz
             ${{ github.workspace }}/trace.log
             ${{ github.workspace }}/info.log

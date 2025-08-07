@@ -6,7 +6,7 @@
 # is unable to do the same via SSH tunnel.
 
 # Use output filename without colon, otherwise Github action "upload-artifact" complains.
-OUTPUT="eve-info.tar.gz"
+OUTPUT="eve-info.tar"
 
 # 20 seconds should be enough for collect-info.sh to prepare tarball with debug info
 # if run locally on a solid machine. However, on Github runners, it can take up to 2 minutes
@@ -38,22 +38,20 @@ done
 
 for i in $(seq 3); do
   {
-    echo "rm -rf /persist/eve-info*"; echo "/usr/bin/collect-info.sh";
+    echo "/usr/bin/collect-info.sh";
     sleep $((WAIT_TIME+60*(i-1)))
   } | telnet 127.1 "${CONSOLE_PORT}" | tee telnet.stdout
-  TGZNAME="$(sed -n "s/EVE info is collected '\(.*\)'/\1/p" telnet.stdout)"
-  [ -n "${TGZNAME}" ] && break
+  grep -q "EVE info is collected" telnet.stdout && break
 done
 
-if [ -z "${TGZNAME}" ]; then
-  echo "Failed to run collect-info.sh script"
-  exit 1
-fi
-
+# We stream the tarball content to stdout, so we can read it
+# and decode it in one go.
+# The tarball is base64 encoded to avoid issues with binary data.
+# The streaming can take a while, so we retry a few times.
+# If that still doesn't help we need to consider a different approach.
 for i in $(seq 3); do
   {
-    echo "TGZNAME=$TGZNAME";
-    echo "base64 -w 0 \$TGZNAME > /persist/eve-info.base64"
+    echo "tar -C /persist -cf - eve-info | base64 -w 0 > /persist/eve-info.base64";
     echo "echo \>\>\>\$(cat /persist/eve-info.base64)\<\<\<";
     sleep $((WAIT_TIME+60*(i-1)))
   } | telnet 127.1 "${CONSOLE_PORT}" | sed -n "s/>>>\(.*\)<<</\1/p" | base64 -id > "${OUTPUT}"
