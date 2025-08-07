@@ -74,7 +74,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.DevModelFIle = cfg.Eve.ModelFile
 	cv.EveName = cfg.Eve.Name
 	cv.EveUUID = cfg.Eve.CertsUUID
-	cv.AdamLogLevel = cfg.Eve.AdamLogLevel
+	cv.RemoteLogLevel = cfg.Eve.RemoteLogLevel
 	cv.EveRemote = cfg.Eve.Remote
 	cv.EveRemoteAddr = cfg.Eve.RemoteAddr
 	cv.EveQemuPorts = cfg.Eve.HostFwd
