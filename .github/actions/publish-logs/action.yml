@@ -48,6 +48,7 @@ runs:
       with:
         name: ${{ inputs.report_name }}
         path: |
+            ${{ github.workspace }}/eden/eve-info.tar
             ${{ github.workspace }}/eden/eve-info.tar.gz
             ${{ github.workspace }}/eden/trace.log
             ${{ github.workspace }}/eden/info.log
