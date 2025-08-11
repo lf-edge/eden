@@ -1,9 +1,7 @@
 ---
 name: EdenGCP
 on:  # yamllint disable-line rule:truthy
-  push:
-    branches: [master]
-# yamllint disable rule:line-length
+  workflow_dispatch:
 
 jobs:
   check-secrets:
