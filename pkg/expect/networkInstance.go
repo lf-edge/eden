@@ -66,7 +66,7 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		Port:           adapter,
 		Cfg:            &config.NetworkInstanceOpaqueConfig{},
 		IpType:         config.AddressType_IPV4,
-		Ip:             &config.Ipspec{},
+		Ip:             &evecommon.Ipspec{},
 		DisableFlowlog: !instanceExpect.enableFlowlog,
 	}
 	if instanceExpect.netInstType == "switch" {
@@ -76,11 +76,11 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 		if err != nil {
 			return nil, err
 		}
-		netInst.Ip = &config.Ipspec{
+		netInst.Ip = &evecommon.Ipspec{
 			Subnet:  instanceExpect.subnet,
 			Gateway: gwIP.String(),
 			Dns:     []string{gwIP.String()},
-			DhcpRange: &config.IpRange{
+			DhcpRange: &evecommon.IpRange{
 				Start: dhcpStart.String(),
 				End:   dhcpEnd.String(),
 			},
@@ -92,7 +92,7 @@ func (exp *AppExpectation) createNetworkInstance(instanceExpect *NetInstanceExpe
 	}
 	netInst.Displayname = instanceExpect.name
 	for hostname, ipAddrs := range instanceExpect.staticDNSEntries {
-		netInst.Dns = append(netInst.Dns, &config.ZnetStaticDNSEntry{
+		netInst.Dns = append(netInst.Dns, &evecommon.ZnetStaticDNSEntry{
 			HostName: hostname,
 			Address:  ipAddrs,
 		})
