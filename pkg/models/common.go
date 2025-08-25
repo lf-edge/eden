@@ -14,10 +14,10 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 		networkConfigs = append(networkConfigs,
 			&config.NetworkConfig{
 				Id:   defaults.NetDHCPID,
-				Type: config.NetworkType_V4,
-				Ip: &config.Ipspec{
-					Dhcp:      config.DHCPType_Client,
-					DhcpRange: &config.IpRange{},
+				Type: evecommon.NetworkType_V4,
+				Ip: &evecommon.Ipspec{
+					Dhcp:      evecommon.DHCPType_Client,
+					DhcpRange: &evecommon.IpRange{},
 				},
 				Wireless: nil,
 			})
@@ -25,10 +25,10 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 			networkConfigs = append(networkConfigs,
 				&config.NetworkConfig{
 					Id:   defaults.NetDHCPID2,
-					Type: config.NetworkType_V4,
-					Ip: &config.Ipspec{
-						Dhcp:      config.DHCPType_Client,
-						DhcpRange: &config.IpRange{},
+					Type: evecommon.NetworkType_V4,
+					Ip: &evecommon.Ipspec{
+						Dhcp:      evecommon.DHCPType_Client,
+						DhcpRange: &evecommon.IpRange{},
 					},
 					Wireless: nil,
 				})
@@ -37,10 +37,10 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 			networkConfigs = append(networkConfigs,
 				&config.NetworkConfig{
 					Id:   defaults.NetSwitch,
-					Type: config.NetworkType_V4,
-					Ip: &config.Ipspec{
-						Dhcp:      config.DHCPType_DHCPNone,
-						DhcpRange: &config.IpRange{},
+					Type: evecommon.NetworkType_V4,
+					Ip: &evecommon.Ipspec{
+						Dhcp:      evecommon.DHCPType_DHCPNone,
+						DhcpRange: &evecommon.IpRange{},
 					},
 					Wireless: nil,
 				})
@@ -50,13 +50,13 @@ func generateNetworkConfigs(ethCount, wifiCount uint) []*config.NetworkConfig {
 		networkConfigs = append(networkConfigs,
 			&config.NetworkConfig{
 				Id:   defaults.NetWiFiID,
-				Type: config.NetworkType_V4,
-				Ip: &config.Ipspec{
-					Dhcp:      config.DHCPType_Client,
-					DhcpRange: &config.IpRange{},
+				Type: evecommon.NetworkType_V4,
+				Ip: &evecommon.Ipspec{
+					Dhcp:      evecommon.DHCPType_Client,
+					DhcpRange: &evecommon.IpRange{},
 				},
 				Wireless: &config.WirelessConfig{
-					Type:        config.WirelessType_WiFi,
+					Type:        evecommon.WirelessType_WiFi,
 					CellularCfg: nil,
 					WifiCfg:     nil,
 				},
