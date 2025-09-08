@@ -28,6 +28,8 @@ inputs:
     type: string
     required: false
     default: ''
+  test_suite:
+    type: string
   aziot_id_scope:
     description: 'Azure IoT ID scope'
     required: false
@@ -60,14 +62,10 @@ runs:
         eve_artifact_name: ${{ inputs.eve_artifact_name }}
         artifact_run_id: ${{ inputs.artifact_run_id }}
         require_virtualization: ${{ inputs.require_virtualization }}
-    - name: Run kubevirt tests
-      run: go test
+    - name: Run neoeden test suite
+      run: go test -timeout 30m
       shell: bash
-      working-directory: "./eden/tests/kubevirt"
-    - name: Run security tests
-      run: go test
-      shell: bash
-      working-directory: "./eden/tests/sec"
+      working-directory: ${{ inputs.test_suite }}
       env:
         AZIOT_ID_SCOPE: ${{ inputs.aziot_id_scope }}
         AZIOT_CONNECTION_STRING: ${{ inputs.aziot_connection_string }}
@@ -87,4 +85,3 @@ runs:
         docker system prune -f -a >/dev/null
       shell: bash
       working-directory: "./eden"
-
