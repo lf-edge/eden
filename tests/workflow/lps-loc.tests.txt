@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 9}}
+{{$tests := 10}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "n"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -43,3 +43,5 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_l
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/dev_local_info
 /bin/echo Eden location publish test (9/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/publish_location
+/bin/echo Eden location publish test (10/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/network_local_changes

@@ -1,0 +1,241 @@
+# Test local network configuration submitted via LPS.
+
+{{define "port"}}2223{{end}}
+{{define "token"}}server_token_123{{end}}
+{{define "network_info_file"}}/mnt/network-info.json{{end}}
+{{define "local_network_config_file"}}/mnt/local-network-config.json{{end}}
+{{define "network"}}n1{{end}}
+{{define "ssh"}}ssh -q -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@FWD_IP -p FWD_PORT{{end}}
+{{define "scp"}}scp -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa -P FWD_PORT{{end}}
+{{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
+{{define "jq_path_eth0_latest_cfg"}}.latestConfig[] | select(.logicalLabel=="eth0"){{end}}
+{{define "jq_path_eth1_latest_cfg"}}.latestConfig[] | select(.logicalLabel=="eth1"){{end}}
+{{define "jq_path_eth0_local_cfg"}}.localConfig.ports[] | select(.logicalLabel=="eth0"){{end}}
+{{define "jq_path_eth1_local_cfg"}}.localConfig.ports[] | select(.logicalLabel=="eth1"){{end}}
+{{define "jq_path_eth0_has_local_cfg"}}any(.localConfig.ports[]?; .logicalLabel=="eth0"){{end}}
+{{define "jq_path_eth1_has_local_cfg"}}any(.localConfig.ports[]?; .logicalLabel=="eth1"){{end}}
+{{define "jq_arg_cfg_applied"}}.configApplied // false{{end}}
+{{define "jq_arg_err_msg"}}.errorMessage // ""{{end}}
+{{define "jq_arg_cfg_origin"}}.configSource.origin // "NETWORK_CONFIG_ORIGIN_UNSPECIFIED"{{end}}
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:ssh] stop
+[!exec:chmod] stop
+[!exec:jq] stop
+
+exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
+
+# Starting of reboot detector with a 1 reboot limit
+! test eden.reboot.test -test.v -timewait 100m -reboot=0 -count=1 &
+
+message 'Resetting of EVE'
+eden eve reset
+exec sleep 30
+
+# Enable local configuration changes for eth1.
+exec -t 2m bash allow_lps_config.sh eth1
+! stderr .
+
+# Create n1 network
+eden -t 1m network create 10.11.12.0/24 -n {{template "network"}}
+test eden.network.test -test.v -timewait 10m ACTIVATED {{template "network"}}
+
+# Deploy local-manager
+eden pod deploy -n local-manager --memory=512MB {{template "eclient_image"}} -p {{template "port"}}:22 --networks={{template "network"}}
+test eden.app.test -test.v -timewait 10m RUNNING local-manager
+
+# Wait for ssh access
+exec -t 5m bash wait-ssh.sh {{template "port"}}
+
+# Start local manager application
+exec -t 1m bash local-manager-start.sh
+
+# Obtain local-manager IP address
+exec -t 2m bash get-app-ip.sh local-manager
+source .env
+
+# Configure local server
+eden controller edge-node update --device profile_server_token={{template "token"}}
+eden controller edge-node update --device local_profile_server=$app_ip:8888
+
+# Wait for network info
+exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_latest_cfg"}} | {{template "jq_arg_cfg_origin"}}' NETWORK_CONFIG_ORIGIN_CONTROLLER
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth1_latest_cfg"}} | {{template "jq_arg_cfg_origin"}}' NETWORK_CONFIG_ORIGIN_CONTROLLER
+exec -t 1m bash wait-for-network-info.sh '.configTesting.controllerReachable' true
+exec -t 1m bash wait-for-network-info.sh '.configTesting.testingPhase' 'DPC verification succeeded'
+
+# Apply local network configuration:
+#   - Override DNS servers for eth0
+#   - Override MTU value for eth1
+exec -t 1m bash apply-local-network-config.sh $WORK/local-config.json
+
+# Local changes to eth0 should be rejected, since LPS is not permitted to modify eth0 configuration.
+exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | {{template "jq_arg_err_msg"}}' 'local modifications not permitted for port "eth0"'
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | {{template "jq_arg_cfg_applied"}}' false
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
+eden eve ssh cat /etc/resolv.conf
+! stdout 'nameserver 8.8.8.8'
+! stdout 'nameserver 1.1.1.1'
+
+# Local changes to eth1 should be successfully applied.
+exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth1_local_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
+exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth1_local_cfg"}} | {{template "jq_arg_err_msg"}}' ''
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth1_local_cfg"}} | .mtu' 9000
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth1_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' false
+eden eve ssh ifconfig eth1
+stdout 'MTU:9000'
+
+# Enable local configuration changes for eth0.
+exec -t 2m bash allow_lps_config.sh eth0
+! stderr .
+
+# Local changes to eth0 should be now permitted and successfully applied.
+exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
+exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | {{template "jq_arg_err_msg"}}' ''
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | .dnsServers | index("8.8.8.8") != null' true
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | .dnsServers | index("1.1.1.1") != null' true
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' false
+eden eve ssh cat /etc/resolv.conf
+stdout 'nameserver 8.8.8.8'
+stdout 'nameserver 1.1.1.1'
+
+# Apply empty local config to revert all local changes.
+exec -t 1m bash apply-local-network-config.sh $WORK/empty-config.json
+
+# eth0 configuration should be reverted back to controller-provided config.
+exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_has_local_cfg"}}' false
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
+eden eve ssh cat /etc/resolv.conf
+! stdout 'nameserver 8.8.8.8'
+! stdout 'nameserver 1.1.1.1'
+
+# eth1 configuration should be reverted back to controller-provided config.
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth1_has_local_cfg"}}' false
+exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth1_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
+eden eve ssh ifconfig eth1
+stdout 'MTU:1500'
+
+# Undeploy local-manager
+eden pod delete local-manager
+test eden.app.test -test.v -timewait 15m - local-manager
+eden network delete {{template "network"}}
+test eden.network.test -test.v -timewait 10m - {{template "network"}}
+
+-- wait-ssh.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for p in $*
+do
+  for i in `seq 20`
+  do
+    sleep 20
+    # Test SSH-access to container
+    echo $EDEN sdn fwd eth0 $p -- {{template "ssh"}} grep -q Ubuntu /etc/issue
+    $EDEN sdn fwd eth0 $p -- {{template "ssh"}} grep -q Ubuntu /etc/issue && break
+  done
+done
+
+-- local-manager-start.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+ARGS="--token={{template "token"}}"
+$EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} "/root/local_manager $ARGS &>/proc/1/fd/1 &"
+
+-- get-app-ip.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+IP=$($EDEN pod ps | grep $1 | awk '{print $4}' | cut -d ":" -f 1)
+echo app_ip=$IP>>.env
+
+-- wait-for-network-info.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+NETWORK_INFO_FILE={{template "network_info_file"}}
+JQ_PATH="$1"
+EXPECTED="$2"
+
+# Strip double quotes from EXPECTED to simplify matching
+EXPECTED=$(echo "$EXPECTED" | tr -d '"')
+
+printf 'Waiting for JQ_PATH=[%q], EXPECTED=[%q] in file=[%q]\n' "$JQ_PATH" "$EXPECTED" "$NETWORK_INFO_FILE"
+
+CMDS=$(cat <<EOF
+until test -f "$NETWORK_INFO_FILE"; do
+  sleep 5
+done
+while true; do
+  VALUE=\$(jq -r '$JQ_PATH' '$NETWORK_INFO_FILE' 2>/dev/null || echo "")
+  VALUE=\$(echo "\$VALUE" | tr -d '"' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+  if [ "\$VALUE" = "$EXPECTED" ]; then
+    echo "Condition met: $JQ_PATH: \$VALUE == $EXPECTED"
+    break
+  else
+    echo "Condition NOT met: $JQ_PATH: \$VALUE == $EXPECTED"
+  fi
+  sleep 5
+done
+EOF
+)
+
+$EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} "sh -s" <<EOF
+$CMDS
+EOF
+
+-- apply-local-network-config.sh --
+CONFIG_FILE="${1}"
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+$EDEN sdn fwd eth0 {{template "port"}} -- {{template "scp"}} "$CONFIG_FILE" root@FWD_IP:/mnt/local-network-config.json
+
+-- allow_lps_config.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+PORT="${1}"
+ENABLE="${2:-true}"
+
+TMPCFG=eve.cfg
+$EDEN controller edge-node get-config --file $TMPCFG
+
+jq --arg port "$PORT" --argjson enable "$ENABLE" '
+  .systemAdapterList |= map(
+    if .name == $port then
+      . + {allowLocalModifications: $enable}
+    else
+      .
+    end
+  )
+' < $TMPCFG > $TMPCFG.new
+
+$EDEN controller edge-node set-config --file $TMPCFG.new
+echo "Setting allowLocalModifications=$ENABLE for adapter $PORT"
+
+-- local-config.json --
+{
+  "ports": [
+    {
+      "logicalLabel": "eth0",
+      "ipVersion": "IP_VERSION_IPV4_ONLY",
+      "useDhcp": true,
+      "dhcpOptionsIgnore":  {
+        "dnsConfigExclusively": true
+      },
+      "dnsServers": ["8.8.8.8", "1.1.1.1"]
+    },
+    {
+      "logicalLabel": "eth1",
+      "ipVersion": "IP_VERSION_IPV4_ONLY",
+      "useDhcp": true,
+      "mtu": 9000
+    }
+  ]
+}
+
+-- empty-config.json --
+{}
+
+-- eden-config.yml --
+{{/* Test's config file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
