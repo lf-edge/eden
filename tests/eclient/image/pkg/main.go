@@ -41,6 +41,10 @@ var (
 		"File to save location info obtained from EVE")
 	locationThrottleFile = flag.String("location-throttle", "/mnt/location.throttle",
 		"When this file exists, location reporting is throttled")
+	netInfoFile = flag.String("network-info", "/mnt/network-info.json",
+		"File to save network info")
+	localNetConfigFile = flag.String("local-network-config", "/mnt/local-network-config.json",
+		"File to save local network config")
 	token = flag.String("token", "", "Token of profile server")
 )
 
@@ -59,11 +63,12 @@ func main() {
 	http.HandleFunc("/api/v1/appinfo", appinfo)
 	http.HandleFunc("/api/v1/devinfo", devinfo)
 	http.HandleFunc("/api/v1/location", location)
+	http.HandleFunc("/api/v1/network", network)
 	fmt.Println(http.ListenAndServe(":8888", nil))
 }
 
 func appinfo(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
 		fmt.Println(errStr)
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
@@ -149,7 +154,7 @@ func appinfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func devinfo(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
 		fmt.Println(errStr)
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
@@ -232,7 +237,7 @@ func devinfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func localProfile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
+	if r.Method != http.MethodGet {
 		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
 		fmt.Println(errStr)
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
@@ -268,7 +273,7 @@ func localProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func radio(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
 		fmt.Println(errStr)
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
@@ -363,7 +368,7 @@ func radio(w http.ResponseWriter, r *http.Request) {
 }
 
 func location(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
 		fmt.Println(errStr)
 		http.Error(w, errStr, http.StatusMethodNotAllowed)
@@ -406,5 +411,87 @@ func location(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// throttle location reporting
 		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func network(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		errStr := fmt.Sprintf("Unexpected method: %s", r.Method)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to read request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	netInfo := &profile.NetworkInfo{}
+	err = proto.Unmarshal(body, netInfo)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to unmarshal request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	data, err := protojson.MarshalOptions{Multiline: true}.Marshal(netInfo)
+	if err != nil {
+		errStr := fmt.Sprintf("Marshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	err = os.WriteFile(*netInfoFile, data, 0644)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to write request body: %v", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+
+	// Submit local network configuration if present.
+	configFile, err := os.Stat(*localNetConfigFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			errStr := fmt.Sprintf("Stat: %s", err)
+			fmt.Println(errStr)
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if configFile.Size() == 0 {
+		// We use empty config file to request throttling.
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	data, err = os.ReadFile(*localNetConfigFile)
+	if err != nil {
+		errStr := fmt.Sprintf("ReadFile: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	localConfig := &profile.LocalNetworkConfig{}
+	err = protojson.Unmarshal(data, localConfig)
+	if err != nil {
+		errStr := fmt.Sprintf("Unmarshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	localConfig.ServerToken = *token
+	data, err = proto.Marshal(localConfig)
+	if err != nil {
+		errStr := fmt.Sprintf("Marshal: %s", err)
+		fmt.Println(errStr)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(contentType, mimeProto)
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(data); err != nil {
+		fmt.Printf("Failed to write: %s\n", err)
 	}
 }
