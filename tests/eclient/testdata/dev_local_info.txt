@@ -65,7 +65,9 @@ exec -t 10m bash wait-for-dev-state.sh ONLINE
 # STEP 4: Request for shutdown. Check that app1 stops before local_manager
 exec -t 15m bash wait-for-app-state.sh app1 HALTED &app1halted&
 exec -t 1m bash put-devinfo-cmd.sh COMMAND_SHUTDOWN &
-exec -t 5m bash wait-for-dev-state.sh SHUTTING_DOWN &
+# Device state during shutdown used to be called SHUTTING_DOWN, but later was renamed
+# to PREPARING_POWEROFF, see: https://github.com/lf-edge/eve-api/commit/12c71e9526c87b107e67b4e5decd6411248856ff
+exec -t 5m bash wait-for-dev-state.sh PREPARING_POWEROFF &
 # Could it already have HALTED? Match HALTING or HALTED
 exec -t 5m bash wait-for-app-state.sh app1 HALT
 exec -t 2m bash wait-for-app-state.sh local-manager RUNNING &
@@ -110,7 +112,9 @@ skip 'The rest of the test is supported only on QEMU'
 {{end}}
 
 # STEP 6: Request for poweroff. Check that app1 stops before local_manager
-exec -t 1m bash put-devinfo-cmd.sh COMMAND_SHUTDOWN_POWEROFF &
+# This command used to be called COMMAND_SHUTDOWN_POWEROFF, but later was renamed
+# to COMMAND_GRACEFUL_POWEROFF, see: https://github.com/lf-edge/eve-api/commit/44ba9892be84814edc36b851314e56f0461dbbaa
+exec -t 1m bash put-devinfo-cmd.sh COMMAND_GRACEFUL_POWEROFF &
 exec -t 5m bash wait-for-dev-state.sh POWERING_OFF &
 # Could it already have HALTED? Match HALTING or HALTED
 exec -t 5m bash wait-for-app-state.sh app1 HALT
