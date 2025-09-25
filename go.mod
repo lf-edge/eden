@@ -19,7 +19,7 @@ require (
 	github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67
 	github.com/lf-edge/eden/sdn/vm v0.0.0-20250314212201-6f1e0716172f
 	github.com/lf-edge/edge-containers v0.0.0-20240207093504-5dfda0619b80
-	github.com/lf-edge/eve-api/go v0.0.0-20240829123634-7c8ebda876ff
+	github.com/lf-edge/eve-api/go v0.0.0-20250922144401-abfd2fa2b728
 	github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/term v0.5.0
@@ -42,7 +42,7 @@ require (
 	golang.org/x/term v0.18.0
 	golang.org/x/text v0.14.0
 	google.golang.org/api v0.160.0
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.36.3
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.4.0
 	oras.land/oras-go v1.2.5

@@ -84,7 +84,7 @@ func (ctx *DevModelRpi) SetWiFiParams(ssid string, psk string) {
 			if el.Wireless != nil {
 				el.Wireless.WifiCfg = []*config.WifiConfig{{
 					WifiSSID:  ssid,
-					KeyScheme: config.WiFiKeyScheme_WPAPSK,
+					KeyScheme: evecommon.WiFiKeyScheme_WPAPSK,
 					Password:  psk,
 				}}
 			}

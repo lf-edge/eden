@@ -54,7 +54,7 @@ const (
 
 	//tags, versions, repos
 	DefaultEVETag               = "15.8.0" // DefaultEVETag tag for EVE image
-	DefaultAdamTag              = "0.0.57"
+	DefaultAdamTag              = "0.0.65"
 	DefaultRedisTag             = "7"
 	DefaultRegistryTag          = "2.7"
 	DefaultProcTag              = "83cfe07"
@@ -82,7 +82,7 @@ const (
 	DefaultEServerTag          = "4b71e2c"
 	DefaultEServerContainerRef = "lfedge/eden-http-server"
 
-	DefaultEClientTag          = "b1c1de6"
+	DefaultEClientTag          = "070b10b"
 	DefaultEClientContainerRef = "lfedge/eden-eclient"
 
 	//DefaultRepeatCount is repeat count for requests
