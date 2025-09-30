@@ -31,6 +31,10 @@ eden.escript.test -test.run TestEdenScripts/eden_onboard
 eden.escript.test -test.run TestEdenScripts/template_check
 {{end}}
 
+
+/bin/echo EVE VcomLink tests (12/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_vcom
+
 /bin/echo Verifying that we can use a switch network instance on a management port (5/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_nonat
 
@@ -52,5 +56,7 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/air-g
 /bin/echo Test VNC access (11/{{$tests}})
 eden.escript.test -testdata ../vnc/testdata/ -test.run TestEdenScripts/vnc_test
 
-/bin/echo EVE VcomLink tests (12/{{$tests}})
-eden.escript.test -test.run TestEdenScripts/eden_vcom
+# new vcomlink is not part of any eve release, disable the test for now
+# enable it back once we have a release with vcomlink chnages.
+# /bin/echo EVE VcomLink tests (12/{{$tests}})
+# eden.escript.test -test.run TestEdenScripts/eden_vcom

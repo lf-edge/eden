@@ -1,7 +1,6 @@
 package vcom
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -11,7 +10,6 @@ import (
 
 	tk "github.com/lf-edge/eden/pkg/evetestkit"
 	"github.com/lf-edge/eden/pkg/utils"
-	"github.com/lf-edge/eve/pkg/pillar/vcom"
 )
 
 var eveNode *tk.EveNode
@@ -42,36 +40,6 @@ func logInfof(format string, args ...interface{}) {
 	} else {
 		fmt.Print(out)
 	}
-}
-
-func getChannel(data []byte) (uint, error) {
-	var msg vcom.Base
-	err := json.Unmarshal(data, &msg)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint(msg.Channel), nil
-}
-
-func decodeTpmResponseEK(data []byte) (*vcom.TpmResponseEk, error) {
-	tpmRes := new(vcom.TpmResponseEk)
-	err := json.Unmarshal(data, tpmRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return tpmRes, nil
-}
-
-func decodeError(data []byte) (*vcom.Error, error) {
-	errMsg := new(vcom.Error)
-	err := json.Unmarshal(data, errMsg)
-	if err != nil {
-		return nil, err
-	}
-
-	return errMsg, nil
 }
 
 func dumpScript(name, content string) error {
@@ -148,7 +116,25 @@ func TestVcomLinkTpmRequestEK(t *testing.T) {
 	}
 	logInfof("SSH connection with VM established.")
 
+	// make sure python3-protobuf is installed
+	logInfof("Installing python3-protobuf...")
+	_, err = eveNode.AppSSHExec(appName, "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip && pip3 install protobuf")
+	if err != nil {
+		logFatalf("Failed to install python3-protobuf: %v", err)
+	}
+
 	logInfof("Copying test scripts to the vm...")
+	// dump the protobuf file
+	err = dumpScript("messages_pb2.py", protobufFile)
+	if err != nil {
+		logFatalf("Failed to get path to messages_pb2.py: %v", err)
+	}
+	err = eveNode.AppSCPCopy(appName, "messages_pb2.py", "messages_pb2.py")
+	if err != nil {
+		logFatalf("Failed to copy messages_pb2.py to the vm: %v", err)
+	}
+
+	// dump the test script
 	err = dumpScript("testvsock.py", testScript)
 	if err != nil {
 		logFatalf("Failed to get path to testvsock.py: %v", err)
@@ -157,36 +143,27 @@ func TestVcomLinkTpmRequestEK(t *testing.T) {
 	if err != nil {
 		logFatalf("Failed to copy testvsock.py to the vm: %v", err)
 	}
+
+	// run the test script
+	logInfof("Testing TPM Get Public Key via vComLink...")
 	out, err := eveNode.AppSSHExec(appName, "python3 testvsock.py")
 	if err != nil {
 		logFatalf("Failed to communicate with host via vsock: %v", err)
 	}
 
+	// check the response
 	logInfof("Processing vComLink<->VM response...")
-	channel, err := getChannel([]byte(out))
-	if err != nil {
-		logFatalf("Failed to get channel from the output: %v", err)
+	logInfof("Output: %s", out)
+	// The script should return something like this, so lets just check for test passed
+	// Testing TPM Get Public Key via VSOCK HTTP...
+	// Sending TPM GetPub request via VSOCK (CID: 1, Port: 2000)...
+	// TPM EK: 0001000b000300b20020837197674484...
+	// TPM EK Algorithm: 1
+	// TPM EK Attributes: FlagFixedTPM | FlagFixedParent | FlagSensitiveDataOrigin | FlagAdminWithPolicy | FlagRestricted | FlagDecrypt
+	// Test passed!
+	if !strings.Contains(string(out), "passed") {
+		logFatalf("vComLink<->VM communication failed, output: %s", out)
 	}
-	if channel == uint(vcom.ChannelError) {
-		errMsg, err := decodeError([]byte(out))
-		if err != nil {
-			logFatalf("Failed to decode error message: %v", err)
-		}
-		logFatalf("Received error message instead of EK: %s", errMsg.Error)
-	}
-	if channel != uint(vcom.ChannelTpm) {
-		logFatalf("Expected channel %d, got %d", vcom.ChannelTpm, channel)
-	}
-
-	logInfof("Received expected TPM response from in the vm")
-	tpmRes, err := decodeTpmResponseEK([]byte(out))
-	if err != nil {
-		logFatalf("Failed to decode tpm response: %v", err)
-	}
-	if tpmRes.Ek == "" {
-		logFatalf("Received an empty EK from the vm")
-	}
-	logInfof("Received expected EK in the TPM response")
 
 	logInfof("TestvComLinkTpmRequestEK passed")
 }
