@@ -3,6 +3,7 @@
 package elog
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -109,7 +110,7 @@ func HandleFactory(format types.OutputFormat, once bool) HandlerFunc {
 func LogPrint(le *FullLogEntry, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
-		b, err := protojson.Marshal(le)
+		b, err := json.Marshal(le)
 		if err != nil {
 			log.Fatal(err)
 		}

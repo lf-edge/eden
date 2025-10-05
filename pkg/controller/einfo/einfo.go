@@ -3,6 +3,7 @@
 package einfo
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -17,7 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -40,7 +40,7 @@ func ParseZInfoMsg(data []byte) (ZInfoMsg *info.ZInfoMsg, err error) {
 func ZInfoPrn(im *info.ZInfoMsg, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
-		b, err := protojson.Marshal(im)
+		b, err := json.Marshal(im)
 		if err != nil {
 			log.Fatal(err)
 		}
