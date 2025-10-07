@@ -299,7 +299,7 @@ func (openEVEC *OpenEVEC) GetEveIP(ifName string) string {
 		return ""
 	}
 	for _, nw := range networks {
-		if nw.LocalName == ifName {
+		if nw.Ifname == ifName {
 			if len(nw.IPAddrs) == 0 {
 				return ""
 			}
@@ -516,7 +516,7 @@ func (openEVEC *OpenEVEC) NewLinkEve(command, eveInterfaceName, vmName string) e
 	return nil
 }
 
-func (openEVEC *OpenEVEC) getEveNetworkInfo() (networks []*info.ZInfoNetwork, err error) {
+func (openEVEC *OpenEVEC) getEveNetworkInfo() (networks []*info.DevicePort, err error) {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
@@ -530,7 +530,11 @@ func (openEVEC *OpenEVEC) getEveNetworkInfo() (networks []*info.ZInfoNetwork, er
 		return nil, fmt.Errorf("MetricLastCallback failed: %w", err)
 	}
 	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
-		networks = append(networks, lastDInfo.Network...)
+		curIndex := int(lastDInfo.GetSystemAdapter().GetCurrentIndex())
+		netStatus := lastDInfo.GetSystemAdapter().GetStatus()
+		if curIndex < len(netStatus) {
+			networks = append(networks, netStatus[curIndex].Ports...)
+		}
 	}
 	return networks, nil
 }

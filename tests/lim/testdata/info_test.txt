@@ -6,8 +6,8 @@
 #eden eve onboard
 
 eden eve epoch &
-# Trying to find eth0 or eth1 in dinfo.network.devName.
-{{$test}} -out InfoContent.dinfo.network.devName 'InfoContent.dinfo.network.devName:.*eth[01].*'
+# Trying to find eth0 or eth1 in dinfo.systemAdapter.status.ports.ifname
+{{$test}} -out InfoContent.dinfo.systemAdapter.status.ports.ifname 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.*eth[01].*'
 stdout 'eth[01]'
 
 {{$tpm := EdenConfig "eve.tpm"}}

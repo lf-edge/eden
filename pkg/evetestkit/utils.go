@@ -637,14 +637,20 @@ func (node *EveNode) LogTimeInfof(format string, args ...interface{}) {
 
 func (node *EveNode) discoverEveIP() error {
 	if node.edgenode.GetRemoteAddr() == "" {
-		eveIPCIDR, err := node.tc.GetState(node.edgenode).LookUp("Dinfo.Network[0].IPAddrs[0]")
-		if err != nil {
-			return err
+		sysAdapterInfo := node.tc.GetState(node.edgenode).GetDinfo().GetSystemAdapter()
+		curIndex := int(sysAdapterInfo.GetCurrentIndex())
+		netStatus := sysAdapterInfo.GetStatus()
+		if curIndex >= len(netStatus) {
+			return fmt.Errorf("no network status reported")
 		}
-
-		ip := net.ParseIP(eveIPCIDR.String())
+		ports := netStatus[curIndex].Ports
+		if len(ports) == 0 || len(ports[0].IPAddrs) == 0 {
+			return fmt.Errorf("no IP address reported")
+		}
+		eveIP := ports[0].IPAddrs[0]
+		ip := net.ParseIP(eveIP)
 		if ip == nil || ip.To4() == nil {
-			return fmt.Errorf("failed to parse IP address: %s", eveIPCIDR.String())
+			return fmt.Errorf("failed to parse IP address: %s", eveIP)
 		}
 
 		node.ip = ip.To4().String()
