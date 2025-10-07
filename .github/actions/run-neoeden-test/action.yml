@@ -52,23 +52,36 @@ runs:
       with:
         username: ${{ inputs.docker_account }}
         password: ${{ inputs.docker_token }}
-    - name: Setup Environment
-      uses: ./eden/.github/actions/setup-environment
+    - name: Setup go
+      uses: actions/setup-go@v5
       with:
-        file_system: ${{ inputs.file_system }}
-        tpm_enabled: ${{ inputs.tpm_enabled }}
-        eve_image: ${{ inputs.eve_image }}
-        eve_log_level: ${{ inputs.eve_log_level }}
-        eve_artifact_name: ${{ inputs.eve_artifact_name }}
-        artifact_run_id: ${{ inputs.artifact_run_id }}
-        require_virtualization: ${{ inputs.require_virtualization }}
+        go-version: '1.22'
+    - name: Download artifact if specified
+      if: inputs.eve_artifact_name != ''
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ github.token }}
+        name: ${{ inputs.eve_artifact_name }}
+        path: artifacts  # this is the directory where it will put the artifact, not its name
+        run-id: ${{ inputs.artifact_run_id }}
+    - name: Load containers to docker if specified
+      if: inputs.eve_artifact_name != ''
+      run: |
+        docker load -q -i artifacts/${{ inputs.eve_artifact_name }}.tar
+        docker image ls
+      shell: bash
     - name: Run neoeden test suite
-      run: go test -timeout 30m
       shell: bash
       working-directory: ${{ inputs.test_suite }}
       env:
         AZIOT_ID_SCOPE: ${{ inputs.aziot_id_scope }}
         AZIOT_CONNECTION_STRING: ${{ inputs.aziot_connection_string }}
+      run: |
+        go test \
+          -filesystem="${{ inputs.file_system }}" \
+          -eve-image="${{ inputs.eve_image }}" \
+          -eve-log-level="${{ inputs.eve_log_level }}" \
+          -timeout 30m
     - name: Collect info
       if: failure()
       uses: ./eden/.github/actions/collect-info
@@ -76,7 +89,7 @@ runs:
       if: always()
       uses: ./eden/.github/actions/publish-logs
       with:
-        report_name: eden-report-${{ inputs.suite }}-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
+        report_name: eden-report-${{ inputs.test_suite }}-tpm-${{ inputs.tpm_enabled }}-${{ inputs.file_system }}
     - name: Clean up after test
       if: always()
       run: |
