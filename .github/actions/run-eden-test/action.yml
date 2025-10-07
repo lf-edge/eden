@@ -56,13 +56,68 @@ runs:
     - name: Setup Environment
       uses: ./eden/.github/actions/setup-environment
       with:
-        file_system: ${{ inputs.file_system }}
-        tpm_enabled: ${{ inputs.tpm_enabled }}
-        eve_image: ${{ inputs.eve_image }}
-        eve_log_level: ${{ inputs.eve_log_level }}
         eve_artifact_name: ${{ inputs.eve_artifact_name }}
         artifact_run_id: ${{ inputs.artifact_run_id }}
-        require_virtualization: ${{ inputs.require_virtualization }}
+    - name: Configure
+      run: |
+        ./eden config add default
+        require_virt="${{ inputs.require_virtualization }}"
+        if [[ "$require_virt" == "true" ]]; then
+          if ! lscpu | grep -oEq "vmx|svm"; then
+            echo "Missing required HW-assisted virtualization support"
+            exit 1
+          fi
+          ./eden config set default --key=eve.accel --value=true
+        else
+          ./eden config set default --key=eve.accel --value=false
+          ./eden config set default --key=eve.firmware --value="$(pwd)/firmware/OVMF_CODE.fd $(pwd)/firmware/OVMF_VARS.fd"
+        fi
+        ./dist/bin/eden+ports.sh 2223:2223 2224:2224 5912:5902 5911:5901 8027:8027 8028:8028 8029:8029 8030:8030 8031:8031
+        ./eden config set default --key=eve.tpm --value=${{ inputs.tpm_enabled }}
+        ./eden config set default --key=eve.cpu --value=2
+      shell: bash
+      working-directory: "./eden"
+    - name: Setup eve version
+      run: |
+        image=${{ inputs.eve_image }}
+        if [[ -n "$image" && "$image" == *:* ]]; then
+          echo "Setting up eve image ${image}"
+          eve_pr_registry=$(echo "$image" |  cut -d ':' -f 1)
+          eve_pr=$(echo "$image" |  cut -d ':' -f 2 | cut -d "-" -f1)
+          # this will be empty if there is no rc in the tag
+          eve_rc=$(echo "$image" |  cut -d ':' -f 2 | grep -Eo "\-rc[0-9]+" || printf "")
+          ./eden config set default --key=eve.registry --value="$eve_pr_registry"
+          ./eden config set default --key=eve.tag --value="$eve_pr$eve_rc"
+        else
+          echo "Skipping setting up eve image ${image}"
+        fi
+      shell: bash
+      working-directory: "./eden"
+    - name: Set eve log level
+      run: ./eden config set default --key=eve.log-level --value=${{ inputs.eve_log_level }}
+      shell: bash
+      working-directory: "./eden"
+    - name: Setup ext4
+      if: inputs.file_system == 'ext4'
+      run: ./eden setup -v debug
+      shell: bash
+      working-directory: "./eden"
+    - name: Setup zfs
+      if: inputs.file_system == 'zfs'
+      run: |
+        ./eden config set default --key=eve.disks --value=4
+        ./eden config set default --key=eve.disk --value=4096
+        ./eden setup -v debug --grub-options='set_global dom0_extra_args "$dom0_extra_args eve_install_zfs_with_raid_level "'
+      shell: bash
+      working-directory: "./eden"
+
+    - name: Start and Onboard
+      run: |
+        ./eden start -v debug
+        ./eden eve onboard -v debug
+      shell: bash
+      working-directory: "./eden"
+    
     - name: Run tests
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash

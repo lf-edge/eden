@@ -15,10 +15,11 @@ func newConfigCmd(configName, verbosity *string) *cobra.Command {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg, err := openevec.GetDefaultConfig(currentPath)
-	if err != nil {
+	builder := openevec.GetDefaultConfig(currentPath)
+	if len(builder.Err) > 0 {
 		log.Fatalf("Failed to generate default config %v\n", err)
 	}
+	cfg := builder.Args
 	var configCmd = &cobra.Command{
 		Use:               "config",
 		Short:             "work with config",

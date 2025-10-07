@@ -129,21 +129,22 @@ type EveConfig struct {
 	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
 	Accel          bool              `mapstructure:"accel" cobraflag:"eve-accel"`
 
-	Pid            string `mapstructure:"pid" cobraflag:"eve-pid" resolvepath:""`
-	Log            string `mapstructure:"log" cobraflag:"eve-log" resolvepath:""`
-	TelnetPort     int    `mapstructure:"telnet-port" cobraflag:"eve-telnet-port"`
-	Remote         bool   `mapstructure:"remote"`
-	RemoteAddr     string `mapstructure:"remote-addr"`
-	ModelFile      string `mapstructure:"devmodelfile" cobraflag:"devmodel-file"`
-	Cert           string `mapstructure:"cert" resolvepath:""`
-	DeviceCert     string `mapstructure:"device-cert" resolvepath:""`
-	Name           string `mapstructure:"name"`
-	RemoteLogLevel string `mapstructure:"remote-log-level"`
-	LogLevel       string `mapstructure:"log-level"`
-	Disks          int    `mapstructure:"disks"`
-	BootstrapFile  string `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`
-	UsbNetConfFile string `mapstructure:"usbnetconf-file" cobraflag:"eve-usbnetconf-file"`
-	TPM            bool   `mapstructure:"tpm" cobraflag:"tpm"`
+	Pid            string   `mapstructure:"pid" cobraflag:"eve-pid" resolvepath:""`
+	Log            string   `mapstructure:"log" cobraflag:"eve-log" resolvepath:""`
+	TelnetPort     int      `mapstructure:"telnet-port" cobraflag:"eve-telnet-port"`
+	Remote         bool     `mapstructure:"remote"`
+	RemoteAddr     string   `mapstructure:"remote-addr"`
+	ModelFile      string   `mapstructure:"devmodelfile" cobraflag:"devmodel-file"`
+	Cert           string   `mapstructure:"cert" resolvepath:""`
+	DeviceCert     string   `mapstructure:"device-cert" resolvepath:""`
+	Name           string   `mapstructure:"name"`
+	RemoteLogLevel string   `mapstructure:"remote-log-level"`
+	LogLevel       string   `mapstructure:"log-level"`
+	Disks          int      `mapstructure:"disks"`
+	BootstrapFile  string   `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`
+	UsbNetConfFile string   `mapstructure:"usbnetconf-file" cobraflag:"eve-usbnetconf-file"`
+	TPM            bool     `mapstructure:"tpm" cobraflag:"tpm"`
+	GrubOptions    []string `mapstructure:"grub-options" cobraflag:"grub-options"`
 }
 
 type RegistryConfig struct {
