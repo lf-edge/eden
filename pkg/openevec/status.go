@@ -145,8 +145,12 @@ func (openEVEC *OpenEVEC) eveStatusRemote() error {
 	}
 	if lastDInfo := eveState.InfoAndMetrics().GetDinfo(); lastDInfo != nil {
 		var ips []string
-		for _, nw := range lastDInfo.Network {
-			ips = append(ips, nw.IPAddrs...)
+		curIndex := int(lastDInfo.GetSystemAdapter().GetCurrentIndex())
+		netStatus := lastDInfo.GetSystemAdapter().GetStatus()
+		if curIndex < len(netStatus) {
+			for _, port := range netStatus[curIndex].Ports {
+				ips = append(ips, port.IPAddrs...)
+			}
 		}
 		fmt.Printf("%s EVE REMOTE IPs: %s\n", statusOK(), strings.Join(ips, "; "))
 		var lastseen = time.Unix(eveState.InfoAndMetrics().GetLastInfoTime().GetSeconds(), 0)

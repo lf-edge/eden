@@ -99,11 +99,18 @@ func checkAppRunning(appName string) testcontext.ProcInfoFunc {
 func getEVEIP(edgeNode *device.Ctx) testcontext.ProcTimerFunc {
 	return func() error {
 		if edgeNode.GetRemoteAddr() == "" { //no eve.remote-addr defined
-			eveIPCIDR, err := tc.GetState(edgeNode).LookUp("Dinfo.Network[0].IPAddrs[0]")
-			if err != nil {
+			sysAdapterInfo := tc.GetState(edgeNode).GetDinfo().GetSystemAdapter()
+			curIndex := int(sysAdapterInfo.GetCurrentIndex())
+			netStatus := sysAdapterInfo.GetStatus()
+			if curIndex >= len(netStatus) {
 				return nil
 			}
-			ip := net.ParseIP(eveIPCIDR.String())
+			ports := netStatus[curIndex].Ports
+			if len(ports) == 0 || len(ports[0].IPAddrs) == 0 {
+				return nil
+			}
+			eveIP := ports[0].IPAddrs[0]
+			ip := net.ParseIP(eveIP)
 			if ip == nil || ip.To4() == nil {
 				return nil
 			}
