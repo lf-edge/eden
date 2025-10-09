@@ -1,8 +1,10 @@
 package openevec
 
 import (
+	"bytes"
 	"fmt"
 	"net"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -14,10 +16,20 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
+type ConfigOption func(*EdenSetupArgsBuilder)
+
+// Builder to propagate error
+type EdenSetupArgsBuilder struct {
+	Args *EdenSetupArgs
+	Err  []error
+}
+
+func GetDefaultConfig(projectRootPath string) *EdenSetupArgsBuilder {
+	res := &EdenSetupArgsBuilder{nil, make([]error, 0)}
 	ipv4, ipv6, err := utils.GetIPForDockerAccess()
 	if err != nil {
-		return nil, err
+		res.Err = append(res.Err, err)
+		return res
 	}
 	var ip string
 	if ipv4 != nil {
@@ -28,12 +40,14 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 
 	edenDir, err := utils.DefaultEdenDir()
 	if err != nil {
-		return nil, err
+		res.Err = append(res.Err, err)
+		return res
 	}
 
 	id, err := uuid.NewV4()
 	if err != nil {
-		return nil, err
+		res.Err = append(res.Err, err)
+		return res
 	}
 
 	imageDist := filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultImageDist))
@@ -215,7 +229,115 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 		EdenDir:    edenDir,
 	}
 
-	return defaultEdenConfig, nil
+	res.Args = defaultEdenConfig
+
+	return res
+}
+
+func hasVirtSupport() (bool, error) {
+	cmd := exec.Command("lscpu")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return false, fmt.Errorf("Failed to run lscpu: %v", err)
+	}
+	return strings.Contains(out.String(), "vmx") || strings.Contains(out.String(), "svm"), nil
+}
+
+// Enabling Acclelerator requires you to specify firmware
+func WithAccelerator(enabled bool, firmware []string) ConfigOption {
+	return func(builder *EdenSetupArgsBuilder) {
+		if enabled {
+			virtSupport, err := hasVirtSupport()
+			if err != nil {
+				builder.Err = append(builder.Err, err)
+			} else if !virtSupport {
+				builder.Err = append(builder.Err, fmt.Errorf("Missing required HW-assisted virtualization support"))
+			}
+			builder.Args.Eve.Accel = true
+		} else {
+			builder.Args.Eve.Accel = false
+			if len(firmware) > 0 {
+				builder.Args.Eve.QemuFirmware = firmware
+			}
+		}
+	}
+}
+
+// ParseDockerImage parses a Docker image reference into registry and tag.
+// If no registry is given (e.g. "eve" or "eve:1.0"), it defaults to defaults.DefaultEveRegistry.
+// If no tag is provided, it defaults to "latest".
+func ParseDockerImage(image string) (registry, tag string) {
+	image = strings.TrimSpace(image)
+
+	if image == "" {
+		return defaults.DefaultEveRegistry, defaults.DefaultEVETag
+	}
+
+	// Split by colon to separate tag (but handle registry:port/image:tag correctly)
+	lastColon := strings.LastIndex(image, ":")
+	lastSlash := strings.LastIndex(image, "/")
+
+	if lastColon > lastSlash {
+		// There's a tag
+		registry = image[:lastColon]
+		tag = image[lastColon+1:]
+	} else {
+		// No tag provided
+		registry = image
+		tag = "latest"
+	}
+
+	// If the image doesn’t contain a slash, assume it’s just a name and prepend the default registry
+	if !strings.Contains(registry, "/") {
+		registry = defaults.DefaultEveRegistry
+	}
+
+	return
+}
+
+func WithEVEImage(image string) ConfigOption {
+	return func(builder *EdenSetupArgsBuilder) {
+		registry, tag := ParseDockerImage(image)
+		builder.Args.Eve.Registry = registry
+		builder.Args.Eve.Tag = tag
+	}
+}
+
+func WithLogLevel(level string) ConfigOption {
+	return func(builder *EdenSetupArgsBuilder) {
+		if level == "" {
+			builder.Args.Eve.LogLevel = defaults.DefaultEveLogLevel
+		} else {
+			builder.Args.Eve.LogLevel = level
+		}
+	}
+}
+
+func WithFilesystem(fs string) ConfigOption {
+	return func(builder *EdenSetupArgsBuilder) {
+		switch fs {
+		case "zfs":
+			builder.Args.Eve.Disks = 4
+			builder.Args.Eve.ImageSizeMB = 4096
+			builder.Args.Eve.GrubOptions = []string{
+				"set_global dom0_extra_args \"$dom0_extra_args eve_install_zfs_with_raid_level \"",
+			}
+		default:
+			// assuming ext4, no need to setup anything extra
+		}
+	}
+}
+
+func WithHypervisor(hv string) ConfigOption {
+	return func(builder *EdenSetupArgsBuilder) {
+		if hv == "" {
+			builder.Args.Eve.HV = defaults.DefaultEVEHV
+		} else {
+			builder.Args.Eve.HV = hv
+		}
+	}
 }
 
 func GetDefaultPodConfig() *PodConfig {

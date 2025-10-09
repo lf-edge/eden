@@ -1,16 +1,15 @@
 package kubevirt_test
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/lf-edge/eden/pkg/defaults"
 	tk "github.com/lf-edge/eden/pkg/evetestkit"
 	"github.com/lf-edge/eden/pkg/openevec"
-	"github.com/lf-edge/eden/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,8 +18,17 @@ const k3sNodeReadyStatusCmd = "eve exec kube /usr/bin/kubectl get node -o jsonpa
 const hvTypeKubevirt = "kubevirt"
 
 var eveNode *tk.EveNode
+var (
+	// Global flags - parsed once across all test packages
+	fileSystem  = flag.String("filesystem", "ext4", "File system type (ext4, zfs)")
+	eveImage    = flag.String("eve-image", "", "Path to EVE OS image")
+	eveLogLevel = flag.String("eve-log-level", "info", "EVE log level (debug, info, warn, error)")
+	requireVirt = flag.Bool("require-virt", false, "Require HW-assisted virtualization support")
+)
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+
 	log.Println("Kubevirt Test Suite started")
 	defer log.Println("Kubevirt Suite finished")
 
@@ -30,32 +38,18 @@ func TestMain(m *testing.M) {
 	}
 	twoLevelsUp := filepath.Dir(filepath.Dir(currentPath))
 
-	configPath := utils.GetConfig("default")
-	cfg, err := openevec.LoadConfig(configPath)
+	node, cleanup, err := tk.SetupTestSuite(
+		projectName,
+		twoLevelsUp,
+		openevec.WithAccelerator(*requireVirt, []string{}),
+		openevec.WithEVEImage(*eveImage),
+		openevec.WithFilesystem(*fileSystem),
+		openevec.WithHypervisor(hvTypeKubevirt),
+	)
 	if err != nil {
-		log.Fatalf("Failed to get config %v\n", err)
+		log.Fatal(err)
 	}
-
-	if cfg.Eve.HV != hvTypeKubevirt {
-		log.Fatalf("Incorrect eve.hv value %s, test only supports kubevirt", cfg.Eve.HV)
-	}
-
-	evec := openevec.CreateOpenEVEC(cfg)
-	configDir := filepath.Join(twoLevelsUp, "eve-config-dir")
-	if err := evec.SetupEden("config", configDir, "", "", "", []string{}, false, false); err != nil {
-		log.Fatalf("Failed to setup Eden: %v", err)
-	}
-	if err := evec.StartEden(defaults.DefaultVBoxVMName, "", ""); err != nil {
-		log.Fatalf("Start eden failed: %s", err)
-	}
-	if err := evec.OnboardEve(cfg.Eve.CertsUUID); err != nil {
-		log.Fatalf("Eve onboard failed: %s", err)
-	}
-
-	node, err := tk.InitializeTestFromConfig(projectName, cfg, tk.WithControllerVerbosity("debug"))
-	if err != nil {
-		log.Fatalf("Failed to initialize test: %v", err)
-	}
+	defer cleanup()
 
 	eveNode = node
 	res := m.Run()

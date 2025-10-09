@@ -34,7 +34,7 @@ import (
 	"golang.org/x/term"
 )
 
-func (openEVEC *OpenEVEC) SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, grubOptions []string, netboot, installer bool) error {
+func (openEVEC *OpenEVEC) SetupEden(configName, configDir, softSerial, zedControlURL, ipxeOverride string, netboot, installer bool) error {
 
 	cfg := *openEVEC.cfg
 
@@ -53,7 +53,7 @@ func (openEVEC *OpenEVEC) SetupEden(configName, configDir, softSerial, zedContro
 	}
 
 	if cfg.Eve.CustomInstaller.Path == "" {
-		if err := setupConfigDir(cfg, configDir, softSerial, zedControlURL, grubOptions); err != nil {
+		if err := setupConfigDir(cfg, configDir, softSerial, zedControlURL, cfg.Eve.GrubOptions); err != nil {
 			return fmt.Errorf("cannot setup ConfigDir: %w", err)
 		}
 	}
