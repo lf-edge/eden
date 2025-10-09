@@ -9,8 +9,8 @@ test eden.app.test -test.v -timewait 15m RUNNING eclient &
 
 # We check for pattern exists in {{template "eclient_image"}}
 message 'Waiting for App logs'
-test eden.lim.test -test.v -timewait 15m -test.run TestAppLog -app eclient -out content 'content:.*ubuntu-http.*'
-stdout 'ubuntu-http-server'
+test eden.lim.test -test.v -timewait 15m -test.run TestAppLog -app eclient -out content 'content:.*Started\seclient.*'
+stdout 'Started eclient'
 
 wait
 
@@ -24,8 +24,8 @@ test eden.app.test -test.v -timewait 5m RUNNING eclient &
 
 # We check for pattern exists in {{template "eclient_image"}}
 message 'Waiting for App logs after app restart'
-test eden.lim.test -test.v -timewait 5m -test.run TestAppLog -app eclient -out content 'content:.*ubuntu-http.*'
-stdout 'ubuntu-http-server'
+test eden.lim.test -test.v -timewait 5m -test.run TestAppLog -app eclient -out content 'content:.*Started\seclient.*'
+stdout 'Started eclient'
 
 wait
 
