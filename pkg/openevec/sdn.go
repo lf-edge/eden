@@ -15,7 +15,7 @@ import (
 
 func (openEVEC *OpenEVEC) SdnForwardSSHToEve(commandToRun string) error {
 	cfg := openEVEC.cfg
-	arguments := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
+	arguments := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s "+
 		"-p FWD_PORT root@FWD_IP %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), commandToRun)
 	return openEVEC.SdnForwardCmd("", "eth0", 22, "ssh", strings.Fields(arguments)...)
 }
