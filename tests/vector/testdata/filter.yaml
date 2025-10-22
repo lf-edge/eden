@@ -33,17 +33,17 @@ transforms:
     source: |
       . = parse_json!(.message)
 
-  # this transform filters out events that contain the string "chrony" in the `.function` field
+  # this transform filters out events that contain the string "Disconnected from user" in the `.content` field
   filter_upload:
     type: filter
     inputs:
       - parse_json_upload
     condition: |
-      # Coerce `.function` to a string; if it fails, use "".
-      function_field = to_string(.function) ?? "";
+      # Coerce `.content` to a string; if it fails, use "".
+      content_field = to_string(.content) ?? "";
 
-      # Now `function_field` is always a valid string (possibly empty).
-      !contains(function_field, "chrony")
+      # Now `content_field` is always a valid string (possibly empty).
+      !contains(content_field, "Disconnected from user")
 
 sinks:
   keep_sent_queue_socket:

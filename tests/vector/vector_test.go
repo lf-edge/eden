@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -280,26 +281,6 @@ func TestWorkingConfig(t *testing.T) {
 		logFatalf("Vector is not running on EVE node")
 	}
 
-	steppy.AnnounceNext("set debug log level to see more logs flowing")
-	eveNode.UpdateNodeGlobalConfig(
-		nil,
-		map[string]string{
-			"debug.default.loglevel":        "debug",
-			"debug.default.remote.loglevel": "debug",
-		},
-	)
-	if err := eveNode.WaitForConfigApplied(60 * time.Second); err != nil {
-		logFatalf("Failed to wait for the faulty config to be applied: %v", err)
-	}
-
-	steppy.AnnounceNext(fmt.Sprintf("check that chrony logs are flowing (timeout %v)", logTimeout))
-	query := map[string]string{
-		"function": ".*chrony.*",
-	}
-	if err := eveNode.FindLogOnAdam(query, elog.LogNew, logTimeout); err != nil {
-		logFatalf("Failed to find chrony logs: %v", err)
-	}
-
 	steppy.AnnounceNext("set filter vector config")
 	eveNode.UpdateNodeGlobalConfig(
 		nil,
@@ -308,13 +289,13 @@ func TestWorkingConfig(t *testing.T) {
 		},
 	)
 	if err := eveNode.WaitForConfigApplied(60 * time.Second); err != nil {
-		logFatalf("Failed to wait for the faulty config to be applied: %v", err)
+		logFatalf("Failed to wait for the config to be applied: %v", err)
 	}
 
 	steppy.AnnounceNext("give vector some time to apply the filter config")
 	time.Sleep(30 * time.Second)
 
-	steppy.AnnounceNext("wait for vector to apply the filter config")
+	steppy.AnnounceNext("check the filter config was applied")
 	hashFilterConfig := fmt.Sprintf("%x", sha256.Sum256(filterConfig))
 	cmd = "sha256sum /persist/vector/config/vector.yaml"
 	out, err = eveNode.EveRunCommand(cmd)
@@ -329,10 +310,41 @@ func TestWorkingConfig(t *testing.T) {
 		logFatalf("Unexpected config hash: expected %s, got %s", hashFilterConfig, hashConfig)
 	}
 
-	steppy.AnnounceNext(fmt.Sprintf("check that chrony logs don't appear anymore (timeout %v)", logTimeout))
-	if err := eveNode.FindLogOnAdam(query, elog.LogNew, logTimeout); err != nil {
-		logInfof("No chrony logs found, as expected")
-	} else {
-		logFatalf("Chrony logs found, but they should not be present with the filter config")
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		query := map[string]string{
+			"content": "Received disconnect from.*",
+		}
+		steppy.AnnounceNext(fmt.Sprintf("check that %q is still present (timeout %v)", query["content"], logTimeout))
+		if err := eveNode.FindLogOnAdam(query, elog.LogNew, logTimeout); err == nil {
+			logInfof("%q found, as expected", query["content"])
+		} else {
+			logFatalf("%q not found, but they should be present with the filter config", query["content"])
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		query := map[string]string{
+			"content": "Disconnected from user.*",
+		}
+		steppy.AnnounceNext(fmt.Sprintf("check that %q doesn't appear anymore (timeout %v)", query["content"], logTimeout))
+		if err := eveNode.FindLogOnAdam(query, elog.LogNew, logTimeout); err != nil {
+			logInfof("%q not found, as expected", query["content"])
+		} else {
+			logFatalf("%q found, but it should not be present with the filter config", query["content"])
+		}
+	}()
+
+	steppy.AnnounceNext("generate logs from debug container")
+	cmd = "exit"
+	if _, err := eveNode.EveRunCommand(cmd); err != nil {
+		logFatalf("Failed to run ssh '%s': %v", cmd, err)
 	}
+
+	wg.Wait()
 }
