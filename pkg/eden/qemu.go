@@ -44,8 +44,8 @@ func StopSWTPM(stateDir string) error {
 
 func startQMPLogger(qmpSockFile string, qmpLogFile string) error {
 	shellcmd := fmt.Sprintf(
-		"echo '{\"execute\": \"qmp_capabilities\"}' | " +
-		"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
+		"echo '{\"execute\": \"qmp_capabilities\"}' | "+
+			"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
 		qmpSockFile, qmpLogFile)
 	opts := []string{
 		"-c", shellcmd,
@@ -64,7 +64,7 @@ func startQMPLogger(qmpSockFile string, qmpLogFile string) error {
 		break
 	}
 	if err != nil {
-		 return fmt.Errorf("startQMPLogger: can't connect to the QMP socket, presumably QEMU did not start")
+		return fmt.Errorf("startQMPLogger: can't connect to the QMP socket, presumably QEMU did not start")
 	}
 
 	return nil
@@ -207,7 +207,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 
 	consoleOps := "-display none "
 	consoleOps += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,"+
-		"host=localhost,server,nodelay,nowait,telnet,logappend=on,logfile=%s ",
+		"host=localhost,server=on,nodelay=on,wait=off,telnet=on,logappend=on,logfile=%s",
 		eveTelnetPort, logFile)
 	qemuOptions = consoleOps + qemuOptions
 	if !isInstaller {

@@ -125,7 +125,7 @@ const (
 	DefaultRemoteLogLevel = "info" // min level of logs sent from EVE to Adam
 
 	DefaultQemuAccelDarwin      = "-machine q35,accel=hvf -cpu kvm64,kvmclock=off "
-	DefaultQemuAccelDarwinArm64 = "-machine virt,accel=hvf,usb=off,dump-guest-core=off -cpu host "
+	DefaultQemuAccelDarwinArm64 = "-machine virt,accel=hvf,usb=off,dump-guest-core=on -cpu host "
 	DefaultQemuAccelLinuxAmd64  = "-machine q35,accel=kvm,dump-guest-core=off,kernel-irqchip=split -cpu host,invtsc=on,kvmclock=off -device intel-iommu,intremap=on,caching-mode=on,aw-bits=48 "
 	DefaultQemuAmd64            = "-machine q35,smm=on --cpu SandyBridge "
 

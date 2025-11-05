@@ -39,7 +39,7 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 	imageDist := filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultImageDist))
 	certsDist := filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultCertsDist))
 
-	firmware := []string{filepath.Join(imageDist, "eve", "OVMF.fd")}
+	firmware := []string{filepath.Join(imageDist, "eve", "firmware", "OVMF.fd")}
 	if runtime.GOARCH == "amd64" {
 		firmware = []string{
 			filepath.Join(imageDist, "eve", "firmware", "OVMF_CODE.fd"),
