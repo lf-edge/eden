@@ -156,6 +156,7 @@ const (
 	DefaultEVEImageSize = 8192
 
 	DefaultTPMEnabled = false
+	DefaultCanEnabled = false
 
 	DefaultAppMem = 1024000
 	DefaultAppCPU = 1

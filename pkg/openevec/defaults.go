@@ -147,6 +147,7 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 			Log:            filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-eve.log", strings.ToLower(defaults.DefaultContext))),
 			TelnetPort:     defaults.DefaultTelnetPort,
 			TPM:            defaults.DefaultTPMEnabled,
+			Can:            defaults.DefaultCanEnabled,
 			ImageFile:      filepath.Join(imageDist, "eve", "live.img"),
 			QemuDTBPath:    "",
 			QemuConfigPath: certsDist,

@@ -436,6 +436,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultEVEImageSize
 		case "eve.tpm":
 			return defaults.DefaultTPMEnabled
+		case "eve.can":
+			return defaults.DefaultCanEnabled
 		case "eve.disks":
 			return defaults.DefaultAdditionalDisks
 		case "eve.bootstrap-file":
