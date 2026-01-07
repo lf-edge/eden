@@ -178,6 +178,9 @@ eve:
     #tpm
     tpm: {{parse "eve.tpm"}}
 
+    #can
+    can: {{parse "eve.can"}}
+
     #additional disks count
     disks: {{parse "eve.disks"}}
 

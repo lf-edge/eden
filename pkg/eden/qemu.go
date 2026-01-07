@@ -44,8 +44,8 @@ func StopSWTPM(stateDir string) error {
 
 func startQMPLogger(qmpSockFile string, qmpLogFile string) error {
 	shellcmd := fmt.Sprintf(
-		"echo '{\"execute\": \"qmp_capabilities\"}' | " +
-		"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
+		"echo '{\"execute\": \"qmp_capabilities\"}' | "+
+			"socat -t0 -,ignoreeof UNIX-CONNECT:%s > %s",
 		qmpSockFile, qmpLogFile)
 	opts := []string{
 		"-c", shellcmd,
@@ -64,7 +64,7 @@ func startQMPLogger(qmpSockFile string, qmpLogFile string) error {
 		break
 	}
 	if err != nil {
-		 return fmt.Errorf("startQMPLogger: can't connect to the QMP socket, presumably QEMU did not start")
+		return fmt.Errorf("startQMPLogger: can't connect to the QMP socket, presumably QEMU did not start")
 	}
 
 	return nil
@@ -75,7 +75,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort, netDevBasePort int,
 	qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile, pidFile string,
 	netModel sdnapi.NetworkModel, withSDN bool, tapInterface, usbImagePath string,
-	swtpm, foreground bool) (err error) {
+	swtpm, can, foreground bool) (err error) {
 	var qemuCommand, qemuOptions string
 	qemuOptions += "-nodefaults -no-user-config "
 	netDev := "virtio-net-pci"
@@ -177,6 +177,9 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	if swtpm {
 		tpmSocket := filepath.Join(filepath.Dir(eveImageFile), "swtpm", defaults.DefaultSwtpmSockFile)
 		qemuOptions += fmt.Sprintf("-chardev socket,id=chrtpm,path=%s -tpmdev emulator,id=tpm0,chardev=chrtpm -device %s,tpmdev=tpm0 ", tpmSocket, tpmDev)
+	}
+	if can {
+		qemuOptions += "-object can-bus,id=canbus0 -device kvaser_pci,canbus=canbus0 "
 	}
 	if qemuOS == "" {
 		qemuOS = runtime.GOOS

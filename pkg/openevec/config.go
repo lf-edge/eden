@@ -144,6 +144,7 @@ type EveConfig struct {
 	BootstrapFile  string `mapstructure:"bootstrap-file" cobraflag:"eve-bootstrap-file"`
 	UsbNetConfFile string `mapstructure:"usbnetconf-file" cobraflag:"eve-usbnetconf-file"`
 	TPM            bool   `mapstructure:"tpm" cobraflag:"tpm"`
+	Can            bool   `mapstructure:"can" cobraflag:"can"`
 }
 
 type RegistryConfig struct {
