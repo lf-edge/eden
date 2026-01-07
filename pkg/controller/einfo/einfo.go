@@ -40,7 +40,10 @@ func ParseZInfoMsg(data []byte) (ZInfoMsg *info.ZInfoMsg, err error) {
 func ZInfoPrn(im *info.ZInfoMsg, format types.OutputFormat) {
 	switch format {
 	case types.OutputFormatJSON:
-		b, err := protojson.Marshal(im)
+		opt := protojson.MarshalOptions{
+			EmitDefaultValues: true,
+		}
+		b, err := opt.Marshal(im)
 		if err != nil {
 			log.Fatal(err)
 		}
