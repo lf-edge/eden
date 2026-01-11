@@ -309,3 +309,10 @@ func WithPinCpus(pinCpus bool) ExpectationOption {
 
 	}
 }
+
+// WithDisableLogs sets disable-logs option
+func WithDisableLogs(disableLogs bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.disableLogs = disableLogs
+	}
+}

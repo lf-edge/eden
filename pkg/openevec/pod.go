@@ -140,6 +140,7 @@ func (openEVEC *OpenEVEC) PodDeploy(appLink string, pc PodConfig, cfg *EdenSetup
 	opts = append(opts, expect.WithDatastoreOverride(pc.DatastoreOverride))
 	opts = append(opts, expect.WithStartDelay(pc.StartDelay))
 	opts = append(opts, expect.WithPinCpus(pc.PinCpus))
+	opts = append(opts, expect.WithDisableLogs(pc.DisableLogs))
 	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, pc.Name, opts...)
 	appInstanceConfig := expectation.Application()
 	dev.SetApplicationInstanceConfig(append(dev.GetApplicationInstances(), appInstanceConfig.Uuidandversion.Uuid))
