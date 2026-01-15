@@ -15,6 +15,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
+	"github.com/lf-edge/eden/pkg/controller/einfo"
 	"github.com/lf-edge/eden/pkg/controller/elog"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/device"
@@ -24,6 +25,7 @@ import (
 	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/tests"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/lf-edge/eve-api/go/info"
 	"github.com/tmc/scp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/exp/rand"
@@ -659,6 +661,11 @@ func (node *EveNode) discoverEveIP() error {
 
 	node.ip = node.edgenode.GetRemoteAddr()
 	return nil
+}
+
+// GetInfoFromAdam queries Adam for specified info and returns it or error (e.g. timeout) if not found
+func (node *EveNode) GetInfoFromAdam(query map[string]string, mode einfo.InfoCheckerMode, timeout time.Duration) ([]*info.ZInfoMsg, error) {
+	return node.controller.EdenFindInfo(query, mode, timeout)
 }
 
 // FindLogOnAdam queries Adam for specified log entry and returns nil if found or error (e.g. timeout) if not

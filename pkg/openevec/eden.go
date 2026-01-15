@@ -527,6 +527,27 @@ func (openEVEC *OpenEVEC) EdenInfo(outputFormat types.OutputFormat, infoTail uin
 	return nil
 }
 
+// EdenFindInfo finds info messages in the controller and processes them using the provided handler function.
+func (openEVEC *OpenEVEC) EdenFindInfo(query map[string]string, mode einfo.InfoCheckerMode, timeout time.Duration) ([]*info.ZInfoMsg, error) {
+	var foundInfo []*info.ZInfoMsg
+	changer := &adamChanger{}
+	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return nil, fmt.Errorf("getControllerAndDevFromConfig: %w", err)
+	}
+	devUUID := devFirst.GetID()
+	handler := func(infoMsg *info.ZInfoMsg) bool {
+		einfo.ZInfoPrn(infoMsg, types.OutputFormatJSON)
+		foundInfo = append(foundInfo, infoMsg)
+		return false
+	}
+
+	if err := ctrl.InfoChecker(devUUID, query, handler, mode, timeout); err != nil {
+		return foundInfo, err
+	}
+	return foundInfo, nil
+}
+
 func (openEVEC *OpenEVEC) EdenLog(outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
 	changer := &adamChanger{}
 	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
