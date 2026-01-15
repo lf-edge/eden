@@ -75,7 +75,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	qemuSMBIOSSerial string, eveTelnetPort, qemuMonitorPort, netDevBasePort int,
 	qemuHostFwd map[string]string, qemuAccel bool, qemuConfigFile, logFile, pidFile string,
 	netModel sdnapi.NetworkModel, withSDN bool, tapInterface, usbImagePath string,
-	swtpm, can, foreground bool) (err error) {
+	swtpm, can, serialPCI, foreground bool) (err error) {
 	var qemuCommand, qemuOptions string
 	qemuOptions += "-nodefaults -no-user-config "
 	netDev := "virtio-net-pci"
@@ -180,6 +180,11 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 	}
 	if can {
 		qemuOptions += "-object can-bus,id=canbus0 -device kvaser_pci,canbus=canbus0 "
+	}
+	if serialPCI {
+		qemuOptions += "-chardev socket,id=serial_backend1,port=4444,host=0.0.0.0,server=on,wait=off " +
+			"-chardev socket,id=serial_backend2,port=4445,host=0.0.0.0,server=on,wait=off " +
+			"-device pci-serial-2x,chardev1=serial_backend1,chardev2=serial_backend2 "
 	}
 	if qemuOS == "" {
 		qemuOS = runtime.GOOS

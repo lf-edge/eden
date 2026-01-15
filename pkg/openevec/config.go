@@ -127,6 +127,7 @@ type EveConfig struct {
 	Ssid           string            `mapstructure:"ssid" cobraflag:"ssid"`
 	Password       string            `mapstructure:"password" cobraflag:"password"`
 	Serial         string            `mapstructure:"serial" cobraflag:"eve-serial"`
+	DevSerial      bool              `mapstructure:"dev-serial" cobraflag:"eve-serial-pci"`
 	Accel          bool              `mapstructure:"accel" cobraflag:"eve-accel"`
 
 	Pid            string `mapstructure:"pid" cobraflag:"eve-pid" resolvepath:""`

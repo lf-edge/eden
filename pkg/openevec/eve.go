@@ -115,7 +115,7 @@ func (openEVEC *OpenEVEC) StartEveQemu(tapInterface string) error {
 	// Start EVE VM.
 	if err = eden.StartEVEQemu(cfg.Eve.Arch, cfg.Eve.QemuOS, imageFile, imageFormat, isInstaller, cfg.Eve.Serial, cfg.Eve.TelnetPort,
 		cfg.Eve.QemuConfig.MonitorPort, cfg.Eve.QemuConfig.NetDevSocketPort, cfg.Eve.HostFwd, cfg.Eve.Accel, cfg.Eve.QemuFileToSave, cfg.Eve.Log,
-		cfg.Eve.Pid, netModel, cfg.IsSdnEnabled(), tapInterface, usbImagePath, cfg.Eve.TPM, cfg.Eve.Can, false); err != nil {
+		cfg.Eve.Pid, netModel, cfg.IsSdnEnabled(), tapInterface, usbImagePath, cfg.Eve.TPM, cfg.Eve.Can, cfg.Eve.DevSerial, false); err != nil {
 		log.Errorf("cannot start eve: %s", err.Error())
 	} else {
 		log.Infof("EVE is starting")

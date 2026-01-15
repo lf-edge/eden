@@ -49,6 +49,7 @@ type ConfigVars struct {
 	EveCert           string
 	EveDeviceCert     string
 	EveSerial         string
+	EveDevSerial      bool
 	ZArch             string
 	DevModel          string
 	DevModelFIle      string
@@ -102,6 +103,7 @@ func InitVars() (*ConfigVars, error) {
 			EveCert:           ResolveAbsPath(viper.GetString("eve.cert")),
 			EveDeviceCert:     ResolveAbsPath(viper.GetString("eve.device-cert")),
 			EveSerial:         viper.GetString("eve.serial"),
+			EveDevSerial:      viper.GetBool("eve.dev-serial"),
 			EveDist:           viper.GetString("eve.dist"),
 			EveQemuConfig:     viper.GetString("eve.qemu-config"),
 			ZArch:             viper.GetString("eve.arch"),
@@ -438,6 +440,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return defaults.DefaultTPMEnabled
 		case "eve.can":
 			return defaults.DefaultCanEnabled
+		case "eve.dev-serial":
+			return defaults.DefaultDevSerialEnabled
 		case "eve.disks":
 			return defaults.DefaultAdditionalDisks
 		case "eve.bootstrap-file":

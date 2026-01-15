@@ -181,6 +181,9 @@ eve:
     #can
     can: {{parse "eve.can"}}
 
+    #dev-serial
+    dev-serial: {{parse "eve.dev-serial"}}
+
     #additional disks count
     disks: {{parse "eve.disks"}}
 
