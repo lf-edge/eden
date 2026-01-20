@@ -16,14 +16,14 @@
   },
   "ioMemberList": [
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB1",
       "assigngrp": "USB1",
       "logicallabel": "USB1",
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB2",
       "assigngrp": "USB2",
       "logicallabel": "USB2",
