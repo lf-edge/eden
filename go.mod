@@ -14,12 +14,13 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-redis/redis/v9 v9.0.0-beta.1
+	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.19.1
 	github.com/google/uuid v1.6.0
 	github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67
 	github.com/lf-edge/eden/sdn/vm v0.0.0-20250314212201-6f1e0716172f
 	github.com/lf-edge/edge-containers v0.0.0-20240207093504-5dfda0619b80
-	github.com/lf-edge/eve-api/go v0.0.0-20250922144401-abfd2fa2b728
+	github.com/lf-edge/eve-api/go v0.0.0-20260114160322-5feda2767927
 	github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
 	github.com/moby/term v0.5.0
@@ -83,7 +84,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect

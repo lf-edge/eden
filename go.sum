@@ -1374,8 +1374,8 @@ github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67 h1:lUJ/IASqGL
 github.com/lf-edge/eden/eserver v0.0.0-20220711180217-6e2bfa9c3f67/go.mod h1:D8XwIk3t45EzFr7Yxf4EE3G9H+4H2nEkvte/2ItzkNk=
 github.com/lf-edge/edge-containers v0.0.0-20240207093504-5dfda0619b80 h1:kiqB1Rk8fmWci0idN68azRDJfPxCivD3zNDddWZocFw=
 github.com/lf-edge/edge-containers v0.0.0-20240207093504-5dfda0619b80/go.mod h1:4yXdumKdTzF0URMtxOl8Xnzdxnoy1QR+2dzfOr4CIZY=
-github.com/lf-edge/eve-api/go v0.0.0-20250922144401-abfd2fa2b728 h1:MieVGF6Sp12dcgBBZPG7GODDBSIEQF2vOfio3qQ/UVE=
-github.com/lf-edge/eve-api/go v0.0.0-20250922144401-abfd2fa2b728/go.mod h1:6HxNA/qKJVEqwpuOFkcQ0h3QyotvAs/cjHLC961FPOY=
+github.com/lf-edge/eve-api/go v0.0.0-20260114160322-5feda2767927 h1:X+FcGf7U22d4SkCdb3kSwslaM4EENNMNFmlUZiBZSjE=
+github.com/lf-edge/eve-api/go v0.0.0-20260114160322-5feda2767927/go.mod h1:6HxNA/qKJVEqwpuOFkcQ0h3QyotvAs/cjHLC961FPOY=
 github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496 h1:txHCOKhVsKIZKvKWzyIMe3J+ATKk61o4bADhsdLk42Y=
 github.com/lf-edge/eve/libs/depgraph v0.0.0-20220711144346-0659e3b03496/go.mod h1:8gtCaEwMJftnaP8PjjgRStLhOoHquzzlmYzj441QwpU=
 github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513 h1:6eoKsOh15KAIGzZbLNlMhsOoPiMgoD6+VeuKsYsbqHY=
