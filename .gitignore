@@ -12,6 +12,7 @@
 
 # make build-tests artifacts
 tests/**/eden.*.test*
+!tests/**/eden.*.tests.txt
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
