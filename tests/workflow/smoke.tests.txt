@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 23}}
+{{$tests := 24}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "n"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -46,37 +46,39 @@ eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/log_test
 eden.escript.test -test.run TestEdenScripts/ssh
 /bin/echo Eden Info test (8/{{$tests}})
 eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/info_test
-/bin/echo Eden Metric test (9/{{$tests}})
+/bin/echo Eden HW inventory test (9/{{$tests}})
+eden.escript.test -test.run TestEdenScripts/eden_hw_inventory
+/bin/echo Eden Metric test (10/{{$tests}})
 eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/metric_test
-/bin/echo Eden Vector test (10/{{$tests}})
+/bin/echo Eden Vector test (11/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_vector
 
-/bin/echo Escript args test (11/{{$tests}})
+/bin/echo Escript args test (12/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/arg -args=test1=123,test2=456
-/bin/echo Escript template test (12/{{$tests}})
+/bin/echo Escript template test (13/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/template
-/bin/echo Escript message test (13/{{$tests}})
+/bin/echo Escript message test (14/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/message
-/bin/echo Escript nested scripts test (14/{{$tests}})
+/bin/echo Escript nested scripts test (15/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/nested_scripts
-/bin/echo Escript time test (15/{{$tests}})
+/bin/echo Escript time test (16/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/time
-/bin/echo Escript source test (16/{{$tests}})
+/bin/echo Escript source test (17/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/source
-/bin/echo Escript fail scenario test (17/{{$tests}})
+/bin/echo Escript fail scenario test (18/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/fail_scenario
 
-/bin/echo Eden app metadata test (18/{{$tests}})
+/bin/echo Eden app metadata test (19/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/metadata
-/bin/echo Eden app userdata test (19/{{$tests}})
+/bin/echo Eden app userdata test (20/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/userdata
-/bin/echo Eden app log test (20/{{$tests}})
+/bin/echo Eden app log test (21/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_logs
-/bin/echo Eden change controller certificate test (21/{{$tests}})
+/bin/echo Eden change controller certificate test (22/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ctrl_cert_change
 
-/bin/echo Eden Shutdown test (22/{{$tests}})
+/bin/echo Eden Shutdown test (23/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/shutdown_test
 
-/bin/echo EVE reset (23/{{$tests}})
+/bin/echo EVE reset (24/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_reset
