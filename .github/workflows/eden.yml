@@ -19,7 +19,7 @@ jobs:
     name: Execute Eden test workflow
     uses: ./.github/workflows/test.yml
     with:
-      eve_image: "lfedge/eve:15.11.0"
+      eve_image: "lfedge/eve:16.6.0"
       eve_kubevirt_image: "lfedge/eve:0.0.0-master-75241279-kubevirt-amd64"
       eden_version: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
