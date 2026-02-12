@@ -1,6 +1,6 @@
 module github.com/lf-edge/eden/eserver
 
-go 1.16
+go 1.24.0
 
 require (
 	github.com/gorilla/mux v1.8.0
