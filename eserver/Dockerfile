@@ -1,5 +1,5 @@
 FROM lfedge/eve-alpine:12.1.0 AS build
-ENV BUILD_PKGS go git openssh-keygen
+ENV BUILD_PKGS git openssh-keygen
 RUN eve-alpine-deploy.sh
 
 ENV CGO_ENABLED=0
