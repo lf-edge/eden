@@ -1,5 +1,5 @@
 FROM lfedge/eve-alpine:12.1.0 AS build
-ENV BUILD_PKGS="go make qemu-img git curl"
+ENV BUILD_PKGS="make qemu-img git curl"
 RUN eve-alpine-deploy.sh
 
 ARG OS=linux
