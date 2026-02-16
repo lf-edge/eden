@@ -1,6 +1,6 @@
-FROM lfedge/eve-alpine:12.1.0 AS build
+FROM lfedge/eve-alpine:745ae9066273c73b0fd879c4ba4ff626a8392d04 AS build
 
-ENV BUILD_PKGS="git gcc go make wget libc-dev linux-headers"
+ENV BUILD_PKGS="git gcc make wget libc-dev linux-headers"
 ENV PKGS="bash iptables ip6tables iproute2 dhcpcd ipset curl radvd ethtool jq tcpdump \
          strace openssh-client openssh-server vim ca-certificates"
 RUN eve-alpine-deploy.sh
