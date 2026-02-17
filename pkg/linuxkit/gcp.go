@@ -3,6 +3,7 @@ package linuxkit
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -386,7 +387,7 @@ func (g GCPClient) GetInstanceSerialOutput(instance, zone string, follow bool) e
 			}
 			return err
 		}
-		fmt.Printf(res.Contents)
+		fmt.Print(res.Contents)
 		if !follow {
 			break
 		}
@@ -441,7 +442,7 @@ func (g GCPClient) ConnectToInstanceSerialPort(instance, zone string) error {
 		break
 	}
 	if conn == nil {
-		return fmt.Errorf(err.Error())
+		return errors.New(err.Error())
 	}
 	defer conn.Close()
 
@@ -452,6 +453,7 @@ func (g GCPClient) ConnectToInstanceSerialPort(instance, zone string) error {
 	defer session.Close()
 
 	stdin, err := session.StdinPipe()
+
 	if err != nil {
 		return fmt.Errorf("Unable to setup stdin for session: %v", err)
 	}

@@ -631,7 +631,7 @@ func (node *EveNode) LogTimeFatalf(format string, args ...interface{}) {
 func (node *EveNode) LogTimeInfof(format string, args ...interface{}) {
 	out := utils.AddTimestampf(format+"\n", args...)
 	if node.t != nil {
-		node.t.Logf(out)
+		node.t.Log(out)
 	} else {
 		fmt.Print(out)
 	}

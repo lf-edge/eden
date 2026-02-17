@@ -2,6 +2,7 @@ package openevec
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -255,7 +256,7 @@ func (openEVEC *OpenEVEC) SdnNetModelApply(ref string) error {
 		if ref != "default" && !filepath.IsAbs(ref) {
 			ref = "$(pwd)/" + ref
 		}
-		return fmt.Errorf("Network model change requires to restart SDN and EVE VMs.\n" +
+		return errors.New("Network model change requires to restart SDN and EVE VMs.\n" +
 			"Run instead:\n" +
 			"  eden eve stop\n" +
 			"  eden eve start --sdn-network-model " + ref + "\n")
