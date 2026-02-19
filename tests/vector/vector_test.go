@@ -340,10 +340,13 @@ func TestWorkingConfig(t *testing.T) {
 		}
 	}()
 
+	time.Sleep(5 * time.Second) // Give some time for the log watcher to start
 	steppy.AnnounceNext("generate logs from debug container")
 	cmd = "exit"
 	if _, err := eveNode.EveRunCommand(cmd); err != nil {
 		logFatalf("Failed to run ssh '%s': %v", cmd, err)
+	} else {
+		logInfof("SSH command '%s' executed successfully, logs should be generated", cmd)
 	}
 
 	wg.Wait()
