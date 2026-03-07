@@ -72,7 +72,29 @@ test:
 
 -- check_sign_cert.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-$EDEN eve ssh cat /persist/certs/server-signing-cert.pem > /tmp/server-signing-cert.pem
+# The signing cert is no longer stored as a PEM file in /persist/certs/.
+# It is now available as a JSON file in /run/zedagent/ControllerCert/ on EVE.
+# The signing cert has Type=3 (CERT_TYPE_CONTROLLER_SIGNING) and the DER-encoded
+# cert bytes are base64-encoded in the "Cert" field.
+$EDEN eve ssh 'python3 -c "
+import json, base64, glob, sys
+for path in glob.glob(\"/run/zedagent/ControllerCert/*.json\"):
+    d = json.load(open(path))
+    if d.get(\"Type\") == 3:
+        der = base64.b64decode(d[\"Cert\"])
+        b64 = base64.b64encode(der).decode()
+        print(\"-----BEGIN CERTIFICATE-----\")
+        for i in range(0, len(b64), 64):
+            print(b64[i:i+64])
+        print(\"-----END CERTIFICATE-----\")
+        sys.exit(0)
+sys.exit(1)
+"' > /tmp/server-signing-cert.pem
+status=$?
+if [ $status -ne 0 ]; then
+    echo "Error: Could not find signing certificate in /run/zedagent/ControllerCert/" >&2
+    exit $status
+fi
 diff -Z /tmp/signing-new.pem /tmp/server-signing-cert.pem
 status=$?
 if [ $status -ne 0 ]; then
