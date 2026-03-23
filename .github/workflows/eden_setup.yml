@@ -28,7 +28,7 @@ jobs:
         with:
           go-version: '1.24'
       - name: Login to DockerHub (Pull)
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eden'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eden' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
@@ -60,7 +60,7 @@ jobs:
         with:
           go-version: '1.24'
       - name: Login to DockerHub (Pull)
-        if: ${{ github.event.repository.full_name }} == 'lf-edge/eden'
+        if: ${{ github.event.repository.full_name == 'lf-edge/eden' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_PULL_USER }}
