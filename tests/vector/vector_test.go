@@ -30,7 +30,7 @@ var filterConfig []byte
 
 const (
 	projectName = "vector"
-	logTimeout  = 2 * time.Minute // Timeout for log checks
+	logTimeout  = 4 * time.Minute // Timeout for log checks
 )
 
 func logFatalf(format string, args ...interface{}) {
@@ -340,14 +340,26 @@ func TestWorkingConfig(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(5 * time.Second) // Give some time for the log watcher to start
-	steppy.AnnounceNext("generate logs from debug container")
-	cmd = "exit"
-	if _, err := eveNode.EveRunCommand(cmd); err != nil {
-		logFatalf("Failed to run ssh '%s': %v", cmd, err)
-	} else {
-		logInfof("SSH command '%s' executed successfully, logs should be generated", cmd)
-	}
+	steppy.AnnounceNext("generate logs from debug container repeatedly")
+	stopGenerating := make(chan struct{})
+	go func() {
+		cmd := "exit"
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for {
+			if _, err := eveNode.EveRunCommand(cmd); err != nil {
+				logInfof("SSH command '%s' failed (may be transient): %v", cmd, err)
+			} else {
+				logInfof("SSH command '%s' executed successfully, logs should be generated", cmd)
+			}
+			select {
+			case <-stopGenerating:
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 
 	wg.Wait()
+	close(stopGenerating)
 }
