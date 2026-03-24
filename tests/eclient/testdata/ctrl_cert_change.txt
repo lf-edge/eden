@@ -77,51 +77,48 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 # We look in the new directory (/run/zedagent) and fallback to the old (/persist/status/zedagent).
 # The signing cert has Type=1 (CERT_TYPE_CONTROLLER_SIGNING) and the PEM-encoded
 # cert bytes are base64-encoded in the "Cert" field.
-while true; do
-    echo "Try fetching ControllerCert loop - from /run" >&2
-    $EDEN eve ssh ls /run/zedagent/ControllerCert/ >/tmp/certfiles
-    # Guard against an error string in stdout by checking for "json"
-    if [ -s /tmp/certfiles ] && grep -q json /tmp/certfiles ; then
-        echo "Found in /run $(cat /tmp/certfiles)" >&2
-        break
-    fi
-    echo "Try fetching ControllerCert loop - from /persist" >&2
-    $EDEN eve ssh ls /persist/status/zedagent/ControllerCert/ >/tmp/certfiles.old
-    # Guard against an error string in stdout by checking for "json"
-    if [ -s /tmp/certfiles.old ] && grep -q json /tmp/certfiles.old ; then
-        echo "Found in /persist $(cat /tmp/certfiles.old)" >&2
-        break
-    fi
-done
-for f in $(cat /tmp/certfiles); do
-    $EDEN eve ssh cat "/run/zedagent/ControllerCert/$f" > "/tmp/$f"
-    if grep -q "\"Type\":1" "/tmp/$f" 2>/dev/null; then
-        grep -o "\"Cert\":\"[^\"]*\"" "/tmp/$f" | tr -d "\"" | cut -d: -f2 | base64 -d > /tmp/server-signing-cert.pem
-        echo "Found in /tmp/$f" >&2
-        break
-    fi
-done
-if [ ! -f /tmp/server-signing-cert.pem ]; then
-    echo "Could not find signing certificate in /run/zedagent/ControllerCert/" >&2
-    for f in $(cat /tmp/certfiles.old); do
-        $EDEN eve ssh cat "/persist/status/zedagent/ControllerCert/$f" > "/tmp/$f.old"
-        if grep -q "\"Type\":1" "/tmp/$f.old" 2>/dev/null; then
-            grep -o "\"Cert\":\"[^\"]*\"" "/tmp/$f.old" | tr -d "\"" | cut -d: -f2 | base64 -d > /tmp/server-signing-cert.pem
-            echo "Found in /tmp/$f.old" >&2
-            # In case we have multiple old ones, we continue so we log their
-            # existence and as a result pick the numerically last one.
-            # TBD whether we should look at the modification time of the files
-            # on EVE to pick the most recent.
+#
+# Extract the signing cert (Type=1) from a JSON file and compare it against
+# the expected cert. Returns 0 if it matches.
+try_extract_and_match() {
+    local json_file="$1"
+    if grep -q "\"Type\":1" "$json_file" 2>/dev/null; then
+        grep -o "\"Cert\":\"[^\"]*\"" "$json_file" | tr -d "\"" | cut -d: -f2 | base64 -d > /tmp/server-signing-cert.pem
+        if diff -qZ /tmp/signing-new.pem /tmp/server-signing-cert.pem >/dev/null 2>&1; then
+            return 0
         fi
-    done
-fi
-if [ ! -f /tmp/server-signing-cert.pem ]; then
-    echo "Error: Could not find signing certificate in /run/zedagent/ControllerCert/ nor in /persist/status/zedagent" >&2
-    exit 1
-fi
-diff -Z /tmp/signing-new.pem /tmp/server-signing-cert.pem
-status=$?
-if [ $status -ne 0 ]; then
-    echo "Error: Current server signing certificate does not match the uploaded one." >&2
-fi
-exit $status
+        rm -f /tmp/server-signing-cert.pem
+    fi
+    return 1
+}
+
+while true; do
+    echo "Try fetching ControllerCert - from /run" >&2
+    $EDEN eve ssh ls /run/zedagent/ControllerCert/ 2>/dev/null >/tmp/certfiles
+    if [ -s /tmp/certfiles ] && grep -q json /tmp/certfiles; then
+        echo "Found in /run: $(cat /tmp/certfiles)" >&2
+        for f in $(cat /tmp/certfiles); do
+            $EDEN eve ssh cat "/run/zedagent/ControllerCert/$f" > "/tmp/$f"
+            if try_extract_and_match "/tmp/$f"; then
+                echo "Matched signing cert in /run/$f" >&2
+                exit 0
+            fi
+        done
+    fi
+
+    echo "Try fetching ControllerCert - from /persist" >&2
+    $EDEN eve ssh ls /persist/status/zedagent/ControllerCert/ 2>/dev/null >/tmp/certfiles.old
+    if [ -s /tmp/certfiles.old ] && grep -q json /tmp/certfiles.old; then
+        echo "Found in /persist: $(cat /tmp/certfiles.old)" >&2
+        for f in $(cat /tmp/certfiles.old); do
+            $EDEN eve ssh cat "/persist/status/zedagent/ControllerCert/$f" > "/tmp/$f.old"
+            if try_extract_and_match "/tmp/$f.old"; then
+                echo "Matched signing cert in /persist/$f" >&2
+                exit 0
+            fi
+        done
+    fi
+
+    echo "Signing cert not yet matching, retrying in 10s..." >&2
+    sleep 10
+done
