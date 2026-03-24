@@ -346,29 +346,10 @@ func (openEVEC *OpenEVEC) ConsoleEve(host string) error {
 
 func (openEVEC *OpenEVEC) SSHEve(commandToRun string) error {
 	cfg := openEVEC.cfg
-	if _, err := os.Stat(cfg.Eden.SSHKey); !os.IsNotExist(err) {
-		changer := &adamChanger{}
-		ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
-		if err != nil {
-			return fmt.Errorf("cannot get controller or dev, please start them and onboard: %w", err)
-		}
-		b, err := os.ReadFile(ctrl.GetVars().SSHKey)
-		switch {
-		case err != nil:
-			return fmt.Errorf("error reading sshKey file %s: %w", ctrl.GetVars().SSHKey, err)
-		}
-		dev.SetConfigItem("debug.enable.ssh", string(b))
-		if err = ctrl.ConfigSync(dev); err != nil {
-			return err
-		}
-		if err = openEVEC.SdnForwardSSHToEve(commandToRun); err != nil {
-			return err
-		}
-	} else {
+	if _, err := os.Stat(cfg.Eden.SSHKey); os.IsNotExist(err) {
 		return fmt.Errorf("SSH key problem: %w", err)
 	}
-
-	return nil
+	return openEVEC.SdnForwardSSHToEve(commandToRun)
 }
 
 func (openEVEC *OpenEVEC) ResetEve() error {
