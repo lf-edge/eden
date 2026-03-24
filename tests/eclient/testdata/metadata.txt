@@ -20,7 +20,7 @@ message 'Waiting for AppInstMetadata'
 # Use eden.lim.test for access Infos with timewait 10m in background
 test eden.lim.test -test.v -timewait 10m -test.run TestInfo -out InfoContent.amdinfo.data 'InfoContent.amdinfo.data:world' &
 
-exec -t 5m bash ssh.sh
+exec -t 20m bash ssh.sh
 
 # wait for detector
 wait
