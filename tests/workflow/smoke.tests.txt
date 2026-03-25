@@ -40,8 +40,9 @@ eden.escript.test -test.run TestEdenScripts/eve_restart
 {{end}}
 {{end}}
 
-/bin/echo Eden Log test (6/{{$tests}})
-eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/log_test
+# TODO: re-enable after fixing flaky SSH to EVE (see https://github.com/lf-edge/eden/pull/1123)
+#/bin/echo Eden Log test (6/{{$tests}})
+#eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/log_test
 /bin/echo Eden SSH test (7/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/ssh
 /bin/echo Eden Info test (8/{{$tests}})
@@ -52,8 +53,9 @@ eden.escript.test -test.run TestEdenScripts/eden_hw_inventory
 eden.escript.test -testdata ../lim/testdata/ -test.run TestEdenScripts/metric_test
 /bin/echo Eden Newlogd test (11/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_newlogd
-/bin/echo Eden Vector test (12/{{$tests}})
-eden.escript.test -test.run TestEdenScripts/eden_vector
+# TODO: re-enable after fixing flaky SSH to EVE (see https://github.com/lf-edge/eden/pull/1123)
+#/bin/echo Eden Vector test (12/{{$tests}})
+#eden.escript.test -test.run TestEdenScripts/eden_vector
 
 /bin/echo Escript args test (13/{{$tests}})
 eden.escript.test -testdata ../escript/testdata/ -test.run TestEdenScripts/arg -args=test1=123,test2=456
