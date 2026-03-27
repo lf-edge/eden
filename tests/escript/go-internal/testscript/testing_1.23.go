@@ -70,6 +70,9 @@ func (nopTestDeps) WriteProfileTo(_ string, _ io.Writer, _ int) error {
 func (nopTestDeps) ImportPath() string {
 	return ""
 }
+func (nopTestDeps) ModulePath() string {
+	return ""
+}
 func (nopTestDeps) StartTestLog(_ io.Writer) {}
 
 func (nopTestDeps) StopTestLog() error {
