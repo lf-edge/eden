@@ -54,6 +54,10 @@ runs:
     - name: Configure
       run: |
         ./eden config add default
+        if [[ -n "${EDEN_REGISTRY_MIRROR:-}" ]]; then
+          echo "Configuring registry mirror: ${EDEN_REGISTRY_MIRROR}"
+          ./eden config set default --key=registry.mirror --value="$EDEN_REGISTRY_MIRROR"
+        fi
         if lscpu | grep -oEq "vmx|svm" && [[ -e /dev/kvm ]]; then
           echo "KVM available, enabling hardware acceleration"
           ./eden config set default --key=eve.accel --value=true
