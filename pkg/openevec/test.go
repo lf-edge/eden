@@ -82,6 +82,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 
 	cv.RegistryIP = cfg.Registry.IP
 	cv.RegistryPort = strconv.Itoa(cfg.Registry.Port)
+	cv.RegistryMirror = cfg.Registry.Mirror
 
 	redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
 	pwd, err := os.ReadFile(redisPasswordFile)
