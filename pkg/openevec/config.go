@@ -149,10 +149,11 @@ type EveConfig struct {
 }
 
 type RegistryConfig struct {
-	Tag  string `mapstructure:"tag" cobraflag:"registry-flag"`
-	Port int    `mapstructure:"port" cobraflag:"registry-port"`
-	Dist string `mapstructure:"dist" cobraflag:"registry-dist"`
-	IP   string `mapstructure:"ip"`
+	Tag    string `mapstructure:"tag" cobraflag:"registry-flag"`
+	Port   int    `mapstructure:"port" cobraflag:"registry-port"`
+	Dist   string `mapstructure:"dist" cobraflag:"registry-dist"`
+	IP     string `mapstructure:"ip"`
+	Mirror string `mapstructure:"mirror"`
 }
 
 type PacketConfig struct {

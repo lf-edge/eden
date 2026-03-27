@@ -49,6 +49,8 @@ func (exp *AppExpectation) getDataStoreFQDN(withProto bool) string {
 	var fqdn string
 	if exp.registry != "" {
 		fqdn = exp.registry
+	} else if mirror := exp.ctrl.GetVars().RegistryMirror; mirror != "" {
+		fqdn = mirror
 	} else {
 		ref, err := name.ParseReference(exp.appURL)
 		if err != nil {
