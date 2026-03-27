@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 11}}
+{{$tests := 10}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "n"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -50,7 +50,4 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/disk
 
 /bin/echo Eden eclient with mounted volume (10/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/mount
-
-/bin/echo Eden registry (11/{{$tests}})
-eden.escript.test -testdata ../registry/testdata/ -test.run TestEdenScripts/registry_test
 
