@@ -54,13 +54,12 @@ runs:
     - name: Configure
       run: |
         ./eden config add default
-        require_virt="${{ inputs.require_virtualization }}"
-        if [[ "$require_virt" == "true" ]]; then
-          if ! lscpu | grep -oEq "vmx|svm"; then
-            echo "Missing required HW-assisted virtualization support"
-            exit 1
-          fi
+        if lscpu | grep -oEq "vmx|svm" && [[ -e /dev/kvm ]]; then
+          echo "KVM available, enabling hardware acceleration"
           ./eden config set default --key=eve.accel --value=true
+        elif [[ "${{ inputs.require_virtualization }}" == "true" ]]; then
+          echo "Missing required HW-assisted virtualization support"
+          exit 1
         else
           ./eden config set default --key=eve.accel --value=false
           ./eden config set default --key=eve.firmware --value="$(pwd)/firmware/OVMF_CODE.fd $(pwd)/firmware/OVMF_VARS.fd"
