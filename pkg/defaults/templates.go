@@ -286,6 +286,9 @@ registry:
     # dist path to store registry data
     dist: '{{parse "registry.dist"}}'
 
+    #pull-through cache registry address (host:port) for docker image pulls
+    mirror: '{{parse "registry.mirror"}}'
+
 sdn:
     #disable SDN
     disable: '{{parse "sdn.disable"}}'
