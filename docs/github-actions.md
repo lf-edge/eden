@@ -2,12 +2,6 @@
 
 Eden is a part of testing infrastructure of EVE and it's integrated in EVE CI/CD pipelines. EVE uses [test.yml](https://github.com/lf-edge/eden/blob/master/.github/workflows/test.yml) reusable workflow to run eden tests against specific EVE version in PR.
 
-## About runners
-
-Eden reusable workflow (`test.yml`) is running using [BuildJet](https://buildjet.com/for-github-actions) runners provided by LF-EDGE. They provide both Arm and x86_64 architectures.
-Currently we are provided with 4vCPU/16GBs of RAM and 8vCPU/32GBs of RAM runners. Maximum CPUs running in parallel is 64 for x86_64, that means with 4vCPUs we can have 16 jobs running in parallel.
-In case one wants to run eden workflows locally in their own fork, `runner` and `repo` input variables for reusable workflow should be specified.
-
 ## Using GitHub Cache to run `test.yml` with custom EVE build
 
 Sometimes you want to run tests in your CI/CD with EVE version, which is not published on Dockerhub,
@@ -20,3 +14,15 @@ In order to pass objects between jobs you need to either use cache or artifacts.
 Unfortunately, you can't add additional steps before invoking reusable workflow, otherwise we could have just do `docker load` before invoking tests workflow.
 
 **Important note:** Archive you store in GitHub Artifacts should be `eve_artifact_name`.tar
+
+## Docker Hub Pull-Through Registry Mirror
+
+Self-hosted runners use a local registry mirror (pull-through cache) for Docker Hub image pulls. This avoids Docker Hub rate limits and speeds up image fetching.
+
+The mirror is configured via the `EDEN_REGISTRY_MIRROR` environment variable, which should be set at the project or organization level in GitHub Actions. When set, the [setup-environment](../.github/actions/setup-environment/action.yml) action automatically configures Eden to use it:
+
+```shell
+./eden config set default --key=registry.mirror --value="$EDEN_REGISTRY_MIRROR"
+```
+
+This sets the `registry.mirror` config key, which Eden passes to EVE as the datastore FQDN for pulling application images (see `getDataStoreFQDN` in `pkg/expect/docker.go`). Instead of pulling directly from Docker Hub, EVE pulls from the local mirror, which caches images transparently. Because of this, authenticated Docker Hub logins are not needed for pulling images in test workflows.
