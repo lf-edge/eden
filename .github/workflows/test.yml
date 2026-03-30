@@ -36,23 +36,6 @@ on:  # yamllint disable-line rule:truthy
         type: string
 
 jobs:
-  determine-runner:
-    name: Determine best available runner
-    runs-on: ubuntu-latest
-    outputs:
-      runner: ${{ steps.fork-check.outputs.runner }}
-      runner_virt: ${{ steps.fork-check.outputs.runner_virt }}
-    steps:
-      - id: fork-check
-        run: |
-          if [[ "${{ github.event.repository.full_name}}" == "lf-edge/eve" ]] || [[ "${{ github.event.repository.full_name}}" == "lf-edge/eden" ]]; then
-            echo "runner=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
-            echo "runner_virt=['buildjet-4vcpu-ubuntu-2204', 'buildjet-pinned-7950x']" >> "$GITHUB_OUTPUT"
-          else
-            echo "runner=['ubuntu-22.04']" >> "$GITHUB_OUTPUT"
-            echo "runner_virt=['ubuntu-22.04']" >> "$GITHUB_OUTPUT"
-          fi
-
   smoke:
     name: Smoke
     env:
@@ -62,14 +45,8 @@ jobs:
       matrix:
         file_system: ['ext4', 'zfs']
         tpm: [true, false]
-    needs: determine-runner
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Print Public IP Address
-        run: |
-          echo "Public IP Address of the runner:"
-          curl -s https://api.ipify.org
-        shell: bash
       - name: Check job status from previous attempt
         id: prev_attempt
         env:
@@ -126,14 +103,8 @@ jobs:
     name: Networking
     env:
       JOB_NAME: Networking
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Print Public IP Address
-        run: |
-          echo "Public IP Address of the runner:"
-          curl -s https://api.ipify.org
-        shell: bash
       - name: Check job status from previous attempt
         id: prev_attempt
         env:
@@ -192,14 +163,8 @@ jobs:
       fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Print Public IP Address
-        run: |
-          echo "Public IP Address of the runner:"
-          curl -s https://api.ipify.org
-        shell: bash
       - name: Check job status from previous attempt
         id: prev_attempt
         env:
@@ -254,14 +219,8 @@ jobs:
     name: LPS/LOC
     env:
       JOB_NAME: LPS/LOC
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Print Public IP Address
-        run: |
-          echo "Public IP Address of the runner:"
-          curl -s https://api.ipify.org
-        shell: bash
       - name: Check job status from previous attempt
         id: prev_attempt
         env:
@@ -320,14 +279,8 @@ jobs:
       fail-fast: false
       matrix:
         file_system: ['ext4', 'zfs']
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Print Public IP Address
-        run: |
-          echo "Public IP Address of the runner:"
-          curl -s https://api.ipify.org
-        shell: bash
       - name: Check job status from previous attempt
         id: prev_attempt
         env:
@@ -382,14 +335,8 @@ jobs:
     name: User Apps
     env:
       JOB_NAME: User Apps
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Print Public IP Address
-        run: |
-          echo "Public IP Address of the runner:"
-          curl -s https://api.ipify.org
-        shell: bash
       - name: Check job status from previous attempt
         id: prev_attempt
         env:
@@ -444,14 +391,8 @@ jobs:
     name: Virtualization
     env:
       JOB_NAME: Virtualization
-    needs: [determine-runner]
-    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner_virt) }}
+    runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Print Public IP Address
-        run: |
-          echo "Public IP Address of the runner:"
-          curl -s https://api.ipify.org
-        shell: bash
       - name: Check job status from previous attempt
         id: prev_attempt
         env:
