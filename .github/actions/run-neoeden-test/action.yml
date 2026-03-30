@@ -80,8 +80,8 @@ runs:
     - name: Clean up after test
       if: always()
       run: |
-        ./eden stop
-        make clean >/dev/null
-        docker system prune -f -a >/dev/null
+        ./eden stop || true
+        make clean >/dev/null || true
+        docker system prune -f -a >/dev/null || true
       shell: bash
       working-directory: "./eden"
