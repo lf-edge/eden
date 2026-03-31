@@ -325,11 +325,11 @@ func setupEve(netboot, installer bool, softSerial, ipxeOverride string, cfg Eden
 }
 
 func setupEdenScripts(cfg EdenSetupArgs) error {
-	home, err := os.UserHomeDir()
+	cfgDirBase, err := utils.DefaultEdenDir()
 	if err != nil {
 		return err
 	}
-	cfgDir := home + "/.eden/"
+	cfgDir := cfgDirBase + "/"
 	_, err = os.Stat(cfgDir)
 	if err != nil {
 		// Most likely running from inside of "eden test" which sets home directory
@@ -364,8 +364,8 @@ func setupEdenScripts(cfg EdenSetupArgs) error {
 		}
 
 		fmt.Println("To activate EDEN settings run:")
-		fmt.Println("* for BASH/ZSH -- `source ~/.eden/activate.sh`")
-		fmt.Println("* for TCSH -- `source ~/.eden/activate.csh`")
+		fmt.Printf("* for BASH/ZSH -- `source %s/activate.sh`\n", cfgDirBase)
+		fmt.Printf("* for TCSH -- `source %s/activate.csh`\n", cfgDirBase)
 		fmt.Println("To deactivate them -- eden_deactivate")
 	}
 	return nil
