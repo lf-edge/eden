@@ -475,7 +475,9 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, arch, p
 	if err := utils.CopyFile(caCertPath, filepath.Join(certsDir, "root-certificate.pem")); err != nil {
 		return fmt.Errorf("GenerateEveCerts: %s", err)
 	}
-	// generate v2tlsbaseroot-certificates.pem as concatenation of default certificate and root-certificate
+	// Generate v2tlsbaseroot-certificates.pem as concatenation of default certificate and root-certificate
+	// Also generate extratls-certificates.pem for newer versions of EVE
+	// which does not have/use v2tlsbaseroot-certificates.pem.
 	certOut, err := os.Create(filepath.Join(certsDir, "v2tlsbaseroot-certificates.pem"))
 	if err != nil {
 		return err
@@ -489,6 +491,18 @@ func GenerateEveCerts(certsDir, domain, ip, eveIP, uuid, devModel, ssid, arch, p
 	if err := certOut.Close(); err != nil {
 		return err
 	}
+
+	certOut, err = os.Create(filepath.Join(certsDir, "extratls-certificates.pem"))
+	if err != nil {
+		return err
+	}
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: rootCert.Raw}); err != nil {
+		return err
+	}
+	if err := certOut.Close(); err != nil {
+		return err
+	}
+
 	ClientCert, ClientKey := utils.GenServerCertElliptic(rootCert, rootKey, big.NewInt(2), nil, nil, uuid)
 	log.Debug("saving files")
 	if err := utils.WriteToFiles(ClientCert, ClientKey, filepath.Join(certsDir, "onboard.cert.pem"), filepath.Join(certsDir, "onboard.key.pem")); err != nil {
