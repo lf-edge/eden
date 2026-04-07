@@ -78,6 +78,7 @@ func newSetupCmd(configName, verbosity *string) *cobra.Command {
 
 	setupCmd.Flags().BoolVarP(&cfg.Eden.EnableIPv6, "enable-ipv6", "", false, "enable IPv6 connectivity for the Eden docker network")
 	setupCmd.Flags().StringVarP(&cfg.Eden.IPv6Subnet, "ipv6-subnet", "", defaults.DefaultDockerNetIPv6Subnet, "IPv6 subnet for the Eden docker network")
+	setupCmd.Flags().IntVarP(&cfg.Eden.RepeatCount, "repeat-count", "", defaults.DefaultRepeatCount, "number of retry attempts for controller connections")
 
 	addSdnConfigDirOpt(setupCmd, cfg)
 	addSdnImageOpt(setupCmd, cfg)

@@ -53,7 +53,7 @@ func (adam *Ctx) deleteObj(path string) (err error) {
 		return fmt.Errorf("unable to create new http request: %v", err)
 	}
 
-	response, err := utils.RepeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req, adam.repeatCount)
 	if err != nil {
 		return fmt.Errorf("unable to send request: %v", err)
 	}
@@ -78,7 +78,7 @@ func (adam *Ctx) getObj(path string, acceptMime string) (out string, err error) 
 		req.Header.Set("Accept", acceptMime)
 	}
 
-	response, err := utils.RepeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req, adam.repeatCount)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -105,7 +105,7 @@ func (adam *Ctx) getList(path string, acceptMime string) (out []string, err erro
 		req.Header.Set("Accept", acceptMime)
 	}
 
-	response, err := utils.RepeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req, adam.repeatCount)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -130,7 +130,7 @@ func (adam *Ctx) postObj(path string, obj []byte, mimeType string) (err error) {
 	}
 	req.Header.Set("Content-Type", mimeType)
 
-	_, err = utils.RepeatableAttempt(client, req)
+	_, err = utils.RepeatableAttempt(client, req, adam.repeatCount)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
@@ -149,7 +149,7 @@ func (adam *Ctx) putObj(path string, obj []byte, mimeType string) (err error) {
 		log.Fatalf("unable to create new http request: %v", err)
 	}
 	req.Header.Set("Content-Type", mimeType)
-	_, err = utils.RepeatableAttempt(client, req)
+	_, err = utils.RepeatableAttempt(client, req, adam.repeatCount)
 	if err != nil {
 		log.Fatalf("unable to send request: %v", err)
 	}
