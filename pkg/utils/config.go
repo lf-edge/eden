@@ -151,13 +151,13 @@ func InitVars() (*ConfigVars, error) {
 
 // DefaultEdenDir returns path to default directory
 func DefaultEdenDir() (string, error) {
+	edenHome := strings.TrimSpace(os.Getenv(defaults.DefaultEdenHomeEnv))
+	if edenHome != "" {
+		return edenHome, nil
+	}
 	usr, err := user.Current()
 	if err != nil {
 		return "", err
-	}
-	edenHome := strings.TrimSpace(os.Getenv("EDEN_HOME"))
-	if edenHome != "" {
-		return edenHome, nil
 	}
 	return filepath.Join(usr.HomeDir, defaults.DefaultEdenHomeDir), nil
 }
