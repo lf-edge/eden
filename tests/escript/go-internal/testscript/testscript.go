@@ -326,6 +326,9 @@ func (ts *TestScript) setup() string {
 	if configEnv := os.Getenv(defaults.DefaultConfigEnv); configEnv != "" {
 		env.Vars = append(env.Vars, fmt.Sprintf("%s=%s", defaults.DefaultConfigEnv, configEnv))
 	}
+	if edenHomeEnv := os.Getenv(defaults.DefaultEdenHomeEnv); edenHomeEnv != "" {
+		env.Vars = append(env.Vars, fmt.Sprintf("%s=%s", defaults.DefaultEdenHomeEnv, edenHomeEnv))
+	}
 	// MacOS envs set
 	if runtime.GOOS == "darwin" {
 		env.Vars = append(env.Vars,

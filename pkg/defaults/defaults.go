@@ -33,6 +33,7 @@ const (
 	DefaultContext = "default" //default context name
 
 	DefaultConfigEnv   = "EDEN_CONFIG"    //default env for set config
+	DefaultEdenHomeEnv = "EDEN_HOME"      //default env for overriding eden home directory
 	DefaultTestArgsEnv = "EDEN_TEST_ARGS" //default env for test arguments
 )
 
