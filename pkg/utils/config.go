@@ -65,6 +65,7 @@ type ConfigVars struct {
 	RegistryMirror    string
 	LogLevel          string
 	RemoteLogLevel    string
+	RepeatCount       int
 }
 
 // InitVars loads vars from viper
@@ -134,6 +135,7 @@ func InitVars() (*ConfigVars, error) {
 			RegistryMirror:    viper.GetString("registry.mirror"),
 			LogLevel:          viper.GetString("eve.log-level"),
 			RemoteLogLevel:    viper.GetString("eve.remote-log-level"),
+			RepeatCount:       viper.GetInt("eden.repeat-count"),
 		}
 		viperAccessMutex.RUnlock()
 		redisPasswordFile := filepath.Join(globalCertsDir, defaults.DefaultRedisPasswordFile)
@@ -489,6 +491,8 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 			return false
 		case "eden.ipv6-subnet":
 			return defaults.DefaultDockerNetIPv6Subnet
+		case "eden.repeat-count":
+			return defaults.DefaultRepeatCount
 
 		case "gcp.key":
 			return ""

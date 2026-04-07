@@ -47,6 +47,7 @@ type Ctx struct {
 	AdamCaching       bool   // enable caching of adam`s logs/info
 	AdamCachingRedis  bool   // caching to redis instead of files
 	AdamCachingPrefix string // custom prefix for file or stream naming for cache
+	repeatCount       int
 }
 
 // parseRedisURL try to use string from config to obtain redis url
@@ -97,7 +98,7 @@ func (adam *Ctx) getLoader() (loader loaders.Loader) {
 				URLMetrics: adam.getMetricsURL,
 				URLRequest: adam.getRequestURL,
 			}
-			loader = loaders.NewRemoteLoader(adam.getHTTPClient, urlGetters)
+			loader = loaders.NewRemoteLoader(adam.getHTTPClient, urlGetters, adam.repeatCount)
 		}
 	} else {
 		log.Debug("will use local adam loader")
@@ -149,6 +150,7 @@ func (adam *Ctx) InitWithVars(vars *utils.ConfigVars) error {
 	adam.AdamCachingRedis = vars.AdamCachingRedis
 	adam.AdamCachingPrefix = vars.AdamCachingPrefix
 	adam.AdamRedisURLEden = vars.AdamRedisURLEden
+	adam.repeatCount = vars.RepeatCount
 	return nil
 }
 

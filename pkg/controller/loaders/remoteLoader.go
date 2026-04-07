@@ -39,17 +39,22 @@ type RemoteLoader struct {
 	getClient    getClient
 	client       *http.Client
 	cache        cachers.CacheProcessor
+	repeatCount  int
 }
 
 // NewRemoteLoader return loader from files
-func NewRemoteLoader(getClient getClient, urlGetters types.URLGetters) *RemoteLoader {
+func NewRemoteLoader(getClient getClient, urlGetters types.URLGetters, repeatCount int) *RemoteLoader {
 	log.Debugf("HTTP NewRemoteLoader init")
+	if repeatCount <= 0 {
+		repeatCount = defaults.DefaultRepeatCount
+	}
 	return &RemoteLoader{
 		urlGetters:   urlGetters,
 		getClient:    getClient,
 		firstLoad:    true,
 		lastTimesamp: nil,
 		client:       getClient(),
+		repeatCount:  repeatCount,
 	}
 }
 
@@ -176,7 +181,7 @@ func (loader *RemoteLoader) repeatableConnection(process ProcessFunction, typeTo
 	} else {
 		loader.client.Timeout = 0
 	}
-	maxRepeat := defaults.DefaultRepeatCount
+	maxRepeat := loader.repeatCount
 	delayTime := defaults.DefaultRepeatTimeout
 
 repeatLoop:

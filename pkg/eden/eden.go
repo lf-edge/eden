@@ -1075,7 +1075,7 @@ func (server *EServer) EServerAddFileURL(url string) (name string) {
 		log.Fatalf("EServerAddFileURL: unable to create new http request: %v", err)
 	}
 
-	response, err := utils.RepeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req, defaults.DefaultRepeatCount)
 	if err != nil {
 		log.Fatalf("EServerAddFileURL: unable to send request: %v", err)
 	}
@@ -1098,7 +1098,7 @@ func (server *EServer) EServerCheckStatus(name string) (fileInfo *api.FileInfo) 
 		log.Fatalf("EServerAddFileURL: unable to create new http request: %v", err)
 	}
 
-	response, err := utils.RepeatableAttempt(client, req)
+	response, err := utils.RepeatableAttempt(client, req, defaults.DefaultRepeatCount)
 	if err != nil {
 		log.Fatalf("EServerAddFileURL: unable to send request: %v", err)
 	}

@@ -203,8 +203,10 @@ func GetFileSizeURL(url string) int64 {
 }
 
 // RepeatableAttempt do request several times waiting for nil error and expected status code
-func RepeatableAttempt(client *http.Client, req *http.Request) (response *http.Response, err error) {
-	maxRepeat := defaults.DefaultRepeatCount
+func RepeatableAttempt(client *http.Client, req *http.Request, maxRepeat int) (response *http.Response, err error) {
+	if maxRepeat <= 0 {
+		maxRepeat = defaults.DefaultRepeatCount
+	}
 	delayTime := defaults.DefaultRepeatTimeout
 
 	for i := 0; i < maxRepeat; i++ {

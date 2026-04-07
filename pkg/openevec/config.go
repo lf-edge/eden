@@ -44,6 +44,7 @@ type EdenConfig struct {
 	TestBin      string `mapstructure:"test-bin"`
 	TestScenario string `mapstructure:"test-scenario"`
 	Tests        string `mapstructure:"tests"`
+	RepeatCount  int    `mapstructure:"repeat-count" cobraflag:"repeat-count"`
 	EnableIPv6   bool   `mapstructure:"enable-ipv6" cobraflag:"enable-ipv6"`
 	IPv6Subnet   string `mapstructure:"ipv6-subnet" cobraflag:"ipv6-subnet"`
 
@@ -301,6 +302,7 @@ func LoadConfig(configFile string) (*EdenSetupArgs, error) {
 		return nil, fmt.Errorf("viper cannot be loaded")
 	}
 	viper.SetDefault("eve.uefi-tag", defaults.DefaultEVETag)
+	viper.SetDefault("eden.repeat-count", defaults.DefaultRepeatCount)
 
 	cfg := &EdenSetupArgs{}
 
