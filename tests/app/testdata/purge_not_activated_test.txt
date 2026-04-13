@@ -1,0 +1,164 @@
+# Test that purge succeeds for an app that was never activated (image download failed).
+#
+# Regression test for EVE commit a1582bb40 ("zedmanager: fix purge stuck when app
+# was never activated").
+#
+# The bug: when a purge was triggered for an app whose image failed to download
+# (so no domain was ever created), the old code left PurgeInprogress=BringDown
+# without calling purgeCmdDone.  This caused the app to get stuck at LOADED with
+# VerifyOnly=true indefinitely because volumemgr was never told to create the
+# volume.
+#
+# Test sequence:
+#   1. Deploy an app with a nonexistent image tag so the download fails and the
+#      app never activates (no domain is created).
+#   2. After confirming the app is not RUNNING, apply a single atomic config
+#      update that fixes the image tag, generates fresh volume/content-tree UUIDs
+#      (as "eden pod purge" would), and increments the purge counter.
+#   3. Verify the app eventually reaches RUNNING state.  Without the fix the app
+#      would remain stuck at LOADED indefinitely.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:grep] stop
+[!exec:jq] stop
+[!exec:uuidgen] stop
+
+# Starting of reboot detector with a 1 reboot limit
+! test eden.reboot.test -test.v -timewait=0 -reboot=0 -count=1 &
+
+message 'Resetting of EVE'
+eden eve reset
+exec sleep 30
+
+# Deploy an app with a deliberately invalid image tag.
+# The tag "purge-test-nonexistent-99999" does not exist, so EVE will fail to
+# resolve the manifest and the app will never be activated.
+eden -t 1m pod deploy -n bad-image-app docker://nginx:purge-test-nonexistent-99999 --memory 512MB
+stdout 'deploy pod bad-image-app'
+
+# Give EVE time to attempt manifest resolution and fail.
+# We intentionally do NOT wait for RUNNING – that would defeat the test.
+exec sleep 90
+
+# Confirm the app is not RUNNING (it never activated).
+eden pod ps
+cp stdout pod_ps
+! grep '^bad-image-app\s.*RUNNING' pod_ps
+
+# Apply the fix atomically:
+#   - fix the image tag (nginx:stable instead of the nonexistent one)
+#   - generate fresh ContentTree and Volume UUIDs (forces EVE to create new volumes)
+#   - increment the purge counter
+# This replicates what "eden pod purge" does while simultaneously fixing the
+# image URL, exactly matching the bug scenario.
+exec -t 2m bash fix-and-purge.sh bad-image-app
+
+# With the EVE fix, the purge completes and the app reaches RUNNING.
+# Without the fix the app would remain stuck at LOADED indefinitely (the test
+# would time out here).
+test eden.app.test -test.v -timewait 15m RUNNING bad-image-app
+
+# Cleanup.
+eden pod delete bad-image-app
+test eden.app.test -test.v -timewait 5m - bad-image-app
+
+-- fix-and-purge.sh --
+#!/bin/sh
+# fix-and-purge.sh <app-name>
+#
+# Atomically update the EVE device config to:
+#   1. Replace the failing ContentTree with a new one (same repo, tag "stable",
+#      new UUID so EVE treats it as a fresh download).
+#   2. Assign a new UUID to the app's volume (as "eden pod purge" does).
+#   3. Increment the purge counter on the app.
+#
+# This is the minimal combination needed to reproduce and verify the fix for EVE
+# commit a1582bb40: purge of an app that was never activated (no domain created).
+
+APP="${1:-bad-image-app}"
+
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+$EDEN controller edge-node get-config --file device.cfg
+
+# --- locate old UUIDs ---
+OLD_VOL_UUID=$(jq -r --arg app "$APP" \
+    '.apps[] | select(.displayname == $app) | .volumeRefList[0].uuid' device.cfg)
+
+if [ -z "$OLD_VOL_UUID" ] || [ "$OLD_VOL_UUID" = "null" ]; then
+    echo "ERROR: could not find volume UUID for app '$APP'" >&2
+    exit 1
+fi
+
+OLD_CT_UUID=$(jq -r --arg vuuid "$OLD_VOL_UUID" \
+    '.volumes[] | select(.uuid == $vuuid) | .origin.downloadContentTreeID' device.cfg)
+
+if [ -z "$OLD_CT_UUID" ] || [ "$OLD_CT_UUID" = "null" ]; then
+    echo "ERROR: could not find ContentTree UUID for volume $OLD_VOL_UUID" >&2
+    exit 1
+fi
+
+# --- derive fixed image URL (keep the repo, switch to tag "stable") ---
+OLD_URL=$(jq -r --arg ctuuid "$OLD_CT_UUID" \
+    '.contentInfo[] | select(.uuid == $ctuuid) | .URL' device.cfg)
+
+REPO_BASE="${OLD_URL%:*}"   # e.g. "library/nginx"
+GOOD_URL="${REPO_BASE}:stable"
+
+# --- generate fresh UUIDs ---
+NEW_VOL_UUID=$(uuidgen)
+NEW_CT_UUID=$(uuidgen)
+
+echo "fix-and-purge: old vol=$OLD_VOL_UUID  old ct=$OLD_CT_UUID"
+echo "fix-and-purge: new vol=$NEW_VOL_UUID  new ct=$NEW_CT_UUID"
+echo "fix-and-purge: old URL=$OLD_URL  good URL=$GOOD_URL"
+
+# --- build updated config in a single jq pass ---
+#
+# Four changes:
+#   a) contentInfo: replace old ContentTree entry with new UUID + fixed URL + cleared sha256.
+#      All other fields (dsId, iformat, etc.) are preserved via ". + {...}" merge.
+#   b) volumes: give the app's volume a new UUID and point it at the new ContentTree.
+#   c) apps.volumeRefList: update the volume reference to the new UUID.
+#   d) apps.purge.counter: increment so EVE enters PurgeInprogress=DownloadAndVerify.
+jq --arg app       "$APP" \
+   --arg old_vuuid  "$OLD_VOL_UUID" \
+   --arg new_vuuid  "$NEW_VOL_UUID" \
+   --arg old_ctuuid "$OLD_CT_UUID" \
+   --arg new_ctuuid "$NEW_CT_UUID" \
+   --arg good_url   "$GOOD_URL" \
+   '
+   .contentInfo = (.contentInfo | map(
+     if .uuid == $old_ctuuid then
+       . + {"uuid": $new_ctuuid, "URL": $good_url, "sha256": ""}
+     else . end
+   )) |
+   .volumes = (.volumes | map(
+     if .uuid == $old_vuuid then
+       . + {"uuid": $new_vuuid,
+            "origin": (.origin + {"downloadContentTreeID": $new_ctuuid})}
+     else . end
+   )) |
+   .apps = (.apps | map(
+     if .displayname == $app then
+       .volumeRefList = (.volumeRefList | map(
+         if .uuid == $old_vuuid then .uuid = $new_vuuid else . end
+       )) |
+       .purge = {"counter": ((.purge.counter // 0) + 1)}
+     else . end
+   ))
+   ' device.cfg > device_fixed.cfg
+
+$EDEN controller edge-node set-config --file device_fixed.cfg
+echo "fix-and-purge: config updated, purge counter incremented"
+
+-- eden-config.yml --
+{{/* Test's config file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
