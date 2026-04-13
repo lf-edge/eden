@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 8}}
+{{$tests := 9}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "n"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -43,3 +43,6 @@ eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/app_repla
 
 /bin/echo Eden nodered (8/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/nodered
+
+/bin/echo Testing purge of an app that was never activated (9/{{$tests}})
+eden.escript.test -testdata ../app/testdata/ -test.run TestEdenScripts/purge_not_activated_test
