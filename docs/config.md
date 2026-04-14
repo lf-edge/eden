@@ -112,7 +112,7 @@ default described below) please use several options before run of `eden setup`:
 
 * `eden config set default --key=eve.cpu --value=2` - to set 2 virtual CPUs for EVE (default is 4)
 * `eden config set default --key=eve.ram --value=8096` - to set 8096 MB of ram for EVE (default is 4096)
-* `eden config set default --key=eve.disk --value=65536` - to set 65536 MB of disk space for EVE (default is 8192)
+* `eden config set default --key=eve.disk --value=65536` - to set 65536 MB of disk space for EVE (default is 16384)
 
 ## Modifying of EVE config
 
