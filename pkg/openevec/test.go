@@ -25,6 +25,10 @@ type TestArgs struct {
 	CurDir       string
 	ConfigFile   string
 	Verbosity    string
+	// CoverageDir, when non-empty, triggers EVE coverage collection after all
+	// tests complete.  EVE must have been built with COVER=y.  The text profile
+	// is written to CoverageDir/eden_e2e_coverage.txt.
+	CoverageDir string
 }
 
 func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {

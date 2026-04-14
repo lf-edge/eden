@@ -66,9 +66,16 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-
 			if err := openevec.Test(&tstCfg); err != nil {
 				log.Fatal(err)
+			}
+			// After all tests complete, collect coverage if requested.
+			// This requires EVE to have been built with COVER=y.
+			if tstCfg.CoverageDir != "" {
+				openEVEC := openevec.CreateOpenEVEC(cfg)
+				if err := openEVEC.CollectEveCoverage(tstCfg.CoverageDir); err != nil {
+					log.Errorf("EVE coverage collection failed: %v", err)
+				}
 			}
 		},
 	}
@@ -82,6 +89,8 @@ test <test_dir> -r <regexp> [-t <timewait>] [-v <level>]
 	testCmd.Flags().StringVarP(&tstCfg.TestScenario, "scenario", "s", "", "scenario for tests bunch running")
 	testCmd.Flags().StringVarP(&tstCfg.FailScenario, "fail_scenario", "f", "cfg.FailScenario.txt", "scenario for test failing")
 	testCmd.Flags().BoolVarP(&tstCfg.TestOpts, "opts", "o", false, "Options description for test binary which may be used in test scenarious and '-a|--args' option")
+	testCmd.Flags().StringVar(&tstCfg.CoverageDir, "coverage-dir", "",
+		"collect EVE code coverage after tests and write eden_e2e_coverage.txt to this directory (requires EVE built with COVER=y)")
 
 	return testCmd
 }
