@@ -35,6 +35,10 @@ const (
 	DefaultConfigEnv   = "EDEN_CONFIG"    //default env for set config
 	DefaultEdenHomeEnv = "EDEN_HOME"      //default env for overriding eden home directory
 	DefaultTestArgsEnv = "EDEN_TEST_ARGS" //default env for test arguments
+
+	// DefaultEveCoverageDir is the directory inside EVE where coverage-instrumented
+	// zedbox binaries write their coverage data (via GOCOVERDIR).
+	DefaultEveCoverageDir = "/persist/coverage"
 )
 
 // domains, ips, ports

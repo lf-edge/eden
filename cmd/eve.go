@@ -34,6 +34,7 @@ func newEveCmd(configName, verbosity *string) *cobra.Command {
 				newVersionEveCmd(),
 				newEpochEveCmd(),
 				newLinkEveCmd(cfg),
+				newCollectCoverageEveCmd(cfg),
 			},
 		},
 	}
@@ -285,4 +286,47 @@ func newLinkEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	linkEveCmd.Flags().StringVarP(&eveInterfaceName, "interface-name", "i", "", "EVE interface to get/change the link state of")
 
 	return linkEveCmd
+}
+
+// newCollectCoverageEveCmd returns the "eden eve collect-coverage" command.
+// It collects Go basic-block coverage data from a coverage-instrumented EVE
+// image (built with COVER=y) and writes a text profile to --output-dir.
+// The resulting file can be merged with "make test" unit-test coverage using
+// "make coverage-merge" from the EVE repository root.
+func newCollectCoverageEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
+	var outputDir string
+
+	var collectCoverageCmd = &cobra.Command{
+		Use:   "collect-coverage",
+		Short: "collect code coverage from a coverage-instrumented EVE image",
+		Long: `Dump in-memory coverage counters from all running zedbox processes on EVE
+(via SIGUSR2), copy the binary coverage files to the host, and convert them
+to a Go text coverage profile at <output-dir>/eden_e2e_coverage.txt.
+
+Requires EVE to have been built with COVER=y so that zedbox is instrumented
+(go build -cover -covermode=atomic) and registers a SIGUSR2 handler that
+writes coverage data to /persist/coverage without terminating.
+
+The text profile uses the same format as "go test -coverprofile" so it can
+be concatenated with unit-test coverage to produce a combined report:
+
+    head -1 pkg/pillar/coverage.txt > combined.txt
+    tail -n +2 pkg/pillar/coverage.txt >> combined.txt
+    tail -n +2 <output-dir>/eden_e2e_coverage.txt >> combined.txt
+    go tool cover -func=combined.txt
+
+Or use "make coverage-merge" from the EVE repository root.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			openEVEC := openevec.CreateOpenEVEC(cfg)
+			if outputDir == "" {
+				return fmt.Errorf("--output-dir is required")
+			}
+			return openEVEC.CollectEveCoverage(outputDir)
+		},
+	}
+
+	collectCoverageCmd.Flags().StringVar(&outputDir, "output-dir", "",
+		"directory to write eden_e2e_coverage.txt (required)")
+
+	return collectCoverageCmd
 }

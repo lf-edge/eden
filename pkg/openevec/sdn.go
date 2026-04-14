@@ -28,6 +28,14 @@ func (openEVEC *OpenEVEC) SdnForwardSCPFromEve(remoteFilePath, localFilePath str
 	return openEVEC.SdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
 }
 
+// SdnForwardSCPDirFromEve copies a directory recursively from EVE to the host using scp -r.
+func (openEVEC *OpenEVEC) SdnForwardSCPDirFromEve(remoteDirPath, localDirPath string) error {
+	cfg := openEVEC.cfg
+	arguments := fmt.Sprintf("-r -o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i %s "+
+		"-P FWD_PORT root@FWD_IP:%s %s", sdnSSSHKeyPrivate(cfg.Eden.SSHKey), remoteDirPath, localDirPath)
+	return openEVEC.SdnForwardCmd("", "eth0", 22, "scp", strings.Fields(arguments)...)
+}
+
 func sdnSSSHKeyPrivate(sshKeyPub string) string {
 	extension := filepath.Ext(sshKeyPub)
 	// we store the pub key in config
