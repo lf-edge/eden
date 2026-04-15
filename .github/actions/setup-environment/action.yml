@@ -94,10 +94,10 @@ runs:
           echo "Setting up eve image ${image}"
           eve_pr_registry=$(echo "$image" |  cut -d ':' -f 1)
           eve_pr=$(echo "$image" |  cut -d ':' -f 2 | cut -d "-" -f1)
-          # this will be empty if there is no rc in the tag
-          eve_rc=$(echo "$image" |  cut -d ':' -f 2 | grep -Eo "\-rc[0-9]+" || printf "")
+          # this will be empty if there is no rc or lts suffix in the tag
+          eve_suffix=$(echo "$image" |  cut -d ':' -f 2 | grep -Eo "\-(rc[0-9]+|lts)" || printf "")
           ./eden config set default --key=eve.registry --value="$eve_pr_registry"
-          ./eden config set default --key=eve.tag --value="$eve_pr$eve_rc"
+          ./eden config set default --key=eve.tag --value="$eve_pr$eve_suffix"
         else
           echo "Skipping setting up eve image ${image}"
         fi
