@@ -96,6 +96,11 @@ func TestLogLevelsDifferent(t *testing.T) {
 	if err := eveNode.WaitForConfigApplied(60 * time.Second); err != nil {
 		logFatalf("Failed to wait for config to be applied: %v", err)
 	}
+	// Record the time after the new log levels were confirmed applied on EVE.
+	// Any log entry with a timestamp before this point was generated under the
+	// old log level (or during the apply transition) and should not count as a
+	// violation of the remote.loglevel=none policy.
+	configAppliedAt := time.Now()
 
 	steppy.AnnounceNext("reboot EVE to generate fresh logs")
 	if err := eveNode.EveRebootAndWait(5 * 60); err != nil {
@@ -106,7 +111,10 @@ func TestLogLevelsDifferent(t *testing.T) {
 	query := map[string]string{
 		"severity": ".*",
 	}
-	if err := eveNode.FindLogOnAdam(query, elog.LogNew, logTimeout); err != nil {
+	// Use FindLogOnAdamAfter to skip pre-reboot logs that EVE's newlogd persisted
+	// to disk and replays to Adam after coming back up. Those logs were generated
+	// before remote.loglevel=none was applied and must not be treated as violations.
+	if err := eveNode.FindLogOnAdamAfter(query, elog.LogNew, logTimeout, configAppliedAt); err != nil {
 		logInfof("No logs found, as expected")
 	} else {
 		logFatalf("Logs found, but they should not be present with the remote log level '%s'", remoteLogLevel)
