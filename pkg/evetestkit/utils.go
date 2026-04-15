@@ -673,6 +673,13 @@ func (node *EveNode) FindLogOnAdam(query map[string]string, mode elog.LogChecker
 	return node.controller.EdenFindLogs(query, mode, timeout)
 }
 
+// FindLogOnAdamAfter queries Adam for a log entry generated at or after the given time.
+// Log entries with timestamps before 'after' are silently skipped and do not count as a match.
+// Returns nil if a matching post-'after' entry is found, or an error (e.g. timeout) if not found.
+func (node *EveNode) FindLogOnAdamAfter(query map[string]string, mode elog.LogCheckerMode, timeout time.Duration, after time.Time) error {
+	return node.controller.EdenFindLogsAfter(query, mode, timeout, after)
+}
+
 // GetDefaultVMConfig returns a default configuration for a VM
 func GetDefaultVMConfig(appName, cloudConfig string, portPub []string) openevec.PodConfig {
 	var pc openevec.PodConfig
