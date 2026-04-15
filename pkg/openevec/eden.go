@@ -607,6 +607,27 @@ func (openEVEC *OpenEVEC) EdenFindLogs(query map[string]string, mode elog.LogChe
 	return ctrl.LogChecker(devUUID, query, handler, mode, timeout)
 }
 
+// EdenFindLogsAfter finds logs in the controller generated at or after the given time.
+// Log entries with timestamps before 'after' are silently skipped and do not count as a match.
+// This is useful after a reboot to avoid false positives from pre-reboot logs that EVE's
+// newlogd persisted to disk and uploads to Adam after coming back up.
+func (openEVEC *OpenEVEC) EdenFindLogsAfter(query map[string]string, mode elog.LogCheckerMode, timeout time.Duration, after time.Time) error {
+	changer := &adamChanger{}
+	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
+	}
+	devUUID := devFirst.GetID()
+	handler := func(logEntry *elog.FullLogEntry) bool {
+		if logEntry.Timestamp == nil || logEntry.Timestamp.AsTime().Before(after) {
+			return false // skip pre-'after' entries, keep watching
+		}
+		elog.LogPrint(logEntry, types.OutputFormatLines)
+		return true
+	}
+	return ctrl.LogChecker(devUUID, query, handler, mode, timeout)
+}
+
 func (openEVEC *OpenEVEC) EdenNetStat(outputFormat types.OutputFormat, follow bool, logTail uint, printFields, args []string) error {
 	changer := &adamChanger{}
 	ctrl, devFirst, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
