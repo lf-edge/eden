@@ -23,12 +23,6 @@ inputs:
     type: string
   require_virtualization:
     type: bool
-  aziot_id_scope:
-    description: 'Azure IoT ID scope'
-    required: false
-  aziot_connection_string:
-    description: 'Azure IoT connection string'
-    required: false
 
 
 runs:
@@ -53,9 +47,6 @@ runs:
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash
       working-directory: "./eden"
-      env:
-        AZIOT_ID_SCOPE: ${{ inputs.aziot_id_scope }}
-        AZIOT_CONNECTION_STRING: ${{ inputs.aziot_connection_string }}
     - name: Collect info
       if: failure()
       uses: ./eden/.github/actions/collect-info
