@@ -2,11 +2,11 @@
 name: Eden
 on: # yamllint disable-line rule:truthy
   push:
-    branches: [master]
+    branches: [master, 'EVE-*-stable']
     paths-ignore:
       - 'docs/**'
-  pull_request_target:
-    branches: [master]
+  pull_request:
+    branches: [master, 'EVE-*-stable']
     paths-ignore:
       - 'docs/**'
 
@@ -22,4 +22,3 @@ jobs:
       eve_image: "lfedge/eve:15.11.0"
       eve_kubevirt_image: "lfedge/eve:0.0.0-master-75241279-kubevirt-amd64"
       eden_version: ${{ github.event.pull_request.head.sha }}
-    secrets: inherit

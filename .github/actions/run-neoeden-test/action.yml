@@ -22,12 +22,6 @@ inputs:
     type: bool
   test_suite:
     type: string
-  aziot_id_scope:
-    description: 'Azure IoT ID scope'
-    required: false
-  aziot_connection_string:
-    description: 'Azure IoT connection string'
-    required: false
 
 
 runs:
@@ -52,9 +46,6 @@ runs:
       run: go test -timeout 30m
       shell: bash
       working-directory: ${{ inputs.test_suite }}
-      env:
-        AZIOT_ID_SCOPE: ${{ inputs.aziot_id_scope }}
-        AZIOT_CONNECTION_STRING: ${{ inputs.aziot_connection_string }}
     - name: Collect info
       if: failure()
       uses: ./eden/.github/actions/collect-info
