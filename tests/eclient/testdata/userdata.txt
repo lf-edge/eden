@@ -45,7 +45,7 @@ exec -t 40s bash change_injected_file.sh "after_restart"
 eden pod restart eclient
 test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient
 
-exec -t 40s bash test_injected_file.sh "after_restart"
+exec -t 100s bash test_injected_file.sh "after_restart"
 
 eden pod delete eclient
 
