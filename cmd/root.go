@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"os"
 	"reflect"
 
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -85,5 +86,7 @@ func preRunViperLoadFunction(cfg *openevec.EdenSetupArgs, configName, verbosity 
 // Execute primary function for cobra
 func Execute() {
 	rootCmd := NewEdenCommand()
-	_ = rootCmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
