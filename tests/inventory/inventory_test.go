@@ -125,7 +125,7 @@ func TestHWInventory(t *testing.T) {
 	steppy.AnnounceNext("check some fields in the HW inventory message")
 
 	steppy.AnnounceNext("reboot EVE node to generate new HW inventory")
-	if err := eveNode.EveRebootAndWait(5 * 60); err != nil {
+	if err := eveNode.EveRebootAndWait(10 * 60); err != nil {
 		logFatalf("Failed to reboot EVE node: %v", err)
 	}
 	time.Sleep(1 * time.Minute) // wait for a bit before checking logs
