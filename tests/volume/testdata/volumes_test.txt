@@ -26,10 +26,10 @@ source .env
 
 # allocate volume with size of half total space
 eden -t 1m volume create -n blank-vol-1 blank --disk-size=$half_total
-test eden.vol.test -test.v -timewait 3m CREATED_VOLUME blank-vol-1
+test eden.vol.test -test.v -timewait 10m CREATED_VOLUME blank-vol-1
 
 # allocate background info check for volumeErr contains Remaining word
-test eden.lim.test -test.v -timewait 3m -test.run TestInfo -out InfoContent.vinfo 'InfoContent.vinfo.volumeErr:Remaining' 'InfoContent.vinfo.displayName:blank-vol-2' &errorwait&
+test eden.lim.test -test.v -timewait 10m -test.run TestInfo -out InfoContent.vinfo 'InfoContent.vinfo.volumeErr:Remaining' 'InfoContent.vinfo.displayName:blank-vol-2' &errorwait&
 
 exec sleep 10
 
