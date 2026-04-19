@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -49,7 +52,33 @@ func sdnSSHKeyPath(sdnSourceDir string) string {
 	return filepath.Join(sdnSourceDir, "vm/cert/ssh/id_rsa")
 }
 
+// stdinOpt connects the subprocess stdin to the parent process stdin,
+// matching the behaviour of utils.RunCommandForeground.
+var stdinOpt utils.CommandOpt = func(cmd *exec.Cmd) {
+	cmd.Stdin = os.Stdin
+}
+
+// silentOpt discards subprocess stdout and stderr.
+// Used for availability probes where output noise is not wanted.
+var silentOpt utils.CommandOpt = func(cmd *exec.Cmd) {
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+}
+
 func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetPort int, cmd string, args ...string) error {
+	return openEVEC.sdnForwardCmdWithOpts(fromEp, eveIfName, targetPort, []utils.CommandOpt{stdinOpt}, cmd, args...)
+}
+
+// sshEveProbe runs "ssh ... true" against EVE with all output discarded.
+// Used by waitForEveSSH to poll SSH availability without noisy stderr.
+func (openEVEC *OpenEVEC) sshEveProbe() error {
+	cfg := openEVEC.cfg
+	arguments := fmt.Sprintf("-o IdentitiesOnly=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s "+
+		"-p FWD_PORT root@FWD_IP true", sdnSSSHKeyPrivate(cfg.Eden.SSHKey))
+	return openEVEC.sdnForwardCmdWithOpts("", "eth0", 22, []utils.CommandOpt{silentOpt}, "ssh", strings.Fields(arguments)...)
+}
+
+func (openEVEC *OpenEVEC) sdnForwardCmdWithOpts(fromEp string, eveIfName string, targetPort int, cmdOpts []utils.CommandOpt, cmd string, args ...string) error {
 	cfg := openEVEC.cfg
 	const fwdIPLabel = "FWD_IP"
 	const fwdPortLabel = "FWD_PORT"
@@ -66,7 +95,7 @@ func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetP
 			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, ip)
 			args[i] = strings.ReplaceAll(args[i], fwdPortLabel, strconv.Itoa(targetPort))
 		}
-		err := utils.RunCommandForeground(cmd, args...)
+		err := utils.RunCommandForegroundWithOpts(cmd, args, cmdOpts...)
 		if err != nil {
 			return fmt.Errorf("command %s failed: %w", cmd, err)
 		}
@@ -116,7 +145,7 @@ func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetP
 			args[i] = strings.ReplaceAll(args[i], fwdIPLabel, "127.0.0.1")
 			args[i] = strings.ReplaceAll(args[i], fwdPortLabel, fwdPort)
 		}
-		err := utils.RunCommandForeground(cmd, args...)
+		err := utils.RunCommandForegroundWithOpts(cmd, args, cmdOpts...)
 		if err != nil {
 			return fmt.Errorf("command %s failed: %w", cmd, err)
 		}
@@ -168,7 +197,7 @@ func (openEVEC *OpenEVEC) SdnForwardCmd(fromEp string, eveIfName string, targetP
 		args[i] = strings.ReplaceAll(args[i], fwdIPLabel, "127.0.0.1")
 		args[i] = strings.ReplaceAll(args[i], fwdPortLabel, fwdPort)
 	}
-	err = utils.RunCommandForeground(cmd, args...)
+	err = utils.RunCommandForegroundWithOpts(cmd, args, cmdOpts...)
 	if err != nil {
 		return fmt.Errorf("command %s %s failed: %w", cmd, strings.Join(args, " "), err)
 	}
