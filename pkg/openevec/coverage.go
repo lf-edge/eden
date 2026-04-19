@@ -14,13 +14,31 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// waitForEveSSH polls until EVE accepts an SSH connection or the timeout
+// expires.  Tests that reboot EVE leave SSH temporarily unreachable; retrying
+// here avoids a spurious coverage-collection failure.
+func (openEVEC *OpenEVEC) waitForEveSSH(timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	interval := 10 * time.Second
+	for {
+		if err := openEVEC.sshEveProbe(); err == nil {
+			return nil
+		}
+		if time.Now().Add(interval).After(deadline) {
+			return fmt.Errorf("EVE SSH not available after %v", timeout)
+		}
+		log.Infof("EVE coverage: waiting for SSH to become available...")
+		time.Sleep(interval)
+	}
+}
+
 // CollectEveCoverage dumps coverage counters from coverage-instrumented EVE
 // binaries (built with COVER=y / go build -cover -covermode=atomic) and
 // converts the result to a Go coverage text profile at
 // <outputDir>/eden_e2e_coverage.txt.
 //
 // The function:
-//  1. Creates /persist/coverage inside EVE (if not present).
+//  1. Waits for EVE SSH to be ready (EVE may be rebooting after tests).
 //  2. Sends SIGUSR2 to all running zedbox processes so they write their
 //     in-memory coverage counters to GOCOVERDIR without terminating.
 //  3. Copies the binary coverage files to a local temporary directory.
@@ -37,10 +55,11 @@ func (openEVEC *OpenEVEC) CollectEveCoverage(outputDir string) error {
 		return fmt.Errorf("cannot create coverage output dir %s: %w", outputDir, err)
 	}
 
-	// Ensure the coverage directory exists inside EVE.
-	log.Infof("EVE coverage: creating %s on EVE", defaults.DefaultEveCoverageDir)
-	if err := openEVEC.SSHEve(fmt.Sprintf("mkdir -p %s", defaults.DefaultEveCoverageDir)); err != nil {
-		return fmt.Errorf("cannot create coverage dir on EVE: %w", err)
+	// Wait for EVE SSH to be ready.  A test may have rebooted EVE and SSH
+	// might not be accepting connections immediately after tests complete.
+	log.Infof("EVE coverage: waiting for EVE SSH (up to 5 min)...")
+	if err := openEVEC.waitForEveSSH(5 * time.Minute); err != nil {
+		return fmt.Errorf("cannot reach EVE via SSH: %w", err)
 	}
 
 	// Send SIGUSR2 to all zedbox processes to dump live coverage counters.
