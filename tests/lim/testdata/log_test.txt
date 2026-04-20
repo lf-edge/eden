@@ -9,6 +9,9 @@ eden -t 1m controller edge-node update --config agent.debug.debug.remote.logleve
 # wait for the config changes to apply
 exec sleep 15
 
+# wait for EVE's sshd to be ready before starting the log watcher
+exec -t 5m bash wait_ssh.sh
+
 # ssh into EVE to force log creation
 exec -t 5m bash ssh.sh &
 
@@ -28,6 +31,14 @@ test:
         onboard-cert: {{EdenConfigPath "eve.cert"}}
         serial: "{{EdenConfig "eve.serial"}}"
         model: {{EdenConfig "eve.devmodel"}}
+
+-- wait_ssh.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+END=$(($(date +%s) + 5*60))
+until $EDEN eve ssh exit 2>/dev/null; do
+  [ "$(date +%s)" -lt "$END" ] || { echo "sshd not ready after 5m"; exit 1; }
+  sleep 5
+done
 
 -- ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}

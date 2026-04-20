@@ -40,10 +40,13 @@ test:
 
 -- ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-for i in `seq 20`
-do
-  sleep 20
+END=$(($(date +%s) + 18*60))
+i=0
+while [ "$(date +%s)" -lt "$END" ]; do
+  i=$((i+1))
   # Test SSH-access to container
   echo $i\) $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep Ubuntu /etc/issue
-  $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep Ubuntu /etc/issue && break
+  $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} grep Ubuntu /etc/issue && exit 0
+  sleep 10
 done
+exit 1
