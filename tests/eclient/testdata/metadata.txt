@@ -17,12 +17,11 @@ eden pod deploy -n eclient --memory=512MB {{template "eclient_image"}} -p {{$por
 test eden.app.test -test.v -timewait 20m RUNNING eclient
 
 message 'Waiting for AppInstMetadata'
-# Use eden.lim.test for access Infos with timewait 10m in background
-test eden.lim.test -test.v -timewait 10m -test.run TestInfo -out InfoContent.amdinfo.data 'InfoContent.amdinfo.data:world' &
+# Start listener before SSH so we capture the immediate info EVE sends on metadata receipt
+test eden.lim.test -test.v -timewait 20m -test.run TestInfo -out InfoContent.amdinfo.data 'InfoContent.amdinfo.data:world' &
 
 exec -t 20m bash ssh.sh
 
-# wait for detector
 wait
 stdout '{"hello":"world"}'
 
@@ -44,10 +43,13 @@ test:
 
 -- ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-for i in `seq 20`
-do
-  sleep 20
+END=$(($(date +%s) + 18*60))
+i=0
+while [ "$(date +%s)" -lt "$END" ]; do
+  i=$((i+1))
   # Test SSH-access to container
   echo $i\) $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} curl --header \"Content-Type: application/json\" --request POST -d \'{\"hello\":\"world\"}\' 169.254.169.254/eve/v1/kubeconfig
-  $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} curl --header \"Content-Type: application/json\" --request POST -d \'{\"hello\":\"world\"}\' 169.254.169.254/eve/v1/kubeconfig && break
+  $EDEN sdn fwd eth0 {{$port}} -- {{template "ssh"}} curl --header \"Content-Type: application/json\" --request POST -d \'{\"hello\":\"world\"}\' 169.254.169.254/eve/v1/kubeconfig && exit 0
+  sleep 10
 done
+exit 1
