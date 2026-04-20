@@ -316,6 +316,7 @@ be concatenated with unit-test coverage to produce a combined report:
     go tool cover -func=combined.txt
 
 Or use "make coverage-merge" from the EVE repository root.`,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			openEVEC := openevec.CreateOpenEVEC(cfg)
 			if outputDir == "" {
