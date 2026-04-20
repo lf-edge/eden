@@ -19,7 +19,7 @@ exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
 
 eden pod deploy -n eclient --memory=512MB {{template "eclient_image"}} -p {{template "port"}}:22
 
-eden pod deploy -n {{$server}} --memory=512MB docker://nginx:latest
+eden pod deploy -n {{$server}} --memory=512MB docker://nginx:latest -p 8080:80
 
 test eden.app.test -test.v -timewait 20m RUNNING eclient {{$server}}
 
@@ -27,10 +27,10 @@ exec -t 20m bash wait_ssh.sh
 
 eden pod ps
 cp stdout pod_ps
-exec bash server_ip.sh {{$server}}
+exec -t 5m bash server_ip.sh {{$server}}
 
 exec sleep 10
-exec -t 1m bash run_client.sh
+exec -t 2m bash run_client.sh
 stdout '{{$test_msg}}'
 
 eden pod delete eclient
@@ -51,7 +51,18 @@ done
 
 -- server_ip.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-echo export ESERVER_IP=$(grep "^$1\s" pod_ps | awk '{print $4}') > env
+for i in $(seq 30); do
+  IP=$($EDEN pod ps | grep "^$1[[:space:]]" | awk '{print $4}')
+  if [ -n "$IP" ] && [ "$IP" != "-" ]; then
+    echo "Server IP = $IP (attempt $i)"
+    echo "export ESERVER_IP=$IP" > env
+    exit 0
+  fi
+  echo "Waiting for server IP (attempt $i, got '$IP')..."
+  sleep 10
+done
+echo "ERROR: Server $1 never got an IP after 30 attempts" >&2
+exit 1
 
 -- run_client.sh --
 . ./env
