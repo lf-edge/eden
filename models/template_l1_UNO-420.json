@@ -62,7 +62,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB3",
       "assigngrp": "USB",
       "phyaddrs": {
