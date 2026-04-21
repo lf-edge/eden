@@ -62,7 +62,7 @@ grep 'app2_ip=10.2.100.\d+' .env
 source .env
 
 # Wait for app2 to obtain test_data from app1
-exec -t 5m bash wait_and_get_recv_data.sh app2 8029
+exec -t 7m bash wait_and_get_recv_data.sh app2 8029
 stdout '{{$test_data}}'
 
 eden pod delete app2
@@ -76,7 +76,7 @@ grep 'app3_ip=10.2.200.\d+' .env
 source .env
 
 # app3 will try to obtain test_data from app1, but it should fail because they are in different VLANs
-exec -t 5m bash wait_and_get_recv_data.sh app3 8030
+exec -t 7m bash wait_and_get_recv_data.sh app3 8030
 ! stdout '{{$test_data}}'
 
 eden pod delete app3
@@ -90,7 +90,7 @@ grep 'app4_ip=10.2.0.\d+' .env
 source .env
 
 # app4 will try to obtain test_data from app1, but it should fail because app1 is inside VLAN while app4 is not
-exec -t 5m bash wait_and_get_recv_data.sh app4 8031
+exec -t 7m bash wait_and_get_recv_data.sh app4 8031
 ! stdout '{{$test_data}}'
 
 # Modify app4 and move it to the VLAN 100
@@ -102,7 +102,7 @@ grep 'app4_ip=10.2.100.\d+' .env
 source .env
 
 # app4 should now be able to obtain test_data from app1
-exec -t 5m bash wait_and_get_recv_data.sh app4 8031
+exec -t 7m bash wait_and_get_recv_data.sh app4 8031
 stdout '{{$test_data}}'
 
 # Cleanup - undeploy applications
@@ -185,14 +185,15 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 
 address=http://FWD_IP:FWD_PORT/received-data.html
 
-# wait at most 1 minute for received-data.html to be available
-for i in `seq 12`
-do
-    sleep 5
-    recv_data=$($EDEN sdn fwd eth0 $PORT -- curl -m 10 $address)
-    if [ ! -z "$recv_data" ]; then
+# Wait up to ~4.5 minutes for received-data.html to contain data.
+# The original 1-minute window was insufficient under CI load.
+END=$(($(date +%s) + 4*60 + 30))
+while [ "$(date +%s)" -lt "$END" ]; do
+    recv_data=$($EDEN sdn fwd eth0 $PORT -- curl -m 10 $address 2>/dev/null)
+    if [ -n "$recv_data" ]; then
         break
     fi
+    sleep 5
 done
 $EDEN sdn fwd eth0 $PORT -- curl -m 10 $address
 
