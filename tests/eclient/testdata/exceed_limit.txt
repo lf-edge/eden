@@ -1,0 +1,93 @@
+# EDEN test about exceeding of memory limit.
+
+{{define "port"}}2223{{end}}
+{{define "ssh"}} ssh -oServerAliveInterval=10 -oConnectTimeout=10 -oStrictHostKeyChecking=no -oPasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa -p {{template "port"}} root@$HOST {{end}}
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:ssh] stop
+[!exec:chmod] stop
+[!exec:jq] stop
+
+exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
+
+# Starting of reboot detector with a 2 reboot limit
+! test eden.reboot.test -test.v -timewait 10m -reboot=0 -count=2 &
+
+eden pod deploy -n eclient --memory=512MB docker://itmoeve/eclient:0.7 -p {{template "port"}}:22
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient
+
+exec -t 20m bash ssh.sh
+stdout 'Ubuntu'
+eden pod ps
+eden eve ssh cat /run/domainmgr/xen/xen1.cfg
+
+# Memory up to 2Gb
+exec -t 20m bash set_mem.sh eclient 2000000 1
+stdout 'msg="Config loaded"'
+eden pod stop eclient
+test eden.app.test -test.v -timewait 20m HALTED eclient
+eden pod start eclient
+test eden.app.test -test.v -timewait 20m RUNNING eclient
+
+# Wait for reconfig
+exec -t 20m bash ssh.sh
+stdout 'Ubuntu'
+eden pod ps
+eden eve ssh cat /run/domainmgr/xen/xen1.cfg
+
+# Memory up to 6Gb
+exec -t 20m bash set_mem.sh eclient 6000000 2
+stdout 'msg="Config loaded"'
+eden pod stop eclient
+test eden.app.test -test.v -timewait 20m HALTED eclient
+eden pod start eclient
+test eden.app.test -test.v -timewait 20m RUNNING eclient
+
+# Wait for reconfig
+exec -t 20m bash ssh.sh
+stdout 'Ubuntu'
+eden pod ps
+eden eve ssh cat /run/domainmgr/xen/xen1.cfg
+
+stop
+
+eden pod delete eclient
+
+test eden.app.test -test.v -timewait 10m - eclient
+
+-- ssh.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+HOST=$($EDEN eve ip)
+
+for i in `seq 20`
+do
+sleep 20
+# Test SSH-access to container
+echo $i\) {{template "ssh"}} grep Ubuntu /etc/issue
+{{template "ssh"}} grep Ubuntu /etc/issue && break
+done
+
+-- set_mem.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+HOST=$($EDEN eve ip)
+CNF=eve.cfg
+
+$EDEN controller edge-node get-config --file $CNF
+
+jq '.apps = (.apps | map(if .displayname == "'$1'" then .fixedresources={"memory": '$2',"maxmem": '$2', "vcpus":.fixedresources.vcpus,"virtualizationMode":.fixedresources.virtualizationMode} else . end))' < $CNF | \
+jq '.apps = (.apps | map(if .displayname == "'$1'" then . + {"restart": {"counter": '$3'}} else . end))' > $CNF.new
+#jq '.apps = (.apps | map(if .displayname == "'$1'" then . + {"purge": {"counter": '$3'}} else . end))' > $CNF.new
+
+$EDEN controller edge-node set-config --file $CNF.new
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
