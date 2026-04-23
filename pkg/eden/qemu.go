@@ -215,7 +215,7 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 
 	consoleOps := "-display none "
 	consoleOps += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,"+
-		"host=localhost,server,nodelay,nowait,telnet,logappend=on,logfile=%s ",
+		"host=localhost,server=on,nodelay=on,wait=off,telnet=on,logappend=on,logfile=%s",
 		eveTelnetPort, logFile)
 	qemuOptions = consoleOps + qemuOptions
 	if !isInstaller {
