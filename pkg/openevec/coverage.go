@@ -32,6 +32,28 @@ func (openEVEC *OpenEVEC) waitForEveSSH(timeout time.Duration) error {
 	}
 }
 
+// waitForCoverageFiles polls GOCOVERDIR on EVE until at least one .covcounters
+// file newer than refFile appears, or timeout expires.  Newer-than-refFile
+// means the file was written after our SIGUSR2, not left over from a previous
+// collection.
+func (openEVEC *OpenEVEC) waitForCoverageFiles(coverDir, refFile string, timeout time.Duration) error {
+	const pollInterval = 2 * time.Second
+	deadline := time.Now().Add(timeout)
+	pollCmd := fmt.Sprintf(
+		"find %s -newer %s -name '*.covcounters' 2>/dev/null | grep -q .",
+		coverDir, refFile)
+	for {
+		if err := openEVEC.SdnForwardSSHToEve(pollCmd); err == nil {
+			return nil
+		}
+		if time.Until(deadline) <= pollInterval {
+			return fmt.Errorf("no new coverage files in %s after %v", coverDir, timeout)
+		}
+		log.Infof("EVE coverage: waiting for coverage files to appear...")
+		time.Sleep(pollInterval)
+	}
+}
+
 // CollectEveCoverage dumps coverage counters from coverage-instrumented EVE
 // binaries (built with COVER=y / go build -cover -covermode=atomic) and
 // converts the result to a Go coverage text profile at
@@ -62,19 +84,33 @@ func (openEVEC *OpenEVEC) CollectEveCoverage(outputDir string) error {
 		return fmt.Errorf("cannot reach EVE via SSH: %w", err)
 	}
 
+	// Touch a reference file on EVE before signalling.  We compare mtimes
+	// against it to detect when the SIGUSR2-triggered write is complete,
+	// avoiding a fixed sleep that may be too short on loaded devices.
+	const coverTsRef = "/tmp/eve_cov_ts"
+	tsErr := openEVEC.SdnForwardSSHToEve(fmt.Sprintf("touch %s", coverTsRef))
+
 	// Send SIGUSR2 to all zedbox processes to dump live coverage counters.
 	// The SIGUSR2 handler (registered in zedbox when built with -cover) calls
 	// runtime/coverage.WriteCountersDir(GOCOVERDIR) without exiting.
 	log.Infof("EVE coverage: sending SIGUSR2 to zedbox processes")
-	sigCmd := fmt.Sprintf("kill -USR2 $(pgrep -x zedbox) 2>/dev/null; true")
+	sigCmd := "kill -USR2 $(pgrep -x zedbox) 2>/dev/null; true"
 	if err := openEVEC.SdnForwardSSHToEve(sigCmd); err != nil {
 		log.Warnf("EVE coverage: SIGUSR2 delivery failed (%v); "+
 			"coverage may be incomplete", err)
 	}
 
-	// Give zedbox processes a moment to finish writing the files.
+	// Wait for coverage files to appear rather than sleeping a fixed duration.
 	log.Infof("EVE coverage: waiting for coverage data to be written")
-	time.Sleep(3 * time.Second)
+	if tsErr != nil {
+		// Reference file creation failed — fall back to the fixed sleep.
+		log.Warnf("EVE coverage: could not create timestamp reference (%v); "+
+			"using fixed sleep", tsErr)
+		time.Sleep(3 * time.Second)
+	} else if err := openEVEC.waitForCoverageFiles(
+		defaults.DefaultEveCoverageDir, coverTsRef, 30*time.Second); err != nil {
+		log.Warnf("EVE coverage: %v; proceeding with whatever was written", err)
+	}
 
 	// Copy binary coverage files from EVE to a local temp directory.
 	tmpDir, err := os.MkdirTemp("", "eve-coverage-*")
