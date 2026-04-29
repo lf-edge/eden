@@ -52,7 +52,7 @@ done
 -- server_ip.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 for i in $(seq 30); do
-  IP=$($EDEN pod ps | grep "^$1[[:space:]]" | awk '{print $4}')
+  IP=$($EDEN pod ps | grep "^$1[[:space:]]" | awk '{print $4}' | cut -d: -f1)
   if [ -n "$IP" ] && [ "$IP" != "-" ]; then
     echo "Server IP = $IP (attempt $i)"
     echo "export ESERVER_IP=$IP" > env
