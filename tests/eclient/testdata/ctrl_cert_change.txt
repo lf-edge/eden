@@ -26,7 +26,7 @@ eden utils gen-signing-cert -o /tmp/signing-new.pem
 eden adam change-signing-cert --cert-file /tmp/signing-new.pem
 
 # wait for changes to be applied
-test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.reconnecting.app'
+test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.updating.app.connectivity'
 
 eden pod deploy -n eclient2 --memory=512MB --networks=n1 {{template "eclient_image"}} --metadata={{$userdata}}
 
