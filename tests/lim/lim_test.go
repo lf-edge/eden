@@ -59,7 +59,7 @@ func mkquery() error {
 		// we use & to indicate background process
 		a := strings.TrimSuffix(arg, "&")
 		for _, f := range strings.Split(a, " ") {
-			s := strings.Split(f, ":")
+			s := strings.SplitN(f, ":", 2)
 			if len(s) == 1 {
 				if s[0] == "" {
 					continue
