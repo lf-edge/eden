@@ -21,19 +21,20 @@ stdout 'create volume v-vhdx with file://{{EdenConfig "eden.root"}}/empty.vhdx r
 test eden.vol.test -test.v -timewait 15m DELIVERED v-qcow2 v-docker v-qcow v-vmdk v-vhdx
 
 # measure reported total space of persist
-exec -t 5m bash wait-and-get-half-total.sh
+exec -t 5m bash wait-and-get-persist-fractions.sh
 source .env
 
-# allocate volume with size of half total space
-eden -t 1m volume create -n blank-vol-1 blank --disk-size=$half_total
+# allocate volume with 3/4 of total persist space; this guarantees blank-vol-2 (half
+# total) cannot fit regardless of pool size or ZFS thin-provisioning overhead.
+eden -t 1m volume create -n blank-vol-1 blank --disk-size=$three_quarter_total
 test eden.vol.test -test.v -timewait 10m CREATED_VOLUME blank-vol-1
 
 # allocate background info check for volumeErr contains Remaining word
-test eden.lim.test -test.v -timewait 10m -test.run TestInfo -out InfoContent.vinfo 'InfoContent.vinfo.volumeErr:Remaining' 'InfoContent.vinfo.displayName:blank-vol-2' &errorwait&
+test eden.lim.test -test.v -timewait 20m -test.run TestInfo -out InfoContent.vinfo 'InfoContent.vinfo.volumeErr:Remaining' 'InfoContent.vinfo.displayName:blank-vol-2' &errorwait&
 
 exec sleep 10
 
-# this volume expected to fail because we cannot create two volumes with half of total persist space
+# this volume expected to fail: blank-vol-1 holds 3/4 of persist, leaving less than half
 eden -t 1m volume create -n blank-vol-2 blank --disk-size=$half_total
 
 # wait for error from the second volume creation process
@@ -113,12 +114,13 @@ cp stdout vol_ls
 ! grep '^blank-vol-2\s*' vol_ls
 ! grep '^eclient-mount\s*' vol_ls
 
--- wait-and-get-half-total.sh --
+-- wait-and-get-persist-fractions.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 while true; do
     TOTAL=$($EDEN metric --tail=1 --format=json|jq -r '.dm.disk[] | select(.mountPath=="/persist") | .total')
     if [ "$TOTAL" -gt 0 ]; then
         echo half_total="$(( TOTAL*1024*1024/2 ))">>.env
+        echo three_quarter_total="$(( TOTAL*1024*1024*3/4 ))">>.env
         exit 0
     fi
     sleep 10
