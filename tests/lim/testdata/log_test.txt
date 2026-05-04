@@ -1,5 +1,4 @@
-{{$test1 := "test eden.lim.test -test.v -timewait 25m -test.run TestLog"}}
-{{$test2 := "test eden.lim.test -test.v -timewait 7m -test.run TestLog"}}
+{{$test := "test eden.lim.test -test.v -timewait 25m -test.run TestLog"}}
 
 # save the current config before changing it
 eden -t 1m controller edge-node get-config --file /tmp/full-config.json
@@ -7,23 +6,17 @@ eden -t 1m controller edge-node get-config --file /tmp/full-config.json
 # set the remote log level to info, because the expected message is logged with info level
 eden -t 1m controller edge-node update --config agent.debug.debug.loglevel=info
 eden -t 1m controller edge-node update --config agent.debug.debug.remote.loglevel=info
-# wait for the config changes to apply
-exec sleep 15
 
 # wait for EVE's sshd to be ready before starting the log watcher
 exec -t 5m bash wait_ssh.sh
 
-# Phase 1: wait for EVE's log delivery pipeline to become active (any log entry).
-# After a reboot, the pipeline can be silent for 15+ minutes while startup logs
-# queue up ahead of new entries; we must not start looking for Disconnected until
-# we know fresh entries are reaching the controller.
-{{$test1}} -out content 'content:.+'
+# Give EVE time to fetch and apply the updated config.  On TPM-enabled devices the
+# controller config must pass TPM signature verification before EVE applies it; this
+# can take several minutes, far longer than a short fixed sleep.
+exec sleep 60
 
-# ssh into EVE to force log creation (pipeline is now confirmed active)
-exec -t 8m bash ssh.sh &
-
-# Phase 2: look for the Disconnected message now that the pipeline is known-good
-{{$test2}} -out content 'content:.*Disconnected.*'
+exec -t 27m bash ssh.sh &
+{{$test}} -out content 'content:.*Disconnected.*'
 stdout 'Disconnected from'
 
 # restore the original config
@@ -50,10 +43,11 @@ done
 -- ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 # Keep generating SSH connections so the log watcher catches a "Disconnected"
-# message. Run for ~7 minutes (under the 7m timewait for phase 2). testscript
-# sends SIGINT at script end; trap it so the process exits cleanly.
+# message. The exec -t timeout in the caller controls the effective duration;
+# this loop runs until killed. testscript sends SIGINT at script end; trap it
+# so the process exits cleanly.
 trap 'exit 0' TERM INT
-END=$(($(date +%s) + 7*60))
+END=$(($(date +%s) + 60*60))
 while [ "$(date +%s)" -lt "$END" ]; do
     timeout 10 $EDEN eve ssh exit || true
     sleep 10
