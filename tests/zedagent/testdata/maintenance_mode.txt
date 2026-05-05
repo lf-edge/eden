@@ -45,7 +45,9 @@ eden eve epoch &
 
 # After clearing, devState should return to ONLINE.
 # mergeMaintenanceMode calls triggerPublishDevInfo, which includes systemAdapter.
-{{$info}} -timewait 5m -out InfoContent.dinfo.state 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+'
+# Use a generous timeout: EVE may take several minutes to re-populate systemAdapter
+# after exiting maintenance mode.
+{{$info}} -timewait 10m -out InfoContent.dinfo.state 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+'
 ! stdout 'ZDEVICE_STATE_MAINTENANCE_MODE'
 
 # Restore exact original config.

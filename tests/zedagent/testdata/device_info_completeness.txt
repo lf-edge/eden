@@ -16,15 +16,16 @@
 # Trigger a fresh info publish by bumping the controller epoch.
 eden eve epoch &
 
-# --- system adapters + machine arch + vault status in one ZInfoDevice message ---
-# All three fields must be present together.  The test PASSES only if they all
-# match in the same message; stdout confirms we got the machineArch value back.
-{{$info}} -timewait 5m -out InfoContent.dinfo.machineArch 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+' 'InfoContent.dinfo.machineArch:.+' 'InfoContent.dinfo.dataSecAtRestInfo.status:.+'
+# --- system adapters + machine arch + vault status + EVE version in one message ---
+# All fields must be present together in a single ZInfoDevice message.
+{{$info}} -timewait 10m \
+    -out InfoContent.dinfo.machineArch \
+    -out InfoContent.dinfo.swList.shortVersion \
+    'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+' \
+    'InfoContent.dinfo.machineArch:.+' \
+    'InfoContent.dinfo.dataSecAtRestInfo.status:.+' \
+    'InfoContent.dinfo.swList.shortVersion:.+'
 stdout 'x86_64'
-
-# --- EVE version ---
-eden eve epoch &
-{{$info}} -timewait 5m -out InfoContent.dinfo.swList.shortVersion 'InfoContent.dinfo.swList.shortVersion:.+'
 stdout 'eve-coverage-merge'
 
 # --- config items: change a value and confirm it appears in next ZInfoDevice ---

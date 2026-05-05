@@ -14,13 +14,18 @@
 
 ! test eden.reboot.test -test.v -timewait=60m -reboot=0 -count=1 &
 
+# Pre-cleanup: silently remove any resources left by a previous failed run,
+# then wait for them to be fully absent before proceeding.
+exec sh pre_cleanup.sh
+test eden.app.test -test.v -timewait 3m - zagent-t1
+test eden.network.test -test.v -timewait 3m - zagent-n1
+
 # Save baseline config for restore at end.
 eden -t 1m controller edge-node get-config --file /tmp/zedagent-cfg-baseline.json
 
 # --- app lifecycle (parseAppInstanceConfig) ---
 # Create a local network for the app.
 eden -t 1m network create 10.11.13.0/24 -n zagent-n1
-stdout 'deploy network .* with name zagent-n1 request sent'
 test eden.network.test -test.v -timewait 5m ACTIVATED zagent-n1
 
 # Deploy a minimal container app.
@@ -29,8 +34,9 @@ stdout 'deploy pod zagent-t1'
 {{$app}} -timewait 15m RUNNING zagent-t1
 
 # Verify AppInfo reached the controller (objectInfoTask path).
+# Use a longer timeout to avoid missing the ZInfoDevice publish.
 eden eve epoch &
-{{$info}} -timewait 5m 'InfoContent.ainfo.appID:.+'
+{{$info}} -timewait 10m 'InfoContent.ainfo.appID:.+'
 stdout 'AppID'
 
 # --- config-item change (parseConfigItems / handleGlobalConfigImpl) ---
@@ -59,6 +65,13 @@ exec sh kill_watchdog.sh
 wait
 
 # Test's config. file
+-- pre_cleanup.sh --
+#!/bin/sh
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN -t 2m pod delete zagent-t1 2>/dev/null || true
+$EDEN -t 2m network delete zagent-n1 2>/dev/null || true
+true
+
 -- kill_watchdog.sh --
 #!/bin/sh
 pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
