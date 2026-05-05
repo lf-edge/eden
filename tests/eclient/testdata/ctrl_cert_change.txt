@@ -2,6 +2,18 @@
 # This test validates the re-encryption of an application's user data
 # following a change in the controller's certificate, accompanied by an edge node reboot.
 # The test involves deploying three applications to make sure the config is (re)applied to all of them.
+#
+# The controller signing certificate is rotated twice so that both states of
+# /persist/checkpoint/controllercerts.bak on the device are exercised:
+#   1. First rotation: .bak does not yet exist. EVE's first auth-verify
+#      fallback in VerifyAuthContainerHeader cannot find the backup file,
+#      and EVE must fall through to fetching the new cert via /certs.
+#      Saving the new chain via MaybeSaveControllerCerts populates .bak
+#      with the previous controllercerts as a side effect.
+#   2. Second rotation: .bak now exists, so the backup-fallback code path
+#      actually loads a cert (the previous-but-one cert) and only after
+#      that fails does EVE trigger /certs again. Also exercises the .bak
+#      atomic-rename refresh inside MaybeSaveControllerCerts.
 
 {{$port := "2223"}}
 
@@ -19,6 +31,9 @@ eden pod deploy -n eclient1 --memory=512MB --networks=n1 {{template "eclient_ima
 
 test eden.app.test -test.v -timewait 20m RUNNING eclient1
 
+# first rotation: at this point /persist/checkpoint/controllercerts.bak
+# does not exist on the device.
+
 # generate new controller certificate
 eden utils gen-signing-cert -o /tmp/signing-new.pem
 
@@ -26,6 +41,20 @@ eden utils gen-signing-cert -o /tmp/signing-new.pem
 eden adam change-signing-cert --cert-file /tmp/signing-new.pem
 
 # wait for changes to be applied
+test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.updating.app.connectivity'
+
+# second rotation: the cert installed by the first rotation is now in
+# controllercerts.bak, so this exercises the backup-fallback path in
+# VerifyAuthContainerHeader as well as the .bak refresh inside
+# MaybeSaveControllerCerts.
+
+# generate another new controller certificate (overwrites /tmp/signing-new.pem)
+eden utils gen-signing-cert -o /tmp/signing-new.pem
+
+# upload the second new certificate to the controller and reapply config
+eden adam change-signing-cert --cert-file /tmp/signing-new.pem
+
+# wait for the second rotation to be applied
 test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.updating.app.connectivity'
 
 eden pod deploy -n eclient2 --memory=512MB --networks=n1 {{template "eclient_image"}} --metadata={{$userdata}}
