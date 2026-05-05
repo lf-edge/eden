@@ -1,0 +1,57 @@
+# Test: device info completeness
+#
+# Verifies that ZInfoDevice published by zedagent contains the expected fields:
+# system adapters, machine architecture, EVE version, data-security-at-rest info,
+# and config items (including a changed value).
+#
+# Covers: PublishDeviceInfoToZedCloud, getDataSecAtRestInfo, createConfigItemStatus,
+#         getCapabilities, getOptionalCapabilities, encodeSystemAdapterInfo,
+#         encodeNetworkPortStatus, getBaseosUpdateCounter, getDeviceState,
+#         parseConfigItems, handleGlobalConfigImpl, publishZedAgentStatus.
+
+{{$info := "test eden.zedagent.test -test.v -test.run TestInfo"}}
+
+! test eden.reboot.test -test.v -timewait=20m -reboot=0 -count=1 &
+
+# Trigger a fresh info publish by bumping the controller epoch.
+eden eve epoch &
+
+# --- system adapters + machine arch + vault status in one ZInfoDevice message ---
+# All three fields must be present together.  The test PASSES only if they all
+# match in the same message; stdout confirms we got the machineArch value back.
+{{$info}} -timewait 5m -out InfoContent.dinfo.machineArch 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+' 'InfoContent.dinfo.machineArch:.+' 'InfoContent.dinfo.dataSecAtRestInfo.status:.+'
+stdout 'x86_64'
+
+# --- EVE version ---
+eden eve epoch &
+{{$info}} -timewait 5m -out InfoContent.dinfo.swList.shortVersion 'InfoContent.dinfo.swList.shortVersion:.+'
+stdout 'eve-coverage-merge'
+
+# --- config items: change a value and confirm it appears in next ZInfoDevice ---
+# Save current config.
+eden -t 1m controller edge-node get-config --file /tmp/zedagent-orig-config.json
+
+# Change timer.config.interval to 45 (from default 10 in this test environment).
+eden -t 1m controller edge-node update --config timer.config.interval=45
+
+# Bump epoch to trigger immediate config fetch + device info publish.
+eden eve epoch &
+{{$info}} -timewait 5m -out InfoContent.dinfo.configItemStatus.configItems.value 'InfoContent.dinfo.configItemStatus.configItems.value:45'
+stdout '45'
+
+# Restore original config.
+eden -t 1m controller edge-node set-config --file /tmp/zedagent-orig-config.json
+
+exec sh -c 'pkill -f eden.reboot.test || true'
+
+wait
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

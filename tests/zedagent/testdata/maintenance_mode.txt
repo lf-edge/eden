@@ -1,0 +1,66 @@
+# Test: maintenance mode activation and clearance
+#
+# Sets the maintenance.mode config item via the controller, verifies that
+# ZInfoDevice reflects the resulting device state change, then restores
+# normal operation.
+#
+# Covers: mergeMaintenanceMode, equalMaintenanceMode,
+#         handleGlobalConfigImpl (maintenance path),
+#         publishZedAgentStatus, getDeviceState,
+#         parseConfigItems.
+#
+# The EVE API DeviceState enum (ZDeviceState):
+#   ZDEVICE_STATE_UNSPECIFIED  = 0 (omitted by proto3 when zero)
+#   ZDEVICE_STATE_ONLINE       = 1
+#   ZDEVICE_STATE_MAINTENANCE_MODE = 3
+#
+# The maintenance.mode config item is a TriState:
+#   none     = no override (default)
+#   enabled  = force maintenance mode on
+#   disabled = force maintenance mode off
+
+{{$info := "test eden.zedagent.test -test.v -test.run TestInfo"}}
+
+! test eden.reboot.test -test.v -timewait=15m -reboot=0 -count=1 &
+
+# Save current config.
+eden -t 1m controller edge-node get-config --file /tmp/zedagent-maint-orig.json
+
+# --- enter maintenance mode ---
+eden -t 1m controller edge-node update --config maintenance.mode=enabled
+
+# Bump epoch to trigger immediate config fetch.
+eden eve epoch &
+
+# devState should report ZDEVICE_STATE_MAINTENANCE_MODE after the config is applied.
+{{$info}} -timewait 5m -out InfoContent.dinfo.state 'InfoContent.dinfo.state:ZDEVICE_STATE_MAINTENANCE_MODE'
+stdout 'ZDEVICE_STATE_MAINTENANCE_MODE'
+
+# --- exit maintenance mode ---
+eden -t 1m controller edge-node update --config maintenance.mode=none
+
+# Bump epoch to trigger config fetch.  TestInfo starts immediately after so it
+# is listening before EVE polls for config and publishes the exit ZInfoDevice.
+eden eve epoch &
+
+# After clearing, devState should return to ONLINE.
+# mergeMaintenanceMode calls triggerPublishDevInfo, which includes systemAdapter.
+{{$info}} -timewait 5m -out InfoContent.dinfo.state 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+'
+! stdout 'ZDEVICE_STATE_MAINTENANCE_MODE'
+
+# Restore exact original config.
+eden -t 1m controller edge-node set-config --file /tmp/zedagent-maint-orig.json
+
+exec sh -c 'pkill -f eden.reboot.test || true'
+
+wait
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

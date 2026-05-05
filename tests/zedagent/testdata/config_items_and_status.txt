@@ -1,0 +1,69 @@
+# Test: config items round-trip and app lifecycle
+#
+# Verifies that config item changes propagate through parseConfigItems /
+# handleGlobalConfigImpl and appear in ZInfoDevice.configItemStatus.
+# Also deploys and deletes an app to exercise parseAppInstanceConfig.
+#
+# Covers: parseConfigItems, handleGlobalConfigImpl, publishZedAgentStatus,
+#         parseAppInstanceConfig, parseNetworkInstanceConfig,
+#         publishNetworkInstanceConfig, checkAndPublishAppInstanceConfig,
+#         handleAppInstanceStatusCreate/Modify/Delete.
+
+{{$info := "test eden.zedagent.test -test.v -test.run TestInfo"}}
+{{$app := "test eden.app.test -test.v"}}
+
+! test eden.reboot.test -test.v -timewait=60m -reboot=0 -count=1 &
+
+# Save baseline config for restore at end.
+eden -t 1m controller edge-node get-config --file /tmp/zedagent-cfg-baseline.json
+
+# --- app lifecycle (parseAppInstanceConfig) ---
+# Create a local network for the app.
+eden -t 1m network create 10.11.13.0/24 -n zagent-n1
+stdout 'deploy network .* with name zagent-n1 request sent'
+test eden.network.test -test.v -timewait 5m ACTIVATED zagent-n1
+
+# Deploy a minimal container app.
+eden -t 1m pod deploy --memory 256MB --networks=zagent-n1 -n zagent-t1 docker://nginx
+stdout 'deploy pod zagent-t1'
+{{$app}} -timewait 15m RUNNING zagent-t1
+
+# Verify AppInfo reached the controller (objectInfoTask path).
+eden eve epoch &
+{{$info}} -timewait 5m 'InfoContent.ainfo.appID:.+'
+stdout 'AppID'
+
+# --- config-item change (parseConfigItems / handleGlobalConfigImpl) ---
+# Change the metric publish interval to a distinctive value (600).
+eden -t 1m controller edge-node update --config timer.metric.interval=600
+eden eve epoch &
+# configItemStatus.configItems should now include timer.metric.interval = "600"
+{{$info}} -timewait 5m 'InfoContent.dinfo.configItemStatus.configItems.value:600'
+stdout '600'
+
+# --- cleanup ---
+eden -t 1m pod delete zagent-t1
+stdout 'app zagent-t1 delete done'
+{{$app}} -timewait 10m - zagent-t1
+stdout 'no app with zagent-t1 found'
+
+eden -t 1m network delete zagent-n1
+stdout 'network zagent-n1 delete done'
+test eden.network.test -test.v -timewait 10m - zagent-n1
+
+# Restore original config.
+eden -t 1m controller edge-node set-config --file /tmp/zedagent-cfg-baseline.json
+
+exec sh -c 'pkill -f eden.reboot.test || true'
+
+wait
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

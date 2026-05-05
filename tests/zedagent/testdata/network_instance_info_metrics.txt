@@ -1,0 +1,64 @@
+# Test: network instance info and metrics
+#
+# Creates a local network instance, deploys two apps on it, and verifies that
+# zedagent publishes correct NI info and NI metrics to the controller.
+#
+# Covers: handleNetworkInstanceCreate/Modify/Impl/Delete,
+#         prepareAndPublishNetworkInstanceInfoMsg,
+#         handleAppNetworkStatusCreate/Modify/Delete,
+#         createNetworkInstanceMetrics, protoEncodeNetworkInstanceMetricProto.
+
+{{$info   := "test eden.zedagent.test -test.v -test.run TestInfo"}}
+{{$metric := "test eden.zedagent.test -test.v -test.run TestMetric"}}
+{{$app    := "test eden.app.test -test.v"}}
+
+! test eden.reboot.test -test.v -timewait=45m -reboot=0 -count=1 &
+
+# --- NI info (handleNetworkInstanceImpl / prepareAndPublishNetworkInstanceInfoMsg) ---
+# Start watching for ZiNetworkInstance BEFORE creating the NI so we catch the
+# initial publish triggered by the network instance state transition.
+{{$info}} -timewait 10m 'InfoContent.niinfo.networkID:.+' &
+
+# Create a local network instance.
+eden -t 1m network create 10.22.33.0/24 -n zagent-ni1
+stdout 'deploy network .* with name zagent-ni1 request sent'
+test eden.network.test -test.v -timewait 5m ACTIVATED zagent-ni1
+
+# Deploy two apps on the NI.
+eden -t 1m pod deploy --memory 256MB --networks=zagent-ni1 -n zagent-ni-t1 -p 8091:80 docker://nginx
+stdout 'deploy pod zagent-ni-t1'
+eden -t 1m pod deploy --memory 256MB --networks=zagent-ni1 -n zagent-ni-t2 -p 8092:80 docker://nginx
+stdout 'deploy pod zagent-ni-t2'
+{{$app}} -timewait 20m RUNNING zagent-ni-t1 zagent-ni-t2
+
+# --- NI metrics (createNetworkInstanceMetrics) ---
+# Wait for a metrics message containing a NI network ID.
+# nm is a direct field on ZMetricMsg (not inside MetricContent oneof).
+{{$metric}} -timewait 5m 'nm.networkID:.+'
+stdout 'networkID'
+
+# --- cleanup ---
+eden -t 1m pod delete zagent-ni-t1
+eden -t 1m pod delete zagent-ni-t2
+{{$app}} -timewait 10m - zagent-ni-t1 zagent-ni-t2
+
+eden -t 1m network delete zagent-ni1
+test eden.network.test -test.v -timewait 10m - zagent-ni1
+
+# Cancel the reboot watchdog so `wait` returns immediately rather than
+# blocking until the 45m deadline. SIGTERM exits non-zero, satisfying `!`.
+exec sh -c 'pkill -f eden.reboot.test || true'
+
+wait
+stdout 'networkID'
+
+# Test's config. file
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
