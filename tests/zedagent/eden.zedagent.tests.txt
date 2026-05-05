@@ -1,0 +1,5 @@
+eden.escript.test -test.run TestEdenScripts/device_info_completeness
+eden.escript.test -test.run TestEdenScripts/config_items_and_status
+eden.escript.test -test.run TestEdenScripts/network_instance_info_metrics
+eden.escript.test -test.run TestEdenScripts/app_metrics_detail
+eden.escript.test -test.run TestEdenScripts/maintenance_mode

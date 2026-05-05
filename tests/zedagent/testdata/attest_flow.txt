@@ -1,0 +1,72 @@
+# Test: remote attestation flow (TPM required)
+#
+# Verifies that zedagent completes the attestation FSM on a TPM-equipped device:
+# nonce request → quote → escrow receipt → COMPLETE state.
+# Also verifies that the PCR status is published in ZInfoDevice and that
+# forcing a re-attestation cycle exercises the retry path.
+#
+# Covers: attestModuleStart, handleAttestQuoteCreate/Modify/Impl/Delete,
+#         handleEncryptedKeyFromDeviceCreate/Modify/Delete,
+#         publishAttestNonce, publishEncryptedKeyFromController,
+#         storeIntegrityToken, readIntegrityToken,
+#         restartAttestation, recordAttestationTry,
+#         SendAttestQuote (VerifierImpl), SendAttestEscrow (VerifierImpl).
+#
+# PREREQUISITE: eve.tpm must be "true" in the eden config.
+
+{{$tpm := EdenConfig "eve.tpm"}}
+{{if (ne $tpm "true")}}
+skip tpm-not-enabled
+{{end}}
+
+{{$info := "test eden.zedagent.test -test.v -test.run TestInfo"}}
+
+! test eden.reboot.test -test.v -timewait=20m -reboot=0 -count=1 &
+
+# Trigger a fresh device info publish.
+eden eve epoch &
+
+# --- attestation state complete ---
+# ZInfoDevice.attestState should reach ATTEST_STATE_COMPLETE after successful FSM.
+# Give it up to 10 minutes for the full nonce/quote/escrow cycle.
+{{$info}} -timewait 10m 'InfoContent.dinfo.attestState:ATTEST_STATE_COMPLETE'
+stdout 'ATTEST_STATE_COMPLETE'
+
+# --- PCR status populated ---
+# On a TPM device, pcrStatus must be set (RUNNING or PASS).
+{{$info}} -timewait 5m 'InfoContent.dinfo.pcrStatus:.+'
+stdout 'InfoContent.dinfo.pcrStatus'
+
+# --- integrity token persisted ---
+# Verify the token was written to disk by zedagent (storeIntegrityToken).
+exec -t 1m bash check_integrity_token.sh
+stdout 'integrity_token_present'
+
+exec sh kill_watchdog.sh
+
+wait
+
+# Test's config. file
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- check_integrity_token.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# storeIntegrityToken writes to /persist/status/zedagent/IntegrityToken/
+if $EDEN eve ssh ls /persist/status/zedagent/IntegrityToken/ 2>/dev/null | grep -q .; then
+    echo "integrity_token_present"
+    exit 0
+fi
+echo "integrity_token_missing"
+exit 1

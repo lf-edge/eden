@@ -1,0 +1,71 @@
+# Test: per-app and per-volume metrics detail
+#
+# Deploys an app with an attached volume, waits for it to run, then verifies
+# that zedagent publishes non-trivial per-app and per-volume metrics.
+#
+# Covers: handleDiskMetricCreate/Modify/Impl/Delete (DiskMetric from volumemgr),
+#         handleAppDiskMetricCreate/lookupAppDiskMetric (AppDiskMetric),
+#         createVolumeInstanceMetrics, getVolumeResourcesMetrics,
+#         fillStorageDiskMetrics, fillStorageChildrenMetrics,
+#         PublishAppInfoToZedCloud, addUserSwInfo,
+#         PublishVolumeToZedCloud, PublishContentInfoToZedCloud.
+
+{{$info   := "test eden.zedagent.test -test.v -test.run TestInfo"}}
+{{$metric := "test eden.zedagent.test -test.v -test.run TestMetric"}}
+{{$app    := "test eden.app.test -test.v"}}
+
+! test eden.reboot.test -test.v -timewait=45m -reboot=0 -count=1 &
+
+# --- app info (PublishAppInfoToZedCloud / addUserSwInfo) ---
+# Start info watchers BEFORE deploying so they catch ZiApp when the app first runs.
+# ZInfoApp is published when app state transitions; InfoNew mode requires the watcher
+# to be running before the event occurs.
+{{$info}} -timewait 25m 'InfoContent.ainfo.appID:.+' &
+{{$info}} -timewait 25m 'InfoContent.ainfo.state:RUNNING' &
+
+# Deploy an app with a volume so disk metrics are generated.
+# --volume-size causes volumemgr to create a persistent volume and publish DiskMetric.
+eden -t 1m pod deploy --memory 256MB --volume-size=100MB -n zagent-vm-t1 docker://nginx
+stdout 'deploy pod zagent-vm-t1'
+{{$app}} -timewait 20m RUNNING zagent-vm-t1
+
+# --- per-app metrics (DiskMetric -> handleDiskMetricImpl -> publishMetrics) ---
+# ZMetricMsg.am contains per-app-instance metrics; AppID is always set.
+# am is a direct field on ZMetricMsg (not inside MetricContent oneof).
+{{$metric}} -timewait 5m 'am.AppID:.+'
+stdout 'cpu'
+
+# --- disk metrics (handleDiskMetricImpl) ---
+# Global disk metric must show at least one disk mountPath.
+# dm is inside MetricContent oneof; disk is DeviceMetric.Disk[]*DiskMetric.
+{{$metric}} -timewait 5m 'MetricContent.dm.disk.mountPath:.+'
+stdout 'disk'
+
+# --- cleanup ---
+eden -t 1m pod delete zagent-vm-t1
+stdout 'app zagent-vm-t1 delete done'
+{{$app}} -timewait 10m - zagent-vm-t1
+stdout 'no app with zagent-vm-t1 found'
+
+# Cancel the reboot watchdog so `wait` returns immediately rather than
+# blocking until the 45m deadline. SIGTERM exits non-zero, satisfying `!`.
+exec sh kill_watchdog.sh
+
+wait
+stdout 'AppID'
+stdout 'RUNNING'
+
+# Test's config. file
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
