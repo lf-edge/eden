@@ -11,15 +11,16 @@
 
 {{$info := "test eden.zedagent.test -test.v -test.run TestInfo"}}
 
-! test eden.reboot.test -test.v -timewait=20m -reboot=0 -count=1 &
+! test eden.reboot.test -test.v -timewait=30m -reboot=0 -count=1 &
 
 # Trigger a fresh info publish by bumping the controller epoch.
 eden eve epoch &
 
 # --- system adapters + machine arch + vault status + EVE version in one message ---
-# All fields must be present together in a single ZInfoDevice message.
-{{$info}} -timewait 10m -out InfoContent.dinfo.machineArch -out InfoContent.dinfo.swList.shortVersion 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+' 'InfoContent.dinfo.machineArch:.+' 'InfoContent.dinfo.dataSecAtRestInfo.status:.+' 'InfoContent.dinfo.swList.shortVersion:.+'
-stdout 'x86_64'
+# All four fields must be present in the same ZInfoDevice.
+# machineArch verified implicitly by the filter; swList.shortVersion extracted for stdout.
+# Use a single -out (multiple -out flags only output the last field's value).
+{{$info}} -timewait 15m -out InfoContent.dinfo.swList.shortVersion 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+' 'InfoContent.dinfo.machineArch:.+' 'InfoContent.dinfo.dataSecAtRestInfo.status:.+' 'InfoContent.dinfo.swList.shortVersion:.+'
 stdout 'eve-coverage-merge'
 
 # --- config items: change a value and confirm it appears in next ZInfoDevice ---

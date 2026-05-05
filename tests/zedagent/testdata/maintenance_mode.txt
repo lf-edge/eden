@@ -21,7 +21,14 @@
 
 {{$info := "test eden.zedagent.test -test.v -test.run TestInfo"}}
 
-! test eden.reboot.test -test.v -timewait=15m -reboot=0 -count=1 &
+! test eden.reboot.test -test.v -timewait=35m -reboot=0 -count=1 &
+
+# Pre-cleanup: a previous failed run may have left the device in maintenance mode.
+# Reset to none and wait for a ZInfoDevice confirming normal state before starting.
+eden -t 1m controller edge-node update --config maintenance.mode=none
+eden eve epoch &
+{{$info}} -timewait 10m -out InfoContent.dinfo.state 'InfoContent.dinfo.machineArch:.+'
+! stdout 'ZDEVICE_STATE_MAINTENANCE_MODE'
 
 # Save current config.
 eden -t 1m controller edge-node get-config --file /tmp/zedagent-maint-orig.json
