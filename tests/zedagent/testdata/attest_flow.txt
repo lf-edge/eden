@@ -29,14 +29,12 @@ eden eve epoch &
 # --- attestation state complete ---
 # ZInfoDevice.attestState should reach ATTEST_STATE_COMPLETE after successful FSM.
 # Give it up to 10 minutes for the full nonce/quote/escrow cycle.
-{{$info}} -timewait 10m \
-    'InfoContent.dinfo.attestState:ATTEST_STATE_COMPLETE'
+{{$info}} -timewait 10m 'InfoContent.dinfo.attestState:ATTEST_STATE_COMPLETE'
 stdout 'ATTEST_STATE_COMPLETE'
 
 # --- PCR status populated ---
 # On a TPM device, pcrStatus must be set (RUNNING or PASS).
-{{$info}} -timewait 5m \
-    'InfoContent.dinfo.pcrStatus:.+'
+{{$info}} -timewait 5m 'InfoContent.dinfo.pcrStatus:.+'
 stdout 'InfoContent.dinfo.pcrStatus'
 
 # --- integrity token persisted ---

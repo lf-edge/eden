@@ -18,13 +18,7 @@ eden eve epoch &
 
 # --- system adapters + machine arch + vault status + EVE version in one message ---
 # All fields must be present together in a single ZInfoDevice message.
-{{$info}} -timewait 10m \
-    -out InfoContent.dinfo.machineArch \
-    -out InfoContent.dinfo.swList.shortVersion \
-    'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+' \
-    'InfoContent.dinfo.machineArch:.+' \
-    'InfoContent.dinfo.dataSecAtRestInfo.status:.+' \
-    'InfoContent.dinfo.swList.shortVersion:.+'
+{{$info}} -timewait 10m -out InfoContent.dinfo.machineArch -out InfoContent.dinfo.swList.shortVersion 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+' 'InfoContent.dinfo.machineArch:.+' 'InfoContent.dinfo.dataSecAtRestInfo.status:.+' 'InfoContent.dinfo.swList.shortVersion:.+'
 stdout 'x86_64'
 stdout 'eve-coverage-merge'
 

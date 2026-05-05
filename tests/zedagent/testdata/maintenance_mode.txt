@@ -44,10 +44,10 @@ eden -t 1m controller edge-node update --config maintenance.mode=none
 eden eve epoch &
 
 # After clearing, devState should return to ONLINE.
-# mergeMaintenanceMode calls triggerPublishDevInfo, which includes systemAdapter.
-# Use a generous timeout: EVE may take several minutes to re-populate systemAdapter
-# after exiting maintenance mode.
-{{$info}} -timewait 10m -out InfoContent.dinfo.state 'InfoContent.dinfo.systemAdapter.status.ports.ifname:.+'
+# Use machineArch (always present in every ZInfoDevice) as the filter so we match
+# the first ZInfoDevice published after EVE exits maintenance mode, regardless of
+# whether systemAdapter has been re-populated yet.
+{{$info}} -timewait 15m -out InfoContent.dinfo.state 'InfoContent.dinfo.machineArch:.+'
 ! stdout 'ZDEVICE_STATE_MAINTENANCE_MODE'
 
 # Restore exact original config.
