@@ -16,7 +16,7 @@
 
 {{$tpm := EdenConfig "eve.tpm"}}
 {{if (ne $tpm "true")}}
-skip "TPM not enabled (eve.tpm != true); skipping attestation test"
+skip tpm-not-enabled
 {{end}}
 
 {{$info := "test eden.zedagent.test -test.v -test.run TestInfo"}}
@@ -44,11 +44,16 @@ stdout 'InfoContent.dinfo.pcrStatus'
 exec -t 1m bash check_integrity_token.sh
 stdout 'integrity_token_present'
 
-exec sh -c 'pkill -f eden.reboot.test || true'
+exec sh kill_watchdog.sh
 
 wait
 
 # Test's config. file
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
 -- eden-config.yml --
 test:
     controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}

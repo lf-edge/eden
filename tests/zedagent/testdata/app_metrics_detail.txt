@@ -49,13 +49,18 @@ stdout 'no app with zagent-vm-t1 found'
 
 # Cancel the reboot watchdog so `wait` returns immediately rather than
 # blocking until the 45m deadline. SIGTERM exits non-zero, satisfying `!`.
-exec sh -c 'pkill -f eden.reboot.test || true'
+exec sh kill_watchdog.sh
 
 wait
 stdout 'AppID'
 stdout 'RUNNING'
 
 # Test's config. file
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
 -- eden-config.yml --
 test:
     controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}

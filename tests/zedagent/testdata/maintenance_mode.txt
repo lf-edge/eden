@@ -51,11 +51,16 @@ eden eve epoch &
 # Restore exact original config.
 eden -t 1m controller edge-node set-config --file /tmp/zedagent-maint-orig.json
 
-exec sh -c 'pkill -f eden.reboot.test || true'
+exec sh kill_watchdog.sh
 
 wait
 
 # Test's config. file
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
 -- eden-config.yml --
 test:
     controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
