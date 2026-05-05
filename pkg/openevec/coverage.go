@@ -32,16 +32,21 @@ func (openEVEC *OpenEVEC) waitForEveSSH(timeout time.Duration) error {
 	}
 }
 
-// waitForCoverageFile polls GOCOVERDIR on EVE until at least one covcounters
-// file newer than refFile appears, or timeout expires.  Newer-than-refFile
-// means the file was written after our SIGUSR2, not left over from a previous
-// collection.
-func (openEVEC *OpenEVEC) waitForCoverageFile(coverDir, refFile string, timeout time.Duration) error {
+// waitForCoverageFile polls GOCOVERDIR on EVE until the covcounters file
+// count exceeds the value recorded in countRef, or timeout expires.
+// A higher count means the SIGUSR2-triggered write completed.
+//
+// We compare counts rather than timestamps because busybox find -newer uses
+// 1-second granularity; the new covcounters file typically lands within
+// milliseconds of the reference point and would be missed by a mtime check.
+func (openEVEC *OpenEVEC) waitForCoverageFile(coverDir, countRef string, timeout time.Duration) error {
 	const pollInterval = 2 * time.Second
 	deadline := time.Now().Add(timeout)
 	pollCmd := fmt.Sprintf(
-		"find %s -newer %s -name 'covcounters.*' 2>/dev/null | grep -q .",
-		coverDir, refFile)
+		`before=$(cat %s 2>/dev/null || echo 0); `+
+			`now=$(ls %s/covcounters.* 2>/dev/null | wc -l); `+
+			`[ "$now" -gt "$before" ]`,
+		countRef, coverDir)
 	for {
 		if err := openEVEC.SdnForwardSSHToEve(pollCmd); err == nil {
 			return nil
@@ -84,11 +89,14 @@ func (openEVEC *OpenEVEC) CollectEveCoverage(outputDir string) error {
 		return fmt.Errorf("cannot reach EVE via SSH: %w", err)
 	}
 
-	// Touch a reference file on EVE before signalling.  We compare mtimes
-	// against it to detect when the SIGUSR2-triggered write is complete,
-	// avoiding a fixed sleep that may be too short on loaded devices.
-	const coverTsRef = "/tmp/eve_cov_ts"
-	tsErr := openEVEC.SdnForwardSSHToEve(fmt.Sprintf("touch %s", coverTsRef))
+	// Record the count of existing covcounters files before signalling.
+	// We compare counts (not mtimes) because busybox find -newer has 1-second
+	// timestamp granularity and would miss files written in the same second.
+	const coverCountRef = "/tmp/eve_cov_count"
+	countCmd := fmt.Sprintf(
+		"ls %s/covcounters.* 2>/dev/null | wc -l > %s",
+		defaults.DefaultEveCoverageDir, coverCountRef)
+	tsErr := openEVEC.SdnForwardSSHToEve(countCmd)
 
 	// Send SIGUSR2 to all zedbox processes to dump live coverage counters.
 	// The SIGUSR2 handler (registered in zedbox when built with -cover) calls
@@ -100,15 +108,15 @@ func (openEVEC *OpenEVEC) CollectEveCoverage(outputDir string) error {
 			"coverage may be incomplete", err)
 	}
 
-	// Wait for coverage files to appear rather than sleeping a fixed duration.
+	// Wait for a new coverage file to appear rather than sleeping a fixed duration.
 	log.Infof("EVE coverage: waiting for coverage data to be written")
 	if tsErr != nil {
-		// Reference file creation failed — fall back to the fixed sleep.
-		log.Warnf("EVE coverage: could not create timestamp reference (%v); "+
+		// Count recording failed — fall back to the fixed sleep.
+		log.Warnf("EVE coverage: could not record coverage file count (%v); "+
 			"using fixed sleep", tsErr)
 		time.Sleep(3 * time.Second)
 	} else if err := openEVEC.waitForCoverageFile(
-		defaults.DefaultEveCoverageDir, coverTsRef, 30*time.Second); err != nil {
+		defaults.DefaultEveCoverageDir, coverCountRef, 30*time.Second); err != nil {
 		log.Warnf("EVE coverage: %v; proceeding with whatever was written", err)
 	}
 
