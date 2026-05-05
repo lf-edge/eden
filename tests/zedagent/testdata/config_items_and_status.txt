@@ -16,9 +16,10 @@
 
 # Pre-cleanup: silently remove any resources left by a previous failed run,
 # then wait for them to be fully absent before proceeding.
+# Pod deletion can take several minutes in EVE (container teardown, volume cleanup).
 exec sh pre_cleanup.sh
-test eden.app.test -test.v -timewait 3m - zagent-t1
-test eden.network.test -test.v -timewait 3m - zagent-n1
+test eden.app.test -test.v -timewait 10m - zagent-t1
+test eden.network.test -test.v -timewait 5m - zagent-n1
 
 # Save baseline config for restore at end.
 eden -t 1m controller edge-node get-config --file /tmp/zedagent-cfg-baseline.json
