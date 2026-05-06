@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/eden"
@@ -50,17 +51,22 @@ func newCertsCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 }
 
 func newGenSigningCertCmd() *cobra.Command {
-	var certPath string
+	var certPath, keyPath string
 
 	var certsCmd = &cobra.Command{
 		Use:   "gen-signing-cert",
 		Short: "generate new signing certificate for controller",
-		Long:  `Generate a new signing certificate for the controller using the same signing key`,
+		Long: `Generate a fresh ECDSA P-256 key pair and a signing certificate
+containing the new public key, signed by the eden root CA. The cert is
+written to --out and the matching private key to --key-out.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := utils.GenServerCertFromPrevCertAndKey(certPath); err != nil {
+			if keyPath == "" {
+				keyPath = strings.TrimSuffix(certPath, ".pem") + "-key.pem"
+			}
+			if err := utils.GenServerCertWithNewKey(certPath, keyPath); err != nil {
 				log.Errorf("cannot generate signing cert: %s", err)
 			} else {
-				log.Info("GenServerCertEllipticFromPrevCertAndKey done")
+				log.Infof("Generated signing cert at %s and key at %s", certPath, keyPath)
 			}
 		},
 	}
@@ -71,6 +77,7 @@ func newGenSigningCertCmd() *cobra.Command {
 	}
 
 	certsCmd.Flags().StringVarP(&certPath, "out", "o", filepath.Join(edenHome, defaults.DefaultCertsDist, "signing-new.pem"), "certificate output path")
+	certsCmd.Flags().StringVar(&keyPath, "key-out", "", "private-key output path (default: <out> with .pem replaced by -key.pem)")
 
 	return certsCmd
 }
