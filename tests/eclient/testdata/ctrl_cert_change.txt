@@ -32,13 +32,16 @@ eden pod deploy -n eclient1 --memory=512MB --networks=n1 {{template "eclient_ima
 test eden.app.test -test.v -timewait 20m RUNNING eclient1
 
 # first rotation: at this point /persist/checkpoint/controllercerts.bak
-# does not exist on the device.
+# does not exist on the device. Each gen-signing-cert invocation produces
+# a fresh ECDSA P-256 key pair, and change-signing-cert installs both the
+# cert and the matching private key, so this is a real key rotation - not
+# just a refresh of the cert envelope around an unchanged key pair.
 
-# generate new controller certificate
-eden utils gen-signing-cert -o /tmp/signing-new.pem
+# generate new controller signing key pair and certificate
+eden utils gen-signing-cert -o /tmp/signing-new.pem --key-out /tmp/signing-new-key.pem
 
-# upload new certificate to controller, resign old config and reapply it
-eden adam change-signing-cert --cert-file /tmp/signing-new.pem
+# upload new certificate and key to controller, resign old config and reapply it
+eden adam change-signing-cert --cert-file /tmp/signing-new.pem --key-file /tmp/signing-new-key.pem
 
 # wait for changes to be applied
 test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.updating.app.connectivity'
@@ -48,11 +51,11 @@ test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content
 # VerifyAuthContainerHeader as well as the .bak refresh inside
 # MaybeSaveControllerCerts.
 
-# generate another new controller certificate (overwrites /tmp/signing-new.pem)
-eden utils gen-signing-cert -o /tmp/signing-new.pem
+# generate another fresh key pair and certificate (overwrites the files)
+eden utils gen-signing-cert -o /tmp/signing-new.pem --key-out /tmp/signing-new-key.pem
 
-# upload the second new certificate to the controller and reapply config
-eden adam change-signing-cert --cert-file /tmp/signing-new.pem
+# upload the second new certificate and key to the controller and reapply config
+eden adam change-signing-cert --cert-file /tmp/signing-new.pem --key-file /tmp/signing-new-key.pem
 
 # wait for the second rotation to be applied
 test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.updating.app.connectivity'
