@@ -33,8 +33,15 @@ func (openEVEC *OpenEVEC) AdamStart() error {
 	return nil
 }
 
-// ChangeSigningCert uploads the provided signing certificate to the OpenEVEC controller.
-func (openEVEC *OpenEVEC) ChangeSigningCert(newSignCert []byte) error {
+// ChangeSigningCert uploads the provided signing certificate to the OpenEVEC
+// controller and re-encrypts existing configs against the new cipher context.
+//
+// If newSignKey is non-nil it is treated as the private key matching
+// newSignCert: re-encryption uses the new key for the new cipher context, and
+// the new key is installed on disk as signing-key.pem after re-encryption
+// completes. If newSignKey is nil the existing on-disk key is reused, which
+// matches the historical "rotate cert metadata only" behavior.
+func (openEVEC *OpenEVEC) ChangeSigningCert(newSignCert, newSignKey []byte) error {
 	changer := &adamChanger{}
 	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
 	if err != nil {
@@ -42,11 +49,20 @@ func (openEVEC *OpenEVEC) ChangeSigningCert(newSignCert []byte) error {
 	}
 
 	// we need to re-encrypt existing configs with the new certificate because EVE has support only for one server signing certificate
-	err = reencryptConfigs(ctrl, dev, newSignCert)
+	err = reencryptConfigs(ctrl, dev, newSignCert, newSignKey)
 	if err != nil {
 		return fmt.Errorf("failed to reencrypt existing configs: %w", err)
 	}
 
+	// Push the re-encrypted configs to adam *before* rotating signing.pem /
+	// signing-key.pem on disk. Adam's redis now holds cipher contexts that
+	// reference the new cert hash, while adam still signs auth-containers
+	// with the old key/cert. EVE's next config pull verifies the auth
+	// container against its saved cert and then sees a cipher-context that
+	// references an unknown cert hash, which is what triggers
+	// SenderStatusCertMiss and the /certs fetch on the device side. The
+	// on-disk swap below makes adam's subsequent responses use the new
+	// signing material.
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 		return fmt.Errorf("setControllerAndDev: %w", err)
 	}
@@ -57,8 +73,41 @@ func (openEVEC *OpenEVEC) ChangeSigningCert(newSignCert []byte) error {
 	}
 	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
 	signingCertPath := filepath.Join(globalCertsDir, "signing.pem")
+	signingKeyPath := filepath.Join(globalCertsDir, "signing-key.pem")
 
-	if err = os.WriteFile(signingCertPath, newSignCert, 0644); err != nil {
+	// Both writes go through atomicWriteFile so a crash mid-write cannot
+	// leave a truncated signing.pem or signing-key.pem on disk; each file
+	// is either fully old or fully new.
+	//
+	// The two files are still rotated independently, so there is a brief
+	// window where adam may serve a (new key, old cert) pair: adam's
+	// prepareEnvelope reads the cert and the key from disk in two separate
+	// os.ReadFile calls (apiHandlerv2.go:364 and :376). A request that
+	// races between our two renames below can therefore produce an
+	// auth-container whose signature does not verify against the cert hash
+	// it claims. EVE retries config requests on signature mismatch, so a
+	// single dropped response is recoverable, but the residual race is
+	// real and worth documenting.
+	//
+	// Writing the key before the cert means adam never serves (new cert,
+	// old key) - the inverse skew - which would have the same effect; the
+	// ordering choice is largely cosmetic given the residual race above.
+	if len(newSignKey) > 0 {
+		if err = atomicWriteFile(signingKeyPath, newSignKey, 0600); err != nil {
+			return fmt.Errorf("cannot write signing key to %s: %w", signingKeyPath, err)
+		}
+	}
+	if err = atomicWriteFile(signingCertPath, newSignCert, 0644); err != nil {
+		// The key on disk is now the new key but the cert is the old one.
+		// A subsequent ChangeSigningCert call will read this stale cert as
+		// "old" while reading the new key as the "old" controller key,
+		// which silently produces a wrong oldCryptoConfig. Surface the
+		// inconsistency loudly so the operator knows manual recovery
+		// (re-running the full rotation, or reverting signing-key.pem) is
+		// required.
+		if len(newSignKey) > 0 {
+			log.Errorf("INCONSISTENT STATE: signing-key.pem was rotated but signing.pem failed to write to %s. Re-run change-signing-cert to recover.", signingCertPath)
+		}
 		return fmt.Errorf("cannot write signing cert to %s: %w", signingCertPath, err)
 	}
 
@@ -66,7 +115,45 @@ func (openEVEC *OpenEVEC) ChangeSigningCert(newSignCert []byte) error {
 	return nil
 }
 
-func reencryptConfigs(ctrl controller.Cloud, dev *device.Ctx, newSignCert []byte) error {
+// atomicWriteFile writes data to path via a tmpfile in the same directory
+// followed by an atomic os.Rename. The tmpfile is fsynced before rename so
+// a crash post-rename cannot lose the new content. The destination's mode
+// is set to perm regardless of umask.
+func atomicWriteFile(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".tmp-*")
+	if err != nil {
+		return fmt.Errorf("create tmp in %s: %w", dir, err)
+	}
+	tmpName := tmp.Name()
+	// On any error below, ensure the tmpfile is cleaned up.
+	defer func() {
+		// os.Remove on a non-existent file (after a successful rename)
+		// returns ENOENT, which we ignore.
+		_ = os.Remove(tmpName)
+	}()
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return fmt.Errorf("write %s: %w", tmpName, err)
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return fmt.Errorf("sync %s: %w", tmpName, err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close %s: %w", tmpName, err)
+	}
+	if err := os.Chmod(tmpName, perm); err != nil {
+		return fmt.Errorf("chmod %s to %o: %w", tmpName, perm, err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("rename %s to %s: %w", tmpName, path, err)
+	}
+	return nil
+}
+
+func reencryptConfigs(ctrl controller.Cloud, dev *device.Ctx, newSignCert, newSignKey []byte) error {
 	// get device certificate from the controller
 	devCert, err := ctrl.GetECDHCert(dev.GetID())
 	if err != nil {
@@ -85,19 +172,27 @@ func reencryptConfigs(ctrl controller.Cloud, dev *device.Ctx, newSignCert []byte
 		return fmt.Errorf("DefaultEdenDir: %w", err)
 	}
 	keyPath := filepath.Join(edenHome, defaults.DefaultCertsDist, "signing-key.pem")
-	ctrlPrivKey, err := os.ReadFile(keyPath)
+	oldCtrlPrivBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return fmt.Errorf("cannot read %s: %w", keyPath, err)
 	}
 
-	oldCryptoConfig, err := utils.GetCommonCryptoConfig(devCert, oldSignCert, ctrlPrivKey)
-	if err != nil {
-		return fmt.Errorf("GetCommonCryptoConfig: %w", err)
+	// The new ECDH shared secret must be derived from the *new* private key
+	// when a key rotation is requested; otherwise the cipher context written
+	// for the new cert would still be readable with the previous key.
+	newCtrlPrivBytes := oldCtrlPrivBytes
+	if len(newSignKey) > 0 {
+		newCtrlPrivBytes = newSignKey
 	}
 
-	newCryptoConfig, err := utils.GetCommonCryptoConfig(devCert, newSignCert, ctrlPrivKey)
+	oldCryptoConfig, err := utils.GetCommonCryptoConfig(devCert, oldSignCert, oldCtrlPrivBytes)
 	if err != nil {
-		return fmt.Errorf("GetCommonCryptoConfig: %w", err)
+		return fmt.Errorf("GetCommonCryptoConfig (old): %w", err)
+	}
+
+	newCryptoConfig, err := utils.GetCommonCryptoConfig(devCert, newSignCert, newCtrlPrivBytes)
+	if err != nil {
+		return fmt.Errorf("GetCommonCryptoConfig (new): %w", err)
 	}
 
 	cipherCtx, err := utils.CreateCipherCtx(newCryptoConfig)

@@ -107,62 +107,51 @@ func GenServerCertElliptic(cert *x509.Certificate, key *rsa.PrivateKey, serial *
 
 }
 
-// GenServerCertFromPrevCertAndKey generate new signing certificate for the controller using the same signing key and saves it to give path
-func GenServerCertFromPrevCertAndKey(writePath string) error {
+// GenServerCertWithNewKey generates a fresh ECDSA P-256 key pair and a signing
+// certificate containing the new public key, signed by the eden root CA. The
+// cert is written to certPath; the private key is written to keyPath in the
+// same PEM format used by signing-key.pem (EC PARAMETERS + EC PRIVATE KEY).
+//
+// Subject and other template fields are copied from the existing signing.pem
+// so the controller's identity is preserved across the rotation. The serial
+// number is randomized so two consecutive calls always produce two distinct
+// certs even within the same second.
+func GenServerCertWithNewKey(certPath, keyPath string) error {
 	edenHome, err := DefaultEdenDir()
 	if err != nil {
 		return err
 	}
 
-	// Read root cert
 	rootCert, err := ParseCertificate(filepath.Join(edenHome, defaults.DefaultCertsDist, "root-certificate.pem"))
 	if err != nil {
 		return err
 	}
-
-	// Read root key
 	rootKey, err := ParsePrivateKey(filepath.Join(edenHome, defaults.DefaultCertsDist, "root-certificate-key.pem"))
 	if err != nil {
 		return err
 	}
-
-	// Read server cert
 	oldServerCert, err := ParseCertificate(filepath.Join(edenHome, defaults.DefaultCertsDist, "signing.pem"))
 	if err != nil {
 		return err
 	}
 
-	// Read ecdsa server key
-	serverKeyBytes, err := os.ReadFile(filepath.Join(edenHome, defaults.DefaultCertsDist, "signing-key.pem"))
+	newKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return err
-	}
-	var serverKey *ecdsa.PrivateKey
-	for block, rest := pem.Decode(serverKeyBytes); block != nil; block, rest = pem.Decode(rest) {
-		if block.Type == "EC PRIVATE KEY" {
-			serverKey, err = x509.ParseECPrivateKey(block.Bytes)
-			if err != nil {
-				return err
-			}
-			break
-		}
+		return fmt.Errorf("ecdsa.GenerateKey: %w", err)
 	}
 
-	// keep all the same except for dates
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return fmt.Errorf("generate serial number: %w", err)
+	}
+
 	serverTemplate := *oldServerCert
+	serverTemplate.SerialNumber = serial
 	serverTemplate.NotBefore = time.Now().Add(-10 * time.Second)
 	serverTemplate.NotAfter = time.Now().AddDate(10, 0, 0)
 
-	// create new certificate and write it to file
-	serverCert := genCertECDSA(&serverTemplate, rootCert, &serverKey.PublicKey, rootKey)
-	certOut, err := os.Create(writePath)
-	if err != nil {
-		return err
-	}
-	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: serverCert.Raw}); err != nil {
-		return err
-	}
-	return certOut.Close()
+	serverCert := genCertECDSA(&serverTemplate, rootCert, &newKey.PublicKey, rootKey)
+	return WriteToFiles(serverCert, newKey, certPath, keyPath)
 }
 
 // WriteToFiles write cert and key

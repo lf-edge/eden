@@ -95,25 +95,37 @@ func newStatusAdamCmd() *cobra.Command {
 }
 
 func newChangeCertCmd() *cobra.Command {
-	var certFile string
+	var certFile, keyFile string
 
 	var changeCertCmd = &cobra.Command{
 		Use:   "change-signing-cert",
 		Short: "change signing certificate for adam",
-		Long:  `Set Adam's signing certificate from a file.`,
+		Long: `Set Adam's signing certificate from a file. If --key-file is
+provided, the matching private key is also installed and used to re-encrypt
+configs; otherwise only the certificate is rotated and the existing
+signing-key.pem is reused.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			certData, err := os.ReadFile(certFile)
 			if err != nil {
 				log.Fatalf("Failed to read certificate file: %s", err)
 			}
 
-			if err := openEVEC.ChangeSigningCert(certData); err != nil {
+			var keyData []byte
+			if keyFile != "" {
+				keyData, err = os.ReadFile(keyFile)
+				if err != nil {
+					log.Fatalf("Failed to read key file: %s", err)
+				}
+			}
+
+			if err := openEVEC.ChangeSigningCert(certData, keyData); err != nil {
 				log.Fatalf("Failed to upload certificate to adam: %s", err)
 			}
 		},
 	}
 
-	changeCertCmd.Flags().StringVarP(&certFile, "cert-file", "", "", "path to the signing certificate file")
+	changeCertCmd.Flags().StringVarP(&certFile, "cert-file", "", "", "path to the new signing certificate file")
+	changeCertCmd.Flags().StringVar(&keyFile, "key-file", "", "path to the new signing private key (optional; if omitted, the existing key is reused)")
 
 	return changeCertCmd
 }
