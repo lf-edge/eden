@@ -10,6 +10,21 @@
 eden info --out InfoContent.dinfo.StorageInfo.StorageType 'InfoContent.dinfo.StorageInfo.StorageType:\w+' --tail 1
 [!stdout:STORAGE_TYPE_INFO_ZFS] skip 'No zfs type storage'
 
+# Speed up EVE's disk-metric sampling. The persist pool grows as `eden disks
+# set` adds vdevs, but EVE's disk usage is sampled by a flextimer keyed off
+# timer.metric.diskscan.interval (default 5 min, range 1.5–5 min) — far too
+# slow to observe within a CI test. Reduce it so the post-perturbation pool
+# size is reported in the next metric tick rather than several minutes later.
+eden controller edge-node update --config timer.metric.diskscan.interval=15
+
+# Snapshot the current /persist size from the disk metric before any
+# perturbation. The end-of-test wait below uses this baseline to detect the
+# post-resize reading by requiring a strictly larger total — that's the
+# direct property we care about ("metric now reflects the grown pool"),
+# not a stability proxy that would happily accept the stale cached value.
+exec -t 1m bash capture-persist-baseline.sh
+source .env
+
 # check for storage state
 eden info --out InfoContent.dinfo.StorageInfo.StorageState 'InfoContent.dinfo.StorageInfo.StorageState:\w+' --tail 1
 stdout 'STORAGE_STATUS_ONLINE'
@@ -77,5 +92,60 @@ eden eve epoch &
 {{$info_test}} -out InfoContent.dinfo.StorageInfo 'InfoContent.dinfo.StorageInfo:sde' 'InfoContent.dinfo.StorageInfo[].StorageState:STORAGE_STATUS_ONLINE'
 ! stdout '/dev/sda'
 
+# Wait until the /persist disk metric reflects the now-grown pool, so
+# subsequent tests don't compute volume sizes from a pre-resize cached
+# metric. Storage info already confirmed the final layout above, but the
+# disk-metric collector samples on its own ticker — verify the reported
+# total is strictly larger than the pre-perturbation baseline before
+# yielding to the next test.
+exec -t 5m bash wait-for-persist-grew.sh
 eden eve reset
 exec sleep 10
+
+-- capture-persist-baseline.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# Read the current /persist total and write it to .env for the end-of-test
+# growth check. Whatever the controller currently reports is fine as a
+# baseline: at least one `eden disks set` will run between this script and
+# the wait below (the skip points return earlier when the host has too few
+# disks), so the post-perturbation total will be strictly larger.
+DEADLINE=$(( $(date +%s) + 60 ))
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    TOTAL=$($EDEN metric --tail=1 --format=json | jq -r '.dm.disk[]? | select(.mountPath=="/persist") | .total // empty')
+    if [ -n "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
+        echo persist_total_baseline=$TOTAL>>.env
+        echo "/persist baseline ${TOTAL} MB"
+        exit 0
+    fi
+    sleep 5
+done
+echo "capture-persist-baseline.sh: no /persist metric within 1 min" >&2
+exit 1
+
+-- wait-for-persist-grew.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# Poll the /persist disk metric until the reported total is strictly larger
+# than the baseline captured before perturbations. That's a definitive
+# signal that the disk-scan has run since the pool grew — unlike a "value
+# is stable" check, which would happily accept the stale pre-resize value.
+if [ -z "$persist_total_baseline" ]; then
+    echo "wait-for-persist-grew.sh: persist_total_baseline not set" >&2
+    exit 1
+fi
+DEADLINE=$(( $(date +%s) + 240 ))
+LAST=
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    JSON=$($EDEN metric --tail=1 --format=json)
+    TOTAL=$(echo "$JSON" | jq -r '.dm.disk[]? | select(.mountPath=="/persist") | .total // empty')
+    if [ -n "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
+        if [ "$TOTAL" -gt "$persist_total_baseline" ]; then
+            TS=$(echo "$JSON" | jq -r '.atTimeStamp // empty')
+            echo "/persist grew to ${TOTAL} MB (baseline ${persist_total_baseline} MB, atTimeStamp ${TS})"
+            exit 0
+        fi
+        LAST=$TOTAL
+    fi
+    sleep 5
+done
+echo "wait-for-persist-grew.sh: /persist did not exceed baseline ${persist_total_baseline} MB within 4 min (last=${LAST} MB)" >&2
+exit 1
