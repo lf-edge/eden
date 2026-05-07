@@ -20,13 +20,14 @@ stdout 'create volume v-vhdx with file://{{EdenConfig "eden.root"}}/empty.vhdx r
 # Wait for ready
 test eden.vol.test -test.v -timewait 15m DELIVERED v-qcow2 v-docker v-qcow v-vmdk v-vhdx
 
-# measure reported total space of persist
+# measure reported space of persist
 exec -t 5m bash wait-and-get-persist-fractions.sh
 source .env
 
-# allocate volume with 3/4 of total persist space; this guarantees blank-vol-2 (half
-# total) cannot fit regardless of pool size or ZFS thin-provisioning overhead.
-eden -t 1m volume create -n blank-vol-1 blank --disk-size=$three_quarter_total
+# allocate volume sized so persist's free space drops just below half_total;
+# guarantees blank-vol-2 (half_total) cannot fit, but blank-vol-1 itself still
+# does — even on ZFS where reservations consume real pool space.
+eden -t 1m volume create -n blank-vol-1 blank --disk-size=$blank_vol_1_size
 test eden.vol.test -test.v -timewait 10m CREATED_VOLUME blank-vol-1
 
 # allocate background info check for volumeErr contains Remaining word
@@ -34,7 +35,7 @@ test eden.lim.test -test.v -timewait 20m -test.run TestInfo -out InfoContent.vin
 
 exec sleep 10
 
-# this volume expected to fail: blank-vol-1 holds 3/4 of persist, leaving less than half
+# this volume expected to fail: free space after blank-vol-1 is below half_total
 eden -t 1m volume create -n blank-vol-2 blank --disk-size=$half_total
 
 # wait for error from the second volume creation process
@@ -116,11 +117,31 @@ cp stdout vol_ls
 
 -- wait-and-get-persist-fractions.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# Margin (in MB) to leave between blank-vol-1's footprint and the half_total
+# threshold, so ZFS overhead/metadata cannot push the remaining free space
+# back above half_total — which would let blank-vol-2 fit unexpectedly.
+SAFETY_MARGIN_MB=200
 while true; do
-    TOTAL=$($EDEN metric --tail=1 --format=json|jq -r '.dm.disk[] | select(.mountPath=="/persist") | .total')
-    if [ "$TOTAL" -gt 0 ]; then
-        echo half_total="$(( TOTAL*1024*1024/2 ))">>.env
-        echo three_quarter_total="$(( TOTAL*1024*1024*3/4 ))">>.env
+    JSON=$($EDEN metric --tail=1 --format=json)
+    TOTAL_MB=$(echo "$JSON" | jq -r '.dm.disk[] | select(.mountPath=="/persist") | .total')
+    FREE_MB=$(echo "$JSON" | jq -r '.dm.disk[] | select(.mountPath=="/persist") | .free')
+    if [ "$TOTAL_MB" -gt 0 ] && [ "$FREE_MB" -gt 0 ]; then
+        # half_total: blank-vol-2 (and the eclient-mount volume) are sized at
+        # half the pool, which the test expects not to fit alongside blank-vol-1.
+        half_total_mb=$(( TOTAL_MB / 2 ))
+        echo half_total=$(( half_total_mb*1024*1024 ))>>.env
+        # blank_vol_1_size: large enough that the free space remaining after
+        # blank-vol-1 is below half_total (so blank-vol-2 cannot fit), but
+        # bounded by current free space so blank-vol-1 itself still fits.
+        # Require at least one safety margin of headroom over half_total —
+        # so blank_vol_1 ends up with >= 2*SAFETY_MARGIN_MB MB to absorb
+        # zedmanager/ZFS overhead during creation.
+        if [ "$(( FREE_MB - half_total_mb ))" -lt "$SAFETY_MARGIN_MB" ]; then
+            echo "wait-and-get-persist-fractions.sh: insufficient /persist free space for test (free=${FREE_MB} MB, half_total=${half_total_mb} MB, need free >= half_total + ${SAFETY_MARGIN_MB} MB)" >&2
+            exit 1
+        fi
+        blank_vol_1_mb=$(( FREE_MB - half_total_mb + SAFETY_MARGIN_MB ))
+        echo blank_vol_1_size=$(( blank_vol_1_mb*1024*1024 ))>>.env
         exit 0
     fi
     sleep 10
