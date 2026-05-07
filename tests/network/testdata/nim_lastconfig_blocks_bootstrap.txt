@@ -1,0 +1,193 @@
+# Test: lastconfig presence blocks the bootstrap-config.pb wait path.
+# (Startup matrix row R6.)
+#
+# When /persist/checkpoint/lastconfig is present, NIM clears
+# expectBootstrapDPCs and refuses to wait for an installer DPC even if
+# /config/bootstrap-config.pb exists. See cmd/nim/nim.go:
+#
+#   ignoreBootstraps := n.hasPersistLastconfig()             // true
+#   ...
+#   haveBootstrapConf := fileutils.FileExists(n.Log,
+#       types.BootstrapConfFileName)                          // true
+#   expectBootstrapDPCs := len(installerDPCs) > 0 || haveBootstrapConf
+#   if expectBootstrapDPCs && ignoreBootstraps {
+#       n.Log.Noticef("Not ingesting bootstrap config from config "+
+#           "partition: /persist/checkpoint/lastconfig is present")
+#       expectBootstrapDPCs = false
+#   }
+#
+# Like nim_bootstrap_supersedes_override.txt, this test does NOT exercise
+# the bootstrap-pb decode path — only the FileExists check matters here.
+# A one-byte placeholder is enough.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go run() expectBootstrapDPCs reset branch.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+
+! test eden.reboot.test -test.v -timewait=20m -reboot=0 -count=2 &
+
+# Defensive: clear any leftover immutable flag from a previous run.
+exec -t 1m bash pre-cleanup.sh
+
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+# Wait for ssh and confirm lastconfig has nonzero content (precondition).
+exec -t 5m bash wait-lastconfig.sh
+stdout 'lastconfig present'
+
+# Stage a placeholder bootstrap-config.pb on the CONFIG partition. lastconfig
+# stays in place — we want to verify it blocks the bootstrap path.
+exec -t 1m bash stage-bootstrap-pb.sh
+stdout 'bootstrap pb staged'
+
+# Reboot. Note: NO chattr +i shenanigans here — lastconfig is supposed to
+# be present, that's the precondition.
+eden controller edge-node reboot
+exec sleep 60
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Give NIM a few extra seconds to finish startup.
+exec sleep 20
+
+# Assertion 1: best-effort log check for the suppression message.
+exec -t 1m bash check-log-suppression.sh
+stdout 'suppression logged|suppression log unavailable'
+
+# Assertion 2: NIM reached its main steady state (DevicePortConfigList
+# published with a "zedagent" entry from the controller). If
+# expectBootstrapDPCs hadn't been reset to false, NIM would have been
+# stuck waiting for an installer DPC that's never going to arrive, and
+# the DPCList wouldn't be in steady state.
+exec -t 2m bash check-dpcl-has-zedagent.sh
+stdout 'zedagent entry present'
+
+# Assertion 3: bootstrap-config.pb is still on disk (NIM does not delete
+# it; the file persists for the next boot's evaluation).
+exec -t 1m bash check-bootstrap-pb-present.sh
+stdout 'bootstrap pb still present'
+
+exec -t 1m bash cleanup.sh
+
+exec sh kill_watchdog.sh
+wait
+
+-- wait-ssh.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- pre-cleanup.sh --
+#!/bin/bash
+# Clear any leftover state from prior bootstrap/override tests.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && mount /dev/sda4 /run/test-config 2>/dev/null && rm -f /run/test-config/bootstrap-config.pb /run/test-config/DevicePortConfig/override.json /run/test-config/DevicePortConfig/usb.json && sync && umount /run/test-config) 2>/dev/null; true' 2>/dev/null || true
+true
+
+-- wait-lastconfig.sh --
+#!/bin/bash
+# Poll for both ssh availability AND nonzero lastconfig.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 60); do
+    out=$($EDEN eve ssh '[ -s /persist/checkpoint/lastconfig ] && echo lastconfig present' 2>/dev/null)
+    case "$out" in
+        *"lastconfig present"*) echo "lastconfig present"; exit 0 ;;
+    esac
+    sleep 5
+done
+echo "lastconfig still missing after 5 minutes"
+exit 1
+
+-- stage-bootstrap-pb.sh --
+#!/bin/bash
+# A one-byte placeholder is sufficient — cmd/nim only checks file existence.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config'
+$EDEN eve ssh "echo X > /run/test-config/bootstrap-config.pb"
+$EDEN eve ssh 'sync && umount /run/test-config'
+out=$($EDEN eve ssh 'mount /dev/sda4 /run/test-config && ls /run/test-config/bootstrap-config.pb 2>/dev/null; umount /run/test-config')
+case "$out" in
+    *bootstrap-config.pb*) echo "bootstrap pb staged" ;;
+    *) echo "bootstrap pb missing after write"; exit 1 ;;
+esac
+
+-- check-log-suppression.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'grep -h "Not ingesting bootstrap config from config partition.*lastconfig is present" /persist/agentlog/nim.log* /persist/newlog/keepSentQueue/*nim* /persist/newlog/collectQueue/*nim* 2>/dev/null | tail -1')
+if [ -n "$out" ]; then
+    echo "suppression logged"
+else
+    echo "suppression log unavailable"
+fi
+
+-- check-dpcl-has-zedagent.sh --
+#!/bin/bash
+# Poll for up to 2 minutes; DPCList may take a moment to publish after
+# reboot. The presence of a "zedagent" key proves that NIM finished
+# init() and reached the steady state — i.e., the
+# expectBootstrapDPCs reset branch correctly let DpcManager continue
+# without waiting for a bootstrap DPC.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 24); do
+    keys=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+    if echo "$keys" | grep -qx 'zedagent'; then
+        echo "zedagent entry present"
+        exit 0
+    fi
+    sleep 5
+done
+echo "zedagent entry missing after 2 minutes"
+exit 1
+
+-- check-bootstrap-pb-present.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && ls /run/test-config/bootstrap-config.pb 2>/dev/null; umount /run/test-config')
+case "$out" in
+    *bootstrap-config.pb*) echo "bootstrap pb still present"; exit 0 ;;
+esac
+echo "bootstrap pb gone (unexpected)"
+exit 1
+
+-- cleanup.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && rm -f /run/test-config/bootstrap-config.pb && sync && umount /run/test-config' 2>/dev/null || true
+true
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
