@@ -1,0 +1,215 @@
+# Test: bootstrap-config.pb presence makes NIM skip legacy /config/DevicePortConfig
+# *.json ingestion. (Startup matrix row R3.)
+#
+# When /persist/checkpoint/lastconfig is absent and BOTH
+# /config/bootstrap-config.pb and /config/DevicePortConfig/override.json
+# are present, NIM logs:
+#
+#   "Not ingesting DPC jsons (override.json) from config partition: "
+#   "bootstrap config is present"
+#
+# (Source: pkg/pillar/cmd/nim/nim.go ingestDevicePortConfig, the early-
+# return at the top of the function gated by FileExists(BootstrapConfFileName).)
+#
+# This test deliberately does *not* exercise the bootstrap-pb decode path —
+# the file content is irrelevant to nim.go's skip decision, which only
+# checks `fileutils.FileExists(types.BootstrapConfFileName)`. We therefore
+# write a one-byte placeholder for bootstrap-config.pb. zedagent will fail
+# to decode it and log an error, but that's expected and orthogonal to this
+# test's claim about cmd/nim's behaviour.
+#
+# nim_bootstrap_only.txt (R2) is the companion test that *does* exercise
+# the decode path; it requires a host-side helper to generate a properly
+# signed bootstrap-config.pb and is therefore currently `skip`'d.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go ingestDevicePortConfig() bootstrap-skip branch.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+
+! test eden.reboot.test -test.v -timewait=25m -reboot=0 -count=4 &
+
+# Defensive: clear any leftover immutable flag from a previous run.
+exec -t 1m bash pre-cleanup.sh
+
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Stage BOTH a bootstrap-config.pb placeholder AND an override.json on the
+# CONFIG partition.
+exec -t 1m bash stage-files.sh
+stdout 'files staged'
+
+exec -t 1m bash freeze-lastconfig.sh
+stdout 'lastconfig frozen'
+
+eden controller edge-node reboot
+exec sleep 90
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Wait long enough for NIM to have made its skip decision and published
+# DevicePortConfigList. Multiple reboots may occur; we ride them out.
+exec sleep 60
+
+# Assertion 1: override.json was NOT copied into /run/global/DevicePortConfig/.
+# This is the structural signal that cmd/nim took the bootstrap-skip branch.
+exec -t 1m bash check-runtime-no-override.sh
+stdout 'override absent'
+
+# Assertion 2: DevicePortConfigList has no entry with key "override".
+# (zedagent's failed bootstrap-pb decode does NOT publish a DPC, so the
+# only way "override" could have appeared would be via the legacy ingest.)
+exec -t 1m bash check-dpcl-no-override.sh
+stdout 'no override entry'
+
+# Assertion 3 (best-effort): the explicit suppression log line was emitted.
+# nim.log may have been rotated or wiped; both branches of the regex pass.
+exec -t 1m bash check-log-suppression.sh
+stdout 'suppression logged|suppression log unavailable'
+
+exec -t 1m bash cleanup.sh
+
+exec sh kill_watchdog.sh
+wait
+
+-- wait-ssh.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- pre-cleanup.sh --
+#!/bin/bash
+# NOTE: `eden eve ssh '<multi-line>'` collapses newlines to spaces; join
+# commands with `;` on a single line.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && mount /dev/sda4 /run/test-config 2>/dev/null && rm -f /run/test-config/bootstrap-config.pb /run/test-config/DevicePortConfig/override.json && sync && umount /run/test-config) 2>/dev/null; true' 2>/dev/null || true
+true
+
+-- stage-files.sh --
+#!/bin/bash
+# Stage:
+#   /config/bootstrap-config.pb           (placeholder, content irrelevant)
+#   /config/DevicePortConfig/override.json (the file whose ingest must be skipped)
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && mkdir -p /run/test-config/DevicePortConfig'
+# Placeholder bootstrap-config.pb. Just needs to exist (FileExists check
+# in cmd/nim/nim.go). Single byte 'X' is fine.
+$EDEN eve ssh "echo X > /run/test-config/bootstrap-config.pb"
+$EDEN eve ssh "cat > /run/test-config/DevicePortConfig/override.json" <<'JSON'
+{
+  "Version": 1,
+  "Key": "override",
+  "TimePriority": "2030-01-01T00:00:00Z",
+  "Ports": [
+    {
+      "IfName": "eth0",
+      "Phylabel": "eth0",
+      "Logicallabel": "eth0",
+      "IsMgmt": true,
+      "IsL3Port": true,
+      "Dhcp": 4
+    }
+  ]
+}
+JSON
+$EDEN eve ssh 'sync && umount /run/test-config'
+out=$($EDEN eve ssh 'mount /dev/sda4 /run/test-config && ls /run/test-config/bootstrap-config.pb /run/test-config/DevicePortConfig/override.json 2>/dev/null; umount /run/test-config')
+if echo "$out" | grep -q 'bootstrap-config.pb' && echo "$out" | grep -q 'override.json'; then
+    echo "files staged"
+else
+    echo "staging failed: $out"
+    exit 1
+fi
+
+-- freeze-lastconfig.sh --
+#!/bin/bash
+# chattr +i /persist/checkpoint blocks zedagent's lastconfig writes during
+# the test window. See nim_override_json_ingest.txt for the full rationale.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; rm -f /persist/checkpoint/lastconfig /persist/checkpoint/lastconfig.bak; sync; chattr +i /persist/checkpoint'
+dir_attrs=$($EDEN eve ssh 'lsattr -d /persist/checkpoint 2>/dev/null' 2>/dev/null)
+file_present=$($EDEN eve ssh 'ls /persist/checkpoint/lastconfig 2>/dev/null && echo present || echo absent' 2>/dev/null)
+if echo "$dir_attrs" | grep -qE '^----i'; then
+    case "$file_present" in
+        *absent*) echo "lastconfig frozen"; exit 0 ;;
+    esac
+fi
+echo "freeze failed: dir_attrs='$dir_attrs' file_present='$file_present'"
+exit 1
+
+-- check-runtime-no-override.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'ls /run/global/DevicePortConfig/override.json 2>/dev/null')
+if echo "$out" | grep -q 'override.json'; then
+    echo "override present in /run/global/"
+    exit 1
+fi
+echo "override absent"
+
+-- check-dpcl-no-override.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+keys=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+if echo "$keys" | grep -qx 'override'; then
+    echo "override key present in DPCL"
+    exit 1
+fi
+echo "no override entry"
+
+-- check-log-suppression.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# Search both the persistent log copy and the live newlogd export.
+out=$($EDEN eve ssh 'grep -h "Not ingesting DPC jsons.*bootstrap config is present" /persist/agentlog/nim.log* /persist/newlog/keepSentQueue/*nim* /persist/newlog/collectQueue/*nim* 2>/dev/null | tail -1')
+if [ -n "$out" ]; then
+    echo "suppression logged"
+else
+    echo "suppression log unavailable"
+fi
+
+-- cleanup.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; true' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && rm -f /run/test-config/bootstrap-config.pb /run/test-config/DevicePortConfig/override.json && sync && umount /run/test-config' 2>/dev/null || true
+$EDEN eve ssh 'rm -f /run/global/DevicePortConfig/override.json' 2>/dev/null || true
+true
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
