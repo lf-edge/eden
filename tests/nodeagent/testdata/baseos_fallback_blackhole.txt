@@ -1,0 +1,123 @@
+# nodeagent baseos fallback — black-hole variant
+#
+# Companion to baseos_fallback_link_down. Same upgrade-rollback path
+# being tested (BootReasonFallback / handleFallbackOnCloudDisconnect),
+# but the disconnect mechanism is silent packet drop on the controller
+# IP — the more realistic real-world upgrade-rollback trigger, since a
+# fresh EVE image usually does come up with a working interface; what
+# fails is reachability to the controller.
+#
+# Sequence:
+#   1. Trigger an EVE image update.
+#   2. Wait for the device to reboot into the new partition (inprogress).
+#   3. SSH into the new EVE and install an iptables OUTPUT DROP rule
+#      for Adam's IP — link stays up, NIM stays happy, only the
+#      controller goes silent.
+#   4. After timer.update.fallback.no.network elapses, nodeagent
+#      schedules a fallback reboot with BootReasonFallback.
+#   5. Device reboots back to the previous partition; the iptables
+#      rule (in-memory) is gone, so connectivity restores naturally.
+#   6. Assert last_boot_reason=BOOT_REASON_FALLBACK.
+#
+# Only meaningful on device models reachable via eden eve ssh
+# (ZedVirtual-4G, VBox).
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+{{$adam_ip  := EdenConfig "adam.ip"}}
+
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
+
+# Default EVE version to update to.
+{{$eve_ver := "12.1.0"}}
+{{$eve_registry := "lfedge/eve"}}
+{{$env := EdenGetEnv "EVE_VERSION"}}
+{{if $env}}{{$eve_ver = $env}}{{end}}
+{{$eve_hv := "kvm"}}
+{{$eve_arch := EdenConfig "eve.arch"}}
+{{$short_version := printf "%s-%s-%s" $eve_ver $eve_hv $eve_arch}}
+
+{{$test := "test eden.lim.test -test.v -timewait 30m -test.run TestInfo"}}
+
+# Configure the timers:
+#   - fallback fires after 60s of cloud-gone (minimum allowed)
+#   - test-success deliberately long (default 10min) so fallback wins
+#   - shorten controller polling so the new timer reaches the device
+eden controller edge-node update --config timer.update.fallback.no.network=60
+eden controller edge-node update --config timer.test.baseimage.update=600
+eden controller edge-node update --config timer.config.interval=10
+# Shorten timer.deviceinfo.interval so the device publishes a fresh
+# info to Adam soon after the post-fallback reboot — lim.test's final
+# assertion uses einfo.InfoNew and otherwise waits up to 10min for the
+# next periodic info push.
+eden controller edge-node update --config timer.deviceinfo.interval=30
+
+# Default timer.config.interval is 60s, so wait long enough for the
+# device's next config poll to apply our shorter value. Subsequent
+# config pushes (including eveimage-remove / eveimage-update below)
+# can then rely on 10s polling.
+exec sleep 70
+
+# Pre-fetch the rootfs so the eveimage-update step does not need network.
+message 'EVE image download'
+eden -t 10m utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{$eve_hv}} --eve-registry={{$eve_registry}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs'
+
+# If a previous test (or a prior run of this one) already attempted an
+# update to the same version and rolled back, EVE will refuse to retry
+# the same version unless we either bump the retry counter or remove
+# the baseos config first. Remove + brief wait gives us a clean state
+# so re-running the test with the same version still exercises the
+# update path.
+message 'Clearing any stale baseos config from prior runs'
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+exec sleep 20
+
+# Trigger the update.
+message 'EVE update request'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
+! stderr .
+
+# Wait for the device to come up on the new partition in inprogress state.
+# This is the *post-update test window*; nodeagent has updateInprogress=true.
+message 'Waiting for new partition to be inprogress'
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:inprogress InfoContent.dinfo.SwList[0].ShortVersion:{{ $short_version }}'
+stdout '{{ $short_version }}'
+
+# Black-hole controller traffic on the freshly-booted partition. Link
+# stays up, NIM is happy, only the controller goes silent — exactly
+# the failure mode handleFallbackOnCloudDisconnect is designed for.
+message 'Black-holing controller traffic to trigger fallback'
+# `--` terminates eden's flag parsing so the iptables flags below pass
+# through unmolested to the SSH command.
+eden eve ssh -- iptables -A OUTPUT -d {{$adam_ip}} -j DROP
+
+# Sleep > timer.update.fallback.no.network (60s) + the propagation +
+# minRebootDelay + boot. After the reboot the device is back on the
+# previous partition; the iptables rule (in-memory) is gone with it.
+exec sleep 180
+
+# Verify: nodeagent reported BOOT_REASON_FALLBACK on the next boot.
+# This boot reason is set exclusively by handleFallbackOnCloudDisconnect,
+# so this single assertion is sufficient signal that the upgrade-window
+# fallback path executed end-to-end.
+message 'Asserting last_boot_reason'
+{{$test}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_FALLBACK'
+stdout 'BOOT_REASON_FALLBACK'
+
+# Reset config and clear the leftover update.
+eden eve reset
+
+{{else}}
+
+message 'baseos_fallback_blackhole: skipped — device model {{$devmodel}} not supported via eden eve ssh'
+
+{{end}}
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
