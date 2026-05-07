@@ -3,17 +3,24 @@
 # save the current config before changing it
 eden -t 1m controller edge-node get-config --file /tmp/full-config.json
 
+# wait for EVE's sshd before we capture the pre-update lastconfig mtime
+exec -t 5m bash wait_ssh.sh
+
+# snapshot /persist/checkpoint/lastconfig mtime *before* pushing the log-level
+# update so the subsequent active wait can detect when EVE has actually applied
+# the new config
+exec bash capture_checkpoint.sh
+
 # set the remote log level to info, because the expected message is logged with info level
 eden -t 1m controller edge-node update --config agent.debug.debug.loglevel=info
 eden -t 1m controller edge-node update --config agent.debug.debug.remote.loglevel=info
 
-# wait for EVE's sshd to be ready before starting the log watcher
-exec -t 5m bash wait_ssh.sh
-
-# Give EVE time to fetch and apply the updated config.  On TPM-enabled devices the
-# controller config must pass TPM signature verification before EVE applies it; this
-# can take several minutes, far longer than a short fixed sleep.
-exec sleep 60
+# Wait for EVE to fetch and apply the new config (lastconfig mtime advances).
+# This replaces a previous fixed `sleep 60` that intermittently raced with config
+# apply on slower runs (e.g. issue #1156: ext4 + TPM-off Smoke matrix entry).
+# TPM-enabled devices may need extra time for signature verification; a 10m
+# ceiling absorbs that without making the happy path slower.
+exec -t 10m bash wait_config_applied.sh
 
 exec -t 27m bash ssh.sh &
 {{$test}} -out content 'content:.*Disconnected.*'
@@ -39,6 +46,38 @@ until $EDEN eve ssh exit 2>/dev/null; do
   [ "$(date +%s)" -lt "$END" ] || { echo "sshd not ready after 5m"; exit 1; }
   sleep 5
 done
+
+-- capture_checkpoint.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# Read the mtime of EVE's applied-device-config file; zedagent rewrites this
+# file each time it accepts and applies a new device config, so its mtime is
+# the same signal evetestkit.WaitForConfigApplied uses.  Watching the file
+# directly (rather than the /persist/checkpoint directory) avoids false
+# positives from unrelated touches on sibling files like lastradioconfig.
+TS=$($EDEN eve ssh 'stat -c %Y /persist/checkpoint/lastconfig' 2>/dev/null | tr -d '\r' | tail -n 1)
+case "$TS" in
+  ''|*[!0-9]*) echo "could not read /persist/checkpoint/lastconfig mtime (got: '$TS')"; exit 1 ;;
+esac
+echo "$TS" > checkpoint_ts
+echo "captured initial lastconfig mtime: $TS"
+
+-- wait_config_applied.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+INIT=$(cat checkpoint_ts 2>/dev/null)
+case "$INIT" in
+  ''|*[!0-9]*) echo "no initial lastconfig mtime captured"; exit 1 ;;
+esac
+END=$(($(date +%s) + 10*60))
+while [ "$(date +%s)" -lt "$END" ]; do
+  CUR=$($EDEN eve ssh 'stat -c %Y /persist/checkpoint/lastconfig' 2>/dev/null | tr -d '\r' | tail -n 1)
+  case "$CUR" in
+    ''|*[!0-9]*) ;;            # transient SSH/stat failure -- keep polling
+    *) [ "$CUR" != "$INIT" ] && { echo "config applied (lastconfig mtime: $INIT -> $CUR)"; exit 0; } ;;
+  esac
+  sleep 5
+done
+echo "timeout: /persist/checkpoint/lastconfig mtime did not advance from $INIT within 10m"
+exit 1
 
 -- ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
