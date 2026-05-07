@@ -1,0 +1,4 @@
+eden.escript.test -test.run TestEdenScripts/reset_on_disconnect_link_down -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/reset_on_disconnect_blackhole -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/baseos_fallback_link_down -test.timeout 30m
+eden.escript.test -test.run TestEdenScripts/baseos_fallback_blackhole -test.timeout 30m
