@@ -1,0 +1,116 @@
+# baseosmgr force-fallback test
+#
+# Exercises the controller-driven roll-back to the previous image:
+#   handleForceFallback in pkg/pillar/cmd/baseosmgr/forcefallback.go.
+#
+# Sequence:
+#   1. Capture the version currently running (the OLD version).
+#   2. Trigger an EVE image update to a NEW version and wait for it
+#      to commit (active state).
+#      After commit baseosmgr's invariant for force-fallback holds:
+#      curr=active (new), other=unused (with the OLD version).
+#   3. Bump the global config knob force.fallback.counter. zedagent
+#      forwards the change to baseosmgr via ZedAgentStatus, which
+#      flips the OTHER partition to "updating". nodeagent observes
+#      the flip and reboots into the OTHER partition with
+#      BootReasonUpdate.
+#   4. After the reboot the active partition is the OLD partition,
+#      so SwList[0].ShortVersion equals the captured old_ver.
+#
+# Verifies, end-to-end:
+#   - readForceFallbackCounter / writeForceFallbackCounter persistence
+#   - handleForceFallback's preconditions (curr=active, other=unused
+#     with non-empty version) being met after a successful upgrade
+#   - the SetOtherPartitionStateUpdating → ZbootStatus republish path
+#   - that nodeagent reacts to the flip and reboots into the previous
+#     image
+#
+# This test does an end-to-end *upgrade then roll back* cycle, so it
+# is a long test (~10–20 min depending on host speed).
+
+# Default EVE version to upgrade *to* (i.e. the version we will then
+# fall back away from). Override via $EVE_VERSION as usual.
+{{$eve_ver := "12.1.0"}}
+{{$eve_registry := "lfedge/eve"}}
+{{$env := EdenGetEnv "EVE_VERSION"}}
+{{if $env}}{{$eve_ver = $env}}{{end}}
+{{$eve_hv := "kvm"}}
+{{$eve_arch := EdenConfig "eve.arch"}}
+{{$short_version := printf "%s-%s-%s" $eve_ver $eve_hv $eve_arch}}
+
+# Lim helper for waiting on Info messages.
+{{$test := "test eden.lim.test -test.v -timewait 30m -test.run TestInfo"}}
+
+# Configure timers:
+#   - test-success: 30s so the upgrade commits quickly
+#   - shorter controller polling so the new timers reach the device
+#     promptly and so the bumped force.fallback.counter propagates
+#   - shorter deviceinfo so post-rollback Info publishes promptly
+eden controller edge-node update --config timer.test.baseimage.update=30
+eden controller edge-node update --config timer.config.interval=10
+eden controller edge-node update --config timer.deviceinfo.interval=30
+
+# Default timer.config.interval is 60s, so wait long enough for the
+# device's next config poll to apply the shorter values.
+exec sleep 70
+
+# Capture the version we're starting from (the OLD version we will
+# roll back to in step 4).
+message 'Capturing pre-upgrade (old) version'
+eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active' --tail=1
+cp stdout old_ver
+
+# Pre-fetch the rootfs so eveimage-update doesn't depend on network.
+message 'EVE image download'
+eden -t 10m utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{$eve_hv}} --eve-registry={{$eve_registry}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs'
+
+# If a prior run of this test left a stale BaseOsConfig on the
+# controller, EVE will refuse to reinstall the same version. Remove
+# + brief wait gives us a clean slate.
+message 'Clearing any stale baseos config from prior runs'
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+exec sleep 20
+
+# Step 2: trigger upgrade and wait for it to commit (active on new ver).
+message 'EVE update request'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
+! stderr .
+
+message 'Waiting for upgrade to commit (new partition active)'
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active InfoContent.dinfo.SwList[0].ShortVersion:{{ $short_version }}'
+stdout '{{ $short_version }}'
+
+# Step 3: bump force.fallback.counter. baseosmgr observes the change
+# via ZedAgentStatus, the precondition (curr=active, other=unused,
+# other has non-empty version) holds, so it flips the other partition
+# to "updating". nodeagent then reboots into it with BootReasonUpdate.
+message 'Bumping force.fallback.counter to roll back to previous image'
+eden controller edge-node update --config force.fallback.counter=1
+
+# Wait for: config push (~10s with the shorter interval),
+# baseosmgr's flip + ZbootStatus republish, nodeagent's
+# scheduleNodeOperation + minRebootDelay (30s) + boot, plus
+# a couple of ticks of slack.
+exec sleep 180
+
+# Step 4: verify the active partition is now the OLD version. We
+# read the latest active info and compare against the captured
+# old_ver.
+message 'Asserting rollback to previous version'
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active'
+eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active' --tail=1
+cmp stdout old_ver
+
+# Reset config and clear the leftover baseos config so subsequent
+# tests start clean.
+eden eve reset
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

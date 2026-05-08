@@ -1,0 +1,5 @@
+---
+eden:
+
+    # test scenario
+    test-scenario: "eden.baseosmgr.tests.txt"

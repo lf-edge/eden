@@ -1,0 +1,163 @@
+# baseosmgr retry-update test
+#
+# Exercises the controller-driven retry of a failed update:
+#   handleUpdateRetryCounter + isImageInErrorState in
+#   pkg/pillar/cmd/baseosmgr/handlebaseos.go.
+#
+# Sequence:
+#   1. Configure a short test window (30s) and a short fallback timer
+#      (60s) so the failed-upgrade cycle finishes quickly.
+#   2. Trigger an EVE image update to the new version. Wait until the
+#      device is on the NEW partition in inprogress state (the
+#      post-update test window).
+#   3. Cut controller reachability so the device cannot reach Adam
+#      during the test window. After fallback timeout nodeagent
+#      reboots back to the OLD image with BootReasonFallback.
+#      Restore connectivity post-reboot.
+#   4. Bump RetryUpdateCounter via `eveimage-update-retry`. baseosmgr
+#      observes via the new BaseOsConfig: curr=active (old), other=
+#      inprogress (new, same as the retry attempt) → preconditions
+#      met. It flips the OTHER partition back to "updating".
+#      nodeagent reboots into it. The retry's test window (still 30s)
+#      now passes against a working controller, so the upgrade
+#      commits — active=NEW.
+#   4 verifies, end-to-end:
+#      - The "failed image" branch of isImageInErrorState (curr=active,
+#        other=inprogress with matching BaseOsConfig.Activate=true).
+#      - handleUpdateRetryCounter's
+#        SetOtherPartitionStateUpdating + saveConfigRetryUpdateCounter
+#        path.
+#      - That nodeagent re-boots into the same image and that
+#        baseosmgr commits the retry once it passes.
+#
+# Black-hole-on-iptables flavour: the device's controller IP is
+# silently dropped via in-EVE iptables (link, IP, lease all stay
+# valid so NIM is happy and only nodeagent's fallback timer fires).
+# After the fallback reboot the rule dies with the previous boot's
+# in-memory iptables, so connectivity restores naturally.
+#
+# Only meaningful on device models reachable via eden eve ssh
+# (ZedVirtual-4G, VBox).
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+{{$adam_ip  := EdenConfig "adam.ip"}}
+
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
+
+{{$eve_ver := "12.1.0"}}
+{{$eve_registry := "lfedge/eve"}}
+{{$env := EdenGetEnv "EVE_VERSION"}}
+{{if $env}}{{$eve_ver = $env}}{{end}}
+{{$eve_hv := "kvm"}}
+{{$eve_arch := EdenConfig "eve.arch"}}
+{{$short_version := printf "%s-%s-%s" $eve_ver $eve_hv $eve_arch}}
+
+{{$test := "test eden.lim.test -test.v -timewait 30m -test.run TestInfo"}}
+
+# Step 1: configure timers.
+#   - fallback fires after 60s of cloud-gone (minimum allowed)
+#   - test-success deliberately long (default 10min) so the FIRST
+#     attempt fails via fallback rather than committing
+#   - shorter controller polling so subsequent config pushes (the
+#     retry counter bump) propagate promptly
+#   - shorter deviceinfo so post-reboot Infos publish promptly
+eden controller edge-node update --config timer.update.fallback.no.network=60
+eden controller edge-node update --config timer.test.baseimage.update=600
+eden controller edge-node update --config timer.config.interval=10
+eden controller edge-node update --config timer.deviceinfo.interval=30
+
+# Default timer.config.interval is 60s, so wait long enough for the
+# device's next config poll to apply the shorter values.
+exec sleep 70
+
+# Pre-fetch the rootfs so eveimage-update doesn't depend on network.
+message 'EVE image download'
+eden -t 10m utils download eve-rootfs --eve-tag={{$eve_ver}} --eve-hv={{$eve_hv}} --eve-registry={{$eve_registry}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs'
+
+# If a prior run left a stale BaseOsConfig, remove it so the retry
+# path actually re-attempts a fresh install.
+message 'Clearing any stale baseos config from prior runs'
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+exec sleep 20
+
+# Step 2: trigger the update.
+message 'EVE update request'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
+! stderr .
+
+message 'Waiting for new partition to be inprogress'
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:inprogress InfoContent.dinfo.SwList[0].ShortVersion:{{ $short_version }}'
+stdout '{{ $short_version }}'
+
+# Step 3: black-hole the controller so the test window times out.
+# The link stays up (NIM is happy) and only nodeagent's fallback
+# timer fires.
+message 'Black-holing controller traffic to trigger fallback'
+# `--` terminates eden's flag parsing so the iptables flags pass
+# through unmolested to ssh.
+eden eve ssh -- iptables -A OUTPUT -d {{$adam_ip}} -j DROP
+
+# Sleep > timer.update.fallback.no.network (60s) + propagation +
+# minRebootDelay (30s) + boot, plus a couple of ticks of slack.
+# After the reboot the device is back on the previous partition;
+# the iptables rule (in-memory) is gone with it, so connectivity
+# restores naturally.
+exec sleep 180
+
+# Confirm the failure: nodeagent should have reported BootReasonFallback.
+message 'Asserting first cycle ended with BOOT_REASON_FALLBACK'
+{{$test}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_FALLBACK'
+stdout 'BOOT_REASON_FALLBACK'
+
+# At this point: curr=active (OLD), other=inprogress (NEW with the
+# same version we just tried). baseosmgr's
+# updateBaseOsStatusOnReboot has stamped the previous reboot reason
+# onto the BaseOsStatus for that uuid, and the controller can see
+# the failure.
+
+# Step 4: bump RetryUpdateCounter. baseosmgr observes the change
+# via the new BaseOsConfig. handleUpdateRetryCounter sees
+# isImageInErrorState=true (curr=active, other=inprogress with
+# matching Activate=true config) and flips the other partition
+# back to "updating". nodeagent reboots into it.
+message 'Bumping RetryUpdateCounter to retry the failed update'
+eden -t 1m controller edge-node eveimage-update-retry
+! stderr .
+
+# Now the retry's test window can pass since connectivity is
+# restored. Allow time for: config push, baseosmgr flip, nodeagent
+# reboot (minRebootDelay + boot), test window (30s), commit.
+# That's roughly 30s+30s+60s+30s = ~3 min, plus slack. The lim.test
+# wait below has its own 30m budget, so a single sleep is enough
+# to clear the busy initial period.
+exec sleep 60
+
+# Step 4 assertion: active=NEW. If the retry never fired, the
+# active partition would remain the OLD version and the lim.test
+# wait would either match nothing (if the regex never sees the
+# new version active) or match a stale pre-retry sample. To handle
+# the latter, follow the lim.test wait with `eden info ... --tail=1`
+# to get the freshest sample.
+message 'Waiting for the retry to commit (new partition active again)'
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active InfoContent.dinfo.SwList[0].ShortVersion:{{ $short_version }}'
+eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active' --tail=1
+stdout '{{ $short_version }}'
+
+# Reset config back to defaults.
+eden eve reset
+
+{{else}}
+
+message 'retry_update: skipped — device model {{$devmodel}} not supported via eden eve ssh'
+
+{{end}}
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
