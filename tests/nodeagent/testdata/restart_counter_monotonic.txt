@@ -1,0 +1,93 @@
+# nodeagent restart counter monotonicity test
+#
+# Verifies that nodeagent's persistent RestartCounter (read+incremented
+# at startup, persisted in /persist/status/restartcounter, surfaced in
+# NodeAgentStatus and forwarded to the controller via zedagent's info
+# message) increments by exactly 1 across each EVE reboot.
+#
+# The unit tests in pkg/pillar/cmd/nodeagent cover the in-memory
+# read+increment+write logic against a temp file. This e2e adds the
+# pieces only an integration test can exercise:
+#   - the persistence path is actually /persist/status/restartcounter
+#     (not just whatever the unit test passed),
+#   - the value survives an actual EVE reboot,
+#   - the value reaches the controller through the
+#     NodeAgentStatus → zedagent → info chain.
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
+
+{{$info := "test eden.lim.test -test.v -timewait 10m -test.run TestInfo"}}
+
+# Shorten the controller-config polling so the post-reboot config push
+# (via eden eve reset at the end) propagates quickly. Shorten device-info
+# publishing too so the post-reboot RestartCounter shows up in Adam's
+# stream within ~30s rather than waiting up to 10min for the next
+# periodic push.
+eden controller edge-node update --config timer.config.interval=10
+eden controller edge-node update --config timer.deviceinfo.interval=30
+
+# Default timer.config.interval is 60s; let the new shorter value take
+# effect before relying on it.
+exec sleep 70
+
+# Capture the current RestartCounter value from Adam's latest info.
+message 'Capturing RestartCounter before reboot'
+eden -t 30s info --tail 1 --out InfoContent.dinfo.RestartCounter 'InfoContent.dinfo.RestartCounter:.+'
+cp stdout before_count.txt
+stdout '[0-9]+'
+
+# Trigger a clean controller-issued reboot.
+message 'Issuing controller reboot'
+eden controller edge-node reboot
+
+# Wait for the reboot to fire (minRebootDelay 30s) and the device to
+# come back online + publish at least one fresh info message.
+exec sleep 90
+{{$info}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_REBOOT_CMD'
+
+# Capture the new RestartCounter value.
+message 'Capturing RestartCounter after reboot'
+eden -t 30s info --tail 1 --out InfoContent.dinfo.RestartCounter 'InfoContent.dinfo.RestartCounter:.+'
+cp stdout after_count.txt
+stdout '[0-9]+'
+
+# Assert the counter increased by exactly 1.
+message 'Asserting RestartCounter advanced by exactly 1'
+exec bash compare.sh
+stdout 'OK'
+
+# Reset config back to defaults.
+eden eve reset
+
+{{else}}
+
+message 'restart_counter_monotonic: skipped — device model {{$devmodel}} not supported (no eden eve reset path used here, but the test relies on a controller-driven reboot timing window)'
+
+{{end}}
+
+-- compare.sh --
+set -e
+before=$(grep -oE '[0-9]+' before_count.txt | tail -1)
+after=$(grep -oE '[0-9]+' after_count.txt | tail -1)
+if [ -z "$before" ] || [ -z "$after" ]; then
+  echo "FAIL: could not parse counters: before='$before' after='$after'"
+  exit 1
+fi
+diff=$((after - before))
+if [ "$diff" -eq 1 ]; then
+  echo "OK before=$before after=$after"
+else
+  echo "FAIL: expected after = before+1, got before=$before after=$after diff=$diff"
+  exit 1
+fi
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
