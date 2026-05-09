@@ -1,5 +1,5 @@
 # Number of tests
-{{$tests := 25}}
+{{$tests := 26}}
 # EDEN_TEST_SETUP env. var. -- "y"(default) performs the EDEN setup steps
 {{$setup := "n"}}
 {{$setup_env := EdenGetEnv "EDEN_TEST_SETUP"}}
@@ -78,9 +78,11 @@ eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/userd
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/app_logs
 /bin/echo Eden change controller certificate test (23/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ctrl_cert_change
+/bin/echo Eden change controller encrypt certificate test (24/{{$tests}})
+eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/ctrl_encrypt_cert_change
 
-/bin/echo Eden Shutdown test (24/{{$tests}})
+/bin/echo Eden Shutdown test (25/{{$tests}})
 eden.escript.test -testdata ../eclient/testdata/ -test.run TestEdenScripts/shutdown_test
 
-/bin/echo EVE reset (25/{{$tests}})
+/bin/echo EVE reset (26/{{$tests}})
 eden.escript.test -test.run TestEdenScripts/eden_reset
