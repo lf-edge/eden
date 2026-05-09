@@ -1,0 +1,220 @@
+# Test of controller encryption (ECDH) certificate change.
+#
+# Companion to ctrl_cert_change.txt: that test rotates the signing cert while
+# Eden uses the *signing* key for ECDH derivation, so it incidentally
+# exercises the encryption path too. This test deploys apps with
+# --use-encrypt-cert so their cipher contexts reference the controller's
+# CERT_TYPE_CONTROLLER_ECDH_EXCHANGE cert (Type=3) instead of the signing
+# cert, and verifies that those cipher blocks stay decryptable across cert
+# rotations.
+#
+# Why every rotation rotates *both* certs:
+#
+#   The only fast trigger for a /certs refetch on the device is a
+#   signing-cert mismatch in the auth-envelope's SenderCertHash
+#   (controllerconn/authen.go: SenderStatusCertMiss). The cipher decrypt
+#   path returns "Controller Certificate get fail" when the encrypt cert
+#   hash isn't in pubControllerCert but does NOT trigger a /certs refetch.
+#   handleControllerCertsSha could trigger one if adam populated
+#   EdgeDevConfig.controllercert_confighash, but it doesn't. The periodic
+#   controllerCertsTask defaults to CertInterval=24h. So pure encrypt-cert
+#   rotation has no fast trigger, and the only practical way to land a new
+#   ECDH cert on the device today is to rotate the signing cert alongside
+#   it. See lf-edge/eve#5926.
+#
+#   Order matters: change-encrypt-cert first, then change-signing-cert.
+#   change-encrypt-cert re-encrypts the encrypt-tagged cipher blocks and
+#   writes the new encrypt files on adam's disk. change-signing-cert is a
+#   no-op for those cipher blocks (its reencryptConfigs filter skips
+#   cipher contexts that don't reference the signing cert hash), but its
+#   on-disk signing-key swap is what makes adam sign the next auth
+#   envelope with a key the device hasn't seen, triggering
+#   SenderStatusCertMiss. By the time the device refetches /certs, both
+#   new certs are on adam's disk and arrive in a single round-trip.
+#
+# Two rotations are exercised so both controllercerts.bak code paths are
+# hit:
+#   1. First rotation: .bak does not exist yet for either cert.
+#   2. Second rotation: .bak now exists for both, exercising the
+#      backup-fallback path inside VerifyAuthContainerHeader and the .bak
+#      atomic-rename refresh inside MaybeSaveControllerCerts.
+#
+# reencryptConfigs' cipher-context-cert-hash filter is exercised
+# implicitly by the encrypt+signing rotation steps: eclient1 keeps
+# running through change-signing-cert because the filter correctly
+# skips its encrypt-cert-tagged cipher block. ctrl_cert_change.txt
+# covers the signing-only rotation case independently.
+
+{{$port := "2223"}}
+
+{{$userdata := "marker=encrypt-cert-rotation-test"}}
+
+{{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:chmod] stop
+
+exec chmod 600 {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa
+
+eden network create 10.11.12.0/24 -n n1
+eden pod deploy -n eclient1 --memory=512MB --networks=n1 --use-encrypt-cert {{template "eclient_image"}} -p {{$port}}:22 --metadata={{$userdata}}
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient1
+
+# --- First rotation: encrypt + signing ---
+
+eden utils gen-encrypt-cert -o /tmp/encrypt-new.pem --key-out /tmp/encrypt-new-key.pem
+eden utils gen-signing-cert -o /tmp/signing-new.pem --key-out /tmp/signing-new-key.pem
+eden adam change-encrypt-cert --cert-file /tmp/encrypt-new.pem --key-file /tmp/encrypt-new-key.pem
+eden adam change-signing-cert --cert-file /tmp/signing-new.pem --key-file /tmp/signing-new-key.pem
+
+# Wait for the device-side reconcile log line that fires once zedmanager has
+# republished AppNetworkConfig with the new cipher block (same trigger as
+# ctrl_cert_change.txt - this is one synchronization barrier confirming the
+# new cipher block is now live in the device's pubsub state).
+test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.updating.app.connectivity'
+
+# Deploy a fresh app *after* the rotation: its cipher block is encrypted
+# against the new ECDH key from the start, so reaching RUNNING proves the
+# device received the new encrypt cert via the signing-cert-triggered
+# /certs refetch and the new ECDH key decrypts the new cipher block.
+eden pod deploy -n eclient2 --memory=512MB --networks=n1 --use-encrypt-cert {{template "eclient_image"}} --metadata={{$userdata}}
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient2
+
+# eclient2 RUNNING is the primary success signal - the cert chain must have
+# settled in pubsub for activate to have decrypted the cipher block. The
+# script-level check below cross-verifies that the cert advertised on the
+# device matches encrypt-new.pem byte-for-byte.
+exec -t 2m bash check_encrypt_cert.sh /tmp/encrypt-new.pem
+
+# --- Second rotation: encrypt + signing (exercises .bak fallback) ---
+
+eden utils gen-encrypt-cert -o /tmp/encrypt-new.pem --key-out /tmp/encrypt-new-key.pem
+eden utils gen-signing-cert -o /tmp/signing-new.pem --key-out /tmp/signing-new-key.pem
+eden adam change-encrypt-cert --cert-file /tmp/encrypt-new.pem --key-file /tmp/encrypt-new-key.pem
+eden adam change-signing-cert --cert-file /tmp/signing-new.pem --key-file /tmp/signing-new-key.pem
+
+test eden.lim.test -test.v -timewait 15m -test.run TestLog -out content 'content:Rebuilding.intended.global.config,.reasons:.updating.app.connectivity'
+
+eden pod deploy -n eclient3 --memory=512MB --networks=n1 --use-encrypt-cert {{template "eclient_image"}} --metadata={{$userdata}}
+
+test eden.app.test -test.v -timewait 20m RUNNING eclient3
+
+exec -t 2m bash check_encrypt_cert.sh /tmp/encrypt-new.pem
+
+# --- Reboot and verify reboot-survival of the rotated encrypt cert ---
+#
+# /tmp/encrypt-new.pem holds the most recent rotated encrypt cert (from
+# the second encrypt+signing rotation). After EVE reboots we expect:
+#   * all three apps to come back RUNNING - their cipher blocks are
+#     persisted on adam; EVE pulls them post-reboot and decrypts with the
+#     post-reboot ECDH key.
+#   * /run/zedagent/ControllerCert/ to again advertise that same cert as
+#     Type=3 (rebuilt either from /persist/checkpoint/controllercerts on
+#     the device or re-fetched from adam; in both cases the cert chain
+#     must roundtrip the reboot intact).
+test eden.reboot.test -test.v -timewait=20m -reboot=1 -count=1 &
+
+test eden.app.test -test.v -timewait 20m -check-new RUNNING eclient1 eclient2 eclient3
+
+exec -t 2m bash check_encrypt_cert.sh /tmp/encrypt-new.pem
+
+# cleanup
+eden pod delete eclient1
+eden pod delete eclient2
+eden pod delete eclient3
+eden network delete n1
+
+test eden.app.test -test.v -timewait 10m - eclient1
+test eden.app.test -test.v -timewait 10m - eclient2
+test eden.app.test -test.v -timewait 10m - eclient3
+test eden.network.test -test.v -timewait 10m - n1
+
+-- eden-config.yml --
+{{/* Test's config. file */}}
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- check_encrypt_cert.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+EXPECTED_CERT="$1"
+
+# CERT_TYPE_CONTROLLER_ECDH_EXCHANGE = 3 (eve-api/proto/certs/certs.proto).
+# /run/zedagent/ControllerCert/ (or /persist/status/zedagent/ControllerCert/
+# on older EVE where pubControllerCert is Persistent: true) contains one
+# JSON file per controller cert the device has received via /certs. Find a
+# Type=3 entry whose Cert field (base64-encoded PEM) matches the newly-
+# rotated encrypt-new.pem.
+
+# Adam runs the cert through strings.TrimSpace before computing CertHash
+# and before storing it in the ZCert.Cert field that EVE base64-encodes
+# into the JSON pubsub file (apiHandlerv2.go:221-226). The PEM file
+# pem.Encode wrote to disk has a trailing newline; the device-side bytes
+# don't. Compare the *trimmed* file content to match adam's normalization.
+# bash's $(<file) command substitution strips trailing newlines, which
+# matches TrimSpace for well-formed PEM files (no leading whitespace).
+expected_content=$(<"$EXPECTED_CERT")
+expected_sha=$(printf '%s' "$expected_content" | sha256sum | awk '{print $1}')
+
+echo "EXPECTED_CERT $EXPECTED_CERT trimmed-sha256: $expected_sha" >&2
+
+# scan_dir <ssh_path> <local_prefix>
+# - lists json files in the device-side pubsub directory
+# - cats each, dumps its Type field (and Cert sha256) for diagnostics
+# - returns 0 if a Type=3 entry matched EXPECTED_CERT byte-for-byte
+scan_dir() {
+    local ssh_path="$1" local_prefix="$2"
+    local listing="/tmp/${local_prefix}-files"
+    $EDEN eve ssh ls "$ssh_path" 2>/dev/null >"$listing" || true
+    if ! [ -s "$listing" ] || ! grep -q json "$listing"; then
+        echo "  $ssh_path: no json files" >&2
+        return 1
+    fi
+    for f in $(cat "$listing"); do
+        local local_file="/tmp/${local_prefix}-${f}"
+        $EDEN eve ssh cat "$ssh_path/$f" > "$local_file" 2>/dev/null
+        local typ
+        typ=$(grep -oE '"Type":[ ]?[0-9]+' "$local_file" 2>/dev/null | head -n1 | tr -dc 0-9)
+        if [ -z "$typ" ]; then
+            echo "  $ssh_path/$f: <no Type field>" >&2
+            continue
+        fi
+        if [ "$typ" != "3" ]; then
+            echo "  $ssh_path/$f: Type=$typ (skip)" >&2
+            continue
+        fi
+        # Type=3 entry; extract base64 PEM and compare. The decoded bytes
+        # are adam's TrimSpace'd cert (no trailing newline), so compare
+        # against expected_sha computed from the same normalization.
+        grep -oE '"Cert":"[^"]*"' "$local_file" | head -n1 | sed 's/^"Cert":"//;s/"$//' \
+            | base64 -d > /tmp/server-encrypt-cert.pem 2>/dev/null
+        local got
+        got=$(sha256sum /tmp/server-encrypt-cert.pem 2>/dev/null | awk '{print $1}')
+        if [ "$got" = "$expected_sha" ]; then
+            echo "  $ssh_path/$f: Type=3, sha256=$got MATCH" >&2
+            return 0
+        fi
+        echo "  $ssh_path/$f: Type=3, sha256=$got (expected $expected_sha)" >&2
+    done
+    return 1
+}
+
+while true; do
+    echo "Scan /run/zedagent/ControllerCert/" >&2
+    if scan_dir /run/zedagent/ControllerCert/ run; then
+        exit 0
+    fi
+    echo "Scan /persist/status/zedagent/ControllerCert/" >&2
+    if scan_dir /persist/status/zedagent/ControllerCert/ persist; then
+        exit 0
+    fi
+    echo "Encrypt cert not yet matching, retrying in 10s..." >&2
+    sleep 10
+done
