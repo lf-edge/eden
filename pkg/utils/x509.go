@@ -117,6 +117,17 @@ func GenServerCertElliptic(cert *x509.Certificate, key *rsa.PrivateKey, serial *
 // number is randomized so two consecutive calls always produce two distinct
 // certs even within the same second.
 func GenServerCertWithNewKey(certPath, keyPath string) error {
+	return genServerCertFromTemplate("signing.pem", certPath, keyPath)
+}
+
+// GenEncryptCertWithNewKey is GenServerCertWithNewKey for the controller's
+// ECDH encryption cert: the new cert's template is copied from encrypt.pem,
+// not signing.pem, so the rotated cert preserves the encrypt-cert subject.
+func GenEncryptCertWithNewKey(certPath, keyPath string) error {
+	return genServerCertFromTemplate("encrypt.pem", certPath, keyPath)
+}
+
+func genServerCertFromTemplate(srcCertName, certPath, keyPath string) error {
 	edenHome, err := DefaultEdenDir()
 	if err != nil {
 		return err
@@ -130,7 +141,7 @@ func GenServerCertWithNewKey(certPath, keyPath string) error {
 	if err != nil {
 		return err
 	}
-	oldServerCert, err := ParseCertificate(filepath.Join(edenHome, defaults.DefaultCertsDist, "signing.pem"))
+	oldServerCert, err := ParseCertificate(filepath.Join(edenHome, defaults.DefaultCertsDist, srcCertName))
 	if err != nil {
 		return err
 	}

@@ -31,6 +31,7 @@ func newUtilsCmd(configName, verbosity *string) *cobra.Command {
 				newOciImageCmd(),
 				newCertsCmd(cfg),
 				newGenSigningCertCmd(),
+				newGenEncryptCertCmd(),
 				newGcpCmd(cfg),
 				newSdInfoEveCmd(),
 				newDebugCmd(cfg),

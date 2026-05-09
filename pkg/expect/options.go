@@ -281,6 +281,16 @@ func WithOpenStackMetadata(openStackMetadata bool) ExpectationOption {
 	}
 }
 
+// WithUseEncryptCert tells Eden to encrypt this app's user-data with
+// encrypt-key.pem and tag the cipher context with the controller's encryption
+// (ECDH) cert hash, instead of the signing cert. The default is false, which
+// preserves the historical behavior of using signing-key.pem for ECDH.
+func WithUseEncryptCert(useEncryptCert bool) ExpectationOption {
+	return func(expectation *AppExpectation) {
+		expectation.useEncryptCert = useEncryptCert
+	}
+}
+
 // WithProfiles set profileList for appInstance
 func WithProfiles(profiles []string) ExpectationOption {
 	return func(expectation *AppExpectation) {

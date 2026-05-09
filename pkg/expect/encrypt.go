@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
@@ -57,24 +58,13 @@ func (exp *AppExpectation) prepareCipherData(encBlock *evecommon.EncryptionBlock
 		return nil, nil
 	}
 
-	// get signing certificate from the controller
-	signCert, err := exp.ctrl.SigningCertGet()
+	ctrlCert, ctrlPrivKey, err := loadControllerCryptoMaterial(exp.ctrl, exp.useEncryptCert)
 	if err != nil {
-		log.Errorf("cannot get cloud's signing certificate. will use plaintext. error: %s", err)
+		log.Errorf("cannot load controller crypto material. will use plaintext. error: %s", err)
 		return nil, nil
 	}
 
-	edenHome, err := utils.DefaultEdenDir()
-	if err != nil {
-		return nil, fmt.Errorf("DefaultEdenDir: %w", err)
-	}
-	keyPath := filepath.Join(edenHome, defaults.DefaultCertsDist, "signing-key.pem")
-	ctrlPrivKey, err := os.ReadFile(keyPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read %s: %w", keyPath, err)
-	}
-
-	cryptoConfig, err := utils.GetCommonCryptoConfig(devCert, signCert, ctrlPrivKey)
+	cryptoConfig, err := utils.GetCommonCryptoConfig(devCert, ctrlCert, ctrlPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("GetCommonCryptoConfig: %w", err)
 	}
@@ -87,4 +77,39 @@ func (exp *AppExpectation) prepareCipherData(encBlock *evecommon.EncryptionBlock
 	cipherCtx = utils.AddCipherCtxToDev(exp.device, cipherCtx)
 
 	return utils.CryptoConfigWrapper(encBlock, cryptoConfig, cipherCtx)
+}
+
+// loadControllerCryptoMaterial returns the controller cert + matching private
+// key to use for ECDH derivation. When useEncryptCert is true, encrypt.pem +
+// encrypt-key.pem are used so the resulting cipher context references the
+// controller's CONTROLLER_ECDH_EXCHANGE cert; otherwise signing.pem +
+// signing-key.pem are used (historical default).
+func loadControllerCryptoMaterial(ctrl controller.Cloud, useEncryptCert bool) ([]byte, []byte, error) {
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		return nil, nil, fmt.Errorf("DefaultEdenDir: %w", err)
+	}
+	var (
+		certBytes []byte
+		keyName   string
+	)
+	if useEncryptCert {
+		certBytes, err = ctrl.EncryptCertGet()
+		if err != nil {
+			return nil, nil, fmt.Errorf("EncryptCertGet: %w", err)
+		}
+		keyName = "encrypt-key.pem"
+	} else {
+		certBytes, err = ctrl.SigningCertGet()
+		if err != nil {
+			return nil, nil, fmt.Errorf("SigningCertGet: %w", err)
+		}
+		keyName = "signing-key.pem"
+	}
+	keyPath := filepath.Join(edenHome, defaults.DefaultCertsDist, keyName)
+	keyBytes, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot read %s: %w", keyPath, err)
+	}
+	return certBytes, keyBytes, nil
 }

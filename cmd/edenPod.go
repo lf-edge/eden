@@ -120,6 +120,7 @@ To block all traffic define ACL with no endpoints: '<network_name>:'`)
 	podDeployCmd.Flags().StringSliceVar(&pc.Vlans, "vlan", nil, `Connect application to the (switch) network over an access port assigned to the given VLAN.
 You can set access VLAN ID (VID) for a particular network in the format '<network_name:VID>'`)
 	podDeployCmd.Flags().BoolVar(&pc.OpenStackMetadata, "openstack-metadata", false, "Use OpenStack metadata for VM")
+	podDeployCmd.Flags().BoolVar(&pc.UseEncryptCert, "use-encrypt-cert", false, "Encrypt user-data with the controller's ECDH (encrypt.pem) cert instead of the signing cert; the cipher context will reference CERT_TYPE_CONTROLLER_ECDH_EXCHANGE so it tracks change-encrypt-cert rotations.")
 	podDeployCmd.Flags().StringVar(&pc.DatastoreOverride, "datastoreOverride", "", "Override datastore path for disks (when we use different URL for Eden and EVE or for local datastore)")
 	podDeployCmd.Flags().Uint32Var(&pc.StartDelay, "start-delay", 0, "The amount of time (in seconds) that EVE waits (after boot finish) before starting application")
 	podDeployCmd.Flags().BoolVar(&pc.PinCpus, "pin-cpus", false, "Pin the CPUs used by the pod")

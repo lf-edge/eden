@@ -54,8 +54,8 @@ type AppExpectation struct {
 
 	baseOSVersion string
 
-	vncDisplay  int
-	vncPassword string
+	vncDisplay   int
+	vncPassword  string
 	vncForShimVM bool
 
 	netInstances []*NetInstanceExpectation
@@ -83,6 +83,7 @@ type AppExpectation struct {
 	vlans map[string]int // networkInstanceName -> VID
 
 	openStackMetadata bool
+	useEncryptCert    bool
 	profiles          []string
 	datastoreOverride string
 	startDelay        uint32

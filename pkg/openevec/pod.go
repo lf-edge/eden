@@ -136,6 +136,7 @@ func (openEVEC *OpenEVEC) PodDeploy(appLink string, pc PodConfig, cfg *EdenSetup
 		opts = append(opts, expect.WithVirtualizationMode(config.VmMode_NOHYPER))
 	}
 	opts = append(opts, expect.WithOpenStackMetadata(pc.OpenStackMetadata))
+	opts = append(opts, expect.WithUseEncryptCert(pc.UseEncryptCert))
 	opts = append(opts, expect.WithProfiles(pc.Profiles))
 	opts = append(opts, expect.WithDatastoreOverride(pc.DatastoreOverride))
 	opts = append(opts, expect.WithStartDelay(pc.StartDelay))

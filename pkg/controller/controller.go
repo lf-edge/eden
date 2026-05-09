@@ -19,6 +19,7 @@ import (
 type Controller interface {
 	GetECDHCert(devUUID uuid.UUID) ([]byte, error)
 	SigningCertGet() (signCert []byte, err error)
+	EncryptCertGet() (encCert []byte, err error)
 	ConfigGet(devUUID uuid.UUID) (out string, err error)
 	ConfigSet(devUUID uuid.UUID, devConfig []byte) (err error)
 	LogAppsChecker(devUUID uuid.UUID, appUUID uuid.UUID, q map[string]string, handler eapps.HandlerFunc, mode eapps.LogCheckerMode, timeout time.Duration) (err error)

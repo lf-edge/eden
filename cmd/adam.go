@@ -26,6 +26,7 @@ func newAdamCmd(configName, verbosity *string) *cobra.Command {
 				newStopAdamCmd(),
 				newStatusAdamCmd(),
 				newChangeCertCmd(),
+				newChangeEncryptCertCmd(),
 			},
 		},
 	}
@@ -128,4 +129,43 @@ signing-key.pem is reused.`,
 	changeCertCmd.Flags().StringVar(&keyFile, "key-file", "", "path to the new signing private key (optional; if omitted, the existing key is reused)")
 
 	return changeCertCmd
+}
+
+func newChangeEncryptCertCmd() *cobra.Command {
+	var certFile, keyFile string
+
+	var changeEncryptCertCmd = &cobra.Command{
+		Use:   "change-encrypt-cert",
+		Short: "change ECDH encryption certificate for adam",
+		Long: `Set adam's ECDH (encryption) certificate from a file. If --key-file is
+provided, the matching private key is also installed and adam re-encrypts
+configs whose CipherContext references the old encrypt cert with the new
+key. The signing cert and key are not touched, so auth-container envelopes
+continue to verify against the device's saved signing cert. Only configs
+deployed with --use-encrypt-cert are re-encrypted; everything else is left
+alone.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			certData, err := os.ReadFile(certFile)
+			if err != nil {
+				log.Fatalf("Failed to read certificate file: %s", err)
+			}
+
+			var keyData []byte
+			if keyFile != "" {
+				keyData, err = os.ReadFile(keyFile)
+				if err != nil {
+					log.Fatalf("Failed to read key file: %s", err)
+				}
+			}
+
+			if err := openEVEC.ChangeEncryptCert(certData, keyData); err != nil {
+				log.Fatalf("Failed to upload encrypt certificate to adam: %s", err)
+			}
+		},
+	}
+
+	changeEncryptCertCmd.Flags().StringVarP(&certFile, "cert-file", "", "", "path to the new encrypt certificate file")
+	changeEncryptCertCmd.Flags().StringVar(&keyFile, "key-file", "", "path to the new encrypt private key (optional; if omitted, the existing key is reused)")
+
+	return changeEncryptCertCmd
 }
