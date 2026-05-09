@@ -430,25 +430,33 @@ func (adam *Ctx) GetGlobalOptions() (*types.GlobalOptions, error) {
 
 // SigningCertGet gets signing certificate from Adam
 func (adam *Ctx) SigningCertGet() (signCert []byte, err error) {
+	return adam.controllerCertByType(certs.ZCertType_CERT_TYPE_CONTROLLER_SIGNING)
+}
+
+// EncryptCertGet gets the controller's ECDH encryption certificate from Adam.
+// This is the cert eve-side cipher.go uses as the ECDH peer when
+// CipherContext.ControllerCertHash refers to the encryption (not signing) cert.
+func (adam *Ctx) EncryptCertGet() (encCert []byte, err error) {
+	return adam.controllerCertByType(certs.ZCertType_CERT_TYPE_CONTROLLER_ECDH_EXCHANGE)
+}
+
+func (adam *Ctx) controllerCertByType(certType certs.ZCertType) ([]byte, error) {
 	certsData, err := adam.getObj("/api/v2/edgedevice/certs", mimeProto)
 	if err != nil {
 		return nil, err
 	}
 	zcloudMsg := &auth.AuthContainer{}
-	err = proto.Unmarshal([]byte(certsData), zcloudMsg)
-	if err != nil {
+	if err := proto.Unmarshal([]byte(certsData), zcloudMsg); err != nil {
 		return nil, err
 	}
 	ctrlCert := &certs.ZControllerCert{}
-	err = proto.Unmarshal(zcloudMsg.ProtectedPayload.Payload, ctrlCert)
-	if err != nil {
+	if err := proto.Unmarshal(zcloudMsg.ProtectedPayload.Payload, ctrlCert); err != nil {
 		return nil, err
 	}
 	for _, c := range ctrlCert.Certs {
-		// there should be only one signing certificate, so we return the first one we find
-		if c.Type == certs.ZCertType_CERT_TYPE_CONTROLLER_SIGNING {
+		if c.Type == certType {
 			return c.Cert, nil
 		}
 	}
-	return nil, fmt.Errorf("no signing certificate found")
+	return nil, fmt.Errorf("no controller certificate of type %s", certType)
 }

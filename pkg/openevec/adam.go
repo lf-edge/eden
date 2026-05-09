@@ -1,9 +1,11 @@
 package openevec
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
@@ -115,6 +117,187 @@ func (openEVEC *OpenEVEC) ChangeSigningCert(newSignCert, newSignKey []byte) erro
 	return nil
 }
 
+// ChangeEncryptCert rotates the controller's ECDH (encryption) cert and key in
+// adam, re-encrypting only those configs whose CipherContext references the
+// old encrypt cert hash. The signing cert and key are left untouched, so
+// auth-container envelopes continue to verify against the device's saved
+// signing cert. Configs encrypted with the signing key (the historical
+// default in this Eden setup) are left alone, so a rotation here is a no-op
+// for apps that were not deployed with --use-encrypt-cert.
+//
+// If newEncKey is non-nil it is treated as the private key matching newEncCert
+// and is installed alongside the cert. If newEncKey is nil the existing key is
+// reused (cert-only rotation).
+func (openEVEC *OpenEVEC) ChangeEncryptCert(newEncCert, newEncKey []byte) error {
+	changer := &adamChanger{}
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
+	}
+
+	if err := reencryptConfigsForEncryptCert(ctrl, dev, newEncCert, newEncKey); err != nil {
+		return fmt.Errorf("failed to reencrypt existing configs: %w", err)
+	}
+
+	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+		return fmt.Errorf("setControllerAndDev: %w", err)
+	}
+
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		return err
+	}
+	globalCertsDir := filepath.Join(edenHome, defaults.DefaultCertsDist)
+	encryptCertPath := filepath.Join(globalCertsDir, "encrypt.pem")
+	encryptKeyPath := filepath.Join(globalCertsDir, "encrypt-key.pem")
+
+	if len(newEncKey) > 0 {
+		if err = atomicWriteFile(encryptKeyPath, newEncKey, 0600); err != nil {
+			return fmt.Errorf("cannot write encrypt key to %s: %w", encryptKeyPath, err)
+		}
+	}
+	if err = atomicWriteFile(encryptCertPath, newEncCert, 0644); err != nil {
+		if len(newEncKey) > 0 {
+			log.Errorf("INCONSISTENT STATE: encrypt-key.pem was rotated but encrypt.pem failed to write to %s. Re-run change-encrypt-cert to recover.", encryptCertPath)
+		}
+		return fmt.Errorf("cannot write encrypt cert to %s: %w", encryptCertPath, err)
+	}
+
+	log.Infof("Encrypt cert changed successfully")
+	return nil
+}
+
+// reencryptConfigsForEncryptCert re-encrypts only those app/datastore/wireless
+// cipher blocks whose owning CipherContext references the old encrypt cert -
+// i.e. only configs that were encrypted via WithUseEncryptCert. The new cipher
+// context is registered on the device and used as the destination for all
+// matching cipher blocks.
+func reencryptConfigsForEncryptCert(ctrl controller.Cloud, dev *device.Ctx, newEncCert, newEncKey []byte) error {
+	devCert, err := ctrl.GetECDHCert(dev.GetID())
+	if err != nil {
+		return fmt.Errorf("cannot get device certificate from cloud: %w", err)
+	}
+
+	oldEncCert, err := ctrl.EncryptCertGet()
+	if err != nil {
+		log.Error("cannot get cloud's encrypt certificate. nothing to re-encrypt")
+		return nil
+	}
+
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		return fmt.Errorf("DefaultEdenDir: %w", err)
+	}
+	keyPath := filepath.Join(edenHome, defaults.DefaultCertsDist, "encrypt-key.pem")
+	oldCtrlPrivBytes, err := os.ReadFile(keyPath)
+	if err != nil {
+		return fmt.Errorf("cannot read %s: %w", keyPath, err)
+	}
+
+	newCtrlPrivBytes := oldCtrlPrivBytes
+	if len(newEncKey) > 0 {
+		newCtrlPrivBytes = newEncKey
+	}
+
+	oldCryptoConfig, err := utils.GetCommonCryptoConfig(devCert, oldEncCert, oldCtrlPrivBytes)
+	if err != nil {
+		return fmt.Errorf("GetCommonCryptoConfig (old): %w", err)
+	}
+	newCryptoConfig, err := utils.GetCommonCryptoConfig(devCert, newEncCert, newCtrlPrivBytes)
+	if err != nil {
+		return fmt.Errorf("GetCommonCryptoConfig (new): %w", err)
+	}
+
+	newCipherCtx, err := utils.CreateCipherCtx(newCryptoConfig)
+	if err != nil {
+		return fmt.Errorf("CreateCipherCtx: %w", err)
+	}
+	newCipherCtx = utils.AddCipherCtxToDev(dev, newCipherCtx)
+
+	matchCtxIDs := map[string]struct{}{}
+	for _, c := range dev.GetCipherContexts() {
+		if controllerCertHashMatches(c.ControllerCertHash, oldEncCert) {
+			matchCtxIDs[c.ContextId] = struct{}{}
+		}
+	}
+
+	matches := func(holder utils.CipherDataHolder) bool {
+		cd := holder.GetCipherData()
+		if cd == nil {
+			return false
+		}
+		_, ok := matchCtxIDs[cd.CipherContextId]
+		return ok
+	}
+
+	for _, cfg := range ctrl.ListApplicationInstanceConfig() {
+		if !matches(cfg) {
+			continue
+		}
+		if err := utils.ReencryptConfigData(cfg, oldCryptoConfig, newCryptoConfig, newCipherCtx); err != nil {
+			return fmt.Errorf("reencryptConfigData (app): %w", err)
+		}
+	}
+	for _, cfg := range ctrl.ListDataStore() {
+		if !matches(cfg) {
+			continue
+		}
+		if err := utils.ReencryptConfigData(cfg, oldCryptoConfig, newCryptoConfig, newCipherCtx); err != nil {
+			return fmt.Errorf("reencryptConfigData (datastore): %w", err)
+		}
+	}
+	for _, networkConfigID := range dev.GetNetworks() {
+		networkConfig, err := ctrl.GetNetworkConfig(networkConfigID)
+		if err != nil {
+			return fmt.Errorf("GetNetworkConfig: %w", err)
+		}
+		if networkConfig == nil || networkConfig.Wireless == nil {
+			continue
+		}
+		for _, cfg := range networkConfig.Wireless.CellularCfg {
+			for _, ap := range cfg.AccessPoints {
+				if !matches(ap) {
+					continue
+				}
+				if err := utils.ReencryptConfigData(ap, oldCryptoConfig, newCryptoConfig, newCipherCtx); err != nil {
+					return fmt.Errorf("reencryptConfigData (cellular): %w", err)
+				}
+			}
+		}
+		for _, cfg := range networkConfig.Wireless.WifiCfg {
+			if !matches(cfg) {
+				continue
+			}
+			if err := utils.ReencryptConfigData(cfg, oldCryptoConfig, newCryptoConfig, newCipherCtx); err != nil {
+				return fmt.Errorf("reencryptConfigData (wifi): %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// controllerCertHashMatches returns true iff the first 16 bytes of the
+// CipherContext.ControllerCertHash equal the first 16 bytes of sha256 of the
+// trimmed PEM-encoded cert (the same way Eden computed it at encrypt time -
+// see utils.GetCommonCryptoConfig and utils.CreateCipherCtx).
+func controllerCertHashMatches(ctxHash []byte, certPEM []byte) bool {
+	if len(ctxHash) == 0 || len(certPEM) == 0 {
+		return false
+	}
+	sum := sha256.Sum256([]byte(strings.TrimSpace(string(certPEM))))
+	expect := sum[:16]
+	if len(ctxHash) < len(expect) {
+		return false
+	}
+	for i := range expect {
+		if ctxHash[i] != expect[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // atomicWriteFile writes data to path via a tmpfile in the same directory
 // followed by an atomic os.Rename. The tmpfile is fsynced before rename so
 // a crash post-rename cannot lose the new content. The destination's mode
@@ -202,9 +385,31 @@ func reencryptConfigs(ctrl controller.Cloud, dev *device.Ctx, newSignCert, newSi
 	// add cipher context to device or return a matching existing one
 	cipherCtx = utils.AddCipherCtxToDev(dev, cipherCtx)
 
+	// Only re-encrypt configs whose CipherContext references the OLD signing
+	// cert hash. Configs encrypted with the encrypt cert (--use-encrypt-cert)
+	// are owned by change-encrypt-cert and are left untouched here, so the
+	// two rotations can coexist without one breaking the other.
+	matchCtxIDs := map[string]struct{}{}
+	for _, c := range dev.GetCipherContexts() {
+		if controllerCertHashMatches(c.ControllerCertHash, oldSignCert) {
+			matchCtxIDs[c.ContextId] = struct{}{}
+		}
+	}
+	matches := func(holder utils.CipherDataHolder) bool {
+		cd := holder.GetCipherData()
+		if cd == nil {
+			return false
+		}
+		_, ok := matchCtxIDs[cd.CipherContextId]
+		return ok
+	}
+
 	// re-encrypt all app configs with the new signing certificate
 	appConfigs := ctrl.ListApplicationInstanceConfig()
 	for _, config := range appConfigs {
+		if !matches(config) {
+			continue
+		}
 		if err = utils.ReencryptConfigData(config, oldCryptoConfig, newCryptoConfig, cipherCtx); err != nil {
 			return fmt.Errorf("reencryptConfigData: %w", err)
 		}
@@ -213,6 +418,9 @@ func reencryptConfigs(ctrl controller.Cloud, dev *device.Ctx, newSignCert, newSi
 	// re-encrypt all datastore configs with the new signing certificate
 	dsConfigs := ctrl.ListDataStore()
 	for _, config := range dsConfigs {
+		if !matches(config) {
+			continue
+		}
 		if err = utils.ReencryptConfigData(config, oldCryptoConfig, newCryptoConfig, cipherCtx); err != nil {
 			return fmt.Errorf("reencryptConfigData: %w", err)
 		}
@@ -227,12 +435,18 @@ func reencryptConfigs(ctrl controller.Cloud, dev *device.Ctx, newSignCert, newSi
 		if networkConfig != nil && networkConfig.Wireless != nil {
 			for _, config := range networkConfig.Wireless.CellularCfg {
 				for _, ap := range config.AccessPoints {
+					if !matches(ap) {
+						continue
+					}
 					if err = utils.ReencryptConfigData(ap, oldCryptoConfig, newCryptoConfig, cipherCtx); err != nil {
 						return fmt.Errorf("reencryptConfigData: %w", err)
 					}
 				}
 			}
 			for _, config := range networkConfig.Wireless.WifiCfg {
+				if !matches(config) {
+					continue
+				}
 				if err = utils.ReencryptConfigData(config, oldCryptoConfig, newCryptoConfig, cipherCtx); err != nil {
 					return fmt.Errorf("reencryptConfigData: %w", err)
 				}

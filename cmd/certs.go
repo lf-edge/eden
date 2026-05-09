@@ -81,3 +81,37 @@ written to --out and the matching private key to --key-out.`,
 
 	return certsCmd
 }
+
+func newGenEncryptCertCmd() *cobra.Command {
+	var certPath, keyPath string
+
+	var certsCmd = &cobra.Command{
+		Use:   "gen-encrypt-cert",
+		Short: "generate new ECDH encryption certificate for controller",
+		Long: `Generate a fresh ECDSA P-256 key pair and an encryption (ECDH)
+certificate containing the new public key, signed by the eden root CA. The
+cert is written to --out and the matching private key to --key-out. This is
+the certificate adam serves as CERT_TYPE_CONTROLLER_ECDH_EXCHANGE on /certs
+and is used by EVE for cipher block decryption.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if keyPath == "" {
+				keyPath = strings.TrimSuffix(certPath, ".pem") + "-key.pem"
+			}
+			if err := utils.GenEncryptCertWithNewKey(certPath, keyPath); err != nil {
+				log.Errorf("cannot generate encrypt cert: %s", err)
+			} else {
+				log.Infof("Generated encrypt cert at %s and key at %s", certPath, keyPath)
+			}
+		},
+	}
+
+	edenHome, err := utils.DefaultEdenDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	certsCmd.Flags().StringVarP(&certPath, "out", "o", filepath.Join(edenHome, defaults.DefaultCertsDist, "encrypt-new.pem"), "certificate output path")
+	certsCmd.Flags().StringVar(&keyPath, "key-out", "", "private-key output path (default: <out> with .pem replaced by -key.pem)")
+
+	return certsCmd
+}

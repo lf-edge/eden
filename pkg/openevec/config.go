@@ -233,6 +233,7 @@ type PodConfig struct {
 	SftpLoad          bool
 	DirectLoad        bool
 	OpenStackMetadata bool
+	UseEncryptCert    bool
 	DatastoreOverride string
 	ACLOnlyHost       bool
 }
