@@ -18,7 +18,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 // HandlerFunc must process info.ZInfoMsg and return true to exit
@@ -29,10 +28,15 @@ type HandlerFunc func(im *info.ZInfoMsg) bool
 // and return true to exit or false to continue
 type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) bool
 
-// ParseZInfoMsg unmarshal ZInfoMsg
+// ParseZInfoMsg unmarshal ZInfoMsg.
+//
+// Adam stores info messages as JSON in its redis stream (see adam commit
+// 3af1f41 "Store info and metrics as JSON, remove conversionFunc from
+// deviceDataGet", 2026-03-24); use protojson.Unmarshal to match — the
+// same decoder elog and eapps already use for log entries.
 func ParseZInfoMsg(data []byte) (ZInfoMsg *info.ZInfoMsg, err error) {
 	var zi info.ZInfoMsg
-	err = proto.Unmarshal(data, &zi)
+	err = protojson.Unmarshal(data, &zi)
 	return &zi, err
 }
 
