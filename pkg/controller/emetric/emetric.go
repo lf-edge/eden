@@ -18,7 +18,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 // MetricCheckerMode is MetricExist, MetricNew and MetricAny
@@ -36,10 +35,15 @@ const (
 	MetricAny   MetricCheckerMode = -1 //MetricAny use both mechanisms
 )
 
-// ParseMetricsBundle unmarshal LogBundle
+// ParseMetricsBundle unmarshal ZMetricMsg.
+//
+// Adam stores metric messages as JSON in its redis stream (see adam commit
+// 3af1f41 "Store info and metrics as JSON, remove conversionFunc from
+// deviceDataGet", 2026-03-24); use protojson.Unmarshal to match — the
+// same decoder elog and eapps already use for log entries.
 func ParseMetricsBundle(data []byte) (logBundle *metrics.ZMetricMsg, err error) {
 	var lb metrics.ZMetricMsg
-	err = proto.Unmarshal(data, &lb)
+	err = protojson.Unmarshal(data, &lb)
 	return &lb, err
 }
 
