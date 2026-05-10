@@ -10,6 +10,22 @@ exec sleep 60
 eden -t 2m eve start
 ! stderr .
 
-eden eve status
-stdout 'EVE on .* status: running'
-! stderr .
+# `eden eve status` only checks that qemu's PID is alive; that's not
+# enough — downstream tests in the smoke suite (info_test, metric_test,
+# ssh_test) assume EVE has finished attestation/onboard and is
+# publishing to the controller. On coverage-instrumented builds the
+# post-restart republish can take ~12 min, so wait up to 20 min for a
+# fresh ZiDevice. The epoch bump nudges EVE to republish info on its
+# next config poll once it's reachable.
+eden eve epoch
+test eden.lim.test -test.v -timewait 20m -test.run TestInfo -out InfoContent.dinfo.machineArch 'InfoContent.dinfo.machineArch:.+'
+stdout 'x86_64|aarch64'
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
