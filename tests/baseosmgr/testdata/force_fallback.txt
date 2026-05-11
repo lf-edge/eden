@@ -102,8 +102,12 @@ message 'Asserting rollback to previous version'
 eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active' --tail=1
 cmp stdout old_ver
 
-# Reset config and clear the leftover baseos config so subsequent
-# tests start clean.
+# Clear adam's leftover BaseOsConfig for the test version so subsequent
+# tests / suites start with a clean controller-side state.
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+exec sleep 10
+
+# Reset config back to defaults.
 eden eve reset
 
 -- eden-config.yml --
