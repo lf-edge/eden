@@ -144,7 +144,37 @@ message 'Waiting for the retry to commit (new partition active again)'
 eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active' --tail=1
 stdout '{{ $short_version }}'
 
-# Reset config back to defaults.
+# Revert EVE back to the originally-configured version so the device
+# is left in a known state for downstream tests / suites. The retry
+# committed the NEW version onto the active partition, so without
+# this revert the device stays on $short_version forever.
+{{$orig_ver := EdenConfig "eve.tag"}}
+{{$orig_short := printf "%s-%s-%s" $orig_ver $eve_hv $eve_arch}}
+
+message 'Reverting EVE to original version ({{$orig_ver}})'
+# Clear the leftover BaseOsConfig so the next eveimage-update is a
+# fresh request (otherwise adam may treat the original-version push
+# as a no-op against the still-installed $short_version).
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{ $short_version }}
+exec sleep 20
+
+# Pre-fetch the original rootfs.
+eden -t 10m utils download eve-rootfs --eve-tag={{ $orig_ver }} --eve-hv={{ $eve_hv }} --eve-registry={{ $eve_registry }} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $orig_short }}.squashfs'
+
+# Push the downgrade and wait for it to commit (active on $orig_short).
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $orig_short }}.squashfs -m adam://
+! stderr .
+
+{{$test}} -out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active InfoContent.dinfo.SwList[0].ShortVersion:{{ $orig_short }}'
+eden -t 1m info --out InfoContent.dinfo.SwList[0].ShortVersion 'InfoContent.dinfo.SwList[0].PartitionState:active' --tail=1
+stdout '{{ $orig_short }}'
+
+# Clear adam's BaseOsConfig (so it doesn't push the downgrade again
+# next session) and reset device config back to defaults.
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $orig_short }}.squashfs -m adam:// --os-version={{ $orig_short }}
+exec sleep 10
+
 eden eve reset
 
 {{else}}
