@@ -76,6 +76,11 @@ eden controller edge-node update --config timer.test.baseimage.update=30
 # Reset EVE version
 test eden.escript.test -test.run TestEdenScripts/revert_eve_image_update -test.v -testdata {{EdenConfig "eden.tests"}}/update_eve_image/testdata/
 
+# Clear adam's leftover BaseOsConfig for the test version so subsequent
+# tests / suites start with a clean controller-side state.
+eden -t 1m controller edge-node eveimage-remove oci://docker.io/{{$eve_registry}}:{{$eve_ver}}-{{$eve_hv}}-{{$eve_arch}} -m adam:// --os-version={{ $short_version }}
+exec sleep 10
+
 # Reset EVE config
 eden eve reset
 
