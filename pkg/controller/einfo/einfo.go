@@ -36,7 +36,7 @@ type QHandlerFunc func(im *info.ZInfoMsg, query map[string]string) bool
 // same decoder elog and eapps already use for log entries.
 func ParseZInfoMsg(data []byte) (ZInfoMsg *info.ZInfoMsg, err error) {
 	var zi info.ZInfoMsg
-	err = protojson.Unmarshal(data, &zi)
+	err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(data, &zi)
 	return &zi, err
 }
 

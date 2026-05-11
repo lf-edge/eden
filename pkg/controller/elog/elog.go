@@ -45,7 +45,7 @@ const (
 // ParseFullLogEntry unmarshal FullLogEntry
 func ParseFullLogEntry(data []byte) (fullLogEntry *FullLogEntry, err error) {
 	var lb FullLogEntry
-	err = protojson.Unmarshal(data, &lb)
+	err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(data, &lb)
 	return &lb, err
 }
 

@@ -38,7 +38,7 @@ const (
 // ParseLogEntry unmarshal LogEntry
 func ParseLogEntry(data []byte) (logEntry *logs.LogEntry, err error) {
 	var le logs.LogEntry
-	err = protojson.Unmarshal(data, &le)
+	err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(data, &le)
 	return &le, err
 }
 

@@ -43,7 +43,7 @@ const (
 // same decoder elog and eapps already use for log entries.
 func ParseMetricsBundle(data []byte) (logBundle *metrics.ZMetricMsg, err error) {
 	var lb metrics.ZMetricMsg
-	err = protojson.Unmarshal(data, &lb)
+	err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(data, &lb)
 	return &lb, err
 }
 
