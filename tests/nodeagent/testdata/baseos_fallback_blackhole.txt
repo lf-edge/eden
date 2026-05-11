@@ -104,7 +104,12 @@ message 'Asserting last_boot_reason'
 {{$test}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_FALLBACK'
 stdout 'BOOT_REASON_FALLBACK'
 
-# Reset config and clear the leftover update.
+# Clear adam's leftover BaseOsConfig for the test version so subsequent
+# tests / suites start with a clean controller-side state.
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+exec sleep 10
+
+# Reset config back to defaults.
 eden eve reset
 
 {{else}}
