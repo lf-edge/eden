@@ -47,6 +47,22 @@ runs:
       run: EDEN_TEST_STOP=n ./eden test ./tests/workflow -s ${{ inputs.suite }} -v debug
       shell: bash
       working-directory: "./eden"
+    - name: Collect coverage
+      if: always()
+      run: |
+        mkdir -p eden_coverage
+        ./eden eve collect-coverage --output-dir ./eden_coverage || true
+        ls -la eden_coverage/ || true
+      shell: bash
+      working-directory: "./eden"
+    - name: Upload coverage artifact
+      if: always() && hashFiles('./eden/eden_coverage/eden_e2e_coverage.txt') != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: covdata-${{ inputs.suite }}-fs-${{ inputs.file_system }}-tpm-${{ inputs.tpm_enabled }}-attempt-${{ github.run_attempt }}
+        path: ./eden/eden_coverage/
+        if-no-files-found: warn
+        retention-days: 7
     - name: Collect info
       if: failure()
       uses: ./eden/.github/actions/collect-info
