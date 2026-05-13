@@ -79,6 +79,11 @@ stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs'
 # path actually re-attempts a fresh install.
 message 'Clearing any stale baseos config from prior runs'
 eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+
+# Verify the controller config no longer references the removed image
+eden controller edge-node get-config
+! stdout '{{ $short_version }}'
+
 exec sleep 20
 
 # Step 2: trigger the update.
@@ -156,6 +161,11 @@ message 'Reverting EVE to original version ({{$orig_ver}})'
 # fresh request (otherwise adam may treat the original-version push
 # as a no-op against the still-installed $short_version).
 eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{ $short_version }}
+
+# Verify the controller config no longer references the removed image
+eden controller edge-node get-config
+! stdout '{{ $short_version }}'
+
 exec sleep 20
 
 # Pre-fetch the original rootfs.
@@ -173,6 +183,11 @@ stdout '{{ $orig_short }}'
 # Clear adam's BaseOsConfig (so it doesn't push the downgrade again
 # next session) and reset device config back to defaults.
 eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $orig_short }}.squashfs -m adam:// --os-version={{ $orig_short }}
+
+# Verify the controller config no longer references the removed image
+eden controller edge-node get-config
+! stdout '{{ $orig_short }}'
+
 exec sleep 10
 
 eden eve reset
