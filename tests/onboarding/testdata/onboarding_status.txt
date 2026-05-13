@@ -1,0 +1,55 @@
+# Test: onboarding produces the expected on-device artifacts.
+#
+# Asserts that after onboarding the device has:
+#   * /persist/status/uuid containing a parseable UUID,
+#   * a kernel hostname matching that UUID,
+#   * /persist/status/hardwaremodel containing a non-empty model string.
+#
+# Exercises the post-loop publishing path in pkg/pillar/cmd/client (the
+# hostname call, the uuid and hardwaremodel file writes, and the
+# OnboardingStatus publication) plus the entire onboarding event loop.
+
+[!exec:bash] stop
+
+eden eve onboard
+stdout 'onboarded'
+
+# Wait for the artifacts; zedclient writes them shortly after the
+# controller hands back the UUID. Allow up to 3 minutes for sshd
+# readiness and the filesystem write to settle.
+exec -t 3m bash check_onboarding_artifacts.sh
+stdout 'onboarding-ok'
+
+-- check_onboarding_artifacts.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+uuid_re='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+
+uuid=""
+hn=""
+hw=""
+
+for _ in $(seq 1 30); do
+    uuid=$($EDEN eve ssh -- cat /persist/status/uuid 2>/dev/null | tr -d '\r\n ')
+    hn=$($EDEN eve ssh -- hostname 2>/dev/null | tr -d '\r\n ')
+    hw=$($EDEN eve ssh -- cat /persist/status/hardwaremodel 2>/dev/null | tr -d '\r\n ')
+    if [[ "$uuid" =~ $uuid_re && "$hn" == "$uuid" && -n "$hw" ]]; then
+        echo "onboarding-ok uuid=${uuid} hardwaremodel=${hw}"
+        exit 0
+    fi
+    sleep 6
+done
+
+echo "onboarding-not-ok uuid='${uuid}' hostname='${hn}' hardwaremodel='${hw}'"
+exit 1
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

@@ -1,0 +1,1 @@
+eden.escript.test -test.run TestEdenScripts/onboarding_status -test.timeout 10m
