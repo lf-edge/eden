@@ -215,6 +215,26 @@ func (openEVEC *OpenEVEC) EdgeNodeEVEImageRemove(controllerMode, baseOSVersion, 
 			}
 		}
 	}
+
+	// Symmetric counterpart to EdgeNodeEVEImageUpdate: when the removed
+	// version matches the modern single-block baseos fields, clear them
+	// and drop the corresponding ContentTree reference. Without this,
+	// EdgeDevConfig still ships baseos:{activate:true, version:<X>,
+	// content_tree_uuid:<Y>} and contentInfo:[<Y>] to the device.
+	if dev.GetBaseOSVersion() == baseOSVersion {
+		ctUUID := dev.GetBaseOSContentTree()
+		dev.SetBaseOSActivate(false)
+		dev.SetBaseOSContentTree("")
+		dev.SetBaseOSVersion("")
+		dev.SetBaseOSRetryCounter(0)
+		if ctUUID != "" {
+			if err := ctrl.RemoveContentTree(ctUUID); err != nil {
+				log.Debugf("RemoveContentTree(%s): %v (orphan tolerated)", ctUUID, err)
+			}
+		}
+		log.Infof("EVE base OS image removed (modern baseos block cleared for %s)", baseOSVersion)
+	}
+
 	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
 		return fmt.Errorf("setControllerAndDev error: %w", err)
 	}
