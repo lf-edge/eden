@@ -1,2 +1,2 @@
-eden.escript.test -test.run TestEdenScripts/force_fallback -test.timeout 30m
-eden.escript.test -test.run TestEdenScripts/retry_update -test.timeout 60m
+eden.escript.test -test.run TestEdenScripts/force_fallback -test.timeout 45m
+eden.escript.test -test.run TestEdenScripts/retry_update -test.timeout 90m

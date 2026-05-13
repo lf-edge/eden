@@ -70,6 +70,11 @@ stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs'
 # + brief wait gives us a clean slate.
 message 'Clearing any stale baseos config from prior runs'
 eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+
+# Verify the controller config no longer references the removed image
+eden controller edge-node get-config
+! stdout '{{ $short_version }}'
+
 exec sleep 20
 
 # Step 2: trigger upgrade and wait for it to commit (active on new ver).
@@ -105,6 +110,11 @@ cmp stdout old_ver
 # Clear adam's leftover BaseOsConfig for the test version so subsequent
 # tests / suites start with a clean controller-side state.
 eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{$short_version}}
+
+# Verify the controller config no longer references the removed image
+eden controller edge-node get-config
+! stdout '{{ $short_version }}'
+
 exec sleep 10
 
 # Reset config back to defaults.
