@@ -236,6 +236,7 @@ type PodConfig struct {
 	UseEncryptCert    bool
 	DatastoreOverride string
 	ACLOnlyHost       bool
+	DisableLogs       bool
 }
 
 func Merge(dst, src reflect.Value, flags *pflag.FlagSet) {
