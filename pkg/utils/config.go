@@ -2,8 +2,10 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net"
 	"os"
 	"os/user"
@@ -19,6 +21,22 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+// GenerateRandomSerial returns a 10-digit numeric SMBIOS serial. New eden
+// contexts get a unique serial per `eden config add` so two devices ever
+// onboarded against the same adam don't collide on the (onboard-cert,
+// serial) tuple.
+func GenerateRandomSerial() (string, error) {
+	var s strings.Builder
+	for i := 0; i < 10; i++ {
+		n, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			return "", fmt.Errorf("GenerateRandomSerial: %w", err)
+		}
+		s.WriteString(strconv.FormatInt(n.Int64(), 10))
+	}
+	return s.String(), nil
+}
 
 var viperAccessMutex sync.RWMutex
 
@@ -304,6 +322,11 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		return err
 	}
 
+	eveSerial, err := GenerateRandomSerial()
+	if err != nil {
+		return err
+	}
+
 	imageDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultImageDist)
 
 	certsDist := fmt.Sprintf("%s-%s", context.Current, defaults.DefaultCertsDist)
@@ -380,7 +403,7 @@ func generateConfigFileFromTemplate(filePath string, templateString string, cont
 		case "eve.hv":
 			return defaults.DefaultEVEHV
 		case "eve.serial":
-			return defaults.DefaultEVESerial
+			return eveSerial
 		case "eve.cert":
 			return filepath.Join(certsDist, "onboard.cert.pem")
 		case "eve.device-cert":

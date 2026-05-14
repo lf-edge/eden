@@ -101,6 +101,16 @@ func ConfigAdd(cfg *EdenSetupArgs, currentContext, contextFile string, force boo
 			log.Infof("Context file generated: %s", cfg.ConfigFile)
 		} else {
 			log.Infof("Config file already exists %s", cfg.ConfigFile)
+			// Preserve the existing yaml unchanged. Otherwise the
+			// WriteConfig at the end of this function overwrites
+			// fields like eve.serial with fresh defaults, which is
+			// surprising after a `config add NAME` re-run against
+			// an onboarded context. Use `--force` to opt into
+			// regeneration.
+			if !force {
+				context.SetContext(currentContextName)
+				return nil
+			}
 		}
 	}
 	context.SetContext(context.Current)
