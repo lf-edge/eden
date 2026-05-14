@@ -36,6 +36,11 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 		return nil, err
 	}
 
+	eveSerial, err := utils.GenerateRandomSerial()
+	if err != nil {
+		return nil, err
+	}
+
 	imageDist := filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultImageDist))
 	certsDist := filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-%s", defaults.DefaultContext, defaults.DefaultCertsDist))
 
@@ -142,7 +147,7 @@ func GetDefaultConfig(projectRootPath string) (*EdenSetupArgs, error) {
 			QemuCpus:       defaults.DefaultCpus,
 			QemuMemory:     defaults.DefaultMemory,
 			ImageSizeMB:    defaults.DefaultEVEImageSize,
-			Serial:         defaults.DefaultEVESerial,
+			Serial:         eveSerial,
 			Pid:            filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-eve.pid", strings.ToLower(defaults.DefaultContext))),
 			Log:            filepath.Join(projectRootPath, defaults.DefaultDist, fmt.Sprintf("%s-eve.log", strings.ToLower(defaults.DefaultContext))),
 			TelnetPort:     defaults.DefaultTelnetPort,
