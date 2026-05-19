@@ -248,7 +248,7 @@ echo "eth0 origin not lps (Origin=$o)"
       "wifiConfig": {
         "ssid": "lps-test-ssid",
         "keyScheme": "WIFI_KEY_SCHEME_WPA_PSK",
-        "password": "irrelevant-the-port-will-be-rejected-on-type-mismatch"
+        "password": "<redacted>"
       }
     }
   ]
