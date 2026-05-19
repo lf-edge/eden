@@ -115,12 +115,12 @@ exit 1
 
 -- drop-override.sh --
 #!/bin/bash
-# /config is a read-only tmpfs at runtime; the persistent backing is the
-# CONFIG partition (/dev/sda4, vfat). We mount it to a scratch path,
-# write override.json under DevicePortConfig/, then unmount so the next
-# boot picks it up via the normal /config mount.
+# /config is a read-only tmpfs at runtime; `eve config mount <path>`
+# exposes the underlying persistent CONFIG partition at <path>, write
+# override.json under DevicePortConfig/, then `eve config unmount` so
+# the next boot picks it up via the normal /config mount.
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && mkdir -p /run/test-config/DevicePortConfig'
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && mkdir -p /run/test-config/DevicePortConfig'
 $EDEN eve ssh "cat > /run/test-config/DevicePortConfig/override.json" <<'JSON'
 {
   "Version": 1,
@@ -138,9 +138,9 @@ $EDEN eve ssh "cat > /run/test-config/DevicePortConfig/override.json" <<'JSON'
   ]
 }
 JSON
-$EDEN eve ssh 'sync && umount /run/test-config'
+$EDEN eve ssh 'sync && eve config unmount'
 # Verify by re-mounting and listing.
-out=$($EDEN eve ssh 'mount /dev/sda4 /run/test-config && ls /run/test-config/DevicePortConfig/override.json 2>/dev/null; umount /run/test-config')
+out=$($EDEN eve ssh 'eve config mount /run/test-config && ls /run/test-config/DevicePortConfig/override.json 2>/dev/null; eve config unmount')
 case "$out" in
     *override.json*) echo "override.json dropped" ;;
     *) echo "override.json missing after write"; exit 1 ;;
@@ -195,7 +195,7 @@ fi
 -- cleanup.sh --
 #!/bin/bash
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && rm -f /run/test-config/DevicePortConfig/override.json && sync && umount /run/test-config' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && rm -f /run/test-config/DevicePortConfig/override.json && sync && eve config unmount' 2>/dev/null || true
 true
 
 -- kill_watchdog.sh --
