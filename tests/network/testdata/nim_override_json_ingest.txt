@@ -83,6 +83,14 @@ stdout 'override key present'
 exec -t 1m bash check-origin-override.sh
 stdout 'origin OVERRIDE'
 
+# Field-fidelity assertion: the distinctive Logicallabel from the staged
+# JSON ("firstport-override") round-trips through DoSanitize and into the
+# DPCList entry's Ports[0].Logicallabel. Other port fields (IfName,
+# IsMgmt, IsL3Port, Dhcp) round-trip too. A regression that silently
+# dropped/normalized any of these would be caught here.
+exec -t 1m bash check-port-fidelity.sh
+stdout 'port fields match'
+
 # Cleanup: remove override.json so subsequent tests boot cleanly.
 exec -t 1m bash cleanup.sh
 
@@ -122,18 +130,19 @@ exit 1
 # NOTE: `eden eve ssh '<multi-line>'` collapses newlines to spaces, so we
 # must join commands with `;` (or `&&`) on a single line.
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && mount /dev/sda4 /run/test-config 2>/dev/null && rm -f /run/test-config/DevicePortConfig/override.json && sync && umount /run/test-config) 2>/dev/null; true' 2>/dev/null || true
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && eve config mount /run/test-config 2>/dev/null && rm -f /run/test-config/DevicePortConfig/override.json && sync && eve config unmount) 2>/dev/null; true' 2>/dev/null || true
 true
 
 -- stage-override.sh --
 #!/bin/bash
-# /config is a read-only tmpfs at runtime; the persistent backing is the
-# CONFIG partition (/dev/sda4, vfat). Mount it, write override.json under
-# DevicePortConfig/, then unmount. lastconfig is handled separately by
-# freeze-lastconfig.sh, which replaces it with a zero-byte chattr +i file
-# so zedagent cannot rewrite it before NIM's next startup.
+# /config is a read-only tmpfs at runtime; `eve config mount <path>`
+# exposes the underlying persistent CONFIG partition. Write override.json
+# under DevicePortConfig/, then `eve config unmount`. lastconfig is
+# handled separately by freeze-lastconfig.sh, which deletes it and
+# locks /persist/checkpoint via chattr +i so zedagent cannot rewrite
+# it before NIM's next startup.
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && mkdir -p /run/test-config/DevicePortConfig'
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && mkdir -p /run/test-config/DevicePortConfig'
 $EDEN eve ssh "cat > /run/test-config/DevicePortConfig/override.json" <<'JSON'
 {
   "Version": 1,
@@ -143,7 +152,7 @@ $EDEN eve ssh "cat > /run/test-config/DevicePortConfig/override.json" <<'JSON'
     {
       "IfName": "eth0",
       "Phylabel": "eth0",
-      "Logicallabel": "eth0",
+      "Logicallabel": "firstport-override",
       "IsMgmt": true,
       "IsL3Port": true,
       "Dhcp": 4
@@ -151,8 +160,8 @@ $EDEN eve ssh "cat > /run/test-config/DevicePortConfig/override.json" <<'JSON'
   ]
 }
 JSON
-$EDEN eve ssh 'sync && umount /run/test-config'
-out=$($EDEN eve ssh 'mount /dev/sda4 /run/test-config && ls /run/test-config/DevicePortConfig/override.json 2>/dev/null; umount /run/test-config')
+$EDEN eve ssh 'sync && eve config unmount'
+out=$($EDEN eve ssh 'eve config mount /run/test-config && ls /run/test-config/DevicePortConfig/override.json 2>/dev/null; eve config unmount')
 case "$out" in
     *override.json*) echo "override.json staged" ;;
     *) echo "override.json missing after write"; exit 1 ;;
@@ -235,17 +244,43 @@ esac
 echo "unexpected origin: '$origin'"
 exit 1
 
+-- check-port-fidelity.sh --
+#!/bin/bash
+# Read the override entry's Ports[0] from DPCList and confirm the values
+# we wrote into override.json round-tripped intact. Logicallabel is the
+# distinctive marker; the other fields catch zero-value-vs-default drift.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+expr='.PortConfigList[] | select(.Key=="override") | .Ports[0]'
+ll=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .Logicallabel' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ifn=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IfName' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ismgmt=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IsMgmt' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+isl3=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IsL3Port' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+dhcp=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .Dhcp' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ll=${ll//$'\r'/}; ifn=${ifn//$'\r'/}; ismgmt=${ismgmt//$'\r'/}; isl3=${isl3//$'\r'/}; dhcp=${dhcp//$'\r'/}
+fail=0
+[ "$ll" = "firstport-override" ] || { echo "Logicallabel='$ll' (want firstport-override)"; fail=1; }
+[ "$ifn" = "eth0" ]              || { echo "IfName='$ifn' (want eth0)"; fail=1; }
+[ "$ismgmt" = "true" ]           || { echo "IsMgmt='$ismgmt' (want true)"; fail=1; }
+[ "$isl3" = "true" ]             || { echo "IsL3Port='$isl3' (want true)"; fail=1; }
+[ "$dhcp" = "4" ]                || { echo "Dhcp='$dhcp' (want 4)"; fail=1; }
+if [ "$fail" = "0" ]; then
+    echo "port fields match"
+    exit 0
+fi
+exit 1
+
 -- cleanup.sh --
 #!/bin/bash
 # Clear immutable flag on /persist/checkpoint (and on the legacy file
 # locations) so zedagent can write again, then remove the override.json
-# from /dev/sda4 and any /run copy. Best-effort.
+# from the CONFIG partition (via `eve config mount`) and any /run copy.
+# Best-effort.
 #
 # NOTE: `eden eve ssh '<multi-line>'` collapses newlines to spaces, so we
 # join commands with `;` on a single line.
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 $EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; true' 2>/dev/null || true
-$EDEN eve ssh 'mkdir -p /run/test-config && mount /dev/sda4 /run/test-config && rm -f /run/test-config/DevicePortConfig/override.json && sync && umount /run/test-config' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && rm -f /run/test-config/DevicePortConfig/override.json && sync && eve config unmount' 2>/dev/null || true
 $EDEN eve ssh 'rm -f /run/global/DevicePortConfig/override.json' 2>/dev/null || true
 true
 
