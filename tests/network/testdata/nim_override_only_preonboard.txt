@@ -1,0 +1,281 @@
+# Test: /config/DevicePortConfig/override.json is applied on first boot,
+# without a bootstrap pb, verified pre-onboard.
+#
+# When /config/bootstrap-config.pb is absent, zedagent's first-boot
+# path (handleconfig.go:354) falls through to loadGlobalConfig
+# which reads /config/GlobalConfig/global.json and (if global.json
+# exists at all) /config/authorized_keys to populate SSHAuthorizedKeys.
+# NIM's ingestDevicePortConfig copies /config/DevicePortConfig/*.json
+# to /run/global/DevicePortConfig/ and publishes them as DPCs.
+#
+# Staging:
+#   /config/DevicePortConfig/override.json  — DPC with Logicallabel "override-port"
+#   /config/GlobalConfig/global.json        — minimal; embeds debug.enable.ssh
+#                                              so SSHAuthorizedKeys gets set
+#                                              and iptables opens TCP/22.
+#                                              (loadGlobalConfig returns early
+#                                              if global.json is missing, so
+#                                              we need the file to exist even
+#                                              just to enable the SSH path.)
+#
+# Without a bootstrap-pb, the asymmetric "bootstrap config is present →
+# skip GlobalConfig/authorized_keys" branch in zedagent.go:439-451 is
+# NOT taken. loadGlobalConfig runs.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go ingestDevicePortConfig() ignoreBootstraps=false branch
+#                              (lastconfig absent → /config DPCs get copied).
+#   pkg/pillar/cmd/zedagent/handleconfig.go loadGlobalConfig non-bootstrap path.
+
+# Requires no captured template (this scenario has no bootstrap pb).
+# Note on FAIL noise — see nim_bootstrap_only_preonboard.txt header.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:docker] skip 'requires docker on PATH for state-wipe'
+
+exec -t 5m bash wipe-eden-state.sh
+stdout 'eden state wiped'
+
+exec -t 1m bash stage-overlay-dir.sh
+stdout 'overlay staged'
+
+# eden setup is called WITHOUT --eve-bootstrap-file so no bootstrap pb
+# is baked into /config — only the overlay's GlobalConfig + DPC override.
+exec -t 8m bash run-eden-setup.sh
+stdout 'eden setup done'
+
+exec -t 3m bash run-eden-start.sh
+stdout 'eden started'
+
+# Bug-class canary — SSH up iff loadGlobalConfig parsed our global.json
+# and applied debug.enable.ssh.
+exec -t 7m bash wait-ssh-preonboard.sh
+stdout 'ssh ok'
+
+# Override DPC was ingested by NIM and published in DPCL.
+exec -t 1m bash wait-override-ingested.sh
+stdout 'override ingested'
+
+# Override entry's Logicallabel matches the staged marker.
+exec -t 1m bash check-override-port-fidelity.sh
+stdout 'override port fields match'
+
+# /run/global/DevicePortConfig/override.json exists — proves NIM did
+# the legacy /config → /run copy.
+exec -t 1m bash check-runtime-dir-has-override.sh
+stdout 'override present in runtime dir'
+
+# No bootstrap-keyed DPC (we deliberately didn't stage one).
+exec -t 1m bash check-no-bootstrap-key.sh
+stdout 'no bootstrap key'
+
+# No zedagent-keyed DPC (device unonboarded).
+exec -t 1m bash check-no-zedagent-key.sh
+stdout 'no zedagent key'
+
+# No /persist/checkpoint/lastconfig.
+exec -t 1m bash check-no-lastconfig.sh
+stdout 'no lastconfig'
+
+exec -t 5m bash wipe-eden-state.sh
+stdout 'eden state wiped'
+
+-- wipe-eden-state.sh --
+#!/bin/bash
+set -u
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+EDEN_ROOT={{EdenConfig "eden.root"}}
+"$EDEN" stop 2>/dev/null || true
+docker rm -fv eden_adam eden_redis eden_eserver eden_registry 2>/dev/null || true
+docker volume rm eden_adam_volume eden_redis_volume \
+                 eden_eserver_volume eden_registry_volume 2>/dev/null || true
+pkill -f "swtpm.*${EDEN_ROOT}" 2>/dev/null || true
+pkill -f "qemu-system.*${EDEN_ROOT}" 2>/dev/null || true
+rm -rf "${EDEN_ROOT}/default-images/eve/"
+# Clean overlay leavings from default-certs/. eden setup's CopyFolder
+# uses bare os.Mkdir, which errors out if these subdirs/files already
+# exist from a prior test's overlay.
+rm -rf "${EDEN_ROOT}/default-certs/DevicePortConfig"
+rm -rf "${EDEN_ROOT}/default-certs/GlobalConfig"
+rm -f  "${EDEN_ROOT}/default-certs/bootstrap-config.pb"
+rm -f  "${EDEN_ROOT}/default-certs/authorized_keys"
+echo "eden state wiped"
+
+-- stage-overlay-dir.sh --
+#!/bin/bash
+# Build a /config overlay containing:
+#   GlobalConfig/global.json  — minimal ConfigItemValueMap with
+#                                debug.enable.ssh = <eden pubkey>
+#                                (so SSHAuthorizedKeys is set even
+#                                without a bootstrap pb)
+#   DevicePortConfig/override.json — a DPC with Logicallabel
+#                                "override-port" that NIM will ingest.
+set -eu
+EDEN_ROOT={{EdenConfig "eden.root"}}
+PUBKEY_FILE="${EDEN_ROOT}/{{EdenConfig "eden.ssh-key"}}"
+if [ ! -s "$PUBKEY_FILE" ]; then
+    echo "no ssh pubkey at $PUBKEY_FILE"
+    exit 1
+fi
+PUBKEY=$(cat "$PUBKEY_FILE")
+PUBKEY="${PUBKEY%$'\n'}"
+
+rm -rf "$WORK/preonboard-overlay"
+mkdir -p "$WORK/preonboard-overlay/GlobalConfig"
+mkdir -p "$WORK/preonboard-overlay/DevicePortConfig"
+
+# Minimal ConfigItemValueMap. ItemType 3 = ConfigItemTypeString
+# (pkg/pillar/types/global.go:539). UpdateItemValues overlays this
+# onto the runtime DefaultConfigItemValueMap, so anything we don't
+# set keeps its default.
+jq -n --arg key "$PUBKEY" '{
+  GlobalSettings: {
+    "debug.enable.ssh": {
+      Key: "debug.enable.ssh",
+      ItemType: 3,
+      StrValue: $key,
+      IntValue: 0,
+      BoolValue: false,
+      TriStateValue: 0
+    }
+  },
+  AgentSettings: {}
+}' > "$WORK/preonboard-overlay/GlobalConfig/global.json"
+
+cat > "$WORK/preonboard-overlay/DevicePortConfig/override.json" <<'JSON'
+{
+  "Version": 1,
+  "Key": "override",
+  "TimePriority": "2030-01-01T00:00:00Z",
+  "Ports": [
+    {
+      "IfName": "eth0",
+      "Phylabel": "eth0",
+      "Logicallabel": "override-port",
+      "IsMgmt": true,
+      "IsL3Port": true,
+      "Dhcp": 4
+    }
+  ]
+}
+JSON
+echo "overlay staged"
+
+-- run-eden-setup.sh --
+#!/bin/bash
+# No --eve-bootstrap-file: this scenario tests the non-bootstrap
+# /config ingest path. Just lay down the overlay.
+set -eu
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+"$EDEN" setup --eve-config-dir "$WORK/preonboard-overlay"
+echo "eden setup done"
+
+-- run-eden-start.sh --
+#!/bin/bash
+set -eu
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+"$EDEN" start
+echo "eden started"
+
+-- wait-ssh-preonboard.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if "$EDEN" eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable after ~9 minutes"
+exit 1
+
+-- wait-override-ingested.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 60); do
+    keys=$("$EDEN" eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+    if echo "$keys" | grep -qx 'override'; then
+        echo "override ingested"
+        exit 0
+    fi
+    sleep 5
+done
+echo "override not in DPCList after 5 minutes"
+exit 1
+
+-- check-override-port-fidelity.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+expr='.PortConfigList[] | select(.Key=="override") | .Ports[0]'
+ll=$("$EDEN" eve ssh "eve exec pillar jq -r '$expr | .Logicallabel' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ifn=$("$EDEN" eve ssh "eve exec pillar jq -r '$expr | .IfName' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ll=${ll//$'\r'/}; ifn=${ifn//$'\r'/}
+fail=0
+[ "$ll" = "override-port" ] || { echo "override Logicallabel='$ll' (want override-port)"; fail=1; }
+[ "$ifn" = "eth0" ]          || { echo "override IfName='$ifn' (want eth0)"; fail=1; }
+if [ "$fail" = "0" ]; then
+    echo "override port fields match"
+    exit 0
+fi
+exit 1
+
+-- check-runtime-dir-has-override.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$("$EDEN" eve ssh 'ls /run/global/DevicePortConfig/override.json 2>/dev/null')
+if echo "$out" | grep -q 'override.json'; then
+    echo "override present in runtime dir"
+    exit 0
+fi
+echo "override.json missing from /run/global/DevicePortConfig/"
+exit 1
+
+-- check-no-bootstrap-key.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+keys=$("$EDEN" eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+if echo "$keys" | grep -qx 'bootstrap'; then
+    echo "unexpected bootstrap-keyed DPC"
+    exit 1
+fi
+echo "no bootstrap key"
+
+-- check-no-zedagent-key.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+keys=$("$EDEN" eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+if echo "$keys" | grep -qx 'zedagent'; then
+    echo "unexpected zedagent-keyed DPC: device appears to have onboarded"
+    exit 1
+fi
+echo "no zedagent key"
+
+-- check-no-lastconfig.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+sz=$("$EDEN" eve ssh 'stat -c %s /persist/checkpoint/lastconfig 2>/dev/null || echo 0' 2>/dev/null | tr -d '\r')
+if [ -z "$sz" ] || [ "$sz" = "0" ]; then
+    echo "no lastconfig"
+    exit 0
+fi
+echo "lastconfig unexpectedly present, size=$sz"
+exit 1
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
