@@ -49,11 +49,11 @@ cmp stdout ver
 # controller-side state.
 eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{ $short_version }}
 
+exec sleep 10
+
 # Verify the controller config no longer references the removed image
 eden controller edge-node get-config
 ! stdout '{{ $short_version }}'
-
-exec sleep 10
 
 # Test's config file
 -- eden-config.yml --
