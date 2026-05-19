@@ -79,7 +79,7 @@ $(BINDIR)/$(HELPER): $(LOCALHELPER) $(BINDIR)
 
 setup: testbin helper $(BINDIR) $(DATADIR)
 	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(BINDIR)
-	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
+	cp -a *.yml *.tests.txt testdata $(DATADIR)
 
 .PHONY: test build setup clean all testbin image
 
