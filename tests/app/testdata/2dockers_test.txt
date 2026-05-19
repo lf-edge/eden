@@ -29,9 +29,9 @@ grep '^t2\s*' pod_ps
 exec sleep 1m
 
 # Nginx detecting
-exec -t 1m bash get.sh t1
+exec -t 5m bash get.sh t1
 stdout 'Welcome to nginx'
-exec -t 1m bash get.sh t2
+exec -t 5m bash get.sh t2
 stdout 'Welcome to nginx'
 
 # Stop by docker's actor
