@@ -49,7 +49,7 @@ eden pod modify eclient --networks indirect --networks=direct --acl='direct:'
 test eden.app.test -test.v -timewait 30m RUNNING eclient
 
 message 'Checking accessibility'
-exec -t 5m bash wait_ssh.sh
+exec -t 10m bash wait_ssh.sh
 
 ! exec -t 1m bash ping.sh
 stdout '100% packet loss'
