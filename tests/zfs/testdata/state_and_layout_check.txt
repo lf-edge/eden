@@ -22,7 +22,10 @@ eden controller edge-node update --config timer.metric.diskscan.interval=15
 # post-resize reading by requiring a strictly larger total — that's the
 # direct property we care about ("metric now reflects the grown pool"),
 # not a stability proxy that would happily accept the stale cached value.
-exec -t 1m bash capture-persist-baseline.sh
+# Budget 5 min: volumemgr's diskMetricsTimerTask can land ~45 s after
+# onboarding on slow-boot CI runs, and zedagent ships metrics on a separate
+# 60 s ticker, so the first /persist entry can be ~100 s out from onboarding.
+exec -t 5m bash capture-persist-baseline.sh
 source .env
 
 # check for storage state
@@ -98,7 +101,7 @@ eden eve epoch &
 # disk-metric collector samples on its own ticker — verify the reported
 # total is strictly larger than the pre-perturbation baseline before
 # yielding to the next test.
-exec -t 5m bash wait-for-persist-grew.sh
+exec -t 6m bash wait-for-persist-grew.sh
 eden eve reset
 exec sleep 10
 
@@ -109,7 +112,7 @@ EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ede
 # baseline: at least one `eden disks set` will run between this script and
 # the wait below (the skip points return earlier when the host has too few
 # disks), so the post-perturbation total will be strictly larger.
-DEADLINE=$(( $(date +%s) + 60 ))
+DEADLINE=$(( $(date +%s) + 300 ))
 while [ "$(date +%s)" -lt "$DEADLINE" ]; do
     TOTAL=$($EDEN metric --tail=1 --format=json | jq -r '.dm.disk[]? | select(.mountPath=="/persist") | .total // empty')
     if [ -n "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
@@ -119,7 +122,7 @@ while [ "$(date +%s)" -lt "$DEADLINE" ]; do
     fi
     sleep 5
 done
-echo "capture-persist-baseline.sh: no /persist metric within 1 min" >&2
+echo "capture-persist-baseline.sh: no /persist metric within 5 min" >&2
 exit 1
 
 -- wait-for-persist-grew.sh --
@@ -132,7 +135,7 @@ if [ -z "$persist_total_baseline" ]; then
     echo "wait-for-persist-grew.sh: persist_total_baseline not set" >&2
     exit 1
 fi
-DEADLINE=$(( $(date +%s) + 240 ))
+DEADLINE=$(( $(date +%s) + 330 ))
 LAST=
 while [ "$(date +%s)" -lt "$DEADLINE" ]; do
     JSON=$($EDEN metric --tail=1 --format=json)
@@ -147,5 +150,5 @@ while [ "$(date +%s)" -lt "$DEADLINE" ]; do
     fi
     sleep 5
 done
-echo "wait-for-persist-grew.sh: /persist did not exceed baseline ${persist_total_baseline} MB within 4 min (last=${LAST} MB)" >&2
+echo "wait-for-persist-grew.sh: /persist did not exceed baseline ${persist_total_baseline} MB within 5.5 min (last=${LAST} MB)" >&2
 exit 1
