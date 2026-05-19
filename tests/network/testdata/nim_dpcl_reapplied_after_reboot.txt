@@ -1,0 +1,269 @@
+# Test: persistent DevicePortConfigList survives reboot via NIM's pubsub
+# reload, independent of any re-ingestion path.
+#
+# NIM's `pubDevicePortConfigList` publication is created with
+# `Persistent: true` (cmd/nim/nim.go initPublications). That makes pubsub
+# write the topic content to /persist/status/nim/DevicePortConfigList/
+# global.json on every change, and reload it on agent startup. After a
+# reboot, the persisted content reappears under the same topic, even if
+# nothing else has changed it yet.
+#
+# This test isolates that reload by:
+#   1. Ingesting an override.json on /config/DevicePortConfig/ so the
+#      DPCList gets a distinctive Key="override" entry with port
+#      Logicallabel="reapply-test".
+#   2. Removing override.json from /config and clearing
+#      /persist/checkpoint chattr (so on the next boot, lastconfig is
+#      present → ingestDevicePortConfig short-circuits → the override
+#      entry CANNOT come from re-ingestion).
+#   3. Rebooting again.
+#   4. Asserting Key="override" + Logicallabel="reapply-test" are STILL
+#      in DPCList — this can only be the persistent reload.
+#
+# Without this test, a regression that broke the persistent topic reload
+# (e.g. wrong path, lost AgentScope, broken JSON write) could ship
+# without symptoms in any other test, since other tests always re-ingest
+# the file they're checking.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go pubDevicePortConfigList Persistent:true
+#   pubsub topic-reload-on-startup behavior for nim's DPCList.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+
+# Two reboots: the ingest reboot, then the reload reboot. Allow up to 4
+# to absorb any extra zedagent-reconcile reboot.
+! test eden.reboot.test -test.v -timewait=30m -reboot=0 -count=4 &
+
+exec -t 1m bash pre-cleanup.sh
+
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# --- Phase 1: ingest the override DPC ----------------------------------
+
+exec -t 1m bash stage-override.sh
+stdout 'override\.json staged'
+
+exec -t 1m bash freeze-lastconfig.sh
+stdout 'lastconfig frozen'
+
+eden controller edge-node reboot
+exec sleep 90
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+exec -t 13m bash wait-override-ingested.sh
+stdout 'override ingested'
+
+# Confirm the distinctive label is present BEFORE the second reboot.
+exec -t 1m bash check-port-fidelity.sh
+stdout 'port fields match'
+
+# --- Phase 2: remove the file, reboot, verify the entry SURVIVES ------
+
+# Clear the chattr +i directory flag so zedagent can write lastconfig
+# again. lastconfig was present before our freeze so it's already on
+# disk; with the flag cleared, future writes by zedagent will succeed.
+# Then remove override.json from /config so re-ingestion is impossible
+# even if the lastconfig check were to fail.
+exec -t 1m bash unfreeze-and-remove.sh
+stdout 'unfrozen and removed'
+
+eden controller edge-node reboot
+exec sleep 90
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# After the second reboot:
+#   - lastconfig is present → ingestDevicePortConfig short-circuits
+#   - /config/DevicePortConfig/override.json no longer exists, so even
+#     if ingest ran it would have nothing to copy
+#   - /run/global/DevicePortConfig/ is empty (tmpfs wiped on reboot,
+#     and there is no source file to repopulate it from)
+# The ONLY way Key="override" can be in DPCList is the persistent
+# reload.
+exec sleep 30
+exec -t 1m bash check-runtime-no-override.sh
+stdout 'runtime override absent'
+
+exec -t 1m bash check-port-fidelity.sh
+stdout 'port fields match'
+
+exec -t 1m bash cleanup.sh
+
+exec sh kill_watchdog.sh
+wait
+
+-- wait-ssh.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- pre-cleanup.sh --
+#!/bin/bash
+# Defensive: clear leftover chattr +i and any prior override.json staged on
+# /config/DevicePortConfig/.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && eve config mount /run/test-config 2>/dev/null && rm -f /run/test-config/DevicePortConfig/override.json && sync && eve config unmount) 2>/dev/null; true' 2>/dev/null || true
+true
+
+-- stage-override.sh --
+#!/bin/bash
+# Drop override.json with a distinctive Logicallabel "reapply-test".
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && mkdir -p /run/test-config/DevicePortConfig'
+# NOTE: TimePriority is in the FAR PAST so this override entry stays in
+# DPCList (which is what the test verifies) but never becomes the
+# *active* DPC — the controller-derived zedagent entry, with TimePriority
+# = current time, always wins. If we used a future TimePriority the
+# override would activate and eth0's effective Logicallabel would become
+# "reapply-test", which leaks state into subsequent tests that look up
+# ports by label "eth0" (e.g. eden network create --uplink eth0).
+$EDEN eve ssh "cat > /run/test-config/DevicePortConfig/override.json" <<'JSON'
+{
+  "Version": 1,
+  "Key": "override",
+  "TimePriority": "1990-01-01T00:00:00Z",
+  "Ports": [
+    {
+      "IfName": "eth0",
+      "Phylabel": "eth0",
+      "Logicallabel": "reapply-test",
+      "IsMgmt": true,
+      "IsL3Port": true,
+      "Dhcp": 4
+    }
+  ]
+}
+JSON
+$EDEN eve ssh 'sync && eve config unmount'
+out=$($EDEN eve ssh 'eve config mount /run/test-config && ls /run/test-config/DevicePortConfig/override.json 2>/dev/null; eve config unmount')
+case "$out" in
+    *override.json*) echo "override.json staged" ;;
+    *) echo "override.json missing after write"; exit 1 ;;
+esac
+
+-- freeze-lastconfig.sh --
+#!/bin/bash
+# Same trick as nim_override_json_ingest.txt — chattr +i on the directory
+# blocks zedagent from recreating lastconfig until we clear it.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; rm -f /persist/checkpoint/lastconfig /persist/checkpoint/lastconfig.bak; sync; chattr +i /persist/checkpoint'
+dir_attrs=$($EDEN eve ssh 'lsattr -d /persist/checkpoint 2>/dev/null' 2>/dev/null)
+file_present=$($EDEN eve ssh 'ls /persist/checkpoint/lastconfig 2>/dev/null && echo present || echo absent' 2>/dev/null)
+if echo "$dir_attrs" | grep -qE '^----i'; then
+    case "$file_present" in
+        *absent*) echo "lastconfig frozen"; exit 0 ;;
+    esac
+fi
+echo "freeze failed: dir_attrs='$dir_attrs' file_present='$file_present'"
+exit 1
+
+-- wait-override-ingested.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 144); do
+    keys=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+    if echo "$keys" | grep -qx 'override'; then
+        echo "override ingested"
+        exit 0
+    fi
+    sleep 5
+done
+echo "override not ingested within 12 minutes"
+exit 1
+
+-- unfreeze-and-remove.sh --
+#!/bin/bash
+# Clear the directory immutable flag (zedagent will resume writing
+# lastconfig — that's fine, it's already on disk) and remove
+# override.json from the CONFIG partition so it cannot be re-ingested
+# on the next boot.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint; mkdir -p /run/test-config && eve config mount /run/test-config && rm -f /run/test-config/DevicePortConfig/override.json && sync && eve config unmount'
+verify=$($EDEN eve ssh 'lsattr -d /persist/checkpoint 2>/dev/null; eve config mount /run/test-config && ls /run/test-config/DevicePortConfig/override.json 2>&1 ; eve config unmount')
+# We expect lsattr's leading bits to be all dashes (no `i`), and the
+# ls to fail with "No such file" for override.json.
+if echo "$verify" | grep -qE '^[^i]+/persist/checkpoint$' && echo "$verify" | grep -q 'No such file\|cannot access'; then
+    echo "unfrozen and removed"
+    exit 0
+fi
+echo "unfreeze/remove verification failed: $verify"
+exit 1
+
+-- check-runtime-no-override.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'ls /run/global/DevicePortConfig/override.json 2>/dev/null')
+if echo "$out" | grep -q 'override.json'; then
+    echo "override.json present in /run/global/ — re-ingest happened (unexpected)"
+    exit 1
+fi
+echo "runtime override absent"
+
+-- check-port-fidelity.sh --
+#!/bin/bash
+# Read the Key="override" entry's Ports[0].Logicallabel and verify the
+# distinctive marker we wrote into override.json round-trips and is
+# still present.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+expr='.PortConfigList[] | select(.Key=="override") | .Ports[0]'
+ll=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .Logicallabel' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ifn=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IfName' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ll=${ll//$'\r'/}; ifn=${ifn//$'\r'/}
+fail=0
+[ "$ll" = "reapply-test" ] || { echo "Logicallabel='$ll' (want reapply-test)"; fail=1; }
+[ "$ifn" = "eth0" ]        || { echo "IfName='$ifn' (want eth0)"; fail=1; }
+if [ "$fail" = "0" ]; then
+    echo "port fields match"
+    exit 0
+fi
+exit 1
+
+-- cleanup.sh --
+#!/bin/bash
+# Defensive cleanup: clear chattr, remove staged file, drop runtime copy.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; true' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && rm -f /run/test-config/DevicePortConfig/override.json && sync && eve config unmount' 2>/dev/null || true
+$EDEN eve ssh 'rm -f /run/global/DevicePortConfig/override.json' 2>/dev/null || true
+true
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
