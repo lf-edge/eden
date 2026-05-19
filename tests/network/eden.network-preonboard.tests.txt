@@ -1,0 +1,4 @@
+eden.escript.test -test.run TestEdenScripts/nim_bootstrap_only_preonboard
+eden.escript.test -test.run TestEdenScripts/nim_bootstrap_supersedes_override_preonboard
+eden.escript.test -test.run TestEdenScripts/nim_override_only_preonboard
+eden.escript.test -test.run TestEdenScripts/nim_globalconfig_only_preonboard
