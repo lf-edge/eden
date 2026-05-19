@@ -1,0 +1,293 @@
+# Test: /config/GlobalConfig/global.json is loaded into globalConfig at first
+# boot. Verified via zedagent's "/config/GlobalConfig contains:" log line.
+#
+# When /persist/checkpoint/lastconfig is absent at zedagent startup,
+# loadGlobalConfigImpl (handleconfig.go) reads /config/GlobalConfig/global.json,
+# json.Unmarshals it into a ConfigItemValueMap, and calls
+# DefaultConfigItemValueMap().UpdateItemValues(&config) — i.e. the items in
+# the file replace the corresponding defaults. zedagent publishes the merged
+# map via pubGlobalConfig, so /run/zedagent/ConfigItemValueMap/global.json
+# briefly reflects the file's values.
+#
+# Why we cannot assert on /run/zedagent/ConfigItemValueMap directly:
+# parseconfig.go:3113 (parseConfigItems) builds a fresh ConfigItemValueMap
+# from DEFAULTS on every adam config fetch and assigns it wholesale to
+# globalConfig. Any item not present in adam's EdgeDevConfig.configItems is
+# reset to its EVE-side default — including items adam does not push at
+# all. So our /config/GlobalConfig override is wiped within seconds of
+# boot, well before the testscript can poll the pubsub state. Asserting via
+# the log line instead captures the "loadGlobalConfig ran with our value"
+# signal, which is persistent on disk and not overwritten by adam.
+#
+# Marker: timer.metric.interval = 88.
+#
+# The test stages a global.json containing this single item, freezes the
+# checkpoint directory so zedagent cannot recreate lastconfig before
+# reboot, issues a controller-driven reboot, then asserts:
+#
+#   1. /persist/log/reboot-reason.log grew by at least one line, proving
+#      EVE actually rebooted (a stale SSH connection that never went down
+#      would otherwise look like success).
+#   2. zedagent's newlog contains "/config/GlobalConfig contains:" with
+#      our marker (timer.metric.interval and 88 in the same line), proving
+#      loadGlobalConfigImpl ran with our file's content.
+#
+# Covers:
+#   pkg/pillar/cmd/zedagent/handleconfig.go loadGlobalConfig,
+#                                           loadGlobalConfigImpl
+#                                           (file open, json.Unmarshal,
+#                                            UpdateItemValues).
+
+[!exec:bash] stop
+[!exec:sleep] stop
+
+# A clean controller-driven reboot plus zedagent reconciling the missing
+# lastconfig with the controller view can produce one or two extra reboots
+# in the polling window. Allow up to 4.
+! test eden.reboot.test -test.v -timewait=25m -reboot=0 -count=4 &
+
+exec -t 1m bash pre-cleanup.sh
+
+# Bring the device to a known state. We then *delete* lastconfig so the next
+# zedagent startup follows the loadGlobalConfig branch.
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+exec -t 10m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Stage /config/GlobalConfig/global.json onto the CONFIG partition.
+exec -t 1m bash stage-global-config.sh
+stdout 'global config staged'
+
+# Capture /persist/log/reboot-reason.log line count before issuing the
+# reboot. Used by check-reboot-happened.sh to confirm EVE actually
+# rebooted — a stale SSH session that never went down would otherwise
+# masquerade as "reboot succeeded".
+exec -t 1m bash snapshot-reboot-count.sh
+stdout 'reboot count snapshotted'
+
+# Replace lastconfig (and .bak) with empty space and chattr +i the
+# /persist/checkpoint directory so zedagent cannot recreate the file before
+# the upcoming reboot. Same approach as nim_override_json_ingest.txt /
+# nim_bootstrap_only.txt — see those tests for the rationale.
+exec -t 1m bash freeze-lastconfig.sh
+stdout 'lastconfig frozen'
+
+# Controller-driven reboot — leaves reboot reason "NORMAL: controller reboot
+# at EVE version ...", keeping the reboot watchdog happy.
+eden controller edge-node reboot
+exec sleep 90
+
+exec -t 10m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Confirm EVE actually rebooted: reboot-reason.log line count must have grown.
+exec -t 1m bash check-reboot-happened.sh
+stdout 'reboot happened'
+
+# Primary assertion: zedagent's "/config/GlobalConfig contains:" notice
+# from loadGlobalConfigImpl is present in the newlog with our marker.
+# This proves loadGlobalConfig ran with our file's content. The pubsub
+# state (/run/zedagent/ConfigItemValueMap) reflects this value only
+# briefly — parseConfigItems on adam's first config push rebuilds it
+# from defaults — so polling that file is unreliable.
+exec -t 5m bash check-loadglobalconfig-logged.sh
+stdout 'load-logged'
+
+# Cleanup: clear the immutable flag and remove /config/GlobalConfig/global.json
+# so subsequent boots don't re-apply our override.
+exec -t 1m bash cleanup.sh
+
+exec sh kill_watchdog.sh
+wait
+
+-- wait-ssh.sh --
+#!/bin/bash
+# Wait for ssh to be *stably* up: 3 consecutive successful echos with 2s
+# between them, so we don't declare ssh ok during a brief window between
+# two reboots.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 120); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- pre-cleanup.sh --
+#!/bin/bash
+# Clear immutable bits left by a prior failed run (both directory and
+# file scopes) and drop any stale /config/GlobalConfig/global.json so we
+# start from a clean baseline.
+#
+# `eden eve ssh '<multi-line>'` collapses newlines to spaces, so join
+# commands with `;` on a single line.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && eve config mount /run/test-config 2>/dev/null && rm -rf /run/test-config/GlobalConfig && sync && eve config unmount) 2>/dev/null; true' 2>/dev/null || true
+true
+
+-- stage-global-config.sh --
+#!/bin/bash
+# /config is a read-only tmpfs at runtime; `eve config mount <path>` exposes
+# the underlying persistent CONFIG partition. We drop a minimal
+# ConfigItemValueMap JSON into /config/GlobalConfig/global.json. The file
+# only needs the items being overridden — UpdateItemValues merges sparse
+# input on top of DefaultConfigItemValueMap. ItemType=1 is
+# ConfigItemTypeInt (pkg/pillar/types/global.go).
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && mkdir -p /run/test-config/GlobalConfig'
+$EDEN eve ssh "cat > /run/test-config/GlobalConfig/global.json" <<'JSON'
+{
+  "GlobalSettings": {
+    "timer.metric.interval": {
+      "Key": "timer.metric.interval",
+      "ItemType": 1,
+      "IntValue": 88
+    }
+  }
+}
+JSON
+$EDEN eve ssh 'sync && eve config unmount'
+out=$($EDEN eve ssh 'eve config mount /run/test-config && ls /run/test-config/GlobalConfig/global.json 2>/dev/null; eve config unmount')
+case "$out" in
+    *global.json*) echo "global config staged" ;;
+    *) echo "global.json missing after write"; exit 1 ;;
+esac
+
+-- freeze-lastconfig.sh --
+#!/bin/bash
+# Delete lastconfig and lastconfig.bak, then chattr +i the *directory*
+# /persist/checkpoint/. The immutable bit on a regular file does NOT
+# survive zedagent's atomic save (write-tmp + rename overwrites the inode
+# we marked, producing a fresh inode without the flag). The immutable bit
+# on the directory prevents create/unlink/rename inside, so zedagent
+# cannot recreate lastconfig until cleanup.sh restores write access.
+#
+# `eden eve ssh '<multi-line>'` collapses newlines to spaces, so join
+# commands with `;` on a single line.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; rm -f /persist/checkpoint/lastconfig /persist/checkpoint/lastconfig.bak; sync; chattr +i /persist/checkpoint'
+dir_attrs=$($EDEN eve ssh 'lsattr -d /persist/checkpoint 2>/dev/null' 2>/dev/null)
+file_present=$($EDEN eve ssh 'ls /persist/checkpoint/lastconfig 2>/dev/null && echo present || echo absent' 2>/dev/null)
+if echo "$dir_attrs" | grep -qE '^----i'; then
+    case "$file_present" in
+        *absent*) echo "lastconfig frozen"; exit 0 ;;
+    esac
+fi
+echo "freeze failed: dir_attrs='$dir_attrs' file_present='$file_present'"
+exit 1
+
+-- snapshot-reboot-count.sh --
+#!/bin/bash
+# Record the current line count of /persist/log/reboot-reason.log so we
+# can confirm later that the upcoming reboot actually happened.
+# /persist/log is NOT under the chattr +i freeze applied to
+# /persist/checkpoint, so EVE can append a new entry on its way down.
+# Treat "file does not exist yet" (fresh device, never rebooted) as 0 —
+# our reboot will create the file with one entry, which is still strictly
+# greater than 0.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+COUNT=$($EDEN eve ssh 'if [ -f /persist/log/reboot-reason.log ]; then wc -l < /persist/log/reboot-reason.log; else echo 0; fi' 2>/dev/null | tr -d "\r" | tail -1)
+case "$COUNT" in
+    ''|*[!0-9]*) echo "could not read reboot-reason.log line count (got: '$COUNT')"; exit 1 ;;
+esac
+echo "$COUNT" > reboot_count_before
+echo "reboot count snapshotted ($COUNT)"
+
+-- check-reboot-happened.sh --
+#!/bin/bash
+# Compare the current reboot-reason.log line count against the snapshot
+# from snapshot-reboot-count.sh. EVE writes one line per reboot, so the
+# count must have grown by at least one. This guards against the
+# silent-failure mode where eden controller edge-node reboot was issued
+# but EVE never actually rebooted (e.g. counter mismatch) and the
+# subsequent wait-ssh just saw the same continuously-up SSH.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+BEFORE=$(cat reboot_count_before 2>/dev/null)
+case "$BEFORE" in
+    ''|*[!0-9]*) echo "no pre-reboot count snapshotted"; exit 1 ;;
+esac
+AFTER=$($EDEN eve ssh 'if [ -f /persist/log/reboot-reason.log ]; then wc -l < /persist/log/reboot-reason.log; else echo 0; fi' 2>/dev/null | tr -d "\r" | tail -1)
+case "$AFTER" in
+    ''|*[!0-9]*) echo "could not read reboot-reason.log line count after (got: '$AFTER')"; exit 1 ;;
+esac
+if [ "$AFTER" -gt "$BEFORE" ]; then
+    echo "reboot happened (line count $BEFORE -> $AFTER)"
+    exit 0
+fi
+echo "reboot did NOT happen: reboot-reason.log line count unchanged at $AFTER"
+exit 1
+
+-- check-loadglobalconfig-logged.sh --
+#!/bin/bash
+# Search zedagent's newlog (live + rotated gzip) for the
+# "/config/GlobalConfig contains:" notice with our marker. The notice
+# is emitted by loadGlobalConfigImpl when it successfully parses
+# /config/GlobalConfig/global.json — we expect the Go-default %v
+# rendering of the ConfigItemValueMap to include the literal
+# "timer.metric.interval" and the IntValue "88" on the same log line.
+#
+# Poll for up to 5 minutes because newlog batches log lines and may
+# take a moment to flush after zedagent emits the notice. The line is
+# persistent (newlog never re-writes existing lines), so a successful
+# find here is durable.
+#
+# Note: EVE's root shell has `gunzip` and `grep` but NOT `zgrep`, so we
+# pipe gunzip -c into grep instead of relying on zgrep. Files in
+# /persist/newlog/keepSentQueue/ are .gz; current.device.log is plain.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# Important: `eden eve ssh '<multi-line>'` collapses newlines to spaces, so
+# any subshell or brace-group with newline-separated commands gets mangled
+# into one giant command on the remote side. Use a single-line ssh command
+# (semicolon-separated) that emits the combined log stream, and run grep
+# locally on the host.
+for i in $(seq 1 60); do
+    n=$($EDEN eve ssh 'cat /persist/newlog/collect/current.device.log 2>/dev/null; gunzip -c /persist/newlog/keepSentQueue/*.gz 2>/dev/null; gunzip -c /persist/newlog/devUpload/*.gz 2>/dev/null' 2>/dev/null | grep -c 'GlobalConfig contains.*timer\.metric\.interval.*88')
+    case "$n" in
+        ''|*[!0-9]*) ;;
+        0) ;;
+        *) echo "load-logged"; exit 0 ;;
+    esac
+    sleep 5
+done
+echo "loadGlobalConfig notice with timer.metric.interval=88 not seen in newlog within 5 min"
+exit 1
+
+-- cleanup.sh --
+#!/bin/bash
+# Clear the immutable flag on /persist/checkpoint (and the legacy file
+# locations) so zedagent can write again, then remove
+# /config/GlobalConfig/global.json so subsequent boots don't re-apply
+# the override. Best-effort.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; true' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && rm -rf /run/test-config/GlobalConfig && sync && eve config unmount' 2>/dev/null || true
+true
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
