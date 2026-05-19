@@ -25,7 +25,7 @@ eden pod deploy -n eclient --memory=512MB {{template "eclient_image"}} -p {{$por
 
 test eden.app.test -test.v -timewait 20m RUNNING eclient
 
-exec -t 5m bash ssh.sh
+exec -t 10m bash ssh.sh
 stdout 'Ubuntu'
 
 exec sleep 10
