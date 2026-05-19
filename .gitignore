@@ -14,6 +14,13 @@
 tests/**/eden.*.test*
 !tests/**/eden.*.tests.txt
 
+# helper binaries built by `make -C tests/<dir> helper` (only the
+# top-level binary copies — the cmd/<name>/ source dirs are kept).
+tests/network/nim-bootstrap-pb-gen
+tests/network/nim-bootstrap-pb-gen-*
+tests/network/dist/bin/nim-bootstrap-pb-gen
+tests/network/dist/bin/nim-bootstrap-pb-gen-*
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
