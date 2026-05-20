@@ -47,7 +47,11 @@ cmp stdout ver
 # Clear adam's leftover BaseOsConfig for the original version this test
 # pushed back, so subsequent tests / suites start with a clean
 # controller-side state.
-eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{ $short_version }}
+# Omit --os-version: for PR builds the embedded rootfs version is
+# 0.0.0-pr<N>-<sha>-{{$eve_hv}}-{{$eve_arch}}, not {{$short_version}}.
+# Let eden derive it from the .ver correction file written by the
+# preceding eve-rootfs download (same path eveimage-update used).
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
 
 exec sleep 10
 
