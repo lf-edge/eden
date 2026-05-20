@@ -158,7 +158,7 @@ const (
 
 	DefaultEVERemote = false
 
-	DefaultEVEImageSize = 16384
+	DefaultEVEImageSize = 28576
 
 	DefaultTPMEnabled       = false
 	DefaultCanEnabled       = false
