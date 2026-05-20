@@ -41,10 +41,17 @@ TESTBIN := $(TESTNAME).test
 TESTSCN := $(TESTNAME).tests.txt
 LOCALTESTBIN := $(TESTBIN)-$(OS)-$(ARCH)
 
+# nim-bootstrap-pb-gen: host-side helper used by tests/network/testdata/
+# nim_bootstrap_*.txt to generate signed bootstrap-config.pb files at
+# test time. See cmd/nim-bootstrap-pb-gen/main.go.
+HELPER := nim-bootstrap-pb-gen
+LOCALHELPER := $(HELPER)-$(OS)-$(ARCH)
+
 .DEFAULT_GOAL := help
 
 clean:
 	rm -rf $(LOCALTESTBIN) $(BINDIR)/$(TESTBIN) $(WORKDIR)/$(TESTSCN) $(CURDIR)/$(TESTBIN) $(BINDIR)/$(TESTBIN)
+	rm -rf $(LOCALHELPER) $(BINDIR)/$(LOCALHELPER) $(BINDIR)/$(HELPER) $(CURDIR)/$(HELPER)
 
 $(BINDIR):
 	mkdir -p $@
@@ -63,9 +70,16 @@ $(LOCALTESTBIN): $(BINDIR) *.go
 $(TESTBIN): $(LOCALTESTBIN)
 	ln -sf $(LOCALTESTBIN) $(TESTBIN)
 
-setup: testbin $(BINDIR) $(DATADIR)
+helper: $(BINDIR)/$(HELPER)
+$(LOCALHELPER): cmd/$(HELPER)/main.go
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-s -w" -o $@ ./cmd/$(HELPER)
+$(BINDIR)/$(HELPER): $(LOCALHELPER) $(BINDIR)
+	cp -a $(LOCALHELPER) $(BINDIR)
+	ln -sf $(LOCALHELPER) $(BINDIR)/$(HELPER)
+
+setup: testbin helper $(BINDIR) $(DATADIR)
 	cp -a $(LOCALTESTBIN) $(CURDIR)/$(TESTBIN) $(BINDIR)
-	cp -a *.yml $(TESTSCN) testdata $(DATADIR)
+	cp -a *.yml *.tests.txt testdata $(DATADIR)
 
 .PHONY: test build setup clean all testbin image
 

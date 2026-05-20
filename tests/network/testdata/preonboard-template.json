@@ -1,0 +1,243 @@
+{
+  "networks": [
+    {
+      "id": "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1",
+      "type": 4,
+      "ip": {
+        "dhcp": 4,
+        "dhcpRange": {}
+      }
+    },
+    {
+      "id": "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2",
+      "type": 4,
+      "ip": {
+        "dhcp": 4,
+        "dhcpRange": {}
+      }
+    },
+    {
+      "id": "6822e35f-c1b8-43ca-b344-0bbc0ece8cf4",
+      "type": 4,
+      "ip": {
+        "dhcp": 2,
+        "dhcpRange": {}
+      }
+    }
+  ],
+  "configItems": [
+    {
+      "key": "app.allow.vnc",
+      "value": "true"
+    },
+    {
+      "key": "debug.default.loglevel",
+      "value": "info"
+    },
+    {
+      "key": "debug.default.remote.loglevel",
+      "value": "info"
+    },
+    {
+      "key": "debug.enable.console",
+      "value": "true"
+    },
+    {
+      "key": "newlog.allow.fastupload",
+      "value": "true"
+    },
+    {
+      "key": "timer.config.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.download.retry",
+      "value": "60"
+    },
+    {
+      "key": "timer.location.app.interval",
+      "value": "10"
+    },
+    {
+      "key": "timer.location.cloud.interval",
+      "value": "300"
+    }
+  ],
+  "systemAdapterList": [
+    {
+      "name": "eth0",
+      "uplink": true,
+      "networkUUID": "6822e35f-c1b8-43ca-b344-0bbc0ece8cf1"
+    },
+    {
+      "name": "eth1",
+      "networkUUID": "6822e35f-c1b8-43ca-b344-0bbc0ece8cf2"
+    },
+    {
+      "name": "eth2",
+      "networkUUID": "6822e35f-c1b8-43ca-b344-0bbc0ece8cf4"
+    }
+  ],
+  "deviceIoList": [
+    {
+      "ptype": 1,
+      "phylabel": "eth0",
+      "phyaddrs": {
+        "Ifname": "eth0"
+      },
+      "logicallabel": "eth0",
+      "assigngrp": "eth0",
+      "usage": 1,
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth1",
+      "phyaddrs": {
+        "Ifname": "eth1"
+      },
+      "logicallabel": "eth1",
+      "assigngrp": "eth1",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ptype": 1,
+      "phylabel": "eth2",
+      "phyaddrs": {
+        "Ifname": "eth2"
+      },
+      "logicallabel": "eth2",
+      "assigngrp": "eth2",
+      "usage": 2,
+      "usagePolicy": {
+        "freeUplink": true
+      }
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB0:1",
+      "phyaddrs": {
+        "UsbAddr": "0:1"
+      },
+      "logicallabel": "USB0:1",
+      "assigngrp": "USB0",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB0:2",
+      "phyaddrs": {
+        "UsbAddr": "0:2"
+      },
+      "logicallabel": "USB0:2",
+      "assigngrp": "USB1",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB0:3",
+      "phyaddrs": {
+        "UsbAddr": "0:3"
+      },
+      "logicallabel": "USB0:3",
+      "assigngrp": "USB2",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB1:1",
+      "phyaddrs": {
+        "UsbAddr": "1:1"
+      },
+      "logicallabel": "USB1:1",
+      "assigngrp": "USB3",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB1:2",
+      "phyaddrs": {
+        "UsbAddr": "1:2"
+      },
+      "logicallabel": "USB1:2",
+      "assigngrp": "USB4",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB1:3",
+      "phyaddrs": {
+        "UsbAddr": "1:3"
+      },
+      "logicallabel": "USB1:3",
+      "assigngrp": "USB5",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB2:1",
+      "phyaddrs": {
+        "UsbAddr": "2:1"
+      },
+      "logicallabel": "USB2:1",
+      "assigngrp": "USB6",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB2:2",
+      "phyaddrs": {
+        "UsbAddr": "2:2"
+      },
+      "logicallabel": "USB2:2",
+      "assigngrp": "USB7",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB2:3",
+      "phyaddrs": {
+        "UsbAddr": "2:3"
+      },
+      "logicallabel": "USB2:3",
+      "assigngrp": "USB8",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB3:1",
+      "phyaddrs": {
+        "UsbAddr": "3:1"
+      },
+      "logicallabel": "USB3:1",
+      "assigngrp": "USB9",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB3:2",
+      "phyaddrs": {
+        "UsbAddr": "3:2"
+      },
+      "logicallabel": "USB3:2",
+      "assigngrp": "USB10",
+      "usage": 3
+    },
+    {
+      "ptype": 2,
+      "phylabel": "USB3:3",
+      "phyaddrs": {
+        "UsbAddr": "3:3"
+      },
+      "logicallabel": "USB3:3",
+      "assigngrp": "USB11",
+      "usage": 3
+    }
+  ],
+  "productName": "ZedVirtual-4G"
+}

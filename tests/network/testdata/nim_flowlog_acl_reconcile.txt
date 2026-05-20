@@ -1,0 +1,161 @@
+# Test: NetworkInstance.EnableFlowlog drives the marking-rules subgraph
+# in DpcReconciler's ACLs.
+#
+# When *any* NetworkInstance has EnableFlowlog=true, NIM aggregates that
+# into a single boolean (cmd/nim/nim.go handleNetworkInstanceUpdate) and
+# passes it to DpcManager via UpdateFlowlogState; DpcReconciler then
+# augments the iptables mangle/PREROUTING-device chain with CONNMARK
+# marking rules (dpcreconciler/linux.go getIntendedMarkingRules — gated
+# by the `withFlowlog || r.HVTypeKube` branch in
+# getIntendedFilterRules).
+#
+# Concretely the marking rules include a CONNMARK rule matching
+# `tcp --match multiport --dports 22,4822` ("SSH and Guacamole mark"
+# in the source). Its presence in the live iptables-mangle rule set is
+# unambiguous evidence that flowlog mode is on; its absence is
+# unambiguous evidence the toggle propagated to off.
+#
+# We can't modify EnableFlowlog in place via the eden CLI (only
+# `eden network create --enable-flowlog`), so we test the toggle by
+# (a) creating an NI without the flag and asserting absence,
+# (b) deleting it, creating one with the flag, and asserting presence,
+# (c) deleting it and asserting the rules go away again.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go handleNetworkInstanceUpdate(),
+#   subNetworkInstanceConfig → DpcManager.UpdateFlowlogState wiring,
+#   pkg/pillar/dpcreconciler/linux.go getIntendedMarkingRules()
+#   `withFlowlog || HVTypeKube` gate.
+#
+# This test is HV-type sensitive: on a kube EVE build, the CONNMARK
+# rules are ALWAYS installed regardless of EnableFlowlog (the
+# `r.HVTypeKube` branch in getIntendedFilterRules forces them on). The
+# test skips itself if we detect kube mode.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+
+# No reboot expected — but allow one to ride out any zedagent
+# reconcile-after-restart edge case.
+! test eden.reboot.test -test.v -timewait=20m -reboot=0 -count=2 &
+
+exec -t 1m bash check-not-kube.sh
+stdout 'not kube'
+
+# Pre-cleanup: nuke any stale test NIs.
+exec -t 2m bash pre-cleanup.sh
+
+# Phase 1: NI without flowlog — CONNMARK marking rules should NOT appear.
+eden -t 1m network create 10.111.111.0/24 -n nim-flowlog-noflog
+test eden.network.test -test.v -timewait 5m ACTIVATED nim-flowlog-noflog
+
+# Give NIM a few seconds to consume the NetworkInstanceConfig and call
+# UpdateFlowlogState before we sample iptables.
+exec sleep 15
+
+exec -t 1m bash check-no-marking-rules.sh
+stdout 'no marking rules'
+
+eden -t 2m network delete nim-flowlog-noflog
+test eden.network.test -test.v -timewait 5m - nim-flowlog-noflog
+
+# Phase 2: NI WITH flowlog — CONNMARK marking rules SHOULD appear.
+eden -t 1m network create 10.111.112.0/24 -n nim-flowlog-yesflog --enable-flowlog
+test eden.network.test -test.v -timewait 5m ACTIVATED nim-flowlog-yesflog
+
+# Wait until the rules show up — reconciliation isn't instantaneous.
+exec -t 2m bash wait-marking-rules.sh
+stdout 'marking rules present'
+
+# Phase 3: delete the flowlog NI; the rules should drop on the next
+# reconcile.
+eden -t 2m network delete nim-flowlog-yesflog
+test eden.network.test -test.v -timewait 5m - nim-flowlog-yesflog
+
+exec -t 2m bash wait-no-marking-rules.sh
+stdout 'no marking rules'
+
+exec sh kill_watchdog.sh
+wait
+
+-- check-not-kube.sh --
+#!/bin/bash
+# DpcReconciler installs the marking rules unconditionally on kube EVE
+# (the `r.HVTypeKube` branch). On such a build this test cannot
+# distinguish flowlog-on from flowlog-off via iptables, so we skip.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+hv=$($EDEN eve ssh 'eve hv 2>/dev/null' 2>/dev/null | tr -d '[:space:]')
+case "$hv" in
+    *kube*)
+        echo "kube EVE detected (hv=$hv) — skipping flowlog ACL test"
+        exit 1
+        ;;
+esac
+echo "not kube"
+
+-- pre-cleanup.sh --
+#!/bin/bash
+# Best-effort: delete any test networks left over from a prior run.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN -t 2m network delete nim-flowlog-noflog 2>/dev/null || true
+$EDEN -t 2m network delete nim-flowlog-yesflog 2>/dev/null || true
+true
+
+-- check-no-marking-rules.sh --
+#!/bin/bash
+# Look for the "SSH and Guacamole mark" rule in mangle/PREROUTING-device.
+# It matches on `multiport --dports 22,4822`; its absence is the witness.
+# iptables runs in the host network namespace; the pillar container
+# inherits it, so `eve exec pillar iptables ...` works.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'eve exec pillar iptables -t mangle -S 2>/dev/null' 2>/dev/null)
+if echo "$out" | grep -qE 'multiport.*\b22,4822\b'; then
+    echo "marking rule unexpectedly present"
+    exit 1
+fi
+echo "no marking rules"
+
+-- wait-marking-rules.sh --
+#!/bin/bash
+# Poll for up to 2 minutes — DpcReconciler runs the ACLs subgraph
+# reconcile only after FlowlogEnabled flips, and the netinstance config
+# has to round-trip through adam → zedagent → nim first.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 24); do
+    out=$($EDEN eve ssh 'eve exec pillar iptables -t mangle -S 2>/dev/null' 2>/dev/null)
+    if echo "$out" | grep -qE 'multiport.*\b22,4822\b'; then
+        echo "marking rules present"
+        exit 0
+    fi
+    sleep 5
+done
+echo "marking rules did not appear within 2 minutes"
+exit 1
+
+-- wait-no-marking-rules.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 24); do
+    out=$($EDEN eve ssh 'eve exec pillar iptables -t mangle -S 2>/dev/null' 2>/dev/null)
+    if ! echo "$out" | grep -qE 'multiport.*\b22,4822\b'; then
+        echo "no marking rules"
+        exit 0
+    fi
+    sleep 5
+done
+echo "marking rules still present after 2 minutes"
+exit 1
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

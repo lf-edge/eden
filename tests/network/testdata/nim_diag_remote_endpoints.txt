@@ -1,0 +1,155 @@
+# Test: GCP `diag.probe.remote.http.endpoint` propagates from controller
+# config through to ConfigItemValueMap published by zedagent and read by
+# NIM via `applyGlobalConfig`.
+#
+# This test exercises the *propagation* path only:
+#   eden CLI → adam config → zedagent → ConfigItemValueMap pubsub
+# The downstream NIM consumption — `applyGlobalConfig` setting
+# `connTester.DiagRemoteEndpoints` — is in-memory and not directly
+# observable. The diagnostic probes themselves are gated behind
+# *failed* controller connectivity (conntester/controller.go around
+# line 149: `tryRemoteEndpointsWithTracing` is only invoked when net
+# tracing is on AND `controllerTestRV.testErr != nil` AND the error
+# is not `RemoteTemporaryFailure`). Inducing controller-connectivity
+# failure requires SDN-driven misbehaviour injection, which is out of
+# scope here — see the Phase-2 entry in
+# pkg/pillar/docs/nim-eden-test-plan.md (`nim_verify/...`) for the
+# fuller test that exercises the actual probe firing.
+#
+# What this test catches: any regression breaking the GCP→pubsub
+# propagation for diag.probe.remote.http.endpoint. With no
+# regression, NIM's applyGlobalConfig will see the new endpoint on
+# its next handleGlobalConfigImpl invocation; with a regression the
+# value never reaches that path.
+#
+# Covers:
+#   eden controller edge-node update --config diag.probe.remote.http.endpoint
+#     → zedagent ConfigItemValueMap publish (the upstream half of
+#     pkg/pillar/cmd/nim/nim.go applyGlobalConfig at line 745).
+
+[!exec:bash] stop
+[!exec:sleep] stop
+
+! test eden.reboot.test -test.v -timewait=15m -reboot=0 -count=1 &
+
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Snapshot the controller's pre-test value so we can restore it on cleanup.
+exec -t 1m bash snapshot-current.sh
+stdout 'snapshot taken'
+
+# Set a distinctive endpoint value through the controller config.
+eden controller edge-node update --config diag.probe.remote.http.endpoint=http://nim-test-diag.example.test/
+
+# Poll the effective ConfigItemValueMap on EVE for the new value to
+# appear. zedagent's config-fetch interval is short, but adam
+# round-trips can take ~30s. (Path is EVE-version-dependent —
+# /run/zedagent/ConfigItemValueMap/global.json on master,
+# /persist/status/zedagent/ConfigItemValueMap/global.json on 16.6.0.)
+exec -t 3m bash wait-cfg-item.sh
+stdout 'diag endpoint propagated'
+
+# Restore the prior value.
+exec -t 1m bash restore-current.sh
+stdout 'restored'
+
+exec sh kill_watchdog.sh
+wait
+
+-- wait-ssh.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- snapshot-current.sh --
+#!/bin/bash
+# Capture the current value of diag.probe.remote.http.endpoint from
+# adam (whatever the default or pre-test value is) so cleanup can
+# restore it. We stash it in /tmp so that the restore step can read.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN controller edge-node get-config --file /tmp/diag-pre.json
+val=$(jq -r '
+  (.configItems // []) +
+  (.deprecatedConfigItems // []) +
+  (.globalConfig // {} | to_entries | map({key: .key, value: (.value|tostring)})) |
+  map(select(.key=="diag.probe.remote.http.endpoint")) | first | .value // empty
+' /tmp/diag-pre.json)
+echo "${val:-www.google.com}" > /tmp/diag-pre-value.txt
+echo "snapshot taken"
+
+-- wait-cfg-item.sh --
+#!/bin/bash
+# Poll the effective ConfigItemValueMap on EVE until the distinctive
+# endpoint shows up under
+# .GlobalSettings["diag.probe.remote.http.endpoint"].StrValue.
+# Path is EVE-version-dependent — /run-resident on master,
+# /persist-resident on 16.6.0 — so probe /run first and fall back to
+# /persist. The ssh command must be a single line; `eden eve ssh`
+# collapses newlines into spaces. Fetch verbatim, then parse with
+# local jq (avoids shell-quoting issues with bracket-quoted jq
+# expressions through ssh).
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+WANT='http://nim-test-diag.example.test/'
+expr='.GlobalSettings["diag.probe.remote.http.endpoint"].StrValue'
+for i in $(seq 1 36); do
+    "$EDEN" eve ssh 'f=/run/zedagent/ConfigItemValueMap/global.json; [ -s "$f" ] || f=/persist/status/zedagent/ConfigItemValueMap/global.json; [ -s "$f" ] && cat "$f"' 2>/dev/null > "$WORK/cfg.json"
+    if [ -s "$WORK/cfg.json" ]; then
+        val=$(jq -r "$expr" "$WORK/cfg.json" 2>/dev/null)
+        val=${val//$'\r'/}
+        val=$(echo "$val" | tr -d '[:space:]')
+        if [ "$val" = "$WANT" ]; then
+            echo "diag endpoint propagated"
+            exit 0
+        fi
+    fi
+    sleep 5
+done
+echo "diag endpoint did not propagate within 3 minutes (last seen: '$val')"
+exit 1
+
+-- restore-current.sh --
+#!/bin/bash
+# Restore the pre-test value via the same eden CLI path. If the
+# snapshot is empty we restore the EVE built-in default
+# (www.google.com per types/global.go AddStringItem call).
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+prev=$(cat /tmp/diag-pre-value.txt 2>/dev/null)
+prev=${prev:-www.google.com}
+$EDEN controller edge-node update --config "diag.probe.remote.http.endpoint=$prev"
+echo "restored"
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
