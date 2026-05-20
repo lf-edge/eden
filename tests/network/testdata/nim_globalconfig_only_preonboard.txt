@@ -173,16 +173,18 @@ exit 1
 
 -- check-globalconfig-marker.sh --
 #!/bin/bash
-# Effective ConfigItemValueMap is pubsub-published by zedagent to
-# /run/zedagent/ConfigItemValueMap/global.json (not /persist — the
-# topic is /run-resident by default). Fetch the file verbatim via ssh
-# (avoids shell-quoting issues that bite when sending bracket-quoted
-# jq expressions through `eden eve ssh`), then parse locally with jq.
+# Effective ConfigItemValueMap pubsub topic location depends on EVE
+# version: master/HEAD has it /run-resident
+# (/run/zedagent/ConfigItemValueMap/global.json); 16.6.0 has it
+# /persist-resident (/persist/status/zedagent/ConfigItemValueMap/global.json).
+# Fetch from whichever exists; both carry the same JSON shape.
+# Cat-via-ssh + local jq avoids shell-quoting issues that bite when
+# sending bracket-quoted jq expressions through `eden eve ssh`.
 set -eu
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-"$EDEN" eve ssh 'cat /run/zedagent/ConfigItemValueMap/global.json' 2>/dev/null > "$WORK/effective-global.json"
+"$EDEN" eve ssh 'f=/run/zedagent/ConfigItemValueMap/global.json; [ -s "$f" ] || f=/persist/status/zedagent/ConfigItemValueMap/global.json; [ -s "$f" ] && cat "$f"' 2>/dev/null > "$WORK/effective-global.json"
 if [ ! -s "$WORK/effective-global.json" ]; then
-    echo "could not fetch /run/zedagent/ConfigItemValueMap/global.json from device"
+    echo "could not fetch ConfigItemValueMap/global.json from /run or /persist on device"
     exit 1
 fi
 val=$(jq -r '.GlobalSettings["timer.config.interval"].IntValue' "$WORK/effective-global.json")
