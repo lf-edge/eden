@@ -53,7 +53,9 @@ test eden.escript.test -test.run TestEdenScripts/revert_eve_image_update -test.v
 
 # Clear adam's leftover BaseOsConfig for the test version so subsequent
 # tests / suites start with a clean controller-side state.
-eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam:// --os-version={{ $short_version }}
+# Omit --os-version; let eden derive it from the .ver correction file
+# (or the filename, when loaded == provided).
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $short_version }}.squashfs -m adam://
 
 # Verify the controller config no longer references the removed image
 eden controller edge-node get-config
