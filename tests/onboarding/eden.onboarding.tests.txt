@@ -1,0 +1,4 @@
+eden.escript.test -test.run TestEdenScripts/onboarding_status -test.timeout 10m
+eden.escript.test -test.run TestEdenScripts/server_changes_at_runtime -test.timeout 30m
+eden.escript.test -test.run TestEdenScripts/pre_provisioned_uuid -test.timeout 30m
+eden.escript.test -test.run TestEdenScripts/server_returns_403 -test.timeout 30m

@@ -1,0 +1,157 @@
+# Test: cmd/client takes the "already-onboarded-with-no-controller" shortcut.
+#
+# Exercises the `case <-t1.C` branch in pkg/pillar/cmd/client/client.go
+# (lines 416-437): when the device already has a UUID + a controller-cert
+# checkpoint and the network state is not DPCStateSuccess after the
+# 5-second t1 timer fires, cmd/client declares success and exits without
+# waiting for full connectivity. This branch is dead in normal boots
+# because nim usually reaches DPCStateSuccess well before t=5s.
+#
+# Trigger: write a deliberately-wrong /config/server before rebooting.
+# At the next boot nim's DPC verification reaches IP+DNS but cannot
+# reach the controller (the URL points at 127.0.0.1:3333 with nothing
+# listening); nim publishes DeviceNetworkStatus with State =
+# DPCStateFailWithIPAndDNS (=2). cmd/client's networkState therefore
+# stays != DPCStateSuccess and at t1=5 s the shortcut branch fires.
+#
+# An earlier attempt used a bogus DevicePortConfig override; it lost the
+# race because nim falls back to its lastresort DPC fast enough that
+# networkState reaches DPCStateSuccess in well under 5 s. Driving the
+# controller URL wrong (the same lever as test #7) keeps nim stuck in
+# FailWithIPAndDNS for as long as we want.
+#
+# Pre-conditions: the device is already onboarded (/persist/status/uuid
+# and /persist/checkpoint/controllercerts both exist).
+#
+# Witness: log line "Already have a UUID <UUID>; declaring success" in
+# the on-device newlog. The string is unique to this code path.
+
+[!exec:bash] stop
+
+exec -t 30m bash run.sh
+stdout 'pre-provisioned-ok'
+
+-- run.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+# Confirm pre-conditions.
+have_uuid=$("$EDEN" eve ssh -- 'test -s /persist/status/uuid && echo yes' 2>/dev/null | tr -d '\r\n ')
+have_chk=$("$EDEN" eve ssh -- 'test -s /persist/checkpoint/controllercerts && echo yes' 2>/dev/null | tr -d '\r\n ')
+[ "$have_uuid" = "yes" ] || { echo "no-uuid-file"; exit 1; }
+[ "$have_chk"  = "yes" ] || { echo "no-controllercerts-checkpoint"; exit 1; }
+
+orig=$("$EDEN" eve ssh -- cat /config/server 2>/dev/null | tr -d '\r\n')
+[ -n "$orig" ] || { echo "no-original-server"; exit 1; }
+
+cleanup() {
+    rc=$?
+    set +e
+    # Restore /config/server and reboot.  Once the bad URL is active EVE
+    # cannot reach adam, so the controller-side reboot would queue a
+    # directive EVE never polls for — use the in-VM reboot instead.
+    timeout 30s "$EDEN" eve ssh -- 'mkdir -p /run/cfg-clean && eve config mount /run/cfg-clean' >/dev/null 2>&1
+    timeout 30s "$EDEN" eve ssh -- "printf '%s' '$orig' > /run/cfg-clean/server && sync" >/dev/null 2>&1
+    timeout 30s "$EDEN" eve ssh -- 'eve config unmount' >/dev/null 2>&1
+    timeout 30s "$EDEN" eve ssh -- 'reboot' >/dev/null 2>&1
+    ssh-keygen -f "${HOME}/.ssh/known_hosts" -R '[127.0.0.1]:2222' >/dev/null 2>&1
+    exit "$rc"
+}
+trap cleanup EXIT
+
+step() { echo "STEP: $*" >&2; }
+
+retry_ssh() {
+    local attempts=$1 ; shift
+    local out
+    for _ in $(seq 1 "$attempts"); do
+        if out=$(timeout 15s "$EDEN" eve ssh -- "$@" 2>/dev/null); then
+            printf '%s' "$out"
+            return 0
+        fi
+        sleep 4
+    done
+    return 1
+}
+
+wait_for_reboot() {
+    local pre_up=$1
+    local i
+    for i in $(seq 1 30); do
+        if ! timeout 10s "$EDEN" eve ssh -- 'cat /proc/uptime' >/dev/null 2>&1; then
+            break
+        fi
+        sleep 6
+    done
+    ssh-keygen -f "${HOME}/.ssh/known_hosts" -R '[127.0.0.1]:2222' >/dev/null 2>&1
+    for i in $(seq 1 50); do
+        local up
+        up=$(timeout 10s "$EDEN" eve ssh -- 'cat /proc/uptime' 2>/dev/null | awk '{print int($1)}')
+        if [ -n "$up" ] && [ "$up" -lt "$pre_up" ]; then
+            return 0
+        fi
+        sleep 6
+    done
+    return 1
+}
+
+# Searches the active and archived on-device newlog for the t1.C-branch
+# log line. The string is logged at most once per cmd/client run, so its
+# appearance on this boot proves the branch fired.
+# IMPORTANT: `eden eve ssh '<multi-line>'` collapses newlines to spaces,
+# so multi-statement commands must be joined with `;`, not split across
+# lines — otherwise only the first half runs.
+seen_declaring_success() {
+    retry_ssh 5 'grep -aE "Already have a UUID [0-9a-f-]{36}; declaring success" /persist/newlog/collect/*.log 2>/dev/null | head -1 ; gzip -dcq /persist/newlog/devUpload/*.gz /persist/newlog/keepSentQueue/*.gz 2>/dev/null | grep -aE "Already have a UUID [0-9a-f-]{36}; declaring success" | head -1' \
+        | tr -d '\r' | head -1
+}
+
+# ---- 1. Snapshot any pre-existing hits so we can detect the new one
+# the test boot triggers.
+step "snapshotting pre-existing matches"
+prev=$(seen_declaring_success || true)
+step "pre-existing matches bytes: $(printf '%s' "$prev" | wc -c)"
+
+# ---- 2. Write a deliberately-wrong /config/server (same lever as test
+# #7) so nim cannot reach the controller and reports State=FailWithIPAndDNS.
+step "writing wrong /config/server"
+retry_ssh 30 'mkdir -p /run/cfg-stage && eve config mount /run/cfg-stage' >/dev/null
+retry_ssh 30 "printf '%s' '127.0.0.1:3333' > /run/cfg-stage/server && sync" >/dev/null
+written=$(retry_ssh 10 'cat /run/cfg-stage/server' | tr -d '\r\n')
+retry_ssh 10 'eve config unmount' >/dev/null
+[ "$written" = "127.0.0.1:3333" ] || { echo "wrong-server-not-written got '$written'"; exit 1; }
+
+# ---- 3. Reboot; EVE is still reachable now so use controller-side
+# reboot.
+step "rebooting EVE"
+pre_up=$(retry_ssh 20 'cat /proc/uptime' | awk '{print int($1)}')
+[ -n "$pre_up" ] && [ "$pre_up" -gt 0 ] || { echo "no-pre-up"; exit 1; }
+"$EDEN" controller edge-node reboot
+wait_for_reboot "$pre_up" || { echo "reboot-did-not-complete pre=$pre_up"; exit 1; }
+
+# ---- 4. cmd/client runs once at boot.  Wait for the witness log.
+step "waiting for cmd/client t1.C branch to fire"
+sleep 30
+got=""
+for _ in $(seq 1 30); do
+    got=$(seen_declaring_success || true)
+    if [ -n "$got" ] && [ "$got" != "$prev" ]; then
+        break
+    fi
+    sleep 6
+done
+[ -n "$got" ] && [ "$got" != "$prev" ] || { echo "t1c-branch-not-observed prev='$prev' got='$got'"; exit 1; }
+step "saw t1.C branch fire: $got"
+
+echo "pre-provisioned-ok"
+exit 0
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

@@ -1,0 +1,222 @@
+# Test: cmd/client raises LedBlinkOnboardingFailureNotFound when the
+# controller rejects the onboarding certificate with a 403.
+#
+# Exercises the dark `case http.StatusForbidden` branch in selfRegister
+# (pkg/pillar/cmd/client/client.go:671-672) which maps to the
+# LedBlinkOnboardingFailureNotFound LED (value 18). The branch was
+# unreachable until lf-edge/adam#155 brought adam in line with the
+# eve-api spec, returning 403 for "valid credentials without
+# authorization" (cert/serial well-formed but not pre-registered).
+#
+# Setup:
+#   1. Snapshot every adam-side onboard cert whose Serial matches this
+#      device, then DELETE them from /admin/onboard.
+#   2. DELETE the device record from /admin/device so doGetUUID also
+#      fails (otherwise cmd/client could pick up the old UUID via the
+#      /uuid endpoint before the 403 from /register is observable).
+#   3. rm /persist/status/uuid and /persist/checkpoint/controllercerts*
+#      on EVE so cmd/client treats this as a fresh onboard.
+#   4. In-VM reboot.
+#
+# Witness for the 403 path: LedBlinkCounter = 18.
+#
+# Recovery: POST the saved onboard cert(s) back to /admin/onboard, in-VM
+# reboot, and verify cmd/client re-onboards (LED 4 + fresh UUID on disk).
+
+[!exec:bash] stop
+
+exec -t 30m bash run.sh
+stdout 'server-403-ok'
+
+-- run.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# adam.ip in eden config is the IP EVE uses to reach adam, not the host
+# side. The host's docker port mapping exposes adam on 127.0.0.1:adam.port,
+# which is what curl from the testscript wrapper needs to hit.
+ADAM_HOST="https://127.0.0.1:{{EdenConfig "adam.port"}}"
+EVE_SERIAL="{{EdenConfig "eve.serial"}}"
+
+# All saved adam state lives in this dir so cleanup can replay it.
+WORK=$(mktemp -d -t srv403-XXXXXX)
+
+step() { echo "STEP: $*" >&2; }
+
+retry_ssh() {
+    local attempts=$1 ; shift
+    local out
+    for _ in $(seq 1 "$attempts"); do
+        if out=$(timeout 15s "$EDEN" eve ssh -- "$@" 2>/dev/null); then
+            printf '%s' "$out"
+            return 0
+        fi
+        sleep 4
+    done
+    return 1
+}
+
+wait_for_reboot() {
+    local pre_up=$1
+    local i up
+    for i in $(seq 1 30); do
+        if ! timeout 10s "$EDEN" eve ssh -- 'cat /proc/uptime' >/dev/null 2>&1; then
+            break
+        fi
+        sleep 6
+    done
+    ssh-keygen -f "${HOME}/.ssh/known_hosts" -R '[127.0.0.1]:2222' >/dev/null 2>&1
+    for i in $(seq 1 50); do
+        up=$(timeout 10s "$EDEN" eve ssh -- 'cat /proc/uptime' 2>/dev/null | awk '{print int($1)}')
+        if [ -n "$up" ] && [ "$up" -lt "$pre_up" ]; then
+            return 0
+        fi
+        sleep 6
+    done
+    return 1
+}
+
+# Snapshot the adam-side onboard certs whose Serial matches this
+# device, then DELETE each one.  Records the saved file paths in
+# /tmp/srv403-.../certs.list so cleanup() can POST them back.
+take_down_adam_state() {
+    : > "$WORK/certs.list"
+    local uuid info serial
+    for uuid in $(curl -sk "$ADAM_HOST/admin/onboard"); do
+        [ -n "$uuid" ] || continue
+        info=$(curl -sk "$ADAM_HOST/admin/onboard/$uuid")
+        serial=$(printf '%s' "$info" | jq -r '.Serial // empty')
+        if [ "$serial" = "$EVE_SERIAL" ]; then
+            printf '%s' "$info" > "$WORK/onboard-$uuid.json"
+            echo "$WORK/onboard-$uuid.json" >> "$WORK/certs.list"
+            curl -sk -X DELETE "$ADAM_HOST/admin/onboard/$uuid" >/dev/null
+            step "removed adam onboard cert $uuid (serial $serial)"
+        fi
+    done
+    # Drop the matching device record too so /uuid 404s.
+    local dev
+    for dev in $(curl -sk "$ADAM_HOST/admin/device"); do
+        [ -n "$dev" ] || continue
+        curl -sk -X DELETE "$ADAM_HOST/admin/device/$dev" >/dev/null
+        step "removed adam device $dev"
+    done
+}
+
+restore_adam_state() {
+    [ -s "$WORK/certs.list" ] || return 0
+    local f
+    while IFS= read -r f; do
+        [ -f "$f" ] || continue
+        # Re-POST each saved {Cert, Serial} pair.
+        if curl -sk -X POST -H 'Content-Type: application/json' --data @"$f" \
+                "$ADAM_HOST/admin/onboard" >/dev/null; then
+            step "restored adam onboard cert from $(basename "$f")"
+        else
+            step "FAILED to restore adam onboard cert from $(basename "$f")"
+        fi
+    done < "$WORK/certs.list"
+}
+
+cleanup() {
+    rc=$?
+    set +e
+    # Always try to put adam back the way we found it so the next test
+    # finds a sane state. We then reboot EVE so cmd/client re-registers
+    # against the restored cert. Controller-side reboot won't work
+    # because the device may not have a valid UUID/cert until cmd/client
+    # re-onboards — use the in-VM reboot.
+    restore_adam_state
+    timeout 30s "$EDEN" eve ssh -- 'reboot' >/dev/null 2>&1
+    ssh-keygen -f "${HOME}/.ssh/known_hosts" -R '[127.0.0.1]:2222' >/dev/null 2>&1
+    exit "$rc"
+}
+trap cleanup EXIT
+
+# Pre-conditions: device must currently be onboarded so we have something
+# to tear down. (For a fresh-image test the snapshots would be empty and
+# we'd just register the device on first boot, which is what the
+# happy-path test covers — not this one.)
+have_uuid=$("$EDEN" eve ssh -- 'test -s /persist/status/uuid && echo yes' 2>/dev/null | tr -d '\r\n ')
+[ "$have_uuid" = "yes" ] || { echo "no-uuid-file-pre"; exit 1; }
+
+# ---- 1. Take down the adam-side pre-registration + device record.
+step "tearing down adam state for serial $EVE_SERIAL"
+take_down_adam_state
+[ -s "$WORK/certs.list" ] || { echo "no-matching-onboard-cert-to-remove"; exit 1; }
+
+# ---- 2. Wipe EVE's on-device onboarded state.
+step "wiping EVE onboarded state"
+retry_ssh 10 'rm -f /persist/status/uuid /persist/checkpoint/controllercerts /persist/checkpoint/controllercerts.bak; sync' >/dev/null
+
+# ---- 3. In-VM reboot.
+pre_up=$(retry_ssh 10 'cat /proc/uptime' | awk '{print int($1)}')
+[ -n "$pre_up" ] && [ "$pre_up" -gt 0 ] || { echo "no-pre-up"; exit 1; }
+step "rebooting EVE (pre_up=$pre_up)"
+retry_ssh 5 'reboot' >/dev/null
+wait_for_reboot "$pre_up" || { echo "reboot-did-not-complete"; exit 1; }
+
+# ---- 4. Wait for cmd/client to try registering and adam to return 403.
+# LedBlinkOnboardingFailureNotFound = 18 — pillar/types/ledmanagertypes.go
+# starts a second const block at iota+10 (=10 for OnboardingFailure),
+# skips 11 with `_`, then 12=RespWithoutTLS, 13=RespWithoutOSCP,
+# 14=InvalidControllerCert, 15=InvalidAuthContainer, 16=InvalidBootstrapConfig,
+# 17=OnboardingFailureConflict, 18=OnboardingFailureNotFound. Allow ~6 min
+# for boot + cmd/client to reach selfRegister and observe 403.
+step "waiting for LedBlinkOnboardingFailureNotFound (=18)"
+saw_403_led=0
+for _ in $(seq 1 60); do
+    led=$(retry_ssh 5 'eve exec pillar cat /run/global/LedBlinkCounter/ledconfig.json 2>/dev/null' | tr -d '\r')
+    case "$led" in
+        *'"BlinkCounter":18'*) saw_403_led=1; break ;;
+    esac
+    sleep 6
+done
+[ "$saw_403_led" = 1 ] || { echo "led-18-not-seen last='$led'"; exit 1; }
+step "saw LED 18 — cmd/client observed 403 from /register"
+
+# ---- 5. Restore adam state.  The trap already covers this path on
+# failure; do it explicitly here so the recovery reboot is intentional
+# rather than a side effect of the trap.
+step "restoring adam onboard cert(s)"
+restore_adam_state
+
+# ---- 6. Reboot so cmd/client retries selfRegister against the restored
+# pre-registration. A second in-VM reboot is the simplest trigger —
+# cmd/client wouldn't pick up the change otherwise because it has
+# already exited.
+pre_up=$(retry_ssh 10 'cat /proc/uptime' | awk '{print int($1)}')
+step "rebooting EVE for recovery (pre_up=$pre_up)"
+retry_ssh 5 'reboot' >/dev/null
+wait_for_reboot "$pre_up" || { echo "recovery-reboot-did-not-complete"; exit 1; }
+
+# ---- 7. Wait for re-onboarding success: LED 4 + a fresh UUID on disk.
+step "waiting for Onboarded LED + new UUID"
+saw_ok=0
+for _ in $(seq 1 60); do
+    led=$(retry_ssh 5 'eve exec pillar cat /run/global/LedBlinkCounter/ledconfig.json 2>/dev/null' | tr -d '\r')
+    uuid=$(retry_ssh 5 'cat /persist/status/uuid 2>/dev/null' | tr -d '\r\n ')
+    case "$led" in
+        *'"BlinkCounter":4'*)
+            if [ -n "$uuid" ]; then saw_ok=1; break; fi
+            ;;
+    esac
+    sleep 6
+done
+[ "$saw_ok" = 1 ] || { echo "recovery-not-observed last-led='$led' uuid='$uuid'"; exit 1; }
+step "recovered onboarded, uuid=$uuid"
+
+# Cleanup ran inline; skip the trap-side path so we don't kick off an
+# extra reboot.
+trap - EXIT
+rm -rf "$WORK"
+echo "server-403-ok"
+exit 0
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

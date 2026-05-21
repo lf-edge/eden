@@ -1,0 +1,187 @@
+# Test: cmd/client picks up a new /config/server value across reboots.
+#
+# Exercises the boot-time read of /config/server in pkg/pillar/cmd/client:
+#   * tryRegister's fetchCertChain branch at client.go:322-336, including
+#     the LedBlinkInvalidControllerCert update at line 330 when the wrong
+#     server is unreachable.
+#   * The recovery path on a subsequent boot once /config/server is
+#     restored: fetchCertChain succeeds, selfRegister/doGetUUID complete.
+#
+# The plan's original §7.7 wanted to exercise the per-tick branch at
+# client.go:393-414 (server rewritten while cmd/client was running). That
+# branch is unreachable from a testscript because /config is a read-only
+# tmpfs at runtime; the CONFIG partition is only writable via
+# `eve config mount`, and the changes appear at /config only on the next
+# boot. This test exercises the boot-time path instead.
+#
+# The test asserts EVE comes back healthy after both reboots; the dark
+# code at lines 322-336 / 329-330 is exercised regardless of whether the
+# transient failure LED is observable from the host (ledmanager settles
+# on the prior onboarded value once cmd/client exits, so the
+# InvalidControllerCert state is too brief to poll for).
+
+[!exec:bash] stop
+
+exec -t 30m bash run.sh
+stdout 'server-change-ok'
+
+-- run.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+
+# Hold the original /config/server contents on the host so we can restore.
+orig=$("$EDEN" eve ssh -- cat /config/server 2>/dev/null | tr -d '\r\n')
+[ -n "$orig" ] || { echo "no-original-server"; exit 1; }
+
+restore_server() {
+    rc=$?
+    set +e
+    # Best-effort restore. Importantly, by the time this runs the live
+    # /config/server may already be the wrong host; in that case EVE
+    # cannot reach adam, so `eden controller edge-node reboot` would
+    # queue a directive EVE will never poll for. Use in-VM `reboot`
+    # over ssh instead — it does not need controller connectivity.
+    timeout 30s "$EDEN" eve ssh -- 'mkdir -p /run/cfg-restore && eve config mount /run/cfg-restore' >/dev/null 2>&1
+    timeout 30s "$EDEN" eve ssh -- "printf '%s' '$orig' > /run/cfg-restore/server && sync"
+    timeout 30s "$EDEN" eve ssh -- 'eve config unmount' >/dev/null 2>&1
+    timeout 30s "$EDEN" eve ssh -- 'reboot' >/dev/null 2>&1
+    ssh-keygen -f "${HOME}/.ssh/known_hosts" -R '[127.0.0.1]:2222' >/dev/null 2>&1
+    exit "$rc"
+}
+trap restore_server EXIT
+
+step() { echo "STEP: $*" >&2; }
+
+wait_for_ssh() {
+    local attempts=$1
+    for _ in $(seq 1 "$attempts"); do
+        if timeout 15s "$EDEN" eve ssh -- 'cat /proc/uptime' >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 6
+    done
+    return 1
+}
+
+# Retry an `eden eve ssh <cmd>` up to <attempts> times. Echoes the
+# stdout of the first successful invocation. Needed because for the
+# first ~30-60s after wait_for_reboot returns, individual ssh
+# invocations still occasionally hit "Connection timed out during
+# banner exchange" or exit 255 even though the previous probe just
+# succeeded — banner-exchange recovers in stages.
+retry_ssh() {
+    local attempts=$1 ; shift
+    local out
+    for _ in $(seq 1 "$attempts"); do
+        if out=$(timeout 15s "$EDEN" eve ssh -- "$@" 2>/dev/null); then
+            printf '%s' "$out"
+            return 0
+        fi
+        sleep 4
+    done
+    return 1
+}
+
+# Wait until SSH stops working (EVE has actually started rebooting), then
+# wait until it comes back.  `eden controller edge-node reboot` only
+# queues the reboot in adam — EVE picks it up on its next config poll,
+# which can take ~30-60s.  Polling SSH immediately after issuing the
+# reboot finds the *old* boot still up.
+wait_for_reboot() {
+    local pre_up=$1
+    local i
+    # Phase 1: SSH must stop responding within ~3 min.
+    for i in $(seq 1 30); do
+        if ! timeout 10s "$EDEN" eve ssh -- 'cat /proc/uptime' >/dev/null 2>&1; then
+            break
+        fi
+        sleep 6
+    done
+    # Phase 2: SSH must come back within ~5 min and report a fresh uptime.
+    ssh-keygen -f "${HOME}/.ssh/known_hosts" -R '[127.0.0.1]:2222' >/dev/null 2>&1
+    for i in $(seq 1 50); do
+        local up=$(timeout 10s "$EDEN" eve ssh -- 'cat /proc/uptime' 2>/dev/null | awk '{print int($1)}')
+        if [ -n "$up" ] && [ "$up" -lt "$pre_up" ]; then
+            return 0
+        fi
+        sleep 6
+    done
+    return 1
+}
+
+# ---- 1. Write a deliberately-wrong server URL into the CONFIG partition.
+# 127.0.0.1:3333 inside the VM has no listener so fetchCertChain at boot
+# fails: cmd/client's tryRegister path at client.go:322-336 raises
+# LedBlinkInvalidControllerCert and keeps retrying.
+step "writing wrong /config/server"
+"$EDEN" eve ssh -- 'mkdir -p /run/cfg-stage && eve config mount /run/cfg-stage' >/dev/null
+"$EDEN" eve ssh -- "printf '%s' '127.0.0.1:3333' > /run/cfg-stage/server && sync"
+written=$("$EDEN" eve ssh -- 'cat /run/cfg-stage/server' 2>/dev/null | tr -d '\r\n')
+"$EDEN" eve ssh -- 'eve config unmount' >/dev/null
+[ "$written" = "127.0.0.1:3333" ] || { echo "wrong-server-not-written got '$written'"; exit 1; }
+
+# ---- 2. Reboot and wait for EVE to come back.  cmd/client will retry
+# fetchCertChain against 127.0.0.1:3333 several times during this boot,
+# exercising the dark code.  We don't bother polling for the transient
+# failure LED: ledmanager keeps reporting the prior 'Onboarded' value
+# once cmd/client gives up and exits, so the transient state is not
+# reliably observable from the host. The coverage counters in zedbox
+# still record the code path.
+step "rebooting EVE with the wrong server"
+pre_up=$("$EDEN" eve ssh -- 'cat /proc/uptime' 2>/dev/null | awk '{print int($1)}')
+"$EDEN" controller edge-node reboot
+wait_for_reboot "$pre_up" || { echo "reboot-did-not-complete pre=$pre_up"; exit 1; }
+
+# Confirm the live /config/server reflects the bad value, proving the
+# CONFIG partition write actually persisted across the reboot.  Use
+# retry_ssh — single ssh probes are flaky for the first ~minute even
+# after wait_for_reboot succeeds.
+got=$(retry_ssh 30 'cat /config/server' | tr -d '\r\n')
+[ "$got" = "127.0.0.1:3333" ] || { echo "wrong-server-not-active got '$got'"; exit 1; }
+step "EVE booted with /config/server=$got (exercising dark code)"
+
+# ---- 3. Restore /config/server and reboot to recover.  Use retry_ssh
+# because the wrong-server boot has flaky ssh for a while.
+step "restoring /config/server"
+retry_ssh 30 'mkdir -p /run/cfg-restore && eve config mount /run/cfg-restore' >/dev/null
+retry_ssh 30 "printf '%s' '$orig' > /run/cfg-restore/server && sync" >/dev/null
+retry_ssh 30 'eve config unmount' >/dev/null
+
+step "rebooting EVE after restoration"
+# EVE currently can't reach adam (live /config/server still points at
+# 127.0.0.1:3333 in tmpfs), so a controller-side reboot directive would
+# never be polled.  Use in-VM `reboot` instead.
+pre_up=$(retry_ssh 20 'cat /proc/uptime' | awk '{print int($1)}')
+retry_ssh 5 'reboot' >/dev/null 2>&1 || true
+wait_for_reboot "$pre_up" || { echo "recovery-reboot-did-not-complete"; exit 1; }
+
+# ---- 4. Confirm /config/server is back and the device reports Onboarded.
+got=$(retry_ssh 30 'cat /config/server' | tr -d '\r\n')
+[ "$got" = "$orig" ] || { echo "restore-mismatch got '$got' want '$orig'"; exit 1; }
+
+# LedBlinkOnboarded = 4 (pillar/types/ledmanagertypes.go).  After a
+# reboot ledmanager comes up a few seconds before its first state
+# publish, so allow generous retries.
+for _ in $(seq 1 40); do
+    led=$(retry_ssh 5 'eve exec pillar cat /run/global/LedBlinkCounter/ledconfig.json 2>/dev/null' | tr -d '\r')
+    case "$led" in
+        *'"BlinkCounter":4'*) led_ok=1; break ;;
+    esac
+    sleep 6
+done
+[ "${led_ok:-0}" = 1 ] || { echo "recovery-led-not-onboarded got '$led'"; exit 1; }
+
+# Disable the EXIT trap — we've already restored and rebooted.
+trap - EXIT
+echo "server-change-ok"
+exit 0
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
