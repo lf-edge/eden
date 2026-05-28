@@ -42,6 +42,36 @@ func StopSWTPM(stateDir string) error {
 	return utils.StopCommandWithPid(pidFile)
 }
 
+// tcpPortReservation describes a TCP listen that QEMU will attempt at
+// spawn time. The host field matches the string passed to QEMU (e.g.
+// "localhost" for the chardev/monitor sockets, "0.0.0.0" for hostfwd
+// and serial-PCI backends) so a probe with net.Listen sees the same
+// conflict QEMU would.
+type tcpPortReservation struct {
+	host string
+	port int
+	role string
+}
+
+// checkPortFree probes whether the given TCP host:port can be bound
+// right now. Returns an actionable error if not. The probe is
+// best-effort pre-flight: the port could in principle race closed
+// between the probe and QEMU's bind, but in practice this catches
+// stuck-process leaks (a stranded QEMU from a prior run holding the
+// EVE console port, etc.) before we exec QEMU and wait out the
+// onboarding timeout on a VM that never started.
+func checkPortFree(host string, port int, role string) error {
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("%s port %s already in use: %v "+
+			"(find owner with: sudo ss -tlnp 'sport = :%d')",
+			role, addr, err, port)
+	}
+	_ = ln.Close()
+	return nil
+}
+
 func startQMPLogger(qmpSockFile string, qmpLogFile string) error {
 	shellcmd := fmt.Sprintf(
 		"echo '{\"execute\": \"qmp_capabilities\"}' | "+
@@ -243,6 +273,50 @@ func StartEVEQemu(qemuARCH, qemuOS, eveImageFile, imageFormat string, isInstalle
 
 	// QMP sock
 	qemuOptions += fmt.Sprintf("-qmp unix:%s,server,wait=off", qmpSockFile)
+
+	// Pre-flight: probe every TCP port QEMU is about to listen on. A
+	// stranded process holding any of them (most commonly the EVE
+	// console port from a leaked prior-run QEMU) makes the QEMU bind
+	// fail several seconds in, after which "eden eve onboard" waits
+	// out the full onboarding timeout on a VM that never started. The
+	// probe surfaces the real cause immediately, with the offending
+	// port and a hint for finding the owner.
+	portChecks := []tcpPortReservation{
+		{host: "localhost", port: eveTelnetPort, role: "EVE console (telnet)"},
+	}
+	if qemuMonitorPort != 0 {
+		portChecks = append(portChecks, tcpPortReservation{
+			host: "localhost", port: qemuMonitorPort, role: "QEMU monitor",
+		})
+	}
+	if !withSDN {
+		for i := range netModel.Ports {
+			for k, v := range qemuHostFwd {
+				origPort, err1 := strconv.Atoi(k)
+				newPort, err2 := strconv.Atoi(v)
+				if err1 != nil || err2 != nil {
+					continue
+				}
+				portChecks = append(portChecks, tcpPortReservation{
+					host: "0.0.0.0",
+					port: origPort + i*10,
+					role: fmt.Sprintf("hostfwd %d->guest:%d",
+						origPort+i*10, newPort+i*10),
+				})
+			}
+		}
+	}
+	if serialPCI {
+		portChecks = append(portChecks,
+			tcpPortReservation{host: "0.0.0.0", port: 4444, role: "serial PCI 1"},
+			tcpPortReservation{host: "0.0.0.0", port: 4445, role: "serial PCI 2"},
+		)
+	}
+	for _, c := range portChecks {
+		if err := checkPortFree(c.host, c.port, c.role); err != nil {
+			return fmt.Errorf("StartEVEQemu: %w", err)
+		}
+	}
 
 	log.Infof("Start EVE: %s %s", qemuCommand, qemuOptions)
 	if foreground {
