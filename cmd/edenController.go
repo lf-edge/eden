@@ -35,6 +35,8 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 				newEdgeNodeUpdate(controllerMode),
 				newEdgeNodeGetConfig(controllerMode),
 				newEdgeNodeSetConfig(),
+				newEdgeNodeClusterSet(controllerMode),
+				newEdgeNodeClusterClear(controllerMode),
 				newEdgeNodeGetOptions(controllerMode),
 				newEdgeNodeSetOptions(controllerMode),
 			},
@@ -278,4 +280,49 @@ func newEdgeNodeSetConfig() *cobra.Command {
 	edgeNodeSetConfig.Flags().StringVar(&fileWithConfig, "file", "", "set config from file")
 
 	return edgeNodeSetConfig
+}
+
+func newEdgeNodeClusterSet(controllerMode string) *cobra.Command {
+	var clusterType string
+
+	var edgeNodeClusterSet = &cobra.Command{
+		Use:   "cluster-set",
+		Short: "set EdgeNodeCluster config on the device",
+		Long: `Set EdgeNodeCluster config on the device.
+
+This pushes a loopback-stub EdgeNodeCluster (clusterIpPrefix=127.0.0.1/32,
+joinServerIp=127.0.0.1, clusterInterface=lo, stable clusterId) with the
+selected --type. EVE-side, the publishing of an ENCC with Valid=true and
+a non-ReplicatedStorage clusterType makes volumemgr's startup wait
+short-circuit the longhorn-readiness sub-wait that otherwise costs ~10
+minutes on single-node EVE-k where longhorn is not installed.
+
+Workaround for lf-edge/eve#6018 — the cleaner long-term fix is on the
+EVE side (flip volumemgr's default waitForLhFlag to false).`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openEVEC.EdgeNodeClusterSet(controllerMode, clusterType); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeClusterSet.Flags().StringVar(&clusterType, "type", "k3sbase",
+		"cluster type: k3sbase | replicated-storage | ha | none")
+
+	return edgeNodeClusterSet
+}
+
+func newEdgeNodeClusterClear(controllerMode string) *cobra.Command {
+	var edgeNodeClusterClear = &cobra.Command{
+		Use:   "cluster-clear",
+		Short: "clear EdgeNodeCluster config on the device",
+		Long:  `Clear EdgeNodeCluster config on the device.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openEVEC.EdgeNodeClusterClear(controllerMode); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	return edgeNodeClusterClear
 }
