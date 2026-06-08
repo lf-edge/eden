@@ -107,7 +107,7 @@ const (
 	NetSwitch                    = "6822e35f-c1b8-43ca-b344-0bbc0ece8cf4"
 	DefaultTestProg              = "eden.escript.test"
 	DefaultTestScenario          = ""
-	DefaultRootFSVersionPattern  = `^.*-(xen|kvm|acrn|rpi|rpi-xen|rpi-kvm)-(amd64|arm64)$`
+	DefaultRootFSVersionPattern  = `^.*-(xen|kvm|k|mini|acrn|rpi|rpi-xen|rpi-kvm)-(amd64|arm64)$`
 	DefaultControllerModePattern = `^(?P<Type>(file|proto|adam|zedcloud)):\/\/(?P<URL>.*)$`
 	DefaultPodLinkPattern        = `^(?P<TYPE>(oci|docker|http[s]{0,1}|file|directory)):\/\/(?P<TAG>[^:]+):*(?P<VERSION>.*)$`
 	DefaultRedisContainerName    = "eden_redis"
