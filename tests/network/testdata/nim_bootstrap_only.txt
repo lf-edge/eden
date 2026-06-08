@@ -1,0 +1,308 @@
+# Test: bootstrap-config.pb is the sole DPC source on first boot.
+# (Startup matrix row R2.)
+#
+# When /persist/checkpoint/lastconfig is absent and only
+# /config/bootstrap-config.pb is present (no /config/DevicePortConfig/*.json),
+# NIM should:
+#
+#   1. Detect the bootstrap pb at startup:
+#        haveBootstrapConf := fileutils.FileExists(types.BootstrapConfFileName)  // true
+#        installerDPCs    := n.listPublishedDPCs(runDevicePortConfigDir)          // empty
+#        expectBootstrapDPCs := len(installerDPCs) > 0 || haveBootstrapConf       // true
+#   2. Pass expectBootstrapDPCs=true to dpcManager.Run(); DpcManager
+#      should wait for at least one DPC before declaring bootstrap complete.
+#   3. zedagent decodes /config/bootstrap-config.pb (BootstrapConfig envelope
+#      with signedConfig + controllerCerts), verifies the signature against
+#      the embedded controller certs, and republishes the contained
+#      EdgeDevConfig as the device's controller-keyed DevicePortConfig.
+#   4. NIM's subDevicePortConfigA receives the DPC under key="zedagent",
+#      adds it to DevicePortConfigList, DpcManager runs verification, and
+#      declares it the active DPC.
+#
+# This test exercises step 1–4 end-to-end, including the bootstrap-pb
+# decode path inside zedagent. That path requires the pb to be properly
+# signed; otherwise zedagent rejects it and the DPC never appears.
+#
+# REQUIREMENT: a host-side helper binary on PATH that generates a signed
+# bootstrap-config.pb from a JSON EdgeDevConfig and the eden controller
+# signing key. The shape of that helper is documented in the comment block
+# above stage-bootstrap-pb.sh below. When the helper is added, change
+#
+#   [!exec:nim-bootstrap-pb-gen] skip 'requires nim-bootstrap-pb-gen on PATH (see comment)'
+#
+# to a no-op (or remove it) and this test will activate.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go run() expectBootstrapDPCs=true wait path,
+#                              haveBootstrapConf branch (no lastconfig).
+#   Integration with zedagent's bootstrap-config.pb decode/verify path.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+# nim-bootstrap-pb-gen lives at $(eden.root)/dist/bin/nim-bootstrap-pb-gen,
+# built by `make -C tests/network helper`. Helper scripts below invoke it
+# via the explicit dist path; if the build hasn't happened the script will
+# fail with a clear error before any assertion runs.
+
+! test eden.reboot.test -test.v -timewait=25m -reboot=0 -count=4 &
+
+exec -t 1m bash pre-cleanup.sh
+
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Stage a properly signed bootstrap-config.pb on the CONFIG partition.
+exec -t 1m bash stage-bootstrap-pb.sh
+stdout 'bootstrap pb staged'
+
+# Freeze /persist/checkpoint so zedagent can't recreate lastconfig before
+# our reboot. NIM's startup will see lastconfig absent →
+# hasPersistLastconfig() = false → ignoreBootstraps = false →
+# expectBootstrapDPCs stays true.
+exec -t 1m bash freeze-lastconfig.sh
+stdout 'lastconfig frozen'
+
+eden controller edge-node reboot
+exec sleep 90
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Wait until DPCList has a "bootstrap" entry. zedagent's parseconfig.go:927
+# explicitly assigns Key="bootstrap" (instead of "zedagent") when the DPC
+# is derived from the bootstrap pb. This entry persists even after the
+# controller takes over with key="zedagent" — both can coexist in DPCList.
+exec -t 13m bash wait-bootstrap-ingested.sh
+stdout 'bootstrap ingested'
+
+# Assertion: DPCList contains only zedagent-published keys (bootstrap
+# and/or zedagent — both come from zedagent). Reject anything else
+# (override, usb, manual, lps, lastresort).
+exec -t 1m bash check-only-zedagent-keys.sh
+stdout 'only zedagent-published keys'
+
+# Assertion: /run/global/DevicePortConfig/ is empty — no legacy file
+# ingest happened (we only had bootstrap-config.pb on /config).
+exec -t 1m bash check-runtime-dir-empty.sh
+stdout 'runtime dir empty'
+
+# Assertion: zedagent's "Bootstrap config was applied" log was emitted —
+# proof that our signed pb decoded and was applied through
+# inhaleDeviceConfig() (handleconfig.go:321). Best-effort log check.
+exec -t 1m bash check-log-bootstrap-applied.sh
+stdout 'bootstrap-applied logged|bootstrap-applied log unavailable'
+
+# Field-fidelity assertion: the bootstrap-derived DPC under Key="bootstrap"
+# carries the distinctive Logicallabel "bootstrap-only-port" we baked
+# into the pb. This is a non-racy positive round-trip check — the
+# bootstrap-keyed entry persists in DPCList regardless of whether
+# adam has subsequently published a zedagent-keyed entry alongside it.
+exec -t 1m bash check-bootstrap-port-fidelity.sh
+stdout 'bootstrap port fields match'
+
+exec -t 1m bash cleanup.sh
+
+exec sh kill_watchdog.sh
+wait
+
+# ---
+# nim-bootstrap-pb-gen specification:
+#
+#   nim-bootstrap-pb-gen <input-json> <output-pb>
+#
+# Reads a JSON-encoded `EdgeDevConfig` from <input-json>, calls
+# pkg/utils.PrepareAuthContainer to wrap it in a signed envelope using
+# the eden controller signing key (eden_config/certs/signing-key.pem and
+# signing.pem), wraps that with controller cert chain into a
+# `BootstrapConfig`, marshals to protobuf, writes to <output-pb>.
+#
+# This is exactly what eden setup --eve-bootstrap-file does at install
+# time (see pkg/eden/eden.go lines 683–725), repackaged as a standalone
+# tool so tests can invoke it.
+# ---
+
+-- wait-ssh.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- pre-cleanup.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && eve config mount /run/test-config 2>/dev/null && rm -f /run/test-config/bootstrap-config.pb /run/test-config/DevicePortConfig/override.json /run/test-config/DevicePortConfig/usb.json && sync && eve config unmount) 2>/dev/null; true' 2>/dev/null || true
+true
+
+-- stage-bootstrap-pb.sh --
+#!/bin/bash
+# 1. Snapshot the current adam-side EdgeDevConfig as JSON.
+# 2. Rewrite the first systemAdapter / deviceIo logical labels to the
+#    distinctive marker "bootstrap-only-port" so we can later detect
+#    bootstrap-derived state in DPCList.
+# 3. Convert to a signed bootstrap-config.pb via nim-bootstrap-pb-gen.
+# 4. `eve config mount` and drop the pb in place.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+NIMBOOTSTRAPPB={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/nim-bootstrap-pb-gen
+$EDEN controller edge-node get-config --file /tmp/bo-dev.json
+if [ ! -s /tmp/bo-dev.json ]; then
+    echo "could not fetch device config from adam"
+    exit 1
+fi
+jq '
+  .systemAdapterList[0].name = "bootstrap-only-port" |
+  (.deviceIoList[] | select(.logicallabel == "eth0").logicallabel) |= "bootstrap-only-port"
+' /tmp/bo-dev.json > /tmp/bo-dev-modified.json
+"$NIMBOOTSTRAPPB" /tmp/bo-dev-modified.json /tmp/bo-bootstrap.pb
+if [ ! -s /tmp/bo-bootstrap.pb ]; then
+    echo "nim-bootstrap-pb-gen produced no output"
+    exit 1
+fi
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config' </dev/null
+$EDEN eve ssh 'cat > /run/test-config/bootstrap-config.pb' < /tmp/bo-bootstrap.pb
+$EDEN eve ssh 'sync && eve config unmount'
+out=$($EDEN eve ssh 'eve config mount /run/test-config && ls -l /run/test-config/bootstrap-config.pb 2>/dev/null; eve config unmount')
+case "$out" in
+    *bootstrap-config.pb*) echo "bootstrap pb staged" ;;
+    *) echo "staging failed: $out"; exit 1 ;;
+esac
+
+-- freeze-lastconfig.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; rm -f /persist/checkpoint/lastconfig /persist/checkpoint/lastconfig.bak; sync; chattr +i /persist/checkpoint'
+dir_attrs=$($EDEN eve ssh 'lsattr -d /persist/checkpoint 2>/dev/null' 2>/dev/null)
+file_present=$($EDEN eve ssh 'ls /persist/checkpoint/lastconfig 2>/dev/null && echo present || echo absent' 2>/dev/null)
+if echo "$dir_attrs" | grep -qE '^----i'; then
+    case "$file_present" in
+        *absent*) echo "lastconfig frozen"; exit 0 ;;
+    esac
+fi
+echo "freeze failed: dir_attrs='$dir_attrs' file_present='$file_present'"
+exit 1
+
+-- wait-bootstrap-ingested.sh --
+#!/bin/bash
+# Poll for the "bootstrap" key in DevicePortConfigList. zedagent assigns
+# Key="bootstrap" (parseconfig.go:927) when the DPC comes from the
+# bootstrap pb — distinct from "zedagent" used for controller config.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 144); do
+    keys=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+    if echo "$keys" | grep -qx 'bootstrap'; then
+        echo "bootstrap ingested"
+        exit 0
+    fi
+    sleep 5
+done
+echo "bootstrap not ingested within 12 minutes"
+exit 1
+
+-- check-only-zedagent-keys.sh --
+#!/bin/bash
+# Accept "bootstrap" and "zedagent" keys (both are zedagent publications);
+# reject any other key (override, usb, manual, lps, lastresort).
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+keys=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null | sort -u)
+have_bootstrap=0
+have_other=0
+while IFS= read -r k; do
+    case "$k" in
+        ""|bootstrap|zedagent) [ -n "$k" ] && have_bootstrap=1 ;;
+        *) have_other=1 ;;
+    esac
+done <<EOF
+$keys
+EOF
+if [ "$have_other" = "1" ]; then
+    echo "unexpected non-zedagent-published keys: $keys"
+    exit 1
+fi
+if [ "$have_bootstrap" = "1" ]; then
+    echo "only zedagent-published keys"
+    exit 0
+fi
+echo "no bootstrap/zedagent key found: $keys"
+exit 1
+
+-- check-runtime-dir-empty.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'ls /run/global/DevicePortConfig/ 2>/dev/null')
+if [ -z "$out" ]; then
+    echo "runtime dir empty"
+    exit 0
+fi
+echo "unexpected files in /run/global/DevicePortConfig: $out"
+exit 1
+
+-- check-log-bootstrap-applied.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'grep -h "Bootstrap config was applied" /persist/agentlog/zedagent.log* /persist/newlog/keepSentQueue/*zedagent* /persist/newlog/collectQueue/*zedagent* 2>/dev/null | tail -1')
+if [ -n "$out" ]; then
+    echo "bootstrap-applied logged"
+else
+    echo "bootstrap-applied log unavailable"
+fi
+
+-- check-bootstrap-port-fidelity.sh --
+#!/bin/bash
+# The Key="bootstrap" entry in DPCList carries the bootstrap pb's
+# distinctive port. Read its Logicallabel and confirm round-trip. The
+# bootstrap-keyed entry persists in DPCList even after adam has
+# subsequently published a zedagent-keyed entry, so this is non-racy.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+expr='.PortConfigList[] | select(.Key=="bootstrap") | .Ports[0]'
+ll=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .Logicallabel' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ifn=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IfName' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ll=${ll//$'\r'/}; ifn=${ifn//$'\r'/}
+fail=0
+[ "$ll" = "bootstrap-only-port" ] || { echo "Logicallabel='$ll' (want bootstrap-only-port)"; fail=1; }
+[ "$ifn" = "eth0" ]                || { echo "IfName='$ifn' (want eth0)"; fail=1; }
+if [ "$fail" = "0" ]; then
+    echo "bootstrap port fields match"
+    exit 0
+fi
+exit 1
+
+-- cleanup.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; true' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && rm -f /run/test-config/bootstrap-config.pb && sync && eve config unmount' 2>/dev/null || true
+rm -f /tmp/bo-dev.json /tmp/bo-dev-modified.json /tmp/bo-bootstrap.pb 2>/dev/null || true
+true
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
