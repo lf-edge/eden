@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 )
@@ -56,6 +57,7 @@ type Ctx struct {
 	localProfileServer         string
 	profileServerToken         string
 	diskLayout                 *DisksLayout
+	cluster                    *config.EdgeNodeCluster
 }
 
 // CreateEdgeNode generates EdgeNode
@@ -69,6 +71,35 @@ func CreateEdgeNode() *Ctx {
 		configItems:   map[string]string{},
 		state:         NotOnboarded,
 		epoch:         0,
+		cluster:       DefaultStubCluster(),
+	}
+}
+
+// DefaultStubCluster builds a loopback-stub EdgeNodeCluster config that
+// every eden-managed device gets by default. The stub's only purpose
+// is to cause pillar to publish an EdgeNodeClusterConfig with Valid=true
+// and ClusterType != ReplicatedStorage, which makes volumemgr's startup
+// wait skip the longhorn-readiness sub-wait (otherwise a 10-min stall
+// on single-node EVE-k where longhorn is not installed). Workaround for
+// lf-edge/eve#6018 — the cleaner long-term fix is on the EVE side; this
+// stub becomes redundant when that lands and should be deleted then.
+//
+// The stub uses loopback addresses + a stable UUID. It's consistent with
+// "this is the only node" (joinServerIp == clusterIpPrefix address →
+// BootstrapNode=true in pillar). No actual clustering happens; pillar
+// just doesn't block on longhorn-readiness when it sees Valid=true.
+//
+// Tests / users that want pillar's no-cluster behavior can override via
+// `eden controller edge-node cluster-clear`.
+func DefaultStubCluster() *config.EdgeNodeCluster {
+	return &config.EdgeNodeCluster{
+		ClusterName:      "eden-stub",
+		ClusterId:        "00000000-0000-0000-0000-000000000001",
+		ClusterInterface: "lo",
+		ClusterIpPrefix:  "127.0.0.1/32",
+		IsWorkerNode:     false,
+		JoinServerIp:     "127.0.0.1",
+		ClusterType:      config.ClusterType_CLUSTER_TYPE_K3S_BASE,
 	}
 }
 
@@ -404,4 +435,14 @@ func (cfg *Ctx) GetProfileServerToken() string {
 // SetProfileServerToken set profileServerToken
 func (cfg *Ctx) SetProfileServerToken(profileServerToken string) {
 	cfg.profileServerToken = profileServerToken
+}
+
+// GetCluster returns the EdgeNodeCluster config, or nil if not set.
+func (cfg *Ctx) GetCluster() *config.EdgeNodeCluster {
+	return cfg.cluster
+}
+
+// SetCluster sets the EdgeNodeCluster config. Pass nil to clear.
+func (cfg *Ctx) SetCluster(cluster *config.EdgeNodeCluster) {
+	cfg.cluster = cluster
 }
