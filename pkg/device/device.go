@@ -76,21 +76,25 @@ func CreateEdgeNode() *Ctx {
 }
 
 // DefaultStubCluster builds a loopback-stub EdgeNodeCluster config that
-// every eden-managed device gets by default. The stub's only purpose
-// is to cause pillar to publish an EdgeNodeClusterConfig with Valid=true
-// and ClusterType != ReplicatedStorage, which makes volumemgr's startup
-// wait skip the longhorn-readiness sub-wait (otherwise a 10-min stall
-// on single-node EVE-k where longhorn is not installed). Workaround for
-// lf-edge/eve#6018 — the cleaner long-term fix is on the EVE side; this
-// stub becomes redundant when that lands and should be deleted then.
+// every eden-managed device gets by default. The stub causes pillar to
+// publish an EdgeNodeClusterConfig with Valid=true and a real ClusterType,
+// which makes volumemgr's startup wait short-circuit the longhorn-readiness
+// sub-wait that otherwise costs ~10 min on single-node EVE-k.
+//
+// ClusterType is REPLICATED_STORAGE so the device keeps the full Kubernetes
+// stack installed (kubevirt + CDI + longhorn + descheduler). Tests that
+// exercise VMs on eve-k need kubevirt, and tests that migrate volumes
+// across HV flavors (kvm → k) need CDI to convert the persistent .img
+// representation into a longhorn-backed PVC. K3S_BASE strips all three
+// and would fail any of these scenarios.
 //
 // The stub uses loopback addresses + a stable UUID. It's consistent with
 // "this is the only node" (joinServerIp == clusterIpPrefix address →
-// BootstrapNode=true in pillar). No actual clustering happens; pillar
-// just doesn't block on longhorn-readiness when it sees Valid=true.
+// BootstrapNode=true in pillar). No actual clustering happens.
 //
-// Tests / users that want pillar's no-cluster behavior can override via
-// `eden controller edge-node cluster-clear`.
+// Tests that explicitly want a different ClusterType can override via
+// `eden controller edge-node cluster-set --type=...`, and tests that want
+// pillar's no-cluster behavior can use `cluster-clear`.
 func DefaultStubCluster() *config.EdgeNodeCluster {
 	return &config.EdgeNodeCluster{
 		ClusterName:      "eden-stub",
@@ -99,7 +103,7 @@ func DefaultStubCluster() *config.EdgeNodeCluster {
 		ClusterIpPrefix:  "127.0.0.1/32",
 		IsWorkerNode:     false,
 		JoinServerIp:     "127.0.0.1",
-		ClusterType:      config.ClusterType_CLUSTER_TYPE_K3S_BASE,
+		ClusterType:      config.ClusterType_CLUSTER_TYPE_REPLICATED_STORAGE,
 	}
 }
 
