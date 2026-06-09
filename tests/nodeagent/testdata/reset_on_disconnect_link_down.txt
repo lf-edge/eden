@@ -1,0 +1,91 @@
+# nodeagent reset-on-disconnect test
+#
+# Exercises BootReasonDisconnect (handleResetOnCloudDisconnect):
+#   1. With no upgrade in progress, set timer.reboot.no.network to a
+#      short value.
+#   2. Drop the controller link for longer than that timer.
+#   3. nodeagent observes the controller as unreachable past the
+#      threshold and schedules a reboot with BootReasonDisconnect.
+#   4. Bring the link back up; the device publishes
+#      last_boot_reason=BOOT_REASON_DISCONNECT and lastRebootReason
+#      mentioning the controller-outage timeout.
+#
+# Only meaningful on device models where Eden can drop the link
+# (ZedVirtual-4G, VBox).
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
+
+{{$test := "test eden.lim.test -test.v -timewait 30m -test.run TestInfo"}}
+
+# Establish a clean baseline by rebooting via controller command. After
+# this step LastBootReason is BOOT_REASON_REBOOT_CMD; the assertion at
+# the end then proves that a *fresh* reboot fired during the test
+# (changing it to BOOT_REASON_DISCONNECT), not a stale value left from
+# whatever booted the device before.
+message 'Establishing reboot baseline'
+eden controller edge-node reboot
+# Give the controller-issued reboot enough time to actually fire
+# (minRebootDelay 30s + boot ~30s) before we start matching the
+# resulting LastBootReason — otherwise lim.test could match a stale
+# REBOOT_CMD value from an earlier run.
+exec sleep 90
+{{$test}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_REBOOT_CMD'
+
+# Shorten timer.reboot.no.network to its minimum (120s) and shorten
+# the controller-config polling interval so the new value reaches the
+# device promptly. Also shorten timer.deviceinfo.interval so the
+# device publishes a fresh info to Adam soon after each boot — the
+# final lim.test assertion uses einfo.InfoNew (only new messages
+# trigger the match), so without this it can wait up to 10min for
+# the next periodic info push after the post-disconnect reboot.
+eden controller edge-node update --config timer.reboot.no.network=120
+eden controller edge-node update --config timer.config.interval=10
+eden controller edge-node update --config timer.deviceinfo.interval=30
+
+# Wait long enough for the device to fetch and apply the new config.
+# timer.config.interval defaults to 60s, so 90s is conservative even
+# before the new shorter interval takes effect.
+exec sleep 90
+
+# Drop the controller link.
+message 'Dropping controller link to trigger reset-on-disconnect'
+eden eve link down
+
+# Sleep long enough that:
+#   ~60s for zedagent to flip ConfigGetStatus to Fail,
+#   120s for timer.reboot.no.network to elapse,
+#   30s for nodeagent's minRebootDelay,
+#   30-60s for the device to reboot.
+exec sleep 360
+
+# Bring the link back up so the device can re-publish its info.
+message 'Restoring controller link'
+eden eve link up
+
+# Verify: nodeagent reported BOOT_REASON_DISCONNECT on the next boot.
+# This boot reason is set exclusively by handleResetOnCloudDisconnect,
+# so this single assertion is sufficient signal that the timer-driven
+# reset path executed end-to-end.
+message 'Asserting last_boot_reason'
+{{$test}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_DISCONNECT'
+stdout 'BOOT_REASON_DISCONNECT'
+
+# Reset config back to defaults.
+eden eve reset
+
+{{else}}
+
+message 'reset_on_disconnect_test: skipped — device model {{$devmodel}} does not support eden eve link down'
+
+{{end}}
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

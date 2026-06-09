@@ -1,0 +1,98 @@
+# nodeagent reset-on-disconnect — black-hole variant
+#
+# Companion to reset_on_disconnect_link_down. The link-down variant
+# tests the "cable yanked" failure mode where eth0 loses its IP and
+# NIM's DPC verification trips. This variant tests the more common
+# real-world failure: link is up, IP is valid, the interface looks
+# healthy, but only controller-bound packets are silently dropped
+# (e.g. ISP routing change, controller IP migration, upstream firewall
+# change between device and controller). Here nodeagent's reset-on-
+# disconnect timer is the *primary* defence — NIM stays happy because
+# the interface itself is fine.
+#
+# Mechanism:
+#   eden eve ssh "iptables -A OUTPUT -d <adam-ip> -j DROP"
+#
+# After the reboot the rule is gone (it was in the previous boot's
+# in-memory iptables), so connectivity restores naturally.
+#
+# Only meaningful on device models reachable via eden eve ssh
+# (ZedVirtual-4G, VBox).
+
+{{$devmodel := EdenConfig "eve.devmodel"}}
+{{$adam_ip  := EdenConfig "adam.ip"}}
+
+{{if or (eq $devmodel "ZedVirtual-4G") (eq $devmodel "VBox") }}
+
+{{$test := "test eden.lim.test -test.v -timewait 30m -test.run TestInfo"}}
+
+# Establish a clean baseline by rebooting via controller command. After
+# this step LastBootReason is BOOT_REASON_REBOOT_CMD; the assertion at
+# the end then proves that a *fresh* reboot fired during the test
+# (changing it to BOOT_REASON_DISCONNECT), not a stale value left from
+# whatever booted the device before.
+message 'Establishing reboot baseline'
+eden controller edge-node reboot
+# Give the controller-issued reboot enough time to actually fire
+# (minRebootDelay 30s + boot ~30s) before we start matching the
+# resulting LastBootReason — otherwise lim.test could match a stale
+# REBOOT_CMD value from an earlier run.
+exec sleep 90
+{{$test}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_REBOOT_CMD'
+
+# Shorten timer.reboot.no.network to its minimum (120s) and shorten
+# the controller-config polling interval so the new value reaches the
+# device promptly. Also shorten timer.deviceinfo.interval so the
+# device publishes a fresh info to Adam soon after each boot — the
+# final lim.test assertion uses einfo.InfoNew (only new messages
+# trigger the match), so without this it can wait up to 10min for
+# the next periodic info push after the post-disconnect reboot.
+eden controller edge-node update --config timer.reboot.no.network=120
+eden controller edge-node update --config timer.config.interval=10
+eden controller edge-node update --config timer.deviceinfo.interval=30
+
+# Wait long enough for the device to fetch and apply the new config.
+exec sleep 90
+
+# Black-hole controller traffic. Link stays up, lease persists, NIM
+# considers the interface healthy — only nodeagent's reset-on-
+# disconnect timer should react.
+# `--` terminates eden's flag parsing so the iptables flags below pass
+# through unmolested to the SSH command.
+message 'Black-holing controller traffic to trigger reset-on-disconnect'
+eden eve ssh -- iptables -A OUTPUT -d {{$adam_ip}} -j DROP
+
+# Sleep long enough that:
+#   ~10s for zedagent to flip ConfigGetStatus to Fail,
+#   120s for timer.reboot.no.network to elapse,
+#   30s for nodeagent's minRebootDelay,
+#   30-60s for the device to reboot.
+# After the reboot the iptables rule is gone (it was per-boot state),
+# so no explicit cleanup is required.
+exec sleep 360
+
+# Verify: nodeagent reported BOOT_REASON_DISCONNECT on the next boot.
+# This boot reason is set exclusively by handleResetOnCloudDisconnect,
+# so this single assertion is sufficient signal that the timer-driven
+# reset path executed end-to-end.
+message 'Asserting last_boot_reason'
+{{$test}} -out InfoContent.dinfo.LastBootReason 'InfoContent.dinfo.LastBootReason:BOOT_REASON_DISCONNECT'
+stdout 'BOOT_REASON_DISCONNECT'
+
+# Reset config back to defaults.
+eden eve reset
+
+{{else}}
+
+message 'reset_on_disconnect_blackhole: skipped — device model {{$devmodel}} not supported via eden eve ssh'
+
+{{end}}
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

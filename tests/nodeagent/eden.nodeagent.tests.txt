@@ -1,0 +1,6 @@
+eden.escript.test -test.run TestEdenScripts/reset_on_disconnect_link_down -test.timeout 45m
+eden.escript.test -test.run TestEdenScripts/reset_on_disconnect_blackhole -test.timeout 45m
+eden.escript.test -test.run TestEdenScripts/baseos_fallback_link_down -test.timeout 45m
+eden.escript.test -test.run TestEdenScripts/baseos_fallback_blackhole -test.timeout 45m
+eden.escript.test -test.run TestEdenScripts/restart_counter_monotonic -test.timeout 20m
+eden.escript.test -test.run TestEdenScripts/maintenance_no_disk_space -test.timeout 40m
