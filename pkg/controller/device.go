@@ -203,10 +203,29 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (*device.Ctx, e
 	}
 	dev.SetVolumeConfigs(volumes)
 
+	// The device's standalone ContentTree list must hold only ContentTrees
+	// that have no other owner (those added via `content-tree-add`). The
+	// baseos block and each volume re-emit their own ContentTree in
+	// GetConfigBytes, so excluding them here keeps the standalone walk from
+	// resurrecting a ContentTree after its owner is superseded or removed —
+	// e.g. an eveimage-update that overwrites the baseos block orphans the
+	// previous baseos ContentTree, which would otherwise linger in the
+	// pushed config forever.
+	ownedContentTrees := map[string]bool{}
+	if config.Baseos.GetContentTreeUuid() != "" {
+		ownedContentTrees[config.Baseos.GetContentTreeUuid()] = true
+	}
+	for _, vol := range config.Volumes {
+		if id := vol.GetOrigin().GetDownloadContentTreeID(); id != "" {
+			ownedContentTrees[id] = true
+		}
+	}
 	var contentTrees []string
 	for _, el := range config.ContentInfo {
 		_ = cloud.AddContentTree(el)
-		contentTrees = append(contentTrees, el.Uuid)
+		if !ownedContentTrees[el.Uuid] {
+			contentTrees = append(contentTrees, el.Uuid)
+		}
 	}
 	dev.SetContentTreeConfig(contentTrees)
 
@@ -531,6 +550,28 @@ volumeLoop:
 			}
 			contentTrees = append(contentTrees, contentTreeConfig)
 		}
+	}
+	// Also include standalone ContentTrees registered on the device (via e.g.
+	// `eden controller edge-node content-tree-add`) that are not already
+	// referenced by a Volume or BaseOS. Pillar downloads ContentTrees eagerly
+	// regardless of whether they have a consumer, and blob lookup is by SHA256
+	// so a later Volume/App with the same image reuses the blobs.
+standaloneContentTreeLoop:
+	for _, contentTreeID := range dev.GetContentTrees() {
+		for _, ct := range contentTrees {
+			if ct.Uuid == contentTreeID {
+				continue standaloneContentTreeLoop
+			}
+		}
+		contentTreeConfig, err := cloud.GetContentTree(contentTreeID)
+		if err != nil {
+			return nil, err
+		}
+		dataStores, err = cloud.checkContentTreeDs(contentTreeConfig, dataStores)
+		if err != nil {
+			return nil, err
+		}
+		contentTrees = append(contentTrees, contentTreeConfig)
 	}
 	var applicationInstances []*config.AppInstanceConfig
 	for _, applicationInstanceConfigID := range dev.GetApplicationInstances() {
