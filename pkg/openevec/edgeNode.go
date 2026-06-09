@@ -14,6 +14,7 @@ import (
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
@@ -462,5 +463,71 @@ func (openEVEC *OpenEVEC) ControllerSetOptions(fileWithConfig string) error {
 	}
 	log.Info("Options loaded")
 
+	return nil
+}
+
+// EdgeNodeClusterSet pushes a stub EdgeNodeCluster config to the device
+// with the specified cluster type (k3sbase | replicated-storage | ha).
+// Workaround for lf-edge/eve#6018; see device.DefaultStubCluster for the
+// rationale.
+func (openEVEC *OpenEVEC) EdgeNodeClusterSet(controllerMode string, clusterType string) error {
+	var ct config.ClusterType
+	switch clusterType {
+	case "k3sbase":
+		ct = config.ClusterType_CLUSTER_TYPE_K3S_BASE
+	case "replicated-storage":
+		ct = config.ClusterType_CLUSTER_TYPE_REPLICATED_STORAGE
+	case "ha":
+		ct = config.ClusterType_CLUSTER_TYPE_HA
+	case "none":
+		ct = config.ClusterType_CLUSTER_TYPE_UNSPECIFIED
+	default:
+		return fmt.Errorf("unsupported cluster type %q (want one of: k3sbase, replicated-storage, ha, none)", clusterType)
+	}
+
+	changer, err := changerByControllerMode(controllerMode)
+	if err != nil {
+		return err
+	}
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
+	}
+
+	cluster := dev.GetCluster()
+	if cluster == nil {
+		// No prior cluster set — start from the loopback stub.
+		cluster = device.DefaultStubCluster()
+	}
+	cluster.ClusterType = ct
+	dev.SetCluster(cluster)
+
+	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+		return fmt.Errorf("setControllerAndDev error: %w", err)
+	}
+	log.Infof("Pushed EdgeNodeCluster (type=%s) to the device", clusterType)
+	return nil
+}
+
+// EdgeNodeClusterClear removes any EdgeNodeCluster config from the device.
+// After clearing, pillar's parseEdgeNodeClusterConfig will publish an
+// empty (Initialized=true, Valid=false) ENCC — which means volumemgr will
+// fall back to waiting for longhorn (the behavior workaround'd by the
+// default stub). Useful for tests that explicitly want pillar's "no
+// cluster config" branch.
+func (openEVEC *OpenEVEC) EdgeNodeClusterClear(controllerMode string) error {
+	changer, err := changerByControllerMode(controllerMode)
+	if err != nil {
+		return err
+	}
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("getControllerAndDevFromConfig error: %w", err)
+	}
+	dev.SetCluster(nil)
+	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+		return fmt.Errorf("setControllerAndDev error: %w", err)
+	}
+	log.Info("Cleared EdgeNodeCluster on the device")
 	return nil
 }

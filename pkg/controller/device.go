@@ -663,6 +663,7 @@ volumeLoop:
 		LocalProfileServer: dev.GetLocalProfileServer(),
 		ProfileServerToken: dev.GetProfileServerToken(),
 		Disks:              disksConfig,
+		Cluster:            dev.GetCluster(),
 	}
 	if jsonFormat {
 		return json.MarshalIndent(devConfig, "", "    ")
