@@ -509,6 +509,45 @@ func (openEVEC *OpenEVEC) EdgeNodeClusterSet(controllerMode string, clusterType 
 	return nil
 }
 
+// EdgeNodeContentTreeAdd registers a standalone ContentTree (no associated
+// Volume or AppInstance) in the device config. The URL accepts the same
+// forms as 'eden volume create' / 'eden pod deploy': docker://, file://,
+// http(s)://. Pillar's volumemgr downloads ContentTrees eagerly, so the
+// device will fetch the blobs and reach LOADED state. Because blob lookup
+// is by SHA256, a subsequent app deploy against the same image (or any
+// other image sharing the SHA) reuses the existing blobs without
+// re-downloading. This lets tests pre-stage a content tree, exercise a
+// migration (e.g. cross-HV upgrade), and then deploy an app from it
+// without involving the PVC machinery.
+func (openEVEC *OpenEVEC) EdgeNodeContentTreeAdd(appLink, registry, contentTreeName, datastoreOverride string, sftpLoad, directLoad bool) error {
+	changer := &adamChanger{}
+	ctrl, dev, err := changer.getControllerAndDevFromConfig(openEVEC.cfg)
+	if err != nil {
+		return fmt.Errorf("getControllerAndDevFromConfig: %w", err)
+	}
+	var opts []expect.ExpectationOption
+	opts = append(opts, expect.WithSFTPLoad(sftpLoad))
+	if !sftpLoad {
+		opts = append(opts, expect.WithHTTPDirectLoad(directLoad))
+	}
+	opts = append(opts, expect.WithDatastoreOverride(datastoreOverride))
+	registryToUse := registry
+	switch registry {
+	case "local":
+		registryToUse = fmt.Sprintf("%s:%d", openEVEC.cfg.Registry.IP, openEVEC.cfg.Registry.Port)
+	case "remote":
+		registryToUse = ""
+	}
+	opts = append(opts, expect.WithRegistry(registryToUse))
+	expectation := expect.AppExpectationFromURL(ctrl, dev, appLink, contentTreeName, opts...)
+	contentTree := expectation.ContentTree(contentTreeName)
+	log.Infof("create content tree %s with %s request sent", contentTree.DisplayName, appLink)
+	if err = changer.setControllerAndDev(ctrl, dev); err != nil {
+		return fmt.Errorf("setControllerAndDev: %w", err)
+	}
+	return nil
+}
+
 // EdgeNodeClusterClear removes any EdgeNodeCluster config from the device.
 // After clearing, pillar's parseEdgeNodeClusterConfig will publish an
 // empty (Initialized=true, Valid=false) ENCC — which means volumemgr will
