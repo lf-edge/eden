@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/evecommon"
 	uuid "github.com/satori/go.uuid"
 )
@@ -56,6 +57,7 @@ type Ctx struct {
 	localProfileServer         string
 	profileServerToken         string
 	diskLayout                 *DisksLayout
+	cluster                    *config.EdgeNodeCluster
 }
 
 // CreateEdgeNode generates EdgeNode
@@ -69,6 +71,39 @@ func CreateEdgeNode() *Ctx {
 		configItems:   map[string]string{},
 		state:         NotOnboarded,
 		epoch:         0,
+		cluster:       DefaultStubCluster(),
+	}
+}
+
+// DefaultStubCluster builds a loopback-stub EdgeNodeCluster config that
+// every eden-managed device gets by default. The stub causes pillar to
+// publish an EdgeNodeClusterConfig with Valid=true and a real ClusterType,
+// which makes volumemgr's startup wait short-circuit the longhorn-readiness
+// sub-wait that otherwise costs ~10 min on single-node EVE-k.
+//
+// ClusterType is REPLICATED_STORAGE so the device keeps the full Kubernetes
+// stack installed (kubevirt + CDI + longhorn + descheduler). Tests that
+// exercise VMs on eve-k need kubevirt, and tests that migrate volumes
+// across HV flavors (kvm → k) need CDI to convert the persistent .img
+// representation into a longhorn-backed PVC. K3S_BASE strips all three
+// and would fail any of these scenarios.
+//
+// The stub uses loopback addresses + a stable UUID. It's consistent with
+// "this is the only node" (joinServerIp == clusterIpPrefix address →
+// BootstrapNode=true in pillar). No actual clustering happens.
+//
+// Tests that explicitly want a different ClusterType can override via
+// `eden controller edge-node cluster-set --type=...`, and tests that want
+// pillar's no-cluster behavior can use `cluster-clear`.
+func DefaultStubCluster() *config.EdgeNodeCluster {
+	return &config.EdgeNodeCluster{
+		ClusterName:      "eden-stub",
+		ClusterId:        "00000000-0000-0000-0000-000000000001",
+		ClusterInterface: "lo",
+		ClusterIpPrefix:  "127.0.0.1/32",
+		IsWorkerNode:     false,
+		JoinServerIp:     "127.0.0.1",
+		ClusterType:      config.ClusterType_CLUSTER_TYPE_REPLICATED_STORAGE,
 	}
 }
 
@@ -404,4 +439,14 @@ func (cfg *Ctx) GetProfileServerToken() string {
 // SetProfileServerToken set profileServerToken
 func (cfg *Ctx) SetProfileServerToken(profileServerToken string) {
 	cfg.profileServerToken = profileServerToken
+}
+
+// GetCluster returns the EdgeNodeCluster config, or nil if not set.
+func (cfg *Ctx) GetCluster() *config.EdgeNodeCluster {
+	return cfg.cluster
+}
+
+// SetCluster sets the EdgeNodeCluster config. Pass nil to clear.
+func (cfg *Ctx) SetCluster(cluster *config.EdgeNodeCluster) {
+	cfg.cluster = cluster
 }

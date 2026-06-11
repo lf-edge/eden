@@ -35,6 +35,9 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 				newEdgeNodeUpdate(controllerMode),
 				newEdgeNodeGetConfig(controllerMode),
 				newEdgeNodeSetConfig(),
+				newEdgeNodeClusterSet(controllerMode),
+				newEdgeNodeClusterClear(controllerMode),
+				newEdgeNodeContentTreeAdd(controllerMode),
 				newEdgeNodeGetOptions(controllerMode),
 				newEdgeNodeSetOptions(controllerMode),
 			},
@@ -278,4 +281,82 @@ func newEdgeNodeSetConfig() *cobra.Command {
 	edgeNodeSetConfig.Flags().StringVar(&fileWithConfig, "file", "", "set config from file")
 
 	return edgeNodeSetConfig
+}
+
+func newEdgeNodeClusterSet(controllerMode string) *cobra.Command {
+	var clusterType string
+
+	var edgeNodeClusterSet = &cobra.Command{
+		Use:   "cluster-set",
+		Short: "set EdgeNodeCluster config on the device",
+		Long: `Set EdgeNodeCluster config on the device.
+
+This pushes a loopback-stub EdgeNodeCluster (clusterIpPrefix=127.0.0.1/32,
+joinServerIp=127.0.0.1, clusterInterface=lo, stable clusterId) with the
+selected --type. EVE-side, the publishing of an ENCC with Valid=true and
+a non-ReplicatedStorage clusterType makes volumemgr's startup wait
+short-circuit the longhorn-readiness sub-wait that otherwise costs ~10
+minutes on single-node EVE-k where longhorn is not installed.
+
+Workaround for lf-edge/eve#6018 — the cleaner long-term fix is on the
+EVE side (flip volumemgr's default waitForLhFlag to false).`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openEVEC.EdgeNodeClusterSet(controllerMode, clusterType); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeClusterSet.Flags().StringVar(&clusterType, "type", "k3sbase",
+		"cluster type: k3sbase | replicated-storage | ha | none")
+
+	return edgeNodeClusterSet
+}
+
+func newEdgeNodeContentTreeAdd(controllerMode string) *cobra.Command {
+	var registry, contentTreeName, datastoreOverride string
+	var sftpLoad, directLoad bool
+
+	var edgeNodeContentTreeAdd = &cobra.Command{
+		Use:   "content-tree-add <(docker|http(s)|file)://(<TAG>[:<VERSION>] | <URL> | <PATH>)>",
+		Short: "register a standalone ContentTree in the device config (no Volume)",
+		Long: `Register a standalone ContentTree (no associated Volume or AppInstance)
+in the EdgeDevConfig. Pillar downloads ContentTrees eagerly and looks up
+blobs by SHA256, so a subsequent 'eden pod deploy' against the same image
+URL (or any image sharing the SHA) reuses the pre-staged blobs without
+re-downloading.
+
+Use case: pre-stage a content tree on EVE-kvm, push a cross-HV upgrade to
+EVE-k, and deploy an app referencing the same image on EVE-k — the
+content tree survives the upgrade and is reused. Avoids the
+Volume/PVC machinery entirely.`,
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openEVEC.EdgeNodeContentTreeAdd(args[0], registry, contentTreeName, datastoreOverride, sftpLoad, directLoad); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeContentTreeAdd.Flags().StringVarP(&contentTreeName, "name", "n", "", "display name of content tree (defaults to image name)")
+	edgeNodeContentTreeAdd.Flags().StringVar(&registry, "registry", "remote", "Select registry to use for containers (remote/local)")
+	edgeNodeContentTreeAdd.Flags().StringVar(&datastoreOverride, "datastoreOverride", "", "Override datastore path (when Eden and EVE see different URLs)")
+	edgeNodeContentTreeAdd.Flags().BoolVar(&sftpLoad, "sftp", false, "force eserver to use sftp")
+	edgeNodeContentTreeAdd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
+	return edgeNodeContentTreeAdd
+}
+
+func newEdgeNodeClusterClear(controllerMode string) *cobra.Command {
+	var edgeNodeClusterClear = &cobra.Command{
+		Use:   "cluster-clear",
+		Short: "clear EdgeNodeCluster config on the device",
+		Long:  `Clear EdgeNodeCluster config on the device.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openEVEC.EdgeNodeClusterClear(controllerMode); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	return edgeNodeClusterClear
 }
