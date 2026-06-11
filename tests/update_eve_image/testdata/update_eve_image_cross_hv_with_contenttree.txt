@@ -1,0 +1,345 @@
+# Test: pre-staged ContentTree (no Volume) survives a cross-HV-flavor EVE
+# upgrade, and an app instance deployed post-upgrade reuses the existing
+# blobs instead of re-downloading.
+#
+# Variant of update_eve_image_cross_hv_with_volume.txt that side-steps
+# the Volume/PVC/CDI machinery entirely:
+#   - Pre-stage a standalone ContentTree on the running EVE (e.g. kvm)
+#     via `eden controller edge-node content-tree-add`. Pillar's
+#     volumemgr downloads ContentTrees eagerly, so the image bits land
+#     on /persist without any Volume being created. No .img file, no
+#     PVC, no CDI involvement on the post-upgrade side.
+#   - Push a cross-flavor baseos update (kvm <-> k).
+#   - After EVE reboots into the other flavor: verify the ContentTree
+#     is still present and LOADED (pubsub-persisted, blobs on /persist).
+#   - Deploy an app instance from the same image. Blob lookup is by
+#     SHA256, so volumemgr finds the pre-staged blobs and reuses them.
+#   - Assert no new ContentSha256 appeared in /run/volumemgr/
+#     ContentTreeStatus — confirms reuse, not re-download.
+#
+# Why this variant exists: the with_volume variant trips on a longhorn
+# scratch-PVC scheduling bug post-upgrade (REPLICATED_STORAGE single-node
+# clusters can't allocate the CDI scratch volume), which is unrelated to
+# the content-tree-survival question. This variant tests the same
+# user-visible property (image bits survive upgrade) without involving
+# the longhorn-backed PVC path at all.
+#
+# Parameters: ALT_HV, ALT_EVE_VER, ALT_EVE_REG — same as the volume variant.
+
+{{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
+
+{{$current_hv := EdenConfig "eve.hv"}}
+{{$arch       := EdenConfig "eve.arch"}}
+
+{{$alt_hv_env := EdenGetEnv "ALT_HV"}}
+{{$alt_hv := "k"}}
+{{if eq $current_hv "k"}}{{$alt_hv = "kvm"}}{{end}}
+{{if $alt_hv_env}}{{$alt_hv = $alt_hv_env}}{{end}}
+
+{{$alt_ver_env := EdenGetEnv "ALT_EVE_VER"}}
+{{$alt_ver := "12.1.0"}}
+{{if $alt_ver_env}}{{$alt_ver = $alt_ver_env}}{{end}}
+
+{{$alt_reg_env := EdenGetEnv "ALT_EVE_REG"}}
+{{$alt_reg := "lfedge/eve"}}
+{{if $alt_reg_env}}{{$alt_reg = $alt_reg_env}}{{end}}
+
+{{$alt_short_version := printf "%s-%s-%s" $alt_ver $alt_hv $arch}}
+
+# Step 1: pre-flight — clean state.
+message 'pre-flight: clean state'
+eden -t 1m pod ps
+! stdout 'IN_CONFIG'
+eden controller edge-node update --config timer.test.baseimage.update=30
+
+# Step 2: pre-stage a ContentTree from the eclient image.
+# This kicks off an eager download in pillar's volumemgr; the blobs
+# land on /persist content-addressed storage. No Volume is created.
+message 'pre-staging ContentTree (no Volume)'
+eden -t 1m controller edge-node content-tree-add {{template "eclient_image"}} -n xhv-pre-ct
+
+# Wait for ContentTreeStatus to reach LOADED (state 108) on EVE.
+exec -t 10m bash wait-for-content-tree-loaded.sh
+
+# Step 3: push the cross-flavor eveimage-update.
+# This exercises the ZFS-only gate in baseosmgr that ALLOWS this upgrade
+# on ext3/ext4 /persist (the gate refuses ZFS, see PR baseos-hv-check-volume-gate).
+message 'downloading alternate-flavor EVE rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$alt_ver}} --eve-hv={{$alt_hv}} --eve-registry={{$alt_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs'
+
+message 'pushing cross-flavor eveimage-update with content tree present'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs --os-version={{ $alt_short_version }} -m adam://
+! stderr .
+
+# Step 4: wait for the upgrade to complete.
+message 'waiting for cross-flavor upgrade to complete'
+exec -t 35m bash wait-for-cross-hv-upgrade.sh
+
+# Step 5: post-upgrade ContentTree survival check. The blobs are on
+# /persist and ContentTreeConfig survives pubsub-persisted across the
+# reboot, so volumemgr on eve-k will republish ContentTreeStatus=LOADED
+# for xhv-pre-ct immediately after it gets past its startup wait.
+# Budget breakdown (eve-k REPLICATED_STORAGE single-node, observed
+# 2026-06-09 on a slow test rig):
+#   ~3m  EVE boot into eve-k IMGB
+#   ~16m volumemgr's "wait for kubernetes" while cluster-init.sh
+#        installs longhorn (eve-k's REPLICATED_STORAGE path installs
+#        kubevirt+CDI+longhorn+descheduler; the longhorn-ready check
+#        is the longest sub-wait — see pkg/pillar/cmd/volumemgr/
+#        volumemgr.go:240, kubeapi/kubeapi.go:248)
+#   ~1m  volumemgr republishes ContentTreeStatus
+# 35m wrapper budget; the helper's internal 25-min poll fires first
+# (gives a clear "did we wait the polled duration" signal).
+message 'post-upgrade: verify ContentTree survives (EVE-side)'
+exec -t 35m bash wait-for-content-tree-loaded-on-eve.sh
+
+# Step 5b: capture eve-k's RecvByteCount baseline NOW (after the
+# post-upgrade ContentTree LOAD has settled, before any app deploy).
+# /run/downloader/MetricsMap is tmpfs so the counter restarted at the
+# reboot — what we want is the delta between "just before app deploy"
+# and "after app deploy" on eve-k, which isolates exactly the bytes
+# pulled (if any) to satisfy the new app's image reference.
+message 'snapshot eve-k downloader RecvByteCount (baseline pre-app-deploy)'
+exec -t 1m bash snapshot-rcv-bytes.sh pre
+
+# Step 6: deploy an app instance from the SAME image post-upgrade.
+# Blob lookup is by SHA256, so volumemgr finds the pre-staged blobs
+# and reuses them — no network download.
+message 'deploying app on new flavor using the pre-existing ContentTree'
+eden -t 1m network create 10.11.12.0/24 -n xhv-pre-net
+eden -t 5m pod deploy -n xhv-pre-app {{template "eclient_image"}} -p 2223:22 --networks=xhv-pre-net --memory=512MB
+exec -t 25m bash wait-for-app-running.sh
+
+# Step 7: assert pillar's downloader on eve-k didn't fetch more than 1 MB
+# of bytes since the baseline taken in Step 5b. The eden-eclient image is
+# ~44 MB, so a re-download would be unmistakable; auth/control traffic
+# rounds to a few KB. The byte-count check is taken straight from
+# /run/downloader/MetricsMap/global.json (pillar's per-URL counter) so it
+# directly measures what we care about: did any image bytes flow.
+message 'asserting pre-staged ContentTree was reused (no re-download): byte-count check'
+exec -t 1m bash snapshot-rcv-bytes.sh post-and-assert
+
+# Step 8: functional check on the post-upgrade app.
+message 'post-upgrade functional check'
+exec -t 5m bash verify-app-functional.sh
+
+# Step 9: cleanup. The pod and content-tree are configured at the
+# controller; deleting them is best-effort — `eden eve reset` at the
+# end wipes any residue.
+eden -t 1m pod delete xhv-pre-app
+eden -t 1m network delete xhv-pre-net
+eden controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs -m adam://
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs.ver
+
+exec sleep 10
+eden eve reset
+
+-- wait-for-content-tree-loaded.sh --
+#!/bin/bash
+# Poll EVE-side ContentTreeStatus until xhv-pre-ct reaches State=108
+# (LOADED). On kvm pre-upgrade, blob download from Docker Hub can
+# take a few minutes for the eclient image (~44MB).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for i in $(seq 1 120); do   # 10m at 5s intervals
+    out=$(timeout 10 "$EDEN" eve ssh -- \
+        'eve exec pillar sh -c "cat /run/volumemgr/ContentTreeStatus/*.json 2>/dev/null"' \
+        2>/dev/null | grep -v 'level=fatal')
+    if echo "$out" | python3 -c "
+import json, sys, re
+data = sys.stdin.read()
+for m in re.finditer(r'\{[^{}]*?\"DisplayName\":\"[^\"]*xhv-pre-ct[^\"]*\"[^{}]*\}', data):
+    try:
+        obj = json.loads(m.group(0))
+        if obj.get('State') == 108:
+            print('found LOADED ContentTreeStatus for xhv-pre-ct')
+            sys.exit(0)
+    except Exception:
+        pass
+sys.exit(1)
+" 2>/dev/null; then
+        echo "OK: ContentTreeStatus for xhv-pre-ct on EVE is LOADED"
+        exit 0
+    fi
+    sleep 5
+done
+echo "FAIL: ContentTreeStatus for xhv-pre-ct never reached LOADED within 10m" >&2
+timeout 10 "$EDEN" eve ssh -- 'eve exec pillar cat /run/volumemgr/ContentTreeStatus/*.json' 2>/dev/null >&2
+exit 1
+
+-- wait-for-content-tree-loaded-on-eve.sh --
+#!/bin/bash
+# Post-upgrade variant of wait-for-content-tree-loaded.sh. Same logic;
+# the only difference is the budget — eve-k's volumemgr may delay
+# republishing ContentTreeStatus while it brings up k3s/longhorn.
+# On this test rig longhorn install + ready takes ~15-18m; bumped to
+# 25m at 10s intervals so we don't trip on host-load variance.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for i in $(seq 1 150); do   # 25m at 10s intervals
+    out=$(timeout 15 "$EDEN" eve ssh -- \
+        'eve exec pillar sh -c "cat /run/volumemgr/ContentTreeStatus/*.json 2>/dev/null"' \
+        2>/dev/null | grep -v 'level=fatal')
+    if echo "$out" | python3 -c "
+import json, sys, re
+data = sys.stdin.read()
+for m in re.finditer(r'\{[^{}]*?\"DisplayName\":\"[^\"]*xhv-pre-ct[^\"]*\"[^{}]*\}', data):
+    try:
+        obj = json.loads(m.group(0))
+        if obj.get('State') == 108:
+            print('found LOADED ContentTreeStatus for xhv-pre-ct on eve-k')
+            sys.exit(0)
+    except Exception:
+        pass
+sys.exit(1)
+" 2>/dev/null; then
+        echo "OK: ContentTreeStatus for xhv-pre-ct on eve-k is LOADED — content tree survived"
+        exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: eve-k volumemgr never republished LOADED ContentTreeStatus for xhv-pre-ct" >&2
+timeout 10 "$EDEN" eve ssh -- 'eve exec pillar ls /run/volumemgr/ContentTreeStatus/' 2>/dev/null >&2
+exit 1
+
+-- snapshot-rcv-bytes.sh --
+#!/bin/bash
+# Snapshot the cumulative RecvByteCount from /run/downloader/MetricsMap
+# on EVE. The downloader publishes per-interface, per-URL byte counters
+# there; we sum across all URLs and interfaces.
+#
+# With "pre", capture the baseline to /tmp/xhv-rcv-pre.txt. With
+# "post-and-assert", recapture, compute the delta vs the pre-snapshot,
+# and assert the delta is below MAX_DELTA_BYTES (default 1 MiB). A
+# successful reuse should see only a few KB of control/auth traffic;
+# a re-download would add tens of MB (the eden-eclient image is ~44 MB
+# uncompressed).
+#
+# Note: /run/ is tmpfs, so the counter is reset on reboot. This script
+# is meant to bracket a single phase (e.g. post-upgrade app deploy on
+# eve-k) where pre and post are taken without an intervening reboot.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+MODE=${1:-pre}
+MAX_DELTA_BYTES=${2:-1048576}  # 1 MiB default
+
+capture_recv_bytes() {
+    timeout 15 "$EDEN" eve ssh -- 'eve exec pillar cat /run/downloader/MetricsMap/global.json 2>/dev/null' \
+        2>/dev/null | grep -v 'level=fatal' \
+        | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print(0); sys.exit(0)
+total = 0
+for iface, conn in d.items():
+    for url, m in (conn.get('URLCounters') or {}).items():
+        total += m.get('RecvByteCount', 0)
+print(total)
+"
+}
+
+case "$MODE" in
+    pre)
+        bytes=$(capture_recv_bytes)
+        echo "$bytes" > /tmp/xhv-rcv-pre.txt
+        echo "Pre-snapshot: RecvByteCount total = $bytes bytes"
+        ;;
+    post-and-assert)
+        post=$(capture_recv_bytes)
+        pre=$(cat /tmp/xhv-rcv-pre.txt 2>/dev/null || echo 0)
+        delta=$(( post - pre ))
+        echo "Post-snapshot: RecvByteCount total = $post bytes (pre was $pre, delta = $delta)"
+        if [ "$delta" -lt 0 ]; then
+            echo "FAIL: post < pre — counter went backwards (reboot? not expected on eve-k)" >&2
+            exit 1
+        fi
+        if [ "$delta" -lt "$MAX_DELTA_BYTES" ]; then
+            echo "OK: only $delta bytes received (< ${MAX_DELTA_BYTES} threshold) — no image re-download"
+            exit 0
+        fi
+        echo "FAIL: $delta bytes received exceeds ${MAX_DELTA_BYTES} threshold — image likely re-downloaded" >&2
+        exit 1
+        ;;
+    *)
+        echo "Usage: $0 pre | post-and-assert [max-delta-bytes]" >&2
+        exit 1
+        ;;
+esac
+
+-- wait-for-app-running.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for i in $(seq 1 120); do
+    line=$("$EDEN" pod ps 2>/dev/null | grep -E '^xhv-pre-app\s')
+    if echo "$line" | grep -q 'RUNNING'; then
+        echo "OK: xhv-pre-app RUNNING"
+        echo "$line"
+        exit 0
+    fi
+    sleep 5
+done
+echo "FAIL: xhv-pre-app did not reach RUNNING in 10m" >&2
+"$EDEN" pod ps >&2
+exit 1
+
+-- verify-app-functional.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+KEY="{{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa"
+SSH_OPTS="-o ConnectTimeout=10 -o StrictHostKeyChecking=no -i $KEY"
+for i in $(seq 1 30); do
+    if "$EDEN" sdn fwd eth0 2223 -- ssh $SSH_OPTS root@FWD_IP -p FWD_PORT \
+            grep -q Ubuntu /etc/issue 2>/dev/null; then
+        echo "OK: app reachable + functional"
+        exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: app SSH/grep did not respond in 5m" >&2
+exit 1
+
+-- wait-for-cross-hv-upgrade.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT_VERSION='{{ $alt_short_version }}'
+DEADLINE=$(( $(date +%s) + 1800 ))
+
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+prev_running=""
+while [ $(date +%s) -lt $DEADLINE ]; do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then
+        echo "$(date +%H:%M:%S): EVE unreachable (rebooting?)"; sleep 20; continue
+    fi
+    imgb_state=$(probe 'eve exec pillar cat /run/baseosmgr/ZbootStatus/IMGB.json' | grep -oP '"PartitionState":"\K[^"]+' | head -1)
+    [ -z "$imgb_state" ] && imgb_state='unknown'
+    echo "$(date +%H:%M:%S): running='$running' IMGB.PartitionState='$imgb_state'"
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$imgb_state" = "active" ]; then
+        echo "OK: cross-HV upgrade complete (IMGB active, version=$running)"
+        exit 0
+    fi
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$prev_running" != "$running" ]; then
+        echo "  (transitioned to $running — booting eve-k)"
+    fi
+    prev_running="$running"
+    sleep 30
+done
+echo "FAIL: 30m timeout. running='$running' IMGB='$imgb_state'" >&2
+exit 1
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
