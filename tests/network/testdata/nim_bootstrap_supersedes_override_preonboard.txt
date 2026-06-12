@@ -1,0 +1,319 @@
+# Test: bootstrap-config.pb suppresses legacy DevicePortConfig/override.json
+# ingest on first boot, verified pre-onboard.
+#
+# Mirror of nim_bootstrap_supersedes_override.txt with the device never
+# onboarded. The existing onboarded variant false-negatives because the
+# controller-pushed config racing in moments after onboarding can hide
+# what NIM did with the /config files. Here adam never learns the
+# device exists, so /config-sourced state stays authoritative for
+# inspection indefinitely.
+#
+# Expected behaviour ("supersedes"): when /config/bootstrap-config.pb
+# exists, NIM's startup logic skips ingest of /config/DevicePortConfig/*.json
+# entirely. The bootstrap pb's DPC is the only /config-sourced entry
+# that reaches DPCList. The override file remains in /config but is
+# NEVER copied to /run/global/DevicePortConfig/ and its "override-port"
+# Logicallabel does NOT appear in DPCList. NIM logs
+# "Not ingesting DPC jsons (...) from config partition" when this skip
+# fires.
+#
+# Mechanism:
+#
+#   1. eden setup --eve-bootstrap-file <json> --eve-config-dir <overlay>
+#      bakes /config/bootstrap-config.pb (signed) + writes the
+#      overlay's DevicePortConfig/override.json into /config/.
+#
+#   2. The bootstrap pb's EdgeDevConfig carries:
+#        - distinctive systemAdapter[0].name = "bootstrap-only-port"
+#        - matching deviceIo[*].logicallabel = "bootstrap-only-port"
+#        - configItems containing {"key":"debug.enable.ssh","value":"<eden pubkey>"}
+#
+#   3. /config/DevicePortConfig/override.json carries:
+#        - Key = "override"
+#        - Logicallabel "override-port"
+#      It is present on /config but should NEVER make it to /run.
+#
+#   4. eden start. NO `eden eve onboard`.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go ingestDevicePortConfig() suppression branch
+#                              when haveBootstrapConf is true (the "bootstrap
+#                              supersedes /config DPC json" rule).
+#   pkg/pillar/cmd/zedagent/handleconfig.go loadBootstrapConfig path
+#                                            (same as nim_bootstrap_only_preonboard).
+
+# Requires tests/network/testdata/preonboard-template.json (see
+# ~/notes/preonboard-config-test-design.md). Note: on FAIL, eden's
+# default failScenario.txt adds ~5 minutes of teardown noise because
+# its diagnostic commands retry against the unonboarded controller —
+# the test has already exited 1 by then; the noise is cosmetic.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:docker] skip 'requires docker on PATH for state-wipe'
+
+# Phase 1: tear down whatever the host's eden is currently doing.
+exec -t 5m bash wipe-eden-state.sh
+stdout 'eden state wiped'
+
+# Phase 2: build the bootstrap-pb JSON from the captured template.
+exec -t 1m bash build-edcfg-json.sh
+stdout 'edcfg built'
+
+# Phase 3: stage the --eve-config-dir overlay (DevicePortConfig/override.json).
+exec -t 1m bash stage-overlay-dir.sh
+stdout 'overlay staged'
+
+# Phase 4: eden setup — bake bootstrap-pb + override.json into the new live.img.
+exec -t 8m bash run-eden-setup.sh
+stdout 'eden setup done'
+
+# Phase 5: start EVE; do NOT onboard.
+exec -t 3m bash run-eden-start.sh
+stdout 'eden started'
+
+# Phase 6: bug-class canary — SSH up iff bootstrap pb's configItems applied.
+exec -t 7m bash wait-ssh-preonboard.sh
+stdout 'ssh ok'
+
+# Phase 7a: bootstrap entry appears in DPCL.
+exec -t 1m bash wait-bootstrap-ingested.sh
+stdout 'bootstrap ingested'
+
+# Phase 7b: bootstrap entry's Logicallabel = "bootstrap-only-port".
+exec -t 1m bash check-bootstrap-port-fidelity.sh
+stdout 'bootstrap port fields match'
+
+# Phase 7c: NIM did NOT copy override.json to /run/global/DevicePortConfig/.
+exec -t 1m bash check-runtime-no-override.sh
+stdout 'override absent'
+
+# Phase 7d: no "override" key in DPCL.
+exec -t 1m bash check-no-override-key.sh
+stdout 'no override key'
+
+# Phase 7e: the override-port Logicallabel doesn't appear ANYWHERE in
+# DPCList — strong negative witness that override.json was never ingested.
+exec -t 1m bash check-no-override-label.sh
+stdout 'no override-port label'
+
+# Phase 7f: no zedagent-keyed DPC (device unonboarded).
+exec -t 1m bash check-no-zedagent-key.sh
+stdout 'no zedagent key'
+
+# Phase 7f: no /persist/checkpoint/lastconfig.
+exec -t 1m bash check-no-lastconfig.sh
+stdout 'no lastconfig'
+
+# Phase 8: tear down.
+exec -t 5m bash wipe-eden-state.sh
+stdout 'eden state wiped'
+
+-- wipe-eden-state.sh --
+#!/bin/bash
+set -u
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+EDEN_ROOT={{EdenConfig "eden.root"}}
+"$EDEN" stop 2>/dev/null || true
+docker rm -fv eden_adam eden_redis eden_eserver eden_registry 2>/dev/null || true
+docker volume rm eden_adam_volume eden_redis_volume \
+                 eden_eserver_volume eden_registry_volume 2>/dev/null || true
+pkill -f "swtpm.*${EDEN_ROOT}" 2>/dev/null || true
+pkill -f "qemu-system.*${EDEN_ROOT}" 2>/dev/null || true
+rm -rf "${EDEN_ROOT}/default-images/eve/"
+# Clean overlay leavings from default-certs/. eden setup's CopyFolder
+# uses bare os.Mkdir, which errors out if these subdirs/files already
+# exist from a prior test's overlay.
+rm -rf "${EDEN_ROOT}/default-certs/DevicePortConfig"
+rm -rf "${EDEN_ROOT}/default-certs/GlobalConfig"
+rm -f  "${EDEN_ROOT}/default-certs/bootstrap-config.pb"
+rm -f  "${EDEN_ROOT}/default-certs/authorized_keys"
+echo "eden state wiped"
+
+-- build-edcfg-json.sh --
+#!/bin/bash
+set -eu
+EDEN_ROOT={{EdenConfig "eden.root"}}
+TEMPLATE={{EdenConfig "eden.tests"}}/network/testdata/preonboard-template.json
+PUBKEY_FILE="${EDEN_ROOT}/{{EdenConfig "eden.ssh-key"}}"
+if [ ! -s "$TEMPLATE" ]; then
+    echo "missing template: $TEMPLATE (see ~/notes/preonboard-config-test-design.md)"
+    exit 1
+fi
+if [ ! -s "$PUBKEY_FILE" ]; then
+    echo "no ssh pubkey at $PUBKEY_FILE"
+    exit 1
+fi
+PUBKEY=$(cat "$PUBKEY_FILE")
+PUBKEY="${PUBKEY%$'\n'}"
+jq --arg key "debug.enable.ssh" --arg val "$PUBKEY" '
+  .systemAdapterList[0].name = "bootstrap-only-port" |
+  (.deviceIoList[] | select(.logicallabel == "eth0").logicallabel) |= "bootstrap-only-port" |
+  .configItems = ((.configItems // []) + [{"key": $key, "value": $val}])
+' "$TEMPLATE" > "$WORK/preonboard-edcfg.json"
+if [ ! -s "$WORK/preonboard-edcfg.json" ]; then
+    echo "edcfg construction failed"
+    exit 1
+fi
+echo "edcfg built"
+
+-- stage-overlay-dir.sh --
+#!/bin/bash
+# Stage a DevicePortConfig/override.json with a deliberately-old
+# TimePriority so the bootstrap pb (signed at test-run time, so its
+# ConfigTimestamp is ~ now) is the newer entry and wins under NIM's
+# latest-wins selection.
+set -eu
+rm -rf "$WORK/preonboard-overlay"
+mkdir -p "$WORK/preonboard-overlay/DevicePortConfig"
+cat > "$WORK/preonboard-overlay/DevicePortConfig/override.json" <<'JSON'
+{
+  "Version": 1,
+  "Key": "override",
+  "TimePriority": "2020-01-01T00:00:00Z",
+  "Ports": [
+    {
+      "IfName": "eth0",
+      "Phylabel": "eth0",
+      "Logicallabel": "override-port",
+      "IsMgmt": true,
+      "IsL3Port": true,
+      "Dhcp": 4
+    }
+  ]
+}
+JSON
+echo "overlay staged"
+
+-- run-eden-setup.sh --
+#!/bin/bash
+set -eu
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+"$EDEN" setup \
+    --eve-bootstrap-file "$WORK/preonboard-edcfg.json" \
+    --eve-config-dir     "$WORK/preonboard-overlay"
+echo "eden setup done"
+
+-- run-eden-start.sh --
+#!/bin/bash
+# NO `eden eve onboard` — that's the whole point of pre-onboard tests.
+set -eu
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+"$EDEN" start
+echo "eden started"
+
+-- wait-ssh-preonboard.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if "$EDEN" eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable after ~9 minutes"
+exit 1
+
+-- wait-bootstrap-ingested.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 60); do
+    keys=$("$EDEN" eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+    if echo "$keys" | grep -qx 'bootstrap'; then
+        echo "bootstrap ingested"
+        exit 0
+    fi
+    sleep 5
+done
+echo "bootstrap not in DPCList after 5 minutes"
+exit 1
+
+-- check-bootstrap-port-fidelity.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+expr='.PortConfigList[] | select(.Key=="bootstrap") | .Ports[0]'
+ll=$("$EDEN" eve ssh "eve exec pillar jq -r '$expr | .Logicallabel' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ifn=$("$EDEN" eve ssh "eve exec pillar jq -r '$expr | .IfName' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ll=${ll//$'\r'/}; ifn=${ifn//$'\r'/}
+fail=0
+[ "$ll" = "bootstrap-only-port" ] || { echo "bootstrap Logicallabel='$ll' (want bootstrap-only-port)"; fail=1; }
+[ "$ifn" = "eth0" ]                || { echo "bootstrap IfName='$ifn' (want eth0)"; fail=1; }
+if [ "$fail" = "0" ]; then
+    echo "bootstrap port fields match"
+    exit 0
+fi
+exit 1
+
+-- check-runtime-no-override.sh --
+#!/bin/bash
+# If NIM's bootstrap-suppression worked, override.json was NEVER copied
+# from /config/DevicePortConfig/ to /run/global/DevicePortConfig/.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$("$EDEN" eve ssh 'ls /run/global/DevicePortConfig/override.json 2>/dev/null')
+if echo "$out" | grep -q 'override.json'; then
+    echo "override.json unexpectedly present in /run/global/DevicePortConfig/"
+    exit 1
+fi
+echo "override absent"
+
+-- check-no-override-key.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+keys=$("$EDEN" eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+if echo "$keys" | grep -qx 'override'; then
+    echo "unexpected override-keyed DPC: NIM ingested override.json despite bootstrap pb present"
+    exit 1
+fi
+echo "no override key"
+
+-- check-no-override-label.sh --
+#!/bin/bash
+# Stronger negative witness: the "override-port" Logicallabel must not
+# appear anywhere in DPCList. If it does, override.json was ingested
+# somewhere we didn't expect.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$("$EDEN" eve ssh 'eve exec pillar grep -l "override-port" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+if [ -n "$out" ] && echo "$out" | grep -q 'DevicePortConfigList'; then
+    echo "override-port Logicallabel found in DPCList"
+    exit 1
+fi
+echo "no override-port label"
+
+-- check-no-zedagent-key.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+keys=$("$EDEN" eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+if echo "$keys" | grep -qx 'zedagent'; then
+    echo "unexpected zedagent-keyed DPC: device appears to have onboarded"
+    exit 1
+fi
+echo "no zedagent key"
+
+-- check-no-lastconfig.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+sz=$("$EDEN" eve ssh 'stat -c %s /persist/checkpoint/lastconfig 2>/dev/null || echo 0' 2>/dev/null | tr -d '\r')
+if [ -z "$sz" ] || [ "$sz" = "0" ]; then
+    echo "no lastconfig"
+    exit 0
+fi
+echo "lastconfig unexpectedly present, size=$sz"
+exit 1
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

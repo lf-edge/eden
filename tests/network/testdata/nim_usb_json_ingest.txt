@@ -1,0 +1,248 @@
+# Test: NIM ingests /config/DevicePortConfig/usb.json when no lastconfig.
+#
+# This is the sibling of nim_override_json_ingest.txt that exercises the
+# `usb` filename branch of cmd/nim/nim.go ingestDevicePortConfigFile():
+#
+#   key := strings.TrimSuffix(name, ".json")           // "usb"
+#   dpc.DoSanitize(... KeyToUseIfEmpty: key ...)
+#
+# Even though both override.json and usb.json route through the same
+# function, the DPC's resulting Key is derived from the file name, and
+# DpcManager treats the two keys as independent slots in the priority list.
+# This test verifies that key derivation by writing a usb.json (with no
+# explicit Key field in the JSON) and asserting that the DPC enters the
+# DevicePortConfigList under the key "usb".
+#
+# The cleanup race against zedagent rewriting lastconfig is handled by
+# `chattr +i /persist/checkpoint` exactly as in nim_override_json_ingest.txt
+# — see that file for the rationale.
+#
+# Covers:
+#   pkg/pillar/cmd/nim/nim.go ingestDevicePortConfigFile() basename →
+#     Key derivation (the strings.TrimSuffix line),
+#                              listPublishedDPCs() with a non-override name.
+
+[!exec:bash] stop
+[!exec:sleep] stop
+
+! test eden.reboot.test -test.v -timewait=25m -reboot=0 -count=4 &
+
+# Defensive: clear any leftover immutable flag from a previous run.
+exec -t 1m bash pre-cleanup.sh
+
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+exec -t 1m bash stage-usb.sh
+stdout 'usb\.json staged'
+
+exec -t 1m bash freeze-lastconfig.sh
+stdout 'lastconfig frozen'
+
+eden controller edge-node reboot
+exec sleep 90
+
+exec -t 5m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Poll for up to 13 minutes — same rationale as nim_override_json_ingest.
+exec -t 13m bash wait-usb-ingested.sh
+stdout 'usb ingested'
+
+# Assertion: DPCList contains an entry with key "usb" derived from the
+# basename of /config/DevicePortConfig/usb.json (NOT from any Key field
+# in the JSON, which we deliberately omitted).
+exec -t 1m bash check-dpcl-has-usb.sh
+stdout 'usb key present'
+
+# Assertion: ConfigSource.Origin = OVERRIDE (=3). The OVERRIDE origin is
+# stamped onto every file-ingested DPC regardless of filename — see
+# `configSource := types.PortConfigSource{Origin: NetworkConfigOriginOverride}`
+# in cmd/nim/nim.go ingestDevicePortConfigFile().
+exec -t 1m bash check-origin-override.sh
+stdout 'origin OVERRIDE'
+
+# Field-fidelity assertion: distinctive Logicallabel "firstport-usb" round-
+# trips through DoSanitize and ends up in the DPCList entry's
+# Ports[0].Logicallabel.
+exec -t 1m bash check-port-fidelity.sh
+stdout 'port fields match'
+
+exec -t 1m bash cleanup.sh
+
+exec sh kill_watchdog.sh
+wait
+
+-- wait-ssh.sh --
+#!/bin/bash
+# Wait for ssh to be *stably* up: 3 consecutive successful echos with 2s
+# between them. Avoids a false-positive between two reboots.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 90); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- pre-cleanup.sh --
+#!/bin/bash
+# Clear immutable bits left by a prior failed run.
+# NOTE: `eden eve ssh '<multi-line>'` collapses newlines to spaces, so we
+# join commands with `;` on a single line.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && eve config mount /run/test-config 2>/dev/null && rm -f /run/test-config/DevicePortConfig/usb.json /run/test-config/DevicePortConfig/override.json && sync && eve config unmount) 2>/dev/null; true' 2>/dev/null || true
+true
+
+-- stage-usb.sh --
+#!/bin/bash
+# Write usb.json (note: no explicit "Key" field — we want NIM to derive
+# key="usb" from the basename).
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && mkdir -p /run/test-config/DevicePortConfig'
+$EDEN eve ssh "cat > /run/test-config/DevicePortConfig/usb.json" <<'JSON'
+{
+  "Version": 1,
+  "TimePriority": "2030-01-01T00:00:00Z",
+  "Ports": [
+    {
+      "IfName": "eth0",
+      "Phylabel": "eth0",
+      "Logicallabel": "firstport-usb",
+      "IsMgmt": true,
+      "IsL3Port": true,
+      "Dhcp": 4
+    }
+  ]
+}
+JSON
+$EDEN eve ssh 'sync && eve config unmount'
+out=$($EDEN eve ssh 'eve config mount /run/test-config && ls /run/test-config/DevicePortConfig/usb.json 2>/dev/null; eve config unmount')
+case "$out" in
+    *usb.json*) echo "usb.json staged" ;;
+    *) echo "usb.json missing after write"; exit 1 ;;
+esac
+
+-- freeze-lastconfig.sh --
+#!/bin/bash
+# Same trick as nim_override_json_ingest.txt: chattr +i /persist/checkpoint
+# blocks zedagent from recreating lastconfig until cleanup.sh restores
+# write access. See that file for the full rationale (rename-overwrite
+# defeats file-level chattr).
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; rm -f /persist/checkpoint/lastconfig /persist/checkpoint/lastconfig.bak; sync; chattr +i /persist/checkpoint'
+dir_attrs=$($EDEN eve ssh 'lsattr -d /persist/checkpoint 2>/dev/null' 2>/dev/null)
+file_present=$($EDEN eve ssh 'ls /persist/checkpoint/lastconfig 2>/dev/null && echo present || echo absent' 2>/dev/null)
+if echo "$dir_attrs" | grep -qE '^----i'; then
+    case "$file_present" in
+        *absent*) echo "lastconfig frozen"; exit 0 ;;
+    esac
+fi
+echo "freeze failed: dir_attrs='$dir_attrs' file_present='$file_present'"
+exit 1
+
+-- wait-usb-ingested.sh --
+#!/bin/bash
+# Poll DevicePortConfigList for an entry under key "usb". Tolerates extra
+# reboots during the polling window. See nim_override_json_ingest.txt's
+# wait-override-ingested.sh for the same pattern and rationale.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 144); do
+    keys=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+    if echo "$keys" | grep -qx 'usb'; then
+        echo "usb ingested"
+        exit 0
+    fi
+    sleep 5
+done
+echo "usb not ingested within 12 minutes"
+exit 1
+
+-- check-dpcl-has-usb.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+keys=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[].Key" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+if echo "$keys" | grep -qx 'usb'; then
+    echo "usb key present"
+    exit 0
+fi
+echo "usb key absent"
+exit 1
+
+-- check-port-fidelity.sh --
+#!/bin/bash
+# Field-fidelity check: distinctive Logicallabel + other port fields
+# round-trip through DoSanitize into the DPCList usb entry.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+expr='.PortConfigList[] | select(.Key=="usb") | .Ports[0]'
+ll=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .Logicallabel' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ifn=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IfName' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ismgmt=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IsMgmt' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+isl3=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .IsL3Port' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+dhcp=$($EDEN eve ssh "eve exec pillar jq -r '$expr | .Dhcp' /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null" 2>/dev/null)
+ll=${ll//$'\r'/}; ifn=${ifn//$'\r'/}; ismgmt=${ismgmt//$'\r'/}; isl3=${isl3//$'\r'/}; dhcp=${dhcp//$'\r'/}
+fail=0
+[ "$ll" = "firstport-usb" ] || { echo "Logicallabel='$ll' (want firstport-usb)"; fail=1; }
+[ "$ifn" = "eth0" ]         || { echo "IfName='$ifn' (want eth0)"; fail=1; }
+[ "$ismgmt" = "true" ]      || { echo "IsMgmt='$ismgmt' (want true)"; fail=1; }
+[ "$isl3" = "true" ]        || { echo "IsL3Port='$isl3' (want true)"; fail=1; }
+[ "$dhcp" = "4" ]           || { echo "Dhcp='$dhcp' (want 4)"; fail=1; }
+if [ "$fail" = "0" ]; then
+    echo "port fields match"
+    exit 0
+fi
+exit 1
+
+-- check-origin-override.sh --
+#!/bin/bash
+# NetworkConfigOriginOverride = 3 (iota over Unspecified=0, Controller=1,
+# Bootstrap=2, Override=3 — see pkg/pillar/types/dpc.go). All file-ingested
+# DPCs get this origin regardless of filename (override.json, usb.json, ...).
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+origin=$($EDEN eve ssh 'eve exec pillar jq -r ".PortConfigList[] | select(.Key==\"usb\") | .Ports[0].ConfigSource.Origin" /persist/status/nim/DevicePortConfigList/global.json 2>/dev/null' 2>/dev/null)
+case "$origin" in
+    3|*OVERRIDE*|"NETWORK_CONFIG_ORIGIN_OVERRIDE")
+        echo "origin OVERRIDE"
+        exit 0
+        ;;
+esac
+echo "unexpected origin: '$origin'"
+exit 1
+
+-- cleanup.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; true' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && rm -f /run/test-config/DevicePortConfig/usb.json && sync && eve config unmount' 2>/dev/null || true
+$EDEN eve ssh 'rm -f /run/global/DevicePortConfig/usb.json' 2>/dev/null || true
+true
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}

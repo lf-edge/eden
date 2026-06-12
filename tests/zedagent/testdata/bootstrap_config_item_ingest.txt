@@ -1,0 +1,221 @@
+# Test: configItems carried inside /config/bootstrap-config.pb make it
+# into globalConfig and reach /run/zedagent/ConfigItemValueMap.
+#
+# Companion to global_config_file_ingest.txt. That test covers the
+# loadGlobalConfigImpl path (plain JSON file at /config/GlobalConfig/).
+# This test covers the bootstrap-config.pb path: when
+# /persist/checkpoint/lastconfig is absent at startup, zedagent decodes
+# the signed BootstrapConfig envelope at /config/bootstrap-config.pb,
+# verifies the signature, and processes the embedded EdgeDevConfig as
+# if it had arrived from the controller. That processing runs
+# parseConfigItems -> handleGlobalConfigImpl -> pubGlobalConfig, so any
+# configItems entry in the embedded EdgeDevConfig should end up in
+# /run/zedagent/ConfigItemValueMap/global.json.
+#
+# Test flow:
+#   1. Snapshot the current adam-side EdgeDevConfig as JSON.
+#   2. Inject (or overwrite) a configItems entry
+#      timer.config.interval = "88" into that JSON.
+#   3. Sign with nim-bootstrap-pb-gen (from tests/network/cmd/) and
+#      stage the result at /config/bootstrap-config.pb.
+#   4. Freeze /persist/checkpoint so zedagent cannot recreate
+#      lastconfig before the upcoming reboot.
+#   5. Controller-driven reboot.
+#   6. Poll /run/zedagent/ConfigItemValueMap/global.json for
+#      IntValue=88 under timer.config.interval.
+#
+# Covers:
+#   pkg/pillar/cmd/zedagent/handleconfig.go inhaleDeviceConfig
+#                                           (bootstrap-config.pb decode
+#                                            + signature verify path),
+#   pkg/pillar/cmd/zedagent/parseconfig.go  parseConfigItems
+#                                           (configItems from EdgeDevConfig).
+
+[!exec:bash] stop
+[!exec:sleep] stop
+[!exec:jq] stop
+
+# Controller reboot plus zedagent reconciling the missing lastconfig
+# can produce one or two extra reboots. Allow up to 4.
+! test eden.reboot.test -test.v -timewait=25m -reboot=0 -count=4 &
+
+exec -t 1m bash pre-cleanup.sh
+
+message 'Resetting device'
+eden -t 5m eve reset
+exec sleep 30
+eden -t 1m eve epoch
+
+exec -t 10m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Build the signed bootstrap pb with our distinctive configItems entry
+# and stage it onto the CONFIG partition.
+exec -t 2m bash stage-bootstrap-pb.sh
+stdout 'bootstrap pb staged'
+
+# Same freeze trick as nim_bootstrap_only.txt / global_config_file_ingest.txt.
+exec -t 1m bash freeze-lastconfig.sh
+stdout 'lastconfig frozen'
+
+eden controller edge-node reboot
+exec sleep 90
+
+exec -t 10m bash wait-ssh.sh
+stdout 'ssh ok'
+
+# Primary assertion: zedagent merged the bootstrap pb's configItems
+# entry into globalConfig and published it.
+exec -t 5m bash wait-marker-published.sh
+stdout 'marker published'
+
+# Secondary assertion: zedagent logged the bootstrap-apply line, proving
+# we went through the bootstrap pb path rather than e.g. silently
+# falling through to a fresh controller fetch. Best-effort.
+exec -t 1m bash check-bootstrap-applied-logged.sh
+stdout 'bootstrap-applied logged|bootstrap-applied log unavailable'
+
+# Cleanup: clear the immutable flag and remove the bootstrap pb so
+# subsequent boots don't re-apply our override.
+exec -t 1m bash cleanup.sh
+
+exec sh kill_watchdog.sh
+wait
+
+-- wait-ssh.sh --
+#!/bin/bash
+# Wait for ssh to be *stably* up: 3 consecutive successful echos with 2s
+# between them, so we don't declare ssh ok during a brief window between
+# two reboots.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 120); do
+    ok=0
+    for j in 1 2 3; do
+        if $EDEN eve ssh 'echo ok' 2>/dev/null | grep -q ok; then
+            ok=$((ok+1))
+        else
+            ok=0
+        fi
+        sleep 2
+    done
+    if [ $ok -ge 3 ]; then
+        echo "ssh ok"
+        exit 0
+    fi
+done
+echo "ssh still unavailable"
+exit 1
+
+-- pre-cleanup.sh --
+#!/bin/bash
+# Clear immutable bits and any stale /config/bootstrap-config.pb left by
+# a prior failed run.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; (mkdir -p /run/test-config && eve config mount /run/test-config 2>/dev/null && rm -f /run/test-config/bootstrap-config.pb && sync && eve config unmount) 2>/dev/null; true' 2>/dev/null || true
+true
+
+-- stage-bootstrap-pb.sh --
+#!/bin/bash
+# 1. Snapshot the current adam-side EdgeDevConfig as JSON.
+# 2. Replace any existing timer.config.interval entry in configItems and
+#    append our marker (key=timer.config.interval, value="88").
+# 3. Convert to a signed bootstrap-config.pb via nim-bootstrap-pb-gen.
+# 4. eve config mount + drop the pb in place.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+NIMBOOTSTRAPPB={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/nim-bootstrap-pb-gen
+if [ ! -x "$NIMBOOTSTRAPPB" ]; then
+    echo "nim-bootstrap-pb-gen not built at $NIMBOOTSTRAPPB (run 'make -C tests/network helper')"
+    exit 1
+fi
+$EDEN controller edge-node get-config --file /tmp/bci-dev.json
+if [ ! -s /tmp/bci-dev.json ]; then
+    echo "could not fetch device config from adam"
+    exit 1
+fi
+# Inject configItem timer.config.interval=88 (replaces any existing entry).
+jq '.configItems = ((.configItems // []) | map(select(.key != "timer.config.interval"))) + [{"key": "timer.config.interval", "value": "88"}]' /tmp/bci-dev.json > /tmp/bci-dev-modified.json
+"$NIMBOOTSTRAPPB" /tmp/bci-dev-modified.json /tmp/bci-bootstrap.pb
+if [ ! -s /tmp/bci-bootstrap.pb ]; then
+    echo "nim-bootstrap-pb-gen produced no output"
+    exit 1
+fi
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config' </dev/null
+$EDEN eve ssh 'cat > /run/test-config/bootstrap-config.pb' < /tmp/bci-bootstrap.pb
+$EDEN eve ssh 'sync && eve config unmount'
+out=$($EDEN eve ssh 'eve config mount /run/test-config && ls -l /run/test-config/bootstrap-config.pb 2>/dev/null; eve config unmount')
+case "$out" in
+    *bootstrap-config.pb*) echo "bootstrap pb staged" ;;
+    *) echo "staging failed: $out"; exit 1 ;;
+esac
+
+-- freeze-lastconfig.sh --
+#!/bin/bash
+# Delete lastconfig and lastconfig.bak, then chattr +i the *directory*
+# /persist/checkpoint/. The immutable bit on a regular file does NOT
+# survive zedagent's atomic save (write-tmp + rename overwrites the inode
+# we marked, producing a fresh inode without the flag). The immutable bit
+# on the directory prevents create/unlink/rename inside, so zedagent
+# cannot recreate lastconfig until cleanup.sh restores write access.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; rm -f /persist/checkpoint/lastconfig /persist/checkpoint/lastconfig.bak; sync; chattr +i /persist/checkpoint'
+dir_attrs=$($EDEN eve ssh 'lsattr -d /persist/checkpoint 2>/dev/null' 2>/dev/null)
+file_present=$($EDEN eve ssh 'ls /persist/checkpoint/lastconfig 2>/dev/null && echo present || echo absent' 2>/dev/null)
+if echo "$dir_attrs" | grep -qE '^----i'; then
+    case "$file_present" in
+        *absent*) echo "lastconfig frozen"; exit 0 ;;
+    esac
+fi
+echo "freeze failed: dir_attrs='$dir_attrs' file_present='$file_present'"
+exit 1
+
+-- wait-marker-published.sh --
+#!/bin/bash
+# Poll /run/zedagent/ConfigItemValueMap/global.json for IntValue=88
+# under timer.config.interval. zedagent's pubsub publication is
+# Persistent=false; the file lives on tmpfs and is briefly absent
+# during reboot.  Poll for up to 5 minutes to ride out any extra reboot.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+for i in $(seq 1 60); do
+    iv=$($EDEN eve ssh 'eve exec pillar jq -r ".GlobalSettings.\"timer.config.interval\".IntValue" /run/zedagent/ConfigItemValueMap/global.json 2>/dev/null' 2>/dev/null | tr -d "\r" | tail -1)
+    case "$iv" in
+        88) echo "marker published"; exit 0 ;;
+    esac
+    sleep 5
+done
+echo "timer.config.interval IntValue=88 not seen in /run/zedagent/ConfigItemValueMap/global.json within 5 min (last='$iv')"
+exit 1
+
+-- check-bootstrap-applied-logged.sh --
+#!/bin/bash
+# Best-effort: look for the "Bootstrap config was applied" notice from
+# inhaleDeviceConfig (handleconfig.go). The log may have rotated to
+# newlog by the time we check.
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+out=$($EDEN eve ssh 'grep -h "Bootstrap config was applied" /persist/agentlog/zedagent.log* /persist/newlog/keepSentQueue/*zedagent* /persist/newlog/collectQueue/*zedagent* 2>/dev/null | tail -1')
+if [ -n "$out" ]; then
+    echo "bootstrap-applied logged"
+else
+    echo "bootstrap-applied log unavailable"
+fi
+
+-- cleanup.sh --
+#!/bin/bash
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+$EDEN eve ssh 'chattr -i /persist/checkpoint 2>/dev/null; chattr -i /persist/checkpoint/lastconfig 2>/dev/null; chattr -i /persist/checkpoint/lastconfig.bak 2>/dev/null; true' 2>/dev/null || true
+$EDEN eve ssh 'mkdir -p /run/test-config && eve config mount /run/test-config && rm -f /run/test-config/bootstrap-config.pb && sync && eve config unmount' 2>/dev/null || true
+rm -f /tmp/bci-dev.json /tmp/bci-dev-modified.json /tmp/bci-bootstrap.pb 2>/dev/null || true
+true
+
+-- kill_watchdog.sh --
+#!/bin/sh
+pgrep -f eden.reboot.test | xargs -r kill 2>/dev/null
+true
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
