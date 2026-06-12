@@ -1,2 +1,3 @@
 eden.escript.test -test.run TestEdenScripts/bootstrap_config_item_ingest_preonboard
 eden.escript.test -test.run TestEdenScripts/global_config_file_ingest_preonboard
+eden.escript.test -test.run TestEdenScripts/authorized_keys_ingest_preonboard
