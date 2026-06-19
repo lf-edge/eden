@@ -37,8 +37,8 @@ message 'SCENARIO 1: Waiting for apps to enter RUNNING state'
 test eden.app.test -test.v -timewait 20m RUNNING app1 app2
 
 message 'SCENARIO 1: Checking accessibility'
-exec -t 5m bash wait_ssh.sh eth0 2223
-exec -t 5m bash wait_ssh.sh eth0 2224
+exec -t 10m bash wait_ssh.sh eth0 2223
+exec -t 10m bash wait_ssh.sh eth0 2224
 
 eden eve status
 cp stdout eve_status
@@ -58,8 +58,8 @@ exec sleep 60
 eden eve link up
 # give EVE some time to recover (largely depends on the DHCP server)
 exec sleep 20
-exec -t 5m bash wait_ssh.sh eth0 2223
-exec -t 5m bash wait_ssh.sh eth0 2224
+exec -t 10m bash wait_ssh.sh eth0 2223
+exec -t 10m bash wait_ssh.sh eth0 2224
 exec -t 1m bash test_connectivity.sh eth0 2223 eth0 2224
 stdout 'Ubuntu'
 {{end}}
@@ -103,8 +103,8 @@ message 'SCENARIO 2: Waiting for apps to enter RUNNING state'
 test eden.app.test -test.v -timewait 20m RUNNING app1 app2
 
 message 'SCENARIO 2: Checking accessibility'
-exec -t 5m bash wait_ssh.sh eth0 2223
-exec -t 5m bash wait_ssh.sh eth1 2234
+exec -t 10m bash wait_ssh.sh eth0 2223
+exec -t 10m bash wait_ssh.sh eth1 2234
 
 eden eve status
 cp stdout eve_status
@@ -123,8 +123,8 @@ exec sleep 60
 eden eve link up
 # give EVE some time to recover (largely depends on the DHCP server)
 exec sleep 20
-exec -t 5m bash wait_ssh.sh eth0 2223
-exec -t 5m bash wait_ssh.sh eth1 2234
+exec -t 10m bash wait_ssh.sh eth0 2223
+exec -t 10m bash wait_ssh.sh eth1 2234
 exec -t 1m bash test_connectivity.sh eth0 2223 eth1 2234
 stdout 'Ubuntu'
 

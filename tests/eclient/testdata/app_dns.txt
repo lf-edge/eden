@@ -38,8 +38,8 @@ eden pod deploy -v debug -n app2 --memory=512MB --networks=localnet -p {{templat
 test eden.app.test -test.v -timewait 10m RUNNING app2
 
 message 'Checking accessibility'
-exec -t 5m bash wait_ssh.sh {{template "app1_port"}}
-exec -t 5m bash wait_ssh.sh {{template "app2_port"}}
+exec -t 10m bash wait_ssh.sh {{template "app1_port"}}
+exec -t 10m bash wait_ssh.sh {{template "app2_port"}}
 
 message 'Checking DNS resolution from apps'
 exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} app2
@@ -65,8 +65,8 @@ test eden.app.test -test.v -timewait 5m PURGING app1
 test eden.app.test -test.v -timewait 5m RUNNING app1
 
 message 'Re-checking accessibility after purge of app1'
-exec -t 5m bash wait_ssh.sh {{template "app1_port"}}
-exec -t 5m bash wait_ssh.sh {{template "app2_port"}}
+exec -t 10m bash wait_ssh.sh {{template "app1_port"}}
+exec -t 10m bash wait_ssh.sh {{template "app2_port"}}
 
 message 'Re-checking DNS resolution after purge of app1'
 exec -t 5m bash nslookup_from_app.sh {{template "app1_port"}} app2

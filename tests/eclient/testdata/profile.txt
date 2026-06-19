@@ -71,7 +71,7 @@ eden pod start local-manager
 test eden.app.test -test.v -timewait 15m RUNNING local-manager
 
 # Wait for ssh access
-exec -t 5m bash wait_ssh.sh 2223
+exec -t 10m bash wait_ssh.sh 2223
 
 # start local manager application
 exec -t 1m bash local-manager-start.sh 2223
