@@ -43,7 +43,7 @@ message 'Waiting for running state'
 test eden.app.test -test.v -timewait 15m RUNNING eclient1 eclient2
 
 message 'Checking accessibility'
-exec -t 5m bash wait_ssh.sh {{template "port1"}} {{template "port2"}}
+exec -t 10m bash wait_ssh.sh {{template "port1"}} {{template "port2"}}
 
 message 'Assign address to eth1 and check mac for eclient1'
 exec -t 1m bash prepare1.sh

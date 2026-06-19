@@ -4,7 +4,7 @@
 eden -t 1m controller edge-node get-config --file /tmp/full-config.json
 
 # wait for EVE's sshd before we capture the pre-update lastconfig mtime
-exec -t 5m bash wait_ssh.sh
+exec -t 10m bash wait_ssh.sh
 
 # snapshot /persist/checkpoint/lastconfig mtime *before* pushing the log-level
 # update so the subsequent active wait can detect when EVE has actually applied

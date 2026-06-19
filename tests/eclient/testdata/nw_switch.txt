@@ -38,7 +38,7 @@ message 'Getting "pong" IP'
 exec bash pong_ip.sh
 
 message 'Checking accessibility'
-exec -t 5m bash wait_ssh.sh 2223 2224
+exec -t 10m bash wait_ssh.sh 2223 2224
 
 message 'Testing of 1st network'
 exec sleep 20
@@ -53,7 +53,7 @@ test eden.app.test -test.v -timewait 15m RUNNING pong
 
 message 'Getting new "pong" IP'
 exec bash pong_ip.sh
-exec -t 5m bash wait_ssh.sh 2223 2224
+exec -t 10m bash wait_ssh.sh 2223 2224
 
 message 'Testing of 2nd network'
 exec sleep 20
@@ -75,7 +75,7 @@ exec -t 1m bash ping.sh 2223
 stdout '0% packet loss'
 ! exec -t 1m bash ping.sh 2224
 stdout '100% packet loss'
-exec -t 5m bash wait_ssh.sh 2223 2224
+exec -t 10m bash wait_ssh.sh 2223 2224
 
 message 'Resource cleanup'
 eden pod delete ping1

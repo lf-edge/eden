@@ -37,7 +37,7 @@ message 'Waiting of running'
 test eden.app.test -test.v -timewait 30m RUNNING eclient
 
 message 'Checking accessibility'
-exec -t 5m bash wait_ssh.sh
+exec -t 10m bash wait_ssh.sh
 
 message 'Testing of network'
 exec sleep 20

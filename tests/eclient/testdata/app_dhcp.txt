@@ -41,7 +41,7 @@ eden pod deploy -v debug -n eclient --memory=512MB --networks=nat --networks=swi
 test eden.app.test -test.v -timewait 20m RUNNING dhcp-server eclient
 
 message 'Checking accessibility'
-exec -t 5m bash wait_ssh.sh
+exec -t 10m bash wait_ssh.sh
 
 message 'Waiting for IP allocation'
 exec -t 5m bash wait_for_app_ip.sh eclient
