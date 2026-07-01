@@ -1,0 +1,597 @@
+# Test: end-to-end app-survives-upgrade via delete+recreate around a
+# kvm→k cross-flavor baseos update, with timer.defer.content.delete set
+# to keep the cached blobs alive across the gap.
+#
+# Variant 3 of the app-survives-upgrade family. Variants 1 & 2 attempt
+# to migrate the live AppInstance / Volume through the
+# `RolloutDiskToPVC` path, which currently fails on single-node EVE-k
+# (see lf-edge/eve#6032 — longhorn scratch PVC can't schedule with
+# upstream 3-replica + strict-anti-affinity defaults).
+#
+# This variant is the *operator-facing recipe* that works today AND
+# exercises the blob-reuse code path end-to-end:
+#
+#   1. Deploy xhv-app (eclient) on EVE-kvm; wait RUNNING + functional.
+#   2. Bump timer.defer.content.delete to 24h so deleting the app
+#      below doesn't immediately purge its ContentTree blobs.
+#   3. Delete the app + its network. Volumes/ContentTrees stay in the
+#      CAS (pillar's per-blob GC defers).
+#   4. Push the kvm→k baseos update.
+#   5. After EVE-k boots and volumemgr unblocks from longhorn-wait,
+#      RE-DEPLOY xhv-app with the SAME image.
+#   6. Assert pillar's downloader did NOT pull image bytes for the
+#      redeploy — the cached blobs from step 1 are reused via the
+#      namespace-port (b14391bad) + transitive-label-walk (5fc09f631)
+#      paths. A new longhorn PVC is provisioned natively on EVE-k;
+#      `RolloutDiskToPVC` is NOT exercised (the .img file doesn't
+#      exist for a fresh deploy).
+#   7. Verify the app is RUNNING + functional on EVE-k.
+#   8. Reset timer.defer.content.delete back to 0 so the device's
+#      GC behavior returns to default.
+#
+# Parameters: ALT_HV, ALT_EVE_VER, ALT_EVE_REG — see
+# update_eve_image_cross_hv.txt header for defaults.
+
+{{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
+
+{{$current_hv := EdenConfig "eve.hv"}}
+{{$arch       := EdenConfig "eve.arch"}}
+
+{{$alt_hv_env := EdenGetEnv "ALT_HV"}}
+{{$alt_hv := "k"}}
+{{if eq $current_hv "k"}}{{$alt_hv = "kvm"}}{{end}}
+{{if $alt_hv_env}}{{$alt_hv = $alt_hv_env}}{{end}}
+
+{{$alt_ver_env := EdenGetEnv "ALT_EVE_VER"}}
+{{$alt_ver := "12.1.0"}}
+{{if $alt_ver_env}}{{$alt_ver = $alt_ver_env}}{{end}}
+
+{{$alt_reg_env := EdenGetEnv "ALT_EVE_REG"}}
+{{$alt_reg := "lfedge/eve"}}
+{{if $alt_reg_env}}{{$alt_reg = $alt_reg_env}}{{end}}
+
+{{$alt_short_version := printf "%s-%s-%s" $alt_ver $alt_hv $arch}}
+
+# Step 1: pre-flight — clean state.
+message 'pre-flight: clean state'
+exec -t 1m bash assert-no-volumes.sh
+eden -t 1m pod ps
+! stdout 'IN_CONFIG'
+eden controller edge-node update --config timer.test.baseimage.update=30
+
+# Step 2: deploy xhv-app PRE-upgrade on the current EVE (kvm).
+message 'deploying eclient app on EVE-kvm'
+eden -t 1m network create 10.11.12.0/24 -n xhv-app-net
+eden -t 5m pod deploy -n xhv-app {{template "eclient_image"}} -p 2223:22 --networks=xhv-app-net --memory=512MB
+exec -t 10m bash wait-for-app-running.sh
+# Functional check: SSH directly into the app via the host hostfwd
+# (eve.hostfwd: 2223:2223 → zedrouter NAT to app:22 → eclient sshd).
+# eden-bringup.sh extends hostfwd to include 2223:2223 specifically
+# so that ssh root@127.0.0.1 -p 2223 works without `eden sdn fwd`.
+message 'pre-upgrade functional check'
+exec -t 5m bash wait-for-ssh-to-app.sh
+stdout 'OK: app SSH reachable'
+
+# Step 3: set timer.defer.content.delete to 24h. This is the key knob —
+# it tells pillar's volumemgr to retain ContentTree blobs for 24h
+# after the last reference goes away, instead of GC'ing immediately
+# when the app is deleted in Step 4.
+message 'setting timer.defer.content.delete=86400 (24h)'
+eden controller edge-node update --config timer.defer.content.delete=86400
+
+# Wait out one controller config-fetch interval (timer.config.interval=60s)
+# plus margin so volumemgr applies the new deferContentDelete BEFORE the app
+# delete below. Otherwise the device can fetch the timer set and the app delete
+# in one config cycle and volumemgr's select loop may process the delete first,
+# deleting the app's ContentTree with deferContentDelete still 0 and GC-ing its
+# blobs -> the redeploy re-downloads (the FAIL[blob-reuse] mode).
+message 'waiting ~90s for the device to apply deferContentDelete=86400'
+exec sleep 90
+
+# Step 4: delete just the app. The network stays — it has no
+# content-tree association, and keeping it across the upgrade matches
+# what an operator would do in production (a network instance
+# typically outlives many app lifecycles). Volume / ContentTree
+# blobs stay on /persist thanks to the deferred-delete timer.
+message 'deleting app on EVE-kvm (network kept, blobs retained for 24h)'
+eden -t 1m pod delete xhv-app
+# Poll until xhv-app fully disappears from `pod ps` AND volumemgr's
+# VolumeStatus tree empties out. The delete returns as soon as
+# controller config is updated, but EVE-side teardown can take 10+
+# minutes — domainmgr shuts down the VM, volumemgr unrolls the PVC,
+# and (on EVE-k) longhorn detaches and releases the replica. Anything
+# less than a hard wait-for-removal here will start the upgrade on a
+# device with live Volume / DomainStatus and trip the cross-HV gate.
+exec -t 15m bash wait-for-app-gone.sh
+exec -t 1m bash assert-no-volumes.sh
+
+# Step 5: push the cross-flavor eveimage-update.
+message 'downloading alternate-flavor EVE rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$alt_ver}} --eve-hv={{$alt_hv}} --eve-registry={{$alt_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs'
+
+message 'pushing cross-flavor eveimage-update'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs --os-version={{ $alt_short_version }} -m adam://
+! stderr .
+
+# Step 6: wait for the upgrade to complete.
+message 'waiting for cross-flavor upgrade to complete'
+exec -t 35m bash wait-for-cross-hv-upgrade.sh
+
+# Step 7: snapshot eve-k's downloader RecvByteCount baseline NOW, on boot,
+# BEFORE we deploy. /run/downloader/MetricsMap is tmpfs so the counter restarted
+# at the EVE-k reboot; taking the baseline here means the post-assert below
+# measures ALL re-download since boot (volumemgr's blob reconstruction plus the
+# deploy). Blob reuse (commits b14391bad + 5fc09f631) should keep it ~0.
+message 'snapshot eve-k downloader RecvByteCount (baseline, pre-deploy)'
+exec -t 1m bash snapshot-rcv-bytes.sh pre
+
+# Step 8: deploy xhv-app on EVE-k IMMEDIATELY on boot — do NOT wait for volumemgr
+# / cluster readiness first. The network (xhv-app-net) is still present from
+# Step 2. With the defer-delete timer holding the ContentTree blobs on /persist,
+# pillar's CAS finds the manifest by SHA and reuses the existing BlobStatus — no
+# DownloaderConfig for the eden-eclient image. A fresh longhorn PVC is provisioned
+# natively once cluster storage is up.
+message 'deploying eclient app on EVE-k immediately on boot (independent of commit/cluster state)'
+eden -t 5m pod deploy -n xhv-app {{template "eclient_image"}} -p 2223:22 --networks=xhv-app-net --memory=512MB
+
+# Step 9: split the readiness waits for diagnosability, in order:
+#   (a) volumemgr ready (incl kubeapi.WaitForKubernetes),
+#   (b) longhorn StorageClass ready,
+#   (c) app RUNNING,
+#   (d) app SSH-reachable.
+message '(a) waiting for volumemgr ready (incl kubeapi.WaitForKubernetes)'
+exec -t 45m bash wait-for-volumemgr-ready.sh
+message '(b) waiting for EVE-k longhorn StorageClass ready (cluster storage up)'
+exec -t 50m bash wait-for-longhorn-sc.sh
+stdout 'OK: longhorn StorageClass ready'
+message '(c) waiting for the app to reach RUNNING on EVE-k'
+exec -t 45m bash wait-for-app-running.sh
+message '(d) post-upgrade functional check (SSH into the app guest)'
+exec -t 5m bash wait-for-ssh-to-app.sh 2223 30 fresh
+stdout 'OK: app SSH reachable'
+
+# Step 10: assert eve-k's downloader did NOT pull more than ~1 MiB since boot
+# (eden-eclient is ~44 MiB; a real re-download would be unmistakable).
+message 'asserting blob reuse: no image re-download across the conversion'
+exec -t 1m bash snapshot-rcv-bytes.sh post-and-assert
+
+# Step 10a: reboot recovery. Earlier observations on this path showed
+# the longhorn Volume CR could get stuck STATE=detached/ROBUSTNESS=
+# unknown after a routine reboot, with virt-launcher Pending and a
+# misleading "untolerated taint" event. Driving one reboot through
+# this test catches a regression of that mode end-to-end.
+message 'requesting controller-initiated reboot'
+eden -t 1m controller edge-node -m adam:// reboot -v debug
+message 'waiting for EVE down + back (uptime < 120s)'
+exec -t 15m bash wait-for-reboot-and-back.sh
+message 'post-reboot: waiting for volumemgr Initialized:true'
+exec -t 45m bash wait-for-volumemgr-ready.sh
+message 'post-reboot: waiting for xhv-app to return to RUNNING'
+message 'waiting for EVE-k longhorn StorageClass ready (cluster storage up)'
+exec -t 50m bash wait-for-longhorn-sc.sh
+stdout 'OK: longhorn StorageClass ready'
+exec -t 45m bash wait-for-app-running.sh
+message 'post-reboot functional check'
+exec -t 5m bash wait-for-ssh-to-app.sh 2223 30 fresh
+stdout 'OK: app SSH reachable'
+
+# Step 11: reset the defer-delete timer to default (0 → immediate
+# delete on refcount=0). Always runs, even if a later assertion fails
+# in a future revision — make this explicit and unconditional.
+message 'reset timer.defer.content.delete=0 (back to default)'
+eden controller edge-node update --config timer.defer.content.delete=0
+
+# Step 12: cleanup. We skip `eden controller edge-node eveimage-remove`
+# here even though other tests in this family use it — eden's CLI
+# rejects rootfs filenames containing `-k-amd64` (its regex allows
+# only kvm|xen|acrn|rpi|rpi-xen|rpi-kvm; see
+# pkg/openevec/eveImageUpdate.go). adam's record of the staged image
+# is harmless to leave in place and gets wiped on the next bringup.
+eden -t 1m pod delete xhv-app
+eden -t 1m network delete xhv-app-net  # final teardown — release the network too
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs.ver
+exec sleep 10
+eden eve reset
+
+-- assert-no-volumes.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for i in $(seq 1 12); do
+    out=$("$EDEN" volume ls 2>/dev/null)
+    live=$(echo "$out" | awk 'NR>1 && ($(NF-1) == "IN_CONFIG" || $NF == "DELIVERED")')
+    if [ -z "$live" ]; then echo "OK: no live volumes"; exit 0; fi
+    sleep 5
+done
+echo "FAIL: live volume(s) present" >&2; "$EDEN" volume ls >&2; exit 1
+
+-- wait-for-app-running.sh --
+#!/bin/bash
+# Poll `eden pod ps` until xhv-app reaches LAST_STATE(EVE)=RUNNING.
+# 25m budget covers both the pre-upgrade kvm case (fast, ~2m) and the
+# post-upgrade eve-k redeploy (slow first boot — longhorn install +
+# VMI start can take 15-20m on a slow rig).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for i in $(seq 1 240); do   # 40m at 10s intervals (deploy-on-boot: app RUNNING is gated on the full post-longhorn volume create + CDI upload + guest boot, ~27m observed)
+    line=$("$EDEN" pod ps 2>/dev/null | grep -E '^xhv-app\s')
+    if echo "$line" | grep -q 'RUNNING'; then
+        echo "OK: xhv-app RUNNING"
+        echo "$line"
+        exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: xhv-app did not reach RUNNING in 40m" >&2
+"$EDEN" pod ps >&2
+exit 1
+
+-- wait-for-app-gone.sh --
+#!/bin/bash
+# Poll until xhv-app fully disappears AND no VolumeStatus files remain
+# under /run/volumemgr/VolumeStatus/. Pillar tears down in this order:
+#   1. controller config drops the app (immediate after `eden pod delete`)
+#   2. domainmgr halts the VM domain (~30-60s)
+#   3. volumemgr unrolls the PVC; on EVE-k longhorn detaches+releases
+#      the replica, which can take 5-10 minutes
+#   4. AppInstanceStatus and VolumeStatus pubsub records get removed
+# We watch (3) + (4) — those are the on-device-state signals.
+# 15m budget covers the slow longhorn case observed in v17.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+last_pod=""
+last_vol=""
+for i in $(seq 1 90); do   # 15m at 10s intervals
+    pod_present=$("$EDEN" pod ps 2>/dev/null | grep -cE '^xhv-app\s')
+    # Count only the per-instance .json files; pillar/pubsub writes a
+    # `restarted` sentinel into this directory at startup and never
+    # removes it, so `ls | wc -l` returns 1 even when no volumes exist.
+    vol_count=$(timeout 12 "$EDEN" eve ssh \
+        'eve exec pillar ls /run/volumemgr/VolumeStatus/*.json 2>/dev/null | wc -l' \
+        2>/dev/null | tr -d '\r' | tail -1)
+    [ -z "$vol_count" ] && vol_count="?"
+    if [ "$pod_present" = "0" ] && [ "$vol_count" = "0" ]; then
+        echo "OK: xhv-app removed and no VolumeStatus files remain"
+        exit 0
+    fi
+    # Progress line — print only when state changes
+    state="pod_rows=$pod_present vol_files=$vol_count"
+    if [ "$last_pod $last_vol" != "$pod_present $vol_count" ]; then
+        echo "$(date +%H:%M:%S) waiting for teardown: $state"
+        last_pod=$pod_present
+        last_vol=$vol_count
+    fi
+    sleep 10
+done
+echo "FAIL: app+volumes did not fully clear in 15m" >&2
+echo "--- final pod ps ---" >&2
+"$EDEN" pod ps >&2
+echo "--- final VolumeStatus listing ---" >&2
+"$EDEN" eve ssh 'eve exec pillar ls -la /run/volumemgr/VolumeStatus/ 2>&1' >&2
+exit 1
+
+-- wait-for-ssh-to-app.sh --
+#!/bin/bash
+# wait-for-ssh-to-app.sh — the REAL guest-readiness / functional gate for the
+# eclient app instance, shared verbatim across the cross-HV / kvm->k tests.
+#
+# `eden pod ps` RUNNING (wait-for-app-running.sh) only reflects
+# AppInstState.EVEState — the ZSwState EVE reports. On EVE-k that is the
+# kubevirt VMI Running phase (qemu launched), NOT the guest kernel booted with
+# sshd accepting connections; on EVE-kvm the gap is smaller but still not
+# guest-ready. So pod-ps RUNNING is a cheap pre-filter only — success is
+# declared HERE, once an AUTHENTICATED ssh command has actually run inside the
+# guest and returned the expected output.
+#
+# Transport: host hostfwd 127.0.0.1:2223 -> EVE-eth0:2223 (eve.hostfwd
+# extension set by eden-bringup.sh) -> zedrouter NAT -> app:22 (eclient sshd).
+# The `eden sdn fwd` wrapper collapses to the same 127.0.0.1:hostport under the
+# non-SDN QEMU user-net these tests run in, so the direct path is used.
+#
+# FRESHNESS: host port 2223 is a static QEMU forward for the whole VM lifetime,
+# so after a delete+redeploy (or a reboot) a *stale* previous eclient could keep
+# answering on it and falsely satisfy a post-conversion check. To guard that,
+# each successful check records the guest's boot_id
+# (/proc/sys/kernel/random/boot_id — a fresh UUID per VM boot) to
+# /tmp/xhv-app-bootid. In "fresh" mode the check requires the connected guest's
+# boot_id to DIFFER from that recorded value; a matching (stale) instance is
+# treated as not-ready-yet and retried until the fresh deploy takes over the
+# port or the budget runs out.
+#
+# Fail-closed: a refused / closed / timed-out ssh, a non-eclient guest, or (in
+# fresh mode) only the stale instance answering, never prints the success
+# marker. On success it prints "OK: app SSH reachable" so the escript pins the
+# framework verdict to a real session:
+#     exec -t 5m bash wait-for-ssh-to-app.sh
+#     stdout 'OK: app SSH reachable'
+#
+# Args (optional): $1 host port (default 2223); $2 attempts, 10s apart
+# (default 30 => 5m); $3 = "fresh" to require a NEW guest instance vs the
+# boot_id the previous successful check recorded (use after a redeploy/reboot).
+#
+# Cert: ssh refuses group-readable keys, so the eclient id_rsa is copied to a
+# 0600 temp file. testscript sets HOME=/no-home, so the real home is resolved
+# from the running UID; dist/tests is only populated by a full `make eden`, so
+# fall back to the master/main reference clones.
+set -uo pipefail
+PORT="${1:-2223}"
+ATTEMPTS="${2:-30}"
+FRESH="${3:-}"
+BOOTID_FILE=/tmp/xhv-app-bootid
+EDEN_TESTS="{{EdenConfig "eden.tests"}}"
+USER_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+SRC=""
+for c in "$EDEN_TESTS/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/master/eden/tests/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/main/eden/tests/eclient/image/cert/id_rsa"; do
+    if [ -f "$c" ]; then SRC="$c"; break; fi
+done
+if [ -z "$SRC" ]; then
+    echo "FAIL: could not locate eclient id_rsa cert (EDEN_TESTS=$EDEN_TESTS, USER_HOME=$USER_HOME)" >&2
+    exit 1
+fi
+KEY=$(mktemp); install -m 600 "$SRC" "$KEY"; trap 'rm -f "$KEY"' EXIT
+SSH_OPTS=(-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -i "$KEY")
+prev=""
+[ -f "$BOOTID_FILE" ] && prev=$(cat "$BOOTID_FILE" 2>/dev/null)
+connected=0
+saw_stale=0
+for _ in $(seq 1 "$ATTEMPTS"); do
+    # One round-trip proves auth, the eclient identity, and the guest boot_id.
+    # "AUTHED" is echoed before the identity check, so a connect+auth that fails
+    # only the /etc/issue match is distinguishable from a never-connected ssh.
+    out=$(ssh "${SSH_OPTS[@]}" root@127.0.0.1 -p "$PORT" \
+        'echo AUTHED; grep -q Ubuntu /etc/issue && cat /proc/sys/kernel/random/boot_id' \
+        2>/dev/null)
+    case "$out" in *AUTHED*) connected=1 ;; esac
+    bootid=$(printf '%s\n' "$out" | tr -d '\r' | grep -Ex '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1)
+    if [ -n "$bootid" ]; then
+        if [ "$FRESH" = "fresh" ] && [ -n "$prev" ] && [ "$bootid" = "$prev" ]; then
+            # Still the previous instance on the static port — wait for the fresh
+            # deploy/boot to take over the NAT before declaring success.
+            saw_stale=1; sleep 10; continue
+        fi
+        echo "$bootid" > "$BOOTID_FILE"
+        echo "OK: app SSH reachable (port=$PORT, boot_id=$bootid, fresh=${FRESH:-no}, cert=$SRC)"
+        exit 0
+    fi
+    sleep 10
+done
+budget=$(( ATTEMPTS * 10 ))
+if [ "$saw_stale" = 1 ]; then
+    echo "FAIL: only the previous app instance (boot_id=$prev) answered within ${budget}s — the fresh deploy never took over the port (stale instance)" >&2
+elif [ "$connected" = 1 ]; then
+    echo "FAIL: ssh connected+authed but the guest never matched the eclient (grep Ubuntu /etc/issue) within ${budget}s (port=$PORT)" >&2
+else
+    echo "FAIL: app never answered an authenticated ssh within ${budget}s (port=$PORT, cert=$SRC)" >&2
+fi
+echo "--- host TCP probe ---" >&2
+( exec 3<>/dev/tcp/127.0.0.1/"$PORT" ) 2>&1 || true
+exit 1
+
+-- wait-for-volumemgr-ready.sh --
+#!/bin/bash
+# After a cross-HV upgrade we need volumemgr on eve-k to have
+# unblocked from its `wait for kubernetes` / longhorn-ready sub-wait
+# and run populateInitBlobStatus(). The signal we watch for is the
+# state file /run/volumemgr/VolumeMgrStatus/volumemgr.json with
+# "Initialized":true — set after kubeapi.WaitForKubernetes returns.
+#
+# Earlier revisions of this helper grepped the volumemgr log for
+# "kubernetes node ready, longhorn ready". That's unreliable: EVE's
+# memlog is a ring buffer; under the load of a fresh longhorn install
+# the buffer rotates within ~20 min, and the marker line scrolls out
+# before we observe it. The state-file approach reads the *persistent
+# fact* on tmpfs, independent of log retention.
+#
+# Print progress every iteration so a stall is visible in the test
+# output (matters because the helper sits silent for up to 20m on
+# first boot, while longhorn pulls + starts its DaemonSets).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+last=""
+for i in $(seq 1 240); do   # 40m at 10s intervals (deploy-on-boot: this wait now starts at EVE-k boot, and Initialized lands ~24m later after kubeapi.WaitForKubernetes)
+    state=$(timeout 8 "$EDEN" eve ssh 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>/dev/null' 2>/dev/null \
+            | tr -d '\r' | grep -oE '"Initialized":[a-z]+')
+    if [ "$state" = '"Initialized":true' ]; then
+        echo "OK: volumemgr Initialized:true — populateInitBlobStatus has run"
+        exit 0
+    fi
+    if [ "$last" != "$state" ]; then
+        echo "$(date +%H:%M:%S) volumemgr state: ${state:-<not-yet-published>}"
+        last="$state"
+    fi
+    sleep 10
+done
+echo "FAIL: volumemgr did not reach Initialized:true within 40m" >&2
+echo "--- final state file ---" >&2
+"$EDEN" eve ssh 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>&1' >&2
+exit 1
+
+-- snapshot-rcv-bytes.sh --
+#!/bin/bash
+# Snapshot the cumulative RecvByteCount from /run/downloader/MetricsMap
+# on EVE. The downloader publishes per-interface, per-URL byte
+# counters there; we sum across all URLs and interfaces.
+#
+# With "pre", capture the baseline to /tmp/xhv-rcv-pre.txt. With
+# "post-and-assert", recapture, compute the delta vs the pre-snapshot,
+# and assert the delta is below MAX_DELTA_BYTES (default 1 MiB).
+#
+# Note: /run/ is tmpfs, so the counter is reset on reboot. This
+# script is meant to bracket a single phase (e.g. the post-upgrade
+# redeploy) where pre and post are taken without an intervening
+# reboot.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+MODE=${1:-pre}
+MAX_DELTA_BYTES=${2:-1048576}  # 1 MiB default
+
+capture_recv_bytes() {
+    timeout 15 "$EDEN" eve ssh -- 'eve exec pillar cat /run/downloader/MetricsMap/global.json 2>/dev/null' \
+        2>/dev/null | grep -v 'level=fatal' \
+        | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print(0); sys.exit(0)
+total = 0
+for iface, conn in d.items():
+    for url, m in (conn.get('URLCounters') or {}).items():
+        total += m.get('RecvByteCount', 0)
+print(total)
+"
+}
+
+case "$MODE" in
+    pre)
+        bytes=$(capture_recv_bytes)
+        echo "$bytes" > /tmp/xhv-rcv-pre.txt
+        echo "Pre-snapshot: RecvByteCount total = $bytes bytes"
+        ;;
+    post-and-assert)
+        post=$(capture_recv_bytes)
+        pre=$(cat /tmp/xhv-rcv-pre.txt 2>/dev/null || echo 0)
+        delta=$(( post - pre ))
+        echo "Post-snapshot: RecvByteCount total = $post bytes (pre was $pre, delta = $delta)"
+        if [ "$delta" -lt 0 ]; then
+            echo "FAIL: post < pre — counter went backwards (reboot? not expected on eve-k)" >&2
+            exit 1
+        fi
+        if [ "$delta" -lt "$MAX_DELTA_BYTES" ]; then
+            echo "OK: only $delta bytes received (< ${MAX_DELTA_BYTES} threshold) — no image re-download"
+            exit 0
+        fi
+        echo "FAIL: $delta bytes received exceeds ${MAX_DELTA_BYTES} threshold — image likely re-downloaded" >&2
+        exit 1
+        ;;
+    *)
+        echo "Usage: $0 pre | post-and-assert [max-delta-bytes]" >&2
+        exit 1
+        ;;
+esac
+
+-- wait-for-cross-hv-upgrade.sh --
+#!/bin/bash
+# Wait for the upgraded EVE to reach PartitionState:active running
+# $EXPECT_VERSION, dumping k3s diagnostics if it stalls.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT_VERSION='{{ $alt_short_version }}'
+DEADLINE=$(( $(date +%s) + 1800 ))
+
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+dump_k3s_diags() {
+    sock=$(probe 'test -S /run/containerd-user/containerd.sock && echo present || echo absent')
+    echo "  /run/containerd-user/containerd.sock: $sock"
+    kube_pid=$(probe 'ctr -n services.linuxkit t ls 2>/dev/null | awk "/^kube/{print \$2}"')
+    echo "  kube container pid: ${kube_pid:-not running}"
+}
+
+prev_running=""
+while [ $(date +%s) -lt $DEADLINE ]; do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then
+        echo "$(date +%H:%M:%S): EVE unreachable (rebooting?)"; sleep 20; continue
+    fi
+    imgb_state=$(probe 'eve exec pillar cat /run/baseosmgr/ZbootStatus/IMGB.json' | grep -oP '"PartitionState":"\K[^"]+' | head -1)
+    [ -z "$imgb_state" ] && imgb_state='unknown'
+    echo "$(date +%H:%M:%S): running='$running' IMGB.PartitionState='$imgb_state'"
+    # Proceed as soon as EVE-k is the running rootfs — do NOT also wait for
+    # IMGB to commit 'active' (that's gated on cluster/node readiness ~16m,
+    # which would delay the app deploy and mask the device-side
+    # clusterStorageReady defer + park-and-retry we want to exercise).
+    if [ "$running" = "$EXPECT_VERSION" ]; then
+        echo "OK: booted EVE-k (version=$running, IMGB.PartitionState=$imgb_state) — proceeding now, independent of commit/cluster state"
+        dump_k3s_diags
+        exit 0
+    fi
+    prev_running="$running"
+    sleep 30
+done
+echo "FAIL: 30m timeout. running='$running' IMGB='$imgb_state'" >&2
+dump_k3s_diags >&2
+exit 1
+
+-- wait-for-reboot-and-back.sh --
+#!/bin/bash
+# Wait for EVE to actually reboot. Three phases:
+#   1. Wait up to 2m for SSH to start failing (kernel going down).
+#   2. Wait up to 10m for SSH to succeed AGAIN (kernel up + sshd up).
+#   3. Verify /proc/uptime < 120s (proves an actual reboot happened,
+#      not a transient SSH glitch).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+
+echo "phase 1: waiting for SSH to start failing (reboot underway)"
+went_down=0
+for i in $(seq 1 24); do   # 24 * 5s = 2m
+    if ! timeout 5 "$EDEN" eve ssh 'true' 2>/dev/null; then
+        echo "$(date +%H:%M:%S) SSH unreachable -- reboot in progress"
+        went_down=1
+        break
+    fi
+    sleep 5
+done
+if [ "$went_down" = "0" ]; then
+    echo "FAIL: SSH stayed reachable for 2m -- reboot did not start?" >&2
+    exit 1
+fi
+
+echo "phase 2: waiting for SSH to come back (post-reboot kernel + sshd up)"
+came_up=0
+for i in $(seq 1 60); do   # 60 * 10s = 10m
+    if timeout 8 "$EDEN" eve ssh 'true' 2>/dev/null; then
+        echo "$(date +%H:%M:%S) SSH back online"
+        came_up=1
+        break
+    fi
+    sleep 10
+done
+if [ "$came_up" = "0" ]; then
+    echo "FAIL: SSH did not come back within 10m" >&2
+    exit 1
+fi
+
+echo "phase 3: verifying uptime reset (< 120s)"
+uptime_secs=$(timeout 10 "$EDEN" eve ssh 'cat /proc/uptime' 2>/dev/null | tr -d '\r' | awk '{print int($1)}' | head -1)
+if [ -z "$uptime_secs" ]; then
+    echo "FAIL: could not read /proc/uptime after reboot" >&2
+    exit 1
+fi
+if [ "$uptime_secs" -gt 120 ]; then
+    echo "FAIL: uptime $uptime_secs > 120s -- SSH glitch, not a real reboot" >&2
+    exit 1
+fi
+echo "OK: EVE rebooted, uptime now ${uptime_secs}s"
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- wait-for-longhorn-sc.sh --
+#!/bin/bash
+# Wait until the EVE-k `longhorn` StorageClass exists (longhorn deployed + its CSI
+# provisioner up). On a freshly-converted EVE-k node longhorn can take tens of
+# minutes to deploy -- well after the device reports ONLINE -- so wait for it
+# EXPLICITLY here, before deploying/waiting for an app whose volume needs longhorn.
+# This separates cluster-bringup time from app-bringup time: the wait-for-app-running
+# that follows can be short, and a failure here clearly says "longhorn", not "app".
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 90); do   # ~45m at 30s
+    if "$EDEN" eve ssh -- 'eve exec kube kubectl get sc 2>/dev/null' 2>/dev/null | grep -qE '^longhorn'; then
+        echo "OK: longhorn StorageClass ready"; exit 0
+    fi
+    sleep 30
+done
+echo "FAIL: longhorn StorageClass not ready within budget" >&2; exit 1
