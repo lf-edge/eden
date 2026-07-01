@@ -18,6 +18,12 @@
 {{define "jq_arg_err_msg"}}.errorMessage // ""{{end}}
 {{define "jq_arg_cfg_origin"}}.configSource.origin // "NETWORK_CONFIG_ORIGIN_UNSPECIFIED"{{end}}
 
+# Since https://github.com/lf-edge/eve/pull/6021, EVE upstream DNS servers are in
+# /run/nim/dnsmasq.mgmt.servers rather than /etc/resolv.conf (which only contains
+# "nameserver 127.0.0.1"). Cat both so checks work on old and new EVE.
+# Redirect stderr to /dev/null to silence the missing-file error on old EVE.
+{{define "cat_dns_config"}}cat /etc/resolv.conf /run/nim/dnsmasq.mgmt.servers 2>/dev/null; true{{end}}
+
 [!exec:bash] stop
 [!exec:sleep] stop
 [!exec:ssh] stop
@@ -74,9 +80,9 @@ exec -t 1m bash apply-local-network-config.sh $WORK/local-config.json
 exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | {{template "jq_arg_err_msg"}}' 'local modifications not permitted for port "eth0"'
 exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | {{template "jq_arg_cfg_applied"}}' false
 exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
-eden eve ssh cat /etc/resolv.conf
-! stdout 'nameserver 8.8.8.8'
-! stdout 'nameserver 1.1.1.1'
+eden eve ssh '{{template "cat_dns_config"}}'
+! stdout '8.8.8.8'
+! stdout '1.1.1.1'
 
 # Local changes to eth1 should be successfully applied.
 exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth1_local_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
@@ -96,9 +102,9 @@ exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} 
 exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | .dnsServers | index("8.8.8.8") != null' true
 exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_local_cfg"}} | .dnsServers | index("1.1.1.1") != null' true
 exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' false
-eden eve ssh cat /etc/resolv.conf
-stdout 'nameserver 8.8.8.8'
-stdout 'nameserver 1.1.1.1'
+eden eve ssh '{{template "cat_dns_config"}}'
+stdout '8.8.8.8'
+stdout '1.1.1.1'
 
 # Apply empty local config to revert all local changes.
 exec -t 1m bash apply-local-network-config.sh $WORK/empty-config.json
@@ -106,9 +112,9 @@ exec -t 1m bash apply-local-network-config.sh $WORK/empty-config.json
 # eth0 configuration should be reverted back to controller-provided config.
 exec -t 5m bash wait-for-network-info.sh '{{template "jq_path_eth0_has_local_cfg"}}' false
 exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth0_latest_cfg"}} | {{template "jq_arg_cfg_applied"}}' true
-eden eve ssh cat /etc/resolv.conf
-! stdout 'nameserver 8.8.8.8'
-! stdout 'nameserver 1.1.1.1'
+eden eve ssh '{{template "cat_dns_config"}}'
+! stdout '8.8.8.8'
+! stdout '1.1.1.1'
 
 # eth1 configuration should be reverted back to controller-provided config.
 exec -t 1m bash wait-for-network-info.sh '{{template "jq_path_eth1_has_local_cfg"}}' false
