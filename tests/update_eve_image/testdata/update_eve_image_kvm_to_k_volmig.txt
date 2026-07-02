@@ -1,0 +1,536 @@
+# Test: EVE-kvm -> EVE-k app-volume migration. An app instance and its disk
+# volume must SURVIVE the cross-flavor upgrade WITHOUT recreate (app-written data
+# preserved), on ext4 /persist with a TPM (swtpm). The boot disk starts at the
+# LARGE EVE-k geometry, so the conversion takes the no-shrink "proceed" path and
+# the cross-flavor gate allows the upgrade with volumes present. The code under
+# test: upgradeconverter relocates the carried-over kvm volume to
+# /persist/vault/volumes-kvm, and volumemgr (csihandler) rolls that file into the
+# Longhorn PVC so the app's data survives instead of being regenerated.
+#
+# Image sequence (exact):
+#   1. start : EVE up on <VOLMIG_EVE_VER>-kvm (large geometry, ext4, tpm).
+#   2. k     : BaseOs-update kvm->k to <VOLMIG_EVE_VER>-k; the app is KEPT across it.
+#
+# What it asserts:
+#   - the running vault is TPM-backed (UnlockMethod != no-tpm);
+#   - the app reaches RUNNING on EVE-k;
+#   - a data marker written into the guest disk BEFORE the conversion is still
+#     present AFTER it (the volume survived without recreate);
+#   - the image was not re-downloaded across the conversion (RecvByteCount ~0).
+#
+# Parameters (env):
+#   VOLMIG_EVE_VER  (required) version base of the local volmig images, without
+#                   the -<hv>-<arch> suffix, e.g. "0.0.0-kvm-to-k-volmig-<sha8>".
+#   VOLMIG_EVE_REG  (default lfedge/eve) image registry/repo namespace.
+# Bringup is manual (see the README): EVE must already be up on the -kvm image.
+
+{{$arch := EdenConfig "eve.arch"}}
+{{$ver_env := EdenGetEnv "VOLMIG_EVE_VER"}}
+{{$ver := "REPLACE-WITH-VOLMIG-VERSION"}}
+{{if $ver_env}}{{$ver = $ver_env}}{{end}}
+{{$reg_env := EdenGetEnv "VOLMIG_EVE_REG"}}
+{{$reg := "lfedge/eve"}}
+{{if $reg_env}}{{$reg = $reg_env}}{{end}}
+{{$kvm_short := printf "%s-kvm-%s" $ver $arch}}
+{{$k_short   := printf "%s-k-%s" $ver $arch}}
+{{$appimg := "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"}}
+
+# Step 0: pre-flight — params, clean state, on the expected -kvm image, TPM live.
+message 'pre-flight: parameters, clean state, TPM-backed vault'
+exec -t 1m bash require-ver.sh
+exec -t 1m bash assert-no-volumes.sh
+exec -t 3m bash assert-running-version.sh {{ $kvm_short }}
+exec -t 2m bash tpm-guard.sh
+stdout 'TPM-backed'
+eden controller edge-node update --config timer.test.baseimage.update=30
+
+# Step 1: deploy a VM app with a disk volume, then write a data marker into the
+# guest disk so we can later prove the SAME bytes survived the conversion.
+message 'deploying Ubuntu VM app with a disk volume on EVE-kvm'
+eden -t 1m network create 10.11.12.0/24 -n xhv-app-net
+# Inject the eclient SSH pubkey into the guest via cloud-init user-data so the
+# marker uses key auth (no sshpass / no password). cloud-init runs once on first
+# boot and writes authorized_keys onto the guest disk = the volume that migrates,
+# so key auth keeps working post-conversion on EVE-k. (Ubuntu cloud image: it
+# honors cloud-config ssh_authorized_keys; Cirros does NOT — see gen-metadata.sh.)
+exec -t 1m bash gen-metadata.sh
+eden -t 15m pod deploy --format=qcow2 --memory=1024MB -n xhv-vmapp -p 2223:22 {{ $appimg }} --networks=xhv-app-net --metadata=/tmp/xhv-volmig-userdata.yaml
+# Pre-conversion the device is EVE-kvm (no longhorn/kube), so wait only for the
+# app itself here; the longhorn-StorageClass wait belongs to the post-conversion
+# (EVE-k) app-wait in Step 4.
+exec -t 20m bash wait-for-app-running.sh
+message 'writing a data marker into the guest disk volume'
+exec -t 20m bash marker.sh write
+stdout 'MARKER_WRITTEN'
+
+# Step 2: BaseOs-update kvm->k while KEEPING the app+volume. The cross-flavor gate
+# allows this because the large geometry means no shrink.
+message 'downloading volmig k rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$ver}} --eve-hv=k --eve-registry={{$reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs'
+message 'pushing kvm->k BaseOs update (app + volume kept)'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs --os-version={{ $k_short }} -m adam://
+! stderr .
+
+# Step 3: drive and watch the conversion to EVE-k.
+message 'watching the kvm->k conversion to completion'
+exec -t 45m bash watch-conversion.sh {{ $k_short }}
+
+# Step 4: on EVE-k, wait for the cluster + app, then the load-bearing assertion:
+# the data marker survived (the volume was migrated, not recreated).
+message 'waiting for EVE-k content store (volumemgr) ready'
+exec -t 45m bash wait-for-volumemgr-ready.sh
+message 'snapshot downloader RecvByteCount baseline on EVE-k'
+exec -t 1m bash snapshot-rcv-bytes.sh pre
+message 'waiting for EVE-k longhorn StorageClass ready (cluster storage up)'
+exec -t 50m bash wait-for-longhorn-sc.sh
+stdout 'OK: longhorn StorageClass ready'
+message 'waiting for the app to reach RUNNING on EVE-k'
+exec -t 45m bash wait-for-app-running.sh
+message 'ASSERT: the disk volume survived the conversion without recreate'
+exec -t 10m bash marker.sh verify
+stdout 'VOLUME SURVIVED'
+message 'asserting the image was not re-downloaded across the conversion'
+exec -t 1m bash snapshot-rcv-bytes.sh post-and-assert
+
+# Cleanup.
+eden -t 1m pod delete xhv-vmapp
+eden -t 1m network delete xhv-app-net
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs.ver
+exec sleep 5
+eden eve reset
+
+-- require-ver.sh --
+#!/bin/bash
+# Fail fast if VOLMIG_EVE_VER was not supplied.
+set -uo pipefail
+VER='{{ $ver }}'
+if [ -z "$VER" ] || [ "$VER" = "REPLACE-WITH-VOLMIG-VERSION" ]; then
+    echo "FAIL: VOLMIG_EVE_VER not set." >&2
+    echo "      Export it to the version base of your local volmig build," >&2
+    echo "      e.g. VOLMIG_EVE_VER=0.0.0-kvm-to-k-volmig-1a2b3c4d" >&2
+    echo "      (the part before -kvm-amd64 / -k-amd64 in the docker tag)." >&2
+    exit 1
+fi
+echo "OK: VOLMIG_EVE_VER=$VER"
+
+-- tpm-guard.sh --
+#!/bin/bash
+# Confirm the test is really running with a TPM (swtpm), not a no-tpm vault — an
+# app volume in /persist/vault is only meaningful when the vault is TPM-backed.
+# swtpm and the EVE QEMU both run on this host (the eden VM), so check them here.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+pgrep -x swtpm >/dev/null && echo "swtpm: running" || { echo "FAIL: swtpm not running" >&2; exit 1; }
+ps -eo args | grep "[d]efault-eve.log" | grep -q "tpm-tis" && echo "qemu: tpm-tis present" || { echo "FAIL: qemu has no tpm-tis device" >&2; exit 1; }
+um=$(timeout 15 "$EDEN" eve ssh -- 'eve exec pillar sh -c "cat /run/vaultmgr/VaultStatus/*.json 2>/dev/null"' 2>/dev/null | grep -v 'level=fatal' | grep -oE '"UnlockMethod":[0-9]+' | head -1 | cut -d: -f2)
+echo "VaultStatus.UnlockMethod=${um:-<none>} (1=tpm-local-sealed 2=controller-key 3=no-tpm)"
+case "${um:-x}" in
+    1|2) echo "OK: TPM-backed vault confirmed" ;;
+    3)   echo "FAIL: vault is no-tpm — swtpm is not in use" >&2; exit 1 ;;
+    *)   echo "OK: TPM-backed (swtpm + tpm-tis present; UnlockMethod not yet published)" ;;
+esac
+
+-- marker.sh --
+#!/bin/bash
+# write : ssh into the Ubuntu guest and write a unique data marker into its disk
+#         volume; remember it.
+# verify: after the conversion, re-read the marker; PASS only if it matches the
+#         one written pre-conversion (proves the volume's bytes survived without
+#         recreate). Auth is KEY-BASED: gen-metadata.sh injected the eclient
+#         pubkey via cloud-init, so we log in as ubuntu with the eclient id_rsa
+#         (no password, no sshpass) over hostfwd 127.0.0.1:2223 -> EVE -> app:22.
+set -uo pipefail
+MODE=${1:?write|verify}
+PORT=2223
+MF=/tmp/xhv-volmig-marker.txt
+# ssh refuses group-readable keys, so copy the eclient id_rsa to a 0600 temp file.
+# testscript sets HOME=/no-home, so resolve the real home from the running UID;
+# dist/tests is only populated by a full `make eden`, so fall back to the
+# master/main reference clones (same list gen-metadata.sh uses for the pubkey).
+EDEN_TESTS="{{EdenConfig "eden.tests"}}"
+USER_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+SRC=""
+for c in "$EDEN_TESTS/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/master/eden/tests/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/main/eden/tests/eclient/image/cert/id_rsa"; do
+    if [ -f "$c" ]; then SRC="$c"; break; fi
+done
+[ -n "$SRC" ] || { echo "FAIL: could not locate eclient id_rsa cert (EDEN_TESTS=$EDEN_TESTS, USER_HOME=$USER_HOME)" >&2; exit 1; }
+KEY=$(mktemp); install -m 600 "$SRC" "$KEY"; trap 'rm -f "$KEY"' EXIT
+SSHP=(-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o PreferredAuthentications=publickey -i "$KEY")
+guest() { ssh "${SSHP[@]}" ubuntu@127.0.0.1 -p "$PORT" "$@" 2>/dev/null; }
+
+case "$MODE" in
+    write)
+        m="VOLMIG-SURVIVES-$(date +%s)"
+        ok=0
+        for _ in $(seq 1 90); do guest true && { ok=1; break; }; sleep 10; done
+        [ "$ok" = 1 ] || { echo "FAIL: ubuntu guest ssh not reachable pre-conversion" >&2; exit 1; }
+        guest "echo $m > /home/ubuntu/volmig-marker && sync && cat /home/ubuntu/volmig-marker"
+        echo "$m" > "$MF"
+        echo "MARKER_WRITTEN=$m"
+        ;;
+    verify)
+        want=$(cat "$MF" 2>/dev/null)
+        for _ in $(seq 1 48); do
+            got=$(guest 'cat /home/ubuntu/volmig-marker 2>/dev/null' | tr -d '\r')
+            if [ -n "$got" ]; then
+                echo "guest marker='$got' expected='$want'"
+                if [ "$got" = "$want" ]; then
+                    echo "PASS: VOLUME SURVIVED kvm->k WITHOUT RECREATE (data marker intact)"
+                    exit 0
+                fi
+                echo "FAIL: marker mismatch — the volume was recreated/replaced" >&2
+                exit 1
+            fi
+            sleep 15
+        done
+        echo "FAIL: marker not readable on EVE-k (app not ssh-reachable or volume lost)" >&2
+        exit 1
+        ;;
+    *) echo "usage: marker.sh write|verify" >&2; exit 1 ;;
+esac
+
+-- gen-metadata.sh --
+#!/bin/bash
+# Write the cloud-init user-data that `eden pod deploy --metadata=` reads, so the
+# Ubuntu guest authorizes the eclient SSH pubkey for its default (ubuntu) user,
+# so marker.sh logs in with a key and needs no sshpass/password. (Cirros does NOT
+# honor cloud-config ssh_authorized_keys, verified 2026-07-01 — hence Ubuntu.) Same cert
+# search list as marker.sh (dist/tests, then the master/main reference clones).
+set -uo pipefail
+EDEN_TESTS="{{EdenConfig "eden.tests"}}"
+USER_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+PUB=""
+for c in "$EDEN_TESTS/eclient/image/cert/id_rsa.pub" \
+         "$USER_HOME/lf-edge/master/eden/tests/eclient/image/cert/id_rsa.pub" \
+         "$USER_HOME/lf-edge/main/eden/tests/eclient/image/cert/id_rsa.pub"; do
+    if [ -f "$c" ]; then PUB="$c"; break; fi
+done
+[ -n "$PUB" ] || { echo "FAIL: could not locate eclient id_rsa.pub (EDEN_TESTS=$EDEN_TESTS, USER_HOME=$USER_HOME)" >&2; exit 1; }
+UD=/tmp/xhv-volmig-userdata.yaml
+{
+    echo "#cloud-config"
+    echo "ssh_authorized_keys:"
+    echo " - $(cat "$PUB")"
+} > "$UD"
+echo "OK: wrote cloud-init userdata (eclient pubkey) to $UD"
+
+-- assert-running-version.sh --
+#!/bin/bash
+# Sanity-check that EVE is running the expected SMALL bringup release before the
+# conversion starts. This escript does not install the base image — bringup
+# happens manually before the test (see README_kvm_to_k_resize.md). This guards
+# against running the test against the wrong base image or an already-upgraded
+# device.
+#
+# Matches the expected version as a substring of /run/eve-release (which is the
+# full "<ver>-<hv>-<arch>" form, e.g. "12.1.0-kvm-amd64"), so passing "12.1.0"
+# accepts the kvm bringup image without pinning the hv/arch suffix.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT="${1:?expected bringup version substring}"
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+for _ in $(seq 1 18); do   # ~3m at 10s; tolerate ssh not up yet
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -n "$running" ]; then
+        case "$running" in
+            *"$EXPECT"*)
+                echo "OK: running the expected bringup release ('$running' contains '$EXPECT')"
+                exit 0 ;;
+            *)
+                echo "FAIL: running version '$running' does not match expected bringup '$EXPECT'." >&2
+                echo "      Bring eve up on the small '$EXPECT' image before this test, or set" >&2
+                echo "      BRINGUP_EVE_VER to the release you brought up on." >&2
+                echo "      See README_kvm_to_k_resize.md." >&2
+                exit 1 ;;
+        esac
+    fi
+    sleep 10
+done
+echo "FAIL: could not read /run/eve-release (ssh down / device not up?)" >&2
+exit 1
+
+-- assert-no-volumes.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 12); do
+    out=$("$EDEN" volume ls 2>/dev/null)
+    live=$(echo "$out" | awk 'NR>1 && ($(NF-1) == "IN_CONFIG" || $NF == "DELIVERED")')
+    if [ -z "$live" ]; then echo "OK: no live volumes"; exit 0; fi
+    sleep 5
+done
+echo "FAIL: live volume(s) present" >&2; "$EDEN" volume ls >&2; exit 1
+
+-- wait-for-app-running.sh --
+#!/bin/bash
+# Poll `eden pod ps` until xhv-vmapp reaches LAST_STATE(EVE)=RUNNING. 25m budget
+# covers both the fast pre-conversion kvm case and the slow post-conversion
+# eve-k redeploy (longhorn install + VMI start).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 240); do   # 40m at 10s (deploy-on-boot: app RUNNING is gated on the full post-longhorn volume create + CDI upload + guest boot, ~27m observed)
+    line=$("$EDEN" pod ps 2>/dev/null | grep -E '^xhv-vmapp\s')
+    if echo "$line" | grep -q 'RUNNING'; then
+        echo "OK: xhv-vmapp RUNNING"; echo "$line"; exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: xhv-vmapp did not reach RUNNING in 40m" >&2
+"$EDEN" pod ps >&2
+exit 1
+
+-- watch-conversion.sh --
+#!/bin/bash
+# Drive AND watch the kvm->k conversion (shrink+grow, or grow) to completion,
+# state/sub-state TRANSITION. The post-grow vault seal check is done POST-HOC
+# from /persist/newlog (assert-seal-from-newlog.sh): the live post-grow EVE-kvm
+# window is only ~1-2 min and an ssh poll loop misses it.
+#
+# The repartition runs OFFLINE in storage-init (the boot disk's GPT can't be re-read
+# live while its rootfs is mounted): baseosmgr arms the shrink/grow flag and
+# reboots, storage-init grows ESP/IMGA/IMGB (possibly with a busy-disk
+# reboot-to-apply), the device re-checks (proceed) and does the cross-flavor A/B
+# install, then reboots into EVE-k.
+#
+# Logs, only when it changes, the tuple of: running version, IMGA/IMGB active
+# partition+version, controller-reported device state + sub-state (from adam),
+# and on-device Converting + ConvertSubState. Completion is slot-agnostic (the
+# grow can relocate the active slot).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+K_VERSION="${1:?expected -k version}"
+SERIAL_LOG='{{EdenConfig "eve.log"}}'
+DEADLINE=$(( $(date +%s) + 2700 ))   # 45m
+
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+substate_name() {
+    case "$1" in
+        1) echo preflight ;;
+        2) echo rebooting-to-resize ;;
+        3) echo making-space ;;
+        4) echo creating-partitions ;;
+        5) echo renaming-partitions ;;
+        6) echo installing ;;
+        7) echo rebooting-to-target ;;
+        *) echo "sub_$1" ;;
+    esac
+}
+
+# Controller's view from adam: the latest ZiDevice report's state + sub_state.
+# (eden info -o/--format json panics on this build, so grep the text-proto.)
+ctrl_state() {
+    local c st sub
+    c=$(timeout 20 "$EDEN" info --tail 8 2>/dev/null | grep -a '^content: ztype:ZiDevice' | tail -1)
+    st=$(echo "$c" | grep -oE 'state:ZDEVICE_STATE_[A-Z_]+' | head -1 | cut -d: -f2)
+    sub=$(echo "$c" | grep -oE 'sub_state:ZDEVICE_SUBSTATE_[A-Z_]+' | head -1 | cut -d: -f2)
+    echo "${st:-?}/${sub:-NONE}"
+}
+
+# Which partition (IMGA/IMGB) is active, and the version on it.
+active_part() {
+    probe 'eve exec pillar sh -c "cat /run/baseosmgr/ZbootStatus/IMGA.json /run/baseosmgr/ZbootStatus/IMGB.json 2>/dev/null"' | python3 -c '
+import sys, json, re
+act = "?"; ver = "?"
+for m in re.finditer(r"\{.*?\}", sys.stdin.read(), re.S):
+    try:
+        o = json.loads(m.group(0))
+    except Exception:
+        continue
+    if o.get("PartitionState") == "active":
+        act = o.get("PartitionLabel", "?"); ver = o.get("ShortVersion", "?")
+print("%s:%s" % (act, ver))' 2>/dev/null || echo "?:?"
+}
+
+serial_off=0
+report_serial() {
+    [ -f "$SERIAL_LOG" ] || return 0
+    local size new
+    size=$(stat -c%s "$SERIAL_LOG" 2>/dev/null || echo 0)
+    if [ "$size" -gt "$serial_off" ]; then
+        new=$(tail -c +$(( serial_off + 1 )) "$SERIAL_LOG" 2>/dev/null)
+        serial_off=$size
+        echo "$new" | grep -aE 'storage-resizer:|repartition|grow|reboot to apply|convert' | while IFS= read -r l; do
+            echo "  serial> $l"
+        done
+    fi
+}
+
+last_sig=""
+reboots=0
+unreachable_run=0
+seen_converting=0
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    report_serial
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then
+        unreachable_run=$(( unreachable_run + 1 ))
+        if [ "$last_sig" != "UNREACHABLE" ]; then
+            echo "$(date +%H:%M:%S) [transition] EVE unreachable (rebooting?)"
+            last_sig="UNREACHABLE"
+        fi
+        sleep 15
+        continue
+    fi
+    if [ "$unreachable_run" -ge 2 ]; then
+        reboots=$(( reboots + 1 ))
+        echo "$(date +%H:%M:%S) observed a reboot (count=$reboots)"
+    fi
+    unreachable_run=0
+
+    actver=$(active_part)
+    bos=$(probe 'eve exec pillar sh -c "cat /run/baseosmgr/BaseOsStatus/*.json 2>/dev/null"')
+    conv=$(echo "$bos" | grep -o '"Converting":[a-z]*' | head -1 | cut -d: -f2); [ -z "$conv" ] && conv=false
+    csub=$(echo "$bos" | grep -o '"ConvertSubState":[0-9]*' | head -1 | cut -d: -f2); [ -z "$csub" ] && csub=0
+    [ "$conv" = "true" ] && seen_converting=1
+    dev=$(ctrl_state)
+
+    sig="run=$running active=$actver dev=$dev converting=$conv csub=$csub($(substate_name "$csub"))"
+    if [ "$sig" != "$last_sig" ]; then
+        echo "$(date +%H:%M:%S) [transition] $sig"
+        last_sig="$sig"
+    fi
+
+    # Done: the device has BOOTED the -k version. We deliberately do NOT wait for
+    # the A/B commit to 'active' or for the cluster to be online here — readiness
+    # is verified in the split steps that follow. PartitionState is typically still
+    # 'updating'/'inprogress' now.
+    if [ "$running" = "$K_VERSION" ]; then
+        report_serial
+        echo "OK: EVE-k booted (running=$running, active=$actver, converting=$conv)"
+        echo "    observed: CONVERTING=$seen_converting reboots=$reboots"
+        exit 0
+    fi
+    sleep 15
+done
+echo "FAIL: 45m timeout. running='${running:-?}' active='${actver:-?}' dev='${dev:-?}'" >&2
+echo "      observed: CONVERTING=$seen_converting reboots=$reboots" >&2
+exit 1
+
+-- wait-for-volumemgr-ready.sh --
+#!/bin/bash
+# Gate before the post-conversion redeploy. On EVE-k, volumemgr must finish its
+# "wait for kubernetes" / longhorn-ready init and RE-ESTABLISH the retained
+# ContentTree blobs in the EVE-k content store before a redeploy can REUSE them.
+# Deploying earlier causes the image to be re-downloaded (verified: ~44 MiB vs 0
+# with this gate). Wait for /run/volumemgr/VolumeMgrStatus/volumemgr.json
+# "Initialized":true (set after kubeapi.WaitForKubernetes returns).
+#
+# Instrumented: logs a timeline of (volumemgr Initialized, number of
+# ContentTreeStatus objects volumemgr currently tracks) so we can see WHEN the
+# store becomes ready and whether the retained ContentTree is recognized before
+# full Initialized — i.e. whether a narrower "blobs recognized" signal would let
+# the deploy fire sooner than waiting for the whole longhorn bring-up.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+probe() { timeout 8 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+ct_count() {
+    probe 'eve exec pillar sh -c "ls /run/volumemgr/ContentTreeStatus/*.json 2>/dev/null | wc -l"' \
+        | tr -d '\r' | grep -E '^[0-9]+$' | tail -1
+}
+last=""
+for _ in $(seq 1 240); do   # 40m at 10s (deploy-on-boot: this wait now starts at EVE-k boot, and Initialized lands ~24m later after kubeapi.WaitForKubernetes)
+    init=$(probe 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>/dev/null' \
+            | tr -d '\r' | grep -oE '"Initialized":[a-z]+')
+    ct=$(ct_count); [ -z "$ct" ] && ct='?'
+    sig="init=${init:-<none>} contenttrees=$ct"
+    if [ "$sig" != "$last" ]; then
+        echo "$(date +%H:%M:%S) [readiness] $sig"; last="$sig"
+    fi
+    if [ "$init" = '"Initialized":true' ]; then
+        echo "OK: volumemgr Initialized:true (contenttrees=$ct)"; exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: volumemgr did not reach Initialized:true within 40m" >&2
+probe 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>&1' >&2
+exit 1
+
+-- snapshot-rcv-bytes.sh --
+#!/bin/bash
+# Snapshot cumulative RecvByteCount from /run/downloader/MetricsMap on EVE.
+# "pre" saves the baseline; "post-and-assert" recomputes the delta and asserts
+# it is below MAX_DELTA_BYTES (default 1 MiB). /run is tmpfs (reset on reboot),
+# so pre/post must bracket a single phase with no intervening reboot.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+MODE=${1:-pre}
+MAX_DELTA_BYTES=${2:-1048576}
+
+capture_recv_bytes() {
+    timeout 15 "$EDEN" eve ssh -- 'eve exec pillar cat /run/downloader/MetricsMap/global.json 2>/dev/null' \
+        2>/dev/null | grep -v 'level=fatal' | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print(0); sys.exit(0)
+total = 0
+for iface, conn in d.items():
+    for url, m in (conn.get('URLCounters') or {}).items():
+        total += m.get('RecvByteCount', 0)
+print(total)
+"
+}
+
+case "$MODE" in
+    pre)
+        bytes=$(capture_recv_bytes)
+        echo "$bytes" > /tmp/xhv-rcv-pre.txt
+        echo "Pre-snapshot: RecvByteCount total = $bytes bytes"
+        ;;
+    post-and-assert)
+        post=$(capture_recv_bytes)
+        pre=$(cat /tmp/xhv-rcv-pre.txt 2>/dev/null || echo 0)
+        delta=$(( post - pre ))
+        echo "Post-snapshot: RecvByteCount total = $post bytes (pre was $pre, delta = $delta)"
+        if [ "$delta" -lt 0 ]; then
+            echo "FAIL: post < pre — counter went backwards (unexpected reboot?)" >&2; exit 1
+        fi
+        if [ "$delta" -lt "$MAX_DELTA_BYTES" ]; then
+            echo "OK: only $delta bytes received (< ${MAX_DELTA_BYTES}) — no image re-download"; exit 0
+        fi
+        info=$(cat /tmp/xhv-persist-recreate.info 2>/dev/null || echo clean)
+        if [ "${info%%|*}" = "recreated" ]; then
+            rts=$(printf '%s' "$info" | cut -d'|' -f2); rstep=$(printf '%s' "$info" | cut -d'|' -f3)
+            echo "FAIL[recreate-induced]: $delta bytes re-downloaded, BUT /persist was recreated during the resize -- storage-init mount-fsck found P3 corrupt at $rts, after the watchdog interrupted: $rstep. The re-download is the expected consequence; the conversion otherwise completed (this is the ONLY failure)." >&2
+            exit 1
+        fi
+        echo "FAIL[blob-reuse]: $delta bytes re-downloaded with NO /persist recreate -- real blob-reuse regression (image not reused across the conversion)." >&2
+        exit 1
+        ;;
+    *) echo "Usage: $0 pre | post-and-assert [max-delta-bytes]" >&2; exit 1 ;;
+esac
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+
+-- wait-for-longhorn-sc.sh --
+#!/bin/bash
+# Wait until the EVE-k `longhorn` StorageClass exists (longhorn deployed + its CSI
+# provisioner up). On a freshly-converted EVE-k node longhorn can take tens of
+# minutes to deploy -- well after the device reports ONLINE -- so wait for it
+# EXPLICITLY here, before deploying/waiting for an app whose volume needs longhorn.
+# This separates cluster-bringup time from app-bringup time: the wait-for-app-running
+# that follows can be short, and a failure here clearly says "longhorn", not "app".
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 90); do   # ~45m at 30s
+    if "$EDEN" eve ssh -- 'eve exec kube kubectl get sc 2>/dev/null' 2>/dev/null | grep -qE '^longhorn'; then
+        echo "OK: longhorn StorageClass ready"; exit 0
+    fi
+    sleep 30
+done
+echo "FAIL: longhorn StorageClass not ready within budget" >&2; exit 1

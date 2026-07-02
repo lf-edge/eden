@@ -1,0 +1,404 @@
+# Test: EVE-kvm -> EVE-k conversion is DECLINED when the boot disk cannot be
+# repartitioned, and the device stays on the kvm image, reports the reason, and
+# remains controller-manageable. This is the "refused" sibling of the successful
+# update_eve_image_kvm_to_k.txt; it covers the e2e test plan's `insufficient`
+# cases, parameterized over the REASON for refusal.
+#
+# Per pkg/storage-resizer decide()/evaluate() (and baseosmgr/diskconvert, which
+# always calls `check --disk <boot> --json` with NO --persist flags), the
+# conversion is refused (decision=insufficient) when no room can be freed:
+#   REFUSE_REASON=zfs       /persist is ZFS (shrinking ZFS is unsupported) and the
+#                           boot disk has no >=22G free tail.   (persistType=zfs)
+#   REFUSE_REASON=too-full  /persist is ext4 on the boot disk but too full to free
+#                           22G within --max-full.   (shrinkApplicable, !shrink.ok)
+# (A ZFS or other-disk persist WITH a boot free tail is a `grow` success and lives
+# in update_eve_image_kvm_to_k.txt, not here.)
+#
+# Set up the matching topology first (see prep-kvm-to-k-topology.sh):
+#   REFUSE_REASON=zfs       -> prep zfs-notail     (1-disk ZFS persist, no tail)
+#   REFUSE_REASON=too-full  -> prep ext4-toofull   (1-disk ext4 persist, filled)
+#
+# What it asserts:
+#   - after the kvm->kvm hop, `storage-resizer check` decides `insufficient` for
+#     the expected reason (the topology was set up correctly);
+#   - the kvm->k BaseOs update is DECLINED: the device stays on the kvm image,
+#     baseosmgr publishes a BaseOsStatus.Error (the decline is reported, not a
+#     silent stall), and EVE->adam stays reachable (device still manageable);
+#   - the boot-disk geometry is UNCHANGED (no repartition happened).
+#
+# Knobs (env):
+#   REFUSE_REASON   zfs|too-full   (default zfs). Drives the check-reason assert.
+#   RESIZE_EVE_VER  (required) version base of the local kvm-to-k build, e.g.
+#                   "0.0.0-kvm-to-k-resize-<sha>". Fails fast if unset.
+#   RESIZE_EVE_REG  (default lfedge/eve) image registry/repo namespace.
+#   BRINGUP_EVE_VER (default 12.1.0) substring the running base release must
+#                   contain at Step 1 (bringup is manual — see the README).
+
+{{$arch := EdenConfig "eve.arch"}}
+
+{{$resize_ver_env := EdenGetEnv "RESIZE_EVE_VER"}}
+{{$resize_ver := "REPLACE-WITH-RESIZE-VERSION"}}
+{{if $resize_ver_env}}{{$resize_ver = $resize_ver_env}}{{end}}
+
+{{$resize_reg_env := EdenGetEnv "RESIZE_EVE_REG"}}
+{{$resize_reg := "lfedge/eve"}}
+{{if $resize_reg_env}}{{$resize_reg = $resize_reg_env}}{{end}}
+
+{{$bringup_ver_env := EdenGetEnv "BRINGUP_EVE_VER"}}
+{{$bringup_ver := "12.1.0"}}
+{{if $bringup_ver_env}}{{$bringup_ver = $bringup_ver_env}}{{end}}
+
+# --- knob: expected refusal reason ---
+{{$reason_env := EdenGetEnv "REFUSE_REASON"}}
+{{$reason := "zfs"}}
+{{if $reason_env}}{{$reason = $reason_env}}{{end}}
+
+{{$kvm_short := printf "%s-kvm-%s" $resize_ver $arch}}
+{{$k_short   := printf "%s-k-%s" $resize_ver $arch}}
+
+# Step 0: pre-flight. Fail fast if the version param wasn't supplied, confirm a
+# clean device, and shorten the baseimage commit timer so the update applies fast.
+message 'pre-flight: parameters + clean state'
+exec -t 1m bash require-resize-ver.sh
+exec -t 1m bash assert-no-volumes.sh
+eden -t 1m pod ps
+! stdout 'IN_CONFIG'
+eden controller edge-node update --config timer.test.baseimage.update=30
+
+# Step 1: baseline — SMALL/old start, and (by construction) a disk that cannot be
+# repartitioned: a full ZFS persist, or a too-full ext4 persist. There is NO free
+# tail; the refusal is the point of the test.
+message 'baseline: confirm we are on the expected SMALL bringup release'
+exec -t 3m bash assert-running-version.sh {{ $bringup_ver }}
+message 'baseline: confirm SMALL boot-disk geometry'
+exec -t 2m bash capture-partitions.sh save small
+exec -t 1m bash capture-partitions.sh assert-small
+
+# Step 2: kvm->kvm hop — lands the conversion code + the storage-resizer binary,
+# geometry unchanged. (No vault settle / no app: the refusal is independent of
+# both, and nothing repartitions, so there is no seal to preserve.)
+message 'downloading conversion-capable kvm rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$resize_ver}} --eve-hv=kvm --eve-registry={{$resize_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs'
+message 'pushing kvm->kvm BaseOs update (lands conversion code)'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs --os-version={{ $kvm_short }} -m adam://
+! stderr .
+message 'waiting for kvm->kvm upgrade to complete'
+exec -t 25m bash wait-for-upgrade.sh {{ $kvm_short }}
+
+# Step 3: assert the resizer's pre-flight check REFUSES for the expected reason.
+# This is the load-bearing precondition: if the disk was not set up for the
+# requested REFUSE_REASON, the conversion might actually succeed (or refuse for a
+# different reason) and the test would prove nothing.
+message 'post-kvm-upgrade: geometry must still be SMALL'
+exec -t 1m bash capture-partitions.sh assert-small
+message 'post-kvm-upgrade: assert storage-resizer check refuses ({{ $reason }})'
+exec -t 2m bash assert-refused-check.sh {{ $reason }}
+
+# Step 4: push the kvm->k BaseOs update. baseosmgr runs the cross-flavor check,
+# gets `insufficient`, and must decline rather than repartition.
+message 'downloading k rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$resize_ver}} --eve-hv=k --eve-registry={{$resize_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs'
+message 'pushing kvm->k BaseOs update (must be DECLINED)'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs --os-version={{ $k_short }} -m adam://
+! stderr .
+
+# Step 5: assert the convert was declined cleanly — still on the kvm image,
+# BaseOsStatus carries the decline Error (baseosmgr SetErrorNow on
+# OutcomeInsufficient), and EVE->adam is still reachable. Polls for the decline
+# to be published (baseosmgr processes the -k config first).
+message 'asserting the conversion was DECLINED (still kvm, error reported, manageable)'
+exec -t 10m bash assert-declined.sh {{ $kvm_short }}
+
+# Step 6: the boot disk must NOT have been repartitioned — geometry still SMALL.
+message 'asserting the boot disk was NOT repartitioned (geometry still SMALL)'
+exec -t 1m bash capture-partitions.sh assert-small
+
+# Step 7: clean up.
+message 'reset timer.test.baseimage.update + clean up'
+eden controller edge-node update --config timer.defer.content.delete=0
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs.ver
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs.ver
+exec sleep 10
+eden eve reset
+
+-- require-resize-ver.sh --
+#!/bin/bash
+# Fail fast if RESIZE_EVE_VER wasn't supplied (the escript default is a
+# placeholder). Without it, the eveimage-update steps would silently try to
+# download a bogus version.
+set -uo pipefail
+VER='{{ $resize_ver }}'
+if [ -z "$VER" ] || [ "$VER" = "REPLACE-WITH-RESIZE-VERSION" ]; then
+    echo "FAIL: RESIZE_EVE_VER not set." >&2
+    echo "      Export it to the version base of your local kvm-to-k" >&2
+    echo "      build, e.g. RESIZE_EVE_VER=0.0.0-kvm-to-k-resize-1a2b3c4d" >&2
+    echo "      (the part before -kvm-amd64 / -k-amd64 in the docker tag)." >&2
+    exit 1
+fi
+echo "OK: RESIZE_EVE_VER=$VER"
+
+-- assert-running-version.sh --
+#!/bin/bash
+# Sanity-check that EVE is running the expected SMALL bringup release before the
+# test. This escript does not install the base image — bringup happens manually
+# (see the kvm-to-k README + prep-kvm-to-k-topology.sh). Matches as a substring of
+# /run/eve-release (the full "<ver>-<hv>-<arch>" form).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT="${1:?expected bringup version substring}"
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+for _ in $(seq 1 18); do   # ~3m at 10s; tolerate ssh not up yet
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -n "$running" ]; then
+        case "$running" in
+            *"$EXPECT"*)
+                echo "OK: running the expected bringup release ('$running' contains '$EXPECT')"
+                exit 0 ;;
+            *)
+                echo "FAIL: running version '$running' does not match expected bringup '$EXPECT'." >&2
+                echo "      Bring eve up on the small '$EXPECT' image before this test, or set" >&2
+                echo "      BRINGUP_EVE_VER to the release you brought up on." >&2
+                exit 1 ;;
+        esac
+    fi
+    sleep 10
+done
+echo "FAIL: could not read /run/eve-release (ssh down / device not up?)" >&2
+exit 1
+
+-- capture-partitions.sh --
+#!/bin/bash
+# Trimmed boot-disk geometry helper for the refused test: only `save` and
+# `assert-small` are needed (the refused case never grows). Sizes from
+# `lsblk -b -P -o NAME,PARTLABEL,SIZE /dev/sda`. P3 may be 0 (ZFS-on-another-disk),
+# so only ESP/IMGA/IMGB are required non-zero.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+MODE=${1:-}
+TAG=${2:-}
+GiB=$(( 1024 * 1024 * 1024 ))
+MiB=$(( 1024 * 1024 ))
+
+read_sizes() {
+    timeout 20 "$EDEN" eve ssh -- \
+        'eve exec pillar lsblk -b -P -o NAME,PARTLABEL,SIZE /dev/sda 2>/dev/null' \
+        2>/dev/null | grep -v 'level=fatal' | python3 -c '
+import sys, re
+keys = {"EFI System": "ESP", "IMGA": "IMGA", "IMGB": "IMGB", "P3": "P3"}
+out = {}
+for line in sys.stdin:
+    m = dict(re.findall(r"(\w+)=\"([^\"]*)\"", line))
+    label = m.get("PARTLABEL", "")
+    if label in keys and m.get("SIZE"):
+        out[keys[label]] = m["SIZE"]
+for k in ("ESP", "IMGA", "IMGB", "P3"):
+    print("%s=%s" % (k, out.get(k, "0")))
+'
+}
+
+load_current() {
+    eval "$(read_sizes)"
+    if [ "${ESP:-0}" = "0" ] || [ "${IMGA:-0}" = "0" ] || [ "${IMGB:-0}" = "0" ]; then
+        echo "FAIL: could not read ESP/IMGA/IMGB sizes from /dev/sda" >&2
+        timeout 20 "$EDEN" eve ssh -- 'eve exec pillar lsblk -b -o NAME,PARTLABEL,SIZE /dev/sda' >&2 2>/dev/null
+        exit 1
+    fi
+}
+
+print_table() {
+    for p in ESP IMGA IMGB P3; do
+        v=$(eval echo "\$$p")
+        printf '  %-10s %12s  (%s MiB)\n' "$p" "$v" "$(( v / MiB ))"
+    done
+}
+
+case "$MODE" in
+    save)
+        [ -n "$TAG" ] || { echo "Usage: $0 save <tag>" >&2; exit 1; }
+        load_current
+        printf 'ESP=%s\nIMGA=%s\nIMGB=%s\nP3=%s\n' "$ESP" "$IMGA" "$IMGB" "$P3" > "/tmp/xhv-parts-$TAG.env"
+        echo "Saved $TAG partition sizes:"; print_table
+        ;;
+    assert-small)
+        load_current; echo "Current partition sizes:"; print_table
+        if [ "$ESP" -ge $(( 256 * MiB )) ] || [ "$IMGA" -ge "$GiB" ] || [ "$IMGB" -ge "$GiB" ]; then
+            echo "FAIL: geometry is not SMALL (ESP/IMGA/IMGB too big)" >&2; exit 1
+        fi
+        echo "OK: boot disk is on the SMALL geometry"
+        ;;
+    *)
+        echo "Usage: $0 save <tag> | assert-small" >&2
+        exit 1
+        ;;
+esac
+
+-- assert-refused-check.sh --
+#!/bin/bash
+# Assert storage-resizer's pre-flight `check` REFUSES the conversion for the
+# expected reason. Mirrors how baseosmgr/diskconvert invokes it — `check --disk
+# <boot> --json` with NO --persist flags, so persistType comes from
+# /run/eve.persist_type and persist is assumed on the boot disk.
+#
+# Verifies decision==insufficient AND the reason-specific fields of the report
+# (pkg/storage-resizer evaluate()/decide(), JSON tags from sizecheck.go):
+#   zfs:      persistType=="zfs"  (shrink not applicable; ZFS can't be shrunk)
+#   too-full: shrinkApplicable==true AND spaceToShrinkExt.ok==false (ext4 too full)
+#
+# Usage: assert-refused-check.sh <zfs|too-full> [disk=/dev/sda]
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT="${1:?expected reason: zfs|too-full}"
+DISK="${2:-/dev/sda}"
+
+run_check() {
+    timeout 30 "$EDEN" eve ssh -- \
+        "eve exec pillar /usr/bin/storage-resizer check --disk $DISK --json 2>/dev/null" \
+        2>/dev/null | grep -v 'level=fatal'
+}
+
+for _ in $(seq 1 12); do   # ~2m at 10s — tolerate ssh/pillar not up yet
+    js=$(run_check)
+    parsed=$(echo "$js" | EXPECT="$EXPECT" python3 -c '
+import sys, os, json
+try:
+    o = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+expect = os.environ["EXPECT"]
+dec = o.get("decision", "")
+ptype = o.get("persistType", "")
+sapp = o.get("shrinkApplicable", False)
+sh = o.get("spaceToShrinkExt", {}) or {}
+shok = sh.get("ok", None)
+reason = o.get("decisionReason", "")
+print("decision=%s persistType=%s shrinkApplicable=%s shrink.ok=%s reason=%r"
+      % (dec, ptype, sapp, shok, reason))
+ok = (dec == "insufficient")
+if expect == "zfs":
+    ok = ok and (ptype == "zfs")
+elif expect == "too-full":
+    ok = ok and bool(sapp) and (shok is False)
+else:
+    print("UNKNOWN_EXPECT"); sys.exit(3)
+sys.exit(0 if ok else 1)
+' 2>/dev/null)
+    rc=$?
+    if [ -n "$parsed" ] && echo "$parsed" | grep -q '^decision='; then
+        echo "storage-resizer check: $parsed (expected refusal=$EXPECT)"
+        if [ "$rc" = "0" ]; then
+            echo "OK: check refuses ('insufficient') for the '$EXPECT' reason as required"
+            exit 0
+        fi
+        echo "FAIL: check did not refuse for '$EXPECT'." >&2
+        echo "      The disk was not set up for the '$EXPECT' refusal — check the topology" >&2
+        echo "      (prep-kvm-to-k-topology.sh zfs-notail / ext4-toofull)." >&2
+        echo "$js" >&2
+        exit 1
+    fi
+    sleep 10
+done
+echo "FAIL: no decision from storage-resizer check (binary missing or ssh down?)" >&2
+echo "      tried: eve exec pillar /usr/bin/storage-resizer check --disk $DISK --json" >&2
+exit 1
+
+-- assert-declined.sh --
+#!/bin/bash
+# Assert a cross-flavor update was DECLINED (insufficient): the device did NOT
+# repartition, is still running the kvm image, reports the decline via a non-empty
+# BaseOsStatus.Error (baseosmgr SetErrorNow on OutcomeInsufficient), and remains
+# controller-reachable. Polls for the decline Error to be published.
+# Arg: <kvm-version> (the conversion-capable kvm image the device must stay on).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+KVM_VERSION="${1:?expected kvm (conversion-capable) version}"
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+bos_error() {
+    probe 'eve exec pillar sh -c "cat /run/baseosmgr/BaseOsStatus/*.json 2>/dev/null"' \
+        | python3 -c 'import sys,re,json
+errs=[]
+for m in re.finditer(r"\{.*?\}", sys.stdin.read(), re.S):
+    try: o=json.loads(m.group(0))
+    except Exception: continue
+    e=o.get("Error","")
+    if e: errs.append(e)
+print(" | ".join(errs))' 2>/dev/null
+}
+
+# 1. Wait (up to ~8m) for baseosmgr to publish the decline Error, while the device
+#    stays on the kvm image (a transition to -k would mean it was NOT declined).
+err=""
+for _ in $(seq 1 48); do   # 8m at 10s
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -n "$running" ] && [ "$running" != "$KVM_VERSION" ]; then
+        echo "FAIL: device left the kvm image ('$running' != '$KVM_VERSION') — convert was NOT declined" >&2
+        exit 1
+    fi
+    err=$(bos_error)
+    if [ -n "$err" ]; then
+        echo "BaseOsStatus.Error: $err"
+        break
+    fi
+    sleep 10
+done
+[ -n "$err" ] || { echo "FAIL: no BaseOsStatus.Error within 8m — decline must be reported, not a silent stall" >&2; exit 1; }
+
+# 2. Re-confirm still on the kvm image.
+running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+echo "running=$running (expected kvm=$KVM_VERSION)"
+[ "$running" = "$KVM_VERSION" ] || { echo "FAIL: not on the kvm image after decline ('$running')" >&2; exit 1; }
+
+# 3. EVE -> adam still reachable (device manageable).
+code=$(probe 'eve exec pillar curl -sk --max-time 5 https://$(tr -d "\r\n" < /config/server)/api/v2/edgedevice/ping -o /dev/null -w "%{http_code}"' | tr -d '\r' | tail -1)
+echo "EVE->adam ping http_code=$code"
+[ "$code" = "200" ] || { echo "FAIL: EVE->adam not reachable ($code) — device not manageable after decline" >&2; exit 1; }
+echo "OK: convert declined cleanly — still kvm, Error reported, controller-reachable"
+
+-- wait-for-upgrade.sh --
+#!/bin/bash
+# Wait for a same- or cross-flavor BaseOs upgrade to land: poll until
+# /run/eve-release equals the expected version AND IMGB is the active partition.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT_VERSION="${1:?expected version}"
+DEADLINE=$(( $(date +%s) + 1500 ))   # 25m
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then echo "$(date +%H:%M:%S): EVE unreachable (rebooting?)"; sleep 20; continue; fi
+    imgb_state=$(probe 'eve exec pillar cat /run/baseosmgr/ZbootStatus/IMGB.json' | grep -oP '"PartitionState":"\K[^"]+' | head -1)
+    [ -z "$imgb_state" ] && imgb_state='unknown'
+    echo "$(date +%H:%M:%S): running='$running' IMGB.PartitionState='$imgb_state'"
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$imgb_state" = "active" ]; then
+        echo "OK: upgrade to $running complete (IMGB active)"; exit 0
+    fi
+    sleep 20
+done
+echo "FAIL: upgrade to $EXPECT_VERSION did not complete in 25m (running='$running')" >&2
+exit 1
+
+-- assert-no-volumes.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 12); do
+    out=$("$EDEN" volume ls 2>/dev/null)
+    live=$(echo "$out" | awk 'NR>1 && ($(NF-1) == "IN_CONFIG" || $NF == "DELIVERED")')
+    if [ -z "$live" ]; then echo "OK: no live volumes"; exit 0; fi
+    sleep 5
+done
+echo "FAIL: live volume(s) present" >&2; "$EDEN" volume ls >&2; exit 1
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
