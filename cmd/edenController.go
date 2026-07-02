@@ -38,6 +38,7 @@ func newControllerCmd(configName, verbosity *string) *cobra.Command {
 				newEdgeNodeClusterSet(controllerMode),
 				newEdgeNodeClusterClear(controllerMode),
 				newEdgeNodeContentTreeAdd(controllerMode),
+				newEdgeNodeAddWireless(controllerMode),
 				newEdgeNodeGetOptions(controllerMode),
 				newEdgeNodeSetOptions(controllerMode),
 			},
@@ -344,6 +345,35 @@ Volume/PVC machinery entirely.`,
 	edgeNodeContentTreeAdd.Flags().BoolVar(&sftpLoad, "sftp", false, "force eserver to use sftp")
 	edgeNodeContentTreeAdd.Flags().BoolVar(&directLoad, "direct", true, "Use direct download for image instead of eserver")
 	return edgeNodeContentTreeAdd
+}
+
+func newEdgeNodeAddWireless(controllerMode string) *cobra.Command {
+	var portName, ssid, username, password string
+	var useEncryptCert bool
+
+	var edgeNodeAddWireless = &cobra.Command{
+		Use:   "add-wireless",
+		Short: "add a WiFi device port with ENCRYPTED credentials (non-mgmt)",
+		Long: `Inject a WiFi device port into the EdgeDevConfig with its credentials
+encrypted (ECDH) against the device's certificate: a wireless PhysicalIO, a
+NetworkConfig whose WifiConfig carries the encrypted cipherData, and a
+non-management SystemAdapter. EVE decrypts the credentials at device-config
+ingest using /persist/certs/ecdh.*, so this exercises credential decryption
+independent of any app and of physical radio presence (used by the kvm-to-k
+F9 persist-restore test to prove decryption from restored files).`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := openEVEC.AddWirelessPort(controllerMode, portName, ssid, username, password, useEncryptCert); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	edgeNodeAddWireless.Flags().StringVar(&portName, "port", "wlan0", "phy/logical label and interface name of the wireless port")
+	edgeNodeAddWireless.Flags().StringVar(&ssid, "ssid", "eden-test-ssid", "WiFi SSID")
+	edgeNodeAddWireless.Flags().StringVar(&username, "username", "", "EAP identity/username (encrypted)")
+	edgeNodeAddWireless.Flags().StringVar(&password, "password", "eden-test-psk", "WiFi PSK/password (encrypted)")
+	edgeNodeAddWireless.Flags().BoolVar(&useEncryptCert, "use-encrypt-cert", true, "encrypt against the controller encrypt cert (CONTROLLER_ECDH_EXCHANGE)")
+	return edgeNodeAddWireless
 }
 
 func newEdgeNodeClusterClear(controllerMode string) *cobra.Command {
