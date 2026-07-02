@@ -8,6 +8,7 @@ import (
 
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/defaults"
+	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/evecommon"
@@ -51,19 +52,30 @@ func (exp *AppExpectation) applyDatastoreCipher(datastoreConfig *config.Datastor
 }
 
 func (exp *AppExpectation) prepareCipherData(encBlock *evecommon.EncryptionBlock) (*evecommon.CipherBlock, error) {
-	// get device certificate from the controller
-	devCert, err := exp.ctrl.GetECDHCert(exp.device.GetID())
+	cipherBlock, err := EncryptForDevice(exp.ctrl, exp.device, encBlock, exp.useEncryptCert)
 	if err != nil {
-		log.Errorf("cannot get device certificate from cloud. will use plaintext. error: %s", err)
+		// historical behavior: fall back to plaintext if encryption is not possible
+		log.Errorf("cannot encrypt for device, will use plaintext. error: %s", err)
 		return nil, nil
 	}
+	return cipherBlock, nil
+}
 
-	ctrlCert, ctrlPrivKey, err := loadControllerCryptoMaterial(exp.ctrl, exp.useEncryptCert)
+// EncryptForDevice encrypts an EncryptionBlock against the device's ECDH
+// certificate, registering the resulting CipherContext on dev so it is included
+// in the pushed config. Unlike the app-expectation path it returns a hard error
+// (no plaintext fallback) so callers that require encryption fail loudly.
+// useEncryptCert selects the controller's encrypt.pem (CONTROLLER_ECDH_EXCHANGE)
+// vs the signing cert for the ECDH derivation.
+func EncryptForDevice(ctrl controller.Cloud, dev *device.Ctx, encBlock *evecommon.EncryptionBlock, useEncryptCert bool) (*evecommon.CipherBlock, error) {
+	devCert, err := ctrl.GetECDHCert(dev.GetID())
 	if err != nil {
-		log.Errorf("cannot load controller crypto material. will use plaintext. error: %s", err)
-		return nil, nil
+		return nil, fmt.Errorf("GetECDHCert: %w", err)
 	}
-
+	ctrlCert, ctrlPrivKey, err := loadControllerCryptoMaterial(ctrl, useEncryptCert)
+	if err != nil {
+		return nil, fmt.Errorf("loadControllerCryptoMaterial: %w", err)
+	}
 	cryptoConfig, err := utils.GetCommonCryptoConfig(devCert, ctrlCert, ctrlPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("GetCommonCryptoConfig: %w", err)
@@ -72,10 +84,7 @@ func (exp *AppExpectation) prepareCipherData(encBlock *evecommon.EncryptionBlock
 	if err != nil {
 		return nil, fmt.Errorf("CreateCipherCtx: %w", err)
 	}
-
-	// add cipher context to device or return a matching existing one
-	cipherCtx = utils.AddCipherCtxToDev(exp.device, cipherCtx)
-
+	cipherCtx = utils.AddCipherCtxToDev(dev, cipherCtx)
 	return utils.CryptoConfigWrapper(encBlock, cryptoConfig, cipherCtx)
 }
 
