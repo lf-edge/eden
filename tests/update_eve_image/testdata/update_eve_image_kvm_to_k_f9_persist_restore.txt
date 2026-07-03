@@ -1,0 +1,502 @@
+# Test: kvm-to-k conversion fault case F9 — FORCE /persist LOSS and verify the
+# device-identity / connectivity-critical files SURVIVE via the /config backup +
+# early-boot restore, recovering the device fully WITH NO CONTROLLER REACHABLE.
+#
+# This does NOT run a real shrink/grow. It exercises only the backup->wipe->restore
+# fail-safe: an online `storage-resizer backup` copies the critical files to the
+# CONFIG partition; we then destroy P3's ext4 so storage-init reformats /persist
+# empty on the next boot; `maybe_restore_after_persist` repopulates identity from
+# the backup. The real shrink is skipped with a resize-failed.json marker matched
+# to the running EVE version (storage-resize.sh maybe_offline_disk_resize).
+#
+# The load-bearing proof is that a controller-ENCRYPTED credential is decrypted
+# OFFLINE from the RESTORED ecdh cert. We inject an encrypted WiFi device port
+# BEFORE the backup so it rides through checkpoint/lastconfig into the backup;
+# after the wipe+restore, pillar applies the restored checkpoint offline and nim
+# re-decrypts the WiFi creds. One CipherBlockStatus.Error=="" after an offline
+# boot proves identity restore + config restore + decrypt-from-restored-key.
+# (App userdata is the wrong vehicle — it decrypts only at domain instantiation,
+# which needs the wiped image; device-network creds decrypt during nim's DPC
+# reconcile, independent of the app pipeline and of radio presence.)
+#
+# DEPENDENCY: the `eden controller edge-node add-wireless` CLI is eden PR #1202
+# (branch openevec-add-wireless), a SIBLING of add-cross-hv-eve-tests. This
+# escript lives with the other kvm-to-k escripts; to run it, have #1202 present in
+# the eden binary (merge/cherry-pick it into the branch you build eden from).
+#
+# IMAGE REQUIREMENT: the EVE image must back up the persistent OnboardingStatus
+# topic, i.e. `status/zedclient/OnboardingStatus` must be in storage-resizer's
+# defaultBackupPatterns (pkg/storage-resizer/backup.go, lf-edge/eve #6063).
+# Without it the device can't take cmd/client's offline UUID shortcut after the
+# wipe and stays stuck at onboarding.
+#
+# VALIDATED end-to-end in an eden sandbox (resize-allprs kvm image, TPM on): full
+# PASS -- wipe -> restore -> offline boot -> identity restored -> last config
+# re-applied offline -> WiFi creds decrypted from the RESTORED ecdh cert -> DPCL
+# config round-trips -> cleanup. Confirmed storage-init reformats P3 after the wipe
+# (the fsck backup-superblock concern did not bite with wipefs -a + head/tail zero).
+#
+# Bringup is MANUAL (like the other kvm-to-k escripts): bring an onboarded device
+# up on the SMALL bringup release (default 12.1.0); this test hops it to the
+# resize-capable kvm build so the storage-resizer binary + storage-init restore
+# hooks are present. TPM must be on (ecdh private key is TPM-resident; the wipe
+# must NOT lose it — only P3 is wiped, swtpm state is preserved).
+#
+# Knobs (env):
+#   RESIZE_EVE_VER  (required) version base of the local kvm-to-k build, e.g.
+#                   "0.0.0-kvm-to-k-resize-<sha>". Fails fast if unset.
+#   RESIZE_EVE_REG  (default lfedge/eve) image registry/repo namespace.
+#   BRINGUP_EVE_VER (default 12.1.0) substring the running base release must
+#                   contain at Step 1 (bringup is manual — see the READMEs).
+
+{{$arch := EdenConfig "eve.arch"}}
+
+{{$resize_ver_env := EdenGetEnv "RESIZE_EVE_VER"}}
+{{$resize_ver := "REPLACE-WITH-RESIZE-VERSION"}}
+{{if $resize_ver_env}}{{$resize_ver = $resize_ver_env}}{{end}}
+
+{{$resize_reg_env := EdenGetEnv "RESIZE_EVE_REG"}}
+{{$resize_reg := "lfedge/eve"}}
+{{if $resize_reg_env}}{{$resize_reg = $resize_reg_env}}{{end}}
+
+{{$bringup_ver_env := EdenGetEnv "BRINGUP_EVE_VER"}}
+{{$bringup_ver := "12.1.0"}}
+{{if $bringup_ver_env}}{{$bringup_ver = $bringup_ver_env}}{{end}}
+
+# SKIP_KVM_HOP=1 when the device was brought up DIRECTLY on the resize kvm image
+# (no 12.1.0 base to upgrade from) — skips Step 1's kvm->kvm upgrade.
+{{$skip_hop_env := EdenGetEnv "SKIP_KVM_HOP"}}
+{{$skip_hop := ""}}
+{{if $skip_hop_env}}{{$skip_hop = $skip_hop_env}}{{end}}
+
+{{$kvm_short := printf "%s-kvm-%s" $resize_ver $arch}}
+{{$ssid := "eden-f9"}}
+
+# Step 0: pre-flight. Fail fast if the version param wasn't supplied, confirm a
+# clean device, and shorten the baseimage commit timer so the kvm hop applies fast.
+message 'pre-flight: parameters + clean state'
+exec -t 1m bash require-resize-ver.sh
+eden -t 1m pod ps
+! stdout 'IN_CONFIG'
+eden controller edge-node update --config timer.test.baseimage.update=30
+
+# Step 1: get the device onto the resize-capable kvm build so /usr/bin/storage-resizer
+# + the storage-init restore hooks exist. (Geometry is irrelevant to F9 — no
+# conversion happens.) Two paths:
+#   SKIP_KVM_HOP unset: bring up on the SMALL bringup release, then kvm->kvm
+#                       upgrade to the resize image (matches the sibling escripts).
+#   SKIP_KVM_HOP set:   the device was brought up DIRECTLY on the resize kvm image;
+#                       just assert it and skip the upgrade (faster; avoids the
+#                       small->large IMGB-fit question).
+{{if $skip_hop}}
+message 'baseline: device already on the resize-capable kvm build (SKIP_KVM_HOP)'
+exec -t 3m bash assert-running-version.sh {{ $kvm_short }}
+{{else}}
+message 'baseline: confirm we are on the expected SMALL bringup release'
+exec -t 3m bash assert-running-version.sh {{ $bringup_ver }}
+message 'downloading conversion-capable kvm rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$resize_ver}} --eve-hv=kvm --eve-registry={{$resize_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs'
+message 'pushing kvm->kvm BaseOs update (lands resize/restore code)'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs --os-version={{ $kvm_short }} -m adam://
+! stderr .
+message 'waiting for kvm->kvm upgrade to complete'
+exec -t 25m bash wait-for-upgrade.sh {{ $kvm_short }}
+{{end}}
+
+# Step 2: inject an ENCRYPTED WiFi device port (eden PR #1202), wait for the
+# BASELINE decrypt (proves the port was ingested + decrypted pre-wipe), then
+# snapshot identity + the DPCL for the post-restore comparison.
+message 'injecting encrypted WiFi port (eden PR #1202 add-wireless)'
+eden -t 2m controller edge-node add-wireless --port wlan0 --ssid {{ $ssid }} --password eden-f9-psk
+! stderr 'level=fatal'
+message 'waiting for BASELINE decrypt (pre-wipe) of the WiFi creds'
+exec -t 5m bash assert-decrypt.sh {{ $ssid }} 240
+message 'snapshotting identity (UUID, certs) + DPCL before the wipe'
+exec -t 2m bash snapshot-identity.sh
+
+# Step 3: online backup of the critical files to the CONFIG partition + arm the
+# skip-shrink marker. GATED on a content check: the backed-up checkpoint must
+# already carry the encrypted WiFi port (SSID) and the ecdh cert before we stop.
+message 'backup identity to CONFIG + arm skip-shrink (gated on artifact content)'
+exec -t 6m bash backup-and-arm.sh {{ $ssid }}
+
+# Step 4: FORCE /persist loss. Stop the VM (clean flush), then destroy P3's ext4
+# on the boot qcow2 so storage-init's fsck fails and reformats /persist empty.
+message 'forcing /persist loss: stop VM, wipe P3 superblocks'
+eden -t 2m eve stop
+exec -t 3m bash wipe-persist.sh
+
+# Step 5: go OFFLINE (stop the controller) to prove recovery without a controller,
+# boot the wiped device, and wait for it to come back up.
+message 'going offline: stopping the controller (adam)'
+exec docker stop eden_adam
+message 'booting with wiped /persist'
+eden -t 2m eve start
+exec -t 12m bash wait-ssh-up.sh
+
+# Step 6: assertions — all while the controller is DOWN.
+message 'asserting device identity was restored offline (UUID + certs)'
+exec -t 3m bash assert-identity-restored.sh
+message 'asserting DPC landed + WiFi creds decrypted from the RESTORED ecdh (offline)'
+exec -t 5m bash assert-decrypt.sh {{ $ssid }} 240
+message 'asserting the DPCL config round-tripped (status-stripped compare)'
+exec -t 2m bash assert-dpcl-stable.sh
+message 'asserting conversion bookkeeping was cleaned up (flag gone, marker recreated)'
+exec -t 2m bash assert-cleanup.sh
+
+# Step 7: bring the controller back and reset.
+message 'restarting controller + reset'
+exec docker start eden_adam
+exec sleep 10
+eden eve reset
+
+-- require-resize-ver.sh --
+#!/bin/bash
+# Fail fast if RESIZE_EVE_VER wasn't supplied (the escript default is a placeholder).
+set -uo pipefail
+VER='{{ $resize_ver }}'
+if [ -z "$VER" ] || [ "$VER" = "REPLACE-WITH-RESIZE-VERSION" ]; then
+    echo "FAIL: RESIZE_EVE_VER not set." >&2
+    echo "      Export it to the version base of your local kvm-to-k build," >&2
+    echo "      e.g. RESIZE_EVE_VER=0.0.0-kvm-to-k-resize-1a2b3c4d" >&2
+    echo "      (the part before -kvm-amd64 in the docker tag)." >&2
+    exit 1
+fi
+echo "OK: RESIZE_EVE_VER=$VER"
+
+-- assert-running-version.sh --
+#!/bin/bash
+# Sanity-check EVE is on the expected SMALL bringup release before the test.
+# Matches the arg as a substring of /run/eve-release (full "<ver>-<hv>-<arch>").
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT="${1:?expected bringup version substring}"
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+for _ in $(seq 1 18); do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -n "$running" ]; then
+        case "$running" in
+            *"$EXPECT"*) echo "OK: running '$running' contains '$EXPECT'"; exit 0 ;;
+            *) echo "FAIL: running '$running' != expected bringup '$EXPECT'." >&2
+               echo "      Bring eve up on the small '$EXPECT' image, or set BRINGUP_EVE_VER." >&2
+               exit 1 ;;
+        esac
+    fi
+    sleep 10
+done
+echo "FAIL: could not read /run/eve-release (ssh down / device not up?)" >&2
+exit 1
+
+-- wait-for-upgrade.sh --
+#!/bin/bash
+# Wait for a same-flavor BaseOs upgrade to land: /run/eve-release == expected AND
+# IMGB is the active partition.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT_VERSION="${1:?expected version}"
+DEADLINE=$(( $(date +%s) + 1500 ))
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then echo "$(date +%H:%M:%S): EVE unreachable (rebooting?)"; sleep 20; continue; fi
+    imgb_state=$(probe 'eve exec pillar cat /run/baseosmgr/ZbootStatus/IMGB.json' | grep -oP '"PartitionState":"\K[^"]+' | head -1)
+    [ -z "$imgb_state" ] && imgb_state='unknown'
+    echo "$(date +%H:%M:%S): running='$running' IMGB.PartitionState='$imgb_state'"
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$imgb_state" = "active" ]; then
+        echo "OK: upgrade to $running complete (IMGB active)"; exit 0
+    fi
+    sleep 20
+done
+echo "FAIL: upgrade to $EXPECT_VERSION did not complete in 25m (running='$running')" >&2
+exit 1
+
+-- assert-decrypt.sh --
+#!/bin/bash
+# Assert the encrypted WiFi creds are DECRYPTED. Two on-disk proofs (both under
+# /run, which is tmpfs and cleared each boot -> presence == THIS boot):
+#   1. zedagent published the controller DPC carrying our SSID
+#      (/run/zedagent/DevicePortConfig/zedagent.json) -> the config was applied.
+#   2. nim published a CipherBlockStatus with Error=="" & IsCipher:true
+#      (/run/nim/CipherBlockStatus/*.json) -> a cipher block decrypted OK.
+# Plus a log guard: the always-logged Error-level "decryption was unsuccessful"
+# line for our SSID must be ABSENT. Used pre-wipe (baseline) and post-wipe/offline
+# (the load-bearing decrypt-from-restored-ecdh proof) — identical device checks.
+# Usage: assert-decrypt.sh <ssid> <deadline_secs>
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+SSID="${1:?ssid}"
+BUDGET="${2:-240}"
+probe() { timeout 20 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+DEADLINE=$(( $(date +%s) + BUDGET ))
+dpc_ok=0; cbs_ok=0
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    # 1. controller DPC (ephemeral, JSON on disk) carries the SSID.
+    dpc=$(probe 'eve exec pillar sh -c "cat /run/zedagent/DevicePortConfig/*.json 2>/dev/null"')
+    echo "$dpc" | grep -q "$SSID" && dpc_ok=1 || dpc_ok=0
+    # 2. a CipherBlockStatus with Error empty and IsCipher true. cat may
+    #    concatenate several JSON objects with or without separators, so parse
+    #    them with a raw_decode loop rather than splitting on a delimiter.
+    cbs=$(probe 'eve exec pillar sh -c "cat /run/nim/CipherBlockStatus/*.json 2>/dev/null"')
+    if echo "$cbs" | python3 -c '
+import sys,json
+buf=sys.stdin.read()
+dec=json.JSONDecoder(); i=0; n=len(buf); ok=False
+while i<n:
+    while i<n and buf[i] in " \t\r\n": i+=1
+    if i>=n: break
+    try: o,end=dec.raw_decode(buf,i)
+    except ValueError: i+=1; continue
+    i=end
+    if isinstance(o,dict) and o.get("IsCipher") and o.get("Error","")=="": ok=True
+sys.exit(0 if ok else 1)
+' 2>/dev/null; then cbs_ok=1; else cbs_ok=0; fi
+    echo "$(date +%H:%M:%S): dpc_has_ssid=$dpc_ok cipher_decrypted_ok=$cbs_ok"
+    if [ "$dpc_ok" = 1 ] && [ "$cbs_ok" = 1 ]; then
+        # log guard: the Error-level failure line for our SSID must be absent.
+        fail=$(probe "eve exec pillar sh -c \"find /persist/newlog -name 'dev.log.*' -exec zcat -f {} \\; 2>/dev/null | grep -a '$SSID, wifi config cipherblock decryption was unsuccessful' | head -1\"")
+        if [ -n "$fail" ]; then
+            echo "FAIL: found a decryption-unsuccessful log line for $SSID:" >&2
+            echo "  $fail" >&2
+            exit 1
+        fi
+        echo "OK: WiFi creds decrypted (DPC carries $SSID, CipherBlockStatus Error=='', no failure log)"
+        exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: did not observe a successful decrypt of $SSID within ${BUDGET}s" >&2
+echo "  last CipherBlockStatus:" >&2; echo "$cbs" >&2
+exit 1
+
+-- snapshot-identity.sh --
+#!/bin/bash
+# Snapshot pre-wipe identity + DPCL for the post-restore comparison:
+#   /tmp/f9-uuid            device UUID (/persist/status/uuid)
+#   /tmp/f9-certs           sorted list of /persist/certs/*.pem basenames
+#   /tmp/f9-dpcl-before.json  DevicePortConfigList global.json (raw)
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+probe() { timeout 20 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+uuid=$(probe 'eve exec pillar cat /persist/status/uuid' | tr -d '\r' | grep -E '^[0-9a-fA-F-]{36}$' | head -1)
+if [ -z "$uuid" ]; then echo "FAIL: could not read device UUID (/persist/status/uuid)" >&2; exit 1; fi
+echo "$uuid" > /tmp/f9-uuid
+probe 'eve exec pillar sh -c "ls /persist/certs/*.pem 2>/dev/null | xargs -n1 basename"' | tr -d '\r' | sort > /tmp/f9-certs
+probe 'eve exec pillar sh -c "cat /persist/status/nim/DevicePortConfigList/*.json 2>/dev/null"' > /tmp/f9-dpcl-before.json
+if [ ! -s /tmp/f9-certs ] || [ ! -s /tmp/f9-dpcl-before.json ]; then
+    echo "FAIL: empty certs list or DPCL snapshot" >&2; exit 1
+fi
+echo "OK: snapshot UUID=$uuid certs=$(wc -l </tmp/f9-certs) dpcl_bytes=$(wc -c </tmp/f9-dpcl-before.json)"
+
+-- backup-and-arm.sh --
+#!/bin/bash
+# Online backup of the critical files to the CONFIG PARTITION (runtime /config is
+# a ro tmpfs, so we mount PARTLABEL=CONFIG rw from the pillar ns, as baseosmgr's
+# withConfigPartitionRW does), then arm the skip-shrink marker. Ships a single
+# device-side script via base64 to avoid nested-quoting hell. The backup LOOPS
+# until the backed-up checkpoint carries the encrypted WiFi port (SSID) + the
+# ecdh cert — that content check is the gate that makes it safe to stop+wipe.
+# Usage: backup-and-arm.sh <ssid>
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+SSID="${1:?ssid}"
+
+read -r -d '' DEV_SCRIPT <<EOF
+#!/bin/sh
+set -u
+SSID="$SSID"
+TARGET="78G"
+CFGP=\$(findfs PARTLABEL=CONFIG) || { echo "FAIL: no CONFIG partition"; exit 1; }
+mkdir -p /tmp/f9cfg
+mountpoint -q /tmp/f9cfg || mount -t vfat -o rw,iocharset=iso8859-1 "\$CFGP" /tmp/f9cfg || { echo "FAIL: mount CONFIG rw"; exit 1; }
+ok=0; i=0
+while [ \$i -lt 18 ]; do
+    i=\$((i+1))
+    /usr/bin/storage-resizer backup --persist /persist --backup-dir /tmp/f9cfg/backup-persist --flag-file /tmp/f9cfg/repartition-inprogress --target "\$TARGET" >/dev/null 2>&1
+    if cat /tmp/f9cfg/backup-persist/checkpoint/lastconfig* 2>/dev/null | tr -d '\\0' | grep -q "\$SSID" && ls /tmp/f9cfg/backup-persist/certs/ecdh.*.pem >/dev/null 2>&1; then
+        ok=1; break
+    fi
+    sync; sleep 10
+done
+if [ "\$ok" != 1 ]; then
+    echo "FAIL: backup did not capture SSID \$SSID + ecdh cert in the checkpoint"
+    ls -la /tmp/f9cfg/backup-persist/checkpoint /tmp/f9cfg/backup-persist/certs 2>/dev/null
+    umount /tmp/f9cfg 2>/dev/null
+    exit 1
+fi
+REL=\$(tr -d '\\r\\n' < /hostfs/etc/eve-release 2>/dev/null); [ -n "\$REL" ] || REL=\$(tr -d '\\r\\n' < /run/eve-release 2>/dev/null)
+if [ -z "\$REL" ]; then echo "FAIL: could not read running eve-release for the marker"; umount /tmp/f9cfg 2>/dev/null; exit 1; fi
+printf '{"eve_release":"%s","step":"f9-test","rc":"0","ts":"f9"}' "\$REL" > /tmp/f9cfg/resize-failed.json
+sync
+umount /tmp/f9cfg
+echo "OK: backed up identity+checkpoint (SSID \$SSID present) and armed skip-shrink for \$REL"
+EOF
+
+B64=$(printf '%s' "$DEV_SCRIPT" | base64 -w0)
+out=$(timeout 300 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/f9-backup.sh; sh /tmp/f9-backup.sh'" 2>/dev/null | grep -v 'level=fatal')
+echo "$out"
+echo "$out" | grep -q '^OK:' || { echo "FAIL: backup-and-arm did not succeed on device" >&2; exit 1; }
+
+-- wipe-persist.sh --
+#!/bin/bash
+# HOST-SIDE: with the VM stopped, destroy P3's ext4 on the boot qcow2 so
+# storage-init's fsck fails and reformats /persist empty on the next boot.
+# wipefs -a drops the ext4 signature; head+tail 5 MiB zero mirrors the installer
+# scrub. FIRST-RUN CHECK: confirm the boot log shows storage-init RECREATING P3
+# (if fsck -y recovers from a backup superblock, escalate to zeroing more).
+set -uo pipefail
+IMG='{{EdenConfigPath "eve.image-file"}}'
+[ -f "$IMG" ] || { echo "FAIL: live image not found: $IMG" >&2; exit 1; }
+# ensure qemu has released the image (eden eve stop already ran)
+for _ in $(seq 1 15); do pgrep -f "file=$IMG" >/dev/null 2>&1 || break; sleep 2; done
+sudo qemu-nbd --disconnect /dev/nbd0 >/dev/null 2>&1 || true
+sudo modprobe nbd max_part=16
+sudo qemu-nbd --connect=/dev/nbd0 "$IMG"
+sleep 1
+# Resolve the P3 partition NUMBER straight from the GPT (sgdisk reads the disk
+# directly; do NOT use `lsblk -d`, whose --nodeps hides partition rows).
+PARTNUM=$(sudo sgdisk -p /dev/nbd0 2>/dev/null | awk '$NF=="P3"{print $1; exit}')
+if [ -z "$PARTNUM" ]; then
+    echo "FAIL: no P3 partition on $IMG (device never created it?)" >&2
+    sudo sgdisk -p /dev/nbd0 >&2 2>/dev/null || true
+    sudo qemu-nbd --disconnect /dev/nbd0
+    exit 1
+fi
+DEV="/dev/nbd0p${PARTNUM}"
+# ensure the partition device node exists (max_part on the nbd module + partprobe)
+for _ in $(seq 1 10); do [ -b "$DEV" ] && break; sudo partprobe /dev/nbd0 2>/dev/null || true; sleep 1; done
+[ -b "$DEV" ] || { echo "FAIL: partition node $DEV never appeared" >&2; sudo qemu-nbd --disconnect /dev/nbd0; exit 1; }
+echo "wiping P3 at $DEV ($IMG)"
+sudo wipefs -a "$DEV" >/dev/null
+SZ=$(sudo blockdev --getsz "$DEV")          # size in 512-byte sectors
+sudo dd if=/dev/zero of="$DEV" bs=512 count=10240 conv=notrunc 2>/dev/null                     # first 5 MiB
+sudo dd if=/dev/zero of="$DEV" bs=512 count=10240 seek=$(( SZ - 10240 )) conv=notrunc 2>/dev/null   # last 5 MiB
+sudo sync
+sudo qemu-nbd --disconnect /dev/nbd0
+echo "OK: P3 wiped ($DEV)"
+
+-- wait-ssh-up.sh --
+#!/bin/bash
+# After a cold start (eve stop -> wipe -> eve start), wait for SSH to come up and
+# confirm a fresh boot (uptime < 300s). Not a reboot, so no "went down" phase.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+came_up=0
+for i in $(seq 1 66); do   # 66 * 10s = 11m
+    if timeout 8 "$EDEN" eve ssh 'true' 2>/dev/null; then
+        echo "$(date +%H:%M:%S) SSH online"; came_up=1; break
+    fi
+    sleep 10
+done
+if [ "$came_up" = "0" ]; then echo "FAIL: SSH did not come up within 11m of eve start" >&2; exit 1; fi
+uptime_secs=$(timeout 10 "$EDEN" eve ssh 'cat /proc/uptime' 2>/dev/null | tr -d '\r' | awk '{print int($1)}' | head -1)
+[ -n "$uptime_secs" ] || { echo "FAIL: could not read /proc/uptime" >&2; exit 1; }
+if [ "$uptime_secs" -gt 300 ]; then echo "FAIL: uptime $uptime_secs > 300s -- not a fresh boot?" >&2; exit 1; fi
+echo "OK: EVE up after wipe, uptime ${uptime_secs}s"
+
+-- assert-identity-restored.sh --
+#!/bin/bash
+# Assert device identity survived the /persist wipe (restored from /config):
+#   - UUID unchanged vs the pre-wipe snapshot;
+#   - the same /persist/certs/*.pem basenames are present again.
+# Runs while the controller is DOWN, so success means offline recovery.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+probe() { timeout 20 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+before_uuid=$(cat /tmp/f9-uuid 2>/dev/null)
+[ -n "$before_uuid" ] || { echo "FAIL: no pre-wipe UUID snapshot" >&2; exit 1; }
+after_uuid=""
+for _ in $(seq 1 18); do
+    after_uuid=$(probe 'eve exec pillar cat /persist/status/uuid' | tr -d '\r' | grep -E '^[0-9a-fA-F-]{36}$' | head -1)
+    [ -n "$after_uuid" ] && break
+    sleep 10
+done
+if [ "$after_uuid" != "$before_uuid" ]; then
+    echo "FAIL: UUID changed across the wipe: before='$before_uuid' after='$after_uuid'" >&2
+    exit 1
+fi
+probe 'eve exec pillar sh -c "ls /persist/certs/*.pem 2>/dev/null | xargs -n1 basename"' | tr -d '\r' | sort > /tmp/f9-certs-after
+missing=$(comm -23 /tmp/f9-certs /tmp/f9-certs-after)
+if [ -n "$missing" ]; then
+    echo "FAIL: certs missing after restore:" >&2; echo "$missing" >&2
+    exit 1
+fi
+echo "OK: UUID preserved ($after_uuid) and all $(wc -l </tmp/f9-certs) certs restored (offline)"
+
+-- assert-dpcl-stable.sh --
+#!/bin/bash
+# Assert the restored DevicePortConfigList carries the SAME config as before the
+# wipe. global.json mixes config with runtime status, so strip the volatile
+# status/timestamp fields (types/dpc.go, types/conntest.go) and compare the rest:
+#   DPCL:            drop CurrentIndex
+#   per DevicePortConfig:   drop State, LastFailed, LastSucceeded, LastError,
+#                           LastWarning, LastIPAndDNS
+#   per NetworkPortConfig:  drop LastFailed, LastSucceeded, LastError, LastWarning
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+probe() { timeout 20 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+# Take the "after" snapshot once nim has settled a little.
+sleep 20
+probe 'eve exec pillar sh -c "cat /persist/status/nim/DevicePortConfigList/*.json 2>/dev/null"' > /tmp/f9-dpcl-after.json
+[ -s /tmp/f9-dpcl-after.json ] || { echo "FAIL: empty DPCL after restore" >&2; exit 1; }
+python3 - /tmp/f9-dpcl-before.json /tmp/f9-dpcl-after.json <<'PY'
+import sys, json
+# Volatile per-DPC fields. TimePriority is the config-submission timestamp; zedagent
+# re-stamps it when it re-applies the checkpointed config offline, so it changes
+# even though the port config content is identical.
+VOL_DPC  = {"State","LastFailed","LastSucceeded","LastError","LastWarning","LastIPAndDNS","TimePriority"}
+# Volatile per-port fields. ConfigSource is provenance (Origin + SubmittedAt) that
+# legitimately differs on an offline re-apply, not port config content.
+VOL_PORT = {"LastFailed","LastSucceeded","LastError","LastWarning","ConfigSource"}
+def norm(path):
+    with open(path) as f:
+        d = json.load(f)
+    d.pop("CurrentIndex", None)
+    for dpc in d.get("PortConfigList", []) or []:
+        for k in VOL_DPC: dpc.pop(k, None)
+        for p in dpc.get("Ports", []) or []:
+            for k in VOL_PORT: p.pop(k, None)
+    return json.dumps(d, sort_keys=True)
+b, a = norm(sys.argv[1]), norm(sys.argv[2])
+if b != a:
+    print("FAIL: DPCL config differs across wipe/restore (status-stripped)", file=sys.stderr)
+    print("BEFORE:", b[:800], file=sys.stderr)
+    print("AFTER :", a[:800], file=sys.stderr)
+    sys.exit(1)
+print("OK: DPCL config round-tripped unchanged (status-stripped)")
+PY
+
+-- assert-cleanup.sh --
+#!/bin/bash
+# Assert restore/cleanup ran: the repartition flag is gone from the CONFIG
+# partition and resize-failed.json records persist_recreated (a destructive
+# reformat happened this boot, so restore stamps it). Mounts CONFIG ro to read.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+read -r -d '' DEV_SCRIPT <<'EOF'
+#!/bin/sh
+set -u
+CFGP=$(findfs PARTLABEL=CONFIG) || { echo "FAIL: no CONFIG partition"; exit 1; }
+mkdir -p /tmp/f9chk
+mountpoint -q /tmp/f9chk || mount -t vfat -o ro,iocharset=iso8859-1 "$CFGP" /tmp/f9chk || { echo "FAIL: mount CONFIG ro"; exit 1; }
+rc=0
+if [ -e /tmp/f9chk/repartition-inprogress ]; then echo "FAIL: repartition-inprogress still present (restore/cleanup did not run)"; rc=1; fi
+if [ -d /tmp/f9chk/backup-persist ]; then echo "FAIL: backup-persist dir not cleaned up"; rc=1; fi
+if [ -f /tmp/f9chk/resize-failed.json ]; then
+    if grep -q '"persist_recreated":true' /tmp/f9chk/resize-failed.json; then
+        echo "OK: resize-failed.json records persist_recreated:true"
+    else
+        echo "FAIL: resize-failed.json present but persist_recreated not set:"; cat /tmp/f9chk/resize-failed.json
+        rc=1
+    fi
+else
+    echo "FAIL: resize-failed.json missing (baseosmgr should still see the decline marker)"; rc=1
+fi
+umount /tmp/f9chk 2>/dev/null
+[ $rc = 0 ] && echo "OK: conversion bookkeeping cleaned up"
+exit $rc
+EOF
+B64=$(printf '%s' "$DEV_SCRIPT" | base64 -w0)
+out=$(timeout 60 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/f9-chk.sh; sh /tmp/f9-chk.sh'" 2>/dev/null | grep -v 'level=fatal')
+echo "$out"
+echo "$out" | grep -q 'bookkeeping cleaned up' || { echo "FAIL: cleanup assertions failed" >&2; exit 1; }
