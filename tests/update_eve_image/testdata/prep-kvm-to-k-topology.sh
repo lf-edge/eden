@@ -13,6 +13,7 @@
 #   ext4-shrink    ext4, full     1 disk            shrink           kvm_to_k.txt EXPECT_DECISION=shrink       ok
 #   ext4-grow      ext4, +tail    1 disk            grow             kvm_to_k.txt EXPECT_DECISION=grow         ok (README recipe)
 #   twodisk-zfs    zfs on sdb     2 disks           grow             kvm_to_k.txt ... DISK_TOPOLOGY=two-disk   VERIFIED 2026-06-22
+#   twodisk-ext4   ext4 on sdb    2 disks           grow             kvm_to_k.txt ... DISK_TOPOLOGY=two-disk   VERIFIED 2026-07-07
 #   ext4-toofull   ext4, full     1 disk            insufficient     kvm_to_k_refused.txt REFUSE_REASON=too-full  VERIFIED 2026-07-01
 #   zfs-grow       zfs,  +tail    1 disk            grow             kvm_to_k.txt ... DISK_TOPOLOGY=zfs        VERIFIED 2026-06-25 (notail base)
 #   zfs-notail     zfs, full      1 disk            insufficient     kvm_to_k_refused.txt REFUSE_REASON=zfs    VERIFIED 2026-06-25
@@ -77,6 +78,9 @@ ASSUME_YES=0
 BRINGUP_TAG="${BRINGUP_EVE_VER:-12.1.0}"   # small-layout released image
 GROW_TAIL_GB="${GROW_TAIL_GB:-24}"         # >22 GiB so check decides grow
 EVE_DISK_MB="${EVE_DISK_MB:-32768}"        # size of the EXTRA disk(s) (not the boot disk)
+TWODISK_BOOT_GB="${TWODISK_BOOT_GB:-32}"   # twodisk-ext4 boot-disk size: grown before first
+                                           # boot so the P3 (created full) leaves a >=22 GiB
+                                           # free tail once we delete it => check decides grow.
 SSH_TRIES="${SSH_TRIES:-40}"               # ssh-up poll attempts (x12s)
 TOOFULL_BOOT_GB="${TOOFULL_BOOT_GB:-64}"   # ext4-toofull boot-disk size: big enough that an
                                            # EMPTY P3 would shrink fine, so the refusal is
@@ -232,6 +236,32 @@ eve_make_persist_pool() {
         || die "failed to set up/export persist pool on $dev"
 }
 
+# Build an ext4 /persist on a whole SECOND disk (the two-disk-ext4 topology),
+# entirely OFFLINE and sudo-free. sdb is still blank at this point (persist lived
+# on the boot P3), so we rebuild its qcow2: a GPT with one partition named P3 (the
+# EVE persist type GUID) filling the disk, ext4 inside it via `mkfs.ext4 -E offset`
+# on a sparse raw image, then convert back to qcow2. storage-init's
+# `findfs PARTLABEL=P3` then picks it up and mounts it ext4 on the next boot.
+# Contrast with eve_make_persist_pool (ZFS): ext4 has no pool feature-flag
+# constraint, so no in-guest step and no sudo/qemu-nbd are needed — any mkfs.ext4
+# works. eden must be stopped. $1 = sdb qcow2 path (sized EVE_DISK_MB).
+make_sdb_ext4_persist() {
+    local img="$1" raw="$1.raw.tmp" start end off nblk
+    [ -f "$img" ] || die "sdb qcow2 not found: $img"
+    note "building ext4 /persist on sdb ($img): GPT P3 + mkfs.ext4, offline"
+    rm -f "$raw"
+    truncate -s "${EVE_DISK_MB}M" "$raw" || die "truncate sdb raw failed"
+    sgdisk --largest-new=1 --typecode=1:5f24425a-2dfa-11e8-a270-7b663faccc2c \
+        --change-name=1:P3 "$raw" >/dev/null || die "sgdisk sdb P3 failed"
+    start=$(sgdisk -i 1 "$raw" | awk '/First sector:/{print $3}')
+    end=$(sgdisk -i 1 "$raw" | awk '/Last sector:/{print $3}')
+    [ -n "$start" ] && [ -n "$end" ] || die "could not read sdb P3 sectors"
+    off=$((start * 512)); nblk=$((end - start + 1))
+    mkfs.ext4 -F -q -L PERSIST -E offset="$off" "$raw" "$((nblk / 2))k" || die "mkfs.ext4 sdb failed"
+    qemu-img convert -f raw -O qcow2 "$raw" "$img" || die "sdb raw->qcow2 failed"
+    rm -f "$raw"
+}
+
 # Offline-delete the boot disk's P3 (partition 9) so storage-init takes the no-P3
 # -> `zpool import persist` path. eden must be stopped. $1 = boot qcow2.
 delete_boot_p3() {
@@ -242,6 +272,35 @@ delete_boot_p3() {
     sudo sgdisk -d 9 /dev/nbd0 || die "sgdisk -d 9 failed"
     sudo sgdisk -p /dev/nbd0 | grep -qE 'P3|persist' && { sudo qemu-nbd --disconnect /dev/nbd0; die "P3 still present after delete"; }
     sudo qemu-nbd --disconnect /dev/nbd0
+    echo "boot P3 deleted"
+}
+
+# Sudo-free variant of delete_boot_p3: delete the GPT partition named P3 via a
+# qcow2<->raw round-trip (qemu-img convert is sparse-aware) instead of `sudo
+# qemu-nbd`, so the two-disk-ext4 topology needs no root at all. Same GPT result;
+# the freed tail becomes the grow target. eden must be stopped. $1 = boot image.
+delete_boot_p3_offline() {
+    local img="$1" fmt raw
+    [ -f "$img" ] || die "boot image not found: $img"
+    fmt=$(qemu-img info "$img" | sed -ne 's/^file format: //p')
+    note "offline-deleting boot P3 from $img (sudo-free, fmt=$fmt)"
+    _del_p3() {   # delete partition named P3 on block-or-file target $1; die on failure
+        local t="$1" p3
+        p3=$(sgdisk -p "$t" | awk '$NF=="P3"{print $1}')
+        [ -n "$p3" ] || die "no GPT partition named P3 on boot disk"
+        sgdisk -d "$p3" "$t" || die "sgdisk -d $p3 failed"
+        sgdisk -p "$t" | awk '$NF=="P3"{f=1} END{exit !f}' && die "P3 still present after delete"
+        return 0
+    }
+    if [ "$fmt" = raw ]; then
+        _del_p3 "$img"
+    else
+        raw="$img.raw.tmp"; rm -f "$raw"
+        qemu-img convert -f qcow2 -O raw "$img" "$raw" || die "qcow2->raw failed"
+        _del_p3 "$raw"
+        qemu-img convert -f raw -O qcow2 "$raw" "$img" || die "raw->qcow2 failed"
+        rm -f "$raw"
+    fi
     echo "boot P3 deleted"
 }
 
@@ -298,6 +357,45 @@ case "$TOPOLOGY" in
         note "verify"
         eve_ssh "echo persist_type=\$(cat /run/eve.persist_type); eve exec pillar sh -c \"zpool status persist; df -h /persist\""
         echo "READY: twodisk-zfs. Run: EXPECT_DECISION=grow DISK_TOPOLOGY=two-disk ... kvm_to_k"
+        ;;
+
+    twodisk-ext4)
+        # VERIFIED 2026-07-07 (host eden; full kvm->k conversion PASSED via the
+        # ext4mig-host-* scripts, of which this is the portable re-expression).
+        # Two disks: sda boot (P3 deleted => free tail => resizer decides GROW),
+        # sdb = an ext4 /persist on its OWN disk. Simpler than twodisk-zfs: the
+        # persist is built OFFLINE with plain mkfs.ext4 (no in-guest pool, no
+        # reserved/snapshots datasets), and kvm->k needs NO vault fs->zvol migration
+        # (the ext4 vault carries over unchanged). Same grow code path as ZFS: the
+        # resizer's `check --disk <bootdev>` finds no P3 on the boot disk =>
+        # shrink N/A => grow off the free tail (pkg/storage-resizer evaluate/decide;
+        # unit-tested as "multi-disk ext4, boot has free tail -> grow").
+        # Ordering: the FIRST boot must create IMGB+P3 on the boot disk (storage-init
+        # is_first_boot_virt_eve needs BOTH absent), so we boot once with persist on
+        # the boot P3, THEN move persist to sdb + delete boot P3. Pre-seeding sdb's
+        # P3 before first boot would suppress IMGB creation.
+        guard_no_other_eden
+        base_config
+        eden config set default --key=eve.disks --value=1   # adds sdb
+        eden config set default --key=eve.disk  --value="$EVE_DISK_MB"  # sizes sdb
+        note "eden setup"
+        eden setup
+        # Grow the boot disk before first boot so the P3 (created full) leaves a
+        # >=22G free tail once deleted. grow_boot_no_tail is sudo-free (raw round-trip).
+        grow_boot_no_tail "$(image_dir)/live.img" "$TWODISK_BOOT_GB"
+        note "start + onboard (sda boot ext4 P3, sdb blank)"
+        eden start; eden eve onboard
+        wait_ssh
+        note "stop; build sdb ext4 persist (offline) + delete boot P3"
+        eden eve stop; sleep 6
+        make_sdb_ext4_persist "$(image_dir)/eve-disk-1.qcow2"
+        delete_boot_p3_offline "$(image_dir)/live.img"
+        note "restart — storage-init finds P3 on sdb (ext4); boot disk has a free tail"
+        eden start
+        wait_ssh
+        note "verify"
+        eve_ssh "echo persist_type=\$(cat /run/eve.persist_type); eve exec pillar sh -c \"lsblk -o NAME,SIZE,FSTYPE,PARTLABEL /dev/sda /dev/sdb; df -h /persist\""
+        echo "READY: twodisk-ext4. Run: EXPECT_DECISION=grow DISK_TOPOLOGY=two-disk ... kvm_to_k"
         ;;
 
     ext4-toofull)
