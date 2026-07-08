@@ -13,9 +13,11 @@
 #
 # What it asserts:
 #   - the running vault is TPM-backed (UnlockMethod != no-tpm);
-#   - the app reaches RUNNING on EVE-k;
-#   - a data marker written into the guest disk BEFORE the conversion is still
-#     present AFTER it (the volume survived without recreate);
+#   - BOTH apps reach RUNNING on EVE-k: a VM app (Ubuntu qcow2 disk) AND a
+#     container app (eclient with a --mount data volume at /data);
+#   - a data marker written into EACH app's volume BEFORE the conversion is still
+#     present AFTER it (both the VM disk volume and the container data volume
+#     survived without recreate);
 #   - the image was not re-downloaded across the conversion (RecvByteCount ~0).
 #
 # Parameters (env):
@@ -34,6 +36,7 @@
 {{$kvm_short := printf "%s-kvm-%s" $ver $arch}}
 {{$k_short   := printf "%s-k-%s" $ver $arch}}
 {{$appimg := "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"}}
+{{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
 
 # Step 0: pre-flight — params, clean state, on the expected -kvm image, TPM live.
 message 'pre-flight: parameters, clean state, TPM-backed vault'
@@ -63,6 +66,23 @@ message 'writing a data marker into the guest disk volume'
 exec -t 20m bash marker.sh write
 stdout 'MARKER_WRITTEN'
 
+# Step 1b: ALSO deploy a CONTAINER app (eclient) with its own persistent data
+# volume, and write a marker into that volume — so the migration is exercised for
+# BOTH a VM app's disk volume AND a container app's data volume. eclient declares
+# no image VOLUME and EVE does not mkfs empty volumes, so the data volume is a
+# PRE-FORMATTED (ext4) empty qcow2 built host-side (gen-data-volume.sh) and
+# attached via --mount at /data. The marker lives on that migrating volume (not the
+# recreated container rootfs). NOTE: EVE-k does not auto-mount the volume at /data
+# (lf-edge/eve#6145), so ctr-marker.sh verify reads it via the block device.
+message 'deploying eclient CONTAINER app with a pre-formatted ext4 data volume on EVE-kvm'
+exec -t 2m bash gen-data-volume.sh
+stdout 'DATA_VOLUME_READY'
+eden -t 15m pod deploy {{template "eclient_image"}} --memory=512MB -n xhv-ctrapp -p 2224:22 --networks=xhv-app-net --mount=src=file://{{EdenConfig "eden.root"}}/xhv-data.qcow2,dst=/data
+exec -t 20m bash wait-for-app-running.sh xhv-ctrapp
+message 'writing a data marker into the container app data volume'
+exec -t 20m bash ctr-marker.sh write
+stdout 'CTR_MARKER_WRITTEN'
+
 # Step 2: BaseOs-update kvm->k while KEEPING the app+volume. The cross-flavor gate
 # allows this because the large geometry means no shrink.
 message 'downloading volmig k rootfs'
@@ -90,11 +110,17 @@ exec -t 45m bash wait-for-app-running.sh
 message 'ASSERT: the disk volume survived the conversion without recreate'
 exec -t 10m bash marker.sh verify
 stdout 'VOLUME SURVIVED'
+message 'waiting for the CONTAINER app to reach RUNNING on EVE-k'
+exec -t 45m bash wait-for-app-running.sh xhv-ctrapp
+message 'ASSERT: the container app data volume survived the conversion without recreate'
+exec -t 10m bash ctr-marker.sh verify
+stdout 'CONTAINER VOLUME SURVIVED'
 message 'asserting the image was not re-downloaded across the conversion'
 exec -t 1m bash snapshot-rcv-bytes.sh post-and-assert
 
 # Cleanup.
 eden -t 1m pod delete xhv-vmapp
+eden -t 1m pod delete xhv-ctrapp
 eden -t 1m network delete xhv-app-net
 exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs
 exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs.ver
@@ -193,6 +219,97 @@ case "$MODE" in
     *) echo "usage: marker.sh write|verify" >&2; exit 1 ;;
 esac
 
+-- ctr-marker.sh --
+#!/bin/bash
+# Container-app sibling of marker.sh. Proves the eclient CONTAINER app's DATA
+# VOLUME survived kvm->k without recreate. eclient runs sshd with ROOT key auth via
+# the eclient id_rsa over hostfwd 127.0.0.1:2224 -> EVE -> app:22.
+#   write : EVE-kvm auto-mounts the data volume at /data (runx shim), so write the
+#           marker to /data (a mounted-volume check guards a failed mount).
+#   verify: EVE-k (kubevirt) does NOT auto-mount container data volumes at their
+#           MountDir (lf-edge/eve#6145) — the volume is presented as a raw block
+#           device. So mount the migrated volume by its block device and read the
+#           marker there. This tests the migration invariant (the volume's data
+#           survived, no recreate) independent of the #6145 auto-mount gap; tighten
+#           back to reading /data once #6145 is fixed.
+set -uo pipefail
+MODE=${1:?write|verify}
+PORT=2224
+MF=/tmp/xhv-volmig-ctr-marker.txt
+MPATH=/data/ctr-marker
+EDEN_TESTS="{{EdenConfig "eden.tests"}}"
+USER_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+SRC=""
+for c in "$EDEN_TESTS/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/master/eden/tests/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/main/eden/tests/eclient/image/cert/id_rsa"; do
+    if [ -f "$c" ]; then SRC="$c"; break; fi
+done
+[ -n "$SRC" ] || { echo "FAIL: could not locate eclient id_rsa cert (EDEN_TESTS=$EDEN_TESTS, USER_HOME=$USER_HOME)" >&2; exit 1; }
+KEY=$(mktemp); install -m 600 "$SRC" "$KEY"; trap 'rm -f "$KEY"' EXIT
+SSHP=(-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o PreferredAuthentications=publickey -i "$KEY")
+guest() { ssh "${SSHP[@]}" root@127.0.0.1 -p "$PORT" "$@" 2>/dev/null; }
+
+case "$MODE" in
+    write)
+        m="VOLMIG-CTR-SURVIVES-$(date +%s)"
+        ok=0
+        for _ in $(seq 1 90); do guest true && { ok=1; break; }; sleep 10; done
+        [ "$ok" = 1 ] || { echo "FAIL: eclient container ssh not reachable pre-conversion" >&2; exit 1; }
+        # Confirm /data is the MOUNTED data volume (not just a rootfs dir) so a
+        # failed volume mount is caught here (pre-conversion), not after convert.
+        guest "grep -q ' /data ' /proc/mounts" || { echo "FAIL: /data is not a mounted volume (data-volume mount failed)"; guest "cat /proc/mounts" >&2; exit 1; }
+        guest "echo $m > $MPATH && sync && cat $MPATH"
+        echo "$m" > "$MF"
+        echo "CTR_MARKER_WRITTEN=$m"
+        ;;
+    verify)
+        want=$(cat "$MF" 2>/dev/null)
+        # Mount the migrated data volume by its block device (EVE-k does not
+        # auto-mount it at /data — #6145). Find it by fs LABEL (XHVDATA); busybox
+        # blkid lacks -L, so scan `blkid` output, falling back to /dev/vdb (the sole
+        # extra virtio disk on this app).
+        for _ in $(seq 1 48); do
+            got=$(guest "
+                umount /mnt/xhvdata 2>/dev/null; mkdir -p /mnt/xhvdata
+                dev=\$(blkid 2>/dev/null | grep -i XHVDATA | head -1 | cut -d: -f1)
+                [ -n \"\$dev\" ] || dev=/dev/vdb
+                mount \"\$dev\" /mnt/xhvdata 2>/dev/null && cat /mnt/xhvdata/ctr-marker 2>/dev/null
+            " | tr -d '\r' | tail -1)
+            if [ -n "$got" ]; then
+                echo "container marker='$got' expected='$want'"
+                if [ "$got" = "$want" ]; then
+                    echo "PASS: CONTAINER VOLUME SURVIVED kvm->k WITHOUT RECREATE (data marker intact, read from the migrated block device)"
+                    exit 0
+                fi
+                echo "FAIL: container marker mismatch — the volume was recreated/replaced" >&2
+                exit 1
+            fi
+            sleep 15
+        done
+        echo "FAIL: container marker not readable from the migrated data volume (app not ssh-reachable or volume lost)" >&2
+        exit 1
+        ;;
+    *) echo "usage: ctr-marker.sh write|verify" >&2; exit 1 ;;
+esac
+
+-- gen-data-volume.sh --
+#!/bin/bash
+# Build a PRE-FORMATTED empty data volume for the container app: a whole-device
+# ext4 qcow2 (no partition), so /data is a mountable writable filesystem regardless
+# of whether EVE formats empty volumes (it does not — no mkfs in the pillar volume
+# path). Sudo-free (mkfs.ext4 on a sparse raw, then convert to qcow2). Placed at
+# eden.root so the escript can reference it as a file:// URL under that dir.
+set -uo pipefail
+OUT="{{EdenConfig "eden.root"}}/xhv-data.qcow2"
+RAW="$OUT.raw.tmp"
+rm -f "$RAW" "$OUT"
+truncate -s 512M "$RAW"
+mkfs.ext4 -F -q -L XHVDATA "$RAW"
+qemu-img convert -f raw -O qcow2 "$RAW" "$OUT"
+rm -f "$RAW"
+echo "DATA_VOLUME_READY=$OUT ($(qemu-img info "$OUT" | sed -ne 's/^virtual size: //p'))"
+
 -- gen-metadata.sh --
 #!/bin/bash
 # Write the cloud-init user-data that `eden pod deploy --metadata=` reads, so the
@@ -272,15 +389,16 @@ echo "FAIL: live volume(s) present" >&2; "$EDEN" volume ls >&2; exit 1
 # covers both the fast pre-conversion kvm case and the slow post-conversion
 # eve-k redeploy (longhorn install + VMI start).
 set -uo pipefail
+APP="${1:-xhv-vmapp}"   # app name to wait for (default keeps the VM-app callers working)
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 for _ in $(seq 1 240); do   # 40m at 10s (deploy-on-boot: app RUNNING is gated on the full post-longhorn volume create + CDI upload + guest boot, ~27m observed)
-    line=$("$EDEN" pod ps 2>/dev/null | grep -E '^xhv-vmapp\s')
+    line=$("$EDEN" pod ps 2>/dev/null | grep -E "^${APP}\s")
     if echo "$line" | grep -q 'RUNNING'; then
-        echo "OK: xhv-vmapp RUNNING"; echo "$line"; exit 0
+        echo "OK: $APP RUNNING"; echo "$line"; exit 0
     fi
     sleep 10
 done
-echo "FAIL: xhv-vmapp did not reach RUNNING in 40m" >&2
+echo "FAIL: $APP did not reach RUNNING in 40m" >&2
 "$EDEN" pod ps >&2
 exit 1
 
