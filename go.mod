@@ -36,7 +36,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/thediveo/enumflag v0.10.1
 	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
 	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.34.0
