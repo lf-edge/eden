@@ -65,6 +65,17 @@
 {{$fill_gib := "33"}}
 {{if $fill_gib_env}}{{$fill_gib = $fill_gib_env}}{{end}}
 
+{{/* RELOCATE_CRITICAL_HIGH=1 rewrites the identity/connectivity-critical files
+     (storage-resizer's defaultBackupPatterns) into high blocks during the fill,
+     so the offline shrink must relocate them too and a watchdog-interrupted move
+     can leave a critical file corrupt — exercising the /config backup+restore
+     fail-safe end-to-end (vs F9/F11, which inject the corruption directly). Off
+     (0) by default so the single-run shakedown stays deterministic; the
+     multi-day soak turns it on. */}}
+{{$reloc_env := EdenGetEnv "RELOCATE_CRITICAL_HIGH"}}
+{{$reloc := "0"}}
+{{if $reloc_env}}{{$reloc = $reloc_env}}{{end}}
+
 {{$kvm_short := printf "%s-kvm-%s" $resize_ver $arch}}
 {{$k_short   := printf "%s-k-%s" $resize_ver $arch}}
 
@@ -117,7 +128,7 @@ exec -t 40m bash settle-vault-local.sh
 # enough to be cut too, exercising shrink-resume + the P3-recreate
 # (FAIL[recreate-induced]) path — required for a meaningful shrink+grow test.
 message 'pre-filling /persist (target ~{{ $fill_gib }} GiB in high blocks) so the shrink must relocate'
-exec -t 30m bash fill-persist.sh {{ $fill_gib }}
+exec -t 30m bash fill-persist.sh {{ $fill_gib }} {{ $reloc }}
 
 # Step 4: deploy the eclient app on EVE-kvm; wait RUNNING + functional.
 message 'deploying eclient app on EVE-kvm'
@@ -1111,12 +1122,16 @@ exit 1
 # below the boundary, so nothing is relocated and the shrink stays fast — which
 # is why that approach does not work.)
 #
-# Arg: $1 = TARGET used GiB to leave after the trim (0 = skip). Keep it BELOW the
-# post-shrink P3 size (~41 GiB on a 64 GiB boot disk) or the shrink can't fit and
-# storage-resizer aborts. Default 33 (~80% of the ~41 GiB post-shrink P3).
+# Args: $1 = TARGET used GiB to leave after the trim (0 = skip). Keep it BELOW the
+#            post-shrink P3 size (~41 GiB on a 64 GiB boot disk) or the shrink
+#            can't fit and storage-resizer aborts. Default 33 (~80% of ~41 GiB).
+#       $2 = RELOCATE (0/1): 1 also rewrites the identity/connectivity-critical
+#            files into high blocks at peak fill so the shrink must relocate them
+#            (opt-in, soak-only). Default 0.
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 TARGET_GIB="${1:-33}"
+RELOCATE="${2:-0}"
 if [ "$TARGET_GIB" = "0" ]; then echo "fill-persist: target=0, skipping"; exit 0; fi
 if [ "$TARGET_GIB" = "clean" ]; then
     echo "fill-persist: removing /persist/tmp/stressfill (free space for EVE-k longhorn/CDI)"
@@ -1129,10 +1144,10 @@ echo "fill-persist: fill /persist to ${HIGH_PCT}% then trim to ~${TARGET_GIB} Gi
 
 # The device-side logic is base64-encoded so nothing has to survive the
 # ssh -> `eve exec pillar sh -c` quoting layers. It runs as busybox sh with
-# args: $1=TARGET_GIB $2=HIGH_PCT $3=CHUNK_MIB.
+# args: $1=TARGET_GIB $2=HIGH_PCT $3=CHUNK_MIB $4=RELOCATE(0/1).
 read -r -d '' RUNNER <<'RUNNER_EOF' || true
 set -u
-TARGET_GIB=$1; HIGH_PCT=$2; CHUNK_MIB=$3
+TARGET_GIB=$1; HIGH_PCT=$2; CHUNK_MIB=$3; RELOCATE=$4
 DIR=/persist/tmp/stressfill
 rm -rf "$DIR"; mkdir -p "$DIR"
 used_kb() { df -k /persist | tail -1 | awk '{print $3}'; }
@@ -1145,6 +1160,48 @@ while [ "$(used_kb)" -lt "$hi_kb" ]; do
   n=$((n+1))
 done
 echo "  filled: $n files, used $(df -h /persist | tail -1 | awk '{print $3" ("$5")"}')"
+if [ "$RELOCATE" = "1" ]; then
+  # Force each critical file's blocks into the high (to-be-shrunk) region so the
+  # offline shrink must relocate it; a watchdog-interrupted move can then corrupt
+  # it, exercising the /config backup+restore fail-safe end-to-end. A plain cp
+  # does NOT work: ext4's mballoc is goal-based and lands the copy back in the
+  # file's original (low) block group whenever it has a free block. Instead write
+  # a large temp file — which cannot fit the packed low region, so it allocates in
+  # the high free tail — sync to force that allocation to disk, copy the content
+  # in place (conv=notrunc), then truncate back to the real size so the surviving
+  # head block stays high. The sync is load-bearing: truncating before it lets
+  # delayed allocation place only the final small size, back in the low goal.
+  echo "  relocating critical files into high blocks (RELOCATE_CRITICAL_HIGH=1)"
+  reloc_one() {
+    f=$1; big="$f.reloc.$$"
+    [ -f "$f" ] || return 0
+    sz=$(wc -c < "$f" 2>/dev/null) || return 0
+    if dd if=/dev/zero of="$big" bs=1M count=100 2>/dev/null; then
+      sync
+      dd if="$f" of="$big" conv=notrunc 2>/dev/null
+      truncate -s "$sz" "$big" 2>/dev/null
+      sync
+      if cmp -s "$f" "$big" 2>/dev/null; then
+        mv "$big" "$f" && echo "    relocated-high: $f ($sz bytes)"
+      else
+        rm -f "$big"
+      fi
+    else
+      rm -f "$big"
+    fi
+  }
+  ( cd /persist 2>/dev/null || exit 0
+    for pat in "checkpoint/lastconfig"* "checkpoint/controllercerts"* \
+               certs/ecdh.*.pem certs/attest.*.pem certs/ek.*.pem \
+               "status/nim/DevicePortConfigList" "status/zedclient/OnboardingStatus"*; do
+      [ -e "$pat" ] || continue
+      if [ -f "$pat" ]; then reloc_one "$pat"
+      elif [ -d "$pat" ]; then
+        find "$pat" -type f 2>/dev/null | while IFS= read -r ff; do reloc_one "$ff"; done
+      fi
+    done
+    sync )
+fi
 i=0
 while [ "$(used_kb)" -gt "$tgt_kb" ] && [ "$i" -lt "$n" ]; do
   rm -f "$DIR/$(printf %06d "$i")"; i=$((i+1))
@@ -1153,7 +1210,7 @@ sync
 echo "  trimmed: deleted $i earliest files, used $(df -h /persist | tail -1 | awk '{print $3" ("$5")"}')"
 RUNNER_EOF
 B64=$(printf '%s' "$RUNNER" | base64 | tr -d '\n')
-"$EDEN" eve ssh "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/fillrunner.sh; sh /tmp/fillrunner.sh ${TARGET_GIB} ${HIGH_PCT} ${CHUNK_MIB}; rm -f /tmp/fillrunner.sh'" 2>/dev/null | grep -v 'level=fatal'
+"$EDEN" eve ssh "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/fillrunner.sh; sh /tmp/fillrunner.sh ${TARGET_GIB} ${HIGH_PCT} ${CHUNK_MIB} ${RELOCATE}; rm -f /tmp/fillrunner.sh'" 2>/dev/null | grep -v 'level=fatal'
 echo "OK: /persist filled-high-then-trimmed to ~${TARGET_GIB} GiB (survivors in high blocks)"
 
 -- eden-config.yml --
