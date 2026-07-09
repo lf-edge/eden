@@ -1,0 +1,453 @@
+# Test: EVE-kvm -> EVE-k boot-disk repartition, GEOMETRY ONLY, parameterized by
+# the STARTING release. One escript, many starts: the matrix runner
+# (run-kvm-to-k-geom-matrix.sh) brings EVE up on each release in turn and runs
+# this with BRINGUP_EVE_VER + the expected start sizes.
+#
+# Unlike update_eve_image_kvm_to_k_resize.txt this deliberately does NOT deploy an
+# app, defer content-tree deletes, or check blob reuse or the TPM seal. It proves
+# exactly one thing: whatever the starting geometry, driving kvm->k ends with the
+# full EVE-k target layout of 2+2+10+10 GiB, i.e. ESP-A 2G, the reserved ESP-B 2G,
+# IMGA 10G, IMGB 10G.
+#
+# Image sequence (same three-hop shape as the resize test):
+#   1. START     : EVE up on the parameterized BRINGUP_EVE_VER (a stock release
+#                  whose geometry is asserted against START_* below). Does NOT carry
+#                  the conversion code.
+#   2. kvm hop   : BaseOs-update kvm->kvm to the conversion-capable RESIZE_EVE_VER
+#                  build. Same geometry; lands the conversion code.
+#   3. k image   : BaseOs-update kvm->k. The cross-flavor seam arms the offline
+#                  repartition; storage-init grows the disk to the EVE-k target.
+#
+# NOTE (TDD): as of this writing the in-field resizer (pkg/storage-resizer,
+# sizecheck.go: espTargetBytes=2G, imgTargetBytes=10G, spaceNeededBytes=2+10+10)
+# grows only ESP/IMGA/IMGB and does NOT create the reserved ESP-B. So the final
+# assertion FAILS until the conversion is taught to carve ESP-B. This escript is
+# the spec for that work.
+#
+# Parameters (env):
+#   RESIZE_EVE_VER  (required) version base of the local conversion-capable images,
+#                   without the -<hv>-<arch> suffix, e.g. "0.0.0-kvm-to-k-resize-<sha>".
+#   RESIZE_EVE_REG  (default lfedge/eve) image registry/repo namespace.
+#   BRINGUP_EVE_VER (required) the starting release EVE was brought up on; asserted
+#                   as a substring of /run/eve-release. No default — the runner
+#                   sets it per release.
+#   START_ESP_MIB   (default 0) expected starting ESP-A size in MiB; 0 skips the
+#   START_IMGA_MIB  (default 0)  size band check for that partition (presence and
+#   START_IMGB_MIB  (default 0)  the ESP-B flag are always checked).
+#   START_HAS_ESPB  (default 0) 1 if the starting image already has the reserved
+#                   ESP-B (only the TBD post-ESP-B releases do).
+
+{{$arch := EdenConfig "eve.arch"}}
+
+{{$resize_ver_env := EdenGetEnv "RESIZE_EVE_VER"}}
+{{$resize_ver := "REPLACE-WITH-RESIZE-VERSION"}}
+{{if $resize_ver_env}}{{$resize_ver = $resize_ver_env}}{{end}}
+
+{{$resize_reg_env := EdenGetEnv "RESIZE_EVE_REG"}}
+{{$resize_reg := "lfedge/eve"}}
+{{if $resize_reg_env}}{{$resize_reg = $resize_reg_env}}{{end}}
+
+{{$bringup_ver_env := EdenGetEnv "BRINGUP_EVE_VER"}}
+{{$bringup_ver := ""}}
+{{if $bringup_ver_env}}{{$bringup_ver = $bringup_ver_env}}{{end}}
+
+{{$start_esp := EdenGetEnv "START_ESP_MIB"}}{{if not $start_esp}}{{$start_esp = "0"}}{{end}}
+{{$start_imga := EdenGetEnv "START_IMGA_MIB"}}{{if not $start_imga}}{{$start_imga = "0"}}{{end}}
+{{$start_imgb := EdenGetEnv "START_IMGB_MIB"}}{{if not $start_imgb}}{{$start_imgb = "0"}}{{end}}
+{{$start_espb := EdenGetEnv "START_HAS_ESPB"}}{{if not $start_espb}}{{$start_espb = "0"}}{{end}}
+
+{{$kvm_short := printf "%s-kvm-%s" $resize_ver $arch}}
+{{$k_short   := printf "%s-k-%s" $resize_ver $arch}}
+
+# Step 0: pre-flight. Fail fast on missing params and a dirty device; shorten the
+# baseimage commit timer so updates apply fast.
+message 'pre-flight: parameters + clean state'
+exec -t 1m bash require-resize-ver.sh
+exec -t 1m bash require-bringup-ver.sh
+exec -t 1m bash assert-no-volumes.sh
+eden -t 1m pod ps
+! stdout 'IN_CONFIG'
+eden controller edge-node update --config timer.test.baseimage.update=30
+
+# Step 1: confirm the starting release and its geometry (parameterized per release).
+message 'baseline: confirm we are on the expected START release'
+exec -t 3m bash assert-running-version.sh {{ $bringup_ver }}
+message 'baseline: confirm the expected START boot-disk geometry'
+exec -t 2m bash capture-geom.sh assert-start {{ $start_esp }} {{ $start_imga }} {{ $start_imgb }} {{ $start_espb }}
+
+# Step 2: BaseOs-update kvm->kvm to the conversion-capable build. Same geometry;
+# this only lands the conversion code.
+message 'downloading conversion-capable kvm rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$resize_ver}} --eve-hv=kvm --eve-registry={{$resize_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs'
+
+message 'pushing kvm->kvm BaseOs update (lands conversion code, geometry unchanged)'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs --os-version={{ $kvm_short }} -m adam://
+! stderr .
+
+message 'waiting for kvm->kvm upgrade to complete'
+exec -t 25m bash wait-for-upgrade.sh {{ $kvm_short }}
+
+# A same-flavor upgrade must NOT repartition — re-assert the START geometry so a
+# regression that resizes on a kvm->kvm hop is caught here.
+message 'post-kvm-upgrade: geometry must be UNCHANGED'
+exec -t 2m bash capture-geom.sh assert-start {{ $start_esp }} {{ $start_imga }} {{ $start_imgb }} {{ $start_espb }}
+
+# Step 3: BaseOs-update kvm->k. The cross-flavor seam triggers the offline
+# repartition; watch it to completion (state/sub-state transitions), tolerating the
+# reboots the offline resize needs.
+message 'downloading conversion-capable k rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$resize_ver}} --eve-hv=k --eve-registry={{$resize_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs'
+
+message 'pushing kvm->k BaseOs update (triggers boot-disk repartition)'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs --os-version={{ $k_short }} -m adam://
+! stderr .
+
+message 'waiting for + watching the kvm->k repartition (logging state transitions)'
+# 90m budget: a start whose IMGA/IMGB must GROW (e.g. 16.13.0's 4->10 GiB) copies
+# several GiB during the online grow, which on constrained I/O can take ~30m before
+# the offline shrink + EVE-k boot even begin. Starts that only create ESP-B (17.0.0)
+# or copy tiny partitions (10.1.0/12.1.0) finish far sooner.
+exec -t 90m bash watch-conversion-geom.sh {{ $k_short }}
+
+# Step 4: the one assertion — the boot disk ended on the full EVE-k target of
+# 2+2+10+10 (ESP-A 2G, reserved ESP-B 2G, IMGA 10G, IMGB 10G).
+message 'asserting final boot-disk geometry: 2+2+10+10 (ESP-A, ESP-B, IMGA, IMGB)'
+exec -t 2m bash capture-geom.sh assert-final
+
+# Cleanup.
+message 'cleanup'
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $kvm_short }}.squashfs.ver
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs
+exec rm -f {{EdenConfigPath "eve.dist"}}/rootfs-{{ $k_short }}.squashfs.ver
+exec sleep 10
+eden eve reset
+
+-- require-resize-ver.sh --
+#!/bin/bash
+# Fail fast if RESIZE_EVE_VER wasn't supplied (the escript default is a
+# placeholder). Without it the eveimage-update steps would try a bogus version.
+set -uo pipefail
+VER='{{ $resize_ver }}'
+if [ -z "$VER" ] || [ "$VER" = "REPLACE-WITH-RESIZE-VERSION" ]; then
+    echo "FAIL: RESIZE_EVE_VER not set." >&2
+    echo "      Export the version base of your conversion-capable build, e.g." >&2
+    echo "      RESIZE_EVE_VER=0.0.0-kvm-to-k-resize-1a2b3c4d (the part before" >&2
+    echo "      -kvm-amd64 / -k-amd64 in the docker tag)." >&2
+    exit 1
+fi
+echo "OK: RESIZE_EVE_VER=$VER"
+
+-- require-bringup-ver.sh --
+#!/bin/bash
+# Fail fast if BRINGUP_EVE_VER wasn't supplied. This escript does not install the
+# base image — the runner brings EVE up on the release under test and passes its
+# version here so Step 1 can confirm we are on the intended start.
+set -uo pipefail
+VER='{{ $bringup_ver }}'
+if [ -z "$VER" ]; then
+    echo "FAIL: BRINGUP_EVE_VER not set." >&2
+    echo "      Set it to the release EVE was brought up on (e.g. 10.1.0, 16.13.0," >&2
+    echo "      17.0.0-rc1). The matrix runner sets it per release." >&2
+    exit 1
+fi
+echo "OK: BRINGUP_EVE_VER=$VER"
+
+-- assert-no-volumes.sh --
+#!/bin/bash
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 12); do
+    out=$("$EDEN" volume ls 2>/dev/null)
+    live=$(echo "$out" | awk 'NR>1 && ($(NF-1) == "IN_CONFIG" || $NF == "DELIVERED")')
+    if [ -z "$live" ]; then echo "OK: no live volumes"; exit 0; fi
+    sleep 5
+done
+echo "FAIL: live volume(s) present" >&2; "$EDEN" volume ls >&2; exit 1
+
+-- assert-running-version.sh --
+#!/bin/bash
+# Sanity-check that EVE is running the expected START release before the conversion
+# starts. Matches the expected version as a substring of /run/eve-release (the full
+# "<ver>-<hv>-<arch>" form), so "10.1.0" accepts the kvm bringup image without
+# pinning the hv/arch suffix.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT="${1:?expected bringup version substring}"
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+for _ in $(seq 1 18); do   # ~3m at 10s; tolerate ssh not up yet
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -n "$running" ]; then
+        case "$running" in
+            *"$EXPECT"*)
+                echo "OK: running the expected START release ('$running' contains '$EXPECT')"
+                exit 0 ;;
+            *)
+                echo "FAIL: running version '$running' does not match expected START '$EXPECT'." >&2
+                echo "      Bring eve up on '$EXPECT' before this test, or set BRINGUP_EVE_VER" >&2
+                echo "      to the release you brought up on." >&2
+                exit 1 ;;
+        esac
+    fi
+    sleep 10
+done
+echo "FAIL: could not read /run/eve-release (ssh down / device not up?)" >&2
+exit 1
+
+-- capture-geom.sh --
+#!/bin/bash
+# Read the boot-disk GPT geometry from EVE (lsblk over ssh) and either assert the
+# expected STARTING geometry for this release, or assert the FINAL EVE-k target.
+#
+# The two ESPs (ESP-A and the reserved ESP-B) share the GPT PARTLABEL "EFI System"
+# and type ef00; they are distinguished ONLY by PARTUUID (pkg/mkimage-raw-efi/
+# make-raw: ESP-A = ...30051, ESP-B = ...30056). So this reads PARTUUID too and
+# COUNTS the "EFI System" partitions rather than matching on the (shared) label.
+#
+# Usage:
+#   capture-geom.sh report
+#   capture-geom.sh assert-start <esp_mib> <imga_mib> <imgb_mib> <has_espb 0|1>
+#   capture-geom.sh assert-final
+#
+# assert-final target (EVE-k, WITH the reserved ESP-B):
+#   ESP-A 2 GiB, ESP-B 2 GiB, IMGA 10 GiB, IMGB 10 GiB  ==  "2+2+10+10".
+# The in-field resizer does not yet create ESP-B (see the escript header), so
+# assert-final is expected to FAIL until that lands — this is the spec for it.
+#
+# Sizes/uuids come from `lsblk -b -P -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda` — the
+# same lsblk pillar's diskmetrics uses. Disk is /dev/sda under eden (qemu SATA/IDE).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+MODE=${1:-report}
+GiB=$(( 1024 * 1024 * 1024 ))
+MiB=$(( 1024 * 1024 ))
+
+read_geom() {
+    timeout 20 "$EDEN" eve ssh -- \
+        'eve exec pillar lsblk -b -P -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda 2>/dev/null' \
+        2>/dev/null | grep -v 'level=fatal' | python3 -c '
+import sys, re
+esp = []; img = {}
+for line in sys.stdin:
+    m = dict(re.findall(r"(\w+)=\"([^\"]*)\"", line))
+    lbl = m.get("PARTLABEL", ""); sz = m.get("SIZE", ""); uu = m.get("PARTUUID", "")
+    if not sz:
+        continue
+    if lbl == "EFI System":
+        esp.append((int(sz), uu))
+    elif lbl in ("IMGA", "IMGB"):
+        img[lbl] = int(sz)
+esp.sort()
+hasb = 1 if any(u.endswith("30056") for _, u in esp) else 0
+print("ESP_COUNT=%d" % len(esp))
+print("ESP_MIN=%d" % (esp[0][0] if esp else 0))
+print("ESP_MAX=%d" % (esp[-1][0] if esp else 0))
+print("ESP_HAS_B=%d" % hasb)
+print("ESP_UUIDS=%s" % ",".join(u for _, u in esp))
+print("IMGA=%d" % img.get("IMGA", 0))
+print("IMGB=%d" % img.get("IMGB", 0))
+'
+}
+
+load() {
+    eval "$(read_geom)"
+    if [ "${ESP_COUNT:-0}" = "0" ] || [ "${IMGA:-0}" = "0" ] || [ "${IMGB:-0}" = "0" ]; then
+        echo "FAIL: could not read partition geometry from /dev/sda" >&2
+        timeout 20 "$EDEN" eve ssh -- 'eve exec pillar lsblk -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda' >&2 2>/dev/null
+        exit 1
+    fi
+}
+
+report() {
+    printf '  ESPs : count=%s  sizes=[%s..%s] MiB  reserved_ESP_B=%s  uuids=[%s]\n' \
+        "$ESP_COUNT" "$(( ESP_MIN / MiB ))" "$(( ESP_MAX / MiB ))" "$ESP_HAS_B" "$ESP_UUIDS"
+    printf '  IMGA : %s MiB\n' "$(( IMGA / MiB ))"
+    printf '  IMGB : %s MiB\n' "$(( IMGB / MiB ))"
+}
+
+# in_band <actual_bytes> <expected_mib> <name>: expected 0 => skip. Otherwise accept
+# actual within [0.5x, 2x] of expected — loose enough for GPT alignment jitter, tight
+# enough to tell each release's start size apart from the 2G/10G targets.
+in_band() {
+    local actual=$1 exp_mib=$2 name=$3 lo hi
+    [ "$exp_mib" = "0" ] && return 0
+    lo=$(( exp_mib * MiB / 2 )); hi=$(( exp_mib * MiB * 2 ))
+    if [ "$actual" -lt "$lo" ] || [ "$actual" -gt "$hi" ]; then
+        echo "FAIL: $name = $(( actual / MiB )) MiB, expected ~${exp_mib} MiB (band $(( lo / MiB ))..$(( hi / MiB )) MiB)" >&2
+        return 1
+    fi
+    return 0
+}
+
+case "$MODE" in
+    report)
+        load; echo "Current boot-disk geometry:"; report
+        ;;
+    assert-start)
+        E_ESP=${2:?esp_mib}; E_IMGA=${3:?imga_mib}; E_IMGB=${4:?imgb_mib}; E_ESPB=${5:?has_espb}
+        load
+        echo "START geometry:"; report
+        rc=0
+        in_band "$ESP_MIN" "$E_ESP"  "ESP"  || rc=1
+        in_band "$IMGA"    "$E_IMGA" "IMGA" || rc=1
+        in_band "$IMGB"    "$E_IMGB" "IMGB" || rc=1
+        if [ "$ESP_HAS_B" != "$E_ESPB" ]; then
+            if [ "$E_ESPB" = "1" ]; then
+                echo "FAIL: expected the reserved ESP-B on this START release, none found (ESP_COUNT=$ESP_COUNT)" >&2
+            else
+                echo "FAIL: START release already has the reserved ESP-B (already converted?) ESP_COUNT=$ESP_COUNT" >&2
+            fi
+            rc=1
+        fi
+        [ "$rc" = "0" ] && echo "OK: START geometry matches the expected layout for this release"
+        exit "$rc"
+        ;;
+    assert-final)
+        load
+        echo "FINAL geometry:"; report
+        rc=0
+        # Target: two ESPs each ~2 GiB (ESP-A + reserved ESP-B), IMGA/IMGB ~10 GiB.
+        # Floors sit below target to tolerate alignment while staying unambiguous.
+        [ "$ESP_COUNT" -ge 2 ] || { echo "FAIL: expected 2 ESPs (ESP-A + reserved ESP-B); found $ESP_COUNT — the conversion did not create ESP-B" >&2; rc=1; }
+        [ "$ESP_HAS_B" = "1" ] || { echo "FAIL: no partition carries the reserved ESP-B PARTUUID (...30056)" >&2; rc=1; }
+        [ "$ESP_MIN" -ge $(( 3 * GiB / 2 )) ] || { echo "FAIL: an ESP is < 1.5 GiB (target 2 GiB): min=$(( ESP_MIN / MiB )) MiB" >&2; rc=1; }
+        [ "$IMGA" -ge $(( 9 * GiB )) ] || { echo "FAIL: IMGA < 9 GiB floor (target 10 GiB): $(( IMGA / MiB )) MiB" >&2; rc=1; }
+        [ "$IMGB" -ge $(( 9 * GiB )) ] || { echo "FAIL: IMGB < 9 GiB floor (target 10 GiB): $(( IMGB / MiB )) MiB" >&2; rc=1; }
+        [ "$rc" = "0" ] && echo "OK: final boot-disk geometry is 2+2+10+10 (ESP-A + reserved ESP-B 2G each, IMGA/IMGB 10G)"
+        exit "$rc"
+        ;;
+    *)
+        echo "Usage: $0 report | assert-start <esp_mib> <imga_mib> <imgb_mib> <has_espb> | assert-final" >&2
+        exit 1
+        ;;
+esac
+
+-- wait-for-upgrade.sh --
+#!/bin/bash
+# Wait for a same- or cross-flavor BaseOs upgrade to land: poll until
+# /run/eve-release equals the expected version AND IMGB is the active partition.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT_VERSION="${1:?expected version}"
+DEADLINE=$(( $(date +%s) + 1500 ))   # 25m
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then echo "$(date +%H:%M:%S): EVE unreachable (rebooting?)"; sleep 20; continue; fi
+    imgb_state=$(probe 'eve exec pillar cat /run/baseosmgr/ZbootStatus/IMGB.json' | grep -oP '"PartitionState":"\K[^"]+' | head -1)
+    [ -z "$imgb_state" ] && imgb_state='unknown'
+    echo "$(date +%H:%M:%S): running='$running' IMGB.PartitionState='$imgb_state'"
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$imgb_state" = "active" ]; then
+        echo "OK: upgrade to $running complete (IMGB active)"; exit 0
+    fi
+    sleep 20
+done
+echo "FAIL: upgrade to $EXPECT_VERSION did not complete in 25m (running='$running')" >&2
+exit 1
+
+-- watch-conversion-geom.sh --
+#!/bin/bash
+# Drive AND watch the kvm->k conversion to completion, logging state/sub-state
+# TRANSITIONS. The repartition runs OFFLINE in storage-init (the boot disk's GPT
+# can't be re-read live while its rootfs is mounted): baseosmgr arms the resize flag
+# and reboots, storage-init grows the partitions (possibly with a busy-disk
+# reboot-to-apply), the device re-checks and does the cross-flavor A/B install, then
+# boots EVE-k. Completion is slot-agnostic (the grow can relocate the active slot).
+#
+# Unlike the resize test's watch-conversion.sh this does NO /persist stress-fill
+# cleanup — this escript deploys no app and pre-fills nothing, so /persist stays
+# near-empty and there is nothing to free before the EVE-k cluster installs.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+K_VERSION="${1:?expected -k version}"
+DEADLINE=$(( $(date +%s) + 5400 ))   # 90m (matches the escript exec -t; see the budget note there)
+
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+
+substate_name() {
+    case "$1" in
+        1) echo preflight ;;
+        2) echo rebooting-to-resize ;;
+        3) echo making-space ;;
+        4) echo creating-partitions ;;
+        5) echo renaming-partitions ;;
+        6) echo installing ;;
+        7) echo rebooting-to-target ;;
+        *) echo "sub_$1" ;;
+    esac
+}
+
+# Controller's view from adam: the latest ZiDevice report's state + sub_state.
+ctrl_state() {
+    local c st sub
+    c=$(timeout 20 "$EDEN" info --tail 8 2>/dev/null | grep -a '^content: ztype:ZiDevice' | tail -1)
+    st=$(echo "$c" | grep -oE 'state:ZDEVICE_STATE_[A-Z_]+' | head -1 | cut -d: -f2)
+    sub=$(echo "$c" | grep -oE 'sub_state:ZDEVICE_SUBSTATE_[A-Z_]+' | head -1 | cut -d: -f2)
+    echo "${st:-?}/${sub:-NONE}"
+}
+
+# Which partition (IMGA/IMGB) is active, and the version on it.
+active_part() {
+    probe 'eve exec pillar sh -c "cat /run/baseosmgr/ZbootStatus/IMGA.json /run/baseosmgr/ZbootStatus/IMGB.json 2>/dev/null"' | python3 -c '
+import sys, json, re
+act = "?"; ver = "?"
+for m in re.finditer(r"\{.*?\}", sys.stdin.read(), re.S):
+    try:
+        o = json.loads(m.group(0))
+    except Exception:
+        continue
+    if o.get("PartitionState") == "active":
+        act = o.get("PartitionLabel", "?"); ver = o.get("ShortVersion", "?")
+print("%s:%s" % (act, ver))' 2>/dev/null || echo "?:?"
+}
+
+last_sig=""
+reboots=0
+unreachable_run=0
+seen_converting=0
+
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then
+        unreachable_run=$(( unreachable_run + 1 ))
+        if [ "$last_sig" != "UNREACHABLE" ]; then
+            echo "$(date +%H:%M:%S) [transition] EVE unreachable (rebooting?)"
+            last_sig="UNREACHABLE"
+        fi
+        sleep 15
+        continue
+    fi
+    if [ "$unreachable_run" -ge 2 ]; then
+        reboots=$(( reboots + 1 ))
+        echo "$(date +%H:%M:%S) observed a reboot (count=$reboots)"
+    fi
+    unreachable_run=0
+
+    actver=$(active_part)
+    bos=$(probe 'eve exec pillar sh -c "cat /run/baseosmgr/BaseOsStatus/*.json 2>/dev/null"')
+    conv=$(echo "$bos" | grep -o '"Converting":[a-z]*' | head -1 | cut -d: -f2); [ -z "$conv" ] && conv=false
+    csub=$(echo "$bos" | grep -o '"ConvertSubState":[0-9]*' | head -1 | cut -d: -f2); [ -z "$csub" ] && csub=0
+    [ "$conv" = "true" ] && seen_converting=1
+    dev=$(ctrl_state)
+
+    sig="run=$running active=$actver dev=$dev converting=$conv csub=$csub($(substate_name "$csub"))"
+    if [ "$sig" != "$last_sig" ]; then
+        echo "$(date +%H:%M:%S) [transition] $sig"
+        last_sig="$sig"
+    fi
+
+    # Done: booted the -k version and the conversion cleared. Slot-agnostic.
+    if [ "$running" = "$K_VERSION" ] && [ "$conv" = "false" ] && \
+       printf '%s' "$actver" | grep -q ":$K_VERSION$"; then
+        echo "OK: conversion+upgrade complete (active=$actver, running=$running)"
+        echo "    observed: CONVERTING=$seen_converting reboots=$reboots"
+        exit 0
+    fi
+    sleep 15
+done
+echo "FAIL: watch timeout (90m). running='${running:-?}' active='${actver:-?}' dev='${dev:-?}'" >&2
+echo "      observed: CONVERTING=$seen_converting reboots=$reboots" >&2
+exit 1
