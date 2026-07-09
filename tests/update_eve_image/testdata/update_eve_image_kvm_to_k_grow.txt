@@ -277,23 +277,25 @@ exit 1
 -- capture-partitions.sh --
 #!/bin/bash
 # Read the boot-disk GPT geometry from EVE via lsblk and either save it, assert
-# it is the SMALL layout, or assert it grew to the LARGE layout. Two grow asserts:
+# it is the SMALL layout, or assert it grew to the LARGE layout. The grow asserts
+# also require the reserved ESP-B (GPT #7, fresh-install GUID …30056) to have been
+# created at ~2 GiB, i.e. the full 2+2+10+10 EVE-k layout. Two grow asserts:
 # assert-grown requires P3 to have SHRUNK (the shrink variant); assert-grown-no-
 # shrink requires P3 UNCHANGED (the grow-only variant). The escript picks one.
 #
 # Usage:
 #   capture-partitions.sh save  <tag>          # snapshot sizes to /tmp/xhv-parts-<tag>.env
-#   capture-partitions.sh assert-small         # assert ESP/IMGA/IMGB are small
-#   capture-partitions.sh assert-grown         # ESP/IMGA/IMGB grew; P3 shrank
-#   capture-partitions.sh assert-grown-no-shrink  # ESP/IMGA/IMGB grew; P3 unchanged
+#   capture-partitions.sh assert-small         # ESP/IMGA/IMGB small; no ESP-B yet
+#   capture-partitions.sh assert-grown         # ESP/IMGA/IMGB grew; ESP-B #7; P3 shrank
+#   capture-partitions.sh assert-grown-no-shrink  # ESP/IMGA/IMGB grew; ESP-B #7; P3 unchanged
 #
 # Sizes come straight from `lsblk -b -P -o NAME,PARTLABEL,SIZE /dev/sda` — the
 # same lsblk pillar's diskmetrics uses, so it is present in the pillar ns. The
 # disk is /dev/sda under eden (qemu SATA/IDE).
 #
-# SMALL layout (12.1.0 make-raw): ESP 36 MiB, IMGA/IMGB 512 MiB, big P3.
-# LARGE layout (EVE-k target):    ESP 2 GiB,  IMGA/IMGB 10 GiB; P3 shrinks
-# (shrink variant) or is unchanged with the grow taken from a free tail.
+# SMALL layout (12.1.0 make-raw): ESP 36 MiB, IMGA/IMGB 512 MiB, big P3, no ESP-B.
+# LARGE layout (EVE-k target):    ESP 2 GiB,  IMGA/IMGB 10 GiB, ESP-B 2 GiB (#7);
+# P3 shrinks (shrink variant) or is unchanged with the grow taken from a free tail.
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 MODE=${1:-}
@@ -305,18 +307,30 @@ MiB=$(( 1024 * 1024 ))
 # Read sizes into env-file form: ESP=<bytes> IMGA=<bytes> IMGB=<bytes> P3=<bytes>
 read_sizes() {
     timeout 20 "$EDEN" eve ssh -- \
-        'eve exec pillar lsblk -b -P -o NAME,PARTLABEL,SIZE /dev/sda 2>/dev/null' \
+        'eve exec pillar lsblk -b -P -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda 2>/dev/null' \
         2>/dev/null | grep -v 'level=fatal' | python3 -c '
 import sys, re
-keys = {"EFI System": "ESP", "IMGA": "IMGA", "IMGB": "IMGB", "P3": "P3"}
 out = {}
+espb_name = ""
 for line in sys.stdin:
     m = dict(re.findall(r"(\w+)=\"([^\"]*)\"", line))
     label = m.get("PARTLABEL", "")
-    if label in keys and m.get("SIZE"):
-        out[keys[label]] = m["SIZE"]
-for k in ("ESP", "IMGA", "IMGB", "P3"):
+    size = m.get("SIZE", "")
+    if not size:
+        continue
+    if label == "EFI System":
+        # Once ESP-B exists there are two "EFI System" partitions; tell them
+        # apart by the fixed fresh-install GUIDs (ESP-A …30051, ESP-B …30056).
+        if m.get("PARTUUID", "").lower().endswith("30056"):
+            out["ESPB"] = size
+            espb_name = m.get("NAME", "")
+        else:
+            out["ESP"] = size
+    elif label in ("IMGA", "IMGB", "P3"):
+        out[label] = size
+for k in ("ESP", "ESPB", "IMGA", "IMGB", "P3"):
     print("%s=%s" % (k, out.get(k, "0")))
+print("ESPB_NAME=%s" % espb_name)
 '
 }
 
@@ -327,16 +341,17 @@ load_current() {
     if [ "${ESP:-0}" = "0" ] || [ "${IMGA:-0}" = "0" ] || [ "${IMGB:-0}" = "0" ]; then
         echo "FAIL: could not read partition sizes from /dev/sda" >&2
         echo "      raw lsblk:" >&2
-        timeout 20 "$EDEN" eve ssh -- 'eve exec pillar lsblk -b -o NAME,PARTLABEL,SIZE /dev/sda' >&2 2>/dev/null
+        timeout 20 "$EDEN" eve ssh -- 'eve exec pillar lsblk -b -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda' >&2 2>/dev/null
         exit 1
     fi
 }
 
 print_table() {
-    printf '  %-10s %12s  (%s)\n' EFI "$ESP"  "$(( ESP  / MiB )) MiB"
-    printf '  %-10s %12s  (%s)\n' IMGA "$IMGA" "$(( IMGA / MiB )) MiB"
-    printf '  %-10s %12s  (%s)\n' IMGB "$IMGB" "$(( IMGB / MiB )) MiB"
-    printf '  %-10s %12s  (%s)\n' P3   "$P3"   "$(( P3   / MiB )) MiB"
+    printf '  %-10s %12s  (%s)\n' EFI   "$ESP"       "$(( ESP  / MiB )) MiB"
+    printf '  %-10s %12s  (%s)\n' IMGA  "$IMGA"      "$(( IMGA / MiB )) MiB"
+    printf '  %-10s %12s  (%s)\n' IMGB  "$IMGB"      "$(( IMGB / MiB )) MiB"
+    printf '  %-10s %12s  (%s)\n' ESP-B "${ESPB:-0}" "$(( ${ESPB:-0} / MiB )) MiB"
+    printf '  %-10s %12s  (%s)\n' P3    "$P3"        "$(( P3   / MiB )) MiB"
 }
 
 case "$MODE" in
@@ -359,7 +374,14 @@ case "$MODE" in
             echo "FAIL: geometry is not SMALL (ESP/IMGA/IMGB too big)" >&2
             exit 1
         fi
-        echo "OK: boot disk is on the SMALL geometry"
+        # ESP-B is only created by the conversion; a SMALL device must not have one
+        # yet, so its later presence proves the grow created it rather than it
+        # pre-existing.
+        if [ "${ESPB:-0}" != "0" ]; then
+            echo "FAIL: SMALL geometry already has an ESP-B (GUID …30056)" >&2
+            exit 1
+        fi
+        echo "OK: boot disk is on the SMALL geometry (no ESP-B yet)"
         ;;
     assert-grown|assert-grown-no-shrink)
         load_current
@@ -373,10 +395,11 @@ case "$MODE" in
         S_IMGB=$(grep '^IMGB=' /tmp/xhv-parts-small.env | cut -d= -f2)
         S_P3=$(grep '^P3='   /tmp/xhv-parts-small.env | cut -d= -f2)
         echo "Partition sizes before -> after conversion (bytes):"
-        printf '  %-10s %14s -> %14s\n' EFI  "$S_ESP"  "$ESP"
-        printf '  %-10s %14s -> %14s\n' IMGA "$S_IMGA" "$IMGA"
-        printf '  %-10s %14s -> %14s\n' IMGB "$S_IMGB" "$IMGB"
-        printf '  %-10s %14s -> %14s\n' P3   "$S_P3"   "$P3"
+        printf '  %-10s %14s -> %14s\n' EFI   "$S_ESP"  "$ESP"
+        printf '  %-10s %14s -> %14s\n' IMGA  "$S_IMGA" "$IMGA"
+        printf '  %-10s %14s -> %14s\n' IMGB  "$S_IMGB" "$IMGB"
+        printf '  %-10s %14s -> %14s\n' ESP-B "(none)"  "${ESPB:-0}"
+        printf '  %-10s %14s -> %14s\n' P3    "$S_P3"   "$P3"
         rc=0
         # ESP/IMGA/IMGB must have grown vs baseline AND reached the large floor.
         # Large targets are ESP 2 GiB, IMGA/IMGB 10 GiB; floors are set below the
@@ -387,15 +410,23 @@ case "$MODE" in
         [ "$ESP"  -ge $(( 1 * GiB )) ] || { echo "FAIL: ESP < 1 GiB floor (target 2 GiB)"  >&2; rc=1; }
         [ "$IMGA" -ge $(( 8 * GiB )) ] || { echo "FAIL: IMGA < 8 GiB floor (target 10 GiB)" >&2; rc=1; }
         [ "$IMGB" -ge $(( 8 * GiB )) ] || { echo "FAIL: IMGB < 8 GiB floor (target 10 GiB)" >&2; rc=1; }
+        # ESP-B: the grow must have created the reserved second EFI System
+        # partition at #7 with the fresh-install GUID (…30056) at ~2 GiB, so the
+        # converted device reaches the same 2+2+10+10 layout as a fresh EVE-k
+        # install. read_sizes keys ESPB off the …30056 GUID, so a missing or
+        # wrong-GUID ESP-B reads as absent here.
+        [ "${ESPB:-0}" != "0" ] || { echo "FAIL: ESP-B (GUID …30056) was not created" >&2; rc=1; }
+        [ "${ESPB:-0}" -ge $(( 1 * GiB )) ] 2>/dev/null || { echo "FAIL: ESP-B < 1 GiB floor (target 2 GiB): ${ESPB:-0}" >&2; rc=1; }
+        [ "${ESPB_NAME:-}" = "sda7" ] || { echo "FAIL: ESP-B at ${ESPB_NAME:-<none>}, expected sda7 (partition #7)" >&2; rc=1; }
         if [ "$MODE" = assert-grown ]; then
             # Shrink variant: P3 must have shrunk to make room.
             [ "$P3" -lt "$S_P3" ] || { echo "FAIL: P3 did not shrink" >&2; rc=1; }
-            ok="OK: boot disk repartitioned SMALL -> LARGE (ESP/IMGA/IMGB grew, P3 shrank)"
+            ok="OK: boot disk repartitioned SMALL -> LARGE (ESP/IMGA/IMGB grew, ESP-B #7 created, P3 shrank)"
         else
             # Grow-only variant: P3 must NOT have shrunk (the grow took the free
             # tail). Allow 1 MiB tolerance for GPT alignment jitter.
             [ "$P3" -ge $(( S_P3 - MiB )) ] || { echo "FAIL: P3 shrank ($S_P3 -> $P3) — expected unchanged on the grow-only path" >&2; rc=1; }
-            ok="OK: ESP/IMGA/IMGB grew to LARGE and P3 was not shrunk (grow-only path)"
+            ok="OK: ESP/IMGA/IMGB grew to LARGE, ESP-B #7 created, P3 not shrunk (grow-only path)"
         fi
         [ "$rc" = "0" ] && echo "$ok"
         exit "$rc"

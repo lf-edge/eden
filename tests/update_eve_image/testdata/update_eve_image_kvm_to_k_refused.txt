@@ -175,8 +175,10 @@ exit 1
 #!/bin/bash
 # Trimmed boot-disk geometry helper for the refused test: only `save` and
 # `assert-small` are needed (the refused case never grows). Sizes from
-# `lsblk -b -P -o NAME,PARTLABEL,SIZE /dev/sda`. P3 may be 0 (ZFS-on-another-disk),
-# so only ESP/IMGA/IMGB are required non-zero.
+# `lsblk -b -P -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda`. P3 may be 0 (ZFS-on-
+# another-disk), so only ESP/IMGA/IMGB are required non-zero. assert-small also
+# checks the reserved ESP-B (GPT #7, fresh-install GUID …30056) is absent: a
+# refused conversion must never create it.
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 MODE=${1:-}
@@ -186,17 +188,26 @@ MiB=$(( 1024 * 1024 ))
 
 read_sizes() {
     timeout 20 "$EDEN" eve ssh -- \
-        'eve exec pillar lsblk -b -P -o NAME,PARTLABEL,SIZE /dev/sda 2>/dev/null' \
+        'eve exec pillar lsblk -b -P -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda 2>/dev/null' \
         2>/dev/null | grep -v 'level=fatal' | python3 -c '
 import sys, re
-keys = {"EFI System": "ESP", "IMGA": "IMGA", "IMGB": "IMGB", "P3": "P3"}
 out = {}
 for line in sys.stdin:
     m = dict(re.findall(r"(\w+)=\"([^\"]*)\"", line))
     label = m.get("PARTLABEL", "")
-    if label in keys and m.get("SIZE"):
-        out[keys[label]] = m["SIZE"]
-for k in ("ESP", "IMGA", "IMGB", "P3"):
+    size = m.get("SIZE", "")
+    if not size:
+        continue
+    if label == "EFI System":
+        # ESP-B (reserved #7) has the fresh-install GUID …30056; a refused
+        # conversion must never create it, so track it separately from ESP-A.
+        if m.get("PARTUUID", "").lower().endswith("30056"):
+            out["ESPB"] = size
+        else:
+            out["ESP"] = size
+    elif label in ("IMGA", "IMGB", "P3"):
+        out[label] = size
+for k in ("ESP", "ESPB", "IMGA", "IMGB", "P3"):
     print("%s=%s" % (k, out.get(k, "0")))
 '
 }
@@ -205,7 +216,7 @@ load_current() {
     eval "$(read_sizes)"
     if [ "${ESP:-0}" = "0" ] || [ "${IMGA:-0}" = "0" ] || [ "${IMGB:-0}" = "0" ]; then
         echo "FAIL: could not read ESP/IMGA/IMGB sizes from /dev/sda" >&2
-        timeout 20 "$EDEN" eve ssh -- 'eve exec pillar lsblk -b -o NAME,PARTLABEL,SIZE /dev/sda' >&2 2>/dev/null
+        timeout 20 "$EDEN" eve ssh -- 'eve exec pillar lsblk -b -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda' >&2 2>/dev/null
         exit 1
     fi
 }
@@ -229,7 +240,10 @@ case "$MODE" in
         if [ "$ESP" -ge $(( 256 * MiB )) ] || [ "$IMGA" -ge "$GiB" ] || [ "$IMGB" -ge "$GiB" ]; then
             echo "FAIL: geometry is not SMALL (ESP/IMGA/IMGB too big)" >&2; exit 1
         fi
-        echo "OK: boot disk is on the SMALL geometry"
+        if [ "${ESPB:-0}" != "0" ]; then
+            echo "FAIL: refused conversion created an ESP-B (GUID …30056)" >&2; exit 1
+        fi
+        echo "OK: boot disk is on the SMALL geometry (no ESP-B)"
         ;;
     *)
         echo "Usage: $0 save <tag> | assert-small" >&2
