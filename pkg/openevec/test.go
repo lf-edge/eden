@@ -69,6 +69,7 @@ func InitVarsFromConfig(cfg *EdenSetupArgs) (*utils.ConfigVars, error) {
 	cv.EveCert = utils.ResolveAbsPathWithRoot(cfg.Eden.Root, cfg.Eve.Cert)
 	cv.EveDeviceCert = utils.ResolveAbsPathWithRoot(cfg.Eden.Root, cfg.Eve.DeviceCert)
 	cv.EveSerial = cfg.Eve.Serial
+	cv.EveDeviceName = cfg.Eve.DeviceName
 	cv.EveDist = cfg.Eve.Dist
 	cv.EveQemuConfig = cfg.Eve.QemuFileToSave
 	cv.ZArch = cfg.Eve.Arch

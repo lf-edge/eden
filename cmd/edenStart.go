@@ -59,6 +59,7 @@ func newStartCmd(configName, verbosity *string) *cobra.Command {
 	startCmd.Flags().StringVarP(&cfg.Eve.QemuOS, "eve-os", "", runtime.GOOS, "os to run on")
 	startCmd.Flags().BoolVarP(&cfg.Eve.Accel, "eve-accel", "", cfg.Eve.Accel, "use acceleration")
 	startCmd.Flags().StringVarP(&cfg.Eve.Serial, "eve-serial", "", defaults.DefaultEVESerial, "SMBIOS serial")
+	startCmd.Flags().StringVarP(&cfg.Eve.DeviceName, "eve-device-name", "", "", "device name reported to the controller (random virtualdevice<N> if empty)")
 	startCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, defaults.DefaultQemuFileToSave), "config file to use")
 	startCmd.Flags().IntVarP(&cfg.Eve.QemuConfig.MonitorPort, "qemu-monitor-port", "", defaults.DefaultQemuMonitorPort, "Port for access to QEMU monitor")
 	startCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")

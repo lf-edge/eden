@@ -90,6 +90,9 @@ func (cloud *CloudCtx) ConfigParse(config *config.EdgeDevConfig) (*device.Ctx, e
 	version, _ := strconv.Atoi(config.Id.Version)
 	dev.SetConfigVersion(version)
 	dev.SetDevModel(config.ProductName)
+	if config.DeviceName != "" {
+		dev.SetDevName(config.DeviceName)
+	}
 	for _, el := range config.ConfigItems {
 		dev.SetConfigItem(el.GetKey(), el.GetValue())
 	}
@@ -679,7 +682,7 @@ standaloneContentTreeLoop:
 			Uuid:    dev.GetID().String(),
 			Version: strconv.Itoa(dev.GetConfigVersion()),
 		},
-		DeviceName:         dev.GetID().String(),
+		DeviceName:         dev.GetDevName(),
 		Volumes:            volumes,
 		ContentInfo:        contentTrees,
 		Apps:               applicationInstances,

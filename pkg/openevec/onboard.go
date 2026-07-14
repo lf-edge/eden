@@ -35,6 +35,9 @@ func (openEVEC *OpenEVEC) OnboardEve(eveUUID string) error {
 		dev.SetSerial(vars.EveSerial)
 		dev.SetOnboardKey(vars.EveCert)
 		dev.SetDevModel(vars.DevModel)
+		if vars.EveDeviceName != "" {
+			dev.SetDevName(vars.EveDeviceName)
+		}
 		err = ctrl.OnBoardDev(dev)
 		if err != nil {
 			return fmt.Errorf("error onboarding %w", err)

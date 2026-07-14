@@ -79,6 +79,7 @@ func newStartEveCmd(cfg *openevec.EdenSetupArgs) *cobra.Command {
 	startEveCmd.Flags().StringVarP(&cfg.Eve.QemuOS, "eve-os", "", runtime.GOOS, "os to run on")
 	startEveCmd.Flags().BoolVarP(&cfg.Eve.Accel, "eve-accel", "", cfg.Eve.Accel, "use acceleration")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Serial, "eve-serial", "", cfg.Eve.Serial, "SMBIOS serial")
+	startEveCmd.Flags().StringVarP(&cfg.Eve.DeviceName, "eve-device-name", "", cfg.Eve.DeviceName, "device name reported to the controller (random virtualdevice<N> if empty)")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.QemuConfigPath, "qemu-config", "", filepath.Join(currentPath, defaults.DefaultDist, "qemu.conf"), "config file to use")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Pid, "eve-pid", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.pid"), "file for save EVE pid")
 	startEveCmd.Flags().StringVarP(&cfg.Eve.Log, "eve-log", "", filepath.Join(currentPath, defaults.DefaultDist, "eve.log"), "file for save EVE log")
