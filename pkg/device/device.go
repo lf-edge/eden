@@ -3,6 +3,7 @@ package device
 import (
 	"fmt"
 	"log"
+	"math/rand"
 
 	"github.com/lf-edge/eve-api/go/config"
 	"github.com/lf-edge/eve-api/go/evecommon"
@@ -23,6 +24,7 @@ var (
 type Ctx struct {
 	onboardKey                 string
 	serial                     string
+	devName                    string
 	state                      EdgeNodeState
 	project                    string
 	hash                       [32]byte
@@ -65,6 +67,7 @@ func CreateEdgeNode() *Ctx {
 	id, _ := uuid.NewV4()
 	return &Ctx{
 		id:            id,
+		devName:       fmt.Sprintf("virtualdevice%d", rand.Intn(1<<16)),
 		rebootCounter: 1000,
 		rebootState:   false,
 		configVersion: 4,
@@ -347,6 +350,16 @@ func (cfg *Ctx) GetSerial() string {
 // SetSerial setter
 func (cfg *Ctx) SetSerial(serial string) {
 	cfg.serial = serial
+}
+
+// GetDevName getter
+func (cfg *Ctx) GetDevName() string {
+	return cfg.devName
+}
+
+// SetDevName setter
+func (cfg *Ctx) SetDevName(devName string) {
+	cfg.devName = devName
 }
 
 // GetOnboardKey getter

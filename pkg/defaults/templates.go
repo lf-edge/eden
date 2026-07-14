@@ -93,6 +93,9 @@ eve:
     #serial number in SMBIOS
     serial: '{{parse "eve.serial"}}'
 
+    #device name reported to the controller (random virtualdevice<N> if empty)
+    device-name: '{{parse "eve.device-name"}}'
+
     #onboarding certificate of EVE to put into adam
     cert: '{{parse "eve.cert"}}'
 

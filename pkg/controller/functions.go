@@ -60,6 +60,9 @@ func (cloud *CloudCtx) ResetDev(node *device.Ctx) error {
 	node.SetSerial(vars.EveSerial)
 	node.SetOnboardKey(vars.EveCert)
 	node.SetDevModel(vars.DevModel)
+	if vars.EveDeviceName != "" {
+		node.SetDevName(vars.EveDeviceName)
+	}
 	node.SetGlobalProfile("")
 	node.SetLocalProfileServer("")
 	return cloud.OnBoardDev(node)
