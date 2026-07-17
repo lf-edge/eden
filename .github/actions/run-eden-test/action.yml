@@ -33,6 +33,13 @@ runs:
       with:
         proc_trace_sys_enable: true
         comment_on_pr: false
+    - name: Clean up before test
+      # Make sure there are no leftovers from a previous job on this runner.
+      run: |
+        fuser -k 17777/tcp || true
+        make clean || true
+      shell: bash
+      working-directory: "./eden"
     - name: Setup Environment
       uses: ./eden/.github/actions/setup-environment
       with:
