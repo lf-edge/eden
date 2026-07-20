@@ -1,0 +1,9 @@
+eden.escript.test -test.run TestEdenScripts/nim_override_json_ingest -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/nim_usb_json_ingest -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/nim_bootstrap_only -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/nim_bootstrap_supersedes_override -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/nim_lastconfig_blocks_ingest -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/nim_lastconfig_blocks_bootstrap -test.timeout 15m
+eden.escript.test -test.run TestEdenScripts/nim_dpcl_reapplied_after_reboot -test.timeout 30m
+eden.escript.test -test.run TestEdenScripts/nim_flowlog_acl_reconcile -test.timeout 20m
+eden.escript.test -test.run TestEdenScripts/nim_diag_remote_endpoints -test.timeout 15m
