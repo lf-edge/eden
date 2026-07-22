@@ -64,7 +64,7 @@ exec sleep 30
 # the post-reboot precondition check (STEP 1: radio-silence=false)
 # would never converge. Wipe the persistent file and bounce the
 # device so zedagent restarts without any cached radio silence.
-exec -t 5m bash reset-radio-state.sh
+exec -t 6m bash reset-radio-state.sh
 stdout 'radio reset'
 
 # Standard LPS-app setup, mirroring radio_silence.txt.
@@ -93,7 +93,7 @@ stdout 'radio-silence=true'
 
 # STEP 3: snapshot the EVE-side ZedAgentStatus.RadioSilence.Imposed
 # before reboot so the post-reboot read is comparing apples to apples.
-exec -t 1m bash check-eve-radio-imposed.sh true
+exec -t 3m bash check-eve-radio-imposed.sh true
 stdout 'imposed=true'
 
 # STEP 4: reboot EVE and wait for ssh to come back.
@@ -109,7 +109,7 @@ exec sleep 20
 # RadioSilence.Imposed is still true. We do this BEFORE re-checking the
 # local-manager app — the app may not have reconnected to LPS yet, and
 # this test is about EVE's own persistence, not LPS reachability.
-exec -t 2m bash check-eve-radio-imposed.sh true
+exec -t 3m bash check-eve-radio-imposed.sh true
 stdout 'imposed=true'
 
 # STEP 6: tear down. The test's substantive claim has already been
@@ -227,12 +227,16 @@ $EDEN sdn fwd eth0 {{template "port"}} -- {{template "ssh"}} "$CMDS"
 # consumes one of them — the test's own controller reboot consumes
 # the second.
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
-$EDEN eve ssh 'rm -f /persist/checkpoint/lastradioconfig; sync' 2>/dev/null || true
+timeout 20 $EDEN eve ssh 'rm -f /persist/checkpoint/lastradioconfig; sync' 2>/dev/null || true
 $EDEN controller edge-node reboot
 # Wait for ssh and confirm the radio state really is off post-reboot.
-for i in $(seq 1 60); do
+# Bounded by wall clock with each ssh capped, so a device that never
+# clears radio silence reports it here rather than as the caller's
+# opaque "context deadline exceeded".
+deadline=$(( $(date +%s) + 270 ))
+while [ "$(date +%s)" -lt "$deadline" ]; do
     sleep 5
-    val=$($EDEN eve ssh 'eve exec pillar jq -r ".RadioSilence.Imposed" /run/zedagent/ZedAgentStatus/zedagent.json 2>/dev/null' 2>/dev/null)
+    val=$(timeout 20 $EDEN eve ssh 'eve exec pillar jq -r ".RadioSilence.Imposed" /run/zedagent/ZedAgentStatus/zedagent.json 2>/dev/null' 2>/dev/null)
     val=${val//$'\r'/}
     val=$(echo "$val" | tr -d '[:space:]')
     if [ "$val" = "false" ]; then
@@ -246,15 +250,18 @@ exit 1
 -- check-eve-radio-imposed.sh --
 #!/bin/bash
 # Read /run/zedagent/ZedAgentStatus/zedagent.json on the EVE host and
-# assert RadioSilence.Imposed equals the expected boolean. Retry up to
-# 60 seconds — ssh can flap briefly right after a reboot, and eden's
-# CLI logs its own fatal messages to STDOUT on transient failures
-# which would otherwise pollute the captured value.
+# assert RadioSilence.Imposed equals the expected boolean. The retry
+# budget is bounded by wall clock and each ssh is capped with `timeout`
+# (ssh can flap right after a reboot), so on failure this prints the
+# last value seen and exits before the caller's `exec -t` deadline can
+# fire — otherwise a stuck value surfaces only as an opaque
+# "context deadline exceeded" with no clue whether it read false or hung.
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
 WANT="$1"
+deadline=$(( $(date +%s) + 90 ))
 last=""
-for i in $(seq 1 30); do
-    raw=$($EDEN eve ssh 'eve exec pillar jq -r ".RadioSilence.Imposed" /run/zedagent/ZedAgentStatus/zedagent.json 2>/dev/null' 2>/dev/null)
+while [ "$(date +%s)" -lt "$deadline" ]; do
+    raw=$(timeout 20 $EDEN eve ssh 'eve exec pillar jq -r ".RadioSilence.Imposed" /run/zedagent/ZedAgentStatus/zedagent.json 2>/dev/null' 2>/dev/null)
     # The eden CLI prints time="..." level=fatal lines to stdout on ssh
     # failure. Pull out only literal true/false tokens to ignore them.
     val=$(echo "$raw" | grep -oE '^(true|false)$' | head -1)
