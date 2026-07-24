@@ -1,0 +1,358 @@
+# Test: FRESH first-boot EVE-k with an app instance (and its volume) already in
+# the device config, verifying that volume creation is NOT wedged and the app
+# reaches RUNNING. This exercises lf-edge/eve #6121 (merged to master 2026-07-16):
+# volumemgr now DEFERS EVE-k volume creation until cluster storage is ready
+# (ClusterStorageReadyForVolumes gates on the longhorn StorageClass + the CDI
+# control-plane Deployments), RETRIES transient cluster-volume failures, and
+# CreatePVC is idempotent — so an app volume requested before longhorn/CDI are up
+# converges instead of parking forever at CREATING_VOLUME.
+#
+# This is a NATIVE EVE-k boot — NOT a kvm->k conversion. The boot image is a plain
+# master(-equivalent) -k build; there is no repartition, no cross-flavor upgrade,
+# no vault settle.
+#
+# Bringup is manual (see README_first_boot_evek_app.md): the device must already be
+# freshly onboarded on the -k image via firstboot-evek-bringup.sh. That is the
+# "first boot" — the escript then deploys the app IMMEDIATELY, while EVE-k's
+# cluster storage (k3s + longhorn + CDI, ~12-15 min out) is still initializing, so
+# the app's volume is requested during the no-storage window that #6121 protects.
+#
+# Ordering note: eden's `pod deploy` writes the app into the controller for an
+# ALREADY-onboarded device (it resolves the device UUID from the local eden
+# context), so onboard must precede deploy. Deploying as the escript's first action
+# — seconds after a fresh onboard, with cluster readiness ~15 min away — reproduces
+# "an app volume is in the config from the start of EVE-k's operational life".
+#
+# What it asserts:
+#   - EVE is running the expected -k version and starts with no live volumes;
+#   - EVE-k cluster storage comes up (volumemgr Initialized, longhorn StorageClass);
+#   - the app's volume is NOT wedged: LAST_STATE(EVE) advances through the storage
+#     pipeline into activation (BOOTING/RUNNING) rather than sticking below it.
+#     Depending on where storage wedges the stall can show as INITIAL, LOADED, or
+#     CREATING_VOLUME, so the check treats ANY pre-activation stall (and no
+#     progress) as a wedge and names the state it got stuck in;
+#   - the app reaches RUNNING (7) on EVE-k;
+#   - the guest is genuinely up (key-based SSH), not merely VMI-phase RUNNING.
+#
+# Parameters (env):
+#   FBK_EVE_VER  (required) version base of the local -k image, WITHOUT the
+#                -<hv>-<arch> suffix, e.g. "0.0.0-volumemgr-cdi-retry-ee3da038".
+#   FBK_EVE_REG  (default lfedge/eve) image registry/repo namespace.
+
+{{$arch := EdenConfig "eve.arch"}}
+{{$ver_env := EdenGetEnv "FBK_EVE_VER"}}
+{{$ver := "REPLACE-WITH-K-VERSION"}}
+{{if $ver_env}}{{$ver = $ver_env}}{{end}}
+{{$k_short := printf "%s-k-%s" $ver $arch}}
+{{$appimg := "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"}}
+
+# A fresh EVE-k boot performs no reboots of its own; fail if 3+ are observed.
+# timewait is a safety ceiling above the longest foreground wait (cluster bring-up
+# + app RUNNING).
+! test eden.reboot.test -test.v -timewait=75m -reboot=0 -count=3 &
+
+# Step 0: pre-flight — right version, clean slate.
+message 'pre-flight: parameters, expected -k version, no pre-existing volumes'
+exec -t 1m bash require-ver.sh
+exec -t 3m bash assert-running-version.sh {{ $k_short }}
+stdout 'OK: running'
+exec -t 1m bash assert-no-volumes.sh
+message 'ASSERT: native EVE-k boot disk carries the reserved ESP-B (#7, …30056)'
+exec -t 2m bash assert-espb-present.sh
+stdout 'OK: ESP-B present'
+# Shorten the controller config cadence so the app lands in EVE's config promptly.
+eden controller edge-node update --config timer.config.interval=10
+
+# Step 1: deploy the app instance NOW (fresh EVE-k, cluster storage not yet up).
+# This is the moment under test: the app's disk volume enters the config while
+# longhorn/CDI are still initializing.
+message 'deploying Ubuntu VM app (disk volume) on freshly-booted EVE-k'
+eden -t 1m network create 10.11.12.0/24 -n fbk-net
+# cloud-init injects the eclient SSH pubkey so the liveness check uses key auth
+# (no password / no sshpass). Ubuntu honors ssh_authorized_keys; Cirros does not.
+exec -t 1m bash gen-metadata.sh
+eden -t 15m pod deploy --format=qcow2 --memory=1024MB -n fbk-vmapp -p 2223:22 {{ $appimg }} --networks=fbk-net --metadata=/tmp/fbk-userdata.yaml
+! stderr .
+
+# Step 2: watch EVE-k cluster storage come up. Split from the app wait so a stall
+# here is unambiguously "cluster storage", not "app".
+message 'waiting for EVE-k content store (volumemgr) Initialized'
+exec -t 45m bash wait-for-volumemgr-ready.sh
+message 'waiting for EVE-k longhorn StorageClass (cluster storage ready)'
+exec -t 45m bash wait-for-longhorn-sc.sh
+stdout 'OK: longhorn StorageClass ready'
+
+# Step 3: the load-bearing check — the app's volume creation was NOT wedged and the
+# app reached RUNNING. wait-for-app-running logs LAST_STATE transitions so the
+# progression into activation is visible, and on timeout names the pre-activation
+# state it stuck in (INITIAL / LOADED / CREATING_VOLUME) plus any volume Error.
+message 'waiting for the app volume to be created and the app to reach RUNNING'
+exec -t 45m bash wait-for-app-running.sh fbk-vmapp
+stdout 'OK: fbk-vmapp RUNNING'
+
+# Step 4: strong liveness — the guest actually booted (key-based SSH), not just a
+# RUNNING VMI phase.
+message 'verifying the app guest is genuinely up (SSH)'
+exec -t 20m bash verify-app-ssh.sh
+stdout 'APP_ALIVE'
+
+# Cleanup.
+eden -t 1m pod delete fbk-vmapp
+eden -t 1m network delete fbk-net
+# Cancel the reboot watchdog so `wait` returns immediately (see kill-watchdog.sh).
+exec bash kill-watchdog.sh
+wait
+
+-- require-ver.sh --
+#!/bin/bash
+# Fail fast if FBK_EVE_VER was not supplied.
+set -uo pipefail
+VER='{{ $ver }}'
+if [ -z "$VER" ] || [ "$VER" = "REPLACE-WITH-K-VERSION" ]; then
+    echo "FAIL: FBK_EVE_VER not set." >&2
+    echo "      Export it to the version base of your local -k build, e.g." >&2
+    echo "      FBK_EVE_VER=0.0.0-volumemgr-cdi-retry-ee3da038" >&2
+    echo "      (the part before -k-amd64 in the docker tag)." >&2
+    exit 1
+fi
+echo "OK: FBK_EVE_VER=$VER"
+
+-- assert-running-version.sh --
+#!/bin/bash
+# Sanity-check that EVE is running the expected -k image before the test deploys
+# the app. Bringup happens manually (firstboot-evek-bringup.sh); this guards
+# against running against the wrong base image. Matches the expected version as a
+# substring of /run/eve-release (full "<ver>-k-<arch>" form).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT="${1:?expected -k version}"
+probe() { timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+for _ in $(seq 1 18); do   # ~3m at 10s; tolerate ssh not up yet
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -n "$running" ]; then
+        case "$running" in
+            *"$EXPECT"*) echo "OK: running the expected -k image ('$running')"; exit 0 ;;
+            *) echo "FAIL: running '$running', expected to contain '$EXPECT'." >&2
+               echo "      Bring EVE up on the -k image first (firstboot-evek-bringup.sh)," >&2
+               echo "      or set FBK_EVE_VER to the release you brought up on." >&2
+               exit 1 ;;
+        esac
+    fi
+    sleep 10
+done
+echo "FAIL: could not read /run/eve-release (ssh down / device not up?)" >&2
+exit 1
+
+-- assert-no-volumes.sh --
+#!/bin/bash
+# A fresh onboard must have no live app volumes — otherwise the "app volume enters
+# config at first boot" premise is violated (a leftover from a prior run).
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 12); do
+    out=$("$EDEN" volume ls 2>/dev/null)
+    live=$(echo "$out" | awk 'NR>1 && ($(NF-1) == "IN_CONFIG" || $NF == "DELIVERED")')
+    if [ -z "$live" ]; then echo "OK: no live volumes"; exit 0; fi
+    sleep 5
+done
+echo "FAIL: live volume(s) present on a supposedly-fresh device" >&2; "$EDEN" volume ls >&2; exit 1
+
+-- gen-metadata.sh --
+#!/bin/bash
+# Write the cloud-init user-data that `eden pod deploy --metadata=` reads, so the
+# Ubuntu guest authorizes the eclient SSH pubkey for its default (ubuntu) user, so
+# verify-app-ssh.sh logs in with a key and needs no sshpass/password. dist/tests is
+# only populated by a full `make eden`, so fall back to the master/main reference
+# clones for the cert.
+set -uo pipefail
+EDEN_TESTS="{{EdenConfig "eden.tests"}}"
+USER_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+PUB=""
+for c in "$EDEN_TESTS/eclient/image/cert/id_rsa.pub" \
+         "$USER_HOME/lf-edge/master/eden/tests/eclient/image/cert/id_rsa.pub" \
+         "$USER_HOME/lf-edge/main/eden/tests/eclient/image/cert/id_rsa.pub"; do
+    if [ -f "$c" ]; then PUB="$c"; break; fi
+done
+[ -n "$PUB" ] || { echo "FAIL: could not locate eclient id_rsa.pub (EDEN_TESTS=$EDEN_TESTS, USER_HOME=$USER_HOME)" >&2; exit 1; }
+UD=/tmp/fbk-userdata.yaml
+{
+    echo "#cloud-config"
+    echo "ssh_authorized_keys:"
+    echo " - $(cat "$PUB")"
+} > "$UD"
+echo "OK: wrote cloud-init userdata (eclient pubkey) to $UD"
+
+-- wait-for-volumemgr-ready.sh --
+#!/bin/bash
+# On EVE-k, volumemgr must finish its "wait for kubernetes" init before the app
+# volume can be created. Wait for /run/volumemgr/VolumeMgrStatus/volumemgr.json
+# "Initialized":true (set after kubeapi.WaitForKubernetes returns). Logs a timeline
+# of (Initialized, #ContentTreeStatus) so the readiness moment is visible.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+probe() { timeout 8 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+ct_count() {
+    probe 'eve exec pillar sh -c "ls /run/volumemgr/ContentTreeStatus/*.json 2>/dev/null | wc -l"' \
+        | tr -d '\r' | grep -E '^[0-9]+$' | tail -1
+}
+last=""
+for _ in $(seq 1 240); do   # ~40m at 10s, under the -t 45m wrapper (Initialized lands ~15-25m into EVE-k first boot)
+    init=$(probe 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>/dev/null' \
+            | tr -d '\r' | grep -oE '"Initialized":[a-z]+')
+    ct=$(ct_count); [ -z "$ct" ] && ct='?'
+    sig="init=${init:-<none>} contenttrees=$ct"
+    if [ "$sig" != "$last" ]; then echo "$(date +%H:%M:%S) [readiness] $sig"; last="$sig"; fi
+    if [ "$init" = '"Initialized":true' ]; then
+        echo "OK: volumemgr Initialized:true (contenttrees=$ct)"; exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: volumemgr did not reach Initialized:true within 40m" >&2
+probe 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>&1' >&2
+exit 1
+
+-- wait-for-longhorn-sc.sh --
+#!/bin/bash
+# Wait until the EVE-k `longhorn` StorageClass exists (longhorn deployed + its CSI
+# provisioner up). This is the storage-readiness signal #6121's gate keys on, so
+# waiting here explicitly separates cluster-bringup time from app-bringup time.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for _ in $(seq 1 80); do   # ~40m at 30s, under the -t 45m wrapper
+    if "$EDEN" eve ssh -- 'eve exec kube kubectl get sc 2>/dev/null' 2>/dev/null | grep -qE '^longhorn'; then
+        echo "OK: longhorn StorageClass ready"; exit 0
+    fi
+    sleep 30
+done
+echo "FAIL: longhorn StorageClass not ready within budget" >&2; exit 1
+
+-- wait-for-app-running.sh --
+#!/bin/bash
+# Poll `eden pod ps` until the app reaches LAST_STATE(EVE)=RUNNING, logging every
+# state transition so the storage-pipeline progression into activation
+# (BOOTING/RUNNING) is visible. This is the load-bearing #6121 check: if volume
+# creation wedged, the app never activates and parks below BOOTING. Where it parks
+# depends on where storage stuck — INITIAL, LOADED, CREATING_VOLUME are all seen —
+# so on timeout ANY pre-activation stall is reported as a wedge, naming the state,
+# plus any VolumeStatus/ContentTreeStatus Error.
+set -uo pipefail
+APP="${1:?app name}"
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+probe() { timeout 10 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
+last=""
+laststate=""
+for _ in $(seq 1 240); do   # ~40m at 10s, under the -t 45m wrapper
+    line=$("$EDEN" pod ps 2>/dev/null | grep -E "^${APP}\b")
+    # LAST_STATE(EVE) is the final column of `eden pod ps` (space-aligned via
+    # tabwriter); the state strings have no spaces, so the last field is it.
+    laststate=$(echo "$line" | awk '{print $NF}')
+    if [ "$laststate" != "$last" ] && [ -n "$laststate" ]; then
+        echo "$(date +%H:%M:%S) [app] LAST_STATE(EVE)=$laststate"; last="$laststate"
+    fi
+    if [ "$laststate" = "RUNNING" ]; then
+        echo "OK: $APP RUNNING"; echo "$line"; exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: $APP did not reach RUNNING in 40m (last state: ${laststate:-<none>})" >&2
+"$EDEN" pod ps >&2
+# Wedge diagnosis: any stall BELOW activation (BOOTING/RUNNING) means the storage
+# pipeline did not converge. Where it parks depends on where it wedged — INITIAL,
+# LOADED, CREATING_VOLUME are all symptoms of the #6121 failure this test guards.
+case "$laststate" in
+    INITIAL|DOWNLOAD_STARTED|DOWNLOADED|DELIVERED|INSTALLED|RESOLVING_TAG|RESOLVED_TAG|CREATING_VOLUME|CREATED_VOLUME|VERIFYING|VERIFIED|LOADING|LOADED|PENDING|SCHEDULING|ERROR)
+        echo "FAIL[volume-wedge]: app stuck at $laststate (below activation) — EVE-k volume/storage creation did not converge (the #6121 regression this test guards against)." >&2 ;;
+esac
+verr=$(probe 'eve exec pillar sh -c "cat /run/volumemgr/VolumeStatus/*.json /run/volumemgr/ContentTreeStatus/*.json 2>/dev/null"' \
+        | grep -oE '"Error":"[^"]+"' | grep -v '"Error":""' | head)
+[ -n "$verr" ] && echo "Volume/ContentTree errors: $verr" >&2
+exit 1
+
+-- verify-app-ssh.sh --
+#!/bin/bash
+# Strong liveness: `eden pod ps` RUNNING on EVE-k reflects the kubevirt VMI phase,
+# not that the guest OS booted. Confirm the guest is genuinely up by logging in
+# over key auth (eclient pubkey injected via cloud-init) as ubuntu on the hostfwd
+# 127.0.0.1:2223 -> EVE -> app:22, and reading a live fact from inside the guest.
+set -uo pipefail
+PORT=2223
+EDEN_TESTS="{{EdenConfig "eden.tests"}}"
+USER_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+SRC=""
+for c in "$EDEN_TESTS/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/master/eden/tests/eclient/image/cert/id_rsa" \
+         "$USER_HOME/lf-edge/main/eden/tests/eclient/image/cert/id_rsa"; do
+    if [ -f "$c" ]; then SRC="$c"; break; fi
+done
+[ -n "$SRC" ] || { echo "FAIL: could not locate eclient id_rsa (EDEN_TESTS=$EDEN_TESTS, USER_HOME=$USER_HOME)" >&2; exit 1; }
+KEY=$(mktemp); install -m 600 "$SRC" "$KEY"; trap 'rm -f "$KEY"' EXIT
+SSHP=(-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o PreferredAuthentications=publickey -i "$KEY")
+guest() { ssh "${SSHP[@]}" ubuntu@127.0.0.1 -p "$PORT" "$@" 2>/dev/null; }
+for _ in $(seq 1 60); do   # ~20m at 20s — guest boot after VMI RUNNING
+    up=$(guest 'cat /proc/uptime 2>/dev/null | awk "{print int(\$1)}"')
+    if [ -n "$up" ]; then
+        echo "guest uptime=${up}s"
+        echo "APP_ALIVE: guest OS is up and reachable over key-based SSH"
+        exit 0
+    fi
+    sleep 20
+done
+echo "FAIL: app guest not reachable over SSH (VMI may be RUNNING but the guest did not boot)" >&2
+exit 1
+
+-- kill-watchdog.sh --
+#!/bin/bash
+# Cancel the background reboot watchdog so the escript's `wait` returns immediately
+# instead of blocking until the watchdog's -timewait ceiling. SIGTERM makes it exit
+# non-zero, which satisfies the `!` prefix on its launch line — identical to letting
+# it time out. Bracket the pattern ([e]den) so pkill matches the real
+# eden.reboot.test process but NOT its own argv or this script's argv (which contain
+# the literal "[e]den.reboot.test", not "eden..."). Run as a helper file rather than
+# `exec sh -c "..."` inline because the escript tokenizer mishandles nested quotes.
+pkill -f '[e]den.reboot.test' 2>/dev/null || true
+exit 0
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
+
+-- assert-espb-present.sh --
+#!/bin/bash
+# Assert the boot disk carries the reserved ESP-B (GPT #7, fresh-install GUID
+# …30056) at ~2 GiB — the full 2+2+10+10 EVE-k layout. This test runs on an
+# already-LARGE device (no repartition here), so it does NOT create ESP-B; it
+# DEPENDS on the image already shipping it (eve#6158 runme.sh do_live). Asserting
+# it makes that silent precondition explicit. Reads via lsblk PARTUUID, keyed on
+# the …30056 GUID, exactly like capture-partitions.sh.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+GiB=$(( 1024 * 1024 * 1024 )); MiB=$(( 1024 * 1024 ))
+read_espb() {
+    timeout 20 "$EDEN" eve ssh -- \
+        'eve exec pillar lsblk -b -P -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda 2>/dev/null' \
+        2>/dev/null | grep -v 'level=fatal' | python3 -c '
+import sys, re
+for line in sys.stdin:
+    m = dict(re.findall(r"(\w+)=\"([^\"]*)\"", line))
+    if m.get("PARTLABEL") == "EFI System" and m.get("PARTUUID", "").lower().endswith("30056"):
+        print("%s %s" % (m.get("NAME", ""), m.get("SIZE", "0"))); break
+'
+}
+for _ in $(seq 1 6); do   # ~1m; tolerate ssh/pillar not up yet
+    read -r name size <<<"$(read_espb)"
+    if [ -n "${size:-}" ] && [ "${size:-0}" != "0" ]; then
+        echo "ESP-B: name=${name:-?} size=$size ($(( size / MiB )) MiB)"
+        [ "$size" -ge "$GiB" ] 2>/dev/null || { echo "FAIL: ESP-B < 1 GiB floor (target 2 GiB): $size" >&2; exit 1; }
+        [ "${name:-}" = "sda7" ] || { echo "FAIL: ESP-B at ${name:-<none>}, expected sda7 (partition #7)" >&2; exit 1; }
+        echo "OK: ESP-B present (#7 …30056 at $(( size / MiB )) MiB)"; exit 0
+    fi
+    sleep 10
+done
+echo "FAIL: no ESP-B (#7 GUID …30056) on /dev/sda — the live image lacks the reserved ESP-B (eve#6158)?" >&2
+timeout 20 "$EDEN" eve ssh -- 'eve exec pillar lsblk -o NAME,PARTLABEL,PARTUUID,SIZE /dev/sda' >&2 2>/dev/null
+exit 1
