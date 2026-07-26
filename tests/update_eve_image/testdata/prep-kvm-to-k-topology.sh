@@ -149,11 +149,15 @@ usage() { sed -n '2,60p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 guard_no_other_eden() {
     local busy=0
     docker ps --format '{{.Names}}' 2>/dev/null | grep -qE '^eden_(adam|redis|eserver|registry)$' && busy=1
-    pgrep -f 'qemu-system.*-drive' >/dev/null 2>&1 && busy=1
+    # eden always names its QEMU control socket "<context>-qmp.sock" (pkg/eden/qemu.go),
+    # independent of eden.root/EDEN_HOME. Match that suffix so a leaked eden QEMU is
+    # caught while VMs from other frameworks (e.g. evetest, whose socket is a plain
+    # "qmp.sock") are ignored.
+    pgrep -f '[q]emu-system.*-qmp\.sock' >/dev/null 2>&1 && busy=1
     if [ "$busy" = 1 ]; then
-        echo "An eden instance appears to be running on this host (eden_* containers or qemu)." >&2
-        echo "eden is single-tenant; this script would disturb it. Stop it first or use a" >&2
-        echo "dedicated host / the eden-vm-sandbox skill. Refusing." >&2
+        echo "An eden instance appears to be running on this host (eden_* containers or an" >&2
+        echo "eden-spawned QEMU). eden is single-tenant; this script would disturb it. Stop" >&2
+        echo "it first or use a dedicated host / the eden-vm-sandbox skill. Refusing." >&2
         exit 1
     fi
 }
