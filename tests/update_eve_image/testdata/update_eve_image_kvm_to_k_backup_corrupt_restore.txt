@@ -1,7 +1,7 @@
-# Test: kvm-to-k conversion fault case F11 — PARTIAL CORRUPTION of the backed-up
+# Test: kvm-to-k conversion fault case: backup-corruption restore — PARTIAL CORRUPTION of the backed-up
 # critical files in /persist (truncate each to ~half), and verify the device still
 # recovers WITH NO CONTROLLER REACHABLE via restore's per-type validity gate plus
-# pillar's .bak fallback. Sibling of the F9 (full-wipe) test.
+# pillar's .bak fallback. Sibling of the persist-wipe test.
 #
 # This does NOT run a real shrink/grow and does NOT wipe /persist. It exercises the
 # backup->corrupt->restore fail-safe against PARTIAL corruption: an online
@@ -43,7 +43,7 @@
 # -- see the disabled FIX-SIM block in backup-and-arm.sh, which you can uncomment
 # to run against an UNPATCHED image.
 #
-# Sibling of the F9 (full-wipe) test; it reuses F9's setup and assertions with the
+# Sibling of the persist-wipe test; it reuses the persist-wipe test's setup and assertions with the
 # wipe replaced by the on-device truncation below. Run it against an image carrying
 # both the #6063 OnboardingStatus backup and the #6122 .bak-on-first-save fixes
 # (e.g. resize-allprs). What it proves: the no-validator checkpoint files
@@ -85,7 +85,7 @@
 {{if $skip_hop_env}}{{$skip_hop = $skip_hop_env}}{{end}}
 
 {{$kvm_short := printf "%s-kvm-%s" $resize_ver $arch}}
-{{$ssid := "eden-f9"}}
+{{$ssid := "eden-restore"}}
 
 # Step 0: pre-flight. Fail fast if the version param wasn't supplied, confirm a
 # clean device, and shorten the baseimage commit timer so the kvm hop applies fast.
@@ -96,7 +96,7 @@ eden -t 1m pod ps
 eden controller edge-node update --config timer.test.baseimage.update=30
 
 # Step 1: get the device onto the resize-capable kvm build so /usr/bin/storage-resizer
-# + the storage-init restore hooks exist. (Geometry is irrelevant to F9 — no
+# + the storage-init restore hooks exist. (Geometry is irrelevant to this test — no
 # conversion happens.) Two paths:
 #   SKIP_KVM_HOP unset: bring up on the SMALL bringup release, then kvm->kvm
 #                       upgrade to the resize image (matches the sibling escripts).
@@ -123,7 +123,7 @@ exec -t 25m bash wait-for-upgrade.sh {{ $kvm_short }}
 # BASELINE decrypt (proves the port was ingested + decrypted pre-wipe), then
 # snapshot identity + the DPCL for the post-restore comparison.
 message 'injecting encrypted WiFi port (eden PR #1202 add-wireless)'
-eden -t 2m controller edge-node add-wireless --port wlan0 --ssid {{ $ssid }} --password eden-f9-psk
+eden -t 2m controller edge-node add-wireless --port wlan0 --ssid {{ $ssid }} --password eden-restore-psk
 ! stderr 'level=fatal'
 message 'waiting for BASELINE decrypt (pre-wipe) of the WiFi creds'
 exec -t 5m bash assert-decrypt.sh {{ $ssid }} 240
@@ -292,24 +292,24 @@ exit 1
 -- snapshot-identity.sh --
 #!/bin/bash
 # Snapshot pre-wipe identity + DPCL for the post-restore comparison:
-#   /tmp/f9-uuid            device UUID (/persist/status/uuid)
-#   /tmp/f9-certs           sorted list of /persist/certs/*.pem basenames
-#   /tmp/f9-dpcl-before.json  DevicePortConfigList global.json (raw)
+#   /tmp/restore-uuid            device UUID (/persist/status/uuid)
+#   /tmp/restore-certs           sorted list of /persist/certs/*.pem basenames
+#   /tmp/restore-dpcl-before.json  DevicePortConfigList global.json (raw)
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 probe() { timeout 20 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
 uuid=$(probe 'eve exec pillar cat /persist/status/uuid' | tr -d '\r' | grep -E '^[0-9a-fA-F-]{36}$' | head -1)
 if [ -z "$uuid" ]; then echo "FAIL: could not read device UUID (/persist/status/uuid)" >&2; exit 1; fi
-echo "$uuid" > /tmp/f9-uuid
-probe 'eve exec pillar sh -c "ls /persist/certs/*.pem 2>/dev/null | xargs -n1 basename"' | tr -d '\r' | sort > /tmp/f9-certs
-probe 'eve exec pillar sh -c "cat /persist/status/nim/DevicePortConfigList/*.json 2>/dev/null"' > /tmp/f9-dpcl-before.json
+echo "$uuid" > /tmp/restore-uuid
+probe 'eve exec pillar sh -c "ls /persist/certs/*.pem 2>/dev/null | xargs -n1 basename"' | tr -d '\r' | sort > /tmp/restore-certs
+probe 'eve exec pillar sh -c "cat /persist/status/nim/DevicePortConfigList/*.json 2>/dev/null"' > /tmp/restore-dpcl-before.json
 # Full pre-corruption /persist inventory (names + numeric owners + sizes) so the
 # post-restore state can be diffed to show what each corrupted file recovered to.
-probe 'eve exec pillar ls -laRn /persist' > /tmp/f11-persist-before.txt 2>/dev/null
-if [ ! -s /tmp/f9-certs ] || [ ! -s /tmp/f9-dpcl-before.json ]; then
+probe 'eve exec pillar ls -laRn /persist' > /tmp/restore-persist-before.txt 2>/dev/null
+if [ ! -s /tmp/restore-certs ] || [ ! -s /tmp/restore-dpcl-before.json ]; then
     echo "FAIL: empty certs list or DPCL snapshot" >&2; exit 1
 fi
-echo "OK: snapshot UUID=$uuid certs=$(wc -l </tmp/f9-certs) dpcl_bytes=$(wc -c </tmp/f9-dpcl-before.json) persist_before=$(wc -l </tmp/f11-persist-before.txt 2>/dev/null || echo 0)lines"
+echo "OK: snapshot UUID=$uuid certs=$(wc -l </tmp/restore-certs) dpcl_bytes=$(wc -c </tmp/restore-dpcl-before.json) persist_before=$(wc -l </tmp/restore-persist-before.txt 2>/dev/null || echo 0)lines"
 
 -- backup-and-arm.sh --
 #!/bin/bash
@@ -332,7 +332,7 @@ TARGET="78G"
 CFGP=\$(findfs PARTLABEL=CONFIG) || { echo "FAIL: no CONFIG partition"; exit 1; }
 # Wait for the .bak fallbacks to be created before we stop+truncate. eve #6122
 # creates lastconfig.bak/controllercerts.bak on the first save, but a beat after
-# onboard -- and F11 keeps them intact to test the .bak fallback for the
+# onboard -- and this test keeps them intact to test the .bak fallback for the
 # no-validator checkpoint files (lastconfig, controllercerts). Bounded wait; the
 # device is still running here so pillar can create them.
 w=0
@@ -344,21 +344,21 @@ done
 [ -f /persist/checkpoint/lastconfig.bak ] && [ -f /persist/checkpoint/controllercerts.bak ] \
     && echo "both .bak fallbacks present after \${w} check(s)" \
     || echo "WARN: .bak fallback(s) still absent after wait -- needs eve #6122 in the image"
-mkdir -p /tmp/f9cfg
-mountpoint -q /tmp/f9cfg || mount -t vfat -o rw,iocharset=iso8859-1 "\$CFGP" /tmp/f9cfg || { echo "FAIL: mount CONFIG rw"; exit 1; }
+mkdir -p /tmp/restore-cfg
+mountpoint -q /tmp/restore-cfg || mount -t vfat -o rw,iocharset=iso8859-1 "\$CFGP" /tmp/restore-cfg || { echo "FAIL: mount CONFIG rw"; exit 1; }
 ok=0; i=0
 while [ \$i -lt 18 ]; do
     i=\$((i+1))
-    /usr/bin/storage-resizer backup --persist /persist --backup-dir /tmp/f9cfg/backup-persist --flag-file /tmp/f9cfg/repartition-inprogress --target "\$TARGET" >/dev/null 2>&1
-    if cat /tmp/f9cfg/backup-persist/checkpoint/lastconfig* 2>/dev/null | tr -d '\\0' | grep -q "\$SSID" && ls /tmp/f9cfg/backup-persist/certs/ecdh.*.pem >/dev/null 2>&1; then
+    /usr/bin/storage-resizer backup --persist /persist --backup-dir /tmp/restore-cfg/backup-persist --flag-file /tmp/restore-cfg/repartition-inprogress --target "\$TARGET" >/dev/null 2>&1
+    if cat /tmp/restore-cfg/backup-persist/checkpoint/lastconfig* 2>/dev/null | tr -d '\\0' | grep -q "\$SSID" && ls /tmp/restore-cfg/backup-persist/certs/ecdh.*.pem >/dev/null 2>&1; then
         ok=1; break
     fi
     sync; sleep 10
 done
 if [ "\$ok" != 1 ]; then
     echo "FAIL: backup did not capture SSID \$SSID + ecdh cert in the checkpoint"
-    ls -la /tmp/f9cfg/backup-persist/checkpoint /tmp/f9cfg/backup-persist/certs 2>/dev/null
-    umount /tmp/f9cfg 2>/dev/null
+    ls -la /tmp/restore-cfg/backup-persist/checkpoint /tmp/restore-cfg/backup-persist/certs 2>/dev/null
+    umount /tmp/restore-cfg 2>/dev/null
     exit 1
 fi
 # --- FIX-SIM (STAGE_ONBOARDINGSTATUS) -- disabled; re-enable for UNPATCHED images -
@@ -371,19 +371,19 @@ fi
 # manually (validated: doing so makes the full test pass). /persist/status/uuid is
 # intentionally NOT staged -- cmd/client regenerates it from the restored
 # OnboardingStatus (os.Stat-missing forces the write).
-#mkdir -p /tmp/f9cfg/backup-persist/status/zedclient
-#cp -a /persist/status/zedclient/OnboardingStatus /tmp/f9cfg/backup-persist/status/zedclient/ 2>/dev/null || true
+#mkdir -p /tmp/restore-cfg/backup-persist/status/zedclient
+#cp -a /persist/status/zedclient/OnboardingStatus /tmp/restore-cfg/backup-persist/status/zedclient/ 2>/dev/null || true
 # ---------------------------------------------------------------------------------
 REL=\$(tr -d '\\r\\n' < /hostfs/etc/eve-release 2>/dev/null); [ -n "\$REL" ] || REL=\$(tr -d '\\r\\n' < /run/eve-release 2>/dev/null)
-if [ -z "\$REL" ]; then echo "FAIL: could not read running eve-release for the marker"; umount /tmp/f9cfg 2>/dev/null; exit 1; fi
-printf '{"eve_release":"%s","step":"f9-test","rc":"0","ts":"f9"}' "\$REL" > /tmp/f9cfg/resize-failed.json
+if [ -z "\$REL" ]; then echo "FAIL: could not read running eve-release for the marker"; umount /tmp/restore-cfg 2>/dev/null; exit 1; fi
+printf '{"eve_release":"%s","step":"restore-test","rc":"0","ts":"restore"}' "\$REL" > /tmp/restore-cfg/resize-failed.json
 sync
-umount /tmp/f9cfg
+umount /tmp/restore-cfg
 echo "OK: backed up identity+checkpoint (SSID \$SSID present) and armed skip-shrink for \$REL"
 EOF
 
 B64=$(printf '%s' "$DEV_SCRIPT" | base64 -w0)
-out=$(timeout 300 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/f9-backup.sh; sh /tmp/f9-backup.sh'" 2>/dev/null | grep -v 'level=fatal')
+out=$(timeout 300 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/restore-backup.sh; sh /tmp/restore-backup.sh'" 2>/dev/null | grep -v 'level=fatal')
 echo "$out"
 echo "$out" | grep -q '^OK:' || { echo "FAIL: backup-and-arm did not succeed on device" >&2; exit 1; }
 
@@ -420,7 +420,7 @@ sync
 exit $FAIL
 EOF
 B64=$(printf '%s' "$DEV_SCRIPT" | base64 -w0)
-out=$(timeout 120 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/f11-corrupt.sh; sh /tmp/f11-corrupt.sh'" 2>/dev/null | grep -v 'level=fatal')
+out=$(timeout 120 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/restore-corrupt.sh; sh /tmp/restore-corrupt.sh'" 2>/dev/null | grep -v 'level=fatal')
 echo "$out"
 echo "$out" | grep -q '^OK: on-device truncation done' || { echo "FAIL: on-device corruption did not complete" >&2; exit 1; }
 echo "$out" | grep -q 'truncated checkpoint/lastconfig:' || { echo "FAIL: lastconfig was not truncated (absent on device?)" >&2; exit 1; }
@@ -453,7 +453,7 @@ echo "OK: EVE up after corruption+restore, uptime ${uptime_secs}s"
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 probe() { timeout 20 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
-before_uuid=$(cat /tmp/f9-uuid 2>/dev/null)
+before_uuid=$(cat /tmp/restore-uuid 2>/dev/null)
 [ -n "$before_uuid" ] || { echo "FAIL: no pre-wipe UUID snapshot" >&2; exit 1; }
 after_uuid=""
 for _ in $(seq 1 18); do
@@ -465,13 +465,13 @@ if [ "$after_uuid" != "$before_uuid" ]; then
     echo "FAIL: UUID changed across the corruption: before='$before_uuid' after='$after_uuid'" >&2
     exit 1
 fi
-probe 'eve exec pillar sh -c "ls /persist/certs/*.pem 2>/dev/null | xargs -n1 basename"' | tr -d '\r' | sort > /tmp/f9-certs-after
-missing=$(comm -23 /tmp/f9-certs /tmp/f9-certs-after)
+probe 'eve exec pillar sh -c "ls /persist/certs/*.pem 2>/dev/null | xargs -n1 basename"' | tr -d '\r' | sort > /tmp/restore-certs-after
+missing=$(comm -23 /tmp/restore-certs /tmp/restore-certs-after)
 if [ -n "$missing" ]; then
     echo "FAIL: certs missing after restore:" >&2; echo "$missing" >&2
     exit 1
 fi
-echo "OK: UUID preserved ($after_uuid) and all $(wc -l </tmp/f9-certs) certs restored (offline)"
+echo "OK: UUID preserved ($after_uuid) and all $(wc -l </tmp/restore-certs) certs restored (offline)"
 
 -- assert-dpcl-stable.sh --
 #!/bin/bash
@@ -487,9 +487,9 @@ EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "ed
 probe() { timeout 20 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
 # Take the "after" snapshot once nim has settled a little.
 sleep 20
-probe 'eve exec pillar sh -c "cat /persist/status/nim/DevicePortConfigList/*.json 2>/dev/null"' > /tmp/f9-dpcl-after.json
-[ -s /tmp/f9-dpcl-after.json ] || { echo "FAIL: empty DPCL after restore" >&2; exit 1; }
-python3 - /tmp/f9-dpcl-before.json /tmp/f9-dpcl-after.json <<'PY'
+probe 'eve exec pillar sh -c "cat /persist/status/nim/DevicePortConfigList/*.json 2>/dev/null"' > /tmp/restore-dpcl-after.json
+[ -s /tmp/restore-dpcl-after.json ] || { echo "FAIL: empty DPCL after restore" >&2; exit 1; }
+python3 - /tmp/restore-dpcl-before.json /tmp/restore-dpcl-after.json <<'PY'
 import sys, json
 # Volatile per-DPC fields. TimePriority is the config-submission timestamp; zedagent
 # re-stamps it when it re-applies the checkpointed config offline, so it changes
@@ -519,7 +519,7 @@ PY
 -- assert-cleanup.sh --
 #!/bin/bash
 # Assert restore/cleanup ran: the repartition flag + backup dir are gone from the
-# CONFIG partition. Unlike F9, /persist was NOT reformatted (only files truncated;
+# CONFIG partition. Unlike the persist-wipe test, /persist was NOT reformatted (only files truncated;
 # the fs stayed intact), so restore does NOT stamp persist_recreated -- it must be
 # absent/false. Mounts CONFIG ro to read.
 set -uo pipefail
@@ -528,22 +528,22 @@ read -r -d '' DEV_SCRIPT <<'EOF'
 #!/bin/sh
 set -u
 CFGP=$(findfs PARTLABEL=CONFIG) || { echo "FAIL: no CONFIG partition"; exit 1; }
-mkdir -p /tmp/f11chk
-mountpoint -q /tmp/f11chk || mount -t vfat -o ro,iocharset=iso8859-1 "$CFGP" /tmp/f11chk || { echo "FAIL: mount CONFIG ro"; exit 1; }
+mkdir -p /tmp/restore-chk
+mountpoint -q /tmp/restore-chk || mount -t vfat -o ro,iocharset=iso8859-1 "$CFGP" /tmp/restore-chk || { echo "FAIL: mount CONFIG ro"; exit 1; }
 rc=0
-if [ -e /tmp/f11chk/repartition-inprogress ]; then echo "FAIL: repartition-inprogress still present (restore/cleanup did not run)"; rc=1; fi
-if [ -d /tmp/f11chk/backup-persist ]; then echo "FAIL: backup-persist dir not cleaned up"; rc=1; fi
+if [ -e /tmp/restore-chk/repartition-inprogress ]; then echo "FAIL: repartition-inprogress still present (restore/cleanup did not run)"; rc=1; fi
+if [ -d /tmp/restore-chk/backup-persist ]; then echo "FAIL: backup-persist dir not cleaned up"; rc=1; fi
 # /persist was truncated in place, NOT reformatted: persist_recreated must NOT be true.
-if [ -f /tmp/f11chk/resize-failed.json ] && grep -q '"persist_recreated":true' /tmp/f11chk/resize-failed.json; then
-    echo "FAIL: persist_recreated:true set, but /persist was only truncated (not reformatted):"; cat /tmp/f11chk/resize-failed.json
+if [ -f /tmp/restore-chk/resize-failed.json ] && grep -q '"persist_recreated":true' /tmp/restore-chk/resize-failed.json; then
+    echo "FAIL: persist_recreated:true set, but /persist was only truncated (not reformatted):"; cat /tmp/restore-chk/resize-failed.json
     rc=1
 fi
-umount /tmp/f11chk 2>/dev/null
+umount /tmp/restore-chk 2>/dev/null
 [ $rc = 0 ] && echo "OK: conversion bookkeeping cleaned up (persist not recreated)"
 exit $rc
 EOF
 B64=$(printf '%s' "$DEV_SCRIPT" | base64 -w0)
-out=$(timeout 60 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/f11-chk.sh; sh /tmp/f11-chk.sh'" 2>/dev/null | grep -v 'level=fatal')
+out=$(timeout 60 "$EDEN" eve ssh -- "eve exec pillar sh -c 'echo $B64 | base64 -d > /tmp/restore-chk.sh; sh /tmp/restore-chk.sh'" 2>/dev/null | grep -v 'level=fatal')
 echo "$out"
 echo "$out" | grep -q 'bookkeeping cleaned up' || { echo "FAIL: cleanup assertions failed" >&2; exit 1; }
 
@@ -552,14 +552,14 @@ echo "$out" | grep -q 'bookkeeping cleaned up' || { echo "FAIL: cleanup assertio
 # Record the full /persist inventory AFTER storage-init restore ran, and print the
 # recovery-relevant subtrees (checkpoint/certs/status) with sizes so the run shows
 # exactly what each corrupted file recovered to. Full before/after inventories are
-# saved to /tmp/f11-persist-{before,after}.txt for diffing (before is captured in
+# saved to /tmp/restore-persist-{before,after}.txt for diffing (before is captured in
 # snapshot-identity.sh, pre-corruption).
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 probe() { timeout 30 "$EDEN" eve ssh -- "$1" 2>/dev/null | grep -v 'level=fatal'; }
-probe 'eve exec pillar ls -laRn /persist' > /tmp/f11-persist-after.txt 2>/dev/null
+probe 'eve exec pillar ls -laRn /persist' > /tmp/restore-persist-after.txt 2>/dev/null
 echo "=== /persist checkpoint + certs + status after restore (size time name) ==="
 probe 'eve exec pillar ls -la --time-style=+%H:%M:%S /persist/checkpoint /persist/certs /persist/status/nim/DevicePortConfigList /persist/status/zedclient/OnboardingStatus 2>/dev/null'
-after_lines=$(wc -l < /tmp/f11-persist-after.txt 2>/dev/null || echo 0)
-before_lines=$(wc -l < /tmp/f11-persist-before.txt 2>/dev/null || echo 0)
-echo "OK: recorded /persist after restore (${after_lines} lines -> /tmp/f11-persist-after.txt; pre-corruption ${before_lines} lines -> /tmp/f11-persist-before.txt)"
+after_lines=$(wc -l < /tmp/restore-persist-after.txt 2>/dev/null || echo 0)
+before_lines=$(wc -l < /tmp/restore-persist-before.txt 2>/dev/null || echo 0)
+echo "OK: recorded /persist after restore (${after_lines} lines -> /tmp/restore-persist-after.txt; pre-corruption ${before_lines} lines -> /tmp/restore-persist-before.txt)"
