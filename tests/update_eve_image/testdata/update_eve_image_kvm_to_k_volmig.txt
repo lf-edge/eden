@@ -102,7 +102,7 @@ stdout 'OK: ESP-B present'
 # Step 4: on EVE-k, wait for the cluster + app, then the load-bearing assertion:
 # the data marker survived (the volume was migrated, not recreated).
 message 'waiting for EVE-k content store (volumemgr) ready'
-exec -t 65m bash wait-for-volumemgr-ready.sh
+exec -t 90m bash wait-for-volumemgr-ready.sh
 message 'snapshot downloader RecvByteCount baseline on EVE-k'
 exec -t 1m bash snapshot-rcv-bytes.sh pre
 message 'waiting for EVE-k longhorn StorageClass ready (cluster storage up)'
@@ -560,20 +560,30 @@ ct_count() {
         | tr -d '\r' | grep -E '^[0-9]+$' | tail -1
 }
 last=""
-# 60m at 10s. This MUST exceed volumemgr's own pre-publish block, which is up to
+# 85m budget. This MUST exceed volumemgr's own pre-publish block, which is up to
 # 20m in WaitForKubernetes (node + kubevirt + longhorn) plus up to 20m more in
 # storageWait before VolumeMgrStatus is published at all. This loop also begins
 # timing before volumemgr begins its own, so a 40m budget could not observe the
-# publish even on a device that converges -- it expired at the very moment volumemgr
-# was released. Initialized is set unconditionally once both waits end
-# (handlediskmetrics.go generateAndPublishVolumeMgrStatus), so reaching it under a
-# longer budget means "the device recovered", not "cluster storage is healthy" --
-# the longhorn and app steps that follow are what establish that.
-for _ in $(seq 1 360); do
-    init=$(probe 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>/dev/null' \
-            | tr -d '\r' | grep -oE '"Initialized":[a-z]+')
+# publish even on a device that converges -- it expired at the very moment
+# volumemgr was released.
+#
+# The budget is wall-clock, not an iteration count: each pass also spends up to
+# 16s in two ssh probes that hit their timeout precisely when the device is
+# stalled, so a fixed count can outlive the caller's `exec -t` deadline and get
+# killed before reaching the diagnostics below -- which is when they matter most.
+# Keep it under that deadline with room for the final status dump.
+BUDGET_MIN=85
+deadline=$(( $(date +%s) + BUDGET_MIN * 60 ))
+unmet=""
+while [ "$(date +%s)" -lt "$deadline" ]; do
+    status=$(probe 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>/dev/null' \
+            | tr -d '\r')
+    init=$(echo "$status" | grep -oE '"Initialized":[a-z]+')
+    # UnmetCondition names the readiness gate still outstanding while Initialized
+    # is false. Absent on images predating lf-edge/eve#6240.
+    unmet=$(echo "$status" | grep -oE '"UnmetCondition":"[^"]+"')
     ct=$(ct_count); [ -z "$ct" ] && ct='?'
-    sig="init=${init:-<none>} contenttrees=$ct"
+    sig="init=${init:-<none>} contenttrees=$ct${unmet:+ $unmet}"
     if [ "$sig" != "$last" ]; then
         echo "$(date +%H:%M:%S) [readiness] $sig"; last="$sig"
     fi
@@ -582,7 +592,10 @@ for _ in $(seq 1 360); do
     fi
     sleep 10
 done
-echo "FAIL: volumemgr did not reach Initialized:true within 40m" >&2
+echo "FAIL: volumemgr did not reach Initialized:true within ${BUDGET_MIN}m" >&2
+# A reported UnmetCondition distinguishes cluster storage that never converged
+# from a device that published nothing at all.
+echo "FAIL: last reported unmet condition: ${unmet:-<none reported>}" >&2
 probe 'eve exec pillar cat /run/volumemgr/VolumeMgrStatus/volumemgr.json 2>&1' >&2
 exit 1
 
