@@ -675,8 +675,11 @@ test:
 # that follows can be short, and a failure here clearly says "longhorn", not "app".
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+began=$(date +%s)
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [longhorn-sc] waiting for the StorageClass"
 for _ in $(seq 1 90); do   # ~45m at 30s
     if "$EDEN" eve ssh -- 'eve exec kube kubectl get sc 2>/dev/null' 2>/dev/null | grep -qE '^longhorn'; then
+        echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [longhorn-sc] ready after $(( $(date +%s) - began ))s"
         echo "OK: longhorn StorageClass ready"; exit 0
     fi
     sleep 30
