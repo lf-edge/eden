@@ -1513,6 +1513,9 @@ if [ "$RELOCATE" = "1" ]; then
   # and retry the survivors. mv is DEFERRED to the end — replacing a target frees its
   # low original, which the next target would otherwise grab.
   FF=/usr/sbin/filefrag; [ -x "$FF" ] || FF=$(command -v filefrag 2>/dev/null || echo "")
+  # HIBLK must stay ABOVE the post-shrink boundary (~63% of this figure), so anything
+  # staged here is genuinely in the tail the shrink evacuates. cap_kb is df's, which
+  # runs low by ext4's metadata overhead — keep the 70% margin if that ever changes.
   tot4k=$(( cap_kb / 4 )); HIBLK=$(( tot4k * 70 / 100 ))
   while dd if=/dev/urandom of="$DIR/$(printf %06d "$n")" bs=1M count="$CHUNK_MIB" 2>/dev/null; do n=$((n+1)); done
   for bs in 1M 64k 4k; do dd if=/dev/urandom of="$DIR/tail.$bs" bs="$bs" 2>/dev/null || true; done
@@ -1646,9 +1649,17 @@ LABEL=$1
 FF=/usr/sbin/filefrag
 [ -x "$FF" ] || FF=$(command -v filefrag 2>/dev/null || echo filefrag)
 cd /persist 2>/dev/null || { echo "critical-blocks[$LABEL]: no /persist"; exit 0; }
-tot4k=$(( $(df -k /persist | tail -1 | awk '{print $2}') / 4 ))
+# The shrink boundary is dumpe2fs' "Block count". df/statvfs reports f_blocks NET of
+# ext4 metadata overhead (~2.4%: 238,264 of 10,213,376 blocks on the post-shrink
+# /persist), so a file between the two figures is INSIDE the filesystem and the shrink
+# correctly leaves it alone — reading the df figure as the boundary calls that stranded.
+DE=/usr/sbin/dumpe2fs
+[ -x "$DE" ] || DE=$(command -v dumpe2fs 2>/dev/null || echo dumpe2fs)
+dfb4k=$(( $(df -k /persist | tail -1 | awk '{print $2}') / 4 ))
+SRC=$(df /persist | tail -1 | awk '{print $1}')
+tot4k=$("$DE" -h "$SRC" 2>/dev/null | awk -F: '/^Block count/{gsub(/[^0-9]/,"",$2); print $2}')
 PDEV=$(stat -c '%d' /persist 2>/dev/null)
-echo "critical-blocks[$LABEL]: /persist ~${tot4k} fs-blocks (4KiB) dev=${PDEV:-?}; phys4k = physical block range per extent"
+echo "critical-blocks[$LABEL]: /persist ${tot4k:-?} fs-blocks (4KiB, dumpe2fs Block count on ${SRC:-?} = shrink boundary; df-derived ${dfb4k} excludes metadata) dev=${PDEV:-?}; phys4k = physical block range per extent"
 cap_one() {
   f=$1; [ -f "$f" ] || return 0
   out=$("$FF" -b4096 -v "$f" 2>/dev/null) || { echo "    $f  (filefrag failed)"; return 0; }
