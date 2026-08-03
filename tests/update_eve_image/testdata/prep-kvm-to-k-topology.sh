@@ -438,9 +438,18 @@ eve_make_persist_pool() {
     # datasets are created with `-u` (do not mount now) because the live ext4 /persist is
     # still mounted during this build; they mount on the later storage-init import.
     note "EVE creating persist zpool on $dev (installer-faithful: +reserved +primarycache +snapshots)"
-    eve_ssh "eve exec pillar sh -c \"zpool labelclear -f $dev 2>/dev/null; \
-        zpool create -f -m none -o feature@encryption=enabled -O atime=off -O overlay=on persist $dev && echo CREATED\"" \
-        | grep -q CREATED || die "zpool create failed on $dev"
+    # Keep stderr: `zpool create`'s own message is the only thing that says WHY it
+    # refused (device in use, pool already imported, label present, too small), and
+    # discarding it leaves nothing to diagnose from but "it failed".
+    local out
+    out=$(eve_ssh "eve exec pillar sh -c \"zpool labelclear -f $dev 2>&1; \
+        zpool create -f -m none -o feature@encryption=enabled -O atime=off -O overlay=on persist $dev 2>&1 && echo CREATED\"")
+    if ! echo "$out" | grep -q CREATED; then
+        echo "--- zpool output ---"; echo "$out"
+        echo "--- pools visible on the device ---"
+        eve_ssh "eve exec pillar sh -c \"zpool list; echo ---; zpool import; echo ---; blkid $dev; echo ---; lsblk\"" 2>&1
+        die "zpool create failed on $dev"
+    fi
     # refreservation = available/5, computed exactly as the installer does (bytes -> MiB, /5)
     local avail_bytes resv_mib
     avail_bytes=$(eve_ssh "eve exec pillar zfs get -o value -Hp available persist" | grep -oE '^[0-9]+$' | head -1)
