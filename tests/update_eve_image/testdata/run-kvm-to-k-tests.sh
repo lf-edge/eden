@@ -111,6 +111,49 @@ now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 declare -A VERDICT
 ORDER=()
 
+eden_root() {
+  local root
+  root=$("$EDEN" config get default --key eden.root 2>/dev/null | grep -vi 'level=' | tr -d '\r' | tail -1)
+  echo "${root:-${EDEN_HOME:-$HOME/.e166o}}"
+}
+CONSOLE="$(eden_root)/default-eve.log"
+
+# The emulator and the host kernel are as much a part of a verdict as the EVE image:
+# a QEMU that aborts mid-leg looks exactly like an EVE stall, and the AHCI abort this
+# guards against is host-kernel/guest-kernel dependent. Record them once per run.
+echo "===== run environment @ $(now) ====="
+echo "  image:        ${RESIZE_EVE_REG}:${RESIZE_EVE_VER}-{kvm,k}   bringup: ${BRINGUP_EVE_VER}"
+echo "  host qemu:    $(qemu-system-x86_64 --version 2>/dev/null | head -1)"
+echo "  host kernel:  $(uname -r)"
+echo "  eden:         $(git -C "$WS" rev-parse --short HEAD 2>/dev/null) ($(git -C "$WS" rev-parse --abbrev-ref HEAD 2>/dev/null))"
+echo "  console log:  $CONSOLE"
+
+# A guest-triggered QEMU abort (zero-length-PRDT NCQ command -> ide_dma_cb assertion)
+# kills the VM outright, so whatever step was in flight reports a timeout and the leg
+# gets blamed on EVE. Scan only the console bytes this leg appended, so a previous
+# leg's abort is not re-counted, and keep the disk image when it happens.
+scan_qemu_ahci() {   # $1 = leg id, $2 = console size before the leg
+  local id="$1" from="$2" aborts=0 warns=0
+  [ -f "$CONSOLE" ] || return 0
+  aborts=$(tail -c "+$((from + 1))" "$CONSOLE" 2>/dev/null | grep -ac 'ide_dma_cb: Assertion' || true)
+  warns=$(tail -c "+$((from + 1))" "$CONSOLE" 2>/dev/null | grep -ac 'PRDT length' || true)
+  echo "  [qemu-ahci] leg=$id prdt_warnings=$warns aborts=$aborts"
+  [ "${aborts:-0}" -gt 0 ] || return 0
+  local root img crash
+  root=$(eden_root); img="$root/default-images/eve/live.img"
+  crash="$root/crash-$id-$(date -u +%Y%m%dT%H%M%SZ)"
+  echo "  [qemu-ahci] QEMU ABORTED during this leg -- the verdict below is about the"
+  echo "  [qemu-ahci] emulator, not EVE. Preserving evidence under $crash.*"
+  mkdir -p "$crash"
+  tail -c "+$((from + 1))" "$CONSOLE" > "$crash/console-slice.log" 2>/dev/null || true
+  if [ -f "$img" ]; then
+    # Same filesystem, so this is instant and it also hides the image from free_slot's rm.
+    mv "$img" "$crash/live.img" 2>/dev/null \
+      && qemu-img check "$crash/live.img" > "$crash/qemu-img-check.txt" 2>&1 || true
+  fi
+  return 1
+}
+
 for spec in "${LEGS[@]}"; do
   IFS='|' read -r id topo escript extra <<<"$spec"
   ORDER+=("$id")
@@ -118,9 +161,11 @@ for spec in "${LEGS[@]}"; do
   echo
   echo "########## [$id] $topo -> $escript ($extra) @ $(now) ##########"
   free_slot
+  csize=$(stat -c%s "$CONSOLE" 2>/dev/null || echo 0)
   if ! ( cd "$WS" && bash "$PREP" "$topo" --yes ); then
     VERDICT[$id]="FAIL(prep)"
-    echo "########## [$id] FAIL(prep) @ $(now) ##########"
+    scan_qemu_ahci "$id" "$csize" || VERDICT[$id]="FAIL(emulator-crash in prep)"
+    echo "########## [$id] ${VERDICT[$id]} @ $(now) ##########"
     continue
   fi
   # $extra is intentionally word-split into VAR=VAL args for env
@@ -130,6 +175,9 @@ for spec in "${LEGS[@]}"; do
   else
     VERDICT[$id]="FAIL(escript rc=$?)"
   fi
+  # An abort outranks the escript's own verdict: the device stopped existing, so
+  # whatever the escript concluded is about a corpse.
+  scan_qemu_ahci "$id" "$csize" || VERDICT[$id]="FAIL(emulator-crash)"
   echo "########## [$id] ${VERDICT[$id]} @ $(now) ##########"
 done
 
@@ -141,7 +189,12 @@ for id in "${ORDER[@]}"; do
   v="${VERDICT[$id]:-?}"
   printf '  %-14s %s\n' "$id" "$v"
   case "$v" in PASS) npass=$((npass+1));; FAIL*) nfail=$((nfail+1));; SKIP*) nskip=$((nskip+1));; esac
+  case "$v" in *emulator-crash*) ncrash=$((${ncrash:-0}+1));; esac
 done
 echo "  ----"
 echo "  PASS=$npass  FAIL=$nfail  SKIP=$nskip"
+if [ "${ncrash:-0}" -gt 0 ]; then
+  echo "  NOTE: ${ncrash} leg(s) lost the emulator, not EVE -- see the [qemu-ahci] lines"
+  echo "        and the preserved crash-*/ dirs under $(eden_root)."
+fi
 [ "$nfail" -eq 0 ]
