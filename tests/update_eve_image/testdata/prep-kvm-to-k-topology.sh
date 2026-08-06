@@ -132,6 +132,7 @@ TWODISK_BOOT_GB="${TWODISK_BOOT_GB:-32}"   # twodisk-ext4 boot-disk size (matche
 EDEN_ROOT="${EDEN_ROOT:-$HOME/.e166o}"     # SHORT eden.root so swtpm's 108-byte AF_UNIX control
                                            # socket path fits (a long path silently dead-TPMs).
 SSH_TRIES="${SSH_TRIES:-40}"               # ssh-up poll attempts (x12s)
+PERSIST_TYPE_TRIES="${PERSIST_TYPE_TRIES:-30}"    # /run/eve.persist_type poll attempts (x10s)
 FILL_PCT="${FILL_PCT:-70}"                 # ext4-toofull: fill /persist to this used% so
                                            # used > maxFull(90%) x (P3-22G) => check insufficient.
 
@@ -202,9 +203,20 @@ force_clean_grub() {
 
 # Fail loudly if the device came up on the wrong /persist filesystem, so a
 # mis-topology is a legible error instead of a silent false pass. $1 = ext4|zfs.
+#
+# sshd answering does not mean storage-init has published /run/eve.persist_type, so
+# an empty read means "not yet", not "wrong topology" -- poll for it. A non-empty
+# value that disagrees IS a mis-topology and fails at once, since it cannot change
+# without another boot.
 assert_persist_type() {
-    local got
-    got=$(eve_ssh 'cat /run/eve.persist_type' | tr -d '\r' | tail -1)
+    local got i
+    for i in $(seq 1 "$PERSIST_TYPE_TRIES"); do
+        got=$(eve_ssh 'cat /run/eve.persist_type' | tr -d '\r' | tail -1)
+        [ -n "$got" ] && break
+        echo "  [persist_type] attempt $i/$PERSIST_TYPE_TRIES: not published yet; retry in 10s"
+        sleep 10
+    done
+    [ -n "$got" ] || die "persist_type never published after $((PERSIST_TYPE_TRIES*10))s (expected $1 for $TOPOLOGY)"
     [ "$got" = "$1" ] || die "persist_type='$got' (expected $1 for $TOPOLOGY)"
 }
 
