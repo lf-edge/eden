@@ -1,0 +1,47 @@
+# verify_split_install — assert the split-rootfs Extension came up correctly
+# on a freshly installed and booted universal (HV=uni) image.
+#
+# Invoked by the eve repo's tests/eden/test-split-installer.sh wrapper, which
+# sets:
+#   EXPECTED_HV          hypervisor selected at install time (kvm|k|xen)
+#   EXPECTED_PERSIST_FS  expected /persist filesystem (ext4|zfs), optional
+#
+# All checks run over `eden eve ssh` against the booted device.  Device-side
+# state comes from extsloader's debug file /run/extsloader-state.json (compact
+# JSON, e.g. {"state":"ready",...,"mountPoint":"/persist/exts"}), the runtime
+# HV marker /run/eve-hv-type, and the erofs Extension mounted at /persist/exts.
+#
+# NOTE: the eden escript engine substitutes $NAME, so device-side commands here
+# deliberately avoid shell variables / $(...) / arithmetic.  The bounded wait
+# uses `timeout` + `until` (no counter variable).
+
+{{$hv := EdenGetEnv "EXPECTED_HV"}}
+{{$persistfs := EdenGetEnv "EXPECTED_PERSIST_FS"}}
+
+# 1. Wait (bounded 5 min) for extsloader to reach ready, then assert the state
+#    file reports state=ready.  timeout exits non-zero (124) if it never does.
+message 'verify_split_install: waiting for extsloader state=ready'
+eden eve ssh timeout 300 sh -c 'until grep -q ready /run/extsloader-state.json 2>/dev/null; do sleep 5; done'
+eden eve ssh cat /run/extsloader-state.json
+stdout '"state":"ready"'
+
+# 2. The Extension erofs must be dm-verity mounted at /persist/exts.
+message 'verify_split_install: checking Extension mount at /persist/exts'
+eden eve ssh sh -c 'mount | grep -q " /persist/exts "'
+
+# 3. The resolved runtime HV must exactly match the install-time selection.
+message 'verify_split_install: checking runtime HV == {{$hv}}'
+eden eve ssh grep -qx {{$hv}} /run/eve-hv-type
+
+{{if $persistfs}}
+# 4. /persist must be the expected filesystem (ext4 or zfs).
+message 'verify_split_install: checking /persist filesystem == {{$persistfs}}'
+eden eve ssh sh -c 'mount | grep " /persist " '
+stdout '{{$persistfs}}'
+{{end}}
+
+# 5. Informational: extension measurement log (PCR12) when running with TPM.
+message 'verify_split_install: extension measurement log (informational)'
+eden eve ssh sh -c 'ls -l /persist/status/extsloader_tpm_event_log 2>/dev/null || echo no-tpm-log'
+
+message 'verify_split_install: PASSED'
