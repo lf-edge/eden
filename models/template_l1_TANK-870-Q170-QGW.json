@@ -45,7 +45,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB0",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -55,7 +55,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB1",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -65,7 +65,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB2",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -75,7 +75,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB3",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -85,7 +85,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB4",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -95,7 +95,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB5",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -105,7 +105,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB6",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -115,7 +115,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB7",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -125,7 +125,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 255,
+      "ztype": 1355,
       "phylabel": "Thermal subsystem",
       "assigngrp": "USB+Thermal",
       "phyaddrs": {
@@ -135,7 +135,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 255,
+      "ztype": 1355,
       "phylabel": "Communication controller",
       "assigngrp": "Serial+Communication",
       "phyaddrs": {
@@ -145,7 +145,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 255,
+      "ztype": 1355,
       "phylabel": "Serial controller",
       "assigngrp": "Serial+Communication",
       "phyaddrs": {
@@ -155,7 +155,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 255,
+      "ztype": 1355,
       "phylabel": "FPGA",
       "assigngrp": "FPGA",
       "phyaddrs": {

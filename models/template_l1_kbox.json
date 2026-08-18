@@ -60,7 +60,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB 3.0 X104",
       "assigngrp": "USB",
       "phyaddrs": {
@@ -70,7 +70,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB 3.0 X105",
       "assigngrp": "USB",
       "phyaddrs": {
