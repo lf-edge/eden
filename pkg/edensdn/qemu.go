@@ -28,7 +28,7 @@ func (vm *SdnVMQemuRunner) Start() error {
 	var qemuCommand string
 	qemuOptions := "-display none -nodefaults -no-user-config "
 	qemuOptions += fmt.Sprintf("-serial chardev:char0 -chardev socket,id=char0,port=%d,"+
-		"host=localhost,server,nodelay,nowait,telnet,logfile=%s ",
+		"host=localhost,server=on,nodelay=on,wait=off,telnet=on,logfile=%s ",
 		vm.TelnetPort, vm.ConsoleLogFile)
 	// Please note that the SDN agent uses maxMTU=16110, which is the limit imposed
 	// by the e1000 device. Should a different network device be used, do not forget
