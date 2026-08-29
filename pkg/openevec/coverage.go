@@ -120,26 +120,28 @@ func (openEVEC *OpenEVEC) CollectEveCoverage(outputDir string) error {
 		log.Warnf("EVE coverage: %v; proceeding with whatever was written", err)
 	}
 
-	// Copy binary coverage files from EVE to a local temp directory.
-	tmpDir, err := os.MkdirTemp("", "eve-coverage-*")
-	if err != nil {
-		return fmt.Errorf("cannot create temp dir: %w", err)
+	// Copy binary coverage files from EVE into <outputDir>/covdata so that
+	// callers wanting to merge coverage across multiple runs (e.g. across
+	// the Eden CI matrix) have access to the raw covmeta.* / covcounters.*
+	// files needed by `go tool covdata merge`.
+	covdataDir := filepath.Join(outputDir, "covdata")
+	if err := os.MkdirAll(covdataDir, 0755); err != nil {
+		return fmt.Errorf("cannot create covdata dir %s: %w", covdataDir, err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	log.Infof("EVE coverage: copying %s from EVE to %s",
-		defaults.DefaultEveCoverageDir, tmpDir)
+		defaults.DefaultEveCoverageDir, covdataDir)
 	if err := openEVEC.SdnForwardSCPDirFromEve(
-		defaults.DefaultEveCoverageDir, tmpDir); err != nil {
+		defaults.DefaultEveCoverageDir, covdataDir); err != nil {
 		return fmt.Errorf("cannot copy coverage data from EVE: %w", err)
 	}
 
 	// The SCP copies the directory itself, so the files land under
-	// tmpDir/coverage/.  Point covdata at that sub-directory.
-	coverSubDir := filepath.Join(tmpDir, filepath.Base(defaults.DefaultEveCoverageDir))
+	// covdataDir/coverage/.  Point covdata at that sub-directory.
+	coverSubDir := filepath.Join(covdataDir, filepath.Base(defaults.DefaultEveCoverageDir))
 	if _, err := os.Stat(coverSubDir); os.IsNotExist(err) {
-		// Fallback: files landed directly in tmpDir.
-		coverSubDir = tmpDir
+		// Fallback: files landed directly in covdataDir.
+		coverSubDir = covdataDir
 	}
 
 	// Convert binary coverage format → Go text profile format.

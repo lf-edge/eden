@@ -393,3 +393,51 @@ jobs:
           eve_artifact_name: ${{ inputs.eve_artifact_name }}
           artifact_run_id: ${{ inputs.artifact_run_id }}
           require_virtualization: true
+
+  coverage-merge:
+    name: Merge coverage
+    needs: [smoke, networking, storage, lps-loc, eve-upgrade, user-apps, virtualization]
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.24'
+      - name: Download per-job covdata artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: covdata-*
+          path: covdata-raw
+      - name: Merge covdata
+        run: |
+          set -e
+          mkdir -p covdata-merged
+          # Each artifact directory contains eden_e2e_coverage.txt and a
+          # covdata/coverage/ subtree with covmeta.* / covcounters.* files.
+          # Discover every GOCOVERDIR-shaped directory by looking for covmeta.*.
+          mapfile -t covdirs < <(find covdata-raw -name 'covmeta.*' -printf '%h\n' | sort -u)
+          if [ ${#covdirs[@]} -eq 0 ]; then
+            echo "::warning::No raw covdata found across jobs"
+            exit 0
+          fi
+          inputs=$(IFS=,; echo "${covdirs[*]}")
+          go tool covdata merge -i="$inputs" -o covdata-merged
+          go tool covdata textfmt -i=covdata-merged -o combined_coverage.txt
+          go tool cover -func=combined_coverage.txt | tee coverage-summary.txt
+      - name: Upload merged covdata
+        if: always() && hashFiles('combined_coverage.txt') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: covdata-merged
+          path: |
+            covdata-merged/
+            combined_coverage.txt
+            coverage-summary.txt
+          retention-days: 30
+      - name: Upload coverage to Codecov
+        if: always() && hashFiles('combined_coverage.txt') != ''
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2  # v6.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: combined_coverage.txt
+          fail_ci_if_error: false
