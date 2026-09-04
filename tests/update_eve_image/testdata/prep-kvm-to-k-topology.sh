@@ -27,6 +27,24 @@
 # the ~600 MB of longhornio/* images take from docker.io (186-545 KB/s, 3-4x variance
 # run to run) against the readiness budgets, so treat a single pass as weak evidence.
 #
+# The flakiness is NOT confined to the ZFS legs, and the readiness log now names the
+# condition. A 2026-09-04 sweep on the STRESS line (image
+# lfedge/eve:0.0.0-resize-allprs-stress-833f7358-{kvm,k}, bringup 12.1.0, host also
+# running an unrelated evetest soak) reached PASS=7, but ext4-shrink and twodisk-zfs
+# each needed a second run: both blew the 85m volumemgr-readiness budget the first
+# time, and both passed at the same geometry immediately after. Their reruns reported
+#   UnmetCondition: longhorn not ready: longhorn instance-manager not running on node
+# taking 46 min to clear on twodisk-zfs and ~15 min on ext4-shrink. So the budget is
+# lost to the longhorn instance-manager coming up, not only to image pull rate, and
+# ext4-shrink is as exposed as the ZFS legs. Deliberately NOT recorded in the status
+# column above, which is keyed to the non-stress resize-allprs sweep -- a stress leg
+# ladders through more resizer boots and the two lines must not be pooled.
+#
+# Worth knowing when a first run fails: the two failures presented differently.
+# ext4-shrink sat at Initialized:false with contenttrees=0, while twodisk-zfs never
+# published a VolumeMgrStatus at all (init=<none> for the whole window, no condition
+# ever reported). Only the latter is unexplained; it did not reproduce.
+#
 # Decision logic is from pkg/storage-resizer (decide()/evaluate()): shrink applies
 # ONLY to an ext4 /persist on the boot disk; a ZFS persist or a persist on another
 # disk can only get room from the boot disk's free tail, else `insufficient`.
