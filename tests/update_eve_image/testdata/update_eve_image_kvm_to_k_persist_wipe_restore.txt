@@ -350,11 +350,16 @@ set -uo pipefail
 IMG='{{EdenConfigPath "eve.image-file"}}'
 [ -f "$IMG" ] || { echo "FAIL: live image not found: $IMG" >&2; exit 1; }
 RAW="${IMG%.img}.wipe.raw"
-# Ensure qemu has released the image (eden eve stop already ran). Match the comm
-# (pgrep -x): a `-f "file=$IMG"` regex can miss a shutting-down qemu and let the
-# convert hit the qcow2 write lock.
-for _ in $(seq 1 90); do pgrep -x qemu-system-x86 >/dev/null 2>&1 || break; sleep 2; done
-pgrep -x qemu-system-x86 >/dev/null 2>&1 && { echo "FAIL: qemu still running; refusing to edit a locked image" >&2; exit 1; }
+# Ensure qemu has released the image. Scope the match to this eden.root, the same
+# way run-kvm-to-k-tests.sh free_slot() does: a bare `pgrep -x qemu-system-x86`
+# matches ANY VM on the host, so an unrelated evetest/ztest run makes this refuse
+# forever. Matching the root rather than `file=$IMG` still catches a
+# shutting-down qemu, since its argv carries the root in the drive, console-log
+# and swtpm-socket paths.
+EDENROOT="$(cd "$(dirname "$IMG")/../.." && pwd)"
+qemu_on_root() { pgrep -f "[q]emu-system-x86.*$EDENROOT" >/dev/null 2>&1; }
+for _ in $(seq 1 90); do qemu_on_root || break; sleep 2; done
+qemu_on_root && { echo "FAIL: qemu still running on $EDENROOT; refusing to edit a locked image" >&2; exit 1; }
 qemu-img convert -O raw "$IMG" "$RAW" || { echo "FAIL: convert to raw" >&2; rm -f "$RAW"; exit 1; }
 # Resolve the P3 partition NUMBER straight from the GPT (sgdisk reads the file
 # directly; do NOT use `lsblk -d`, whose --nodeps hides partition rows).
