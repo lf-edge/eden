@@ -235,7 +235,7 @@ message 'waiting ~90s for the device to apply deferContentDelete=86400'
 exec sleep 90
 
 # Step 6: delete the app (keep the network), then wait for full EVE-side teardown.
-# The cross-HV gate refuses kvm<->k while any Volume exists, so we must reach zero
+# The cross-HV gate refuses kvm->k while any Volume exists, so we must reach zero
 # volumes before pushing the -k update.
 message 'deleting app on EVE-kvm (network kept, blobs retained for 24h)'
 eden -t 1m pod delete xhv-app
@@ -1170,7 +1170,7 @@ exit 1
 #!/bin/bash
 # Poll until xhv-app fully disappears AND no per-instance VolumeStatus files
 # remain under /run/volumemgr/VolumeStatus/. Pillar tears down VM -> PVC ->
-# pubsub records; the cross-HV gate refuses kvm<->k while any Volume exists, so
+# pubsub records; the cross-HV gate refuses kvm->k while any Volume exists, so
 # we must reach zero before pushing the -k update.
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
