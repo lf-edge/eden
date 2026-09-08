@@ -9,7 +9,7 @@
 #     volumemgr downloads ContentTrees eagerly, so the image bits land
 #     on /persist without any Volume being created. No .img file, no
 #     PVC, no CDI involvement on the post-upgrade side.
-#   - Push a cross-flavor baseos update (kvm <-> k).
+#   - Push a cross-flavor baseos update (kvm -> k).
 #   - After EVE reboots into the other flavor: verify the ContentTree
 #     is still present and LOADED (pubsub-persisted, blobs on /persist).
 #   - Deploy an app instance from the same image. Blob lookup is by

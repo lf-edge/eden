@@ -1,6 +1,6 @@
-# EVE-kvm ↔ EVE-k conversion test suite
+# EVE-kvm → EVE-k conversion test suite
 
-These escripts exercise the cross-flavor (EVE-kvm ↔ EVE-k) BaseOs upgrade and the
+These escripts exercise the cross-flavor (EVE-kvm → EVE-k) BaseOs upgrade and the
 in-field **boot-disk repartition** it triggers: a fielded device installed with the
 SMALL GPT geometry (36 MiB ESP, 512 MiB IMGA/IMGB, big P3) is converted, offline and
 in the field, to the LARGE EVE-k geometry — ESP-A 2 GiB, a reserved **ESP-B** (GPT #7,
