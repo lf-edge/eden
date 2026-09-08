@@ -1560,7 +1560,8 @@ if [ "$RELOCATE" = "1" ]; then
     targets=""
     for pat in "checkpoint/lastconfig"* "checkpoint/controllercerts"* \
                certs/ecdh.*.pem certs/attest.*.pem certs/ek.*.pem \
-               "status/nim/DevicePortConfigList" "status/zedclient/OnboardingStatus"*; do
+               "status/nim/DevicePortConfigList" "status/zedclient/OnboardingStatus"* \
+               "status/vaultmgr/VaultConfig"; do
       [ -e "$pat" ] || continue
       if [ -f "$pat" ]; then targets="$targets $pat"
       elif [ -d "$pat" ]; then targets="$targets $(find "$pat" -type f 2>/dev/null)"; fi
@@ -1679,7 +1680,8 @@ cap_one() {
 }
 for pat in checkpoint/lastconfig* checkpoint/controllercerts* \
            certs/ecdh.*.pem certs/attest.*.pem certs/ek.*.pem \
-           status/nim/DevicePortConfigList status/zedclient/OnboardingStatus*; do
+           status/nim/DevicePortConfigList status/zedclient/OnboardingStatus* \
+           status/vaultmgr/VaultConfig; do
   [ -e "$pat" ] || continue
   if [ -f "$pat" ]; then cap_one "$pat"
   elif [ -d "$pat" ]; then find "$pat" -type f 2>/dev/null | while IFS= read -r ff; do cap_one "$ff"; done
