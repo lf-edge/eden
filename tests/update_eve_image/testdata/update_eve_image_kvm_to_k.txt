@@ -842,10 +842,33 @@ report_serial() {
 }
 
 last_sig=""
+last_boserr=""
 reboots=0
 unreachable_run=0
 seen_converting=0
 was_unreachable=0   # rising edge (unreachable->reachable) marks a controller reconnect
+
+# First non-empty BaseOsStatus.Error across the published status files, on one
+# line. Reads the same JSON the loop already fetches for Converting; the field is
+# flat because BaseOsStatus embeds ErrorAndTime anonymously.
+bos_error() {
+    printf '%s' "$1" | python3 -c '
+import sys, json
+d = sys.stdin.read(); dec = json.JSONDecoder(); p = 0
+while p < len(d):
+    s = d[p:].lstrip()
+    if not s:
+        break
+    p = len(d) - len(s)
+    try:
+        o, p = dec.raw_decode(d, p)
+    except Exception:
+        break
+    e = (o.get("Error") or "").strip()
+    if e:
+        print(" ".join(e.split()))
+        break' 2>/dev/null
+}
 
 # Parallel stress-fill cleanup. The boot-disk RESIZE (shrink+grow) runs offline
 # in storage-init with pillar down (device unreachable); when it finishes the
@@ -922,6 +945,26 @@ while [ "$(date +%s)" -lt "$DEADLINE" ]; do
         echo "$(date +%H:%M:%S) [transition] $sig"
         last_sig="$sig"
     fi
+
+    # baseosmgr reports a refused conversion on BaseOsStatus.Error — the same text
+    # the controller surfaces as the base-OS update error. Log any error as it
+    # appears, and stop on the one that names the retry gate: storage-init's
+    # resize-failed.json marker survives the reboot and nothing re-arms until the
+    # EVE version changes or the update is withdrawn, so the device can never reach
+    # the -k version and waiting out the deadline only hides the reason.
+    boserr=$(bos_error "$bos")
+    if [ -n "$boserr" ] && [ "$boserr" != "$last_boserr" ]; then
+        echo "$(date +%H:%M:%S) [BaseOsStatus.Error] $boserr"
+        last_boserr="$boserr"
+    fi
+    case "$boserr" in
+        *"not retrying until the EVE version changes"*)
+            report_serial
+            echo "FAIL: conversion DECLINED — the resizer aborted and will not retry" >&2
+            echo "      $boserr" >&2
+            echo "      observed: CONVERTING=$seen_converting reboots=$reboots" >&2
+            exit 1 ;;
+    esac
 
     # Done: the device has BOOTED the -k version. We deliberately do NOT wait for
     # the A/B commit to 'active' or for the cluster to be online here — the app is
