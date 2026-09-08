@@ -53,7 +53,7 @@
 #       offline resize2fs SHRINK has real blocks to relocate (a stress watchdog can
 #       then interrupt the shrink, not only the grow). 0 disables. Ignored unless
 #       EXPECT_DECISION=shrink.
-#   RELOCATE_CRITICAL_HIGH (default 0) also rewrite the identity/connectivity-
+#   RELOCATE_CRITICAL_HIGH (default 0) also rewrite the identity- and vault-
 #       critical files into high blocks during the fill, so the shrink must relocate
 #       them and a watchdog-interrupted move exercises the /config restore fail-safe.
 #       Opt-in (soak).
@@ -107,7 +107,7 @@
 {{$fill_gib := "33"}}
 {{if $fill_gib_env}}{{$fill_gib = $fill_gib_env}}{{end}}
 
-# RELOCATE_CRITICAL_HIGH=1 rewrites the identity/connectivity-critical files into
+# RELOCATE_CRITICAL_HIGH=1 rewrites the identity- and vault-critical files into
 # high blocks during the fill, so the offline shrink must relocate them and a
 # watchdog-interrupted move can exercise the /config backup+restore fail-safe
 # end-to-end. Off (0) by default so a single run stays deterministic; the soak
@@ -1561,7 +1561,8 @@ if [ "$RELOCATE" = "1" ]; then
     for pat in "checkpoint/lastconfig"* "checkpoint/controllercerts"* \
                certs/ecdh.*.pem certs/attest.*.pem certs/ek.*.pem \
                "status/nim/DevicePortConfigList" "status/zedclient/OnboardingStatus"* \
-               "status/vaultmgr/VaultConfig"; do
+               "status/vaultmgr/VaultConfig" \
+               ".fscrypt/policies" ".fscrypt/protectors"; do
       [ -e "$pat" ] || continue
       if [ -f "$pat" ]; then targets="$targets $pat"
       elif [ -d "$pat" ]; then targets="$targets $(find "$pat" -type f 2>/dev/null)"; fi
@@ -1681,7 +1682,7 @@ cap_one() {
 for pat in checkpoint/lastconfig* checkpoint/controllercerts* \
            certs/ecdh.*.pem certs/attest.*.pem certs/ek.*.pem \
            status/nim/DevicePortConfigList status/zedclient/OnboardingStatus* \
-           status/vaultmgr/VaultConfig; do
+           status/vaultmgr/VaultConfig .fscrypt/policies .fscrypt/protectors; do
   [ -e "$pat" ] || continue
   if [ -f "$pat" ]; then cap_one "$pat"
   elif [ -d "$pat" ]; then find "$pat" -type f 2>/dev/null | while IFS= read -r ff; do cap_one "$ff"; done
