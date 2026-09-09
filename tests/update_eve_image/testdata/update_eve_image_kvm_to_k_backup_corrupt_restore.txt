@@ -140,6 +140,8 @@ exec -t 6m bash backup-and-arm.sh {{ $ssid }}
 # critical file to ~half in the live /persist (via eve exec pillar), EXCEPT the
 # .bak files, then sync. On-device (not an offline qemu-nbd mount) because the
 # offline mount does not reliably reflect a fresh device's recent /persist writes.
+# The kept .bak must be no older than the config being truncated — step 3 refreshes
+# it, and this step fails if it is older.
 message 'partial corruption: truncate critical /persist files to half on-device (keep .bak)'
 exec -t 3m bash corrupt-persist-ondevice.sh
 
@@ -350,7 +352,7 @@ ok=0; i=0
 while [ \$i -lt 18 ]; do
     i=\$((i+1))
     /usr/bin/storage-resizer backup --persist /persist --backup-dir /tmp/restore-cfg/backup-persist --flag-file /tmp/restore-cfg/repartition-inprogress --target "\$TARGET" >/dev/null 2>&1
-    if cat /tmp/restore-cfg/backup-persist/checkpoint/lastconfig* 2>/dev/null | tr -d '\\0' | grep -q "\$SSID" && ls /tmp/restore-cfg/backup-persist/certs/ecdh.*.pem >/dev/null 2>&1; then
+    if tr -d '\\0' < /tmp/restore-cfg/backup-persist/checkpoint/lastconfig 2>/dev/null | grep -q "\$SSID" && ls /tmp/restore-cfg/backup-persist/certs/ecdh.*.pem >/dev/null 2>&1; then
         ok=1; break
     fi
     sync; sleep 10
@@ -361,6 +363,23 @@ if [ "\$ok" != 1 ]; then
     umount /tmp/restore-cfg 2>/dev/null
     exit 1
 fi
+# The corruption step truncates checkpoint/lastconfig and keeps lastconfig.bak, and
+# storage-resizer's needsRestore has a validator only for .pem and .json, so it keeps
+# the truncated live copy and pillar falls back to the .bak. Pillar's rotation moves
+# the OLD primary into .bak, so the .bak predates the add-wireless injection until a
+# further config save happens; a stale one leaves zedagent republishing a DPC without
+# wlan0, which no amount of polling in assert-decrypt.sh can fix. Refresh the
+# fallback from the primary this loop just gated on.
+cp /persist/checkpoint/lastconfig /persist/checkpoint/lastconfig.bak || {
+    echo "FAIL: could not refresh lastconfig.bak from the gated primary"
+    umount /tmp/restore-cfg 2>/dev/null
+    exit 1; }
+sync
+tr -d '\\0' < /persist/checkpoint/lastconfig.bak | grep -q "\$SSID" || {
+    echo "FAIL: lastconfig.bak does not carry SSID \$SSID after the refresh"
+    umount /tmp/restore-cfg 2>/dev/null
+    exit 1; }
+echo "lastconfig.bak refreshed from the primary (\$(stat -c%s /persist/checkpoint/lastconfig.bak) bytes, carries \$SSID)"
 # --- FIX-SIM (STAGE_ONBOARDINGSTATUS) -- disabled; re-enable for UNPATCHED images -
 # storage-resizer's defaultBackupPatterns must include the persistent OnboardingStatus
 # topic (the UUID that cmd/client's offline shortcut reads); without it the device
@@ -395,8 +414,9 @@ echo "$out" | grep -q '^OK:' || { echo "FAIL: backup-and-arm did not succeed on 
 # that mount does NOT reliably reflect a fresh device's recent /persist writes (it
 # showed an empty checkpoint even after a guest sync + eve stop). The no-validator
 # files (lastconfig, controllercerts) recover via their .bak; the .pem/.json via the
-# restore-gate. The .bak were already waited-for in backup-and-arm; here we verify +
-# keep them. Ships a device-side script via base64.
+# restore-gate. The .bak were waited for and refreshed in backup-and-arm; here we
+# keep them and verify they are no older than what we truncate. Ships a device-side
+# script via base64.
 set -uo pipefail
 EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
 read -r -d '' DEV_SCRIPT <<'EOF'
@@ -409,11 +429,20 @@ for f in checkpoint/lastconfig checkpoint/controllercerts \
     p=/persist/$f
     if [ ! -f "$p" ]; then echo "note: $f absent, skipping"; continue; fi
     sz=$(stat -c%s "$p"); half=$((sz/2))
+    [ "$f" = checkpoint/lastconfig ] && LC_SZ=$sz
     if truncate -s "$half" "$p"; then echo "truncated $f: $sz -> $half bytes"; TRUNC=$((TRUNC+1)); else echo "FAIL: truncate $f"; FAIL=1; fi
 done
 for b in checkpoint/lastconfig.bak checkpoint/controllercerts.bak; do
     [ -f /persist/$b ] && echo "kept intact: $b ($(stat -c%s /persist/$b) bytes)" || echo "WARN: expected .bak missing: $b"
 done
+# pillar reads this .bak for the config it republishes, so a fallback older than the
+# config just truncated fails the post-restore DPC assert 240s later, at a step that
+# looks unrelated. Fail here instead.
+BAK_SZ=$(stat -c%s /persist/checkpoint/lastconfig.bak 2>/dev/null || echo 0)
+if [ "${LC_SZ:-0}" -gt 0 ] && [ "$BAK_SZ" -lt "$LC_SZ" ]; then
+    echo "FAIL: lastconfig.bak ($BAK_SZ B) is older than the pre-truncation lastconfig ($LC_SZ B)"
+    FAIL=1
+fi
 sync
 [ "$TRUNC" -ge 1 ] || { echo "FAIL: nothing truncated (target files absent on device?)"; FAIL=1; }
 [ "$FAIL" = 0 ] && echo "OK: on-device truncation done ($TRUNC files, .bak kept)" || echo "FAIL: on-device truncation errors"
