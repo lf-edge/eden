@@ -16,7 +16,7 @@ there is no free tail), then boots EVE-k on the enlarged geometry.
 
 | Escript | Validates | Start |
 |---|---|---|
-| `update_eve_image_kvm_to_k.txt` | The successful repartition (shrink **or** grow, single/two-disk/zfs), parameterized by env knobs. Asserts SMALL→LARGE geometry incl. ESP-B, `Converting` device state, TPM seal preserved, and cached-blob reuse on redeploy. | SMALL |
+| `update_eve_image_kvm_to_k.txt` | The successful repartition (shrink **or** grow, single/two-disk/zfs), parameterized by env knobs. Asserts SMALL→LARGE geometry incl. ESP-B, `Converting` device state, TPM seal preserved, the EVE-k vault layout on ZFS (zvol vault, etcd volume, no migration leftovers), and cached-blob reuse on redeploy. | SMALL |
 | `update_eve_image_kvm_to_k_refused.txt` | The declined (`insufficient`) path: conversion refused (too-full ext4, or ZFS persist), geometry unchanged, `BaseOsStatus.Error`, device stays manageable. | SMALL |
 | `update_eve_image_kvm_to_k_geom.txt` | Geometry-only matrix: from every historical start geometry the conversion reaches the full 2+2+10+10 EVE-k target incl. ESP-B. No app/vault. | SMALL (per release) |
 | `update_eve_image_kvm_to_k_volmig.txt` | App-volume migration without recreate (qcow2 → Longhorn PVC), for a VM app **and** a container app; data marker survives. | LARGE (`proceed`) |

@@ -305,6 +305,8 @@ exec -t 2m bash capture-critical-blocks.sh after-shrink
 # the deploy — proving the early deploy reused the retained ContentTree).
 message '(a) waiting for volumemgr ready (incl kubeapi.WaitForKubernetes)'
 exec -t 90m bash wait-for-volumemgr-ready.sh
+message 'asserting the EVE-k vault layout (zvol vault, etcd volume, no migration leftovers)'
+exec -t 3m bash assert-vault-zvol-layout.sh
 message '(b) waiting for EVE-k longhorn StorageClass ready (cluster storage up)'
 exec -t 50m bash wait-for-longhorn-sc.sh
 stdout 'OK: longhorn StorageClass ready'
@@ -1775,3 +1777,84 @@ step=$(printf '%s\n' "$logs" | grep -aE 'shrink P3 to|shrink complete|Resizing t
 printf 'recreated|%s|%s\n' "$recreate_ts" "$step" > "$INFO"
 echo "NOTE: /persist was recreated at $recreate_ts (at/after the resize); last step before it: $step"
 echo "(recorded -- the blob-reuse check reports FAIL[recreate-induced] if the app re-downloads)"
+
+-- assert-vault-zvol-layout.sh --
+#!/bin/bash
+# Assert the vault layout a ZFS device must be left with once the cross-flavor
+# conversion has migrated the carried-over EVE-kvm filesystem vault. On ext4 there
+# are no vault datasets, so this is a no-op there.
+#
+# What must hold on ZFS:
+#   persist/vault         a zvol (type=volume), not the filesystem dataset kvm left
+#   persist/etcd-storage  present -- EVE-k's etcd volume, created by the migration
+#   persist/vault2        absent -- the staging zvol the copy goes into. It holds a
+#                         partial copy and is sized to the pool's free space, so one
+#                         that survives can occupy everything a fallback boot to
+#                         EVE-kvm needs, and EVE-kvm has no code that reclaims it.
+#   persist/vault.old     absent -- the pre-migration vault, parked during the swap
+#   the swap record       absent -- /persist/status/vault-migration-swap, which says
+#                         a staging zvol holds a complete copy awaiting promotion
+#
+# Without this the conversion legs rest on the readiness gates alone, and those say
+# only that the vault mounted: not that it migrated, and nothing about what the
+# migration left behind.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+
+onEVE() { timeout 60 "$EDEN" eve ssh "$1" 2>/dev/null | tr -d '\r' | grep -av 'level='; }
+
+ptype=$(onEVE 'eve exec pillar cat /run/eve.persist_type' | tr -d ' ' | grep -aE '^(ext4|zfs)$' | head -1)
+if [ "$ptype" != "zfs" ]; then
+    echo "OK: /persist is ${ptype:-unidentified}, not zfs -- no vault dataset layout to assert"
+    exit 0
+fi
+
+datasets=$(onEVE 'eve exec pillar zfs list -H -o name -r persist' | grep -a '^persist')
+if [ -z "$datasets" ]; then
+    echo "FAIL: could not list the persist datasets" >&2
+    exit 1
+fi
+printf '%s\n' "$datasets" | sed 's/^/  dataset: /'
+has() { printf '%s\n' "$datasets" | grep -qx "$1"; }
+
+rc=0
+if has persist/vault; then
+    vtype=$(onEVE 'eve exec pillar zfs get -Hp -o value type persist/vault' | tr -d ' ' | head -1)
+    if [ "$vtype" = "volume" ]; then
+        echo "OK: persist/vault is a zvol (migrated from the kvm filesystem vault)"
+    else
+        echo "FAIL: persist/vault is type=${vtype:-unknown}, expected volume -- the carried-over vault was not migrated" >&2
+        rc=1
+    fi
+else
+    echo "FAIL: persist/vault is missing" >&2
+    rc=1
+fi
+
+if has persist/etcd-storage; then
+    echo "OK: persist/etcd-storage present"
+else
+    echo "FAIL: persist/etcd-storage missing -- the EVE-k etcd volume was not created" >&2
+    rc=1
+fi
+
+leftovers=0
+for ds in persist/vault2 persist/vault.old; do
+    if has "$ds"; then
+        used=$(onEVE "eve exec pillar zfs get -Hp -o value used $ds" | tr -d ' ' | head -1)
+        echo "FAIL: $ds survived the migration, holding ${used:-unknown} bytes" >&2
+        leftovers=1
+        rc=1
+    fi
+done
+[ "$leftovers" = 0 ] && echo "OK: no leftover migration datasets (persist/vault2, persist/vault.old)"
+
+marker=$(onEVE 'eve exec pillar sh -c "cat /persist/status/vault-migration-swap 2>/dev/null || echo NONE"' | tr -d ' ' | head -1)
+if [ -n "$marker" ] && [ "$marker" != "NONE" ]; then
+    echo "FAIL: a migration swap record survived, naming $marker" >&2
+    rc=1
+else
+    echo "OK: no migration swap record left behind"
+fi
+
+exit $rc
