@@ -610,17 +610,15 @@ func (openEVEC *OpenEVEC) PodPublish(appName, kernelFile, initrdFile, rootFile, 
 	)
 	cfg := openEVEC.cfg
 	ctx := context.TODO()
+	var resolverOpts []resolver.RegistryOpt
 	if local {
-		_, remoteTarget, err = utils.NewRegistryHTTP(ctx)
-		if err != nil {
-			return fmt.Errorf("unexpected error when created NewRegistry resolver: %w", err)
-		}
+		// the eden registry is served without TLS
+		resolverOpts = append(resolverOpts, resolver.WithPlainHTTP())
 		appName = fmt.Sprintf("%s:%d/%s", cfg.Registry.IP, cfg.Registry.Port, appName)
-	} else {
-		_, remoteTarget, err = resolver.NewRegistry(ctx)
-		if err != nil {
-			return fmt.Errorf("unexpected error when created NewRegistry resolver: %w", err)
-		}
+	}
+	_, remoteTarget, err = resolver.NewRegistryWithOpts(ctx, resolverOpts...)
+	if err != nil {
+		return fmt.Errorf("unexpected error when created NewRegistry resolver: %w", err)
 	}
 	if rootFile != "" {
 		rootDisk, err = diskToStruct(rootFile)

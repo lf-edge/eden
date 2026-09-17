@@ -176,11 +176,9 @@ func TestPodPublishArtifacts(t *testing.T) {
 	if m.MediaType != ocispec.MediaTypeImageManifest {
 		t.Errorf("manifest media type = %q, want %q", m.MediaType, ocispec.MediaTypeImageManifest)
 	}
-	// edge-containers publishes schemaVersion 0 rather than the 2 the OCI image
-	// spec requires. Recorded rather than asserted as correct, so that changing it
-	// is a deliberate act.
-	if !strings.Contains(string(raw), `"schemaVersion":0`) {
-		t.Errorf("manifest schemaVersion is no longer 0:\n%s", raw)
+	// a registry rejects a manifest that does not declare schema version 2
+	if !strings.Contains(string(raw), `"schemaVersion":2`) {
+		t.Errorf("manifest does not declare schemaVersion 2:\n%s", raw)
 	}
 	if m.Config.MediaType != ocispec.MediaTypeImageConfig {
 		t.Errorf("config media type = %q, want %q", m.Config.MediaType, ocispec.MediaTypeImageConfig)

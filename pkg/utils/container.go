@@ -21,6 +21,7 @@ import (
 	ct "github.com/docker/cli/cli/config/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	imagetypes "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -41,7 +42,7 @@ func CreateDockerNetwork(name string, enableIPv6 bool, ipv6Subnet string) error 
 		return fmt.Errorf("NewClientWithOpts: %w", err)
 	}
 	// check existing networks
-	result, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	result, err := cli.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("NetworkListOptions: %w", err)
 	}
@@ -67,8 +68,8 @@ func CreateDockerNetwork(name string, enableIPv6 bool, ipv6Subnet string) error 
 		}
 	}
 	if enableIPv6 {
-		_, err = cli.NetworkCreate(ctx, name, types.NetworkCreate{
-			EnableIPv6: true,
+		_, err = cli.NetworkCreate(ctx, name, network.CreateOptions{
+			EnableIPv6: &enableIPv6,
 			IPAM: &network.IPAM{
 				Driver: "default",
 				Config: []network.IPAMConfig{
@@ -79,7 +80,7 @@ func CreateDockerNetwork(name string, enableIPv6 bool, ipv6Subnet string) error 
 			},
 		})
 	} else {
-		_, err = cli.NetworkCreate(ctx, name, types.NetworkCreate{})
+		_, err = cli.NetworkCreate(ctx, name, network.CreateOptions{})
 	}
 	return err
 }
@@ -194,7 +195,7 @@ func GetDockerNetworks() ([]*net.IPNet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("client.NewClientWithOpts: %w", err)
 	}
-	networkTypes := types.NetworkListOptions{}
+	networkTypes := network.ListOptions{}
 	resp, err := cli.NetworkList(ctx, networkTypes)
 	if err != nil {
 		return nil, fmt.Errorf("GetNetworks: %w", err)
@@ -347,7 +348,7 @@ func PullImage(image string) error {
 		authStr = ""
 	}
 
-	resp, err := cli.ImagePull(ctx, image, types.ImagePullOptions{
+	resp, err := cli.ImagePull(ctx, image, imagetypes.PullOptions{
 		RegistryAuth: authStr,
 	})
 	if err != nil {
@@ -441,7 +442,7 @@ func PushImage(image, remote string) error {
 	if err := cli.ImageTag(ctx, image, remoteName); err != nil {
 		return fmt.Errorf("unable to tag %s to %s", image, remoteName)
 	}
-	resp, err := cli.ImagePush(ctx, remoteName, types.ImagePushOptions{})
+	resp, err := cli.ImagePush(ctx, remoteName, imagetypes.PushOptions{})
 	if err != nil {
 		return fmt.Errorf("imagePush: %w", err)
 	}
