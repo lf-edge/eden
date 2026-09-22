@@ -22,6 +22,7 @@ require (
 	github.com/lf-edge/eve-api/go v0.0.0-20260114160322-5feda2767927
 	github.com/lf-edge/eve/pkg/pillar v0.0.0-20240923082146-6d403aaa5513
 	github.com/mcuadros/go-lookup v0.0.0-20200831155250-80f87a4fa5ee
+	github.com/moby/go-archive v0.3.0
 	github.com/moby/term v0.5.2
 	github.com/nerd2/gexto v0.0.0-20190529073929-39468ec063f6
 	github.com/onsi/gomega v1.29.0
@@ -104,7 +105,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/go-archive v0.3.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
