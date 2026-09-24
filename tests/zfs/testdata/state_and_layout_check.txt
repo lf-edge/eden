@@ -6,8 +6,10 @@
 # Use eden.lim.test for access Infos with timewait 5m
 {{$info_test := "test eden.lim.test -test.v -timewait 5m -test.run TestInfo"}}
 
-# skip test if no STORAGE_TYPE_INFO_ZFS
-eden info --out InfoContent.dinfo.StorageInfo.StorageType 'InfoContent.dinfo.StorageInfo.StorageType:\w+' --tail 1
+# skip test if no STORAGE_TYPE_INFO_ZFS. The storage type has to be polled
+# for: until the first dinfo carrying StorageInfo arrives the query returns
+# nothing, which is indistinguishable from a non-ZFS device.
+exec -t 5m30s bash wait-for-storage-type.sh
 [!stdout:STORAGE_TYPE_INFO_ZFS] skip 'No zfs type storage'
 
 # Speed up EVE's disk-metric sampling. The persist pool grows as `eden disks
@@ -104,6 +106,25 @@ eden eve epoch &
 exec -t 6m bash wait-for-persist-grew.sh
 eden eve reset
 exec sleep 10
+
+-- wait-for-storage-type.sh --
+EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# Print the storage type the device reports, waiting for a concrete value.
+# An empty reading means no dinfo has carried StorageInfo yet, which a
+# one-shot query cannot tell apart from a device that is not running ZFS.
+DEADLINE=$(( $(date +%s) + 300 ))
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+    TYPE=$($EDEN info --out InfoContent.dinfo.StorageInfo.StorageType 'InfoContent.dinfo.StorageInfo.StorageType:\w+' --tail 1)
+    case "$TYPE" in
+        *STORAGE_TYPE_INFO_ZFS*|*STORAGE_TYPE_INFO_EXT4*)
+            echo "$TYPE"
+            exit 0
+            ;;
+    esac
+    sleep 5
+done
+echo "wait-for-storage-type.sh: device reported no storage type within 5 min" >&2
+exit 1
 
 -- capture-persist-baseline.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
