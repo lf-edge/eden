@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller"
 	"github.com/lf-edge/eden/pkg/controller/adam"
@@ -21,6 +20,7 @@ import (
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/edensdn"
 	"github.com/lf-edge/eden/pkg/eve"
+	"github.com/lf-edge/eden/pkg/namesgenerator"
 	"github.com/lf-edge/eden/pkg/openevec"
 	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/tests"

@@ -5,11 +5,11 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/controller/types"
 	"github.com/lf-edge/eden/pkg/eve"
 	"github.com/lf-edge/eden/pkg/expect"
+	"github.com/lf-edge/eden/pkg/namesgenerator"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
 	uuid "github.com/satori/go.uuid"
