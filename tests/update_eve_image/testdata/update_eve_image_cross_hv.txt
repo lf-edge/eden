@@ -1,0 +1,212 @@
+# Test: cross-HV-flavor EVE upgrade succeeds when no volumes exist
+#
+# Verifies that EVE accepts a baseos config whose HV flavor differs from
+# the currently running one (e.g. kvm -> k or k -> kvm) when the device
+# has no VolumeConfig / VolumeStatus instances — the happy path enabled
+# by EVE PR #5993 (baseosmgr volume-gate relaxation).
+#
+# Pair: update_eve_image_cross_hv_blocked.txt covers the negative case
+# (volumes present -> upgrade is rejected with "is not supported while
+# volumes exist").
+#
+# Diagnostic enhancement (post-2026-06-07):
+# On kvm -> k, after EVE reboots into IMGB the upgrade may stall at
+# PartitionState:inprogress because baseosmgr (+ volumemgr + domainmgr)
+# block in WaitForUserContainerd waiting for /run/containerd-user/
+# containerd.sock — which k3s creates only once cluster-init.sh succeeds.
+# A kvm /persist may lack state k3s expects, so k3s never comes up and
+# the wait blocks forever. We poll k3s/kube diagnostics during the wait
+# so the failure surfaces with actionable detail instead of a bare timeout.
+#
+# Parameters (env vars; defaults assume both flavors are pullable from
+# lfedge/eve at release tag 12.1.0):
+#  - ALT_HV:        the *other* HV flavor to upgrade to (default: 'k' if
+#                   running kvm, 'kvm' if running k). Auto-derived.
+#  - ALT_EVE_VER:   the EVE release tag for the alternate flavor
+#                   (default: '12.1.0').
+#  - ALT_EVE_REG:   docker registry for the alternate-flavor image
+#                   (default: 'lfedge/eve').
+
+{{$current_hv := EdenConfig "eve.hv"}}
+{{$arch       := EdenConfig "eve.arch"}}
+
+{{$alt_hv_env := EdenGetEnv "ALT_HV"}}
+{{$alt_hv := "k"}}
+{{if eq $current_hv "k"}}{{$alt_hv = "kvm"}}{{end}}
+{{if $alt_hv_env}}{{$alt_hv = $alt_hv_env}}{{end}}
+
+{{$alt_ver_env := EdenGetEnv "ALT_EVE_VER"}}
+{{$alt_ver := "12.1.0"}}
+{{if $alt_ver_env}}{{$alt_ver = $alt_ver_env}}{{end}}
+
+{{$alt_reg_env := EdenGetEnv "ALT_EVE_REG"}}
+{{$alt_reg := "lfedge/eve"}}
+{{if $alt_reg_env}}{{$alt_reg = $alt_reg_env}}{{end}}
+
+{{$alt_short_version := printf "%s-%s-%s" $alt_ver $alt_hv $arch}}
+
+# Step 1: pre-flight — no live volumes on the device.
+message 'pre-flight: assert no live volumes on the device'
+exec -t 1m bash assert-no-volumes.sh
+
+# Shorten baseimage test cooldown so partition flip is quick.
+eden controller edge-node update --config timer.test.baseimage.update=30
+
+# Step 2: download the alternate-flavor EVE rootfs.
+message 'downloading alternate-flavor EVE rootfs'
+eden -t 10m utils download eve-rootfs --eve-tag={{$alt_ver}} --eve-hv={{$alt_hv}} --eve-registry={{$alt_reg}} --downloader-dist={{EdenConfigPath "eve.dist"}} -v debug
+
+stdout '{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs'
+
+# Step 3: push the cross-flavor eveimage-update.
+# --os-version explicit so adam's BaseOsConfig.BaseOsVersion carries the
+# cross-flavor tag regardless of any stale eve_version metadata in the
+# squashfs (a known kvm<->k Makefile quirk; see ~/CLAUDE.md memories).
+message 'pushing cross-flavor eveimage-update'
+eden -t 10m controller edge-node eveimage-update file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs --os-version={{ $alt_short_version }} -m adam://
+
+! stderr .
+
+# Step 4: wait for the upgrade — and poll k3s / kube diagnostics
+# while we wait. If eve-k boots but k3s never comes up, this is where
+# we'll surface the failure.
+message 'waiting for cross-flavor upgrade to complete (with k3s diagnostics)'
+exec -t 35m bash wait-for-cross-hv-upgrade.sh
+
+# Step 5: roll back via the existing revert_eve_image_update scenario.
+# Skipped if step 4 failed (escript halts on first failure).
+test eden.escript.test -test.run TestEdenScripts/revert_eve_image_update -test.v -testdata {{EdenConfig "eden.tests"}}/update_eve_image/testdata/
+
+# Step 6: clear adam's leftover BaseOsConfig for the alternate version.
+eden -t 1m controller edge-node eveimage-remove file://{{EdenConfigPath "eve.dist"}}/rootfs-{{ $alt_short_version }}.squashfs -m adam://
+eden controller edge-node get-config
+! stdout '{{ $alt_short_version }}'
+
+exec sleep 10
+eden eve reset
+
+-- assert-no-volumes.sh --
+#!/bin/bash
+# Pre-flight: assert no live volumes (IN_CONFIG / DELIVERED) on EVE.
+# Transient delete states (NOT_IN_CONFIG / RESOLVING_TAG) are tolerated.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+for i in $(seq 1 12); do
+    out=$("$EDEN" volume ls 2>/dev/null)
+    live=$(echo "$out" | awk 'NR>1 && ($(NF-1) == "IN_CONFIG" || $NF == "DELIVERED")')
+    if [ -z "$live" ]; then
+        echo "OK: no live volumes on the device"
+        echo "$out"
+        exit 0
+    fi
+    echo "Waiting for transient volumes to settle (attempt $i/12):"
+    echo "$live"
+    sleep 5
+done
+echo "FAIL: live volume(s) still present after polling" >&2
+echo "$out" >&2
+exit 1
+
+-- wait-for-cross-hv-upgrade.sh --
+#!/bin/bash
+# Wait for the upgraded EVE to reach PartitionState:active AND running
+# the expected $EXPECT_VERSION, while periodically dumping k3s/kube
+# diagnostics once we've booted into eve-k. Timeout is enforced by the
+# wrapping `exec -t 35m`.
+set -uo pipefail
+EDEN="{{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}"
+EXPECT_VERSION='{{ $alt_short_version }}'
+DEADLINE=$(( $(date +%s) + 1800 ))   # 30 min
+
+# Resilient SSH probe — returns empty (not fatal log line) if SSH fails.
+probe() {
+    local out
+    out=$(timeout 15 "$EDEN" eve ssh -- "$1" 2>/dev/null)
+    echo "$out" | grep -v 'level=fatal'
+}
+
+dump_k3s_diags() {
+    echo "  --- k3s diagnostics ---"
+    sock=$(probe 'test -S /run/containerd-user/containerd.sock && echo present || echo absent')
+    echo "  /run/containerd-user/containerd.sock: $sock"
+
+    # Container-side runtime view of kube
+    kube_pid=$(probe 'ctr -n services c info kube 2>/dev/null | sed -n "s/.*\"Pid\": *\\([0-9]*\\).*/\\1/p"')
+    echo "  kube container pid: ${kube_pid:-not running}"
+
+    # Cluster-init log — common candidate paths on EVE-k
+    for log in /persist/kubelog/cluster-init.log /persist/k3s/cluster-init.log /persist/log/cluster-init.log /persist/kube/cluster-init.log; do
+        present=$(probe "test -f $log && echo y")
+        if [ "$present" = "y" ]; then
+            echo "  --- tail of $log ---"
+            probe "tail -30 $log" | sed 's/^/    /'
+            break
+        fi
+    done
+
+    # Recent k3s / cluster-init errors anywhere on the device
+    errs=$(probe 'logread 2>/dev/null | grep -iE "k3s|cluster-init|kubelet" | grep -iE "level=error|level=fatal|fail" | tail -10')
+    if [ -n "$errs" ]; then
+        echo "  --- recent k3s/cluster-init errors ---"
+        echo "$errs" | sed 's/^/    /'
+    fi
+
+    # baseosmgr's progress (or stuck spin)
+    baseosmgr_tail=$(probe 'logread 2>/dev/null | grep baseosmgr | tail -3')
+    if [ -n "$baseosmgr_tail" ]; then
+        echo "  --- baseosmgr last 3 log lines ---"
+        echo "$baseosmgr_tail" | sed 's/^/    /'
+    fi
+}
+
+prev_running=""
+diags_dumped_this_state=""
+
+while [ $(date +%s) -lt $DEADLINE ]; do
+    running=$(probe 'cat /run/eve-release' | tr -d '\r' | grep -E '^[A-Za-z0-9._+-]+$' | tail -1)
+    if [ -z "$running" ]; then
+        echo "$(date +%H:%M:%S): EVE not reachable via SSH (possibly rebooting)"
+        sleep 20
+        continue
+    fi
+
+    imgb_state=$(probe 'eve exec pillar cat /run/baseosmgr/ZbootStatus/IMGB.json' \
+        | grep -oP '"PartitionState":"\K[^"]+' | head -1)
+    [ -z "$imgb_state" ] && imgb_state='unknown'
+
+    echo "$(date +%H:%M:%S): running='$running' IMGB.PartitionState='$imgb_state'"
+
+    # Success: IMGB is now active running the new version.
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$imgb_state" = "active" ]; then
+        echo "OK: cross-HV upgrade complete (IMGB active, version=$running)"
+        exit 0
+    fi
+
+    # If we've reached the target version but are stuck inprogress,
+    # dump k3s diagnostics every iteration to capture why.
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$imgb_state" = "inprogress" ]; then
+        dump_k3s_diags
+    fi
+
+    # First time we see the new running version, also dump diags.
+    if [ "$running" = "$EXPECT_VERSION" ] && [ "$prev_running" != "$running" ]; then
+        echo "  (transitioned to $running — booting eve-k)"
+        dump_k3s_diags
+    fi
+
+    prev_running="$running"
+    sleep 30
+done
+
+echo "FAIL: 30m timeout. Last seen: running='$running' IMGB.PartitionState='$imgb_state'"
+dump_k3s_diags
+exit 1
+
+-- eden-config.yml --
+test:
+    controller: adam://{{EdenConfig "adam.ip"}}:{{EdenConfig "adam.port"}}
+    eve:
+      {{EdenConfig "eve.name"}}:
+        onboard-cert: {{EdenConfigPath "eve.cert"}}
+        serial: "{{EdenConfig "eve.serial"}}"
+        model: {{EdenConfig "eve.devmodel"}}
