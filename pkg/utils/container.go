@@ -17,7 +17,6 @@ import (
 	// Docker SDK (use consistent version)
 	"github.com/distribution/reference"
 	"github.com/docker/cli/cli/config"
-	"github.com/docker/cli/cli/config/configfile"
 	ct "github.com/docker/cli/cli/config/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -244,18 +243,6 @@ func getRegistryAuth(image string) (*ct.AuthConfig, error) {
 
 	log.Infof("Loaded Docker config (encoded) %s", cfg.GetFilename())
 
-	// Debug: Print config file content if it exists
-	if cfg.GetFilename() != "" {
-		if err := debugPrintConfigFile(cfg.GetFilename()); err != nil {
-			return nil, err
-		}
-	}
-
-	// Debug: Print all credentials if available
-	if err := debugPrintAllCredentials(cfg); err != nil {
-		log.Info("No credentials found in docker config")
-	}
-
 	authConfig, err := cfg.GetAuthConfig(registry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth config for registry %s: %w", registry, err)
@@ -270,35 +257,6 @@ func getRegistryAuth(image string) (*ct.AuthConfig, error) {
 		IdentityToken: authConfig.IdentityToken,
 		RegistryToken: authConfig.RegistryToken,
 	}, nil
-}
-
-// Helper function to print config file content
-func debugPrintConfigFile(filename string) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		return fmt.Errorf("failed to open docker config file %s: %w", filename, err)
-	}
-	defer file.Close()
-
-	log.Debugf("Docker config file %s content:", filename)
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		log.Debug(scanner.Text())
-	}
-	return scanner.Err()
-}
-
-// Helper function to print all credentials
-func debugPrintAllCredentials(cfg *configfile.ConfigFile) error {
-	allConf, err := cfg.GetAllCredentials()
-	if err != nil {
-		return err
-	}
-
-	for _, conf := range allConf {
-		log.Debugf("Registry: %s, Username: %s", conf.ServerAddress, conf.Username)
-	}
-	return nil
 }
 
 func getEncodedAuth(image string) (string, error) {
