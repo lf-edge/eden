@@ -3,7 +3,6 @@ package openevec
 import (
 	"archive/tar"
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -12,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/client"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
@@ -22,6 +20,7 @@ import (
 	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/models"
 	"github.com/lf-edge/eden/pkg/utils"
+	"github.com/moby/moby/client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -70,12 +69,10 @@ func (openEVEC *OpenEVEC) OciImage(fileToSave, image, registry string, isLocal b
 			return err
 		}
 	} else {
-		ctx := context.Background()
-		cli, err := client.NewClientWithOpts(client.FromEnv)
+		cli, err := client.New(client.FromEnv)
 		if err != nil {
 			return err
 		}
-		cli.NegotiateAPIVersion(ctx)
 		options := daemon.WithClient(cli)
 		img, err = daemon.Image(ref, options)
 		if err != nil {
