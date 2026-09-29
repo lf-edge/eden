@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/dustin/go-humanize"
 	"github.com/lf-edge/eden/pkg/device"
 	"github.com/lf-edge/eden/pkg/expect"
+	"github.com/lf-edge/eden/pkg/namesgenerator"
 	"github.com/lf-edge/eden/pkg/testcontext"
 	"github.com/lf-edge/eden/pkg/utils"
 	"github.com/lf-edge/eve-api/go/config"
