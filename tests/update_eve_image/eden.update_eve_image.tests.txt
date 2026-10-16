@@ -1,2 +1,5 @@
 eden.escript.test -test.run TestEdenScripts/update_eve_image_http -test.timeout 60m
 eden.escript.test -test.run TestEdenScripts/update_eve_image_oci -test.timeout 60m
+eden.escript.test -test.run TestEdenScripts/update_eve_image_cross_hv -test.timeout 90m
+eden.escript.test -test.run TestEdenScripts/update_eve_image_cross_hv_with_contenttree -test.timeout 90m
+eden.escript.test -test.run TestEdenScripts/update_eve_image_cross_hv_with_app_recreate -test.timeout 180m
