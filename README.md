@@ -113,7 +113,13 @@ There are additional requirements for certain use cases:
 
 If you intend to run EVE in a virtual local device, you also will need:
 
-* qemu version 4.x or higher
+* qemu version 11.1.0 or higher (or 11.0.4+ from the 11.0 stable series). Older
+  builds hit [QEMU issue #2777](https://gitlab.com/qemu-project/qemu/-/issues/2777):
+  on a q35 machine with an AHCI disk, a guest that submits an NCQ command with a
+  zero-length PRDT trips an assertion in `ide_dma_cb` and the emulator aborts,
+  killing the VM mid-test. QEMU commit `443e024106` replaces the assertion with
+  proper error handling; it first shipped in v11.1.0 and was backported to v11.0.4.
+  No 10.2.x release carries the fix.
 * Linux: [KVM](https://www.linux-kvm.org/page/Main_Page), including the ability to execute commands. For Linux:
 
 ```console
