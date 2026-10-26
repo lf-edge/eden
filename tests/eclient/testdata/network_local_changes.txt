@@ -6,6 +6,7 @@
 {{define "local_network_config_file"}}/mnt/local-network-config.json{{end}}
 {{define "network"}}n1{{end}}
 {{define "ssh"}}ssh -q -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@FWD_IP -p FWD_PORT{{end}}
+{{define "ssh_wait"}}ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa root@FWD_IP -p FWD_PORT{{end}}
 {{define "scp"}}scp -i {{EdenConfig "eden.tests"}}/eclient/image/cert/id_rsa -P FWD_PORT{{end}}
 {{define "eclient_image"}}docker://{{EdenConfig "eden.eclient.image"}}:{{EdenConfig "eden.eclient.tag"}}{{end}}
 {{define "jq_path_eth0_latest_cfg"}}.latestConfig[] | select(.logicalLabel=="eth0"){{end}}
@@ -130,15 +131,30 @@ test eden.network.test -test.v -timewait 10m - {{template "network"}}
 
 -- wait-ssh.sh --
 EDEN={{EdenConfig "eden.root"}}/{{EdenConfig "eden.bin-dist"}}/{{EdenConfig "eden.eden-bin"}}
+# WAIT_SSH_BUDGET bounds the whole wait and must stay about a minute below
+# the enclosing `exec -t`: a harness timeout kills the shell outright, so
+# none of the reporting below would run.
+BUDGET=${WAIT_SSH_BUDGET:-200}
+deadline=$(( $(date +%s) + BUDGET ))
 for p in $*
 do
-  for i in `seq 20`
+  ready=0
+  while [ "$(date +%s)" -lt "$deadline" ]
   do
-    sleep 20
-    # Test SSH-access to container
-    echo $EDEN sdn fwd eth0 $p -- {{template "ssh"}} grep -q Ubuntu /etc/issue
-    $EDEN sdn fwd eth0 $p -- {{template "ssh"}} grep -q Ubuntu /etc/issue && break
+    if err=$(timeout 30 $EDEN sdn fwd eth0 $p -- {{template "ssh_wait"}} grep -q Ubuntu /etc/issue 2>&1)
+    then
+      ready=1
+      break
+    fi
+    echo "wait-ssh: port $p not ready yet: $err"
+    sleep 5
   done
+  if [ "$ready" -ne 1 ]
+  then
+    echo "wait-ssh: port $p did not answer ssh within ${BUDGET}s; last error: $err"
+    timeout 15 $EDEN pod ps
+    exit 1
+  fi
 done
 
 -- local-manager-start.sh --
