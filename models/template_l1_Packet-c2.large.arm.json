@@ -22,7 +22,7 @@
       "usagePolicy": {}
     },
     {
-      "ztype": 2,
+      "ztype": 13,
       "phylabel": "USB",
       "assigngrp": "USB",
       "logicallabel": "USB",
