@@ -55,36 +55,17 @@ jobs:
         tpm: [true, false]
     runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Check job status from previous attempt
-        id: prev_attempt
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FULL_JOB_NAME: ${{ env.JOB_NAME }} (${{ matrix.file_system }}, ${{ matrix.tpm }})
-        run: |
-          PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
-          # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
-          if [ "$PREV_ATTEMPT" -le 0 ]; then
-            echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          prev_conclusion=$(
-            gh api \
-              -X GET \
-              repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
-              -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
-          )
-          if [ -z "$prev_conclusion" ]; then
-            echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
-            exit 1
-          fi
-          echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Get code
-        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }} (${{ matrix.file_system }}, ${{ matrix.tpm }})
       - name: Run tests
         if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
@@ -103,36 +84,17 @@ jobs:
       JOB_NAME: Networking
     runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Check job status from previous attempt
-        id: prev_attempt
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FULL_JOB_NAME: ${{ env.JOB_NAME }}
-        run: |
-            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
-            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
-            if [ "$PREV_ATTEMPT" -le 0 ]; then
-                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
-                exit 0
-            fi
-            prev_conclusion=$(
-                gh api \
-                -X GET \
-                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
-                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
-            )
-            if [ -z "$prev_conclusion" ]; then
-                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
-                exit 1
-            fi
-            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Get code
-        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }}
       - name: Run tests
         if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
@@ -155,36 +117,17 @@ jobs:
         file_system: ['ext4', 'zfs']
     runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Check job status from previous attempt
-        id: prev_attempt
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FULL_JOB_NAME: ${{ env.JOB_NAME }} (${{ matrix.file_system }})
-        run: |
-            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
-            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
-            if [ "$PREV_ATTEMPT" -le 0 ]; then
-                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
-                exit 0
-            fi
-            prev_conclusion=$(
-                gh api \
-                -X GET \
-                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
-                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
-            )
-            if [ -z "$prev_conclusion" ]; then
-                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
-                exit 1
-            fi
-            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Get code
-        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }} (${{ matrix.file_system }})
       - name: Run tests
         if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
@@ -203,36 +146,17 @@ jobs:
       JOB_NAME: LPS/LOC
     runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Check job status from previous attempt
-        id: prev_attempt
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FULL_JOB_NAME: ${{ env.JOB_NAME }}
-        run: |
-            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
-            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
-            if [ "$PREV_ATTEMPT" -le 0 ]; then
-                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
-                exit 0
-            fi
-            prev_conclusion=$(
-                gh api \
-                -X GET \
-                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
-                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
-            )
-            if [ -z "$prev_conclusion" ]; then
-                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
-                exit 1
-            fi
-            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Get code
-        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }}
       - name: Run tests
         if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
@@ -255,36 +179,17 @@ jobs:
         file_system: ['ext4', 'zfs']
     runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Check job status from previous attempt
-        id: prev_attempt
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FULL_JOB_NAME: ${{ env.JOB_NAME }} (${{ matrix.file_system }})
-        run: |
-            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
-            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
-            if [ "$PREV_ATTEMPT" -le 0 ]; then
-                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
-                exit 0
-            fi
-            prev_conclusion=$(
-                gh api \
-                -X GET \
-                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
-                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
-            )
-            if [ -z "$prev_conclusion" ]; then
-                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
-                exit 1
-            fi
-            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Get code
-        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }} (${{ matrix.file_system }})
       - name: Run tests
         if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
@@ -303,36 +208,17 @@ jobs:
       JOB_NAME: User Apps
     runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Check job status from previous attempt
-        id: prev_attempt
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FULL_JOB_NAME: ${{ env.JOB_NAME }}
-        run: |
-            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
-            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
-            if [ "$PREV_ATTEMPT" -le 0 ]; then
-                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
-                exit 0
-            fi
-            prev_conclusion=$(
-                gh api \
-                -X GET \
-                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
-                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
-            )
-            if [ -z "$prev_conclusion" ]; then
-                echo "Could not find matching job in previous attempt" >&2
-                exit 1
-            fi
-            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Get code
-        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }}
       - name: Run tests
         if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test
@@ -351,36 +237,17 @@ jobs:
       JOB_NAME: Virtualization
     runs-on: ${{ fromJSON(github.repository_owner == 'lf-edge' && '["nested-virt"]' || '["ubuntu-22.04"]') }}
     steps:
-      - name: Check job status from previous attempt
-        id: prev_attempt
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FULL_JOB_NAME: ${{ env.JOB_NAME }}
-        run: |
-            PREV_ATTEMPT=$((${{ github.run_attempt }} - 1 ))
-            # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
-            if [ "$PREV_ATTEMPT" -le 0 ]; then
-                echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
-                exit 0
-            fi
-            prev_conclusion=$(
-                gh api \
-                -X GET \
-                repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs \
-                -q ".jobs[] | select(.name | contains(\"${{ env.FULL_JOB_NAME }}\")) | .conclusion"
-            )
-            if [ -z "$prev_conclusion" ]; then
-                echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
-                exit 1
-            fi
-            echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
       - name: Get code
-        if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: actions/checkout@v4.1.1
         with:
           repository: "lf-edge/eden"
           ref: ${{ inputs.eden_version }}
           path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }}
       - name: Run tests
         if: steps.prev_attempt.outputs.conclusion != 'success'
         uses: ./eden/.github/actions/run-eden-test

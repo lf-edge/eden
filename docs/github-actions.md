@@ -26,3 +26,27 @@ The mirror is configured via the `EDEN_REGISTRY_MIRROR` environment variable, wh
 ```
 
 This sets the `registry.mirror` config key, which Eden passes to EVE as the datastore FQDN for pulling application images (see `getDataStoreFQDN` in `pkg/expect/docker.go`). Instead of pulling directly from Docker Hub, EVE pulls from the local mirror, which caches images transparently. Because of this, authenticated Docker Hub logins are not needed for pulling images in test workflows.
+
+## Skipping Jobs That Passed in a Previous Attempt
+
+Every job in `test.yml` first runs the [check-prev-attempt](../.github/actions/check-prev-attempt/action.yml) action. On a rerun, it asks the GitHub API for the conclusion of the same job in the previous attempt of the workflow run, and the job skips its tests if that conclusion was `success`. That makes "Re-run all jobs" cheap: only the jobs that did not succeed run their tests again. On the first attempt the action reports `skipped`, so all tests run.
+
+The job is matched by name, so `job_name` must be the job's name with its matrix values, as GitHub shows it. A new job in `test.yml` should check out eden first, because the action is used from that checkout:
+
+```yaml
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: "lf-edge/eden"
+          ref: ${{ inputs.eden_version }}
+          path: "./eden"
+      - name: Check job status from previous attempt
+        id: prev_attempt
+        uses: ./eden/.github/actions/check-prev-attempt
+        with:
+          job_name: ${{ env.JOB_NAME }} (${{ matrix.file_system }})
+      - name: Run tests
+        if: steps.prev_attempt.outputs.conclusion != 'success'
+        uses: ./eden/.github/actions/run-eden-test
+```
