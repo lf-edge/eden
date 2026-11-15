@@ -202,7 +202,7 @@ func (openEVEC *OpenEVEC) StopEve(vmName string) error {
 		if err := eden.StopEVEParallels(vmName); err != nil {
 			log.Errorf("cannot stop eve: %s", err.Error())
 		} else {
-			log.Infof("EVE is stopping in Virtual Box")
+			log.Infof("EVE is stopping in Parallels")
 		}
 	} else {
 		if err := eden.StopEVEQemu(cfg.Eve.Pid); err != nil {

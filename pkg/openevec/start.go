@@ -100,3 +100,32 @@ func (openEVEC *OpenEVEC) StartEden(vmName, zedControlURL, tapInterface string) 
 	log.Infof("EVE is starting")
 	return nil
 }
+
+// StopEden stops Adam, Redis, the registry and EServer, removing their
+// containers if asked to, and then stops EVE, vTPM and SDN.
+func (openEVEC *OpenEVEC) StopEden(adamRm, redisRm, registryRm, eServerRm bool, vmName string) error {
+	if err := eden.StopAdam(adamRm); err != nil {
+		log.Infof("cannot stop adam: %s", err)
+	} else {
+		log.Infof("adam stopped")
+	}
+	if err := eden.StopRedis(redisRm); err != nil {
+		log.Infof("cannot stop redis: %s", err)
+	} else {
+		log.Infof("redis stopped")
+	}
+	if err := eden.StopRegistry(registryRm); err != nil {
+		log.Infof("cannot stop registry: %s", err)
+	} else {
+		log.Infof("registry stopped")
+	}
+	if err := eden.StopEServer(eServerRm); err != nil {
+		log.Infof("cannot stop eserver: %s", err)
+	} else {
+		log.Infof("eserver stopped")
+	}
+	if err := openEVEC.StopEve(vmName); err != nil {
+		return fmt.Errorf("cannot stop eve: %w", err)
+	}
+	return nil
+}
