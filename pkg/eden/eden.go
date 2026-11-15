@@ -883,66 +883,6 @@ func CleanContext(eveDist, certsDist, imagesDist, evePID, eveUUID, sdnPID, vmNam
 	return nil
 }
 
-// StopEden teardown Eden
-func StopEden(adamRm, redisRm, registryRm, eserverRm, eveRemote bool,
-	evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string, sdnDisable bool) {
-	if err := StopAdam(adamRm); err != nil {
-		log.Infof("cannot stop adam: %s", err)
-	} else {
-		log.Infof("adam stopped")
-	}
-	if err := StopRedis(redisRm); err != nil {
-		log.Infof("cannot stop redis: %s", err)
-	} else {
-		log.Infof("redis stopped")
-	}
-	if err := StopRegistry(registryRm); err != nil {
-		log.Infof("cannot stop registry: %s", err)
-	} else {
-		log.Infof("registry stopped")
-	}
-	if err := StopEServer(eserverRm); err != nil {
-		log.Infof("cannot stop eserver: %s", err)
-	} else {
-		log.Infof("eserver stopped")
-	}
-	if !eveRemote {
-		StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName, sdnDisable)
-	}
-}
-
-// StopEve stops EVE, vTPM and SDN.
-func StopEve(evePidFile, swtpmPidFile, sdnPidFile, devModel, vmName string, sdnDisable bool) {
-	if devModel == defaults.DefaultVBoxModel {
-		if err := StopEVEVBox(vmName); err != nil {
-			log.Infof("cannot stop EVE: %s", err)
-		} else {
-			log.Infof("EVE stopped")
-		}
-	} else if devModel == defaults.DefaultParallelsModel {
-		if err := StopEVEParallels(vmName); err != nil {
-			log.Infof("cannot stop EVE: %s", err)
-		} else {
-			log.Infof("EVE stopped")
-		}
-	} else {
-		if err := StopEVEQemu(evePidFile); err != nil {
-			log.Infof("cannot stop EVE: %s", err)
-		} else {
-			log.Infof("EVE stopped")
-		}
-		if swtpmPidFile != "" {
-			err := StopSWTPM(filepath.Dir(swtpmPidFile))
-			if err != nil {
-				log.Infof("cannot stop swtpm: %s", err)
-			} else {
-				log.Infof("swtpm is stopping")
-			}
-		}
-	}
-	StopSDN(devModel, sdnPidFile, sdnDisable)
-}
-
 func StopSDN(devModel, sdnPidFile string, sdnDisable bool) {
 	if devModel != defaults.DefaultQemuModel || sdnDisable {
 		// SDN is not running, nothing to do
@@ -964,14 +904,10 @@ func StopSDN(devModel, sdnPidFile string, sdnDisable bool) {
 	}
 }
 
-// CleanEden teardown Eden and cleanup
+// CleanEden removes the files, container volumes and VMs left by Eden.
+// Eden must be stopped first.
 func CleanEden(eveDist, adamDist, certsDist, imagesDist, eserverDist, redisDist,
-	registryDist, configDist, evePID, sdnPID, configSaved string, remote bool,
-	devModel, vmName string, sdnDisable bool) (err error) {
-	command := "swtpm"
-	swtpmPidFile := filepath.Join(imagesDist, fmt.Sprintf("%s.pid", command))
-	StopEden(true, true, true, true, remote,
-		evePID, swtpmPidFile, sdnPID, devModel, vmName, sdnDisable)
+	registryDist, configDist, configSaved, devModel, vmName string) (err error) {
 	if _, err = os.Stat(eveDist); !os.IsNotExist(err) {
 		if err = os.RemoveAll(eveDist); err != nil {
 			return fmt.Errorf("1 CleanEden: error in %s delete: %s", eveDist, err)

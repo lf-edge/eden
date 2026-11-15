@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/lf-edge/eden/pkg/defaults"
-	"github.com/lf-edge/eden/pkg/eden"
 	"github.com/lf-edge/eden/pkg/openevec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -22,13 +21,9 @@ func newStopCmd(configName, verbosity *string) *cobra.Command {
 		Long:              `Stop harness.`,
 		PersistentPreRunE: preRunViperLoadFunction(cfg, configName, verbosity),
 		Run: func(cmd *cobra.Command, args []string) {
-			eden.StopEden(
-				adamRm, redisRm,
-				registryRm, eServerRm,
-				cfg.Eve.Remote, cfg.Eve.Pid,
-				swtpmPidFile(cfg), cfg.Sdn.PidFile,
-				cfg.Eve.DevModel, vmName, cfg.Sdn.Disable,
-			)
+			if err := openEVEC.StopEden(adamRm, redisRm, registryRm, eServerRm, vmName); err != nil {
+				log.Fatal(err)
+			}
 		},
 	}
 
