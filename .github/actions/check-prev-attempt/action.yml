@@ -1,0 +1,41 @@
+---
+name: 'Check job status from previous attempt'
+description: 'Look up the conclusion of the same job in the previous attempt of this workflow run, so that a job which already succeeded can skip its tests when all jobs are rerun'
+
+inputs:
+  job_name:
+    description: 'Name of the job to look up, including its matrix values, e.g. "Smoke (ext4, true)"'
+    required: true
+
+outputs:
+  conclusion:
+    description: 'Conclusion of the job in the previous attempt, or "skipped" for the first attempt'
+    value: ${{ steps.check.outputs.conclusion }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check job status from previous attempt
+      id: check
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        JOB_NAME: ${{ inputs.job_name }}
+      run: |
+        PREV_ATTEMPT=$((GITHUB_RUN_ATTEMPT - 1))
+        # For the first attempt, we don't need to check the previous attempt, just set conclusion to 'skipped'
+        if [ "$PREV_ATTEMPT" -le 0 ]; then
+          echo "conclusion=skipped" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        prev_conclusion=$(
+          gh api \
+            -X GET \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${PREV_ATTEMPT}/jobs" \
+            -q ".jobs[] | select(.name | contains(\"${JOB_NAME}\")) | .conclusion"
+        )
+        if [ -z "$prev_conclusion" ]; then
+          echo "Could not find matching job in attempt ${PREV_ATTEMPT}" >&2
+          exit 1
+        fi
+        echo "conclusion=$prev_conclusion" >> "$GITHUB_OUTPUT"
+      shell: bash
